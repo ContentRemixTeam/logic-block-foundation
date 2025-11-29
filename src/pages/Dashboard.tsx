@@ -67,11 +67,23 @@ export default function Dashboard() {
         <div className="flex items-center justify-center min-h-[400px]">
           <Card className="max-w-md">
             <CardHeader>
-              <CardTitle className="text-destructive">Error Loading Dashboard</CardTitle>
+              <CardTitle>Unable to Load Dashboard</CardTitle>
+              <CardDescription>
+                We encountered an issue loading your dashboard data
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">{error}</p>
-              <Button onClick={loadDashboardSummary}>Retry</Button>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                This might be temporary. Please try refreshing the page or starting a new 90-day cycle.
+              </p>
+              <div className="flex gap-2">
+                <Button onClick={loadDashboardSummary} variant="default">
+                  Retry
+                </Button>
+                <Link to="/cycle-setup">
+                  <Button variant="outline">Start New Cycle</Button>
+                </Link>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -79,10 +91,27 @@ export default function Dashboard() {
     );
   }
 
-  const hasCycle = summary?.cycle?.goal;
-  const habitColor = summary?.habits?.status || 'grey';
-  const weekPriorities = Array.isArray(summary?.week?.priorities) ? summary.week.priorities : [];
-  const todayTop3 = Array.isArray(summary?.today?.top_3) ? summary.today.top_3 : [];
+  // Safe normalization of all data with fallbacks
+  const cycle = summary?.cycle ?? {};
+  const week = summary?.week ?? {};
+  const today = summary?.today ?? {};
+  const habits = summary?.habits ?? {};
+
+  // Fallback arrays for priorities
+  const weeklyPriorities = Array.isArray(week.priorities)
+    ? week.priorities.map(String).filter(Boolean)
+    : [];
+
+  const todayTop3 = Array.isArray(today.top_3)
+    ? today.top_3.map(String).filter(Boolean)
+    : [];
+
+  // Fallback strings and numbers
+  const goal = cycle.goal ?? '';
+  const daysRemaining = cycle.days_remaining ?? 0;
+  const habitStatus = (habits.status ?? 'grey') as 'green' | 'yellow' | 'grey';
+  
+  const hasCycle = Boolean(goal);
 
   return (
     <Layout>
@@ -112,18 +141,20 @@ export default function Dashboard() {
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {/* 90-Day Goal */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">90-Day Goal</CardTitle>
-                <Target className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{summary.cycle.goal}</div>
-                <p className="text-xs text-muted-foreground">
-                  {summary.cycle.days_remaining} days remaining
-                </p>
-              </CardContent>
-            </Card>
+            {goal && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">90-Day Goal</CardTitle>
+                  <Target className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold line-clamp-2">{goal}</div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {daysRemaining > 0 ? `${daysRemaining} days remaining` : 'Cycle complete'}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Weekly Priorities */}
             <Card>
@@ -133,11 +164,11 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {weekPriorities.length > 0 ? (
-                    weekPriorities.map((priority: string, idx: number) => (
+                  {weeklyPriorities.length > 0 ? (
+                    weeklyPriorities.map((priority, idx) => (
                       <div key={idx} className="flex items-start gap-2">
                         <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                        <div className="text-sm">{priority}</div>
+                        <div className="text-sm line-clamp-2">{priority}</div>
                       </div>
                     ))
                   ) : (
@@ -161,10 +192,10 @@ export default function Dashboard() {
               <CardContent>
                 <div className="space-y-2">
                   {todayTop3.length > 0 ? (
-                    todayTop3.map((task: string, idx: number) => (
+                    todayTop3.map((task, idx) => (
                       <div key={idx} className="flex items-start gap-2">
                         <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                        <div className="text-sm">{task}</div>
+                        <div className="text-sm line-clamp-2">{task}</div>
                       </div>
                     ))
                   ) : (
@@ -188,18 +219,18 @@ export default function Dashboard() {
               <CardContent>
                 <div className="flex items-center gap-3">
                   <Badge
-                    variant={habitColor === 'green' ? 'default' : habitColor === 'yellow' ? 'secondary' : 'outline'}
+                    variant={habitStatus === 'green' ? 'default' : habitStatus === 'yellow' ? 'secondary' : 'outline'}
                     className={`${
-                      habitColor === 'green'
+                      habitStatus === 'green'
                         ? 'bg-success/10 text-success hover:bg-success/20 border-success/20'
-                        : habitColor === 'yellow'
+                        : habitStatus === 'yellow'
                         ? 'bg-warning/10 text-warning hover:bg-warning/20 border-warning/20'
                         : 'bg-muted text-muted-foreground'
                     }`}
                   >
-                    {habitColor === 'green' && '✓ Great progress'}
-                    {habitColor === 'yellow' && '~ Needs work'}
-                    {habitColor === 'grey' && '○ Not started'}
+                    {habitStatus === 'green' && '✓ Great progress'}
+                    {habitStatus === 'yellow' && '~ Needs work'}
+                    {habitStatus === 'grey' && '○ Not started'}
                   </Badge>
                 </div>
                 <Link to="/habits" className="mt-3 block">
