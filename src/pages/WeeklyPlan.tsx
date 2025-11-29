@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Link, useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,13 +9,16 @@ import { Layout } from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, X } from 'lucide-react';
+import { ArrowLeft, Calendar, Loader2 } from 'lucide-react';
 
 export default function WeeklyPlan() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [currentCycle, setCurrentCycle] = useState<any>(null);
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [weekId, setWeekId] = useState<string | null>(null);
   const [priorities, setPriorities] = useState<string[]>(['', '', '']);
   const [thought, setThought] = useState('');
   const [feeling, setFeeling] = useState('');
@@ -22,23 +26,50 @@ export default function WeeklyPlan() {
   const [adjustments, setAdjustments] = useState('');
 
   useEffect(() => {
-    loadCurrentCycle();
+    loadWeeklyPlan();
   }, [user]);
 
-  const loadCurrentCycle = async () => {
+  const loadWeeklyPlan = async () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase.rpc('get_current_cycle', {
-        p_user_id: user.id,
-      });
+      setError(null);
+      const { data, error: fnError } = await supabase.functions.invoke('get-weekly-plan');
 
-      if (error) throw error;
-      if (data && data.length > 0) {
-        setCurrentCycle(data[0]);
+      if (fnError) throw fnError;
+
+      console.log('Weekly plan data received:', data);
+
+      if (data?.error) {
+        setError(data.error);
+        return;
       }
-    } catch (error) {
-      console.error('Error loading cycle:', error);
+
+      if (data?.data) {
+        const weekData = data.data;
+        setWeekId(weekData.week_id);
+        
+        // Normalize priorities
+        const normalizedPriorities = Array.isArray(weekData.top_3_priorities) 
+          ? weekData.top_3_priorities 
+          : [];
+        
+        setPriorities([
+          normalizedPriorities[0] || '',
+          normalizedPriorities[1] || '',
+          normalizedPriorities[2] || '',
+        ]);
+        
+        setThought(weekData.weekly_thought || '');
+        setFeeling(weekData.weekly_feeling || '');
+        setChallenges(weekData.challenges || '');
+        setAdjustments(weekData.adjustments || '');
+      }
+    } catch (error: any) {
+      console.error('Error loading weekly plan:', error);
+      setError(error?.message || 'Failed to load weekly plan');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -50,55 +81,96 @@ export default function WeeklyPlan() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !currentCycle) return;
-    setLoading(true);
+    if (!user || !weekId) return;
+    
+    setSaving(true);
 
     try {
-      const today = new Date();
-      const dayOfWeek = today.getDay();
-      const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1));
-
-      const { error } = await supabase.from('weekly_plans').insert({
-        user_id: user.id,
-        cycle_id: currentCycle.cycle_id,
-        start_of_week: startOfWeek.toISOString().split('T')[0],
-        top_3_priorities: priorities.filter((p) => p.trim()),
-        weekly_thought: thought,
-        weekly_feeling: feeling,
-        challenges,
-        adjustments,
+      const { data, error: fnError } = await supabase.functions.invoke('save-weekly-plan', {
+        body: {
+          week_id: weekId,
+          top_3_priorities: priorities.filter((p) => p.trim()),
+          weekly_thought: thought,
+          weekly_feeling: feeling,
+          challenges,
+          adjustments,
+        },
       });
 
-      if (error) throw error;
+      if (fnError) throw fnError;
+
+      console.log('Save response:', data);
 
       toast({
-        title: 'Weekly plan created!',
-        description: 'Your priorities have been set.',
+        title: 'Weekly plan saved!',
+        description: 'Your priorities have been updated.',
       });
-
-      // Reset form
-      setPriorities(['', '', '']);
-      setThought('');
-      setFeeling('');
-      setChallenges('');
-      setAdjustments('');
     } catch (error: any) {
+      console.error('SAVE ERROR:', error);
       toast({
-        title: 'Error',
-        description: error.message,
+        title: 'Error saving weekly plan',
+        description: error?.message || JSON.stringify(error),
         variant: 'destructive',
       });
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  if (!currentCycle) {
+  if (loading) {
     return (
       <Layout>
-        <div className="text-center">
-          <p className="text-muted-foreground">No active cycle found.</p>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading weekly plan...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error && error.includes('No active cycle')) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Card className="max-w-md">
+            <CardHeader>
+              <CardTitle>No Active Cycle</CardTitle>
+              <CardDescription>
+                You need to create a 90-day cycle before planning your week
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Link to="/cycle-setup">
+                <Button className="w-full">Start Your First 90-Day Cycle</Button>
+              </Link>
+              <Link to="/dashboard">
+                <Button variant="outline" className="w-full">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Dashboard
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Card className="max-w-md">
+            <CardHeader>
+              <CardTitle className="text-destructive">Error Loading Weekly Plan</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">{error}</p>
+              <Button onClick={loadWeeklyPlan}>Retry</Button>
+            </CardContent>
+          </Card>
         </div>
       </Layout>
     );
@@ -107,28 +179,33 @@ export default function WeeklyPlan() {
   return (
     <Layout>
       <div className="mx-auto max-w-3xl space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold">Weekly Plan</h1>
-          <p className="text-muted-foreground">
-            Set your top 3 priorities for this week
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Weekly Plan</h1>
+            <p className="text-muted-foreground">
+              Set your top 3 priorities for this week
+            </p>
+          </div>
+          <Link to="/dashboard">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Dashboard
+            </Button>
+          </Link>
         </div>
-
-        <Card className="bg-primary/5">
-          <CardContent className="pt-6">
-            <div className="text-sm font-medium text-muted-foreground">
-              90-Day Goal
-            </div>
-            <div className="text-lg font-semibold">{currentCycle.goal}</div>
-          </CardContent>
-        </Card>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Top 3 Weekly Priorities</CardTitle>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-primary" />
+                <CardTitle>Top 3 Weekly Priorities</CardTitle>
+              </div>
+              <CardDescription>
+                Focus on the most important outcomes for this week
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-4">
               {priorities.map((priority, idx) => (
                 <div key={idx}>
                   <Label htmlFor={`priority-${idx}`}>Priority {idx + 1}</Label>
@@ -147,6 +224,9 @@ export default function WeeklyPlan() {
           <Card>
             <CardHeader>
               <CardTitle>Weekly Reflection</CardTitle>
+              <CardDescription>
+                Set your mindset and prepare for the week ahead
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -183,17 +263,55 @@ export default function WeeklyPlan() {
                   id="adjustments"
                   value={adjustments}
                   onChange={(e) => setAdjustments(e.target.value)}
-                  placeholder="What needs to change?"
+                  placeholder="What needs to change from last week?"
                   rows={3}
                 />
               </div>
             </CardContent>
           </Card>
 
-          <Button type="submit" size="lg" className="w-full" disabled={loading}>
-            {loading ? 'Saving...' : 'Save Weekly Plan'}
-          </Button>
+          <div className="flex gap-3">
+            <Button type="submit" size="lg" className="flex-1" disabled={saving}>
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Weekly Plan'
+              )}
+            </Button>
+          </div>
         </form>
+
+        {/* Navigation Links */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2">
+            <Link to="/daily-plan">
+              <Button variant="outline" className="w-full justify-start">
+                Start Today's Plan →
+              </Button>
+            </Link>
+            <Link to="/habits">
+              <Button variant="outline" className="w-full justify-start">
+                Track Habits →
+              </Button>
+            </Link>
+            <Link to="/dashboard">
+              <Button variant="outline" className="w-full justify-start">
+                View Dashboard →
+              </Button>
+            </Link>
+            <Link to="/cycle-setup">
+              <Button variant="outline" className="w-full justify-start">
+                Manage 90-Day Cycle →
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );
