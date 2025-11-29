@@ -300,6 +300,11 @@ export default function WeeklyPlan() {
                 Track Habits →
               </Button>
             </Link>
+            <Link to="/weekly-review">
+              <Button variant="outline" className="w-full justify-start">
+                Weekly Review →
+              </Button>
+            </Link>
             <Link to="/dashboard">
               <Button variant="outline" className="w-full justify-start">
                 View Dashboard →

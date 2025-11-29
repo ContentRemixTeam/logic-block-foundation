@@ -271,6 +271,14 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </Link>
+            <Link to="/weekly-review">
+              <Card className="cursor-pointer transition-colors hover:bg-secondary">
+                <CardContent className="flex items-center justify-between p-6">
+                  <span className="font-medium">Weekly Review</span>
+                  <ArrowRight className="h-4 w-4" />
+                </CardContent>
+              </Card>
+            </Link>
             <Link to="/ideas">
               <Card className="cursor-pointer transition-colors hover:bg-secondary">
                 <CardContent className="flex items-center justify-between p-6">
