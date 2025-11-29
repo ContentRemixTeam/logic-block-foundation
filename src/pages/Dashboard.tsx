@@ -24,12 +24,17 @@ export default function Dashboard() {
     try {
       setError(null);
       console.log('Loading dashboard summary...');
+      
       const { data, error: fnError } = await supabase.functions.invoke('get-dashboard-summary');
 
-      console.log('Dashboard response:', { data, error: fnError });
+      console.log('Dashboard response:', { 
+        hasData: Boolean(data),
+        dataKeys: data ? Object.keys(data) : [],
+        error: fnError 
+      });
 
       if (fnError) {
-        console.error('Function error:', fnError);
+        console.error('Function invocation error:', fnError);
         throw fnError;
       }
       
