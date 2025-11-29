@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,31 +10,111 @@ import { Layout } from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 
 export default function DailyPlan() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [deepMode, setDeepMode] = useState(false);
   
-  const [top3, setTop3] = useState<any[]>(['', '', '']);
+  // Plan data
+  const [dayId, setDayId] = useState<string | null>(null);
+  const [top3, setTop3] = useState<string[]>(['', '', '']);
   const [thought, setThought] = useState('');
   const [feeling, setFeeling] = useState('');
+  const [deepModeNotes, setDeepModeNotes] = useState({
+    win: '',
+    obstacles: '',
+    show_up: '',
+  });
+  
+  // Weekly priorities
+  const [weeklyPriorities, setWeeklyPriorities] = useState<string[]>([]);
+  const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
+  
+  // Habits
   const [habits, setHabits] = useState<any[]>([]);
   const [habitLogs, setHabitLogs] = useState<Record<string, boolean>>({});
-  const [weeklyPriorities, setWeeklyPriorities] = useState<any[]>([]);
-  const [selectedPriorities, setSelectedPriorities] = useState<any[]>([]);
 
   useEffect(() => {
-    loadData();
+    loadDailyPlan();
   }, [user]);
 
-  const loadData = async () => {
+  const loadDailyPlan = async () => {
     if (!user) return;
 
     try {
-      // Load habits
+      setError(null);
+      console.log('Loading daily plan...');
+      
+      const { data, error: fnError } = await supabase.functions.invoke('get-daily-plan');
+
+      console.log('Daily plan response:', { hasData: Boolean(data), error: fnError });
+
+      if (fnError) throw fnError;
+
+      if (data?.error) {
+        setError(data.error);
+        return;
+      }
+
+      if (data?.data) {
+        const plan = data.data;
+        console.log('Plan loaded:', plan);
+
+        setDayId(plan.day_id || null);
+        
+        // Normalize top 3
+        const normalizedTop3 = Array.isArray(plan.top_3_today)
+          ? plan.top_3_today.map(String).filter(Boolean)
+          : [];
+        setTop3([
+          normalizedTop3[0] || '',
+          normalizedTop3[1] || '',
+          normalizedTop3[2] || '',
+        ]);
+
+        // Normalize weekly priorities
+        const normalizedWeekly = Array.isArray(plan.weekly_priorities)
+          ? plan.weekly_priorities.map(String).filter(Boolean)
+          : [];
+        setWeeklyPriorities(normalizedWeekly);
+
+        const normalizedSelected = Array.isArray(plan.selected_weekly_priorities)
+          ? plan.selected_weekly_priorities.map(String).filter(Boolean)
+          : [];
+        setSelectedPriorities(normalizedSelected);
+
+        setThought(plan.thought || '');
+        setFeeling(plan.feeling || '');
+
+        // Normalize deep mode notes
+        const notes = plan.deep_mode_notes || {};
+        setDeepModeNotes({
+          win: notes.win || '',
+          obstacles: notes.obstacles || '',
+          show_up: notes.show_up || '',
+        });
+      }
+
+      // Load habits separately
+      await loadHabits();
+    } catch (error: any) {
+      console.error('Error loading daily plan:', error);
+      setError(error?.message || 'Failed to load daily plan');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadHabits = async () => {
+    if (!user) return;
+
+    try {
+      // Load active habits
       const { data: habitsData, error: habitsError } = await supabase
         .from('habits')
         .select('*')
@@ -53,37 +134,20 @@ export default function DailyPlan() {
         .eq('date', today);
 
       if (logsError) throw logsError;
-      const logsMap = logsData?.reduce(
+      
+      const logsMap = (logsData || []).reduce(
         (acc, log) => ({ ...acc, [log.habit_id]: log.completed }),
-        {}
-      ) || {};
+        {} as Record<string, boolean>
+      );
       setHabitLogs(logsMap);
-
-      // Load current week priorities
-      const cycleData = await supabase.rpc('get_current_cycle', {
-        p_user_id: user.id,
-      });
-      if (cycleData.data && cycleData.data.length > 0) {
-        const weekData = await supabase.rpc('get_current_week', {
-          p_cycle_id: cycleData.data[0].cycle_id,
-        });
-        if (weekData.data && weekData.data.length > 0) {
-          const priorities = weekData.data[0].top_3_priorities;
-          setWeeklyPriorities(
-            Array.isArray(priorities)
-              ? priorities.map(item => String(item))
-              : []
-          );
-        }
-      }
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('Error loading habits:', error);
     }
   };
 
   const updateTop3 = (idx: number, value: string) => {
     const updated = [...top3];
-    updated[idx] = String(value);
+    updated[idx] = value;
     setTop3(updated);
   };
 
@@ -101,14 +165,11 @@ export default function DailyPlan() {
       if (error) throw error;
       
       setHabitLogs((prev) => ({ ...prev, [habitId]: data }));
-      
-      toast({
-        title: data ? 'Habit completed!' : 'Habit unchecked',
-      });
     } catch (error: any) {
+      console.error('Habit toggle error:', error);
       toast({
-        title: 'Error',
-        description: error.message,
+        title: 'Error toggling habit',
+        description: error?.message,
         variant: 'destructive',
       });
     }
@@ -116,79 +177,168 @@ export default function DailyPlan() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
-    setLoading(true);
+    if (!user || !dayId) return;
+    
+    setSaving(true);
 
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const { error } = await supabase.rpc('create_daily_plan', {
-        p_user_id: user.id,
-        p_date: today,
-        p_top_3_today: top3.filter((t) => String(t).trim()),
-        p_thought: thought,
-        p_feeling: feeling,
-        p_selected_weekly_priorities: selectedPriorities.map(p => String(p)),
+      const { data, error: fnError } = await supabase.functions.invoke('save-daily-plan', {
+        body: {
+          day_id: dayId,
+          user_id: user.id,
+          top_3_today: top3.filter((t) => t.trim()),
+          selected_weekly_priorities: selectedPriorities,
+          thought,
+          feeling,
+          deep_mode_notes: deepModeNotes,
+        },
       });
 
-      if (error) throw error;
+      if (fnError) throw fnError;
+
+      console.log('Save response:', data);
 
       toast({
         title: 'Daily plan saved!',
         description: 'Your day is set.',
       });
     } catch (error: any) {
+      console.error('SAVE ERROR:', error);
       toast({
-        title: 'Error',
-        description: error.message,
+        title: 'Error saving daily plan',
+        description: error?.message || JSON.stringify(error),
         variant: 'destructive',
       });
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading daily plan...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error && error.includes('No active cycle')) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Card className="max-w-md">
+            <CardHeader>
+              <CardTitle>No Active Cycle</CardTitle>
+              <CardDescription>
+                You need to create a 90-day cycle before planning your day
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Link to="/cycle-setup">
+                <Button className="w-full">Start Your First 90-Day Cycle</Button>
+              </Link>
+              <Link to="/dashboard">
+                <Button variant="outline" className="w-full">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Dashboard
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Card className="max-w-md">
+            <CardHeader>
+              <CardTitle className="text-destructive">Error Loading Daily Plan</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">{error}</p>
+              <Button onClick={loadDailyPlan}>Retry</Button>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
+  const today = new Date().toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
 
   return (
     <Layout>
       <div className="mx-auto max-w-3xl space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold">Daily Plan</h1>
-          <p className="text-muted-foreground">Plan and execute your day</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Daily Plan</h1>
+            <p className="text-muted-foreground">{today}</p>
+          </div>
+          <Link to="/dashboard">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Dashboard
+            </Button>
+          </Link>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Quick Mode */}
+          {/* Quick Mode - Top 3 */}
           <Card>
             <CardHeader>
               <CardTitle>Today's Top 3</CardTitle>
+              <CardDescription>
+                What are the most important things you need to accomplish today?
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {top3.map((task, idx) => (
                 <div key={idx}>
-                  <Label htmlFor={`task-${idx}`}>Task {idx + 1}</Label>
+                  <Label htmlFor={`task-${idx}`}>Priority {idx + 1}</Label>
                   <Input
                     id={`task-${idx}`}
                     value={task}
                     onChange={(e) => updateTop3(idx, e.target.value)}
                     placeholder="What must you accomplish today?"
                     required={idx === 0}
+                    maxLength={200}
                   />
                 </div>
               ))}
             </CardContent>
           </Card>
 
+          {/* Daily Mindset */}
           <Card>
             <CardHeader>
               <CardTitle>Daily Mindset</CardTitle>
+              <CardDescription>
+                Set your intention and energy for today
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="thought">Today's Thought</Label>
+                <Label htmlFor="thought">Today's Key Thought</Label>
                 <Input
                   id="thought"
                   value={thought}
                   onChange={(e) => setThought(e.target.value)}
                   placeholder="What's your focus today?"
+                  maxLength={500}
                 />
               </div>
               <div>
@@ -198,6 +348,7 @@ export default function DailyPlan() {
                   value={feeling}
                   onChange={(e) => setFeeling(e.target.value)}
                   placeholder="e.g., Energized, Calm, Productive"
+                  maxLength={200}
                 />
               </div>
             </CardContent>
@@ -208,9 +359,12 @@ export default function DailyPlan() {
             <Card>
               <CardHeader>
                 <CardTitle>This Week's Priorities</CardTitle>
+                <CardDescription>
+                  Select which weekly priorities you'll work on today
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                {weeklyPriorities.map((priority: string, idx: number) => (
+                {weeklyPriorities.map((priority, idx) => (
                   <div key={idx} className="flex items-center space-x-2">
                     <Checkbox
                       id={`priority-${idx}`}
@@ -225,7 +379,7 @@ export default function DailyPlan() {
                         }
                       }}
                     />
-                    <label htmlFor={`priority-${idx}`} className="text-sm">
+                    <label htmlFor={`priority-${idx}`} className="text-sm cursor-pointer">
                       {priority}
                     </label>
                   </div>
@@ -239,6 +393,9 @@ export default function DailyPlan() {
             <Card>
               <CardHeader>
                 <CardTitle>Today's Habits</CardTitle>
+                <CardDescription>
+                  Track your daily habits
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {habits.map((habit) => (
@@ -250,7 +407,7 @@ export default function DailyPlan() {
                     />
                     <label
                       htmlFor={habit.habit_id}
-                      className="flex-1 text-sm font-medium"
+                      className="flex-1 text-sm font-medium cursor-pointer"
                     >
                       {habit.habit_name}
                       {habit.category && (
@@ -275,12 +432,12 @@ export default function DailyPlan() {
             {deepMode ? (
               <>
                 <ChevronUp className="mr-2 h-4 w-4" />
-                Hide Deep Mode
+                Back to Quick Mode
               </>
             ) : (
               <>
                 <ChevronDown className="mr-2 h-4 w-4" />
-                Show Deep Mode
+                Switch to Deep Mode
               </>
             )}
           </Button>
@@ -290,32 +447,88 @@ export default function DailyPlan() {
             <Card>
               <CardHeader>
                 <CardTitle>Deep Mode</CardTitle>
+                <CardDescription>
+                  Dig deeper into your planning and reflection
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="win">What would make today a win?</Label>
+                  <Textarea
+                    id="win"
+                    value={deepModeNotes.win}
+                    onChange={(e) => setDeepModeNotes({ ...deepModeNotes, win: e.target.value })}
+                    placeholder="Define success for today..."
+                    rows={3}
+                    maxLength={500}
+                  />
+                </div>
                 <div>
                   <Label htmlFor="obstacles">Obstacles & Solutions</Label>
                   <Textarea
                     id="obstacles"
+                    value={deepModeNotes.obstacles}
+                    onChange={(e) => setDeepModeNotes({ ...deepModeNotes, obstacles: e.target.value })}
                     placeholder="What might get in the way? How will you handle it?"
                     rows={4}
+                    maxLength={500}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="journal">Journal</Label>
+                  <Label htmlFor="show_up">How do I want to show up?</Label>
                   <Textarea
-                    id="journal"
-                    placeholder="Free-form thoughts..."
-                    rows={4}
+                    id="show_up"
+                    value={deepModeNotes.show_up}
+                    onChange={(e) => setDeepModeNotes({ ...deepModeNotes, show_up: e.target.value })}
+                    placeholder="What energy and presence do you want to bring?"
+                    rows={3}
+                    maxLength={500}
                   />
                 </div>
               </CardContent>
             </Card>
           )}
 
-          <Button type="submit" size="lg" className="w-full" disabled={loading}>
-            {loading ? 'Saving...' : 'Save Daily Plan'}
+          <Button type="submit" size="lg" className="w-full" disabled={saving}>
+            {saving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Save Daily Plan'
+            )}
           </Button>
         </form>
+
+        {/* Navigation Links */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2">
+            <Link to="/dashboard">
+              <Button variant="outline" className="w-full justify-start">
+                View Dashboard →
+              </Button>
+            </Link>
+            <Link to="/weekly-plan">
+              <Button variant="outline" className="w-full justify-start">
+                Weekly Plan →
+              </Button>
+            </Link>
+            <Link to="/habits">
+              <Button variant="outline" className="w-full justify-start">
+                Track Habits →
+              </Button>
+            </Link>
+            <Link to="/cycle-setup">
+              <Button variant="outline" className="w-full justify-start">
+                Manage 90-Day Cycle →
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );
