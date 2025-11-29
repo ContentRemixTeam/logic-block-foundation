@@ -24,6 +24,11 @@ export default function WeeklyPlan() {
   const [feeling, setFeeling] = useState('');
   const [challenges, setChallenges] = useState('');
   const [adjustments, setAdjustments] = useState('');
+  const [weeklySummary, setWeeklySummary] = useState({
+    daily_plans_completed: 0,
+    habit_completion_percent: 0,
+    review_completed: false,
+  });
 
   useEffect(() => {
     loadWeeklyPlan();
@@ -64,6 +69,11 @@ export default function WeeklyPlan() {
         setFeeling(weekData.weekly_feeling || '');
         setChallenges(weekData.challenges || '');
         setAdjustments(weekData.adjustments || '');
+        setWeeklySummary(weekData.weekly_summary || {
+          daily_plans_completed: 0,
+          habit_completion_percent: 0,
+          review_completed: false,
+        });
       }
     } catch (error: any) {
       console.error('Error loading weekly plan:', error);
@@ -186,13 +196,55 @@ export default function WeeklyPlan() {
               Set your top 3 priorities for this week
             </p>
           </div>
-          <Link to="/dashboard">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Dashboard
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/dashboard">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Dashboard
+              </Link>
             </Button>
-          </Link>
+            {weeklySummary.review_completed ? (
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/weekly-review">View Weekly Review</Link>
+              </Button>
+            ) : (
+              <Button size="sm" asChild>
+                <Link to="/weekly-review">Start Weekly Review</Link>
+              </Button>
+            )}
+          </div>
         </div>
+
+        {/* Weekly Summary */}
+        <Card>
+          <CardHeader>
+            <CardTitle>This Week's Progress</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Daily Plans</p>
+                <p className="text-2xl font-bold">{weeklySummary.daily_plans_completed} / 7</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Habit Completion</p>
+                <p className="text-2xl font-bold">{weeklySummary.habit_completion_percent}%</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Weekly Review</p>
+                <p className="text-2xl font-bold">{weeklySummary.review_completed ? '✓ Complete' : '○ Pending'}</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/daily-plan">Go to Daily Plan</Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/habits">Track Habits</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <Card>
