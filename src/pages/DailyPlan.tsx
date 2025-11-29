@@ -17,13 +17,13 @@ export default function DailyPlan() {
   const [loading, setLoading] = useState(false);
   const [deepMode, setDeepMode] = useState(false);
   
-  const [top3, setTop3] = useState<string[]>(['', '', '']);
+  const [top3, setTop3] = useState<any[]>(['', '', '']);
   const [thought, setThought] = useState('');
   const [feeling, setFeeling] = useState('');
   const [habits, setHabits] = useState<any[]>([]);
   const [habitLogs, setHabitLogs] = useState<Record<string, boolean>>({});
-  const [weeklyPriorities, setWeeklyPriorities] = useState<string[]>([]);
-  const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
+  const [weeklyPriorities, setWeeklyPriorities] = useState<any[]>([]);
+  const [selectedPriorities, setSelectedPriorities] = useState<any[]>([]);
 
   useEffect(() => {
     loadData();
@@ -69,7 +69,11 @@ export default function DailyPlan() {
         });
         if (weekData.data && weekData.data.length > 0) {
           const priorities = weekData.data[0].top_3_priorities;
-          setWeeklyPriorities(Array.isArray(priorities) ? priorities : []);
+          setWeeklyPriorities(
+            Array.isArray(priorities)
+              ? priorities.map(item => String(item))
+              : []
+          );
         }
       }
     } catch (error) {
@@ -79,7 +83,7 @@ export default function DailyPlan() {
 
   const updateTop3 = (idx: number, value: string) => {
     const updated = [...top3];
-    updated[idx] = value;
+    updated[idx] = String(value);
     setTop3(updated);
   };
 
@@ -120,10 +124,10 @@ export default function DailyPlan() {
       const { error } = await supabase.rpc('create_daily_plan', {
         p_user_id: user.id,
         p_date: today,
-        p_top_3_today: top3.filter((t) => t.trim()),
+        p_top_3_today: top3.filter((t) => String(t).trim()),
         p_thought: thought,
         p_feeling: feeling,
-        p_selected_weekly_priorities: selectedPriorities,
+        p_selected_weekly_priorities: selectedPriorities.map(p => String(p)),
       });
 
       if (error) throw error;
