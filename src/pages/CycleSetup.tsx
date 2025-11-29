@@ -70,7 +70,7 @@ export default function CycleSetup() {
           supporting_projects: projects.filter((p) => p.trim()),
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (cycleError) throw cycleError;
 
@@ -87,21 +87,25 @@ export default function CycleSetup() {
       if (habitsToCreate.length > 0) {
         const { error: habitsError } = await supabase
           .from('habits')
-          .insert(habitsToCreate);
+          .insert(habitsToCreate)
+          .select();
 
         if (habitsError) throw habitsError;
       }
 
-      // Create user settings
+      // Create user settings (upsert to avoid conflicts)
       const { error: settingsError } = await supabase
         .from('user_settings')
-        .insert({
-          user_id: user.id,
-        });
+        .upsert(
+          {
+            user_id: user.id,
+          },
+          {
+            onConflict: 'user_id',
+          }
+        );
 
-      if (settingsError && settingsError.code !== '23505') {
-        throw settingsError;
-      }
+      if (settingsError) throw settingsError;
 
       toast({
         title: 'Cycle created!',
@@ -110,9 +114,10 @@ export default function CycleSetup() {
 
       navigate('/dashboard');
     } catch (error: any) {
+      console.error('CYCLE ERROR:', error);
       toast({
-        title: 'Error',
-        description: error.message,
+        title: 'Error creating cycle',
+        description: error?.message || JSON.stringify(error),
         variant: 'destructive',
       });
     } finally {
