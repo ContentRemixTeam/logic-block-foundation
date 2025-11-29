@@ -11,12 +11,21 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
+    // Create authenticated client to get user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'No authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const authClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
         global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
+          headers: { Authorization: authHeader },
         },
       }
     );
@@ -24,9 +33,10 @@ Deno.serve(async (req) => {
     const {
       data: { user },
       error: userError,
-    } = await supabaseClient.auth.getUser();
+    } = await authClient.auth.getUser();
 
     if (userError || !user) {
+      console.error('Auth error:', userError);
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -37,6 +47,12 @@ Deno.serve(async (req) => {
     const { week_id, top_3_priorities, weekly_thought, weekly_feeling, challenges, adjustments } = body;
 
     console.log('Saving weekly plan for user:', user.id, 'week:', week_id);
+
+    // Use service role for database operations
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    );
 
     // Validate and normalize priorities
     let priorities = [];

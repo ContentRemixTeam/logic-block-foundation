@@ -23,9 +23,15 @@ export default function Dashboard() {
 
     try {
       setError(null);
+      console.log('Loading dashboard summary...');
       const { data, error: fnError } = await supabase.functions.invoke('get-dashboard-summary');
 
-      if (fnError) throw fnError;
+      console.log('Dashboard response:', { data, error: fnError });
+
+      if (fnError) {
+        console.error('Function error:', fnError);
+        throw fnError;
+      }
       
       console.log('Dashboard data received:', data);
       setSummary(data?.data || null);
