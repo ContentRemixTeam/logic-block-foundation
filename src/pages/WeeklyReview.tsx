@@ -4,12 +4,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, X, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import { Layout } from "@/components/Layout";
+import { ReflectionList } from "@/components/ReflectionList";
 
 export default function WeeklyReview() {
   const { user } = useAuth();
@@ -113,7 +113,7 @@ export default function WeeklyReview() {
         throw new Error(`Failed to save review: ${res.status}`);
       }
 
-      toast({ title: "Weekly Review Saved!" });
+      toast({ title: "Weekly Review Saved!", description: "Your reflection has been saved." });
       navigate("/dashboard");
 
     } catch (error) {
@@ -169,15 +169,15 @@ export default function WeeklyReview() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Weekly Review</h1>
-            <p className="text-muted-foreground">Reflect on your week</p>
+            <p className="text-muted-foreground">Reflect on your week and plan ahead</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate("/dashboard")}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Dashboard
-            </Button>
             <Button variant="outline" onClick={() => navigate("/weekly-plan")}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
               Weekly Plan
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/dashboard")}>
+              Dashboard
             </Button>
           </div>
         </div>
@@ -215,31 +215,15 @@ export default function WeeklyReview() {
         <Card>
           <CardHeader>
             <CardTitle>Weekly Wins</CardTitle>
-            <CardDescription>What went well this week?</CardDescription>
+            <CardDescription>List moments you're proud of, big or small</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {wins.map((win, index) => (
-              <div key={index} className="flex gap-2">
-                <Input
-                  value={win}
-                  onChange={(e) => updateField(setWins, index, e.target.value)}
-                  placeholder="Enter a win..."
-                />
-                {wins.length > 1 && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeField(setWins, index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-            <Button variant="outline" size="sm" onClick={() => addField(setWins)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Win
-            </Button>
+          <CardContent>
+            <ReflectionList
+              items={wins}
+              onChange={setWins}
+              label="Win"
+              placeholder="What went well this week?"
+            />
           </CardContent>
         </Card>
 
@@ -247,31 +231,15 @@ export default function WeeklyReview() {
         <Card>
           <CardHeader>
             <CardTitle>Challenges</CardTitle>
-            <CardDescription>What felt hard this week?</CardDescription>
+            <CardDescription>What felt hard or draining this week?</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {challenges.map((challenge, index) => (
-              <div key={index} className="flex gap-2">
-                <Input
-                  value={challenge}
-                  onChange={(e) => updateField(setChallenges, index, e.target.value)}
-                  placeholder="Enter a challenge..."
-                />
-                {challenges.length > 1 && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeField(setChallenges, index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-            <Button variant="outline" size="sm" onClick={() => addField(setChallenges)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Challenge
-            </Button>
+          <CardContent>
+            <ReflectionList
+              items={challenges}
+              onChange={setChallenges}
+              label="Challenge"
+              placeholder="What was difficult?"
+            />
           </CardContent>
         </Card>
 
@@ -281,29 +249,13 @@ export default function WeeklyReview() {
             <CardTitle>Lessons Learned</CardTitle>
             <CardDescription>What did you learn about yourself or your work?</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {lessons.map((lesson, index) => (
-              <div key={index} className="flex gap-2">
-                <Input
-                  value={lesson}
-                  onChange={(e) => updateField(setLessons, index, e.target.value)}
-                  placeholder="Enter a lesson..."
-                />
-                {lessons.length > 1 && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeField(setLessons, index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-            <Button variant="outline" size="sm" onClick={() => addField(setLessons)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Lesson
-            </Button>
+          <CardContent>
+            <ReflectionList
+              items={lessons}
+              onChange={setLessons}
+              label="Lesson"
+              placeholder="What insights did you gain?"
+            />
           </CardContent>
         </Card>
 
@@ -311,31 +263,15 @@ export default function WeeklyReview() {
         <Card>
           <CardHeader>
             <CardTitle>Intentions for Next Week</CardTitle>
-            <CardDescription>How do you want to show up?</CardDescription>
+            <CardDescription>How do you want to show up? What's your #1 focus?</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {intentions.map((intention, index) => (
-              <div key={index} className="flex gap-2">
-                <Input
-                  value={intention}
-                  onChange={(e) => updateField(setIntentions, index, e.target.value)}
-                  placeholder="Enter an intention..."
-                />
-                {intentions.length > 1 && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeField(setIntentions, index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-            <Button variant="outline" size="sm" onClick={() => addField(setIntentions)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Intention
-            </Button>
+          <CardContent>
+            <ReflectionList
+              items={intentions}
+              onChange={setIntentions}
+              label="Intention"
+              placeholder="How will you approach next week?"
+            />
           </CardContent>
         </Card>
 
@@ -343,10 +279,10 @@ export default function WeeklyReview() {
         <Card>
           <CardHeader>
             <CardTitle>Weekly Score</CardTitle>
-            <CardDescription>Rate your week from 0 to 10</CardDescription>
+            <CardDescription>Rate your overall week from 0 to 10</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 p-4 border rounded-lg">
               <Slider
                 value={[weeklyScore]}
                 onValueChange={(value) => setWeeklyScore(value[0])}
@@ -355,7 +291,7 @@ export default function WeeklyReview() {
                 step={1}
                 className="flex-1"
               />
-              <div className="text-2xl font-bold w-12 text-center">{weeklyScore}</div>
+              <div className="text-3xl font-bold w-16 text-center text-primary">{weeklyScore}</div>
             </div>
           </CardContent>
         </Card>

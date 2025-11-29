@@ -96,6 +96,7 @@ export default function Dashboard() {
   const week = summary?.week ?? {};
   const today = summary?.today ?? {};
   const habits = summary?.habits ?? {};
+  const weeklyReviewStatus = summary?.weekly_review_status ?? { exists: false, score: null };
 
   // Fallback arrays for priorities
   const weeklyPriorities = Array.isArray(week.priorities)
@@ -238,6 +239,38 @@ export default function Dashboard() {
                     View All Habits →
                   </Button>
                 </Link>
+              </CardContent>
+            </Card>
+
+            {/* Weekly Review Status */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Weekly Review</CardTitle>
+                <Target className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {weeklyReviewStatus.exists ? (
+                  <div>
+                    <Badge className="bg-success/10 text-success hover:bg-success/20 border-success/20">
+                      ✓ Completed
+                    </Badge>
+                    {weeklyReviewStatus.score !== null && (
+                      <p className="text-2xl font-bold mt-2">Score: {weeklyReviewStatus.score}/10</p>
+                    )}
+                    <Link to="/weekly-review" className="mt-3 block">
+                      <Button variant="ghost" size="sm" className="h-8 text-xs">
+                        View Review →
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">No review yet</p>
+                    <Link to="/weekly-review">
+                      <Button variant="outline" size="sm">Complete Review</Button>
+                    </Link>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

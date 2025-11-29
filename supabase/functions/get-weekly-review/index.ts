@@ -124,13 +124,19 @@ Deno.serve(async (req) => {
       .select('*')
       .eq('user_id', userId)
       .eq('week_id', currentWeek.week_id)
-      .single();
+      .maybeSingle();
 
     console.log('Existing review:', { found: Boolean(existingReview), error: reviewError?.message });
 
-    let reviewData = existingReview?.habit_summary || {};
+    let reviewData = existingReview?.habit_summary || {
+      wins: [],
+      challenges: [],
+      lessons: [],
+      intentions: [],
+      weekly_score: 0,
+    };
     
-    // If no review exists, create one
+    // If no review exists, auto-create one
     if (!existingReview) {
       reviewData = {
         wins: [],
@@ -151,6 +157,8 @@ Deno.serve(async (req) => {
 
       if (insertError) {
         console.error('Insert error:', insertError);
+      } else {
+        console.log('Auto-created new weekly review');
       }
     }
 

@@ -87,10 +87,50 @@ Deno.serve(async (req) => {
       throw weekError;
     }
 
-    // If week exists, return it
+    // If week exists, return it with summary
     if (weekData && weekData.length > 0) {
       const week = weekData[0];
       console.log('Found existing week:', week.week_id);
+      
+      // Calculate weekly summary
+      const weekStart = new Date(week.start_of_week);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      
+      // Count daily plans for this week
+      const { count: dailyPlansCount } = await supabaseClient
+        .from('daily_plans')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('week_id', week.week_id);
+      
+      // Calculate habit completion for this week
+      const { data: habits } = await supabaseClient
+        .from('habits')
+        .select('habit_id')
+        .eq('user_id', user.id)
+        .eq('is_active', true);
+      
+      const totalHabits = (habits?.length || 0) * 7;
+      
+      const { data: habitLogs } = await supabaseClient
+        .from('habit_logs')
+        .select('log_id')
+        .eq('user_id', user.id)
+        .eq('completed', true)
+        .gte('date', week.start_of_week)
+        .lte('date', weekEnd.toISOString().split('T')[0]);
+      
+      const completedHabits = habitLogs?.length || 0;
+      const habitPercent = totalHabits > 0 ? Math.round((completedHabits / totalHabits) * 100) : 0;
+      
+      // Check if review exists
+      const { data: reviewData } = await supabaseClient
+        .from('weekly_reviews')
+        .select('review_id')
+        .eq('user_id', user.id)
+        .eq('week_id', week.week_id)
+        .maybeSingle();
       
       return new Response(
         JSON.stringify({ 
@@ -102,6 +142,11 @@ Deno.serve(async (req) => {
             weekly_feeling: week.weekly_feeling || '',
             challenges: null,
             adjustments: null,
+            weekly_summary: {
+              daily_plans_completed: dailyPlansCount || 0,
+              habit_completion_percent: habitPercent,
+              review_completed: Boolean(reviewData),
+            },
           }
         }), 
         {
@@ -153,6 +198,11 @@ Deno.serve(async (req) => {
           weekly_feeling: '',
           challenges: null,
           adjustments: null,
+          weekly_summary: {
+            daily_plans_completed: 0,
+            habit_completion_percent: 0,
+            review_completed: false,
+          },
         }
       }), 
       {

@@ -110,9 +110,43 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Get current cycle and week to check review status
+    const { data: cycleData } = await supabaseClient.rpc('get_current_cycle', {
+      p_user_id: userId,
+    });
+
+    let weeklyReviewStatus = { exists: false, score: null };
+
+    if (cycleData && cycleData.length > 0) {
+      const { data: weekData } = await supabaseClient.rpc('get_current_week', {
+        p_cycle_id: cycleData[0].cycle_id,
+      });
+
+      if (weekData && weekData.length > 0) {
+        const { data: reviewData } = await supabaseClient
+          .from('weekly_reviews')
+          .select('habit_summary')
+          .eq('user_id', userId)
+          .eq('week_id', weekData[0].week_id)
+          .maybeSingle();
+
+        if (reviewData?.habit_summary) {
+          weeklyReviewStatus = {
+            exists: true,
+            score: reviewData.habit_summary.weekly_score || null,
+          };
+        }
+      }
+    }
+
     console.log('Dashboard summary fetched successfully');
 
-    return new Response(JSON.stringify({ data }), {
+    return new Response(JSON.stringify({ 
+      data: {
+        ...data,
+        weekly_review_status: weeklyReviewStatus,
+      }
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
