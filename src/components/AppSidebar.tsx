@@ -46,6 +46,7 @@ const mainNavigation = [
 const mindsetNavigation = [
   { name: 'Useful Thoughts', href: '/useful-thoughts', icon: Brain },
   { name: 'Belief Builder', href: '/belief-builder', icon: TrendingUp },
+  { name: 'Identity Anchors', href: '/identity-anchors', icon: Target },
   { name: 'Self-Coaching', href: '/self-coaching', icon: Brain },
 ];
 
