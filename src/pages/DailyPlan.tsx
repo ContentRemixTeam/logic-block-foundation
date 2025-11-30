@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,17 +6,22 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { Layout } from '@/components/Layout';
+import { LoadingState } from '@/components/system/LoadingState';
+import { ErrorState } from '@/components/system/ErrorState';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { normalizeArray, normalizeString, normalizeObject } from '@/lib/normalize';
+import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2 } from 'lucide-react';
 
 export default function DailyPlan() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [deepMode, setDeepMode] = useState(false);
   
@@ -197,6 +202,8 @@ export default function DailyPlan() {
       if (fnError) throw fnError;
 
       console.log('Save response:', data);
+      
+      setLastSaved(new Date());
 
       toast({
         title: 'Daily plan saved!',
@@ -214,43 +221,43 @@ export default function DailyPlan() {
     }
   };
 
+  // Auto-save with debounce
+  useEffect(() => {
+    if (!user || !dayId || loading) return;
+    
+    const timer = setTimeout(() => {
+      handleAutoSave();
+    }, 2000);
+    
+    return () => clearTimeout(timer);
+  }, [top3, thought, feeling, selectedPriorities, deepModeNotes]);
+
+  const handleAutoSave = useCallback(async () => {
+    if (!user || !dayId || saving) return;
+    
+    try {
+      await supabase.functions.invoke('save-daily-plan', {
+        body: {
+          day_id: dayId,
+          user_id: user.id,
+          top_3_today: top3.filter((t) => t.trim()),
+          selected_weekly_priorities: selectedPriorities,
+          thought,
+          feeling,
+          deep_mode_notes: deepModeNotes,
+        },
+      });
+      setLastSaved(new Date());
+    } catch (error) {
+      // Silent fail for auto-save
+      console.error('Auto-save failed:', error);
+    }
+  }, [user, dayId, top3, thought, feeling, selectedPriorities, deepModeNotes, saving]);
+
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading daily plan...</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (error && error.includes('No active cycle')) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Card className="max-w-md">
-            <CardHeader>
-              <CardTitle>No Active Cycle</CardTitle>
-              <CardDescription>
-                You need to create a 90-day cycle before planning your day
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Link to="/cycle-setup">
-                <Button className="w-full">Start Your First 90-Day Cycle</Button>
-              </Link>
-              <Link to="/dashboard">
-                <Button variant="outline" className="w-full">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Dashboard
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
+        <LoadingState message="Loading daily plan..." />
       </Layout>
     );
   }
@@ -258,17 +265,11 @@ export default function DailyPlan() {
   if (error) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Card className="max-w-md">
-            <CardHeader>
-              <CardTitle className="text-destructive">Error Loading Daily Plan</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">{error}</p>
-              <Button onClick={loadDailyPlan}>Retry</Button>
-            </CardContent>
-          </Card>
-        </div>
+        <ErrorState
+          title={error.includes('No active cycle') ? 'No Active Cycle' : 'Error Loading Daily Plan'}
+          message={error}
+          onRetry={loadDailyPlan}
+        />
       </Layout>
     );
   }
@@ -283,17 +284,20 @@ export default function DailyPlan() {
   return (
     <Layout>
       <div className="mx-auto max-w-3xl space-y-8">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold">Daily Plan</h1>
             <p className="text-muted-foreground">{today}</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            {lastSaved && (
+              <Badge variant="outline" className="text-xs">
+                <CheckCircle2 className="mr-1 h-3 w-3" />
+                Saved {lastSaved.toLocaleTimeString()}
+              </Badge>
+            )}
             <Button variant="outline" size="sm" onClick={() => window.location.href = '/dashboard'}>
               Dashboard
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => window.location.href = '/weekly-plan'}>
-              Weekly Plan
             </Button>
             <Button variant="outline" size="sm" onClick={() => window.location.href = '/habits'}>
               Habits
