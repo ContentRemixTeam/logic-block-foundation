@@ -3,14 +3,16 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { CaptureButton } from '@/components/CaptureButton';
 import {
   LayoutDashboard,
   Target,
   Calendar,
   CalendarDays,
   CheckSquare,
-  Lightbulb,
+  Zap,
   Brain,
   Settings,
   LogOut,
@@ -18,6 +20,12 @@ import {
   FileText,
   BarChart3,
 } from 'lucide-react';
+
+interface Category {
+  id: string;
+  name: string;
+  color: string;
+}
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -27,16 +35,36 @@ const navigation = [
   { name: 'Weekly Review', href: '/weekly-review', icon: FileText },
   { name: 'Monthly Review', href: '/monthly-review', icon: BarChart3 },
   { name: 'Habits', href: '/habits', icon: CheckSquare },
-  { name: 'Ideas', href: '/ideas', icon: Lightbulb },
+  { name: 'Ideas', href: '/ideas', icon: Zap },
   { name: 'Self-Coaching', href: '/self-coaching', icon: Brain },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
   useTheme(); // Load and apply theme
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      if (!user) return;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const { data } = await supabase.functions.invoke('get-ideas');
+        if (data?.categories) {
+          setCategories(data.categories);
+        }
+      } catch (error) {
+        console.error('Error loading categories:', error);
+      }
+    };
+
+    loadCategories();
+  }, [user]);
 
   const NavItems = () => (
     <>
@@ -115,6 +143,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 overflow-auto md:pt-0 pt-16">
         <div className="mx-auto max-w-7xl p-4 md:p-8">{children}</div>
       </main>
+
+      {/* Global Capture Button */}
+      <CaptureButton 
+        categories={categories} 
+        onIdeaSaved={async () => {
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+              const { data } = await supabase.functions.invoke('get-ideas');
+              if (data?.categories) setCategories(data.categories);
+            }
+          } catch (error) {
+            console.error('Error refreshing categories:', error);
+          }
+        }} 
+      />
     </div>
   );
 }
