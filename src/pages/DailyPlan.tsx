@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { normalizeArray, normalizeString, normalizeObject } from '@/lib/normalize';
 import { UsefulThoughtsModal } from '@/components/UsefulThoughtsModal';
 import BeliefSelectorModal from '@/components/BeliefSelectorModal';
-import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target } from 'lucide-react';
 
 export default function DailyPlan() {
   const { user } = useAuth();
@@ -47,9 +47,11 @@ export default function DailyPlan() {
   const [habitLogs, setHabitLogs] = useState<Record<string, boolean>>({});
   const [thoughtsModalOpen, setThoughtsModalOpen] = useState(false);
   const [beliefsModalOpen, setBeliefsModalOpen] = useState(false);
+  const [identityAnchor, setIdentityAnchor] = useState<any>(null);
 
   useEffect(() => {
     loadDailyPlan();
+    loadIdentityAnchor();
   }, [user]);
 
   const loadDailyPlan = async () => {
@@ -151,6 +153,18 @@ export default function DailyPlan() {
       setHabitLogs(logsMap);
     } catch (error) {
       console.error('Error loading habits:', error);
+    }
+  };
+
+  const loadIdentityAnchor = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase.functions.invoke('get-identity-anchors');
+      if (!error && data && data.length > 0) {
+        setIdentityAnchor(normalizeObject(data[0], null));
+      }
+    } catch (error) {
+      console.error('Error loading identity anchor:', error);
     }
   };
 
@@ -388,6 +402,48 @@ export default function DailyPlan() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Identity Anchor */}
+          {identityAnchor && (
+            <Card className="border-primary/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-primary" />
+                  Today's Identity Anchor
+                </CardTitle>
+                <CardDescription>
+                  Remember who you are and what you stand for
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-lg font-semibold mb-4">{identityAnchor.identity_statement}</p>
+                {(normalizeArray(identityAnchor.supporting_habits).length > 0 || normalizeArray(identityAnchor.supporting_actions).length > 0) && (
+                  <div className="grid md:grid-cols-2 gap-4 text-sm text-muted-foreground">
+                    {normalizeArray(identityAnchor.supporting_habits).length > 0 && (
+                      <div>
+                        <p className="font-semibold mb-1">Key Habits:</p>
+                        <ul className="list-disc list-inside space-y-1">
+                          {normalizeArray(identityAnchor.supporting_habits).slice(0, 3).map((habit: string, idx: number) => (
+                            <li key={idx}>{habit}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {normalizeArray(identityAnchor.supporting_actions).length > 0 && (
+                      <div>
+                        <p className="font-semibold mb-1">Key Actions:</p>
+                        <ul className="list-disc list-inside space-y-1">
+                          {normalizeArray(identityAnchor.supporting_actions).slice(0, 3).map((action: string, idx: number) => (
+                            <li key={idx}>{action}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Weekly Priorities Selector */}
           {weeklyPriorities.length > 0 && (

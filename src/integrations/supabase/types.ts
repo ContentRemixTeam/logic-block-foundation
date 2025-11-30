@@ -486,6 +486,36 @@ export type Database = {
         }
         Relationships: []
       }
+      identity_anchors: {
+        Row: {
+          created_at: string | null
+          id: string
+          identity_statement: string
+          supporting_actions: Json | null
+          supporting_habits: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          identity_statement: string
+          supporting_actions?: Json | null
+          supporting_habits?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          identity_statement?: string
+          supporting_actions?: Json | null
+          supporting_habits?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       mindset_categories: {
         Row: {
           color: string
@@ -633,6 +663,7 @@ export type Database = {
           ai_api_key: string | null
           created_at: string | null
           cycle_summary_questions: Json | null
+          daily_anchor_enabled: boolean | null
           daily_review_questions: Json | null
           habit_categories_enabled: boolean | null
           minimal_mode: boolean | null
@@ -649,6 +680,7 @@ export type Database = {
           ai_api_key?: string | null
           created_at?: string | null
           cycle_summary_questions?: Json | null
+          daily_anchor_enabled?: boolean | null
           daily_review_questions?: Json | null
           habit_categories_enabled?: boolean | null
           minimal_mode?: boolean | null
@@ -665,6 +697,7 @@ export type Database = {
           ai_api_key?: string | null
           created_at?: string | null
           cycle_summary_questions?: Json | null
+          daily_anchor_enabled?: boolean | null
           daily_review_questions?: Json | null
           habit_categories_enabled?: boolean | null
           minimal_mode?: boolean | null
