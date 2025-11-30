@@ -112,6 +112,7 @@ export type Database = {
       daily_plans: {
         Row: {
           created_at: string | null
+          custom_reflections: Json | null
           cycle_id: string | null
           date: string
           day_id: string
@@ -126,6 +127,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          custom_reflections?: Json | null
           cycle_id?: string | null
           date: string
           day_id?: string
@@ -140,6 +142,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          custom_reflections?: Json | null
           cycle_id?: string | null
           date?: string
           day_id?: string
@@ -282,30 +285,42 @@ export type Database = {
         Row: {
           category: string | null
           created_at: string | null
+          description: string | null
           display_order: number | null
           habit_id: string
           habit_name: string
           is_active: boolean | null
+          is_archived: boolean | null
+          success_definition: string | null
+          type: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           category?: string | null
           created_at?: string | null
+          description?: string | null
           display_order?: number | null
           habit_id?: string
           habit_name: string
           is_active?: boolean | null
+          is_archived?: boolean | null
+          success_definition?: string | null
+          type?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           category?: string | null
           created_at?: string | null
+          description?: string | null
           display_order?: number | null
           habit_id?: string
           habit_name?: string
           is_active?: boolean | null
+          is_archived?: boolean | null
+          success_definition?: string | null
+          type?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -345,6 +360,7 @@ export type Database = {
         Row: {
           adjustments: Json | null
           created_at: string | null
+          custom_reflections: Json | null
           cycle_id: string | null
           habit_trends: Json | null
           month: number
@@ -357,6 +373,7 @@ export type Database = {
         Insert: {
           adjustments?: Json | null
           created_at?: string | null
+          custom_reflections?: Json | null
           cycle_id?: string | null
           habit_trends?: Json | null
           month: number
@@ -369,6 +386,7 @@ export type Database = {
         Update: {
           adjustments?: Json | null
           created_at?: string | null
+          custom_reflections?: Json | null
           cycle_id?: string | null
           habit_trends?: Json | null
           month?: number
@@ -425,6 +443,7 @@ export type Database = {
         Row: {
           ai_api_key: string | null
           created_at: string | null
+          cycle_summary_questions: Json | null
           daily_review_questions: Json | null
           habit_categories_enabled: boolean | null
           minimal_mode: boolean | null
@@ -439,6 +458,7 @@ export type Database = {
         Insert: {
           ai_api_key?: string | null
           created_at?: string | null
+          cycle_summary_questions?: Json | null
           daily_review_questions?: Json | null
           habit_categories_enabled?: boolean | null
           minimal_mode?: boolean | null
@@ -453,6 +473,7 @@ export type Database = {
         Update: {
           ai_api_key?: string | null
           created_at?: string | null
+          cycle_summary_questions?: Json | null
           daily_review_questions?: Json | null
           habit_categories_enabled?: boolean | null
           minimal_mode?: boolean | null
@@ -521,6 +542,7 @@ export type Database = {
           adjustments: string | null
           challenges: string | null
           created_at: string | null
+          custom_reflections: Json | null
           habit_summary: Json | null
           review_id: string
           updated_at: string | null
@@ -532,6 +554,7 @@ export type Database = {
           adjustments?: string | null
           challenges?: string | null
           created_at?: string | null
+          custom_reflections?: Json | null
           habit_summary?: Json | null
           review_id?: string
           updated_at?: string | null
@@ -543,6 +566,7 @@ export type Database = {
           adjustments?: string | null
           challenges?: string | null
           created_at?: string | null
+          custom_reflections?: Json | null
           habit_summary?: Json | null
           review_id?: string
           updated_at?: string | null
