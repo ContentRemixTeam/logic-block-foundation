@@ -4,9 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Layout } from '@/components/Layout';
+import { LoadingState } from '@/components/system/LoadingState';
+import { ErrorState } from '@/components/system/ErrorState';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Target, Calendar, CheckSquare, ArrowRight } from 'lucide-react';
+import { normalizeArray, normalizeString, normalizeNumber } from '@/lib/normalize';
+import { Target, Calendar, CheckSquare, ArrowRight, TrendingUp } from 'lucide-react';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -51,12 +54,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading your dashboard...</p>
-          </div>
-        </div>
+        <LoadingState message="Loading your dashboard..." />
       </Layout>
     );
   }
@@ -64,34 +62,17 @@ export default function Dashboard() {
   if (error) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Card className="max-w-md">
-            <CardHeader>
-              <CardTitle>Unable to Load Dashboard</CardTitle>
-              <CardDescription>
-                We encountered an issue loading your dashboard data
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                This might be temporary. Please try refreshing the page or starting a new 90-day cycle.
-              </p>
-              <div className="flex gap-2">
-                <Button onClick={loadDashboardSummary} variant="default">
-                  Retry
-                </Button>
-                <Link to="/cycle-setup">
-                  <Button variant="outline">Start New Cycle</Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <ErrorState
+          title="Unable to Load Dashboard"
+          message={error}
+          onRetry={loadDashboardSummary}
+          showDashboard={false}
+        />
       </Layout>
     );
   }
 
-  // Safe normalization of all data with fallbacks
+  // Safe normalization using utility functions
   const cycle = summary?.cycle ?? {};
   const week = summary?.week ?? {};
   const today = summary?.today ?? {};
@@ -100,21 +81,16 @@ export default function Dashboard() {
   const monthlyReviewStatus = summary?.monthly_review_status ?? { exists: false, score: null, wins_count: 0 };
   const cycleSummaryStatus = summary?.cycle_summary_status ?? { exists: false, is_complete: false, score: null, wins_count: 0 };
 
-  // Fallback arrays for priorities
-  const weeklyPriorities = Array.isArray(week.priorities)
-    ? week.priorities.map(String).filter(Boolean)
-    : [];
-
-  const todayTop3 = Array.isArray(today.top_3)
-    ? today.top_3.map(String).filter(Boolean)
-    : [];
-
-  // Fallback strings and numbers
-  const goal = cycle.goal ?? '';
-  const daysRemaining = cycle.days_remaining ?? 0;
-  const habitStatus = (habits.status ?? 'grey') as 'green' | 'yellow' | 'grey';
+  const weeklyPriorities = normalizeArray(week.priorities);
+  const todayTop3 = normalizeArray(today.top_3);
+  const goal = normalizeString(cycle.goal);
+  const daysRemaining = normalizeNumber(cycle.days_remaining);
+  const habitStatus = (normalizeString(habits.status, 'grey')) as 'green' | 'yellow' | 'grey';
   
   const hasCycle = Boolean(goal);
+  
+  // Calculate progress percentage
+  const cycleProgress = daysRemaining > 0 ? Math.max(0, Math.min(100, ((90 - daysRemaining) / 90) * 100)) : 100;
 
   return (
     <Layout>
@@ -143,7 +119,7 @@ export default function Dashboard() {
           </Card>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {/* 90-Day Goal */}
+            {/* 90-Day Goal with Progress */}
             {goal && (
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -151,10 +127,22 @@ export default function Dashboard() {
                   <Target className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold line-clamp-2">{goal}</div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {daysRemaining > 0 ? `${daysRemaining} days remaining` : 'Cycle complete'}
-                  </p>
+                  <div className="text-2xl font-bold line-clamp-2 mb-3">{goal}</div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Progress</span>
+                      <span className="font-medium">{Math.round(cycleProgress)}%</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div
+                        className="bg-primary rounded-full h-2 transition-all"
+                        style={{ width: `${cycleProgress}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {daysRemaining > 0 ? `${daysRemaining} days remaining` : 'Cycle complete! 🎉'}
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             )}
