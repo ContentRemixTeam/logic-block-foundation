@@ -288,12 +288,17 @@ export default function DailyPlan() {
             <h1 className="text-3xl font-bold">Daily Plan</h1>
             <p className="text-muted-foreground">{today}</p>
           </div>
-          <Link to="/dashboard">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="mr-2 h-4 w-4" />
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => window.location.href = '/dashboard'}>
               Dashboard
             </Button>
-          </Link>
+            <Button variant="outline" size="sm" onClick={() => window.location.href = '/weekly-plan'}>
+              Weekly Plan
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => window.location.href = '/habits'}>
+              Habits
+            </Button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

@@ -172,12 +172,14 @@ export default function WeeklyReview() {
             <p className="text-muted-foreground">Reflect on your week and plan ahead</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate("/weekly-plan")}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
+              Dashboard
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/weekly-plan")}>
               Weekly Plan
             </Button>
-            <Button variant="outline" onClick={() => navigate("/dashboard")}>
-              Dashboard
+            <Button variant="outline" size="sm" onClick={() => navigate("/monthly-review")}>
+              Monthly Review
             </Button>
           </div>
         </div>

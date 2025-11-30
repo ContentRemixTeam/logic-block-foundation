@@ -197,19 +197,22 @@ export default function WeeklyPlan() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/dashboard">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Dashboard
-              </Link>
+            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
+              Dashboard
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/daily-plan")}>
+              Daily Plan
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/habits")}>
+              Habits
             </Button>
             {weeklySummary.review_completed ? (
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/weekly-review">View Weekly Review</Link>
+              <Button variant="outline" size="sm" onClick={() => navigate("/weekly-review")}>
+                View Review
               </Button>
             ) : (
-              <Button size="sm" asChild>
-                <Link to="/weekly-review">Start Weekly Review</Link>
+              <Button size="sm" onClick={() => navigate("/weekly-review")}>
+                Start Review
               </Button>
             )}
           </div>

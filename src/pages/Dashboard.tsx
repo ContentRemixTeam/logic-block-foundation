@@ -97,6 +97,8 @@ export default function Dashboard() {
   const today = summary?.today ?? {};
   const habits = summary?.habits ?? {};
   const weeklyReviewStatus = summary?.weekly_review_status ?? { exists: false, score: null };
+  const monthlyReviewStatus = summary?.monthly_review_status ?? { exists: false, score: null, wins_count: 0 };
+  const cycleSummaryStatus = summary?.cycle_summary_status ?? { exists: false, is_complete: false, score: null, wins_count: 0 };
 
   // Fallback arrays for priorities
   const weeklyPriorities = Array.isArray(week.priorities)
@@ -281,29 +283,67 @@ export default function Dashboard() {
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Reflect on the month</p>
-                  <Link to="/monthly-review">
-                    <Button variant="outline" size="sm">Complete Review</Button>
-                  </Link>
-                </div>
+                {monthlyReviewStatus.exists ? (
+                  <div>
+                    <Badge className="bg-success/10 text-success hover:bg-success/20 border-success/20">
+                      ✓ Completed
+                    </Badge>
+                    {monthlyReviewStatus.score !== null && (
+                      <p className="text-2xl font-bold mt-2">Score: {monthlyReviewStatus.score}/10</p>
+                    )}
+                    {monthlyReviewStatus.wins_count > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">{monthlyReviewStatus.wins_count} wins recorded</p>
+                    )}
+                    <Link to="/monthly-review" className="mt-3 block">
+                      <Button variant="ghost" size="sm" className="h-8 text-xs">
+                        View Review →
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Reflect on the month</p>
+                    <Link to="/monthly-review">
+                      <Button variant="outline" size="sm">Complete Review</Button>
+                    </Link>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
             {/* Cycle Summary */}
-            {daysRemaining <= 0 && (
+            {cycleSummaryStatus.is_complete && (
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">90-Day Summary</CardTitle>
                   <Target className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">Cycle complete</p>
-                    <Link to="/cycle-summary">
-                      <Button variant="outline" size="sm">Complete Summary</Button>
-                    </Link>
-                  </div>
+                  {cycleSummaryStatus.exists ? (
+                    <div>
+                      <Badge className="bg-success/10 text-success hover:bg-success/20 border-success/20">
+                        ✓ Completed
+                      </Badge>
+                      {cycleSummaryStatus.score !== null && (
+                        <p className="text-2xl font-bold mt-2">Score: {cycleSummaryStatus.score}/10</p>
+                      )}
+                      {cycleSummaryStatus.wins_count > 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">{cycleSummaryStatus.wins_count} overall wins</p>
+                      )}
+                      <Link to="/cycle-summary" className="mt-3 block">
+                        <Button variant="ghost" size="sm" className="h-8 text-xs">
+                          View Summary →
+                        </Button>
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">Cycle complete - time to reflect</p>
+                      <Link to="/cycle-summary">
+                        <Button variant="outline" size="sm">Complete Summary</Button>
+                      </Link>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}

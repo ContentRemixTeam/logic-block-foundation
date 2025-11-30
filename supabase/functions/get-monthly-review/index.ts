@@ -91,6 +91,7 @@ Deno.serve(async (req) => {
 
     // Auto-create if missing
     if (!reviewData) {
+      console.log('Auto-creating monthly review for month:', currentMonth);
       const { data: newReview, error: insertError } = await supabaseClient
         .from('monthly_reviews')
         .insert({
@@ -98,8 +99,8 @@ Deno.serve(async (req) => {
           cycle_id: currentCycle.cycle_id,
           month: currentMonth,
           wins: JSON.stringify([]),
-          habit_trends: JSON.stringify({}),
-          thought_patterns: JSON.stringify({}),
+          habit_trends: JSON.stringify({ challenges: [] }),
+          thought_patterns: JSON.stringify({ lessons: [] }),
           adjustments: JSON.stringify([]),
         })
         .select()
@@ -117,6 +118,7 @@ Deno.serve(async (req) => {
       }
 
       reviewData = newReview;
+      console.log('Monthly review auto-created successfully');
     }
 
     // Calculate habit consistency for the month
