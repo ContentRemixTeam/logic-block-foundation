@@ -11,6 +11,8 @@ import Onboarding from "./pages/Onboarding";
 import CycleSetup from "./pages/CycleSetup";
 import WeeklyPlan from "./pages/WeeklyPlan";
 import WeeklyReview from "./pages/WeeklyReview";
+import MonthlyReview from "./pages/MonthlyReview";
+import CycleSummary from "./pages/CycleSummary";
 import DailyPlan from "./pages/DailyPlan";
 import Habits from "./pages/Habits";
 import Ideas from "./pages/Ideas";
@@ -35,6 +37,8 @@ const App = () => (
             <Route path="/cycle-setup" element={<ProtectedRoute><CycleSetup /></ProtectedRoute>} />
             <Route path="/weekly-plan" element={<ProtectedRoute><WeeklyPlan /></ProtectedRoute>} />
             <Route path="/weekly-review" element={<ProtectedRoute><WeeklyReview /></ProtectedRoute>} />
+            <Route path="/monthly-review" element={<ProtectedRoute><MonthlyReview /></ProtectedRoute>} />
+            <Route path="/cycle-summary" element={<ProtectedRoute><CycleSummary /></ProtectedRoute>} />
             <Route path="/daily-plan" element={<ProtectedRoute><DailyPlan /></ProtectedRoute>} />
             <Route path="/habits" element={<ProtectedRoute><Habits /></ProtectedRoute>} />
             <Route path="/ideas" element={<ProtectedRoute><Ideas /></ProtectedRoute>} />
