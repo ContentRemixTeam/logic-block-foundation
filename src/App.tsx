@@ -17,6 +17,7 @@ import DailyPlan from "./pages/DailyPlan";
 import Habits from "./pages/Habits";
 import Ideas from "./pages/Ideas";
 import UsefulThoughts from "./pages/UsefulThoughts";
+import BeliefBuilder from "./pages/BeliefBuilder";
 import SelfCoaching from "./pages/SelfCoaching";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/habits" element={<ProtectedRoute><Habits /></ProtectedRoute>} />
               <Route path="/ideas" element={<ProtectedRoute><Ideas /></ProtectedRoute>} />
               <Route path="/useful-thoughts" element={<ProtectedRoute><UsefulThoughts /></ProtectedRoute>} />
+              <Route path="/belief-builder" element={<ProtectedRoute><BeliefBuilder /></ProtectedRoute>} />
               <Route path="/self-coaching" element={<ProtectedRoute><SelfCoaching /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />

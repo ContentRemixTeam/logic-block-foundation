@@ -14,6 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
+      belief_evidence_logs: {
+        Row: {
+          belief_id: string
+          created_at: string | null
+          date: string
+          evidence: string
+          log_id: string
+          user_id: string
+        }
+        Insert: {
+          belief_id: string
+          created_at?: string | null
+          date?: string
+          evidence: string
+          log_id?: string
+          user_id: string
+        }
+        Update: {
+          belief_id?: string
+          created_at?: string | null
+          date?: string
+          evidence?: string
+          log_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "belief_evidence_logs_belief_id_fkey"
+            columns: ["belief_id"]
+            isOneToOne: false
+            referencedRelation: "beliefs"
+            referencedColumns: ["belief_id"]
+          },
+        ]
+      }
+      beliefs: {
+        Row: {
+          action_commitments: Json | null
+          belief_id: string
+          confidence_score: number | null
+          created_at: string | null
+          evidence_for_new_belief: Json | null
+          limiting_belief: string
+          updated_at: string | null
+          upgraded_belief: string
+          user_id: string
+        }
+        Insert: {
+          action_commitments?: Json | null
+          belief_id?: string
+          confidence_score?: number | null
+          created_at?: string | null
+          evidence_for_new_belief?: Json | null
+          limiting_belief: string
+          updated_at?: string | null
+          upgraded_belief: string
+          user_id: string
+        }
+        Update: {
+          action_commitments?: Json | null
+          belief_id?: string
+          confidence_score?: number | null
+          created_at?: string | null
+          evidence_for_new_belief?: Json | null
+          limiting_belief?: string
+          updated_at?: string | null
+          upgraded_belief?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ctfar: {
         Row: {
           action: string | null

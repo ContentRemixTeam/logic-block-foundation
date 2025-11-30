@@ -15,7 +15,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeArray, normalizeString, normalizeObject } from '@/lib/normalize';
 import { UsefulThoughtsModal } from '@/components/UsefulThoughtsModal';
-import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain } from 'lucide-react';
+import BeliefSelectorModal from '@/components/BeliefSelectorModal';
+import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp } from 'lucide-react';
 
 export default function DailyPlan() {
   const { user } = useAuth();
@@ -45,6 +46,7 @@ export default function DailyPlan() {
   const [habits, setHabits] = useState<any[]>([]);
   const [habitLogs, setHabitLogs] = useState<Record<string, boolean>>({});
   const [thoughtsModalOpen, setThoughtsModalOpen] = useState(false);
+  const [beliefsModalOpen, setBeliefsModalOpen] = useState(false);
 
   useEffect(() => {
     loadDailyPlan();
@@ -345,15 +347,26 @@ export default function DailyPlan() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <Label htmlFor="thought">Today's Key Thought</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setThoughtsModalOpen(true)}
-                  >
-                    <Brain className="h-4 w-4 mr-2" />
-                    Browse Thoughts
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setThoughtsModalOpen(true)}
+                    >
+                      <Brain className="h-4 w-4 mr-2" />
+                      Browse Thoughts
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setBeliefsModalOpen(true)}
+                    >
+                      <TrendingUp className="h-4 w-4 mr-2" />
+                      Insert Belief
+                    </Button>
+                  </div>
                 </div>
                 <Input
                   id="thought"
@@ -557,6 +570,12 @@ export default function DailyPlan() {
         open={thoughtsModalOpen}
         onOpenChange={setThoughtsModalOpen}
         onSelect={(selectedThought) => setThought(selectedThought)}
+      />
+      
+      <BeliefSelectorModal
+        open={beliefsModalOpen}
+        onOpenChange={setBeliefsModalOpen}
+        onSelect={(belief) => setThought(belief)}
       />
     </Layout>
   );

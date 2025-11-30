@@ -2,14 +2,21 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Zap } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { ReflectionList } from "@/components/ReflectionList";
+
+interface Belief {
+  belief_id: string;
+  upgraded_belief: string;
+  confidence_score: number;
+}
 
 export default function WeeklyReview() {
   const { user } = useAuth();
@@ -28,6 +35,22 @@ export default function WeeklyReview() {
 
   const [habitStats, setHabitStats] = useState({ total: 0, completed: 0, percent: 0 });
   const [cycleProgress, setCycleProgress] = useState({ total_days: 90, completed_days: 0, percent: 0 });
+
+  // Fetch beliefs
+  const { data: beliefs = [] } = useQuery<Belief[]>({
+    queryKey: ['beliefs'],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase.functions.invoke('get-beliefs', {
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+
+      if (error) throw error;
+      return data as Belief[];
+    }
+  });
 
   useEffect(() => {
     if (user) {
@@ -297,6 +320,37 @@ export default function WeeklyReview() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Belief Strengthening */}
+        {beliefs.length > 0 && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Zap className="w-5 h-5 text-primary" />
+                <CardTitle>Belief Strengthening</CardTitle>
+              </div>
+              <CardDescription>Your upgraded beliefs this week</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {beliefs.slice(0, 3).map((belief) => (
+                <div key={belief.belief_id} className="border-l-2 border-primary pl-3 py-2">
+                  <p className="text-sm font-medium">{belief.upgraded_belief}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="w-24 bg-muted rounded-full h-1.5">
+                      <div 
+                        className="bg-primary h-1.5 rounded-full transition-all"
+                        style={{ width: `${(belief.confidence_score / 10) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {belief.confidence_score}/10
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Save Button */}
         <div className="flex justify-end gap-3">
