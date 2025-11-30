@@ -13,7 +13,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeArray, normalizeString, normalizeNumber, normalizeObject } from '@/lib/normalize';
-import { ArrowLeft, Calendar, Loader2, Save, CheckCircle2, TrendingUp } from 'lucide-react';
+import { UsefulThoughtsModal } from '@/components/UsefulThoughtsModal';
+import { ArrowLeft, Calendar, Loader2, Save, CheckCircle2, TrendingUp, Brain } from 'lucide-react';
 
 export default function WeeklyPlan() {
   const { user } = useAuth();
@@ -35,6 +36,7 @@ export default function WeeklyPlan() {
     review_completed: false,
   });
   const [cycleGoal, setCycleGoal] = useState('');
+  const [thoughtsModalOpen, setThoughtsModalOpen] = useState(false);
 
   useEffect(() => {
     loadWeeklyPlan();
@@ -321,7 +323,18 @@ export default function WeeklyPlan() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="thought">Key Thought for the Week</Label>
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="thought">Key Thought for the Week</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setThoughtsModalOpen(true)}
+                  >
+                    <Brain className="h-4 w-4 mr-2" />
+                    Browse Thoughts
+                  </Button>
+                </div>
                 <Input
                   id="thought"
                   value={thought}
@@ -409,6 +422,12 @@ export default function WeeklyPlan() {
           </CardContent>
         </Card>
       </div>
+      
+      <UsefulThoughtsModal
+        open={thoughtsModalOpen}
+        onOpenChange={setThoughtsModalOpen}
+        onSelect={(selectedThought) => setThought(selectedThought)}
+      />
     </Layout>
   );
 }

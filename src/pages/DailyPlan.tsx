@@ -14,7 +14,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeArray, normalizeString, normalizeObject } from '@/lib/normalize';
-import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2 } from 'lucide-react';
+import { UsefulThoughtsModal } from '@/components/UsefulThoughtsModal';
+import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain } from 'lucide-react';
 
 export default function DailyPlan() {
   const { user } = useAuth();
@@ -43,6 +44,7 @@ export default function DailyPlan() {
   // Habits
   const [habits, setHabits] = useState<any[]>([]);
   const [habitLogs, setHabitLogs] = useState<Record<string, boolean>>({});
+  const [thoughtsModalOpen, setThoughtsModalOpen] = useState(false);
 
   useEffect(() => {
     loadDailyPlan();
@@ -341,7 +343,18 @@ export default function DailyPlan() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="thought">Today's Key Thought</Label>
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="thought">Today's Key Thought</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setThoughtsModalOpen(true)}
+                  >
+                    <Brain className="h-4 w-4 mr-2" />
+                    Browse Thoughts
+                  </Button>
+                </div>
                 <Input
                   id="thought"
                   value={thought}
@@ -539,6 +552,12 @@ export default function DailyPlan() {
           </CardContent>
         </Card>
       </div>
+      
+      <UsefulThoughtsModal
+        open={thoughtsModalOpen}
+        onOpenChange={setThoughtsModalOpen}
+        onSelect={(selectedThought) => setThought(selectedThought)}
+      />
     </Layout>
   );
 }

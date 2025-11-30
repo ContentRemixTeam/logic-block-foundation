@@ -415,6 +415,30 @@ export type Database = {
         }
         Relationships: []
       }
+      mindset_categories: {
+        Row: {
+          color: string
+          created_at: string | null
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string | null
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       monthly_reviews: {
         Row: {
           adjustments: Json | null
@@ -497,6 +521,41 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      useful_thoughts: {
+        Row: {
+          category_id: string | null
+          created_at: string | null
+          id: string
+          is_favorite: boolean | null
+          text: string
+          user_id: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_favorite?: boolean | null
+          text: string
+          user_id: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_favorite?: boolean | null
+          text?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "useful_thoughts_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "mindset_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_settings: {
         Row: {
