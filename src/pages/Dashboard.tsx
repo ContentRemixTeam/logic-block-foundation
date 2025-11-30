@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,47 +9,52 @@ import { ErrorState } from '@/components/system/ErrorState';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { normalizeArray, normalizeString, normalizeNumber } from '@/lib/normalize';
-import { Target, Calendar, CheckSquare, ArrowRight, TrendingUp } from 'lucide-react';
+import { Target, Calendar, CheckSquare, ArrowRight, TrendingUp, Zap } from 'lucide-react';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [ideasCount, setIdeasCount] = useState(0);
 
   useEffect(() => {
     loadDashboardSummary();
   }, [user]);
 
-  const loadDashboardSummary = async () => {
+  const loadDashboardSummary = useCallback(async () => {
     if (!user) return;
 
     try {
       setError(null);
       console.log('Loading dashboard summary...');
       
-      const { data, error: fnError } = await supabase.functions.invoke('get-dashboard-summary');
+      const [dashboardData, ideasData] = await Promise.all([
+        supabase.functions.invoke('get-dashboard-summary'),
+        supabase.functions.invoke('get-ideas'),
+      ]);
 
       console.log('Dashboard response:', { 
-        hasData: Boolean(data),
-        dataKeys: data ? Object.keys(data) : [],
-        error: fnError 
+        hasData: Boolean(dashboardData.data),
+        dataKeys: dashboardData.data ? Object.keys(dashboardData.data) : [],
+        error: dashboardData.error 
       });
 
-      if (fnError) {
-        console.error('Function invocation error:', fnError);
-        throw fnError;
+      if (dashboardData.error) {
+        console.error('Function invocation error:', dashboardData.error);
+        throw dashboardData.error;
       }
       
-      console.log('Dashboard data received:', data);
-      setSummary(data?.data || null);
+      console.log('Dashboard data received:', dashboardData.data);
+      setSummary(dashboardData.data?.data || null);
+      setIdeasCount(ideasData.data?.ideas?.length || 0);
     } catch (error: any) {
       console.error('Error loading dashboard:', error);
       setError(error?.message || 'Failed to load dashboard');
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   if (loading) {
     return (
@@ -391,7 +396,10 @@ export default function Dashboard() {
             <Link to="/ideas">
               <Card className="cursor-pointer transition-colors hover:bg-secondary">
                 <CardContent className="flex items-center justify-between p-6">
-                  <span className="font-medium">Capture Ideas</span>
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-accent" />
+                    <span className="font-medium">Captured Ideas ({ideasCount})</span>
+                  </div>
                   <ArrowRight className="h-4 w-4" />
                 </CardContent>
               </Card>
