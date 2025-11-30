@@ -36,6 +36,7 @@ const navigation = [
   { name: 'Monthly Review', href: '/monthly-review', icon: BarChart3 },
   { name: 'Habits', href: '/habits', icon: CheckSquare },
   { name: 'Ideas', href: '/ideas', icon: Zap },
+  { name: 'Useful Thoughts', href: '/useful-thoughts', icon: Brain },
   { name: 'Self-Coaching', href: '/self-coaching', icon: Brain },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
