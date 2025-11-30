@@ -5,10 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Layout } from '@/components/Layout';
+import { LoadingState } from '@/components/system/LoadingState';
+import { ErrorState } from '@/components/system/ErrorState';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { normalizeArray, normalizeBoolean } from '@/lib/normalize';
+import { Loader2, Save, ArrowLeft } from 'lucide-react';
 import { ReflectionList } from '@/components/ReflectionList';
 
 export default function Settings() {
@@ -61,32 +64,21 @@ export default function Settings() {
       const data = await res.json();
 
       setSettings({
-        minimal_mode: data.minimal_mode || false,
-        quick_mode_default: data.quick_mode_default !== false,
-        habit_categories_enabled: data.habit_categories_enabled !== false,
-        show_income_tracker: data.show_income_tracker || false,
+        minimal_mode: normalizeBoolean(data.minimal_mode),
+        quick_mode_default: normalizeBoolean(data.quick_mode_default, true),
+        habit_categories_enabled: normalizeBoolean(data.habit_categories_enabled, true),
+        show_income_tracker: normalizeBoolean(data.show_income_tracker),
       });
 
-      setDailyQuestions(
-        Array.isArray(data.daily_review_questions) && data.daily_review_questions.length > 0
-          ? data.daily_review_questions
-          : [""]
-      );
-      setWeeklyQuestions(
-        Array.isArray(data.weekly_review_questions) && data.weekly_review_questions.length > 0
-          ? data.weekly_review_questions
-          : [""]
-      );
-      setMonthlyQuestions(
-        Array.isArray(data.monthly_review_questions) && data.monthly_review_questions.length > 0
-          ? data.monthly_review_questions
-          : [""]
-      );
-      setCycleSummaryQuestions(
-        Array.isArray(data.cycle_summary_questions) && data.cycle_summary_questions.length > 0
-          ? data.cycle_summary_questions
-          : [""]
-      );
+      const dailyQ = normalizeArray(data.daily_review_questions);
+      const weeklyQ = normalizeArray(data.weekly_review_questions);
+      const monthlyQ = normalizeArray(data.monthly_review_questions);
+      const cycleQ = normalizeArray(data.cycle_summary_questions);
+
+      setDailyQuestions(dailyQ.length > 0 ? dailyQ : [""]);
+      setWeeklyQuestions(weeklyQ.length > 0 ? weeklyQ : [""]);
+      setMonthlyQuestions(monthlyQ.length > 0 ? monthlyQ : [""]);
+      setCycleSummaryQuestions(cycleQ.length > 0 ? cycleQ : [""]);
     } catch (error) {
       console.error('Error loading settings:', error);
       toast({ title: "Failed to load settings", variant: "destructive" });
