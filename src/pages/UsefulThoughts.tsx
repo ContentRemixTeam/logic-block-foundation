@@ -36,7 +36,7 @@ export default function UsefulThoughts() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [newThought, setNewThought] = useState('');
-  const [newThoughtCategory, setNewThoughtCategory] = useState<string>('');
+  const [newThoughtCategory, setNewThoughtCategory] = useState<string | null>(null);
   const [editingThought, setEditingThought] = useState<Thought | null>(null);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryColor, setNewCategoryColor] = useState('#10B8C7');
@@ -56,7 +56,17 @@ export default function UsefulThoughts() {
       if (error) throw error;
 
       setThoughts(data.thoughts || []);
-      setCategories(data.categories || []);
+      
+      // Normalize categories to filter out empty names
+      const safeCategories = (data.categories || [])
+        .map((c: any) => ({
+          id: c.id,
+          name: (c.name || '').trim(),
+          color: c.color || '#10B8C7',
+        }))
+        .filter((c: Category) => c.name.length > 0);
+      
+      setCategories(safeCategories);
     } catch (error) {
       console.error('Error loading thoughts:', error);
       toast({
@@ -97,7 +107,7 @@ export default function UsefulThoughts() {
       });
 
       setNewThought('');
-      setNewThoughtCategory('');
+      setNewThoughtCategory(null);
       setEditingThought(null);
       loadThoughts();
     } catch (error) {
@@ -163,12 +173,21 @@ export default function UsefulThoughts() {
   };
 
   const saveCategory = async () => {
-    if (!newCategoryName.trim()) return;
+    const trimmedName = newCategoryName.trim();
+    
+    if (!trimmedName || trimmedName.length === 0) {
+      toast({
+        title: 'Error',
+        description: 'Category name cannot be empty',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     try {
       const { error } = await supabase.functions.invoke('save-mindset-category', {
         body: {
-          name: newCategoryName,
+          name: trimmedName,
           color: newCategoryColor,
         },
       });
@@ -197,7 +216,7 @@ export default function UsefulThoughts() {
   const editThought = (thought: Thought) => {
     setEditingThought(thought);
     setNewThought(thought.text);
-    setNewThoughtCategory(thought.category_id || '');
+    setNewThoughtCategory(thought.category_id || null);
   };
 
   const filteredThoughts = thoughts.filter(t => 
@@ -278,23 +297,28 @@ export default function UsefulThoughts() {
               rows={3}
             />
             <div className="flex gap-2">
-              <Select value={newThoughtCategory} onValueChange={setNewThoughtCategory}>
+              <Select value={newThoughtCategory || undefined} onValueChange={(val) => setNewThoughtCategory(val || null)}>
                 <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Select category (optional)" />
+                  <SelectValue placeholder="Choose a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No category</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: cat.color }}
-                        />
-                        {cat.name}
-                      </div>
-                    </SelectItem>
-                  ))}
+                  {categories.length === 0 ? (
+                    <div className="p-2 text-sm text-muted-foreground">
+                      No categories yet. Create one first!
+                    </div>
+                  ) : (
+                    categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: cat.color }}
+                          />
+                          {cat.name}
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
               <Button onClick={saveThought} disabled={saving}>
@@ -306,7 +330,7 @@ export default function UsefulThoughts() {
                   onClick={() => {
                     setEditingThought(null);
                     setNewThought('');
-                    setNewThoughtCategory('');
+                    setNewThoughtCategory(null);
                   }}
                 >
                   Cancel
