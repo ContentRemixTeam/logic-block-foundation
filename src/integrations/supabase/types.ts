@@ -451,6 +451,7 @@ export type Database = {
           quick_mode_default: boolean | null
           reminder_preferences: Json | null
           show_income_tracker: boolean | null
+          theme_preference: string | null
           updated_at: string | null
           user_id: string
           weekly_review_questions: Json | null
@@ -466,6 +467,7 @@ export type Database = {
           quick_mode_default?: boolean | null
           reminder_preferences?: Json | null
           show_income_tracker?: boolean | null
+          theme_preference?: string | null
           updated_at?: string | null
           user_id: string
           weekly_review_questions?: Json | null
@@ -481,6 +483,7 @@ export type Database = {
           quick_mode_default?: boolean | null
           reminder_preferences?: Json | null
           show_income_tracker?: boolean | null
+          theme_preference?: string | null
           updated_at?: string | null
           user_id?: string
           weekly_review_questions?: Json | null

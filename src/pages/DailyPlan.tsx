@@ -206,7 +206,7 @@ export default function DailyPlan() {
       setLastSaved(new Date());
 
       toast({
-        title: 'Daily plan saved!',
+        title: '⚡ Daily plan saved!',
         description: 'Your day is set.',
       });
     } catch (error: any) {

@@ -52,6 +52,28 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 216 28% 12%;
     --sidebar-border: 214 20% 88%;
     --sidebar-ring: 198 93% 32%;
+
+    /* Theme colors */
+    --theme-pink: 348 100% 60%;
+    --theme-yellow: 48 100% 65%;
+    --theme-teal: 185 85% 42%;
+    --theme-gray: 0 0% 23%;
+  }
+
+  [data-theme="vibrant"] {
+    --primary: 348 100% 60%;
+    --accent: 185 85% 42%;
+    --ring: 348 100% 60%;
+    --sidebar-primary: 348 100% 60%;
+    --sidebar-ring: 348 100% 60%;
+  }
+
+  [data-theme="bw"] {
+    --primary: 0 0% 0%;
+    --accent: 0 0% 23%;
+    --ring: 0 0% 0%;
+    --sidebar-primary: 0 0% 0%;
+    --sidebar-ring: 0 0% 0%;
   }
 
   .dark {

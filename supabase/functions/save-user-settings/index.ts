@@ -54,6 +54,7 @@ Deno.serve(async (req) => {
       weekly_review_questions,
       monthly_review_questions,
       cycle_summary_questions,
+      theme_preference,
     } = body;
 
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
@@ -75,16 +76,22 @@ Deno.serve(async (req) => {
     const normalizedCycleSummary = (cycle_summary_questions ?? []).map(String).filter(Boolean);
 
     // Upsert settings
+    const updateData: any = {
+      user_id: userId,
+      daily_review_questions: JSON.stringify(normalizedDaily),
+      weekly_review_questions: JSON.stringify(normalizedWeekly),
+      monthly_review_questions: JSON.stringify(normalizedMonthly),
+      cycle_summary_questions: JSON.stringify(normalizedCycleSummary),
+      updated_at: new Date().toISOString(),
+    };
+
+    if (theme_preference !== undefined) {
+      updateData.theme_preference = theme_preference;
+    }
+
     const { error } = await supabaseClient
       .from('user_settings')
-      .upsert({
-        user_id: userId,
-        daily_review_questions: JSON.stringify(normalizedDaily),
-        weekly_review_questions: JSON.stringify(normalizedWeekly),
-        monthly_review_questions: JSON.stringify(normalizedMonthly),
-        cycle_summary_questions: JSON.stringify(normalizedCycleSummary),
-        updated_at: new Date().toISOString(),
-      }, {
+      .upsert(updateData, {
         onConflict: 'user_id',
       });
 
