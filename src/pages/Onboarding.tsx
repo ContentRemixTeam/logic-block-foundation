@@ -22,7 +22,10 @@ export default function Onboarding() {
     <Layout>
       <div className="mx-auto max-w-2xl space-y-8">
         <div>
-          <h1 className="text-3xl font-bold">Welcome!</h1>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <span>⚡</span>
+            Welcome!
+          </h1>
           <p className="text-muted-foreground">
             Complete these steps to prepare for your 90-day journey
           </p>
@@ -94,7 +97,7 @@ export default function Onboarding() {
           disabled={!allChecked}
           onClick={() => navigate('/cycle-setup')}
         >
-          Start 90-Day Cycle →
+          ⚡ Start 90-Day Cycle →
         </Button>
       </div>
     </Layout>

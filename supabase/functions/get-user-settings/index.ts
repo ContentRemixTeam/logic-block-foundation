@@ -121,6 +121,7 @@ Deno.serve(async (req) => {
         minimal_mode: settings.minimal_mode ?? false,
         quick_mode_default: settings.quick_mode_default ?? true,
         habit_categories_enabled: settings.habit_categories_enabled ?? true,
+        theme_preference: settings.theme_preference ?? 'vibrant',
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

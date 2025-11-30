@@ -96,7 +96,10 @@ export default function Dashboard() {
     <Layout>
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <span>⚡</span>
+            Dashboard
+          </h1>
           <p className="text-muted-foreground">Your 90-day planning overview</p>
         </div>
 
@@ -122,8 +125,11 @@ export default function Dashboard() {
             {/* 90-Day Goal with Progress */}
             {goal && (
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">90-Day Goal</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-primary/10 to-accent/10">
+                  <CardTitle className="text-sm font-medium flex items-center gap-1">
+                    <span>⚡</span>
+                    90-Day Goal
+                  </CardTitle>
                   <Target className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
@@ -209,20 +215,20 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-3">
-                  <Badge
-                    variant={habitStatus === 'green' ? 'default' : habitStatus === 'yellow' ? 'secondary' : 'outline'}
-                    className={`${
-                      habitStatus === 'green'
-                        ? 'bg-success/10 text-success hover:bg-success/20 border-success/20'
-                        : habitStatus === 'yellow'
-                        ? 'bg-warning/10 text-warning hover:bg-warning/20 border-warning/20'
-                        : 'bg-muted text-muted-foreground'
-                    }`}
-                  >
-                    {habitStatus === 'green' && '✓ Great progress'}
-                    {habitStatus === 'yellow' && '~ Needs work'}
-                    {habitStatus === 'grey' && '○ Not started'}
-                  </Badge>
+                   <Badge
+                     variant={habitStatus === 'green' ? 'default' : habitStatus === 'yellow' ? 'secondary' : 'outline'}
+                     className={`${
+                       habitStatus === 'green'
+                         ? 'bg-success/10 text-success hover:bg-success/20 border-success/20'
+                         : habitStatus === 'yellow'
+                         ? 'bg-warning/10 text-warning hover:bg-warning/20 border-warning/20'
+                         : 'bg-muted text-muted-foreground'
+                     }`}
+                   >
+                     {habitStatus === 'green' && '⚡ Great progress'}
+                     {habitStatus === 'yellow' && '~ Needs work'}
+                     {habitStatus === 'grey' && '○ Not started'}
+                   </Badge>
                 </div>
                 <Link to="/habits" className="mt-3 block">
                   <Button variant="ghost" size="sm" className="h-8 text-xs">

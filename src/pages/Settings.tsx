@@ -25,6 +25,7 @@ export default function Settings() {
     quick_mode_default: true,
     habit_categories_enabled: true,
     show_income_tracker: false,
+    theme_preference: 'vibrant' as 'vibrant' | 'bw',
   });
 
   const [dailyQuestions, setDailyQuestions] = useState<string[]>([""]);
@@ -68,7 +69,11 @@ export default function Settings() {
         quick_mode_default: normalizeBoolean(data.quick_mode_default, true),
         habit_categories_enabled: normalizeBoolean(data.habit_categories_enabled, true),
         show_income_tracker: normalizeBoolean(data.show_income_tracker),
+        theme_preference: data.theme_preference || 'vibrant',
       });
+
+      // Apply theme to document
+      document.documentElement.setAttribute('data-theme', data.theme_preference || 'vibrant');
 
       const dailyQ = normalizeArray(data.daily_review_questions);
       const weeklyQ = normalizeArray(data.weekly_review_questions);
@@ -87,11 +92,16 @@ export default function Settings() {
     }
   };
 
-  const updateSetting = async (key: string, value: boolean) => {
+  const updateSetting = async (key: string, value: boolean | string) => {
     if (!user) return;
 
     try {
       setSettings((prev) => ({ ...prev, [key]: value }));
+
+      // Apply theme immediately if theme_preference is being updated
+      if (key === 'theme_preference') {
+        document.documentElement.setAttribute('data-theme', value as string);
+      }
 
       const { error } = await supabase
         .from('user_settings')
@@ -103,7 +113,7 @@ export default function Settings() {
       if (error) throw error;
 
       toast({
-        title: 'Settings updated!',
+        title: '⚡ Settings updated!',
       });
     } catch (error: any) {
       toast({
@@ -175,6 +185,48 @@ export default function Settings() {
             Dashboard
           </Button>
         </div>
+
+        {/* Theme Selector */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Theme</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Choose your theme</Label>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => updateSetting('theme_preference', 'vibrant')}
+                  className={`flex-1 p-4 rounded-lg border-2 transition-all ${
+                    settings.theme_preference === 'vibrant'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <span className="text-2xl">🎨</span>
+                    <span className="font-semibold">Vibrant</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Colorful and energetic</p>
+                </button>
+                <button
+                  onClick={() => updateSetting('theme_preference', 'bw')}
+                  className={`flex-1 p-4 rounded-lg border-2 transition-all ${
+                    settings.theme_preference === 'bw'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <span className="text-2xl">⬛</span>
+                    <span className="font-semibold">Black & White</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Clean and minimal</p>
+                </button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Display Preferences */}
         <Card>
