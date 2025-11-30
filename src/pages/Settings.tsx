@@ -11,8 +11,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeArray, normalizeBoolean } from '@/lib/normalize';
-import { Loader2, Save, ArrowLeft } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, Bug, Trash2 } from 'lucide-react';
 import { ReflectionList } from '@/components/ReflectionList';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -32,6 +34,11 @@ export default function Settings() {
   const [weeklyQuestions, setWeeklyQuestions] = useState<string[]>([""]);
   const [monthlyQuestions, setMonthlyQuestions] = useState<string[]>([""]);
   const [cycleSummaryQuestions, setCycleSummaryQuestions] = useState<string[]>([""]);
+  
+  const [debugDialogOpen, setDebugDialogOpen] = useState(false);
+  const [debugData, setDebugData] = useState<any>(null);
+  const [debugLoading, setDebugLoading] = useState(false);
+  const [cleanupLoading, setCleanupLoading] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -158,6 +165,63 @@ export default function Settings() {
       toast({ title: "Failed to save questions", variant: "destructive" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDebugData = async () => {
+    try {
+      setDebugLoading(true);
+      const { data, error } = await supabase.functions.invoke('debug-mindset-data');
+
+      if (error) throw error;
+
+      setDebugData(data);
+      setDebugDialogOpen(true);
+      toast({
+        title: 'Debug Complete',
+        description: 'Data retrieved successfully',
+      });
+    } catch (error) {
+      console.error('Error debugging data:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to retrieve debug data',
+        variant: 'destructive',
+      });
+    } finally {
+      setDebugLoading(false);
+    }
+  };
+
+  const handleCleanupData = async () => {
+    if (!confirm('This will permanently delete empty categories and thoughts, and merge duplicates. Continue?')) {
+      return;
+    }
+
+    try {
+      setCleanupLoading(true);
+      const { data, error } = await supabase.functions.invoke('cleanup-mindset-data');
+
+      if (error) throw error;
+
+      toast({
+        title: 'Cleanup Complete ⚡',
+        description: `Deleted ${data.deleted_categories} categories, ${data.deleted_thoughts} thoughts. Merged ${data.merged_duplicates} duplicates.`,
+      });
+
+      // Refresh debug data if dialog is open
+      if (debugDialogOpen) {
+        handleDebugData();
+      }
+    } catch (error) {
+      console.error('Error cleaning up data:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to clean up data',
+        variant: 'destructive',
+      });
+    } finally {
+      setCleanupLoading(false);
     }
   };
 
@@ -347,6 +411,57 @@ export default function Settings() {
           </CardContent>
         </Card>
 
+        {/* Mindset Data Management */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Mindset Data Management</CardTitle>
+            <CardDescription>
+              Debug and clean up your mindset categories and thoughts
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={handleDebugData}
+                disabled={debugLoading}
+              >
+                {debugLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <Bug className="h-4 w-4 mr-2" />
+                    Debug Data
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleCleanupData}
+                disabled={cleanupLoading}
+              >
+                {cleanupLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Cleaning...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Clean Up Data
+                  </>
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Debug Data shows all categories and thoughts. Clean Up Data removes empty entries, trims whitespace, and merges duplicate categories.
+            </p>
+          </CardContent>
+        </Card>
+
         {/* Save Button */}
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={() => navigate("/dashboard")}>
@@ -379,6 +494,43 @@ export default function Settings() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Debug Data Modal */}
+      <Dialog open={debugDialogOpen} onOpenChange={setDebugDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Mindset Data Debug</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="h-[60vh]">
+            {debugData && (
+              <div className="space-y-4">
+                <div className="p-4 bg-muted rounded-lg">
+                  <h3 className="font-semibold mb-2">Summary</h3>
+                  <pre className="text-xs overflow-x-auto">
+                    {JSON.stringify(debugData.data?.summary, null, 2)}
+                  </pre>
+                </div>
+
+                {debugData.data?.issues && (
+                  <div className="p-4 bg-destructive/10 rounded-lg">
+                    <h3 className="font-semibold mb-2">Issues Found</h3>
+                    <pre className="text-xs overflow-x-auto">
+                      {JSON.stringify(debugData.data.issues, null, 2)}
+                    </pre>
+                  </div>
+                )}
+
+                <div className="p-4 bg-muted rounded-lg">
+                  <h3 className="font-semibold mb-2">Full Data</h3>
+                  <pre className="text-xs overflow-x-auto">
+                    {JSON.stringify(debugData.data, null, 2)}
+                  </pre>
+                </div>
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
