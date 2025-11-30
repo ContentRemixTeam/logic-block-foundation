@@ -1,15 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Layout } from '@/components/Layout';
+import { LoadingState } from '@/components/system/LoadingState';
+import { ErrorState } from '@/components/system/ErrorState';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Calendar, Loader2 } from 'lucide-react';
+import { normalizeArray, normalizeString, normalizeNumber, normalizeObject } from '@/lib/normalize';
+import { ArrowLeft, Calendar, Loader2, Save, CheckCircle2, TrendingUp } from 'lucide-react';
 
 export default function WeeklyPlan() {
   const { user } = useAuth();
@@ -17,6 +21,7 @@ export default function WeeklyPlan() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [weekId, setWeekId] = useState<string | null>(null);
   const [priorities, setPriorities] = useState<string[]>(['', '', '']);
@@ -29,10 +34,22 @@ export default function WeeklyPlan() {
     habit_completion_percent: 0,
     review_completed: false,
   });
+  const [cycleGoal, setCycleGoal] = useState('');
 
   useEffect(() => {
     loadWeeklyPlan();
   }, [user]);
+
+  // Auto-save with debounce
+  useEffect(() => {
+    if (!user || !weekId || loading) return;
+    
+    const timer = setTimeout(() => {
+      handleAutoSave();
+    }, 2000);
+    
+    return () => clearTimeout(timer);
+  }, [priorities, thought, feeling, challenges, adjustments]);
 
   const loadWeeklyPlan = async () => {
     if (!user) return;
@@ -53,27 +70,24 @@ export default function WeeklyPlan() {
       if (data?.data) {
         const weekData = data.data;
         setWeekId(weekData.week_id);
+        setCycleGoal(normalizeString(weekData.cycle_goal));
         
-        // Normalize priorities
-        const normalizedPriorities = Array.isArray(weekData.top_3_priorities) 
-          ? weekData.top_3_priorities 
-          : [];
-        
+        const normalizedPriorities = normalizeArray(weekData.top_3_priorities);
         setPriorities([
           normalizedPriorities[0] || '',
           normalizedPriorities[1] || '',
           normalizedPriorities[2] || '',
         ]);
         
-        setThought(weekData.weekly_thought || '');
-        setFeeling(weekData.weekly_feeling || '');
-        setChallenges(weekData.challenges || '');
-        setAdjustments(weekData.adjustments || '');
-        setWeeklySummary(weekData.weekly_summary || {
+        setThought(normalizeString(weekData.weekly_thought));
+        setFeeling(normalizeString(weekData.weekly_feeling));
+        setChallenges(normalizeString(weekData.challenges));
+        setAdjustments(normalizeString(weekData.adjustments));
+        setWeeklySummary(normalizeObject(weekData.weekly_summary, {
           daily_plans_completed: 0,
           habit_completion_percent: 0,
           review_completed: false,
-        });
+        }));
       }
     } catch (error: any) {
       console.error('Error loading weekly plan:', error);
@@ -88,6 +102,28 @@ export default function WeeklyPlan() {
     updated[idx] = value;
     setPriorities(updated);
   };
+
+  const handleAutoSave = useCallback(async () => {
+    if (!user || !weekId || saving) return;
+    
+    try {
+      await supabase.functions.invoke('save-weekly-plan', {
+        body: {
+          week_id: weekId,
+          user_id: user.id,
+          top_3_priorities: priorities.filter((p) => p.trim()),
+          weekly_thought: thought,
+          weekly_feeling: feeling,
+          challenges,
+          adjustments,
+        },
+      });
+      setLastSaved(new Date());
+    } catch (error) {
+      // Silent fail for auto-save
+      console.error('Auto-save failed:', error);
+    }
+  }, [user, weekId, priorities, thought, feeling, challenges, adjustments, saving]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
