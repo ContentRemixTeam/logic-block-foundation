@@ -1,44 +1,69 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Layout } from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus } from 'lucide-react';
+import { Plus, Edit2, Archive, Loader2 } from 'lucide-react';
 
 export default function Habits() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [habits, setHabits] = useState<any[]>([]);
-  const [newHabitName, setNewHabitName] = useState('');
-  const [newHabitCategory, setNewHabitCategory] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [weekLogs, setWeekLogs] = useState<any[]>([]);
+  const [editingHabit, setEditingHabit] = useState<any | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Form state for new/editing habit
+  const [habitName, setHabitName] = useState('');
+  const [habitCategory, setHabitCategory] = useState('');
+  const [habitType, setHabitType] = useState('daily');
+  const [habitDescription, setHabitDescription] = useState('');
+  const [habitSuccessDefinition, setHabitSuccessDefinition] = useState('');
 
   useEffect(() => {
-    loadHabits();
-    loadWeekLogs();
+    if (user) {
+      loadHabits();
+      loadWeekLogs();
+    }
   }, [user]);
 
   const loadHabits = async () => {
-    if (!user) return;
-
     try {
-      const { data, error } = await supabase
-        .from('habits')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .order('display_order');
+      setLoading(true);
 
-      if (error) throw error;
-      setHabits(data || []);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-habits`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error(`Failed to load habits: ${res.status}`);
+      }
+
+      const data = await res.json();
+      setHabits(data.habits || []);
     } catch (error) {
       console.error('Error loading habits:', error);
+      toast({ title: "Failed to load habits", variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -69,36 +94,87 @@ export default function Habits() {
     }
   };
 
-  const addHabit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !newHabitName.trim()) return;
-    setLoading(true);
+  const openEditDialog = (habit: any) => {
+    setEditingHabit(habit);
+    setHabitName(habit.habit_name);
+    setHabitCategory(habit.category || '');
+    setHabitType(habit.type || 'daily');
+    setHabitDescription(habit.description || '');
+    setHabitSuccessDefinition(habit.success_definition || '');
+    setIsDialogOpen(true);
+  };
 
+  const openNewDialog = () => {
+    setEditingHabit(null);
+    setHabitName('');
+    setHabitCategory('');
+    setHabitType('daily');
+    setHabitDescription('');
+    setHabitSuccessDefinition('');
+    setIsDialogOpen(true);
+  };
+
+  const handleSaveHabit = async () => {
     try {
-      const { error } = await supabase.from('habits').insert({
-        user_id: user.id,
-        habit_name: newHabitName,
-        category: newHabitCategory || null,
-        display_order: habits.length,
+      setSaving(true);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-habit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          habit_id: editingHabit?.habit_id || null,
+          habit_name: habitName,
+          category: habitCategory,
+          type: habitType,
+          description: habitDescription,
+          success_definition: habitSuccessDefinition,
+        }),
       });
 
-      if (error) throw error;
+      if (!res.ok) {
+        throw new Error(`Failed to save habit: ${res.status}`);
+      }
 
-      toast({
-        title: 'Habit added!',
-      });
-
-      setNewHabitName('');
-      setNewHabitCategory('');
+      toast({ title: editingHabit ? "Habit Updated!" : "Habit Created!" });
+      setIsDialogOpen(false);
       loadHabits();
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
+    } catch (error) {
+      console.error('Error saving habit:', error);
+      toast({ title: "Failed to save habit", variant: "destructive" });
     } finally {
-      setLoading(false);
+      setSaving(false);
+    }
+  };
+
+  const handleArchiveHabit = async (habitId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/archive-habit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ habit_id: habitId }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Failed to archive habit: ${res.status}`);
+      }
+
+      toast({ title: "Habit Archived!" });
+      loadHabits();
+    } catch (error) {
+      console.error('Error archiving habit:', error);
+      toast({ title: "Failed to archive habit", variant: "destructive" });
     }
   };
 
@@ -151,50 +227,49 @@ export default function Habits() {
 
   const weekDates = getWeekDates();
 
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold">Habits</h1>
-          <p className="text-muted-foreground">Track and manage your daily habits</p>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Habits</h1>
+            <p className="text-muted-foreground">Track and manage your daily habits</p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
+              Dashboard
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/daily-plan")}>
+              Daily Plan
+            </Button>
+          </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Add New Habit</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={addHabit} className="flex gap-3">
-              <div className="flex-1">
-                <Input
-                  placeholder="Habit name"
-                  value={newHabitName}
-                  onChange={(e) => setNewHabitName(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="w-1/3">
-                <Input
-                  placeholder="Category (optional)"
-                  value={newHabitCategory}
-                  onChange={(e) => setNewHabitCategory(e.target.value)}
-                />
-              </div>
-              <Button type="submit" disabled={loading}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        {/* Add New Habit Button */}
+        <Button onClick={openNewDialog}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add New Habit
+        </Button>
 
+        {/* This Week's Progress Grid */}
         <Card>
           <CardHeader>
             <CardTitle>This Week's Progress</CardTitle>
           </CardHeader>
           <CardContent>
             {habits.length === 0 ? (
-              <div className="text-center text-muted-foreground">
+              <div className="text-center text-muted-foreground py-8">
                 No habits yet. Add one above!
               </div>
             ) : (
@@ -233,24 +308,47 @@ export default function Habits() {
           </CardContent>
         </Card>
 
+        {/* Your Habits List */}
         <Card>
           <CardHeader>
-            <CardTitle>Your Habits</CardTitle>
+            <CardTitle>Manage Habits</CardTitle>
+            <CardDescription>Edit or archive your habits</CardDescription>
           </CardHeader>
           <CardContent>
             {habits.length === 0 ? (
-              <div className="text-center text-muted-foreground">No habits found</div>
+              <div className="text-center text-muted-foreground py-8">No habits found</div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {habits.map((habit) => (
-                  <div key={habit.habit_id} className="flex items-center justify-between p-3 rounded-lg bg-secondary">
-                    <div>
+                  <div key={habit.habit_id} className="flex items-start justify-between p-4 rounded-lg border">
+                    <div className="flex-1">
                       <div className="font-medium">{habit.habit_name}</div>
                       {habit.category && (
-                        <div className="text-xs text-muted-foreground">
-                          {habit.category}
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Category: {habit.category}
                         </div>
                       )}
+                      {habit.description && (
+                        <div className="text-sm text-muted-foreground mt-2">
+                          {habit.description}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditDialog(habit)}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleArchiveHabit(habit.habit_id)}
+                      >
+                        <Archive className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -258,6 +356,92 @@ export default function Habits() {
             )}
           </CardContent>
         </Card>
+
+        {/* Edit/Create Habit Dialog */}
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{editingHabit ? 'Edit Habit' : 'Create New Habit'}</DialogTitle>
+              <DialogDescription>
+                Configure your habit details and tracking preferences
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="habit-name">Habit Name *</Label>
+                <Input
+                  id="habit-name"
+                  value={habitName}
+                  onChange={(e) => setHabitName(e.target.value)}
+                  placeholder="e.g., Morning Exercise"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="habit-type">Type</Label>
+                <Select value={habitType} onValueChange={setHabitType}>
+                  <SelectTrigger id="habit-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="habit-category">Category</Label>
+                <Input
+                  id="habit-category"
+                  value={habitCategory}
+                  onChange={(e) => setHabitCategory(e.target.value)}
+                  placeholder="e.g., Health, Mindset, Business"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="habit-description">Description</Label>
+                <Textarea
+                  id="habit-description"
+                  value={habitDescription}
+                  onChange={(e) => setHabitDescription(e.target.value)}
+                  placeholder="What does this habit involve?"
+                  rows={2}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="habit-success">Success Definition</Label>
+                <Textarea
+                  id="habit-success"
+                  value={habitSuccessDefinition}
+                  onChange={(e) => setHabitSuccessDefinition(e.target.value)}
+                  placeholder="What does success look like?"
+                  rows={2}
+                />
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveHabit} disabled={saving || !habitName}>
+                  {saving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Habit"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
