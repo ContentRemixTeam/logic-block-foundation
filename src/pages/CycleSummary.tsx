@@ -161,9 +161,14 @@ export default function CycleSummary() {
             <p className="text-muted-foreground">{cycleGoal}</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate("/dashboard")}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
               Dashboard
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/monthly-review")}>
+              Monthly Review
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/weekly-review")}>
+              Weekly Review
             </Button>
           </div>
         </div>

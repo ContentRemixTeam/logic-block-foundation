@@ -115,11 +115,16 @@ Deno.serve(async (req) => {
       p_user_id: userId,
     });
 
-    let weeklyReviewStatus = { exists: false, score: null };
+    let weeklyReviewStatus = { exists: false, score: null as number | null };
+    let monthlyReviewStatus = { exists: false, score: null as number | null, wins_count: 0 };
+    let cycleSummaryStatus = { exists: false, is_complete: false, score: null as number | null, wins_count: 0 };
 
     if (cycleData && cycleData.length > 0) {
+      const currentCycle = cycleData[0];
+      
+      // Check weekly review
       const { data: weekData } = await supabaseClient.rpc('get_current_week', {
-        p_cycle_id: cycleData[0].cycle_id,
+        p_cycle_id: currentCycle.cycle_id,
       });
 
       if (weekData && weekData.length > 0) {
@@ -137,6 +142,59 @@ Deno.serve(async (req) => {
           };
         }
       }
+
+      // Check monthly review
+      const currentMonth = new Date().getMonth() + 1;
+      const { data: monthlyData } = await supabaseClient
+        .from('monthly_reviews')
+        .select('wins, habit_trends')
+        .eq('user_id', userId)
+        .eq('cycle_id', currentCycle.cycle_id)
+        .eq('month', currentMonth)
+        .maybeSingle();
+
+      if (monthlyData) {
+        const parseJSON = (value: any, fallback: any) => {
+          if (!value) return fallback;
+          try {
+            return typeof value === 'string' ? JSON.parse(value) : value;
+          } catch {
+            return fallback;
+          }
+        };
+        const wins = parseJSON(monthlyData.wins, []);
+        monthlyReviewStatus = {
+          exists: true,
+          score: null,
+          wins_count: Array.isArray(wins) ? wins.filter(Boolean).length : 0,
+        };
+      }
+
+      // Check cycle summary (if cycle is complete)
+      const today = new Date();
+      const endDate = new Date(currentCycle.end_date);
+      const isCycleComplete = today > endDate;
+
+      if (isCycleComplete) {
+        const parseJSON = (value: any, fallback: any) => {
+          if (!value) return fallback;
+          try {
+            return typeof value === 'string' ? JSON.parse(value) : value;
+          } catch {
+            return fallback;
+          }
+        };
+
+        const summaryData = parseJSON(currentCycle.supporting_projects, {});
+        const hasSummary = summaryData.cycle_score !== undefined || summaryData.identity_shifts;
+
+        cycleSummaryStatus = {
+          exists: hasSummary,
+          is_complete: true,
+          score: summaryData.cycle_score !== undefined ? Number(summaryData.cycle_score) : null,
+          wins_count: 0,
+        };
+      }
     }
 
     console.log('Dashboard summary fetched successfully');
@@ -145,6 +203,8 @@ Deno.serve(async (req) => {
       data: {
         ...data,
         weekly_review_status: weeklyReviewStatus,
+        monthly_review_status: monthlyReviewStatus,
+        cycle_summary_status: cycleSummaryStatus,
       }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

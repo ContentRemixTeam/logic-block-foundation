@@ -165,12 +165,14 @@ export default function MonthlyReview() {
             <p className="text-muted-foreground">Month {month} reflection and insights</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate("/weekly-plan")}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
+              Dashboard
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/weekly-plan")}>
               Weekly Plan
             </Button>
-            <Button variant="outline" onClick={() => navigate("/dashboard")}>
-              Dashboard
+            <Button variant="outline" size="sm" onClick={() => navigate("/weekly-review")}>
+              Weekly Review
             </Button>
           </div>
         </div>

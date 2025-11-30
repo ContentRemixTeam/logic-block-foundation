@@ -90,6 +90,33 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Check if cycle is complete
+    const today = new Date();
+    const endDate = new Date(cycle.end_date);
+    const isCycleComplete = today > endDate;
+
+    console.log('Cycle status:', {
+      cycle_id: cycle.cycle_id,
+      end_date: cycle.end_date,
+      is_complete: isCycleComplete,
+    });
+
+    // Get or parse existing summary from supporting_projects field
+    const parseJSON = (value: any, fallback: any) => {
+      if (!value) return fallback;
+      if (typeof value === 'string') {
+        try {
+          return JSON.parse(value);
+        } catch {
+          return fallback;
+        }
+      }
+      return value;
+    };
+
+    const existingSummary = parseJSON(cycle.supporting_projects, {});
+    const hasSummary = existingSummary.identity_shifts || existingSummary.final_results || existingSummary.cycle_score;
+
     // Get all monthly reviews for this cycle
     const { data: monthlyReviews } = await supabaseClient
       .from('monthly_reviews')
@@ -104,18 +131,6 @@ Deno.serve(async (req) => {
     const allLessons: string[] = [];
 
     monthlyReviews?.forEach((review) => {
-      const parseJSON = (value: any, fallback: any) => {
-        if (!value) return fallback;
-        if (typeof value === 'string') {
-          try {
-            return JSON.parse(value);
-          } catch {
-            return fallback;
-          }
-        }
-        return value;
-      };
-
       const wins = parseJSON(review.wins, []);
       const trends = parseJSON(review.habit_trends, {});
       const patterns = parseJSON(review.thought_patterns, {});
@@ -140,6 +155,18 @@ Deno.serve(async (req) => {
     const completedLogs = habitLogs?.filter((log) => log.completed).length || 0;
     const overallHabitScore = totalLogs > 0 ? Math.round((completedLogs / totalLogs) * 100) : 0;
 
+    // Use existing summary if available, otherwise return defaults
+    const identityShifts = Array.isArray(existingSummary.identity_shifts) 
+      ? existingSummary.identity_shifts.map(String).filter(Boolean) 
+      : [];
+    const finalResults = Array.isArray(existingSummary.final_results)
+      ? existingSummary.final_results.map(String).filter(Boolean)
+      : [];
+    const nextCycleFocus = Array.isArray(existingSummary.next_cycle_focus)
+      ? existingSummary.next_cycle_focus.map(String).filter(Boolean)
+      : [];
+    const cycleScore = Number(existingSummary.cycle_score ?? 5);
+
     return new Response(
       JSON.stringify({
         cycle_id: cycle.cycle_id,
@@ -148,13 +175,15 @@ Deno.serve(async (req) => {
         cycle_identity: cycle.identity,
         start_date: cycle.start_date,
         end_date: cycle.end_date,
+        is_complete: isCycleComplete,
+        has_summary: hasSummary,
         overall_wins: allWins,
         overall_challenges: allChallenges,
         overall_lessons: allLessons,
-        identity_shifts: [],
-        final_results: [],
-        next_cycle_focus: [],
-        cycle_score: 5,
+        identity_shifts: identityShifts,
+        final_results: finalResults,
+        next_cycle_focus: nextCycleFocus,
+        cycle_score: cycleScore,
         overall_habit_score: overallHabitScore,
       }),
       {

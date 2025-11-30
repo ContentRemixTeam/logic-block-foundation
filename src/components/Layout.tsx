@@ -15,6 +15,7 @@ import {
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Cycle Setup', href: '/cycle-setup', icon: Target },
   { name: 'Daily Plan', href: '/daily-plan', icon: CalendarDays },
   { name: 'Weekly Plan', href: '/weekly-plan', icon: Calendar },
   { name: 'Habits', href: '/habits', icon: CheckSquare },

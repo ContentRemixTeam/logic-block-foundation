@@ -128,11 +128,18 @@ export default function CycleSetup() {
   return (
     <Layout>
       <div className="mx-auto max-w-3xl space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold">Create Your 90-Day Cycle</h1>
-          <p className="text-muted-foreground">
-            Define your goals and set up your habits for success
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Create Your 90-Day Cycle</h1>
+            <p className="text-muted-foreground">
+              Define your goals and set up your habits for success
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
+              Dashboard
+            </Button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
