@@ -19,6 +19,7 @@ import {
   Menu,
   FileText,
   BarChart3,
+  TrendingUp,
 } from 'lucide-react';
 
 interface Category {
@@ -37,6 +38,7 @@ const navigation = [
   { name: 'Habits', href: '/habits', icon: CheckSquare },
   { name: 'Ideas', href: '/ideas', icon: Zap },
   { name: 'Useful Thoughts', href: '/useful-thoughts', icon: Brain },
+  { name: 'Belief Builder', href: '/belief-builder', icon: TrendingUp },
   { name: 'Self-Coaching', href: '/self-coaching', icon: Brain },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
