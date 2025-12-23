@@ -59,9 +59,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Get today's date
     const today = new Date().toISOString().split('T')[0];
@@ -109,77 +107,59 @@ Deno.serve(async (req) => {
       console.log('Current week:', currentWeek.week_id);
     }
 
-    // Try to load existing daily plan
-    const { data: existingPlan, error: planError } = await supabaseClient
+    // Use upsert to handle race conditions - insert if not exists, otherwise do nothing
+    const { data: upsertedPlan, error: upsertError } = await supabaseClient
       .from('daily_plans')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('date', today)
-      .maybeSingle();
-
-    if (planError) {
-      console.error('Plan load error:', planError);
-      throw planError;
-    }
-
-    // If plan exists, return it
-    if (existingPlan) {
-      console.log('Found existing plan:', existingPlan.day_id);
-      return new Response(
-        JSON.stringify({
-          data: {
-            day_id: existingPlan.day_id,
-            date: existingPlan.date,
-            top_3_today: existingPlan.top_3_today || [],
-            selected_weekly_priorities: existingPlan.selected_weekly_priorities || [],
-            thought: existingPlan.thought || '',
-            feeling: existingPlan.feeling || '',
-            deep_mode_notes: existingPlan.deep_mode_notes || {},
-            weekly_priorities: currentWeek?.top_3_priorities || [],
-          },
-        }),
+      .upsert(
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      );
-    }
-
-    // Auto-create new plan
-    console.log('Creating new daily plan');
-    const { data: newPlan, error: insertError } = await supabaseClient
-      .from('daily_plans')
-      .insert({
-        user_id: userId,
-        cycle_id: currentCycle.cycle_id,
-        week_id: currentWeek?.week_id || null,
-        date: today,
-        top_3_today: [],
-        selected_weekly_priorities: [],
-        thought: '',
-        feeling: '',
-        deep_mode_notes: {},
-      })
-      .select()
-      .single();
-
-    if (insertError) {
-      console.error('Insert error:', insertError);
-      throw insertError;
-    }
-
-    console.log('Created new plan:', newPlan.day_id);
-
-    return new Response(
-      JSON.stringify({
-        data: {
-          day_id: newPlan.day_id,
-          date: newPlan.date,
+          user_id: userId,
+          cycle_id: currentCycle.cycle_id,
+          week_id: currentWeek?.week_id || null,
+          date: today,
           top_3_today: [],
           selected_weekly_priorities: [],
           thought: '',
           feeling: '',
           deep_mode_notes: {},
+        },
+        {
+          onConflict: 'user_id,date',
+          ignoreDuplicates: true, // Don't update if exists
+        }
+      )
+      .select()
+      .maybeSingle();
+
+    if (upsertError) {
+      console.error('Upsert error:', upsertError);
+      throw upsertError;
+    }
+
+    // Fetch the plan (either just created or existing)
+    const { data: plan, error: fetchError } = await supabaseClient
+      .from('daily_plans')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('date', today)
+      .single();
+
+    if (fetchError) {
+      console.error('Fetch error:', fetchError);
+      throw fetchError;
+    }
+
+    console.log('Returning plan:', plan.day_id);
+
+    return new Response(
+      JSON.stringify({
+        data: {
+          day_id: plan.day_id,
+          date: plan.date,
+          top_3_today: plan.top_3_today || [],
+          selected_weekly_priorities: plan.selected_weekly_priorities || [],
+          thought: plan.thought || '',
+          feeling: plan.feeling || '',
+          deep_mode_notes: plan.deep_mode_notes || {},
           weekly_priorities: currentWeek?.top_3_priorities || [],
         },
       }),
