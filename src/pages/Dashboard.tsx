@@ -90,6 +90,7 @@ export default function Dashboard() {
   const todayTop3 = normalizeArray(today.top_3);
   const goal = normalizeString(cycle.goal);
   const daysRemaining = normalizeNumber(cycle.days_remaining);
+  const focusArea = normalizeString(cycle.focus_area);
   const habitStatus = (normalizeString(habits.status, 'grey')) as 'green' | 'yellow' | 'grey';
   
   const hasCycle = Boolean(goal);
@@ -139,6 +140,11 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold line-clamp-2 mb-3">{goal}</div>
+                  {focusArea && (
+                    <Badge className="mb-3 bg-primary/10 text-primary hover:bg-primary/20 border-primary/20">
+                      Focus: {focusArea}
+                    </Badge>
+                  )}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Progress</span>

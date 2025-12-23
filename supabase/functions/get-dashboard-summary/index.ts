@@ -115,12 +115,22 @@ Deno.serve(async (req) => {
       p_user_id: userId,
     });
 
+    let focusArea = null;
     let weeklyReviewStatus = { exists: false, score: null as number | null };
     let monthlyReviewStatus = { exists: false, score: null as number | null, wins_count: 0 };
     let cycleSummaryStatus = { exists: false, is_complete: false, score: null as number | null, wins_count: 0 };
 
     if (cycleData && cycleData.length > 0) {
       const currentCycle = cycleData[0];
+
+      // Fetch full cycle data including focus_area
+      const { data: fullCycleData } = await supabaseClient
+        .from('cycles_90_day')
+        .select('focus_area')
+        .eq('cycle_id', currentCycle.cycle_id)
+        .single();
+      
+      focusArea = fullCycleData?.focus_area || null;
       
       // Check weekly review
       const { data: weekData } = await supabaseClient.rpc('get_current_week', {
@@ -199,13 +209,20 @@ Deno.serve(async (req) => {
 
     console.log('Dashboard summary fetched successfully');
 
+    // Merge focus_area into cycle data
+    const enhancedData = {
+      ...data,
+      cycle: {
+        ...(data?.cycle || {}),
+        focus_area: focusArea,
+      },
+      weekly_review_status: weeklyReviewStatus,
+      monthly_review_status: monthlyReviewStatus,
+      cycle_summary_status: cycleSummaryStatus,
+    };
+
     return new Response(JSON.stringify({ 
-      data: {
-        ...data,
-        weekly_review_status: weeklyReviewStatus,
-        monthly_review_status: monthlyReviewStatus,
-        cycle_summary_status: cycleSummaryStatus,
-      }
+      data: enhancedData
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,

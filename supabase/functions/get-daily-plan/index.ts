@@ -91,6 +91,15 @@ Deno.serve(async (req) => {
     const currentCycle = cycleData[0];
     console.log('Current cycle:', currentCycle.cycle_id);
 
+    // Fetch full cycle data including focus_area
+    const { data: fullCycleData } = await supabaseClient
+      .from('cycles_90_day')
+      .select('focus_area')
+      .eq('cycle_id', currentCycle.cycle_id)
+      .single();
+    
+    const focusArea = fullCycleData?.focus_area || null;
+
     // Get current week
     const { data: weekData, error: weekError } = await supabaseClient.rpc('get_current_week', {
       p_cycle_id: currentCycle.cycle_id,
@@ -161,6 +170,7 @@ Deno.serve(async (req) => {
           feeling: plan.feeling || '',
           deep_mode_notes: plan.deep_mode_notes || {},
           weekly_priorities: currentWeek?.top_3_priorities || [],
+          focus_area: focusArea,
         },
       }),
       {

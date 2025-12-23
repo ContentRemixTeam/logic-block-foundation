@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Zap } from "lucide-react";
+import { Loader2, Zap, Target } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { ReflectionList } from "@/components/ReflectionList";
 
@@ -26,12 +28,14 @@ export default function WeeklyReview() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [weekId, setWeekId] = useState<string | null>(null);
+  const [focusArea, setFocusArea] = useState<string | null>(null);
 
   const [wins, setWins] = useState<string[]>([""]);
   const [challenges, setChallenges] = useState<string[]>([""]);
   const [lessons, setLessons] = useState<string[]>([""]);
   const [intentions, setIntentions] = useState<string[]>([""]);
   const [weeklyScore, setWeeklyScore] = useState(5);
+  const [focusReflection, setFocusReflection] = useState("");
 
   const [habitStats, setHabitStats] = useState({ total: 0, completed: 0, percent: 0 });
   const [cycleProgress, setCycleProgress] = useState({ total_days: 90, completed_days: 0, percent: 0 });
@@ -85,11 +89,13 @@ export default function WeeklyReview() {
 
       // Normalize data safely
       setWeekId(data.week_id || null);
+      setFocusArea(data.focus_area || null);
       setWins(Array.isArray(data.wins) && data.wins.length > 0 ? data.wins : [""]);
       setChallenges(Array.isArray(data.challenges) && data.challenges.length > 0 ? data.challenges : [""]);
       setLessons(Array.isArray(data.lessons) && data.lessons.length > 0 ? data.lessons : [""]);
       setIntentions(Array.isArray(data.intentions) && data.intentions.length > 0 ? data.intentions : [""]);
       setWeeklyScore(data.weekly_score || 5);
+      setFocusReflection(data.focus_reflection || "");
       setHabitStats(data.habit_stats || { total: 0, completed: 0, percent: 0 });
       setCycleProgress(data.cycle_progress || { total_days: 90, completed_days: 0, percent: 0 });
 
@@ -129,6 +135,7 @@ export default function WeeklyReview() {
           lessons: lessons.filter(Boolean),
           intentions: intentions.filter(Boolean),
           weekly_score: weeklyScore,
+          focus_reflection: focusReflection,
         }),
       });
 
@@ -145,18 +152,6 @@ export default function WeeklyReview() {
     } finally {
       setSaving(false);
     }
-  };
-
-  const addField = (setter: React.Dispatch<React.SetStateAction<string[]>>) => {
-    setter(prev => [...prev, ""]);
-  };
-
-  const removeField = (setter: React.Dispatch<React.SetStateAction<string[]>>, index: number) => {
-    setter(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const updateField = (setter: React.Dispatch<React.SetStateAction<string[]>>, index: number, value: string) => {
-    setter(prev => prev.map((item, i) => (i === index ? value : item)));
   };
 
   if (loading) {
@@ -235,6 +230,34 @@ export default function WeeklyReview() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Focus Area Reflection */}
+        {focusArea && (
+          <Card className="border-primary/20">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-primary" />
+                <CardTitle>Focus Area Reflection</CardTitle>
+              </div>
+              <CardDescription>
+                Your focus this quarter: <span className="font-bold text-primary">{focusArea}</span>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Label htmlFor="focus-reflection">
+                How did your actions this week support your {focusArea} focus?
+              </Label>
+              <Textarea
+                id="focus-reflection"
+                value={focusReflection}
+                onChange={(e) => setFocusReflection(e.target.value)}
+                placeholder={`Describe how you worked on ${focusArea} this week...`}
+                rows={3}
+                className="mt-2"
+              />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Wins */}
         <Card>

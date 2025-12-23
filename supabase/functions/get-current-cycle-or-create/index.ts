@@ -66,9 +66,22 @@ Deno.serve(async (req) => {
     });
 
     if (cycleData && cycleData.length > 0) {
+      // Fetch full cycle data including diagnostic fields
+      const { data: fullCycle } = await supabaseClient
+        .from('cycles_90_day')
+        .select('*')
+        .eq('cycle_id', cycleData[0].cycle_id)
+        .single();
+
       return new Response(
         JSON.stringify({
-          cycle: cycleData[0],
+          cycle: {
+            ...cycleData[0],
+            discover_score: fullCycle?.discover_score || null,
+            nurture_score: fullCycle?.nurture_score || null,
+            convert_score: fullCycle?.convert_score || null,
+            focus_area: fullCycle?.focus_area || null,
+          },
           auto_created: false,
         }),
         {
@@ -96,6 +109,10 @@ Deno.serve(async (req) => {
         identity: '',
         target_feeling: '',
         supporting_projects: [],
+        discover_score: 5,
+        nurture_score: 5,
+        convert_score: 5,
+        focus_area: null,
       })
       .select()
       .single();
@@ -125,6 +142,10 @@ Deno.serve(async (req) => {
           start_date: newCycle.start_date,
           end_date: newCycle.end_date,
           days_remaining: 90,
+          discover_score: newCycle.discover_score,
+          nurture_score: newCycle.nurture_score,
+          convert_score: newCycle.convert_score,
+          focus_area: newCycle.focus_area,
         },
         auto_created: true,
       }),

@@ -1,15 +1,16 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import { Layout } from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Target } from 'lucide-react';
 
 export default function CycleSetup() {
   const { user } = useAuth();
@@ -25,6 +26,28 @@ export default function CycleSetup() {
   const [habits, setHabits] = useState<Array<{ name: string; category: string }>>([
     { name: '', category: '' },
   ]);
+
+  // Business Diagnostic scores
+  const [discoverScore, setDiscoverScore] = useState(5);
+  const [nurtureScore, setNurtureScore] = useState(5);
+  const [convertScore, setConvertScore] = useState(5);
+
+  // Calculate focus area based on lowest score
+  const focusArea = useMemo(() => {
+    const scores = { DISCOVER: discoverScore, NURTURE: nurtureScore, CONVERT: convertScore };
+    let lowest = 'DISCOVER';
+    let lowestValue = discoverScore;
+    
+    if (nurtureScore < lowestValue) {
+      lowest = 'NURTURE';
+      lowestValue = nurtureScore;
+    }
+    if (convertScore < lowestValue) {
+      lowest = 'CONVERT';
+    }
+    
+    return lowest;
+  }, [discoverScore, nurtureScore, convertScore]);
 
   const addProject = () => setProjects([...projects, '']);
   const updateProject = (idx: number, value: string) => {
@@ -56,7 +79,7 @@ export default function CycleSetup() {
       const endDate = new Date(today);
       endDate.setDate(endDate.getDate() + 90);
 
-      // Create cycle
+      // Create cycle with business diagnostic
       const { data: cycle, error: cycleError } = await supabase
         .from('cycles_90_day')
         .insert({
@@ -68,6 +91,10 @@ export default function CycleSetup() {
           identity,
           target_feeling: feeling,
           supporting_projects: projects.filter((p) => p.trim()),
+          discover_score: discoverScore,
+          nurture_score: nurtureScore,
+          convert_score: convertScore,
+          focus_area: focusArea,
         })
         .select()
         .maybeSingle();
@@ -185,6 +212,85 @@ export default function CycleSetup() {
                   onChange={(e) => setFeeling(e.target.value)}
                   placeholder="e.g., Confident, Energized, Accomplished"
                 />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Business Diagnostic */}
+          <Card className="border-primary/20">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-primary" />
+                <CardTitle>Business Diagnostic</CardTitle>
+              </div>
+              <CardDescription>Where should you focus this quarter?</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <p className="text-sm text-muted-foreground">
+                Rate yourself honestly on these 3 areas (1 = needs work, 10 = excellent)
+              </p>
+
+              {/* DISCOVER */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold">DISCOVER</Label>
+                  <span className="text-2xl font-bold text-primary">{discoverScore}</span>
+                </div>
+                <p className="text-sm text-muted-foreground">Do enough people know you exist?</p>
+                <Slider
+                  value={[discoverScore]}
+                  onValueChange={(value) => setDiscoverScore(value[0])}
+                  min={1}
+                  max={10}
+                  step={1}
+                  className="w-full"
+                />
+                <p className="text-xs text-muted-foreground">Traffic, visibility, audience growth</p>
+              </div>
+
+              {/* NURTURE */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold">NURTURE</Label>
+                  <span className="text-2xl font-bold text-primary">{nurtureScore}</span>
+                </div>
+                <p className="text-sm text-muted-foreground">Are you helping them for free effectively?</p>
+                <Slider
+                  value={[nurtureScore]}
+                  onValueChange={(value) => setNurtureScore(value[0])}
+                  min={1}
+                  max={10}
+                  step={1}
+                  className="w-full"
+                />
+                <p className="text-xs text-muted-foreground">Free content, email list, building trust</p>
+              </div>
+
+              {/* CONVERT */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold">CONVERT</Label>
+                  <span className="text-2xl font-bold text-primary">{convertScore}</span>
+                </div>
+                <p className="text-sm text-muted-foreground">Are you making enough offers?</p>
+                <Slider
+                  value={[convertScore]}
+                  onValueChange={(value) => setConvertScore(value[0])}
+                  min={1}
+                  max={10}
+                  step={1}
+                  className="w-full"
+                />
+                <p className="text-xs text-muted-foreground">Sales activity, pitching, closing</p>
+              </div>
+
+              {/* Focus Area Result */}
+              <div className="mt-6 p-6 rounded-lg bg-primary/10 border border-primary/20 text-center">
+                <p className="text-sm text-muted-foreground mb-2">Your focus area this quarter:</p>
+                <p className="text-3xl font-bold text-primary">{focusArea}</p>
+                <p className="text-sm text-muted-foreground mt-3">
+                  This is where you need the most work. Focus your efforts here for the next 90 days.
+                </p>
               </div>
             </CardContent>
           </Card>

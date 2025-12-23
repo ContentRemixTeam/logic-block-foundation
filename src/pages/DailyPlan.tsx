@@ -32,6 +32,7 @@ export default function DailyPlan() {
   const [top3, setTop3] = useState<string[]>(['', '', '']);
   const [thought, setThought] = useState('');
   const [feeling, setFeeling] = useState('');
+  const [focusArea, setFocusArea] = useState<string | null>(null);
   const [deepModeNotes, setDeepModeNotes] = useState({
     win: '',
     obstacles: '',
@@ -77,6 +78,7 @@ export default function DailyPlan() {
         console.log('Plan loaded:', plan);
 
         setDayId(plan.day_id || null);
+        setFocusArea(plan.focus_area || null);
         
         // Normalize top 3
         const normalizedTop3 = Array.isArray(plan.top_3_today)
@@ -322,6 +324,16 @@ export default function DailyPlan() {
             </Button>
           </div>
         </div>
+
+        {/* Focus Area Reminder */}
+        {focusArea && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="py-3 flex items-center gap-2">
+              <Target className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">🎯 This quarter: <span className="text-primary font-bold">{focusArea}</span></span>
+            </CardContent>
+          </Card>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Quick Mode - Top 3 */}
