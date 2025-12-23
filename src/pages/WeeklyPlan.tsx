@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeArray, normalizeString, normalizeNumber, normalizeObject } from '@/lib/normalize';
 import { UsefulThoughtsModal } from '@/components/UsefulThoughtsModal';
-import { ArrowLeft, Calendar, Loader2, Save, CheckCircle2, TrendingUp, Brain, Zap, Target } from 'lucide-react';
+import { ArrowLeft, Calendar, Loader2, Save, CheckCircle2, TrendingUp, Brain, Zap, Target, BarChart3 } from 'lucide-react';
 
 export default function WeeklyPlan() {
   const { user } = useAuth();
@@ -39,6 +39,18 @@ export default function WeeklyPlan() {
   const [thoughtsModalOpen, setThoughtsModalOpen] = useState(false);
   const [identityAnchor, setIdentityAnchor] = useState<any>(null);
 
+  // Cycle metrics from cycle setup
+  const [cycleMetrics, setCycleMetrics] = useState<{
+    metric_1_name: string | null;
+    metric_2_name: string | null;
+    metric_3_name: string | null;
+  } | null>(null);
+
+  // Weekly metric targets
+  const [metric1Target, setMetric1Target] = useState<number | ''>('');
+  const [metric2Target, setMetric2Target] = useState<number | ''>('');
+  const [metric3Target, setMetric3Target] = useState<number | ''>('');
+
   useEffect(() => {
     loadWeeklyPlan();
     loadIdentityAnchor();
@@ -53,7 +65,7 @@ export default function WeeklyPlan() {
     }, 2000);
     
     return () => clearTimeout(timer);
-  }, [priorities, thought, feeling, challenges, adjustments]);
+  }, [priorities, thought, feeling, challenges, adjustments, metric1Target, metric2Target, metric3Target]);
 
   const loadWeeklyPlan = async () => {
     if (!user) return;
@@ -92,6 +104,16 @@ export default function WeeklyPlan() {
           habit_completion_percent: 0,
           review_completed: false,
         }));
+
+        // Set cycle metrics
+        if (weekData.cycle_metrics) {
+          setCycleMetrics(weekData.cycle_metrics);
+        }
+
+        // Set weekly metric targets
+        setMetric1Target(weekData.metric_1_target ?? '');
+        setMetric2Target(weekData.metric_2_target ?? '');
+        setMetric3Target(weekData.metric_3_target ?? '');
       }
     } catch (error: any) {
       console.error('Error loading weekly plan:', error);
@@ -132,6 +154,9 @@ export default function WeeklyPlan() {
           weekly_feeling: feeling,
           challenges,
           adjustments,
+          metric_1_target: metric1Target === '' ? null : metric1Target,
+          metric_2_target: metric2Target === '' ? null : metric2Target,
+          metric_3_target: metric3Target === '' ? null : metric3Target,
         },
       });
       setLastSaved(new Date());
@@ -139,7 +164,7 @@ export default function WeeklyPlan() {
       // Silent fail for auto-save
       console.error('Auto-save failed:', error);
     }
-  }, [user, weekId, priorities, thought, feeling, challenges, adjustments, saving]);
+  }, [user, weekId, priorities, thought, feeling, challenges, adjustments, metric1Target, metric2Target, metric3Target, saving]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,6 +181,9 @@ export default function WeeklyPlan() {
           weekly_feeling: feeling,
           challenges,
           adjustments,
+          metric_1_target: metric1Target === '' ? null : metric1Target,
+          metric_2_target: metric2Target === '' ? null : metric2Target,
+          metric_3_target: metric3Target === '' ? null : metric3Target,
         },
       });
 
@@ -387,6 +415,67 @@ export default function WeeklyPlan() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Target Metrics This Week */}
+          {cycleMetrics && (cycleMetrics.metric_1_name || cycleMetrics.metric_2_name || cycleMetrics.metric_3_name) ? (
+            <Card className="border-primary/20">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-primary" />
+                  <CardTitle>Target Numbers This Week</CardTitle>
+                </div>
+                <CardDescription>What are you aiming for?</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {cycleMetrics.metric_1_name && (
+                  <div className="space-y-2">
+                    <Label htmlFor="metric1Target" className="font-semibold">{cycleMetrics.metric_1_name}</Label>
+                    <Input
+                      id="metric1Target"
+                      type="number"
+                      value={metric1Target}
+                      onChange={(e) => setMetric1Target(e.target.value === '' ? '' : Number(e.target.value))}
+                      placeholder="What number are you targeting this week?"
+                    />
+                  </div>
+                )}
+                {cycleMetrics.metric_2_name && (
+                  <div className="space-y-2">
+                    <Label htmlFor="metric2Target" className="font-semibold">{cycleMetrics.metric_2_name}</Label>
+                    <Input
+                      id="metric2Target"
+                      type="number"
+                      value={metric2Target}
+                      onChange={(e) => setMetric2Target(e.target.value === '' ? '' : Number(e.target.value))}
+                      placeholder="What number are you targeting this week?"
+                    />
+                  </div>
+                )}
+                {cycleMetrics.metric_3_name && (
+                  <div className="space-y-2">
+                    <Label htmlFor="metric3Target" className="font-semibold">{cycleMetrics.metric_3_name}</Label>
+                    <Input
+                      id="metric3Target"
+                      type="number"
+                      value={metric3Target}
+                      onChange={(e) => setMetric3Target(e.target.value === '' ? '' : Number(e.target.value))}
+                      placeholder="What number are you targeting this week?"
+                    />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-dashed">
+              <CardContent className="pt-6 text-center">
+                <BarChart3 className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground mb-4">Set up your 90-Day Plan first to track metrics</p>
+                <Button variant="outline" onClick={() => navigate('/cycle-setup')}>
+                  Go to Cycle Setup
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Identity Anchor */}
           {identityAnchor && (

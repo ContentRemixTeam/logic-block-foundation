@@ -748,6 +748,9 @@ export type Database = {
           challenges: string | null
           created_at: string | null
           cycle_id: string
+          metric_1_target: number | null
+          metric_2_target: number | null
+          metric_3_target: number | null
           start_of_week: string
           top_3_priorities: Json | null
           updated_at: string | null
@@ -761,6 +764,9 @@ export type Database = {
           challenges?: string | null
           created_at?: string | null
           cycle_id: string
+          metric_1_target?: number | null
+          metric_2_target?: number | null
+          metric_3_target?: number | null
           start_of_week: string
           top_3_priorities?: Json | null
           updated_at?: string | null
@@ -774,6 +780,9 @@ export type Database = {
           challenges?: string | null
           created_at?: string | null
           cycle_id?: string
+          metric_1_target?: number | null
+          metric_2_target?: number | null
+          metric_3_target?: number | null
           start_of_week?: string
           top_3_priorities?: Json | null
           updated_at?: string | null

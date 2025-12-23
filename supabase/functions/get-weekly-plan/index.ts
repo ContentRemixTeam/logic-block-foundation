@@ -90,6 +90,19 @@ Deno.serve(async (req) => {
     const currentCycle = cycleData[0];
     console.log('Current cycle:', currentCycle.cycle_id);
 
+    // Fetch full cycle data to get metric names
+    const { data: fullCycleData } = await supabaseClient
+      .from('cycles_90_day')
+      .select('metric_1_name, metric_2_name, metric_3_name')
+      .eq('cycle_id', currentCycle.cycle_id)
+      .maybeSingle();
+
+    const cycleMetrics = {
+      metric_1_name: fullCycleData?.metric_1_name || null,
+      metric_2_name: fullCycleData?.metric_2_name || null,
+      metric_3_name: fullCycleData?.metric_3_name || null,
+    };
+
     // Get current week
     const { data: weekData, error: weekError } = await supabaseClient.rpc('get_current_week', {
       p_cycle_id: currentCycle.cycle_id,
@@ -104,6 +117,13 @@ Deno.serve(async (req) => {
     if (weekData && weekData.length > 0) {
       const week = weekData[0];
       console.log('Found existing week:', week.week_id);
+
+      // Fetch full week data including metric targets
+      const { data: fullWeekData } = await supabaseClient
+        .from('weekly_plans')
+        .select('metric_1_target, metric_2_target, metric_3_target, challenges, adjustments')
+        .eq('week_id', week.week_id)
+        .maybeSingle();
       
       // Calculate weekly summary
       const weekStart = new Date(week.start_of_week);
@@ -153,13 +173,17 @@ Deno.serve(async (req) => {
             top_3_priorities: week.top_3_priorities || [],
             weekly_thought: week.weekly_thought || '',
             weekly_feeling: week.weekly_feeling || '',
-            challenges: null,
-            adjustments: null,
+            challenges: fullWeekData?.challenges || null,
+            adjustments: fullWeekData?.adjustments || null,
             weekly_summary: {
               daily_plans_completed: dailyPlansCount || 0,
               habit_completion_percent: habitPercent,
               review_completed: Boolean(reviewData),
             },
+            cycle_metrics: cycleMetrics,
+            metric_1_target: fullWeekData?.metric_1_target || null,
+            metric_2_target: fullWeekData?.metric_2_target || null,
+            metric_3_target: fullWeekData?.metric_3_target || null,
           }
         }), 
         {
@@ -234,6 +258,10 @@ Deno.serve(async (req) => {
             habit_completion_percent: 0,
             review_completed: false,
           },
+          cycle_metrics: cycleMetrics,
+          metric_1_target: null,
+          metric_2_target: null,
+          metric_3_target: null,
         }
       }), 
       {

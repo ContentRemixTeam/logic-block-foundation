@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { week_id, top_3_priorities, weekly_thought, weekly_feeling, challenges, adjustments } = body;
+    const { week_id, top_3_priorities, weekly_thought, weekly_feeling, challenges, adjustments, metric_1_target, metric_2_target, metric_3_target } = body;
 
     console.log('Saving weekly plan for user:', user.id, 'week:', week_id);
 
@@ -69,6 +69,9 @@ Deno.serve(async (req) => {
         weekly_feeling: weekly_feeling || null,
         challenges: challenges || null,
         adjustments: adjustments || null,
+        metric_1_target: metric_1_target ?? null,
+        metric_2_target: metric_2_target ?? null,
+        metric_3_target: metric_3_target ?? null,
         updated_at: new Date().toISOString(),
       })
       .eq('week_id', week_id)
