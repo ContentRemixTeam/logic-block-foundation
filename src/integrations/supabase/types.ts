@@ -140,11 +140,15 @@ export type Database = {
       }
       cycles_90_day: {
         Row: {
+          convert_score: number | null
           created_at: string | null
           cycle_id: string
+          discover_score: number | null
           end_date: string
+          focus_area: string | null
           goal: string
           identity: string | null
+          nurture_score: number | null
           start_date: string
           supporting_projects: Json | null
           target_feeling: string | null
@@ -153,11 +157,15 @@ export type Database = {
           why: string | null
         }
         Insert: {
+          convert_score?: number | null
           created_at?: string | null
           cycle_id?: string
+          discover_score?: number | null
           end_date: string
+          focus_area?: string | null
           goal: string
           identity?: string | null
+          nurture_score?: number | null
           start_date: string
           supporting_projects?: Json | null
           target_feeling?: string | null
@@ -166,11 +174,15 @@ export type Database = {
           why?: string | null
         }
         Update: {
+          convert_score?: number | null
           created_at?: string | null
           cycle_id?: string
+          discover_score?: number | null
           end_date?: string
+          focus_area?: string | null
           goal?: string
           identity?: string | null
+          nurture_score?: number | null
           start_date?: string
           supporting_projects?: Json | null
           target_feeling?: string | null
