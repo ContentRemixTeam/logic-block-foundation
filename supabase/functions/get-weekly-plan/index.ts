@@ -5,13 +5,34 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Decode JWT to get user ID
+function getUserIdFromJWT(authHeader: string): string | null {
+  try {
+    const token = authHeader.replace('Bearer ', '');
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const payload = JSON.parse(jsonPayload);
+    return payload.sub || null;
+  } catch (error) {
+    console.error('JWT decode error:', error);
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
+  console.log('EDGE FUNC: get-weekly-plan called');
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Create authenticated client to get user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'No authorization header' }), {
@@ -20,40 +41,32 @@ Deno.serve(async (req) => {
       });
     }
 
-    const authClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
-    );
-
-    const {
-      data: { user },
-      error: userError,
-    } = await authClient.auth.getUser();
-
-    if (userError || !user) {
-      console.error('Auth error:', userError);
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    const userId = getUserIdFromJWT(authHeader);
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Invalid authorization token' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log('Getting weekly plan for user:', user.id);
+    console.log('Getting weekly plan for user:', userId);
+
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      return new Response(JSON.stringify({ error: 'Server configuration error' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Use service role for database operations
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    );
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Get current cycle
     const { data: cycleData, error: cycleError } = await supabaseClient.rpc('get_current_cycle', {
-      p_user_id: user.id,
+      p_user_id: userId,
     });
 
     if (cycleError) {
@@ -101,14 +114,14 @@ Deno.serve(async (req) => {
       const { count: dailyPlansCount } = await supabaseClient
         .from('daily_plans')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('week_id', week.week_id);
       
       // Calculate habit completion for this week
       const { data: habits } = await supabaseClient
         .from('habits')
         .select('habit_id')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('is_active', true);
       
       const totalHabits = (habits?.length || 0) * 7;
@@ -116,7 +129,7 @@ Deno.serve(async (req) => {
       const { data: habitLogs } = await supabaseClient
         .from('habit_logs')
         .select('log_id')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('completed', true)
         .gte('date', week.start_of_week)
         .lte('date', weekEnd.toISOString().split('T')[0]);
@@ -128,7 +141,7 @@ Deno.serve(async (req) => {
       const { data: reviewData } = await supabaseClient
         .from('weekly_reviews')
         .select('review_id')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('week_id', week.week_id)
         .maybeSingle();
       
@@ -167,35 +180,53 @@ Deno.serve(async (req) => {
     monday.setDate(today.getDate() + diff);
     const startOfWeek = monday.toISOString().split('T')[0];
 
-    // Create new week
-    const { data: newWeek, error: insertError } = await supabaseClient
+    // Use upsert to handle race conditions
+    const { error: upsertError } = await supabaseClient
       .from('weekly_plans')
-      .insert({
-        user_id: user.id,
-        cycle_id: currentCycle.cycle_id,
-        start_of_week: startOfWeek,
-        top_3_priorities: [],
-        weekly_thought: '',
-        weekly_feeling: '',
-      })
-      .select()
-      .single();
+      .upsert(
+        {
+          user_id: userId,
+          cycle_id: currentCycle.cycle_id,
+          start_of_week: startOfWeek,
+          top_3_priorities: [],
+          weekly_thought: '',
+          weekly_feeling: '',
+        },
+        {
+          onConflict: 'user_id,cycle_id,start_of_week',
+          ignoreDuplicates: true,
+        }
+      );
 
-    if (insertError) {
-      console.error('Error creating week:', insertError);
-      throw insertError;
+    if (upsertError) {
+      console.error('Error upserting week:', upsertError);
+      throw upsertError;
     }
 
-    console.log('Created new week:', newWeek.week_id);
+    // Fetch the week (either just created or existing)
+    const { data: newWeek, error: fetchError } = await supabaseClient
+      .from('weekly_plans')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('cycle_id', currentCycle.cycle_id)
+      .eq('start_of_week', startOfWeek)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching week:', fetchError);
+      throw fetchError;
+    }
+
+    console.log('Returning week:', newWeek.week_id);
 
     return new Response(
       JSON.stringify({ 
         data: {
           week_id: newWeek.week_id,
           start_of_week: newWeek.start_of_week,
-          top_3_priorities: [],
-          weekly_thought: '',
-          weekly_feeling: '',
+          top_3_priorities: newWeek.top_3_priorities || [],
+          weekly_thought: newWeek.weekly_thought || '',
+          weekly_feeling: newWeek.weekly_feeling || '',
           challenges: null,
           adjustments: null,
           weekly_summary: {
