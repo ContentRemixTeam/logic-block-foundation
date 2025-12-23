@@ -215,10 +215,14 @@ export type Database = {
           created_at: string | null
           custom_reflections: Json | null
           cycle_id: string | null
+          daily_wins: Json | null
           date: string
           day_id: string
           deep_mode_notes: Json | null
           feeling: string | null
+          made_offer: boolean | null
+          scratch_pad_content: string | null
+          scratch_pad_processed_at: string | null
           selected_weekly_priorities: Json | null
           thought: string | null
           top_3_today: Json | null
@@ -230,10 +234,14 @@ export type Database = {
           created_at?: string | null
           custom_reflections?: Json | null
           cycle_id?: string | null
+          daily_wins?: Json | null
           date: string
           day_id?: string
           deep_mode_notes?: Json | null
           feeling?: string | null
+          made_offer?: boolean | null
+          scratch_pad_content?: string | null
+          scratch_pad_processed_at?: string | null
           selected_weekly_priorities?: Json | null
           thought?: string | null
           top_3_today?: Json | null
@@ -245,10 +253,14 @@ export type Database = {
           created_at?: string | null
           custom_reflections?: Json | null
           cycle_id?: string | null
+          daily_wins?: Json | null
           date?: string
           day_id?: string
           deep_mode_notes?: Json | null
           feeling?: string | null
+          made_offer?: boolean | null
+          scratch_pad_content?: string | null
+          scratch_pad_processed_at?: string | null
           selected_weekly_priorities?: Json | null
           thought?: string | null
           top_3_today?: Json | null
