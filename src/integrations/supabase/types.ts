@@ -148,6 +148,12 @@ export type Database = {
           focus_area: string | null
           goal: string
           identity: string | null
+          metric_1_name: string | null
+          metric_1_start: number | null
+          metric_2_name: string | null
+          metric_2_start: number | null
+          metric_3_name: string | null
+          metric_3_start: number | null
           nurture_score: number | null
           start_date: string
           supporting_projects: Json | null
@@ -165,6 +171,12 @@ export type Database = {
           focus_area?: string | null
           goal: string
           identity?: string | null
+          metric_1_name?: string | null
+          metric_1_start?: number | null
+          metric_2_name?: string | null
+          metric_2_start?: number | null
+          metric_3_name?: string | null
+          metric_3_start?: number | null
           nurture_score?: number | null
           start_date: string
           supporting_projects?: Json | null
@@ -182,6 +194,12 @@ export type Database = {
           focus_area?: string | null
           goal?: string
           identity?: string | null
+          metric_1_name?: string | null
+          metric_1_start?: number | null
+          metric_2_name?: string | null
+          metric_2_start?: number | null
+          metric_3_name?: string | null
+          metric_3_start?: number | null
           nurture_score?: number | null
           start_date?: string
           supporting_projects?: Json | null

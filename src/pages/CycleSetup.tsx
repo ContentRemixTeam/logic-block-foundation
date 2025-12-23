@@ -10,7 +10,7 @@ import { Layout } from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, X, Target } from 'lucide-react';
+import { Plus, X, Target, BarChart3 } from 'lucide-react';
 
 export default function CycleSetup() {
   const { user } = useAuth();
@@ -31,6 +31,15 @@ export default function CycleSetup() {
   const [discoverScore, setDiscoverScore] = useState(5);
   const [nurtureScore, setNurtureScore] = useState(5);
   const [convertScore, setConvertScore] = useState(5);
+
+  // Success Metrics
+  const [metric1Name, setMetric1Name] = useState('');
+  const [metric1Start, setMetric1Start] = useState<number | ''>('');
+  const [metric2Name, setMetric2Name] = useState('');
+  const [metric2Start, setMetric2Start] = useState<number | ''>('');
+  const [metric3Name, setMetric3Name] = useState('');
+  const [metric3Start, setMetric3Start] = useState<number | ''>('');
+
 
   // Calculate focus area based on lowest score
   const focusArea = useMemo(() => {
@@ -95,6 +104,12 @@ export default function CycleSetup() {
           nurture_score: nurtureScore,
           convert_score: convertScore,
           focus_area: focusArea,
+          metric_1_name: metric1Name || null,
+          metric_1_start: metric1Start === '' ? null : metric1Start,
+          metric_2_name: metric2Name || null,
+          metric_2_start: metric2Start === '' ? null : metric2Start,
+          metric_3_name: metric3Name || null,
+          metric_3_start: metric3Start === '' ? null : metric3Start,
         })
         .select()
         .maybeSingle();
@@ -291,6 +306,108 @@ export default function CycleSetup() {
                 <p className="text-sm text-muted-foreground mt-3">
                   This is where you need the most work. Focus your efforts here for the next 90 days.
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Success Metrics */}
+          <Card className="border-primary/20">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-primary" />
+                <CardTitle>Success Metrics</CardTitle>
+              </div>
+              <CardDescription>What 3 numbers will you track this quarter?</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="text-sm text-muted-foreground space-y-3">
+                <p>Choose metrics that align with your focus area. Track weekly to make data-driven decisions.</p>
+                <div className="p-4 rounded-lg bg-muted/50 space-y-2">
+                  <p className="font-medium text-foreground">Examples by focus area:</p>
+                  <ul className="space-y-1 text-xs">
+                    <li><span className="font-semibold">DISCOVER:</span> Website visitors, social followers, content reach, podcast downloads</li>
+                    <li><span className="font-semibold">NURTURE:</span> Email list size, open rates, engagement rate, free offer conversions</li>
+                    <li><span className="font-semibold">CONVERT:</span> Offers made, sales calls booked, conversion rate, monthly revenue</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Metric 1 */}
+              <div className="space-y-3 p-4 rounded-lg border bg-card">
+                <Label className="text-base font-semibold">Metric 1</Label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="metric1Name" className="text-sm text-muted-foreground">Name</Label>
+                    <Input
+                      id="metric1Name"
+                      value={metric1Name}
+                      onChange={(e) => setMetric1Name(e.target.value)}
+                      placeholder="e.g., Email list size"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="metric1Start" className="text-sm text-muted-foreground">Starting Value</Label>
+                    <Input
+                      id="metric1Start"
+                      type="number"
+                      value={metric1Start}
+                      onChange={(e) => setMetric1Start(e.target.value === '' ? '' : Number(e.target.value))}
+                      placeholder="e.g., 100"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Metric 2 */}
+              <div className="space-y-3 p-4 rounded-lg border bg-card">
+                <Label className="text-base font-semibold">Metric 2</Label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="metric2Name" className="text-sm text-muted-foreground">Name</Label>
+                    <Input
+                      id="metric2Name"
+                      value={metric2Name}
+                      onChange={(e) => setMetric2Name(e.target.value)}
+                      placeholder="e.g., Offers made per week"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="metric2Start" className="text-sm text-muted-foreground">Starting Value</Label>
+                    <Input
+                      id="metric2Start"
+                      type="number"
+                      value={metric2Start}
+                      onChange={(e) => setMetric2Start(e.target.value === '' ? '' : Number(e.target.value))}
+                      placeholder="e.g., 0"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Metric 3 */}
+              <div className="space-y-3 p-4 rounded-lg border bg-card">
+                <Label className="text-base font-semibold">Metric 3</Label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="metric3Name" className="text-sm text-muted-foreground">Name</Label>
+                    <Input
+                      id="metric3Name"
+                      value={metric3Name}
+                      onChange={(e) => setMetric3Name(e.target.value)}
+                      placeholder="e.g., Monthly revenue"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="metric3Start" className="text-sm text-muted-foreground">Starting Value</Label>
+                    <Input
+                      id="metric3Start"
+                      type="number"
+                      value={metric3Start}
+                      onChange={(e) => setMetric3Start(e.target.value === '' ? '' : Number(e.target.value))}
+                      placeholder="e.g., 0"
+                    />
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
