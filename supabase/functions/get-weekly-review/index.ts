@@ -69,11 +69,13 @@ Deno.serve(async (req) => {
         JSON.stringify({
           error: 'No active cycle',
           week_id: null,
+          focus_area: null,
           wins: [],
           challenges: [],
           lessons: [],
           intentions: [],
           weekly_score: 0,
+          focus_reflection: '',
           habit_stats: { total: 0, completed: 0, percent: 0 },
           cycle_progress: { total_days: 90, completed_days: 0, percent: 0 },
         }),
@@ -83,6 +85,15 @@ Deno.serve(async (req) => {
         }
       );
     }
+
+    // Fetch full cycle data including focus_area
+    const { data: fullCycleData } = await supabase
+      .from('cycles_90_day')
+      .select('focus_area')
+      .eq('cycle_id', currentCycle.cycle_id)
+      .single();
+    
+    const focusArea = fullCycleData?.focus_area || null;
 
     // Get current week
     const { data: weekData, error: weekError } = await supabase.rpc('get_current_week', {
@@ -103,11 +114,13 @@ Deno.serve(async (req) => {
         JSON.stringify({
           error: 'No active week',
           week_id: null,
+          focus_area: focusArea,
           wins: [],
           challenges: [],
           lessons: [],
           intentions: [],
           weekly_score: 0,
+          focus_reflection: '',
           habit_stats: { total: 0, completed: 0, percent: 0 },
           cycle_progress: { total_days: 90, completed_days: 0, percent: 0 },
         }),
@@ -134,6 +147,7 @@ Deno.serve(async (req) => {
       lessons: [],
       intentions: [],
       weekly_score: 0,
+      focus_reflection: '',
     };
     
     // If no review exists, auto-create one
@@ -144,6 +158,7 @@ Deno.serve(async (req) => {
         lessons: [],
         intentions: [],
         weekly_score: 0,
+        focus_reflection: '',
       };
 
       const { error: insertError } = await supabase.from('weekly_reviews').insert({
@@ -196,11 +211,13 @@ Deno.serve(async (req) => {
 
     const response = {
       week_id: currentWeek.week_id,
+      focus_area: focusArea,
       wins: Array.isArray(reviewData.wins) ? reviewData.wins : [],
       challenges: Array.isArray(reviewData.challenges) ? reviewData.challenges : [],
       lessons: Array.isArray(reviewData.lessons) ? reviewData.lessons : [],
       intentions: Array.isArray(reviewData.intentions) ? reviewData.intentions : [],
       weekly_score: reviewData.weekly_score || 0,
+      focus_reflection: reviewData.focus_reflection || '',
       habit_stats: {
         total: totalHabits,
         completed: completedHabits,
