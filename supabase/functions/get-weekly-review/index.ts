@@ -86,14 +86,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch full cycle data including focus_area
+    // Fetch full cycle data including focus_area and metric names
     const { data: fullCycleData } = await supabase
       .from('cycles_90_day')
-      .select('focus_area')
+      .select('focus_area, metric_1_name, metric_2_name, metric_3_name')
       .eq('cycle_id', currentCycle.cycle_id)
       .single();
     
     const focusArea = fullCycleData?.focus_area || null;
+    const cycleMetrics = {
+      metric_1_name: fullCycleData?.metric_1_name || null,
+      metric_2_name: fullCycleData?.metric_2_name || null,
+      metric_3_name: fullCycleData?.metric_3_name || null,
+    };
 
     // Get current week
     const { data: weekData, error: weekError } = await supabase.rpc('get_current_week', {
@@ -177,6 +182,36 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Get previous week's review for trend comparison
+    const previousWeekStart = new Date(currentWeek.start_of_week);
+    previousWeekStart.setDate(previousWeekStart.getDate() - 7);
+    const prevWeekStartStr = previousWeekStart.toISOString().split('T')[0];
+
+    const { data: previousWeekPlan } = await supabase
+      .from('weekly_plans')
+      .select('week_id')
+      .eq('user_id', userId)
+      .eq('start_of_week', prevWeekStartStr)
+      .maybeSingle();
+
+    let previousMetrics = null;
+    if (previousWeekPlan) {
+      const { data: prevReview } = await supabase
+        .from('weekly_reviews')
+        .select('metric_1_actual, metric_2_actual, metric_3_actual')
+        .eq('user_id', userId)
+        .eq('week_id', previousWeekPlan.week_id)
+        .maybeSingle();
+      
+      if (prevReview) {
+        previousMetrics = {
+          metric_1_actual: prevReview.metric_1_actual,
+          metric_2_actual: prevReview.metric_2_actual,
+          metric_3_actual: prevReview.metric_3_actual,
+        };
+      }
+    }
+
     // Calculate habit stats for the week
     const weekStart = new Date(currentWeek.start_of_week);
     const weekEnd = new Date(weekStart);
@@ -228,6 +263,11 @@ Deno.serve(async (req) => {
         completed_days: completedDays,
         percent: cyclePercent,
       },
+      cycle_metrics: cycleMetrics,
+      metric_1_actual: existingReview?.metric_1_actual || null,
+      metric_2_actual: existingReview?.metric_2_actual || null,
+      metric_3_actual: existingReview?.metric_3_actual || null,
+      previous_metrics: previousMetrics,
     };
 
     console.log('Returning review data:', response);

@@ -808,6 +808,9 @@ export type Database = {
           created_at: string | null
           custom_reflections: Json | null
           habit_summary: Json | null
+          metric_1_actual: number | null
+          metric_2_actual: number | null
+          metric_3_actual: number | null
           review_id: string
           updated_at: string | null
           user_id: string
@@ -820,6 +823,9 @@ export type Database = {
           created_at?: string | null
           custom_reflections?: Json | null
           habit_summary?: Json | null
+          metric_1_actual?: number | null
+          metric_2_actual?: number | null
+          metric_3_actual?: number | null
           review_id?: string
           updated_at?: string | null
           user_id: string
@@ -832,6 +838,9 @@ export type Database = {
           created_at?: string | null
           custom_reflections?: Json | null
           habit_summary?: Json | null
+          metric_1_actual?: number | null
+          metric_2_actual?: number | null
+          metric_3_actual?: number | null
           review_id?: string
           updated_at?: string | null
           user_id?: string
