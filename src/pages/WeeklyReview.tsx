@@ -4,13 +4,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Zap, Target } from "lucide-react";
+import { Loader2, Zap, Target, BarChart3, TrendingUp, TrendingDown } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { ReflectionList } from "@/components/ReflectionList";
 
@@ -18,6 +19,60 @@ interface Belief {
   belief_id: string;
   upgraded_belief: string;
   confidence_score: number;
+}
+
+// Metric input component with trend indicator
+function MetricInput({
+  name,
+  value,
+  onChange,
+  previousValue,
+}: {
+  name: string;
+  value: number | '';
+  onChange: (val: number | '') => void;
+  previousValue: number | null | undefined;
+}) {
+  const currentValue = typeof value === 'number' ? value : null;
+  const hasChange = currentValue !== null && previousValue !== null && previousValue !== undefined;
+  const change = hasChange ? currentValue - previousValue : null;
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={`metric-${name}`} className="font-semibold">{name}</Label>
+      <Input
+        id={`metric-${name}`}
+        type="number"
+        value={value}
+        onChange={(e) => onChange(e.target.value === '' ? '' : Number(e.target.value))}
+        placeholder="Enter this week's actual"
+      />
+      {previousValue !== null && previousValue !== undefined ? (
+        <div className="flex items-center gap-3 text-sm">
+          <span className="text-muted-foreground">Last week: {previousValue}</span>
+          {change !== null && (
+            <span className={`flex items-center gap-1 font-medium ${change > 0 ? 'text-green-600' : change < 0 ? 'text-red-500' : 'text-muted-foreground'}`}>
+              {change > 0 ? (
+                <>
+                  <TrendingUp className="h-4 w-4" />
+                  +{change}
+                </>
+              ) : change < 0 ? (
+                <>
+                  <TrendingDown className="h-4 w-4" />
+                  {change}
+                </>
+              ) : (
+                'No change'
+              )}
+            </span>
+          )}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">First week tracked</p>
+      )}
+    </div>
+  );
 }
 
 export default function WeeklyReview() {
@@ -29,6 +84,25 @@ export default function WeeklyReview() {
   const [saving, setSaving] = useState(false);
   const [weekId, setWeekId] = useState<string | null>(null);
   const [focusArea, setFocusArea] = useState<string | null>(null);
+
+  // Cycle metrics from cycle setup
+  const [cycleMetrics, setCycleMetrics] = useState<{
+    metric_1_name: string | null;
+    metric_2_name: string | null;
+    metric_3_name: string | null;
+  } | null>(null);
+
+  // Actual metrics for this week
+  const [metric1Actual, setMetric1Actual] = useState<number | ''>('');
+  const [metric2Actual, setMetric2Actual] = useState<number | ''>('');
+  const [metric3Actual, setMetric3Actual] = useState<number | ''>('');
+
+  // Previous week's actuals for trend comparison
+  const [previousMetrics, setPreviousMetrics] = useState<{
+    metric_1_actual: number | null;
+    metric_2_actual: number | null;
+    metric_3_actual: number | null;
+  } | null>(null);
 
   const [wins, setWins] = useState<string[]>([""]);
   const [challenges, setChallenges] = useState<string[]>([""]);
@@ -99,6 +173,19 @@ export default function WeeklyReview() {
       setHabitStats(data.habit_stats || { total: 0, completed: 0, percent: 0 });
       setCycleProgress(data.cycle_progress || { total_days: 90, completed_days: 0, percent: 0 });
 
+      // Set cycle metrics and actuals
+      if (data.cycle_metrics) {
+        setCycleMetrics(data.cycle_metrics);
+      }
+      setMetric1Actual(data.metric_1_actual ?? '');
+      setMetric2Actual(data.metric_2_actual ?? '');
+      setMetric3Actual(data.metric_3_actual ?? '');
+      
+      // Set previous week's metrics for trend comparison
+      if (data.previous_metrics) {
+        setPreviousMetrics(data.previous_metrics);
+      }
+
     } catch (error) {
       console.error("Error loading weekly review:", error);
       toast({ title: "Failed to load weekly review", variant: "destructive" });
@@ -136,6 +223,9 @@ export default function WeeklyReview() {
           intentions: intentions.filter(Boolean),
           weekly_score: weeklyScore,
           focus_reflection: focusReflection,
+          metric_1_actual: metric1Actual === '' ? null : metric1Actual,
+          metric_2_actual: metric2Actual === '' ? null : metric2Actual,
+          metric_3_actual: metric3Actual === '' ? null : metric3Actual,
         }),
       });
 
@@ -255,6 +345,45 @@ export default function WeeklyReview() {
                 rows={3}
                 className="mt-2"
               />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Actual Metrics This Week */}
+        {cycleMetrics && (cycleMetrics.metric_1_name || cycleMetrics.metric_2_name || cycleMetrics.metric_3_name) && (
+          <Card className="border-primary/20">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-primary" />
+                <CardTitle>Actual Numbers This Week</CardTitle>
+              </div>
+              <CardDescription>How did you do?</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {cycleMetrics.metric_1_name && (
+                <MetricInput
+                  name={cycleMetrics.metric_1_name}
+                  value={metric1Actual}
+                  onChange={setMetric1Actual}
+                  previousValue={previousMetrics?.metric_1_actual}
+                />
+              )}
+              {cycleMetrics.metric_2_name && (
+                <MetricInput
+                  name={cycleMetrics.metric_2_name}
+                  value={metric2Actual}
+                  onChange={setMetric2Actual}
+                  previousValue={previousMetrics?.metric_2_actual}
+                />
+              )}
+              {cycleMetrics.metric_3_name && (
+                <MetricInput
+                  name={cycleMetrics.metric_3_name}
+                  value={metric3Actual}
+                  onChange={setMetric3Actual}
+                  previousValue={previousMetrics?.metric_3_actual}
+                />
+              )}
             </CardContent>
           </Card>
         )}
