@@ -674,10 +674,15 @@ export type Database = {
           created_at: string | null
           daily_plan_id: string | null
           is_completed: boolean | null
+          is_recurring_parent: boolean | null
+          parent_task_id: string | null
           priority: string | null
+          recurrence_days: Json | null
+          recurrence_pattern: string | null
           scheduled_date: string | null
           source: string | null
           tags: Json | null
+          task_description: string | null
           task_id: string
           task_text: string
           user_id: string
@@ -687,10 +692,15 @@ export type Database = {
           created_at?: string | null
           daily_plan_id?: string | null
           is_completed?: boolean | null
+          is_recurring_parent?: boolean | null
+          parent_task_id?: string | null
           priority?: string | null
+          recurrence_days?: Json | null
+          recurrence_pattern?: string | null
           scheduled_date?: string | null
           source?: string | null
           tags?: Json | null
+          task_description?: string | null
           task_id?: string
           task_text: string
           user_id: string
@@ -700,10 +710,15 @@ export type Database = {
           created_at?: string | null
           daily_plan_id?: string | null
           is_completed?: boolean | null
+          is_recurring_parent?: boolean | null
+          parent_task_id?: string | null
           priority?: string | null
+          recurrence_days?: Json | null
+          recurrence_pattern?: string | null
           scheduled_date?: string | null
           source?: string | null
           tags?: Json | null
+          task_description?: string | null
           task_id?: string
           task_text?: string
           user_id?: string
@@ -715,6 +730,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "daily_plans"
             referencedColumns: ["day_id"]
+          },
+          {
+            foreignKeyName: "tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
           },
         ]
       }
