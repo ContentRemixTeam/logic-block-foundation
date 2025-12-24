@@ -32,7 +32,7 @@ function getDayName(date: Date): string {
 }
 
 // Check if today matches recurrence pattern
-function shouldCreateInstance(pattern: string, recurrenceDays: string[], today: Date): boolean {
+function shouldCreateInstance(pattern: string, recurrenceDays: string[], today: Date, monthlyDay?: number): boolean {
   switch (pattern) {
     case 'daily':
       return true;
@@ -40,9 +40,12 @@ function shouldCreateInstance(pattern: string, recurrenceDays: string[], today: 
       const todayName = getDayName(today);
       return recurrenceDays.includes(todayName);
     case 'monthly':
-      // Check if today is the same day of month as when task was created
-      // For simplicity, we'll check if it's the 1st (or last day if 1st doesn't exist)
-      return today.getDate() === 1;
+      // Use custom day if provided, otherwise default to 1st
+      const targetDay = monthlyDay || 1;
+      // Handle months with fewer days (e.g., if targetDay is 31 but month only has 30 days)
+      const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+      const effectiveDay = Math.min(targetDay, lastDayOfMonth);
+      return today.getDate() === effectiveDay;
     default:
       return false;
   }
@@ -102,9 +105,14 @@ Deno.serve(async (req) => {
     for (const parentTask of recurringTasks || []) {
       const pattern = parentTask.recurrence_pattern;
       const recurrenceDays = Array.isArray(parentTask.recurrence_days) ? parentTask.recurrence_days : [];
+      // Extract monthly_day from recurrence_days if it's a monthly pattern
+      // We store it as the first element for monthly patterns (as a number string)
+      const monthlyDay = pattern === 'monthly' && recurrenceDays.length > 0 
+        ? parseInt(recurrenceDays[0], 10) 
+        : undefined;
 
       // Check if we should create an instance today
-      if (!shouldCreateInstance(pattern, recurrenceDays, today)) {
+      if (!shouldCreateInstance(pattern, recurrenceDays, today, monthlyDay)) {
         console.log('Skipping task', parentTask.task_id, '- not scheduled for today');
         continue;
       }

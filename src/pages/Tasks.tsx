@@ -93,6 +93,7 @@ export default function Tasks() {
   const [newTaskPriority, setNewTaskPriority] = useState<string>('');
   const [newRecurrencePattern, setNewRecurrencePattern] = useState<RecurrencePattern>('none');
   const [newRecurrenceDays, setNewRecurrenceDays] = useState<string[]>([]);
+  const [newMonthlyDay, setNewMonthlyDay] = useState<number>(1);
   const [selectedSopId, setSelectedSopId] = useState<string>('');
   const [newChecklistProgress, setNewChecklistProgress] = useState<ChecklistProgress[]>([]);
 
@@ -362,7 +363,11 @@ export default function Tasks() {
         scheduled_date: newTaskDate ? format(newTaskDate, 'yyyy-MM-dd') : null,
         priority: newTaskPriority || null,
         recurrence_pattern: newRecurrencePattern !== 'none' ? newRecurrencePattern : null,
-        recurrence_days: newRecurrencePattern === 'weekly' ? newRecurrenceDays : [],
+        recurrence_days: newRecurrencePattern === 'weekly' 
+          ? newRecurrenceDays 
+          : newRecurrencePattern === 'monthly' 
+            ? [String(newMonthlyDay)] 
+            : [],
         sop_id: selectedSopId && selectedSopId !== 'none' ? selectedSopId : null,
         checklist_progress: newChecklistProgress,
       });
@@ -381,6 +386,7 @@ export default function Tasks() {
     setNewTaskPriority('');
     setNewRecurrencePattern('none');
     setNewRecurrenceDays([]);
+    setNewMonthlyDay(1);
     setSelectedSopId('');
     setNewChecklistProgress([]);
   };
@@ -466,9 +472,17 @@ export default function Tasks() {
     switch (pattern) {
       case 'daily': return 'Every day';
       case 'weekly': return days?.length ? `Every ${days.join(', ')}` : 'Weekly';
-      case 'monthly': return '1st of each month';
+      case 'monthly': 
+        const day = days?.length ? parseInt(days[0], 10) : 1;
+        return `${getOrdinalSuffix(day)} of each month`;
       default: return '';
     }
+  };
+
+  const getOrdinalSuffix = (n: number) => {
+    const s = ['th', 'st', 'nd', 'rd'];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
   };
 
   const toggleRecurrenceDay = (day: string, currentDays: string[], setter: (days: string[]) => void) => {
@@ -829,7 +843,7 @@ export default function Tasks() {
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="monthly" id="r-monthly" />
-                    <Label htmlFor="r-monthly" className="font-normal">Monthly (1st of each month)</Label>
+                    <Label htmlFor="r-monthly" className="font-normal">Monthly</Label>
                   </div>
                 </RadioGroup>
 
@@ -845,6 +859,25 @@ export default function Tasks() {
                         {day.slice(0, 3)}
                       </Badge>
                     ))}
+                  </div>
+                )}
+
+                {newRecurrencePattern === 'monthly' && (
+                  <div className="flex items-center gap-2 pl-6">
+                    <Label className="font-normal">Repeat on the</Label>
+                    <Select value={String(newMonthlyDay)} onValueChange={(v) => setNewMonthlyDay(parseInt(v, 10))}>
+                      <SelectTrigger className="w-20">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                          <SelectItem key={day} value={String(day)}>
+                            {getOrdinalSuffix(day)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Label className="font-normal">of each month</Label>
                   </div>
                 )}
               </div>
@@ -1054,6 +1087,28 @@ export default function Tasks() {
                             {day.slice(0, 3)}
                           </Badge>
                         ))}
+                      </div>
+                    )}
+
+                    {selectedTask.recurrence_pattern === 'monthly' && (
+                      <div className="flex items-center gap-2 pl-6">
+                        <Label className="font-normal">Repeat on the</Label>
+                        <Select 
+                          value={String((selectedTask.recurrence_days || [])[0] || '1')} 
+                          onValueChange={(v) => setSelectedTask({ ...selectedTask, recurrence_days: [v] })}
+                        >
+                          <SelectTrigger className="w-20">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                              <SelectItem key={day} value={String(day)}>
+                                {getOrdinalSuffix(day)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Label className="font-normal">of each month</Label>
                       </div>
                     )}
                   </div>
