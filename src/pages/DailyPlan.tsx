@@ -368,9 +368,16 @@ export default function DailyPlan() {
       }
     } catch (error: any) {
       console.error('Process tags error:', error);
+      
+      // Check for session/auth errors
+      const errorMessage = error?.message || "Something went wrong";
+      const isAuthError = errorMessage.toLowerCase().includes('token') || 
+                          errorMessage.toLowerCase().includes('auth') ||
+                          errorMessage.toLowerCase().includes('unauthorized');
+      
       toast({
-        title: "Error processing tags",
-        description: error?.message || "Something went wrong",
+        title: isAuthError ? "Session expired" : "Error processing tags",
+        description: isAuthError ? "Please refresh the page and try again" : errorMessage,
         variant: "destructive",
       });
     } finally {
