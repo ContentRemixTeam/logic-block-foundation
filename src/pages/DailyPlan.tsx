@@ -43,6 +43,7 @@ export default function DailyPlan() {
   // Plan data
   const [dayId, setDayId] = useState<string | null>(null);
   const [top3, setTop3] = useState<string[]>(['', '', '']);
+  const [oneThing, setOneThing] = useState('');
   const [thought, setThought] = useState('');
   const [feeling, setFeeling] = useState('');
   const [focusArea, setFocusArea] = useState<string | null>(null);
@@ -51,6 +52,12 @@ export default function DailyPlan() {
     obstacles: '',
     show_up: '',
   });
+  
+  // Top 3 Tasks (unified with tasks table)
+  const [top3Tasks, setTop3Tasks] = useState<any[]>([]);
+  const [otherTasks, setOtherTasks] = useState<any[]>([]);
+  const [newTop3Text, setNewTop3Text] = useState(['', '', '']);
+  const [savingTop3, setSavingTop3] = useState(false);
   
   // Scratch pad
   const [scratchPadContent, setScratchPadContent] = useState('');
@@ -155,6 +162,20 @@ export default function DailyPlan() {
         setFeeling(plan.feeling || '');
         setScratchPadContent(plan.scratch_pad_content || '');
         setScratchPadTitle(plan.scratch_pad_title || '');
+        setOneThing(plan.one_thing || '');
+        
+        // Set Top 3 Tasks from API
+        setTop3Tasks(plan.top_3_tasks || []);
+        setOtherTasks(plan.other_tasks || []);
+        
+        // Pre-populate newTop3Text from existing Top 3 tasks
+        const existingTexts = ['', '', ''];
+        (plan.top_3_tasks || []).forEach((task: any) => {
+          if (task.priority_order >= 1 && task.priority_order <= 3) {
+            existingTexts[task.priority_order - 1] = task.task_text;
+          }
+        });
+        setNewTop3Text(existingTexts);
 
         // Normalize deep mode notes
         const notes = plan.deep_mode_notes || {};
@@ -223,9 +244,93 @@ export default function DailyPlan() {
   };
 
   const updateTop3 = (idx: number, value: string) => {
-    const updated = [...top3];
+    const updated = [...newTop3Text];
     updated[idx] = value;
-    setTop3(updated);
+    setNewTop3Text(updated);
+  };
+
+  // Create or update Top 3 task
+  const saveTop3Task = async (priorityOrder: number, text: string) => {
+    if (!user || !dayId || !text.trim()) return;
+    
+    const today = new Date().toISOString().split('T')[0];
+    const existingTask = top3Tasks.find(t => t.priority_order === priorityOrder);
+    
+    try {
+      if (existingTask) {
+        // Update existing task
+        await supabase.functions.invoke('manage-task', {
+          body: {
+            action: 'update',
+            task_id: existingTask.task_id,
+            task_text: text.trim(),
+          },
+        });
+      } else {
+        // Create new task
+        await supabase.functions.invoke('manage-task', {
+          body: {
+            action: 'create',
+            task_text: text.trim(),
+            scheduled_date: today,
+            priority_order: priorityOrder,
+            source: 'top_3',
+            priority: 'high',
+            daily_plan_id: dayId,
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Error saving top 3 task:', error);
+    }
+  };
+
+  // Toggle Top 3 task completion
+  const toggleTop3Task = async (taskId: string, currentStatus: boolean) => {
+    try {
+      await supabase.functions.invoke('manage-task', {
+        body: {
+          action: 'update',
+          task_id: taskId,
+          is_completed: !currentStatus,
+        },
+      });
+      
+      // Update local state
+      setTop3Tasks(prev => prev.map(t => 
+        t.task_id === taskId ? { ...t, is_completed: !currentStatus } : t
+      ));
+      
+      toast({
+        title: !currentStatus ? "✅ Task completed!" : "Task unchecked",
+      });
+    } catch (error: any) {
+      console.error('Error toggling task:', error);
+      toast({
+        title: 'Error updating task',
+        description: error?.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Toggle other task completion
+  const toggleOtherTask = async (taskId: string, currentStatus: boolean) => {
+    try {
+      await supabase.functions.invoke('manage-task', {
+        body: {
+          action: 'update',
+          task_id: taskId,
+          is_completed: !currentStatus,
+        },
+      });
+      
+      setOtherTasks(prev => prev.map(t => 
+        t.task_id === taskId ? { ...t, is_completed: !currentStatus } : t
+      ));
+    } catch (error: any) {
+      console.error('Error toggling task:', error);
+    }
   };
 
   const toggleHabit = async (habitId: string) => {
@@ -257,25 +362,39 @@ export default function DailyPlan() {
     if (!user || !dayId) return;
     
     setSaving(true);
+    setSavingTop3(true);
 
     try {
+      // Save Top 3 tasks to tasks table
+      const today = new Date().toISOString().split('T')[0];
+      for (let i = 0; i < 3; i++) {
+        const text = newTop3Text[i];
+        if (text.trim()) {
+          await saveTop3Task(i + 1, text);
+        }
+      }
+
       const { data, error: fnError } = await supabase.functions.invoke('save-daily-plan', {
         body: {
           day_id: dayId,
           user_id: user.id,
-          top_3_today: top3.filter((t) => t.trim()),
+          top_3_today: newTop3Text.filter((t) => t.trim()),
           selected_weekly_priorities: selectedPriorities,
           thought,
           feeling,
           deep_mode_notes: deepModeNotes,
           scratch_pad_content: scratchPadContent,
           scratch_pad_title: scratchPadTitle,
+          one_thing: oneThing,
         },
       });
 
       if (fnError) throw fnError;
 
       console.log('Save response:', data);
+      
+      // Reload to get fresh tasks
+      await loadDailyPlan();
       
       setLastSaved(new Date());
 
@@ -513,30 +632,151 @@ export default function DailyPlan() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Quick Mode - Top 3 */}
+          {/* The ONE Thing */}
+          <Card className="border-accent/30 bg-accent/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-accent" />
+                ⚡ Your ONE Thing
+              </CardTitle>
+              <CardDescription>
+                What's the ONE thing that will make today a success?
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Input
+                value={oneThing}
+                onChange={(e) => setOneThing(e.target.value)}
+                placeholder="The single most important focus for today..."
+                className="text-lg font-medium"
+                maxLength={500}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Top 3 Priorities - Unified with Tasks */}
           <Card>
             <CardHeader>
-              <CardTitle>Today's Top 3</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                🎯 Top 3 Priorities
+              </CardTitle>
               <CardDescription>
-                What are the most important things you need to accomplish today?
+                Your most important tasks today (should support your ONE thing)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {top3.map((task, idx) => (
-                <div key={idx}>
-                  <Label htmlFor={`task-${idx}`}>Priority {idx + 1}</Label>
-                  <Input
-                    id={`task-${idx}`}
-                    value={task}
-                    onChange={(e) => updateTop3(idx, e.target.value)}
-                    placeholder="What must you accomplish today?"
-                    required={idx === 0}
-                    maxLength={200}
-                  />
-                </div>
-              ))}
+              {[1, 2, 3].map((priorityNum) => {
+                const existingTask = top3Tasks.find(t => t.priority_order === priorityNum);
+                const inputValue = newTop3Text[priorityNum - 1];
+                
+                return (
+                  <div key={priorityNum} className="flex items-center gap-3">
+                    {existingTask ? (
+                      <>
+                        <Checkbox
+                          checked={existingTask.is_completed}
+                          onCheckedChange={() => toggleTop3Task(existingTask.task_id, existingTask.is_completed)}
+                        />
+                        <div className="flex-1">
+                          <Input
+                            value={inputValue}
+                            onChange={(e) => updateTop3(priorityNum - 1, e.target.value)}
+                            placeholder={`Priority ${priorityNum}`}
+                            className={existingTask.is_completed ? 'line-through text-muted-foreground' : ''}
+                            maxLength={200}
+                          />
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {priorityNum === 1 ? 'HIGH' : priorityNum === 2 ? 'MED' : 'LOW'}
+                        </Badge>
+                      </>
+                    ) : (
+                      <>
+                        <Checkbox disabled className="opacity-30" />
+                        <div className="flex-1">
+                          <Input
+                            value={inputValue}
+                            onChange={(e) => updateTop3(priorityNum - 1, e.target.value)}
+                            placeholder={`Priority ${priorityNum} - What must you accomplish?`}
+                            required={priorityNum === 1}
+                            maxLength={200}
+                          />
+                        </div>
+                        <Badge variant="outline" className="text-xs opacity-50">
+                          {priorityNum === 1 ? 'HIGH' : priorityNum === 2 ? 'MED' : 'LOW'}
+                        </Badge>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
             </CardContent>
           </Card>
+
+          {/* Quick Tasks from Scratch Pad */}
+          {otherTasks.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <ListTodo className="h-4 w-4" />
+                  📋 Quick Tasks ({otherTasks.filter(t => !t.is_completed).length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {otherTasks.filter(t => !t.is_completed).map((task) => (
+                  <div key={task.task_id} className="flex items-center gap-3">
+                    <Checkbox
+                      checked={task.is_completed}
+                      onCheckedChange={() => toggleOtherTask(task.task_id, task.is_completed)}
+                    />
+                    <span className="text-sm">{task.task_text}</span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Completed Today */}
+          {(() => {
+            const completedTop3 = top3Tasks.filter(t => t.is_completed);
+            const completedOther = otherTasks.filter(t => t.is_completed);
+            const totalCompleted = completedTop3.length + completedOther.length;
+            
+            if (totalCompleted === 0) return null;
+            
+            return (
+              <Card className="border-primary/20 bg-primary/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base text-primary">
+                    <CheckCircle2 className="h-4 w-4" />
+                    ✅ Completed Today ({totalCompleted})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {completedTop3.map((task) => (
+                    <div key={task.task_id} className="flex items-center gap-3">
+                      <Checkbox
+                        checked={true}
+                        onCheckedChange={() => toggleTop3Task(task.task_id, true)}
+                      />
+                      <span className="text-sm line-through text-muted-foreground">{task.task_text}</span>
+                      <Badge variant="outline" className="text-xs">Top 3</Badge>
+                    </div>
+                  ))}
+                  {completedOther.map((task) => (
+                    <div key={task.task_id} className="flex items-center gap-3">
+                      <Checkbox
+                        checked={true}
+                        onCheckedChange={() => toggleOtherTask(task.task_id, true)}
+                      />
+                      <span className="text-sm line-through text-muted-foreground">{task.task_text}</span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* Daily Scratch Pad */}
           <Card className="bg-gradient-to-br from-muted/30 to-muted/10 border-dashed">

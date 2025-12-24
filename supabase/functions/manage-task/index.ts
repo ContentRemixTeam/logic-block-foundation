@@ -65,7 +65,10 @@ Deno.serve(async (req) => {
       recurrence_days,
       delete_type, // 'single', 'future', 'all'
       sop_id,
-      checklist_progress
+      checklist_progress,
+      priority_order, // 1, 2, or 3 for Top 3 tasks
+      source, // 'manual', 'scratch_pad', 'top_3'
+      daily_plan_id
     } = body;
 
     let result;
@@ -100,13 +103,15 @@ Deno.serve(async (req) => {
             task_description: task_description ? task_description.substring(0, 5000) : null,
             scheduled_date: scheduled_date || null,
             priority: priority || null,
-            source: 'manual',
+            source: source || 'manual',
             is_completed: false,
             recurrence_pattern: recurrence_pattern || null,
             recurrence_days: recurrence_days || [],
             is_recurring_parent: isRecurringParent,
             sop_id: sop_id || null,
             checklist_progress: checklist_progress || [],
+            priority_order: priority_order || null,
+            daily_plan_id: daily_plan_id || null,
           })
           .select()
           .single();
@@ -129,6 +134,8 @@ Deno.serve(async (req) => {
         }
         if (sop_id !== undefined) updateData.sop_id = sop_id;
         if (checklist_progress !== undefined) updateData.checklist_progress = checklist_progress;
+        if (priority_order !== undefined) updateData.priority_order = priority_order;
+        if (daily_plan_id !== undefined) updateData.daily_plan_id = daily_plan_id;
 
         result = await supabase
           .from('tasks')

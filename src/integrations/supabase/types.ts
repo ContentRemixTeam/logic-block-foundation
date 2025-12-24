@@ -221,6 +221,7 @@ export type Database = {
           deep_mode_notes: Json | null
           feeling: string | null
           made_offer: boolean | null
+          one_thing: string | null
           scratch_pad_content: string | null
           scratch_pad_processed_at: string | null
           scratch_pad_title: string | null
@@ -241,6 +242,7 @@ export type Database = {
           deep_mode_notes?: Json | null
           feeling?: string | null
           made_offer?: boolean | null
+          one_thing?: string | null
           scratch_pad_content?: string | null
           scratch_pad_processed_at?: string | null
           scratch_pad_title?: string | null
@@ -261,6 +263,7 @@ export type Database = {
           deep_mode_notes?: Json | null
           feeling?: string | null
           made_offer?: boolean | null
+          one_thing?: string | null
           scratch_pad_content?: string | null
           scratch_pad_processed_at?: string | null
           scratch_pad_title?: string | null
@@ -717,6 +720,7 @@ export type Database = {
           is_recurring_parent: boolean | null
           parent_task_id: string | null
           priority: string | null
+          priority_order: number | null
           recurrence_days: Json | null
           recurrence_pattern: string | null
           scheduled_date: string | null
@@ -737,6 +741,7 @@ export type Database = {
           is_recurring_parent?: boolean | null
           parent_task_id?: string | null
           priority?: string | null
+          priority_order?: number | null
           recurrence_days?: Json | null
           recurrence_pattern?: string | null
           scheduled_date?: string | null
@@ -757,6 +762,7 @@ export type Database = {
           is_recurring_parent?: boolean | null
           parent_task_id?: string | null
           priority?: string | null
+          priority_order?: number | null
           recurrence_days?: Json | null
           recurrence_pattern?: string | null
           scheduled_date?: string | null
