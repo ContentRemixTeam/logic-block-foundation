@@ -839,6 +839,7 @@ export type Database = {
           monthly_review_questions: Json | null
           quick_mode_default: boolean | null
           reminder_preferences: Json | null
+          scratch_pad_review_mode: string | null
           show_income_tracker: boolean | null
           theme_preference: string | null
           updated_at: string | null
@@ -856,6 +857,7 @@ export type Database = {
           monthly_review_questions?: Json | null
           quick_mode_default?: boolean | null
           reminder_preferences?: Json | null
+          scratch_pad_review_mode?: string | null
           show_income_tracker?: boolean | null
           theme_preference?: string | null
           updated_at?: string | null
@@ -873,6 +875,7 @@ export type Database = {
           monthly_review_questions?: Json | null
           quick_mode_default?: boolean | null
           reminder_preferences?: Json | null
+          scratch_pad_review_mode?: string | null
           show_income_tracker?: boolean | null
           theme_preference?: string | null
           updated_at?: string | null
