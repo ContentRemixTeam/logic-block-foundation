@@ -154,12 +154,12 @@ export function CaptureButton({ categories, onIdeaSaved }: CaptureButtonProps) {
 
             <div>
               <Label htmlFor="category">Category (optional)</Label>
-              <Select value={categoryId} onValueChange={setCategoryId}>
+              <Select value={categoryId || "uncategorized"} onValueChange={(val) => setCategoryId(val === "uncategorized" ? "" : val)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No category</SelectItem>
+                  <SelectItem value="uncategorized">No category</SelectItem>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       <div className="flex items-center gap-2">
