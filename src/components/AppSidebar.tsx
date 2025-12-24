@@ -39,6 +39,7 @@ const mainNavigation = [
   { name: 'Weekly Plan', href: '/weekly-plan', icon: Calendar },
   { name: 'Weekly Review', href: '/weekly-review', icon: FileText },
   { name: 'Monthly Review', href: '/monthly-review', icon: BarChart3 },
+  { name: 'Progress', href: '/progress', icon: TrendingUp },
   { name: 'Habits', href: '/habits', icon: CheckSquare },
   { name: 'Ideas', href: '/ideas', icon: Zap },
 ];

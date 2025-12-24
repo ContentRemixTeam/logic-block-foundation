@@ -21,6 +21,7 @@ import BeliefBuilder from "./pages/BeliefBuilder";
 import IdentityAnchors from "./pages/IdentityAnchors";
 import SelfCoaching from "./pages/SelfCoaching";
 import Settings from "./pages/Settings";
+import Progress from "./pages/Progress";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/weekly-review" element={<ProtectedRoute><WeeklyReview /></ProtectedRoute>} />
             <Route path="/monthly-review" element={<ProtectedRoute><MonthlyReview /></ProtectedRoute>} />
             <Route path="/cycle-summary" element={<ProtectedRoute><CycleSummary /></ProtectedRoute>} />
+            <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
             <Route path="/daily-plan" element={<ProtectedRoute><DailyPlan /></ProtectedRoute>} />
             <Route path="/habits" element={<ProtectedRoute><Habits /></ProtectedRoute>} />
               <Route path="/ideas" element={<ProtectedRoute><Ideas /></ProtectedRoute>} />
