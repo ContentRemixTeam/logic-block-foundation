@@ -157,6 +157,32 @@ Deno.serve(async (req) => {
       throw fetchError;
     }
 
+    // Fetch Top 3 tasks for today (tasks with priority_order 1, 2, or 3)
+    const { data: top3Tasks, error: top3Error } = await supabaseClient
+      .from('tasks')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('scheduled_date', today)
+      .not('priority_order', 'is', null)
+      .order('priority_order', { ascending: true });
+
+    if (top3Error) {
+      console.error('Top 3 tasks error:', top3Error);
+    }
+
+    // Fetch other tasks for today (quick tasks from scratch pad, etc.)
+    const { data: otherTasks, error: otherTasksError } = await supabaseClient
+      .from('tasks')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('scheduled_date', today)
+      .is('priority_order', null)
+      .order('created_at', { ascending: true });
+
+    if (otherTasksError) {
+      console.error('Other tasks error:', otherTasksError);
+    }
+
     console.log('Returning plan:', plan.day_id);
 
     return new Response(
@@ -173,6 +199,9 @@ Deno.serve(async (req) => {
           focus_area: focusArea,
           scratch_pad_content: plan.scratch_pad_content || '',
           scratch_pad_title: plan.scratch_pad_title || '',
+          one_thing: plan.one_thing || '',
+          top_3_tasks: top3Tasks || [],
+          other_tasks: otherTasks || [],
         },
       }),
       {

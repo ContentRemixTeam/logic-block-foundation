@@ -67,6 +67,7 @@ interface Task {
   sop_id: string | null;
   checklist_progress: ChecklistProgress[] | null;
   sop: SOP | null;
+  priority_order: number | null;
 }
 
 type FilterTab = 'today' | 'week' | 'future' | 'all' | 'completed';
