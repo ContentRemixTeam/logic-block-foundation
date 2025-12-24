@@ -251,24 +251,42 @@ export default function DailyPlan() {
 
   // Create or update Top 3 task
   const saveTop3Task = async (priorityOrder: number, text: string) => {
-    if (!user || !dayId || !text.trim()) return;
+    if (!user || !dayId) return;
     
     const today = new Date().toISOString().split('T')[0];
     const existingTask = top3Tasks.find(t => t.priority_order === priorityOrder);
     
     try {
       if (existingTask) {
-        // Update existing task
-        await supabase.functions.invoke('manage-task', {
-          body: {
-            action: 'update',
-            task_id: existingTask.task_id,
-            task_text: text.trim(),
-          },
-        });
-      } else {
-        // Create new task
-        await supabase.functions.invoke('manage-task', {
+        if (!text.trim()) {
+          // Delete task if text is empty
+          await supabase.functions.invoke('manage-task', {
+            body: {
+              action: 'delete',
+              task_id: existingTask.task_id,
+            },
+          });
+          // Update local state
+          setTop3Tasks(prev => prev.filter(t => t.task_id !== existingTask.task_id));
+        } else {
+          // Update existing task
+          const { data } = await supabase.functions.invoke('manage-task', {
+            body: {
+              action: 'update',
+              task_id: existingTask.task_id,
+              task_text: text.trim(),
+            },
+          });
+          // Update local state
+          if (data?.data) {
+            setTop3Tasks(prev => prev.map(t => 
+              t.task_id === existingTask.task_id ? data.data : t
+            ));
+          }
+        }
+      } else if (text.trim()) {
+        // Create new task only if there's text
+        const { data } = await supabase.functions.invoke('manage-task', {
           body: {
             action: 'create',
             task_text: text.trim(),
@@ -279,6 +297,10 @@ export default function DailyPlan() {
             daily_plan_id: dayId,
           },
         });
+        // Add to local state
+        if (data?.data) {
+          setTop3Tasks(prev => [...prev, data.data].sort((a, b) => a.priority_order - b.priority_order));
+        }
       }
     } catch (error) {
       console.error('Error saving top 3 task:', error);
@@ -682,6 +704,7 @@ export default function DailyPlan() {
                           <Input
                             value={inputValue}
                             onChange={(e) => updateTop3(priorityNum - 1, e.target.value)}
+                            onBlur={() => saveTop3Task(priorityNum, inputValue)}
                             placeholder={`Priority ${priorityNum}`}
                             className={existingTask.is_completed ? 'line-through text-muted-foreground' : ''}
                             maxLength={200}
@@ -698,6 +721,7 @@ export default function DailyPlan() {
                           <Input
                             value={inputValue}
                             onChange={(e) => updateTop3(priorityNum - 1, e.target.value)}
+                            onBlur={() => saveTop3Task(priorityNum, inputValue)}
                             placeholder={`Priority ${priorityNum} - What must you accomplish?`}
                             required={priorityNum === 1}
                             maxLength={200}
