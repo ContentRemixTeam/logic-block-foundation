@@ -158,6 +158,7 @@ export type Database = {
           start_date: string
           supporting_projects: Json | null
           target_feeling: string | null
+          things_to_remember: Json | null
           updated_at: string | null
           user_id: string
           why: string | null
@@ -181,6 +182,7 @@ export type Database = {
           start_date: string
           supporting_projects?: Json | null
           target_feeling?: string | null
+          things_to_remember?: Json | null
           updated_at?: string | null
           user_id: string
           why?: string | null
@@ -204,6 +206,7 @@ export type Database = {
           start_date?: string
           supporting_projects?: Json | null
           target_feeling?: string | null
+          things_to_remember?: Json | null
           updated_at?: string | null
           user_id?: string
           why?: string | null
