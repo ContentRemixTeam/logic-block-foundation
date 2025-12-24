@@ -63,7 +63,9 @@ Deno.serve(async (req) => {
       is_completed,
       recurrence_pattern,
       recurrence_days,
-      delete_type // 'single', 'future', 'all'
+      delete_type, // 'single', 'future', 'all'
+      sop_id,
+      checklist_progress
     } = body;
 
     let result;
@@ -71,12 +73,31 @@ Deno.serve(async (req) => {
     switch (action) {
       case 'create':
         const isRecurringParent = recurrence_pattern && recurrence_pattern !== 'none';
+        
+        // If sop_id provided, increment times_used
+        if (sop_id) {
+          const { data: sopData } = await supabase
+            .from('sops')
+            .select('times_used')
+            .eq('sop_id', sop_id)
+            .eq('user_id', userId)
+            .single();
+          
+          if (sopData) {
+            await supabase
+              .from('sops')
+              .update({ times_used: (sopData.times_used || 0) + 1 })
+              .eq('sop_id', sop_id)
+              .eq('user_id', userId);
+          }
+        }
+        
         result = await supabase
           .from('tasks')
           .insert({
             user_id: userId,
             task_text: (task_text || '').substring(0, 500),
-            task_description: task_description ? task_description.substring(0, 2000) : null,
+            task_description: task_description ? task_description.substring(0, 5000) : null,
             scheduled_date: scheduled_date || null,
             priority: priority || null,
             source: 'manual',
@@ -84,6 +105,8 @@ Deno.serve(async (req) => {
             recurrence_pattern: recurrence_pattern || null,
             recurrence_days: recurrence_days || [],
             is_recurring_parent: isRecurringParent,
+            sop_id: sop_id || null,
+            checklist_progress: checklist_progress || [],
           })
           .select()
           .single();
@@ -92,7 +115,7 @@ Deno.serve(async (req) => {
       case 'update':
         const updateData: Record<string, any> = {};
         if (task_text !== undefined) updateData.task_text = task_text.substring(0, 500);
-        if (task_description !== undefined) updateData.task_description = task_description ? task_description.substring(0, 2000) : null;
+        if (task_description !== undefined) updateData.task_description = task_description ? task_description.substring(0, 5000) : null;
         if (scheduled_date !== undefined) updateData.scheduled_date = scheduled_date;
         if (priority !== undefined) updateData.priority = priority;
         if (recurrence_pattern !== undefined) {
@@ -104,6 +127,8 @@ Deno.serve(async (req) => {
           updateData.is_completed = is_completed;
           updateData.completed_at = is_completed ? new Date().toISOString() : null;
         }
+        if (sop_id !== undefined) updateData.sop_id = sop_id;
+        if (checklist_progress !== undefined) updateData.checklist_progress = checklist_progress;
 
         result = await supabase
           .from('tasks')
@@ -165,6 +190,48 @@ Deno.serve(async (req) => {
             is_completed: newStatus,
             completed_at: newStatus ? new Date().toISOString() : null,
           })
+          .eq('task_id', task_id)
+          .eq('user_id', userId)
+          .select()
+          .single();
+        break;
+
+      case 'toggle_checklist_item':
+        // Toggle a specific checklist item
+        const { item_id } = body;
+        
+        const { data: taskWithChecklist } = await supabase
+          .from('tasks')
+          .select('checklist_progress')
+          .eq('task_id', task_id)
+          .eq('user_id', userId)
+          .single();
+        
+        let currentProgress = taskWithChecklist?.checklist_progress || [];
+        const existingIndex = currentProgress.findIndex((p: any) => p.item_id === item_id);
+        
+        if (existingIndex >= 0) {
+          // Toggle existing
+          currentProgress[existingIndex].completed = !currentProgress[existingIndex].completed;
+        } else {
+          // Add new as completed
+          currentProgress.push({ item_id, completed: true });
+        }
+        
+        result = await supabase
+          .from('tasks')
+          .update({ checklist_progress: currentProgress })
+          .eq('task_id', task_id)
+          .eq('user_id', userId)
+          .select()
+          .single();
+        break;
+
+      case 'detach_sop':
+        // Remove SOP link but keep the description content
+        result = await supabase
+          .from('tasks')
+          .update({ sop_id: null })
           .eq('task_id', task_id)
           .eq('user_id', userId)
           .select()

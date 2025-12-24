@@ -52,10 +52,13 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Fetch all tasks for the user
+    // Fetch all tasks for the user with SOP data
     const { data: tasks, error } = await supabase
       .from('tasks')
-      .select('*')
+      .select(`
+        *,
+        sop:sops(sop_id, sop_name, description, checklist_items, links, notes)
+      `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 

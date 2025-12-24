@@ -17,10 +17,38 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, CalendarIcon, Pencil, Trash2, Clock, CheckCircle2, Circle, ListTodo, RefreshCw, ChevronDown, X } from 'lucide-react';
+import { Plus, CalendarIcon, Pencil, Trash2, Clock, CheckCircle2, Circle, ListTodo, RefreshCw, ChevronDown, X, ClipboardList, ExternalLink, FileText, Unlink } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+interface ChecklistItem {
+  id: string;
+  text: string;
+  order: number;
+}
+
+interface SOPLink {
+  id: string;
+  title: string;
+  url: string;
+}
+
+interface SOP {
+  sop_id: string;
+  sop_name: string;
+  description: string | null;
+  checklist_items: ChecklistItem[];
+  links: SOPLink[];
+  notes: string | null;
+}
+
+interface ChecklistProgress {
+  item_id: string;
+  completed: boolean;
+}
 
 interface Task {
   task_id: string;
@@ -36,6 +64,9 @@ interface Task {
   recurrence_days: string[] | null;
   parent_task_id: string | null;
   is_recurring_parent: boolean;
+  sop_id: string | null;
+  checklist_progress: ChecklistProgress[] | null;
+  sop: SOP | null;
 }
 
 type FilterTab = 'today' | 'week' | 'future' | 'all' | 'completed';
@@ -62,6 +93,8 @@ export default function Tasks() {
   const [newTaskPriority, setNewTaskPriority] = useState<string>('');
   const [newRecurrencePattern, setNewRecurrencePattern] = useState<RecurrencePattern>('none');
   const [newRecurrenceDays, setNewRecurrenceDays] = useState<string[]>([]);
+  const [selectedSopId, setSelectedSopId] = useState<string>('');
+  const [newChecklistProgress, setNewChecklistProgress] = useState<ChecklistProgress[]>([]);
 
   // Fetch all tasks
   const { data: tasks = [], isLoading } = useQuery({
@@ -71,6 +104,22 @@ export default function Tasks() {
       if (!session) throw new Error('Not authenticated');
 
       const response = await supabase.functions.invoke('get-all-tasks', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (response.error) throw response.error;
+      return response.data?.data || [];
+    },
+  });
+
+  // Fetch SOPs for dropdown
+  const { data: sops = [] } = useQuery({
+    queryKey: ['sops'],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await supabase.functions.invoke('get-sops', {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
@@ -111,6 +160,9 @@ export default function Tasks() {
       recurrence_pattern?: string | null;
       recurrence_days?: string[];
       delete_type?: DeleteType;
+      sop_id?: string | null;
+      checklist_progress?: ChecklistProgress[];
+      item_id?: string;
     }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
@@ -125,8 +177,55 @@ export default function Tasks() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['sops'] });
     },
   });
+
+  // Handle SOP selection - auto-populate description
+  const handleSopSelect = (sopId: string) => {
+    setSelectedSopId(sopId);
+    
+    if (sopId && sopId !== 'none') {
+      const sop = sops.find((s: SOP) => s.sop_id === sopId);
+      if (sop) {
+        // Build formatted description from SOP
+        let description = '';
+        
+        // Add checklist
+        if (sop.checklist_items && sop.checklist_items.length > 0) {
+          description += 'CHECKLIST:\n';
+          const sortedItems = [...sop.checklist_items].sort((a, b) => a.order - b.order);
+          sortedItems.forEach((item: ChecklistItem) => {
+            description += `☐ ${item.text}\n`;
+          });
+          
+          // Initialize checklist progress
+          setNewChecklistProgress(sortedItems.map((item: ChecklistItem) => ({
+            item_id: item.id,
+            completed: false
+          })));
+        }
+        
+        // Add links
+        if (sop.links && sop.links.length > 0) {
+          description += '\nUSEFUL LINKS:\n';
+          sop.links.forEach((link: SOPLink) => {
+            description += `• ${link.title}: ${link.url}\n`;
+          });
+        }
+        
+        // Add notes
+        if (sop.notes) {
+          description += '\nNOTES:\n';
+          description += sop.notes;
+        }
+        
+        setNewTaskDescription(description.trim());
+      }
+    } else {
+      setNewChecklistProgress([]);
+    }
+  };
 
   // Separate recurring parent tasks from regular tasks
   const { regularTasks, recurringParentTasks } = useMemo(() => {
@@ -224,6 +323,31 @@ export default function Tasks() {
     }
   };
 
+  const handleToggleChecklistItem = async (taskId: string, itemId: string) => {
+    try {
+      await manageMutation.mutateAsync({ 
+        action: 'toggle_checklist_item', 
+        task_id: taskId,
+        item_id: itemId
+      });
+    } catch (error) {
+      toast.error('Failed to update checklist');
+    }
+  };
+
+  const handleDetachSop = async (taskId: string) => {
+    try {
+      await manageMutation.mutateAsync({ action: 'detach_sop', task_id: taskId });
+      toast.success('SOP detached');
+      // Update local state
+      if (selectedTask) {
+        setSelectedTask({ ...selectedTask, sop_id: null, sop: null });
+      }
+    } catch (error) {
+      toast.error('Failed to detach SOP');
+    }
+  };
+
   const handleAddTask = async () => {
     if (!newTaskText.trim()) {
       toast.error('Please enter a task');
@@ -239,6 +363,8 @@ export default function Tasks() {
         priority: newTaskPriority || null,
         recurrence_pattern: newRecurrencePattern !== 'none' ? newRecurrencePattern : null,
         recurrence_days: newRecurrencePattern === 'weekly' ? newRecurrenceDays : [],
+        sop_id: selectedSopId && selectedSopId !== 'none' ? selectedSopId : null,
+        checklist_progress: newChecklistProgress,
       });
       toast.success('Task added');
       resetAddForm();
@@ -255,6 +381,8 @@ export default function Tasks() {
     setNewTaskPriority('');
     setNewRecurrencePattern('none');
     setNewRecurrenceDays([]);
+    setSelectedSopId('');
+    setNewChecklistProgress([]);
   };
 
   const handleUpdateTask = async () => {
@@ -351,93 +479,123 @@ export default function Tasks() {
     }
   };
 
-  const renderTaskCard = (task: Task) => (
-    <Card key={task.task_id} className={cn(
-      "transition-all hover:shadow-md cursor-pointer",
-      task.is_completed && "opacity-60"
-    )} onClick={() => openTaskDetail(task)}>
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          <div onClick={(e) => e.stopPropagation()}>
-            <Checkbox
-              checked={task.is_completed}
-              onCheckedChange={() => handleToggleComplete(task.task_id)}
-              className="mt-1"
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className={cn(
-              "font-medium",
-              task.is_completed && "line-through text-muted-foreground"
-            )}>
-              {task.task_text}
-            </p>
-            {task.task_description && (
-              <p className="text-sm text-muted-foreground line-clamp-1 mt-1">
-                {task.task_description}
+  // Get checklist completion stats
+  const getChecklistStats = (task: Task) => {
+    if (!task.sop?.checklist_items || task.sop.checklist_items.length === 0) {
+      return null;
+    }
+    const total = task.sop.checklist_items.length;
+    const completed = (task.checklist_progress || []).filter(p => p.completed).length;
+    return { total, completed };
+  };
+
+  const isChecklistItemCompleted = (task: Task, itemId: string) => {
+    return (task.checklist_progress || []).some(p => p.item_id === itemId && p.completed);
+  };
+
+  const renderTaskCard = (task: Task) => {
+    const checklistStats = getChecklistStats(task);
+    
+    return (
+      <Card key={task.task_id} className={cn(
+        "transition-all hover:shadow-md cursor-pointer",
+        task.is_completed && "opacity-60"
+      )} onClick={() => openTaskDetail(task)}>
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <div onClick={(e) => e.stopPropagation()}>
+              <Checkbox
+                checked={task.is_completed}
+                onCheckedChange={() => handleToggleComplete(task.task_id)}
+                className="mt-1"
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={cn(
+                "font-medium",
+                task.is_completed && "line-through text-muted-foreground"
+              )}>
+                {task.task_text}
               </p>
-            )}
-            <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-muted-foreground">
-              {task.parent_task_id && (
-                <Badge variant="outline" className="text-xs">
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  Recurring
-                </Badge>
+              {task.task_description && (
+                <p className="text-sm text-muted-foreground line-clamp-1 mt-1">
+                  {task.task_description}
+                </p>
               )}
-              {task.source && task.source !== 'recurring' && (
-                <span className="flex items-center gap-1">
-                  <ListTodo className="h-3 w-3" />
-                  {task.source}
-                </span>
-              )}
-              {task.scheduled_date && (
-                <span className="flex items-center gap-1">
-                  <CalendarIcon className="h-3 w-3" />
-                  {format(parseISO(task.scheduled_date), 'MMM d')}
-                </span>
-              )}
-              {task.priority && (
-                <Badge variant="outline" className={cn("text-xs", getPriorityColor(task.priority))}>
-                  {task.priority}
-                </Badge>
-              )}
+              <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-muted-foreground">
+                {task.sop && (
+                  <Badge variant="outline" className="text-xs bg-primary/10 border-primary/30 text-primary">
+                    <ClipboardList className="h-3 w-3 mr-1" />
+                    {task.sop.sop_name}
+                  </Badge>
+                )}
+                {checklistStats && (
+                  <Badge variant="secondary" className="text-xs">
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    {checklistStats.completed}/{checklistStats.total}
+                  </Badge>
+                )}
+                {task.parent_task_id && (
+                  <Badge variant="outline" className="text-xs">
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Recurring
+                  </Badge>
+                )}
+                {task.source && task.source !== 'recurring' && (
+                  <span className="flex items-center gap-1">
+                    <ListTodo className="h-3 w-3" />
+                    {task.source}
+                  </span>
+                )}
+                {task.scheduled_date && (
+                  <span className="flex items-center gap-1">
+                    <CalendarIcon className="h-3 w-3" />
+                    {format(parseISO(task.scheduled_date), 'MMM d')}
+                  </span>
+                )}
+                {task.priority && (
+                  <Badge variant="outline" className={cn("text-xs", getPriorityColor(task.priority))}>
+                    {task.priority}
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <CalendarIcon className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <div className="p-2 border-b space-y-1">
+                    <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleQuickReschedule(task.task_id, new Date())}>
+                      Today
+                    </Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleQuickReschedule(task.task_id, addDays(new Date(), 1))}>
+                      Tomorrow
+                    </Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleQuickReschedule(task.task_id, addDays(new Date(), 7))}>
+                      Next Week
+                    </Button>
+                  </div>
+                  <Calendar
+                    mode="single"
+                    selected={task.scheduled_date ? parseISO(task.scheduled_date) : undefined}
+                    onSelect={(date) => handleQuickReschedule(task.task_id, date || null)}
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => initiateDelete(task)}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
             </div>
           </div>
-          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <CalendarIcon className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <div className="p-2 border-b space-y-1">
-                  <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleQuickReschedule(task.task_id, new Date())}>
-                    Today
-                  </Button>
-                  <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleQuickReschedule(task.task_id, addDays(new Date(), 1))}>
-                    Tomorrow
-                  </Button>
-                  <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleQuickReschedule(task.task_id, addDays(new Date(), 7))}>
-                    Next Week
-                  </Button>
-                </div>
-                <Calendar
-                  mode="single"
-                  selected={task.scheduled_date ? parseISO(task.scheduled_date) : undefined}
-                  onSelect={(date) => handleQuickReschedule(task.task_id, date || null)}
-                  className="pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => initiateDelete(task)}>
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+        </CardContent>
+      </Card>
+    );
+  };
 
   const renderTaskGroup = (title: string, tasks: Task[], showIfEmpty = false) => {
     if (tasks.length === 0 && !showIfEmpty) return null;
@@ -575,93 +733,123 @@ export default function Tasks() {
 
       {/* Add Task Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={(open) => { setIsAddDialogOpen(open); if (!open) resetAddForm(); }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Create New Task</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <Label htmlFor="task-text">Task</Label>
-              <Input
-                id="task-text"
-                placeholder="What do you need to do?"
-                value={newTaskText}
-                onChange={(e) => setNewTaskText(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleAddTask()}
-              />
-            </div>
-            <div>
-              <Label htmlFor="task-desc">Description (optional)</Label>
-              <Textarea
-                id="task-desc"
-                placeholder="Add more details..."
-                value={newTaskDescription}
-                onChange={(e) => setNewTaskDescription(e.target.value)}
-                className="min-h-[80px]"
-              />
-            </div>
-            <div className="flex gap-4">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="flex-1 justify-start">
-                    <CalendarIcon className="h-4 w-4 mr-2" />
-                    {newTaskDate ? format(newTaskDate, 'MMM d, yyyy') : 'Schedule for...'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={newTaskDate} onSelect={setNewTaskDate} className="pointer-events-auto" />
-                </PopoverContent>
-              </Popover>
-              <Select value={newTaskPriority} onValueChange={setNewTaskPriority}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <ScrollArea className="max-h-[60vh] pr-4">
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="task-text">Task</Label>
+                <Input
+                  id="task-text"
+                  placeholder="What do you need to do?"
+                  value={newTaskText}
+                  onChange={(e) => setNewTaskText(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleAddTask()}
+                />
+              </div>
 
-            {/* Recurrence Options */}
-            <div className="space-y-3">
-              <Label>Recurring</Label>
-              <RadioGroup value={newRecurrencePattern} onValueChange={(v) => setNewRecurrencePattern(v as RecurrencePattern)}>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="none" id="r-none" />
-                  <Label htmlFor="r-none" className="font-normal">None</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="daily" id="r-daily" />
-                  <Label htmlFor="r-daily" className="font-normal">Daily</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="weekly" id="r-weekly" />
-                  <Label htmlFor="r-weekly" className="font-normal">Weekly (select days)</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="monthly" id="r-monthly" />
-                  <Label htmlFor="r-monthly" className="font-normal">Monthly (1st of each month)</Label>
-                </div>
-              </RadioGroup>
+              {/* SOP Selector */}
+              <div>
+                <Label>Use SOP (optional)</Label>
+                <Select value={selectedSopId} onValueChange={handleSopSelect}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an SOP to load checklist..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {sops.map((sop: SOP) => (
+                      <SelectItem key={sop.sop_id} value={sop.sop_id}>
+                        <div className="flex items-center gap-2">
+                          <ClipboardList className="h-4 w-4" />
+                          {sop.sop_name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {sops.length === 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Create SOPs in the SOPs page to use here
+                  </p>
+                )}
+              </div>
 
-              {newRecurrencePattern === 'weekly' && (
-                <div className="flex flex-wrap gap-2 pl-6">
-                  {DAYS_OF_WEEK.map((day) => (
-                    <Badge
-                      key={day}
-                      variant={newRecurrenceDays.includes(day) ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => toggleRecurrenceDay(day, newRecurrenceDays, setNewRecurrenceDays)}
-                    >
-                      {day.slice(0, 3)}
-                    </Badge>
-                  ))}
-                </div>
-              )}
+              <div>
+                <Label htmlFor="task-desc">Description {selectedSopId && selectedSopId !== 'none' && <span className="text-muted-foreground">(auto-populated from SOP)</span>}</Label>
+                <Textarea
+                  id="task-desc"
+                  placeholder="Add more details..."
+                  value={newTaskDescription}
+                  onChange={(e) => setNewTaskDescription(e.target.value)}
+                  className="min-h-[120px] font-mono text-sm"
+                />
+              </div>
+
+              <div className="flex gap-4">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="flex-1 justify-start">
+                      <CalendarIcon className="h-4 w-4 mr-2" />
+                      {newTaskDate ? format(newTaskDate, 'MMM d, yyyy') : 'Schedule for...'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={newTaskDate} onSelect={setNewTaskDate} className="pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+                <Select value={newTaskPriority} onValueChange={setNewTaskPriority}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Recurrence Options */}
+              <div className="space-y-3">
+                <Label>Recurring</Label>
+                <RadioGroup value={newRecurrencePattern} onValueChange={(v) => setNewRecurrencePattern(v as RecurrencePattern)}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="none" id="r-none" />
+                    <Label htmlFor="r-none" className="font-normal">None</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="daily" id="r-daily" />
+                    <Label htmlFor="r-daily" className="font-normal">Daily</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="weekly" id="r-weekly" />
+                    <Label htmlFor="r-weekly" className="font-normal">Weekly (select days)</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="monthly" id="r-monthly" />
+                    <Label htmlFor="r-monthly" className="font-normal">Monthly (1st of each month)</Label>
+                  </div>
+                </RadioGroup>
+
+                {newRecurrencePattern === 'weekly' && (
+                  <div className="flex flex-wrap gap-2 pl-6">
+                    {DAYS_OF_WEEK.map((day) => (
+                      <Badge
+                        key={day}
+                        variant={newRecurrenceDays.includes(day) ? "default" : "outline"}
+                        className="cursor-pointer"
+                        onClick={() => toggleRecurrenceDay(day, newRecurrenceDays, setNewRecurrenceDays)}
+                      >
+                        {day.slice(0, 3)}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          </ScrollArea>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleAddTask} disabled={manageMutation.isPending}>
@@ -673,125 +861,214 @@ export default function Tasks() {
 
       {/* Task Detail Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Task Details</DialogTitle>
           </DialogHeader>
           {selectedTask && (
-            <div className="space-y-4 py-4">
-              <div className="flex items-start gap-3">
-                <Checkbox
-                  checked={selectedTask.is_completed}
-                  onCheckedChange={(checked) => setSelectedTask({ ...selectedTask, is_completed: !!checked })}
-                  className="mt-1"
-                />
-                <div className="flex-1">
-                  <Input
-                    value={selectedTask.task_text}
-                    onChange={(e) => setSelectedTask({ ...selectedTask, task_text: e.target.value })}
-                    className="text-lg font-medium"
+            <ScrollArea className="max-h-[60vh] pr-4">
+              <div className="space-y-4 py-4">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    checked={selectedTask.is_completed}
+                    onCheckedChange={(checked) => setSelectedTask({ ...selectedTask, is_completed: !!checked })}
+                    className="mt-1"
+                  />
+                  <div className="flex-1">
+                    <Input
+                      value={selectedTask.task_text}
+                      onChange={(e) => setSelectedTask({ ...selectedTask, task_text: e.target.value })}
+                      className="text-lg font-medium"
+                    />
+                  </div>
+                </div>
+
+                {/* SOP Info */}
+                {selectedTask.sop && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <ClipboardList className="h-5 w-5 text-primary" />
+                        <span className="font-medium text-primary">Using SOP: {selectedTask.sop.sop_name}</span>
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={() => handleDetachSop(selectedTask.task_id)}>
+                        <Unlink className="h-4 w-4 mr-1" />
+                        Detach
+                      </Button>
+                    </div>
+
+                    {/* Interactive Checklist */}
+                    {selectedTask.sop.checklist_items && selectedTask.sop.checklist_items.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm font-medium text-muted-foreground">CHECKLIST</span>
+                          {(() => {
+                            const stats = getChecklistStats(selectedTask);
+                            return stats ? (
+                              <Badge variant="secondary" className="text-xs">
+                                {stats.completed} of {stats.total} completed
+                              </Badge>
+                            ) : null;
+                          })()}
+                        </div>
+                        <div className="space-y-2">
+                          {[...selectedTask.sop.checklist_items]
+                            .sort((a, b) => a.order - b.order)
+                            .map((item) => {
+                              const isCompleted = isChecklistItemCompleted(selectedTask, item.id);
+                              return (
+                                <div 
+                                  key={item.id} 
+                                  className={cn(
+                                    "flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 cursor-pointer transition-colors",
+                                    isCompleted && "bg-muted/30"
+                                  )}
+                                  onClick={() => handleToggleChecklistItem(selectedTask.task_id, item.id)}
+                                >
+                                  <Checkbox checked={isCompleted} className="pointer-events-none" />
+                                  <span className={cn(isCompleted && "line-through text-muted-foreground")}>
+                                    {item.text}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Useful Links */}
+                    {selectedTask.sop.links && selectedTask.sop.links.length > 0 && (
+                      <div>
+                        <span className="text-sm font-medium text-muted-foreground">USEFUL LINKS</span>
+                        <div className="space-y-1 mt-2">
+                          {selectedTask.sop.links.map((link) => (
+                            <a
+                              key={link.id}
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 p-2 rounded-md hover:bg-muted/50 text-primary transition-colors"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                              {link.title}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Notes */}
+                    {selectedTask.sop.notes && (
+                      <div>
+                        <span className="text-sm font-medium text-muted-foreground">NOTES</span>
+                        <p className="mt-1 text-sm whitespace-pre-wrap bg-muted/30 p-2 rounded-md">
+                          {selectedTask.sop.notes}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div>
+                  <Label>Description</Label>
+                  <Textarea
+                    value={selectedTask.task_description || ''}
+                    onChange={(e) => setSelectedTask({ ...selectedTask, task_description: e.target.value })}
+                    placeholder="Add more details..."
+                    className="min-h-[100px] mt-1"
                   />
                 </div>
-              </div>
 
-              <div>
-                <Label>Description</Label>
-                <Textarea
-                  value={selectedTask.task_description || ''}
-                  onChange={(e) => setSelectedTask({ ...selectedTask, task_description: e.target.value })}
-                  placeholder="Add more details..."
-                  className="min-h-[100px] mt-1"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Scheduled For</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start mt-1">
-                        <CalendarIcon className="h-4 w-4 mr-2" />
-                        {selectedTask.scheduled_date ? format(parseISO(selectedTask.scheduled_date), 'MMM d, yyyy') : 'Not scheduled'}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={selectedTask.scheduled_date ? parseISO(selectedTask.scheduled_date) : undefined}
-                        onSelect={(date) => setSelectedTask({ ...selectedTask, scheduled_date: date ? format(date, 'yyyy-MM-dd') : null })}
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Scheduled For</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-start mt-1">
+                          <CalendarIcon className="h-4 w-4 mr-2" />
+                          {selectedTask.scheduled_date ? format(parseISO(selectedTask.scheduled_date), 'MMM d, yyyy') : 'Not scheduled'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={selectedTask.scheduled_date ? parseISO(selectedTask.scheduled_date) : undefined}
+                          onSelect={(date) => setSelectedTask({ ...selectedTask, scheduled_date: date ? format(date, 'yyyy-MM-dd') : null })}
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div>
+                    <Label>Priority</Label>
+                    <Select value={selectedTask.priority || ''} onValueChange={(v) => setSelectedTask({ ...selectedTask, priority: v || null })}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="None" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="low">Low</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div>
-                  <Label>Priority</Label>
-                  <Select value={selectedTask.priority || ''} onValueChange={(v) => setSelectedTask({ ...selectedTask, priority: v || null })}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="low">Low</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
 
-              {/* Recurrence Options for parent tasks */}
-              {selectedTask.is_recurring_parent && (
-                <div className="space-y-3">
-                  <Label>Recurring</Label>
-                  <RadioGroup 
-                    value={selectedTask.recurrence_pattern || 'none'} 
-                    onValueChange={(v) => setSelectedTask({ ...selectedTask, recurrence_pattern: v as RecurrencePattern })}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="daily" id="d-daily" />
-                      <Label htmlFor="d-daily" className="font-normal">Daily</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="weekly" id="d-weekly" />
-                      <Label htmlFor="d-weekly" className="font-normal">Weekly</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="monthly" id="d-monthly" />
-                      <Label htmlFor="d-monthly" className="font-normal">Monthly</Label>
-                    </div>
-                  </RadioGroup>
+                {/* Recurrence Options for parent tasks */}
+                {selectedTask.is_recurring_parent && (
+                  <div className="space-y-3">
+                    <Label>Recurring</Label>
+                    <RadioGroup 
+                      value={selectedTask.recurrence_pattern || 'none'} 
+                      onValueChange={(v) => setSelectedTask({ ...selectedTask, recurrence_pattern: v as RecurrencePattern })}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="daily" id="d-daily" />
+                        <Label htmlFor="d-daily" className="font-normal">Daily</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="weekly" id="d-weekly" />
+                        <Label htmlFor="d-weekly" className="font-normal">Weekly</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="monthly" id="d-monthly" />
+                        <Label htmlFor="d-monthly" className="font-normal">Monthly</Label>
+                      </div>
+                    </RadioGroup>
 
-                  {selectedTask.recurrence_pattern === 'weekly' && (
-                    <div className="flex flex-wrap gap-2 pl-6">
-                      {DAYS_OF_WEEK.map((day) => (
-                        <Badge
-                          key={day}
-                          variant={(selectedTask.recurrence_days || []).includes(day) ? "default" : "outline"}
-                          className="cursor-pointer"
-                          onClick={() => setSelectedTask({ 
-                            ...selectedTask, 
-                            recurrence_days: (selectedTask.recurrence_days || []).includes(day) 
-                              ? (selectedTask.recurrence_days || []).filter(d => d !== day)
-                              : [...(selectedTask.recurrence_days || []), day]
-                          })}
-                        >
-                          {day.slice(0, 3)}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Metadata */}
-              <div className="flex flex-wrap gap-4 text-xs text-muted-foreground pt-2 border-t">
-                {selectedTask.created_at && (
-                  <span>Created: {format(parseISO(selectedTask.created_at), 'MMM d, yyyy h:mm a')}</span>
+                    {selectedTask.recurrence_pattern === 'weekly' && (
+                      <div className="flex flex-wrap gap-2 pl-6">
+                        {DAYS_OF_WEEK.map((day) => (
+                          <Badge
+                            key={day}
+                            variant={(selectedTask.recurrence_days || []).includes(day) ? "default" : "outline"}
+                            className="cursor-pointer"
+                            onClick={() => setSelectedTask({ 
+                              ...selectedTask, 
+                              recurrence_days: (selectedTask.recurrence_days || []).includes(day) 
+                                ? (selectedTask.recurrence_days || []).filter(d => d !== day)
+                                : [...(selectedTask.recurrence_days || []), day]
+                            })}
+                          >
+                            {day.slice(0, 3)}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
-                {selectedTask.source && <span>Source: {selectedTask.source}</span>}
-                {selectedTask.parent_task_id && <span className="flex items-center gap-1"><RefreshCw className="h-3 w-3" /> Recurring instance</span>}
+
+                {/* Metadata */}
+                <div className="flex flex-wrap gap-4 text-xs text-muted-foreground pt-2 border-t">
+                  {selectedTask.created_at && (
+                    <span>Created: {format(parseISO(selectedTask.created_at), 'MMM d, yyyy h:mm a')}</span>
+                  )}
+                  {selectedTask.source && <span>Source: {selectedTask.source}</span>}
+                  {selectedTask.parent_task_id && <span className="flex items-center gap-1"><RefreshCw className="h-3 w-3" /> Recurring instance</span>}
+                </div>
               </div>
-            </div>
+            </ScrollArea>
           )}
           <DialogFooter className="gap-2">
             <Button variant="destructive" onClick={() => selectedTask && initiateDelete(selectedTask)}>
