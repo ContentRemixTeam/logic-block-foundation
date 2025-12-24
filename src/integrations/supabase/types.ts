@@ -567,6 +567,39 @@ export type Database = {
         }
         Relationships: []
       }
+      journal_pages: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          id: string
+          is_archived: boolean | null
+          tags: Json | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          is_archived?: boolean | null
+          tags?: Json | null
+          title?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          is_archived?: boolean | null
+          tags?: Json | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       mindset_categories: {
         Row: {
           color: string
