@@ -668,8 +668,48 @@ export type Database = {
         }
         Relationships: []
       }
+      sops: {
+        Row: {
+          checklist_items: Json | null
+          created_at: string | null
+          description: string | null
+          links: Json | null
+          notes: string | null
+          sop_id: string
+          sop_name: string
+          times_used: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          checklist_items?: Json | null
+          created_at?: string | null
+          description?: string | null
+          links?: Json | null
+          notes?: string | null
+          sop_id?: string
+          sop_name: string
+          times_used?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          checklist_items?: Json | null
+          created_at?: string | null
+          description?: string | null
+          links?: Json | null
+          notes?: string | null
+          sop_id?: string
+          sop_name?: string
+          times_used?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
+          checklist_progress: Json | null
           completed_at: string | null
           created_at: string | null
           daily_plan_id: string | null
@@ -680,6 +720,7 @@ export type Database = {
           recurrence_days: Json | null
           recurrence_pattern: string | null
           scheduled_date: string | null
+          sop_id: string | null
           source: string | null
           tags: Json | null
           task_description: string | null
@@ -688,6 +729,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          checklist_progress?: Json | null
           completed_at?: string | null
           created_at?: string | null
           daily_plan_id?: string | null
@@ -698,6 +740,7 @@ export type Database = {
           recurrence_days?: Json | null
           recurrence_pattern?: string | null
           scheduled_date?: string | null
+          sop_id?: string | null
           source?: string | null
           tags?: Json | null
           task_description?: string | null
@@ -706,6 +749,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          checklist_progress?: Json | null
           completed_at?: string | null
           created_at?: string | null
           daily_plan_id?: string | null
@@ -716,6 +760,7 @@ export type Database = {
           recurrence_days?: Json | null
           recurrence_pattern?: string | null
           scheduled_date?: string | null
+          sop_id?: string | null
           source?: string | null
           tags?: Json | null
           task_description?: string | null
@@ -737,6 +782,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tasks"
             referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "tasks_sop_id_fkey"
+            columns: ["sop_id"]
+            isOneToOne: false
+            referencedRelation: "sops"
+            referencedColumns: ["sop_id"]
           },
         ]
       }

@@ -24,6 +24,7 @@ import Settings from "./pages/Settings";
 import Progress from "./pages/Progress";
 import Tasks from "./pages/Tasks";
 import Journal from "./pages/Journal";
+import SOPs from "./pages/SOPs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="/daily-plan" element={<ProtectedRoute><DailyPlan /></ProtectedRoute>} />
             <Route path="/journal" element={<ProtectedRoute><Journal /></ProtectedRoute>} />
             <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+            <Route path="/sops" element={<ProtectedRoute><SOPs /></ProtectedRoute>} />
             <Route path="/habits" element={<ProtectedRoute><Habits /></ProtectedRoute>} />
               <Route path="/ideas" element={<ProtectedRoute><Ideas /></ProtectedRoute>} />
           <Route path="/useful-thoughts" element={<ProtectedRoute><UsefulThoughts /></ProtectedRoute>} />

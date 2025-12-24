@@ -17,6 +17,7 @@ import {
   ChevronRight,
   ListTodo,
   BookOpen,
+  ClipboardList,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -40,6 +41,7 @@ const mainNavigation = [
   { name: 'Daily Plan', href: '/daily-plan', icon: CalendarDays },
   { name: 'Journal', href: '/journal', icon: BookOpen },
   { name: 'Tasks', href: '/tasks', icon: ListTodo },
+  { name: 'SOPs', href: '/sops', icon: ClipboardList },
   { name: 'Weekly Plan', href: '/weekly-plan', icon: Calendar },
   { name: 'Weekly Review', href: '/weekly-review', icon: FileText },
   { name: 'Monthly Review', href: '/monthly-review', icon: BarChart3 },
