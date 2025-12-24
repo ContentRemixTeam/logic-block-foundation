@@ -366,12 +366,12 @@ export default function Ideas() {
             </div>
             <div>
               <Label htmlFor="editCategory">Category</Label>
-              <Select value={editCategoryId} onValueChange={setEditCategoryId}>
+              <Select value={editCategoryId || "uncategorized"} onValueChange={(val) => setEditCategoryId(val === "uncategorized" ? "" : val)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No category</SelectItem>
+                  <SelectItem value="uncategorized">No category</SelectItem>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       <div className="flex items-center gap-2">
