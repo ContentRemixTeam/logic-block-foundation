@@ -53,21 +53,37 @@ Deno.serve(async (req) => {
     );
 
     const body = await req.json();
-    const { action, task_id, task_text, scheduled_date, priority, is_completed } = body;
+    const { 
+      action, 
+      task_id, 
+      task_text, 
+      task_description,
+      scheduled_date, 
+      priority, 
+      is_completed,
+      recurrence_pattern,
+      recurrence_days,
+      delete_type // 'single', 'future', 'all'
+    } = body;
 
     let result;
 
     switch (action) {
       case 'create':
+        const isRecurringParent = recurrence_pattern && recurrence_pattern !== 'none';
         result = await supabase
           .from('tasks')
           .insert({
             user_id: userId,
-            task_text,
+            task_text: (task_text || '').substring(0, 500),
+            task_description: task_description ? task_description.substring(0, 2000) : null,
             scheduled_date: scheduled_date || null,
             priority: priority || null,
             source: 'manual',
             is_completed: false,
+            recurrence_pattern: recurrence_pattern || null,
+            recurrence_days: recurrence_days || [],
+            is_recurring_parent: isRecurringParent,
           })
           .select()
           .single();
@@ -75,9 +91,15 @@ Deno.serve(async (req) => {
 
       case 'update':
         const updateData: Record<string, any> = {};
-        if (task_text !== undefined) updateData.task_text = task_text;
+        if (task_text !== undefined) updateData.task_text = task_text.substring(0, 500);
+        if (task_description !== undefined) updateData.task_description = task_description ? task_description.substring(0, 2000) : null;
         if (scheduled_date !== undefined) updateData.scheduled_date = scheduled_date;
         if (priority !== undefined) updateData.priority = priority;
+        if (recurrence_pattern !== undefined) {
+          updateData.recurrence_pattern = recurrence_pattern;
+          updateData.is_recurring_parent = recurrence_pattern && recurrence_pattern !== 'none';
+        }
+        if (recurrence_days !== undefined) updateData.recurrence_days = recurrence_days;
         if (is_completed !== undefined) {
           updateData.is_completed = is_completed;
           updateData.completed_at = is_completed ? new Date().toISOString() : null;
@@ -93,6 +115,33 @@ Deno.serve(async (req) => {
         break;
 
       case 'delete':
+        // Check if this is a recurring parent task
+        const { data: taskToDelete } = await supabase
+          .from('tasks')
+          .select('is_recurring_parent, parent_task_id')
+          .eq('task_id', task_id)
+          .eq('user_id', userId)
+          .single();
+
+        if (taskToDelete?.is_recurring_parent && delete_type === 'all') {
+          // Delete parent and all child instances
+          await supabase
+            .from('tasks')
+            .delete()
+            .eq('parent_task_id', task_id)
+            .eq('user_id', userId);
+        }
+
+        if (delete_type === 'future' && taskToDelete?.parent_task_id) {
+          // Stop recurring - delete parent
+          await supabase
+            .from('tasks')
+            .delete()
+            .eq('task_id', taskToDelete.parent_task_id)
+            .eq('user_id', userId);
+        }
+
+        // Delete the task itself
         result = await supabase
           .from('tasks')
           .delete()
