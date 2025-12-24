@@ -12,7 +12,7 @@ import { ErrorState } from '@/components/system/ErrorState';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Zap, Edit, Trash2, Plus } from 'lucide-react';
+import { Zap, Edit, Trash2, Plus, ArrowUpDown } from 'lucide-react';
 import { normalizeString } from '@/lib/normalize';
 
 interface Category {
@@ -38,6 +38,12 @@ export default function Ideas() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  
+  // Add idea modal
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [newContent, setNewContent] = useState('');
+  const [newCategoryId, setNewCategoryId] = useState<string>('');
   
   // Edit idea modal
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -105,6 +111,40 @@ export default function Ideas() {
     setEditContent(idea.content);
     setEditCategoryId(idea.category_id || '');
     setEditModalOpen(true);
+  };
+
+  const handleAddIdea = async () => {
+    if (!newContent.trim()) return;
+
+    setActionLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No session');
+
+      const { error } = await supabase.functions.invoke('save-idea', {
+        body: {
+          content: newContent.trim(),
+          category_id: newCategoryId || null,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({ title: 'Idea added! ⚡' });
+      setAddModalOpen(false);
+      setNewContent('');
+      setNewCategoryId('');
+      loadData();
+    } catch (error: any) {
+      console.error('Error adding idea:', error);
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleSaveEdit = async () => {
@@ -231,13 +271,22 @@ export default function Ideas() {
     }
   };
 
-  const filteredIdeas = selectedCategory === 'all'
+  const filteredIdeas = (selectedCategory === 'all'
     ? ideas
-    : ideas.filter((idea) => idea.category_id === selectedCategory);
+    : ideas.filter((idea) => idea.category_id === selectedCategory)
+  ).sort((a, b) => {
+    const dateA = new Date(a.created_at).getTime();
+    const dateB = new Date(b.created_at).getTime();
+    return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+  });
 
   const getCategoryById = (id: string | null) => {
     if (!id) return null;
     return categories.find((cat) => cat.id === id);
+  };
+
+  const toggleSortOrder = () => {
+    setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest');
   };
 
   if (loading) return <Layout><LoadingState message="Loading ideas..." /></Layout>;
@@ -256,33 +305,46 @@ export default function Ideas() {
               Capture and organize your thoughts
             </p>
           </div>
-          <Button onClick={() => setManageCategoriesOpen(true)} variant="outline">
-            Manage Categories
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setAddModalOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Idea
+            </Button>
+            <Button onClick={() => setManageCategoriesOpen(true)} variant="outline">
+              Manage Categories
+            </Button>
+          </div>
         </div>
 
-        {/* Filter Bar */}
-        <div className="flex items-center gap-4">
-          <Label htmlFor="categoryFilter">Filter by category:</Label>
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.filter(cat => cat.id).map((cat) => (
-                <SelectItem key={cat.id} value={cat.id}>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: cat.color }}
-                    />
-                    {cat.name}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Filter & Sort Bar */}
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="categoryFilter">Filter:</Label>
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.filter(cat => cat.id).map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: cat.color }}
+                      />
+                      {cat.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <Button variant="outline" size="sm" onClick={toggleSortOrder}>
+            <ArrowUpDown className="h-4 w-4 mr-2" />
+            {sortOrder === 'newest' ? 'Newest first' : 'Oldest first'}
+          </Button>
         </div>
 
         {/* Ideas Grid */}
@@ -292,7 +354,7 @@ export default function Ideas() {
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Zap className="h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">
-                  No ideas yet — capture something with the ⚡ button!
+                  No ideas yet — click "Add Idea" to get started!
                 </p>
               </CardContent>
             </Card>
@@ -354,6 +416,53 @@ export default function Ideas() {
           )}
         </div>
       </div>
+
+      {/* Add Idea Modal */}
+      <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Idea</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="newContent">Idea</Label>
+              <Textarea
+                id="newContent"
+                value={newContent}
+                onChange={(e) => setNewContent(e.target.value)}
+                rows={4}
+                placeholder="What's your idea?"
+                className="resize-none"
+              />
+            </div>
+            <div>
+              <Label htmlFor="newCategory">Category (optional)</Label>
+              <Select value={newCategoryId || "uncategorized"} onValueChange={(val) => setNewCategoryId(val === "uncategorized" ? "" : val)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="uncategorized">No category</SelectItem>
+                  {categories.filter(cat => cat.id).map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: cat.color }}
+                        />
+                        {cat.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={handleAddIdea} disabled={actionLoading || !newContent.trim()} className="w-full">
+              {actionLoading ? 'Adding...' : 'Add Idea'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Idea Modal */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
