@@ -53,9 +53,13 @@ Deno.serve(async (req) => {
       throw new Error('Daily plan not found or access denied');
     }
 
-    // Parse hashtags using regex
-    const tagRegex = /#(\w+)\s+([^#\n]+)/g;
+    // Parse hashtags using more flexible regex
+    // Matches #task, #idea, #thought, #offer, #win with optional content after
+    const tagRegex = /#(task|idea|thought|offer|win)\s*([^\n#]*)/gi;
     const matches = [...scratch_pad_content.matchAll(tagRegex)];
+
+    console.log('[process-scratch-pad-tags] Content to parse:', scratch_pad_content);
+    console.log('[process-scratch-pad-tags] Found matches:', matches.length);
 
     const processed = {
       tasks: 0,
@@ -68,11 +72,49 @@ Deno.serve(async (req) => {
     const errors: string[] = [];
     let currentWins = Array.isArray(dailyPlan.daily_wins) ? dailyPlan.daily_wins : [];
 
+    // Check if no valid tags found
+    if (matches.length === 0) {
+      // Check if they used hashtags at all
+      if (!scratch_pad_content.includes('#')) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'No hashtags found. Start tags with # like: #task Email my list',
+            processed,
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Check if they used wrong/unsupported tags
+      const wrongTags = scratch_pad_content.match(/#\w+/g);
+      if (wrongTags && wrongTags.length > 0) {
+        const supportedTags = ['#task', '#idea', '#thought', '#offer', '#win'];
+        const invalidTags = wrongTags.filter((tag: string) => !supportedTags.includes(tag.toLowerCase()));
+        if (invalidTags.length > 0) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: `Found ${invalidTags.join(', ')} but only #task, #idea, #thought, #offer, #win are supported`,
+              processed,
+            }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+    }
+
     for (const match of matches) {
       const tagType = match[1].toLowerCase();
-      const content = match[2].trim();
+      const content = match[2]?.trim() || '';
 
-      if (!content) continue;
+      console.log('[process-scratch-pad-tags] Processing tag:', tagType, 'content:', content);
+
+      // Skip tags with no content (except #offer which doesn't need content)
+      if (!content && tagType !== 'offer') {
+        console.log('[process-scratch-pad-tags] Skipping empty tag:', tagType);
+        continue;
+      }
 
       try {
         switch (tagType) {
