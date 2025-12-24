@@ -53,13 +53,8 @@ Deno.serve(async (req) => {
       throw new Error('Daily plan not found or access denied');
     }
 
-    // Parse hashtags using more flexible regex
-    // Matches #task, #idea, #thought, #offer, #win with optional content after
-    const tagRegex = /#(task|idea|thought|offer|win)\s*([^\n#]*)/gi;
-    const matches = [...scratch_pad_content.matchAll(tagRegex)];
-
+    // Parse tags using line-by-line approach to handle tags ANYWHERE in the line
     console.log('[process-scratch-pad-tags] Content to parse:', scratch_pad_content);
-    console.log('[process-scratch-pad-tags] Found matches:', matches.length);
 
     const processed = {
       tasks: 0,
@@ -72,14 +67,72 @@ Deno.serve(async (req) => {
     const errors: string[] = [];
     let currentWins = Array.isArray(dailyPlan.daily_wins) ? dailyPlan.daily_wins : [];
 
+    // Collect items to process
+    const itemsToProcess: Array<{ type: string; content: string }> = [];
+
+    // Split content into lines and process each
+    const lines = scratch_pad_content.split('\n');
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (!trimmedLine) continue;
+
+      // Check for each tag type in the line
+      const hasTask = /#task\b/i.test(trimmedLine);
+      const hasIdea = /#idea\b/i.test(trimmedLine);
+      const hasThought = /#thought\b/i.test(trimmedLine);
+      const hasOffer = /#offer\b/i.test(trimmedLine);
+      const hasWin = /#win\b/i.test(trimmedLine);
+
+      if (hasTask) {
+        // Remove the #task tag and use the rest as content
+        const content = trimmedLine.replace(/#task\b/gi, '').trim();
+        if (content) {
+          itemsToProcess.push({ type: 'task', content });
+          console.log('[process-scratch-pad-tags] Found task:', content);
+        }
+      }
+
+      if (hasIdea) {
+        const content = trimmedLine.replace(/#idea\b/gi, '').trim();
+        if (content) {
+          itemsToProcess.push({ type: 'idea', content });
+          console.log('[process-scratch-pad-tags] Found idea:', content);
+        }
+      }
+
+      if (hasThought) {
+        const content = trimmedLine.replace(/#thought\b/gi, '').trim();
+        if (content) {
+          itemsToProcess.push({ type: 'thought', content });
+          console.log('[process-scratch-pad-tags] Found thought:', content);
+        }
+      }
+
+      if (hasOffer) {
+        itemsToProcess.push({ type: 'offer', content: '' });
+        console.log('[process-scratch-pad-tags] Found offer');
+      }
+
+      if (hasWin) {
+        const content = trimmedLine.replace(/#win\b/gi, '').trim();
+        if (content) {
+          itemsToProcess.push({ type: 'win', content });
+          console.log('[process-scratch-pad-tags] Found win:', content);
+        }
+      }
+    }
+
+    console.log('[process-scratch-pad-tags] Items to process:', itemsToProcess.length);
+
     // Check if no valid tags found
-    if (matches.length === 0) {
+    if (itemsToProcess.length === 0) {
       // Check if they used hashtags at all
       if (!scratch_pad_content.includes('#')) {
         return new Response(
           JSON.stringify({
             success: false,
-            error: 'No hashtags found. Start tags with # like: #task Email my list',
+            error: 'No hashtags found. Use #task, #idea, #thought, #offer, or #win anywhere in your text',
             processed,
           }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -87,10 +140,10 @@ Deno.serve(async (req) => {
       }
       
       // Check if they used wrong/unsupported tags
-      const wrongTags = scratch_pad_content.match(/#\w+/g);
-      if (wrongTags && wrongTags.length > 0) {
+      const allTags = scratch_pad_content.match(/#\w+/g);
+      if (allTags && allTags.length > 0) {
         const supportedTags = ['#task', '#idea', '#thought', '#offer', '#win'];
-        const invalidTags = wrongTags.filter((tag: string) => !supportedTags.includes(tag.toLowerCase()));
+        const invalidTags = allTags.filter((tag: string) => !supportedTags.includes(tag.toLowerCase()));
         if (invalidTags.length > 0) {
           return new Response(
             JSON.stringify({
@@ -102,19 +155,20 @@ Deno.serve(async (req) => {
           );
         }
       }
+
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Tags found but no content. Add text before or after the tag like: "Email my list #task"',
+          processed,
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    for (const match of matches) {
-      const tagType = match[1].toLowerCase();
-      const content = match[2]?.trim() || '';
-
-      console.log('[process-scratch-pad-tags] Processing tag:', tagType, 'content:', content);
-
-      // Skip tags with no content (except #offer which doesn't need content)
-      if (!content && tagType !== 'offer') {
-        console.log('[process-scratch-pad-tags] Skipping empty tag:', tagType);
-        continue;
-      }
+    // Process each item
+    for (const item of itemsToProcess) {
+      const { type: tagType, content } = item;
 
       try {
         switch (tagType) {
