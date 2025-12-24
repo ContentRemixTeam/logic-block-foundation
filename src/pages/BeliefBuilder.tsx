@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -183,7 +184,8 @@ export default function BeliefBuilder() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
+    <Layout>
+      <div className="max-w-6xl mx-auto space-y-8">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-2">
           <Zap className="w-6 h-6 text-primary" />
@@ -362,6 +364,7 @@ export default function BeliefBuilder() {
           ))}
         </div>
       )}
-    </div>
+      </div>
+    </Layout>
   );
 }
