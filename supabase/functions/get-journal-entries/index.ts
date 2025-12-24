@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
 
     let query = supabase
       .from('daily_plans')
-      .select('day_id, date, scratch_pad_content, scratch_pad_processed_at, thought, feeling, top_3_today, created_at, updated_at')
+      .select('day_id, date, scratch_pad_content, scratch_pad_title, scratch_pad_processed_at, thought, feeling, top_3_today, created_at, updated_at')
       .eq('user_id', userId)
       .not('scratch_pad_content', 'is', null)
       .neq('scratch_pad_content', '')
@@ -76,9 +76,9 @@ Deno.serve(async (req) => {
       query = query.eq('date', date);
     }
 
-    // If search term provided
+    // If search term provided - search in both content and title
     if (search) {
-      query = query.ilike('scratch_pad_content', `%${search}%`);
+      query = query.or(`scratch_pad_content.ilike.%${search}%,scratch_pad_title.ilike.%${search}%`);
     }
 
     // Apply pagination

@@ -223,6 +223,7 @@ export type Database = {
           made_offer: boolean | null
           scratch_pad_content: string | null
           scratch_pad_processed_at: string | null
+          scratch_pad_title: string | null
           selected_weekly_priorities: Json | null
           thought: string | null
           top_3_today: Json | null
@@ -242,6 +243,7 @@ export type Database = {
           made_offer?: boolean | null
           scratch_pad_content?: string | null
           scratch_pad_processed_at?: string | null
+          scratch_pad_title?: string | null
           selected_weekly_priorities?: Json | null
           thought?: string | null
           top_3_today?: Json | null
@@ -261,6 +263,7 @@ export type Database = {
           made_offer?: boolean | null
           scratch_pad_content?: string | null
           scratch_pad_processed_at?: string | null
+          scratch_pad_title?: string | null
           selected_weekly_priorities?: Json | null
           thought?: string | null
           top_3_today?: Json | null
