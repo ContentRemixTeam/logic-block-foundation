@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { normalizeArray, normalizeString, normalizeObject } from '@/lib/normalize';
 import { UsefulThoughtsModal } from '@/components/UsefulThoughtsModal';
 import BeliefSelectorModal from '@/components/BeliefSelectorModal';
-import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2 } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -535,6 +535,17 @@ export default function DailyPlan() {
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  asChild
+                >
+                  <Link to="/journal">
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    Past Entries
+                  </Link>
+                </Button>
               </div>
             </CardContent>
           </Card>
