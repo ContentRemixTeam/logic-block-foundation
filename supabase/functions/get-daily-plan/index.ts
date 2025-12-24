@@ -171,6 +171,7 @@ Deno.serve(async (req) => {
           deep_mode_notes: plan.deep_mode_notes || {},
           weekly_priorities: currentWeek?.top_3_priorities || [],
           focus_area: focusArea,
+          scratch_pad_content: plan.scratch_pad_content || '',
         },
       }),
       {
