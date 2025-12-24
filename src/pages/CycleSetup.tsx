@@ -10,7 +10,7 @@ import { Layout } from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, X, Target, BarChart3 } from 'lucide-react';
+import { Plus, X, Target, BarChart3, Brain } from 'lucide-react';
 
 export default function CycleSetup() {
   const { user } = useAuth();
@@ -26,6 +26,9 @@ export default function CycleSetup() {
   const [habits, setHabits] = useState<Array<{ name: string; category: string }>>([
     { name: '', category: '' },
   ]);
+  
+  // Things to keep in mind
+  const [thingsToRemember, setThingsToRemember] = useState<string[]>(['', '', '']);
 
   // Business Diagnostic scores
   const [discoverScore, setDiscoverScore] = useState(5);
@@ -78,6 +81,12 @@ export default function CycleSetup() {
     setHabits(habits.filter((_, i) => i !== idx));
   };
 
+  const updateReminder = (idx: number, value: string) => {
+    const updated = [...thingsToRemember];
+    updated[idx] = value;
+    setThingsToRemember(updated);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -110,6 +119,7 @@ export default function CycleSetup() {
           metric_2_start: metric2Start === '' ? null : metric2Start,
           metric_3_name: metric3Name || null,
           metric_3_start: metric3Start === '' ? null : metric3Start,
+          things_to_remember: thingsToRemember.filter((t) => t.trim()),
         })
         .select()
         .maybeSingle();
@@ -477,6 +487,36 @@ export default function CycleSetup() {
                 <Plus className="mr-2 h-4 w-4" />
                 Add Habit
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* Things to Keep in Mind */}
+          <Card className="border-primary/20">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-primary" />
+                <CardTitle>Things to Keep in Mind</CardTitle>
+              </div>
+              <CardDescription>
+                Write 3 reminders you want to see when you log in - we'll rotate through them daily
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {thingsToRemember.map((reminder, idx) => (
+                <div key={idx} className="space-y-1">
+                  <Label className="text-sm text-muted-foreground">Reminder {idx + 1}</Label>
+                  <Input
+                    value={reminder}
+                    onChange={(e) => updateReminder(idx, e.target.value)}
+                    placeholder={
+                      idx === 0 ? "e.g., Progress over perfection" :
+                      idx === 1 ? "e.g., One thing at a time" :
+                      "e.g., Trust the process"
+                    }
+                    maxLength={200}
+                  />
+                </div>
+              ))}
             </CardContent>
           </Card>
 

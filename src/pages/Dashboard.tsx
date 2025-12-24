@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Layout } from '@/components/Layout';
 import { LoadingState } from '@/components/system/LoadingState';
 import { ErrorState } from '@/components/system/ErrorState';
+import { ReminderPopup } from '@/components/ReminderPopup';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { normalizeArray, normalizeString, normalizeNumber } from '@/lib/normalize';
@@ -17,6 +18,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [ideasCount, setIdeasCount] = useState(0);
+  const [thingsToRemember, setThingsToRemember] = useState<string[]>([]);
 
   useEffect(() => {
     loadDashboardSummary();
@@ -46,8 +48,17 @@ export default function Dashboard() {
       }
       
       console.log('Dashboard data received:', dashboardData.data);
-      setSummary(dashboardData.data?.data || null);
+      const summaryData = dashboardData.data?.data || null;
+      setSummary(summaryData);
       setIdeasCount(ideasData.data?.ideas?.length || 0);
+      
+      // Extract things to remember from the cycle
+      if (summaryData?.cycle?.things_to_remember) {
+        const reminders = Array.isArray(summaryData.cycle.things_to_remember) 
+          ? summaryData.cycle.things_to_remember.filter((r: string) => r && r.trim())
+          : [];
+        setThingsToRemember(reminders);
+      }
     } catch (error: any) {
       console.error('Error loading dashboard:', error);
       setError(error?.message || 'Failed to load dashboard');
@@ -100,6 +111,7 @@ export default function Dashboard() {
 
   return (
     <Layout>
+      <ReminderPopup reminders={thingsToRemember} onDismiss={() => {}} />
       <div className="space-y-8">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">

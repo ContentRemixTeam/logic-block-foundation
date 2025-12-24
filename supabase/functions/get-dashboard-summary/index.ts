@@ -123,14 +123,15 @@ Deno.serve(async (req) => {
     if (cycleData && cycleData.length > 0) {
       const currentCycle = cycleData[0];
 
-      // Fetch full cycle data including focus_area
+      // Fetch full cycle data including focus_area and things_to_remember
       const { data: fullCycleData } = await supabaseClient
         .from('cycles_90_day')
-        .select('focus_area')
+        .select('focus_area, things_to_remember')
         .eq('cycle_id', currentCycle.cycle_id)
         .single();
       
       focusArea = fullCycleData?.focus_area || null;
+      var thingsToRemember = fullCycleData?.things_to_remember || [];
       
       // Check weekly review
       const { data: weekData } = await supabaseClient.rpc('get_current_week', {
@@ -209,12 +210,13 @@ Deno.serve(async (req) => {
 
     console.log('Dashboard summary fetched successfully');
 
-    // Merge focus_area into cycle data
+    // Merge focus_area and things_to_remember into cycle data
     const enhancedData = {
       ...data,
       cycle: {
         ...(data?.cycle || {}),
         focus_area: focusArea,
+        things_to_remember: typeof thingsToRemember !== 'undefined' ? thingsToRemember : [],
       },
       weekly_review_status: weeklyReviewStatus,
       monthly_review_status: monthlyReviewStatus,
