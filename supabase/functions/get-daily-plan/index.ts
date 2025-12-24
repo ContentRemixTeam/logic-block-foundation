@@ -172,6 +172,7 @@ Deno.serve(async (req) => {
           weekly_priorities: currentWeek?.top_3_priorities || [],
           focus_area: focusArea,
           scratch_pad_content: plan.scratch_pad_content || '',
+          scratch_pad_title: plan.scratch_pad_title || '',
         },
       }),
       {

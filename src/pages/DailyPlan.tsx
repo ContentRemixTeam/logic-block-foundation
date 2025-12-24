@@ -52,6 +52,7 @@ export default function DailyPlan() {
   
   // Scratch pad
   const [scratchPadContent, setScratchPadContent] = useState('');
+  const [scratchPadTitle, setScratchPadTitle] = useState('');
   const [processingTags, setProcessingTags] = useState(false);
   const scratchPadRef = useRef<HTMLTextAreaElement>(null);
   
@@ -120,6 +121,7 @@ export default function DailyPlan() {
         setThought(plan.thought || '');
         setFeeling(plan.feeling || '');
         setScratchPadContent(plan.scratch_pad_content || '');
+        setScratchPadTitle(plan.scratch_pad_title || '');
 
         // Normalize deep mode notes
         const notes = plan.deep_mode_notes || {};
@@ -234,6 +236,7 @@ export default function DailyPlan() {
           feeling,
           deep_mode_notes: deepModeNotes,
           scratch_pad_content: scratchPadContent,
+          scratch_pad_title: scratchPadTitle,
         },
       });
 
@@ -268,7 +271,7 @@ export default function DailyPlan() {
     }, 2000);
     
     return () => clearTimeout(timer);
-  }, [top3, thought, feeling, selectedPriorities, deepModeNotes, scratchPadContent]);
+  }, [top3, thought, feeling, selectedPriorities, deepModeNotes, scratchPadContent, scratchPadTitle]);
 
   // Scratch pad auto-save (30 seconds)
   useEffect(() => {
@@ -295,13 +298,14 @@ export default function DailyPlan() {
           feeling,
           deep_mode_notes: deepModeNotes,
           scratch_pad_content: scratchPadContent,
+          scratch_pad_title: scratchPadTitle,
         },
       });
       setLastSaved(new Date());
     } catch (error) {
       console.error('Scratch pad auto-save failed:', error);
     }
-  }, [user, dayId, top3, thought, feeling, selectedPriorities, deepModeNotes, scratchPadContent]);
+  }, [user, dayId, top3, thought, feeling, selectedPriorities, deepModeNotes, scratchPadContent, scratchPadTitle]);
 
   const handleAutoSave = useCallback(async () => {
     if (!user || !dayId || saving) return;
@@ -317,6 +321,7 @@ export default function DailyPlan() {
           feeling,
           deep_mode_notes: deepModeNotes,
           scratch_pad_content: scratchPadContent,
+          scratch_pad_title: scratchPadTitle,
         },
       });
       setLastSaved(new Date());
@@ -324,7 +329,7 @@ export default function DailyPlan() {
       // Silent fail for auto-save
       console.error('Auto-save failed:', error);
     }
-  }, [user, dayId, top3, thought, feeling, selectedPriorities, deepModeNotes, scratchPadContent, saving]);
+  }, [user, dayId, top3, thought, feeling, selectedPriorities, deepModeNotes, scratchPadContent, scratchPadTitle, saving]);
 
   const handleProcessTags = async () => {
     if (!user || !dayId || !scratchPadContent.trim()) return;
@@ -471,15 +476,31 @@ export default function DailyPlan() {
           {/* Daily Scratch Pad */}
           <Card className="bg-gradient-to-br from-muted/30 to-muted/10 border-dashed">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                ☀️ Daily Scratch Pad
-              </CardTitle>
+              <div className="flex flex-col gap-1">
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  ☀️ Daily Scratch Pad
+                </CardTitle>
+                <p className="text-sm font-medium text-primary">{today}</p>
+              </div>
               <CardDescription>
                 Brain dump, capture ideas, work through thoughts
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="scratch-title" className="text-sm text-muted-foreground">
+                  Entry Title (optional)
+                </Label>
+                <Input
+                  id="scratch-title"
+                  value={scratchPadTitle}
+                  onChange={(e) => setScratchPadTitle(e.target.value)}
+                  placeholder="e.g., Planning Q1 Launch, Morning Thoughts, Weekly Wins"
+                  className="mt-1"
+                  maxLength={200}
+                />
+              </div>
               <Textarea
                 ref={scratchPadRef}
                 value={scratchPadContent}
