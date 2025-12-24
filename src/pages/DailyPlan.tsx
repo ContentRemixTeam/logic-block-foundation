@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,18 @@ import { useToast } from '@/hooks/use-toast';
 import { normalizeArray, normalizeString, normalizeObject } from '@/lib/normalize';
 import { UsefulThoughtsModal } from '@/components/UsefulThoughtsModal';
 import BeliefSelectorModal from '@/components/BeliefSelectorModal';
-import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function DailyPlan() {
   const { user } = useAuth();
@@ -38,6 +49,11 @@ export default function DailyPlan() {
     obstacles: '',
     show_up: '',
   });
+  
+  // Scratch pad
+  const [scratchPadContent, setScratchPadContent] = useState('');
+  const [processingTags, setProcessingTags] = useState(false);
+  const scratchPadRef = useRef<HTMLTextAreaElement>(null);
   
   // Weekly priorities
   const [weeklyPriorities, setWeeklyPriorities] = useState<string[]>([]);
@@ -103,6 +119,7 @@ export default function DailyPlan() {
 
         setThought(plan.thought || '');
         setFeeling(plan.feeling || '');
+        setScratchPadContent(plan.scratch_pad_content || '');
 
         // Normalize deep mode notes
         const notes = plan.deep_mode_notes || {};
@@ -216,6 +233,7 @@ export default function DailyPlan() {
           thought,
           feeling,
           deep_mode_notes: deepModeNotes,
+          scratch_pad_content: scratchPadContent,
         },
       });
 
@@ -250,7 +268,40 @@ export default function DailyPlan() {
     }, 2000);
     
     return () => clearTimeout(timer);
-  }, [top3, thought, feeling, selectedPriorities, deepModeNotes]);
+  }, [top3, thought, feeling, selectedPriorities, deepModeNotes, scratchPadContent]);
+
+  // Scratch pad auto-save (30 seconds)
+  useEffect(() => {
+    if (!user || !dayId || loading) return;
+    
+    const timer = setTimeout(() => {
+      handleScratchPadSave();
+    }, 30000);
+    
+    return () => clearTimeout(timer);
+  }, [scratchPadContent]);
+
+  const handleScratchPadSave = useCallback(async () => {
+    if (!user || !dayId) return;
+    
+    try {
+      await supabase.functions.invoke('save-daily-plan', {
+        body: {
+          day_id: dayId,
+          user_id: user.id,
+          top_3_today: top3.filter((t) => t.trim()),
+          selected_weekly_priorities: selectedPriorities,
+          thought,
+          feeling,
+          deep_mode_notes: deepModeNotes,
+          scratch_pad_content: scratchPadContent,
+        },
+      });
+      setLastSaved(new Date());
+    } catch (error) {
+      console.error('Scratch pad auto-save failed:', error);
+    }
+  }, [user, dayId, top3, thought, feeling, selectedPriorities, deepModeNotes, scratchPadContent]);
 
   const handleAutoSave = useCallback(async () => {
     if (!user || !dayId || saving) return;
@@ -265,6 +316,7 @@ export default function DailyPlan() {
           thought,
           feeling,
           deep_mode_notes: deepModeNotes,
+          scratch_pad_content: scratchPadContent,
         },
       });
       setLastSaved(new Date());
@@ -272,7 +324,62 @@ export default function DailyPlan() {
       // Silent fail for auto-save
       console.error('Auto-save failed:', error);
     }
-  }, [user, dayId, top3, thought, feeling, selectedPriorities, deepModeNotes, saving]);
+  }, [user, dayId, top3, thought, feeling, selectedPriorities, deepModeNotes, scratchPadContent, saving]);
+
+  const handleProcessTags = async () => {
+    if (!user || !dayId || !scratchPadContent.trim()) return;
+    
+    setProcessingTags(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('process-scratch-pad-tags', {
+        body: {
+          daily_plan_id: dayId,
+          scratch_pad_content: scratchPadContent,
+        },
+      });
+
+      if (error) throw error;
+
+      const processed = data?.processed || {};
+      const total = (processed.tasks || 0) + (processed.ideas || 0) + (processed.thoughts || 0) + (processed.offers || 0) + (processed.wins || 0);
+      
+      if (total > 0) {
+        const parts = [];
+        if (processed.tasks > 0) parts.push(`${processed.tasks} task${processed.tasks > 1 ? 's' : ''}`);
+        if (processed.ideas > 0) parts.push(`${processed.ideas} idea${processed.ideas > 1 ? 's' : ''}`);
+        if (processed.thoughts > 0) parts.push(`${processed.thoughts} thought${processed.thoughts > 1 ? 's' : ''}`);
+        if (processed.offers > 0) parts.push(`${processed.offers} offer${processed.offers > 1 ? 's' : ''}`);
+        if (processed.wins > 0) parts.push(`${processed.wins} win${processed.wins > 1 ? 's' : ''}`);
+        
+        toast({
+          title: "✨ Tags processed!",
+          description: `Saved ${parts.join(', ')}`,
+        });
+      } else {
+        toast({
+          title: "No tags found",
+          description: "Use #task, #idea, #thought, #offer, or #win to tag items",
+        });
+      }
+    } catch (error: any) {
+      console.error('Process tags error:', error);
+      toast({
+        title: "Error processing tags",
+        description: error?.message || "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingTags(false);
+    }
+  };
+
+  const handleClearPad = () => {
+    setScratchPadContent('');
+    toast({
+      title: "Scratch pad cleared",
+      description: "Your scratch pad has been cleared",
+    });
+  };
 
   if (loading) {
     return (
@@ -358,6 +465,77 @@ export default function DailyPlan() {
                   />
                 </div>
               ))}
+            </CardContent>
+          </Card>
+
+          {/* Daily Scratch Pad */}
+          <Card className="bg-gradient-to-br from-muted/30 to-muted/10 border-dashed">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                ☀️ Daily Scratch Pad
+              </CardTitle>
+              <CardDescription>
+                Brain dump, capture ideas, work through thoughts
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Textarea
+                ref={scratchPadRef}
+                value={scratchPadContent}
+                onChange={(e) => setScratchPadContent(e.target.value)}
+                placeholder="Write freely... Use #task, #idea, #thought, #offer, #win to organize"
+                className="min-h-[300px] font-mono text-sm bg-background/80 border-muted resize-y"
+                onBlur={handleScratchPadSave}
+              />
+              <p className="text-xs text-muted-foreground">
+                Quick tags: <span className="font-medium">#task</span> (add to tasks) • <span className="font-medium">#idea</span> (save idea) • <span className="font-medium">#thought</span> (save insight) • <span className="font-medium">#offer</span> (mark offer) • <span className="font-medium">#win</span> (celebrate)
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  onClick={handleProcessTags}
+                  disabled={processingTags || !scratchPadContent.trim()}
+                >
+                  {processingTags ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Process Tags
+                    </>
+                  )}
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={!scratchPadContent.trim()}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Clear Pad
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Clear scratch pad?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will clear all content from your scratch pad. Make sure you have processed any tags you want to save first.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleClearPad}>Clear</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </CardContent>
           </Card>
 

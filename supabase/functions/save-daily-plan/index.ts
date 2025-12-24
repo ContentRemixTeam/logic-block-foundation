@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { day_id, top_3_today, selected_weekly_priorities, thought, feeling, deep_mode_notes } = body;
+    const { day_id, top_3_today, selected_weekly_priorities, thought, feeling, deep_mode_notes, scratch_pad_content } = body;
 
     console.log('Saving daily plan:', { userId, day_id });
 
@@ -67,6 +67,9 @@ Deno.serve(async (req) => {
     const normalizedDeepNotes = typeof deep_mode_notes === 'object' && deep_mode_notes !== null
       ? deep_mode_notes
       : {};
+
+    // Normalize scratch pad content
+    const normalizedScratchPad = typeof scratch_pad_content === 'string' ? scratch_pad_content : '';
 
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -91,6 +94,7 @@ Deno.serve(async (req) => {
         thought: (thought || '').substring(0, 500),
         feeling: (feeling || '').substring(0, 200),
         deep_mode_notes: normalizedDeepNotes,
+        scratch_pad_content: normalizedScratchPad,
         updated_at: new Date().toISOString(),
       })
       .eq('day_id', day_id)
