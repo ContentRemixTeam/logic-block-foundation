@@ -13,7 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Zap, Edit, Trash2, Plus } from 'lucide-react';
-import { normalizeString, normalizeArray } from '@/lib/normalize';
+import { normalizeString } from '@/lib/normalize';
 
 interface Category {
   id: string;
@@ -66,20 +66,28 @@ export default function Ideas() {
 
       if (fetchError) throw fetchError;
 
-      setCategories(normalizeArray(data.categories).map((cat: any) => ({
-        id: normalizeString(cat.id),
-        name: normalizeString(cat.name),
-        color: normalizeString(cat.color, '#3A3A3A'),
-        created_at: normalizeString(cat.created_at),
-      })));
+      // Use Array.isArray() for object arrays, not normalizeArray (which is for string arrays)
+      const safeCategories = Array.isArray(data?.categories) ? data.categories : [];
+      setCategories(safeCategories
+        .filter((cat: any) => cat && cat.id) // Filter out items without valid id
+        .map((cat: any) => ({
+          id: String(cat.id),
+          name: normalizeString(cat.name),
+          color: normalizeString(cat.color, '#3A3A3A'),
+          created_at: normalizeString(cat.created_at),
+        })));
 
-      setIdeas(normalizeArray(data.ideas).map((idea: any) => ({
-        id: normalizeString(idea.id),
-        content: normalizeString(idea.content),
-        category_id: idea.category_id || null,
-        created_at: normalizeString(idea.created_at),
-        updated_at: normalizeString(idea.updated_at),
-      })).filter((idea: Idea) => idea.content.trim() !== ''));
+      const safeIdeas = Array.isArray(data?.ideas) ? data.ideas : [];
+      setIdeas(safeIdeas
+        .filter((idea: any) => idea && idea.id) // Filter out items without valid id
+        .map((idea: any) => ({
+          id: String(idea.id),
+          content: normalizeString(idea.content),
+          category_id: idea.category_id || null,
+          created_at: normalizeString(idea.created_at),
+          updated_at: normalizeString(idea.updated_at),
+        }))
+        .filter((idea: Idea) => idea.content.trim() !== ''));
     } catch (err: any) {
       console.error('Error loading ideas:', err);
       setError(err.message);
@@ -262,7 +270,7 @@ export default function Ideas() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((cat) => (
+              {categories.filter(cat => cat.id).map((cat) => (
                 <SelectItem key={cat.id} value={cat.id}>
                   <div className="flex items-center gap-2">
                     <div
@@ -372,7 +380,7 @@ export default function Ideas() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="uncategorized">No category</SelectItem>
-                  {categories.map((cat) => (
+                  {categories.filter(cat => cat.id).map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       <div className="flex items-center gap-2">
                         <div
