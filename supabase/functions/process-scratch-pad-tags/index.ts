@@ -77,9 +77,30 @@ Deno.serve(async (req) => {
       try {
         switch (tagType) {
           case 'task':
-            // Tasks are kept in scratch pad for now - just count them
-            processed.tasks++;
-            console.log('[process-scratch-pad-tags] Found task:', content);
+            // Get the scheduled date from the daily plan
+            const { data: planData } = await supabase
+              .from('daily_plans')
+              .select('date')
+              .eq('day_id', daily_plan_id)
+              .single();
+
+            const { error: taskError } = await supabase
+              .from('tasks')
+              .insert({
+                user_id: user.id,
+                daily_plan_id: daily_plan_id,
+                task_text: content,
+                source: 'scratch_pad',
+                scheduled_date: planData?.date || null,
+              });
+
+            if (taskError) {
+              console.error('[process-scratch-pad-tags] Error inserting task:', taskError);
+              errors.push(`Failed to save task: ${content.substring(0, 30)}...`);
+            } else {
+              processed.tasks++;
+              console.log('[process-scratch-pad-tags] Saved task:', content);
+            }
             break;
 
           case 'idea':

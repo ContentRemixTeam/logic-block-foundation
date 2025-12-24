@@ -665,6 +665,56 @@ export type Database = {
         }
         Relationships: []
       }
+      tasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          daily_plan_id: string | null
+          is_completed: boolean | null
+          priority: string | null
+          scheduled_date: string | null
+          source: string | null
+          tags: Json | null
+          task_id: string
+          task_text: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          daily_plan_id?: string | null
+          is_completed?: boolean | null
+          priority?: string | null
+          scheduled_date?: string | null
+          source?: string | null
+          tags?: Json | null
+          task_id?: string
+          task_text: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          daily_plan_id?: string | null
+          is_completed?: boolean | null
+          priority?: string | null
+          scheduled_date?: string | null
+          source?: string | null
+          tags?: Json | null
+          task_id?: string
+          task_text?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_daily_plan_id_fkey"
+            columns: ["daily_plan_id"]
+            isOneToOne: false
+            referencedRelation: "daily_plans"
+            referencedColumns: ["day_id"]
+          },
+        ]
+      }
       useful_thoughts: {
         Row: {
           category_id: string | null
