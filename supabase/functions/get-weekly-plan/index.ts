@@ -204,41 +204,54 @@ Deno.serve(async (req) => {
     monday.setDate(today.getDate() + diff);
     const startOfWeek = monday.toISOString().split('T')[0];
 
-    // Use upsert to handle race conditions
-    const { error: upsertError } = await supabaseClient
+    // First check if a week already exists (race condition check)
+    const { data: existingWeek } = await supabaseClient
       .from('weekly_plans')
-      .upsert(
-        {
+      .select('*')
+      .eq('user_id', userId)
+      .eq('cycle_id', currentCycle.cycle_id)
+      .eq('start_of_week', startOfWeek)
+      .maybeSingle();
+
+    let newWeek = existingWeek;
+
+    if (!existingWeek) {
+      // Create new week
+      const { data: createdWeek, error: insertError } = await supabaseClient
+        .from('weekly_plans')
+        .insert({
           user_id: userId,
           cycle_id: currentCycle.cycle_id,
           start_of_week: startOfWeek,
           top_3_priorities: [],
           weekly_thought: '',
           weekly_feeling: '',
-        },
-        {
-          onConflict: 'user_id,cycle_id,start_of_week',
-          ignoreDuplicates: true,
-        }
-      );
+        })
+        .select()
+        .single();
 
-    if (upsertError) {
-      console.error('Error upserting week:', upsertError);
-      throw upsertError;
+      if (insertError) {
+        console.error('Error creating week:', insertError);
+        // If insert failed due to duplicate, try fetching again
+        const { data: refetchedWeek, error: refetchError } = await supabaseClient
+          .from('weekly_plans')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('cycle_id', currentCycle.cycle_id)
+          .eq('start_of_week', startOfWeek)
+          .maybeSingle();
+
+        if (refetchError || !refetchedWeek) {
+          throw insertError;
+        }
+        newWeek = refetchedWeek;
+      } else {
+        newWeek = createdWeek;
+      }
     }
 
-    // Fetch the week (either just created or existing)
-    const { data: newWeek, error: fetchError } = await supabaseClient
-      .from('weekly_plans')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('cycle_id', currentCycle.cycle_id)
-      .eq('start_of_week', startOfWeek)
-      .single();
-
-    if (fetchError) {
-      console.error('Error fetching week:', fetchError);
-      throw fetchError;
+    if (!newWeek) {
+      throw new Error('Failed to create or fetch weekly plan');
     }
 
     console.log('Returning week:', newWeek.week_id);
