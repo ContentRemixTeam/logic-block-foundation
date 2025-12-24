@@ -5,13 +5,34 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Decode JWT to get user ID
+function getUserIdFromJWT(authHeader: string): string | null {
+  try {
+    const token = authHeader.replace('Bearer ', '');
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const payload = JSON.parse(jsonPayload);
+    return payload.sub || null;
+  } catch (error) {
+    console.error('JWT decode error:', error);
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
+  console.log('EDGE FUNC: save-weekly-plan called');
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Create authenticated client to get user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'No authorization header' }), {
@@ -20,33 +41,21 @@ Deno.serve(async (req) => {
       });
     }
 
-    const authClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
-    );
-
-    const {
-      data: { user },
-      error: userError,
-    } = await authClient.auth.getUser();
-
-    if (userError || !user) {
-      console.error('Auth error:', userError);
+    const userId = getUserIdFromJWT(authHeader);
+    if (!userId) {
+      console.error('Failed to decode user ID from JWT');
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    console.log('User ID from JWT:', userId);
+
     const body = await req.json();
     const { week_id, top_3_priorities, weekly_thought, weekly_feeling, challenges, adjustments, metric_1_target, metric_2_target, metric_3_target } = body;
 
-    console.log('Saving weekly plan for user:', user.id, 'week:', week_id);
+    console.log('Saving weekly plan for user:', userId, 'week:', week_id);
 
     // Use service role for database operations
     const supabaseClient = createClient(
@@ -75,7 +84,7 @@ Deno.serve(async (req) => {
         updated_at: new Date().toISOString(),
       })
       .eq('week_id', week_id)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .select()
       .single();
 
