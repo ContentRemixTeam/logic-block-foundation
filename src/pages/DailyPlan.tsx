@@ -16,7 +16,8 @@ import { useToast } from '@/hooks/use-toast';
 import { normalizeArray, normalizeString, normalizeObject } from '@/lib/normalize';
 import { UsefulThoughtsModal } from '@/components/UsefulThoughtsModal';
 import BeliefSelectorModal from '@/components/BeliefSelectorModal';
-import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen } from 'lucide-react';
+import { ScratchPadOrganizeModal } from '@/components/ScratchPadOrganizeModal';
+import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +29,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ToastAction } from '@/components/ui/toast';
 
 export default function DailyPlan() {
   const { user } = useAuth();
@@ -66,11 +68,42 @@ export default function DailyPlan() {
   const [thoughtsModalOpen, setThoughtsModalOpen] = useState(false);
   const [beliefsModalOpen, setBeliefsModalOpen] = useState(false);
   const [identityAnchor, setIdentityAnchor] = useState<any>(null);
+  
+  // Organize modal state
+  const [organizeModalOpen, setOrganizeModalOpen] = useState(false);
+  const [processedData, setProcessedData] = useState<any>(null);
+  const [scratchPadReviewMode, setScratchPadReviewMode] = useState<'quick_save' | 'organize_now'>('quick_save');
 
   useEffect(() => {
     loadDailyPlan();
     loadIdentityAnchor();
+    loadUserSettings();
   }, [user]);
+
+  const loadUserSettings = async () => {
+    if (!user) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-user-settings`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+        },
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data.scratch_pad_review_mode) {
+          setScratchPadReviewMode(data.scratch_pad_review_mode as 'quick_save' | 'organize_now');
+        }
+      }
+    } catch (error) {
+      console.error('Error loading user settings:', error);
+    }
+  };
 
   const loadDailyPlan = async () => {
     if (!user) return;
@@ -355,11 +388,36 @@ export default function DailyPlan() {
         if (processed.thoughts > 0) parts.push(`${processed.thoughts} thought${processed.thoughts > 1 ? 's' : ''}`);
         if (processed.offers > 0) parts.push(`${processed.offers} offer${processed.offers > 1 ? 's' : ''}`);
         if (processed.wins > 0) parts.push(`${processed.wins} win${processed.wins > 1 ? 's' : ''}`);
+
+        // Store processed data for organize modal
+        setProcessedData(data);
         
-        toast({
-          title: "✨ Tags processed!",
-          description: `Saved ${parts.join(', ')}`,
-        });
+        // Check if we should show organize modal
+        if (scratchPadReviewMode === 'organize_now') {
+          setOrganizeModalOpen(true);
+        } else {
+          // Show enhanced toast with organize option
+          toast({
+            title: "✅ Tags Processed!",
+            description: (
+              <div className="space-y-2">
+                <p>Created:</p>
+                <ul className="text-sm space-y-1">
+                  {processed.tasks > 0 && <li className="flex items-center gap-1"><ListTodo className="h-3 w-3" /> {processed.tasks} task{processed.tasks > 1 ? 's' : ''}</li>}
+                  {processed.ideas > 0 && <li className="flex items-center gap-1"><Lightbulb className="h-3 w-3" /> {processed.ideas} idea{processed.ideas > 1 ? 's' : ''}</li>}
+                  {processed.thoughts > 0 && <li className="flex items-center gap-1"><Brain className="h-3 w-3" /> {processed.thoughts} thought{processed.thoughts > 1 ? 's' : ''}</li>}
+                  {processed.wins > 0 && <li>🏆 {processed.wins} win{processed.wins > 1 ? 's' : ''}</li>}
+                </ul>
+              </div>
+            ),
+            action: (processed.tasks > 0 || processed.ideas > 0) ? (
+              <ToastAction altText="Organize now" onClick={() => setOrganizeModalOpen(true)}>
+                Organize →
+              </ToastAction>
+            ) : undefined,
+            duration: 8000,
+          });
+        }
       } else {
         toast({
           title: "No tags found",
@@ -861,6 +919,14 @@ export default function DailyPlan() {
         open={beliefsModalOpen}
         onOpenChange={setBeliefsModalOpen}
         onSelect={(belief) => setThought(belief)}
+      />
+      
+      <ScratchPadOrganizeModal
+        open={organizeModalOpen}
+        onOpenChange={setOrganizeModalOpen}
+        processedData={processedData}
+        scratchPadContent={scratchPadContent}
+        onComplete={() => setProcessedData(null)}
       />
     </Layout>
   );

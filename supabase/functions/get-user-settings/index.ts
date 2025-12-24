@@ -122,6 +122,7 @@ Deno.serve(async (req) => {
         quick_mode_default: settings.quick_mode_default ?? true,
         habit_categories_enabled: settings.habit_categories_enabled ?? true,
         theme_preference: settings.theme_preference ?? 'vibrant',
+        scratch_pad_review_mode: settings.scratch_pad_review_mode ?? 'quick_save',
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
