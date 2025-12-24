@@ -297,14 +297,14 @@ export function ScratchPadOrganizeModal({
                         <div className="flex items-center gap-2">
                           <Label className="text-xs text-muted-foreground">Category:</Label>
                           <Select
-                            value={idea.categoryId}
-                            onValueChange={(val) => updateIdea(idx, val)}
+                            value={idea.categoryId || "uncategorized"}
+                            onValueChange={(val) => updateIdea(idx, val === "uncategorized" ? "" : val)}
                           >
                             <SelectTrigger className="h-8 w-[180px]">
                               <SelectValue placeholder="Select category..." />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">Uncategorized</SelectItem>
+                              <SelectItem value="uncategorized">Uncategorized</SelectItem>
                               {categories.map((cat) => (
                                 <SelectItem key={cat.id} value={cat.id}>
                                   <div className="flex items-center gap-2">
