@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { format, subDays } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +18,7 @@ import { normalizeArray, normalizeString, normalizeObject } from '@/lib/normaliz
 import { UsefulThoughtsModal } from '@/components/UsefulThoughtsModal';
 import BeliefSelectorModal from '@/components/BeliefSelectorModal';
 import { ScratchPadOrganizeModal } from '@/components/ScratchPadOrganizeModal';
+import { YesterdayReviewPopup } from '@/components/YesterdayReviewPopup';
 import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb } from 'lucide-react';
 import {
   AlertDialog,
@@ -80,11 +82,16 @@ export default function DailyPlan() {
   const [organizeModalOpen, setOrganizeModalOpen] = useState(false);
   const [processedData, setProcessedData] = useState<any>(null);
   const [scratchPadReviewMode, setScratchPadReviewMode] = useState<'quick_save' | 'organize_now'>('quick_save');
+  
+  // Yesterday review popup
+  const [showYesterdayReview, setShowYesterdayReview] = useState(false);
+  const [checkedYesterdayReview, setCheckedYesterdayReview] = useState(false);
 
   useEffect(() => {
     loadDailyPlan();
     loadIdentityAnchor();
     loadUserSettings();
+    checkYesterdayReview();
   }, [user]);
 
   const loadUserSettings = async () => {
@@ -109,6 +116,37 @@ export default function DailyPlan() {
       }
     } catch (error) {
       console.error('Error loading user settings:', error);
+    }
+  };
+
+  const checkYesterdayReview = async () => {
+    if (!user || checkedYesterdayReview) return;
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+      
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-daily-review`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ date: yesterday }),
+      });
+
+      const data = await res.json();
+      setCheckedYesterdayReview(true);
+      
+      // Show popup if there was a plan yesterday but no review
+      if (data.hasPlan && !data.review) {
+        setShowYesterdayReview(true);
+      }
+    } catch (error) {
+      console.error('Error checking yesterday review:', error);
+      setCheckedYesterdayReview(true);
     }
   };
 
@@ -1192,6 +1230,14 @@ export default function DailyPlan() {
         scratchPadContent={scratchPadContent}
         onComplete={() => setProcessedData(null)}
       />
+      
+      {user && (
+        <YesterdayReviewPopup
+          open={showYesterdayReview}
+          onClose={() => setShowYesterdayReview(false)}
+          userId={user.id}
+        />
+      )}
     </Layout>
   );
 }
