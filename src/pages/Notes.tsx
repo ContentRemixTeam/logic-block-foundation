@@ -66,7 +66,7 @@ type ViewTab = 'entries' | 'pages';
 
 const HASHTAG_FILTERS = ['#task', '#idea', '#thought', '#win', '#offer'];
 
-export default function Journal() {
+export default function Notes() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<ViewTab>('entries');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
@@ -356,7 +356,7 @@ export default function Journal() {
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
               <BookOpen className="h-8 w-8 text-primary" />
-              Journal
+              Notes
             </h1>
             <p className="text-muted-foreground">Review your entries and brainstorm ideas</p>
           </div>

@@ -39,7 +39,7 @@ const mainNavigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Cycle Setup', href: '/cycle-setup', icon: Target },
   { name: 'Daily Plan', href: '/daily-plan', icon: CalendarDays },
-  { name: 'Journal', href: '/journal', icon: BookOpen },
+  { name: 'Notes', href: '/notes', icon: BookOpen },
   { name: 'Tasks', href: '/tasks', icon: ListTodo },
   { name: 'SOPs', href: '/sops', icon: ClipboardList },
   { name: 'Weekly Plan', href: '/weekly-plan', icon: Calendar },

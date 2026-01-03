@@ -23,7 +23,7 @@ import SelfCoaching from "./pages/SelfCoaching";
 import Settings from "./pages/Settings";
 import Progress from "./pages/Progress";
 import Tasks from "./pages/Tasks";
-import Journal from "./pages/Journal";
+import Notes from "./pages/Notes";
 import SOPs from "./pages/SOPs";
 import NotFound from "./pages/NotFound";
 
@@ -48,7 +48,7 @@ const App = () => (
             <Route path="/cycle-summary" element={<ProtectedRoute><CycleSummary /></ProtectedRoute>} />
             <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
             <Route path="/daily-plan" element={<ProtectedRoute><DailyPlan /></ProtectedRoute>} />
-            <Route path="/journal" element={<ProtectedRoute><Journal /></ProtectedRoute>} />
+            <Route path="/notes" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
             <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
             <Route path="/sops" element={<ProtectedRoute><SOPs /></ProtectedRoute>} />
             <Route path="/habits" element={<ProtectedRoute><Habits /></ProtectedRoute>} />
