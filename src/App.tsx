@@ -14,6 +14,7 @@ import WeeklyReview from "./pages/WeeklyReview";
 import MonthlyReview from "./pages/MonthlyReview";
 import CycleSummary from "./pages/CycleSummary";
 import DailyPlan from "./pages/DailyPlan";
+import DailyReview from "./pages/DailyReview";
 import Habits from "./pages/Habits";
 import Ideas from "./pages/Ideas";
 import UsefulThoughts from "./pages/UsefulThoughts";
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/cycle-summary" element={<ProtectedRoute><CycleSummary /></ProtectedRoute>} />
             <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
             <Route path="/daily-plan" element={<ProtectedRoute><DailyPlan /></ProtectedRoute>} />
+            <Route path="/daily-review" element={<ProtectedRoute><DailyReview /></ProtectedRoute>} />
             <Route path="/notes" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
             <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
             <Route path="/sops" element={<ProtectedRoute><SOPs /></ProtectedRoute>} />

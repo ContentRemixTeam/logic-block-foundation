@@ -18,6 +18,7 @@ import {
   ListTodo,
   BookOpen,
   ClipboardList,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -39,6 +40,7 @@ const mainNavigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Cycle Setup', href: '/cycle-setup', icon: Target },
   { name: 'Daily Plan', href: '/daily-plan', icon: CalendarDays },
+  { name: 'Daily Review', href: '/daily-review', icon: Sparkles },
   { name: 'Notes', href: '/notes', icon: BookOpen },
   { name: 'Tasks', href: '/tasks', icon: ListTodo },
   { name: 'SOPs', href: '/sops', icon: ClipboardList },
