@@ -253,6 +253,7 @@ Deno.serve(async (req) => {
       intentions: Array.isArray(reviewData.intentions) ? reviewData.intentions : [],
       weekly_score: reviewData.weekly_score || 0,
       focus_reflection: reviewData.focus_reflection || '',
+      share_to_community: existingReview?.share_to_community || false,
       habit_stats: {
         total: totalHabits,
         completed: completedHabits,

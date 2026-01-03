@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { week_id, wins, challenges, lessons, intentions, weekly_score, focus_reflection, metric_1_actual, metric_2_actual, metric_3_actual } = body;
+    const { week_id, wins, challenges, lessons, intentions, weekly_score, focus_reflection, metric_1_actual, metric_2_actual, metric_3_actual, share_to_community } = body;
 
     console.log('Save request:', { week_id, userId, hasWins: Boolean(wins) });
 
@@ -85,6 +85,7 @@ Deno.serve(async (req) => {
         metric_1_actual: metric_1_actual ?? null,
         metric_2_actual: metric_2_actual ?? null,
         metric_3_actual: metric_3_actual ?? null,
+        share_to_community: share_to_community ?? false,
         updated_at: new Date().toISOString(),
       }, {
         onConflict: 'user_id,week_id',

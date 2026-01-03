@@ -26,6 +26,7 @@ import Progress from "./pages/Progress";
 import Tasks from "./pages/Tasks";
 import Notes from "./pages/Notes";
 import SOPs from "./pages/SOPs";
+import Community from "./pages/Community";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -59,8 +60,9 @@ const App = () => (
           <Route path="/belief-builder" element={<ProtectedRoute><BeliefBuilder /></ProtectedRoute>} />
           <Route path="/identity-anchors" element={<ProtectedRoute><IdentityAnchors /></ProtectedRoute>} />
           <Route path="/self-coaching" element={<ProtectedRoute><SelfCoaching /></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="*" element={<NotFound />} />
+          <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
       </BrowserRouter>

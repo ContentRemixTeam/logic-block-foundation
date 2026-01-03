@@ -996,6 +996,7 @@ export type Database = {
           metric_2_actual: number | null
           metric_3_actual: number | null
           review_id: string
+          share_to_community: boolean | null
           updated_at: string | null
           user_id: string
           week_id: string | null
@@ -1011,6 +1012,7 @@ export type Database = {
           metric_2_actual?: number | null
           metric_3_actual?: number | null
           review_id?: string
+          share_to_community?: boolean | null
           updated_at?: string | null
           user_id: string
           week_id?: string | null
@@ -1026,6 +1028,7 @@ export type Database = {
           metric_2_actual?: number | null
           metric_3_actual?: number | null
           review_id?: string
+          share_to_community?: boolean | null
           updated_at?: string | null
           user_id?: string
           week_id?: string | null

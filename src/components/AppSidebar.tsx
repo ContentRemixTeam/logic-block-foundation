@@ -19,6 +19,7 @@ import {
   BookOpen,
   ClipboardList,
   Sparkles,
+  Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -50,6 +51,7 @@ const mainNavigation = [
   { name: 'Progress', href: '/progress', icon: TrendingUp },
   { name: 'Habits', href: '/habits', icon: CheckSquare },
   { name: 'Ideas', href: '/ideas', icon: Zap },
+  { name: 'Community', href: '/community', icon: Users },
 ];
 
 const mindsetNavigation = [

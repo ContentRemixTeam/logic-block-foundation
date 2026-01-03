@@ -10,8 +10,9 @@ import { Slider } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Zap, Target, BarChart3, TrendingUp, TrendingDown } from "lucide-react";
+import { Loader2, Zap, Target, BarChart3, TrendingUp, TrendingDown, Users } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { ReflectionList } from "@/components/ReflectionList";
 
@@ -110,6 +111,7 @@ export default function WeeklyReview() {
   const [intentions, setIntentions] = useState<string[]>([""]);
   const [weeklyScore, setWeeklyScore] = useState(5);
   const [focusReflection, setFocusReflection] = useState("");
+  const [shareToCommunity, setShareToCommunity] = useState(false);
 
   const [habitStats, setHabitStats] = useState({ total: 0, completed: 0, percent: 0 });
   const [cycleProgress, setCycleProgress] = useState({ total_days: 90, completed_days: 0, percent: 0 });
@@ -170,6 +172,7 @@ export default function WeeklyReview() {
       setIntentions(Array.isArray(data.intentions) && data.intentions.length > 0 ? data.intentions : [""]);
       setWeeklyScore(data.weekly_score || 5);
       setFocusReflection(data.focus_reflection || "");
+      setShareToCommunity(data.share_to_community || false);
       setHabitStats(data.habit_stats || { total: 0, completed: 0, percent: 0 });
       setCycleProgress(data.cycle_progress || { total_days: 90, completed_days: 0, percent: 0 });
 
@@ -223,6 +226,7 @@ export default function WeeklyReview() {
           intentions: intentions.filter(Boolean),
           weekly_score: weeklyScore,
           focus_reflection: focusReflection,
+          share_to_community: shareToCommunity,
           metric_1_actual: metric1Actual === '' ? null : metric1Actual,
           metric_2_actual: metric2Actual === '' ? null : metric2Actual,
           metric_3_actual: metric3Actual === '' ? null : metric3Actual,
@@ -469,6 +473,34 @@ export default function WeeklyReview() {
                 className="flex-1"
               />
               <div className="text-3xl font-bold w-16 text-center text-primary">{weeklyScore}</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Share to Community */}
+        <Card className="border-primary/20">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <CardTitle>Share with Community</CardTitle>
+            </div>
+            <CardDescription>
+              Share your wins and lessons with others for inspiration
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label htmlFor="share-toggle">Share this review</Label>
+                <p className="text-sm text-muted-foreground">
+                  Your wins and lessons will be visible to others anonymously
+                </p>
+              </div>
+              <Switch
+                id="share-toggle"
+                checked={shareToCommunity}
+                onCheckedChange={setShareToCommunity}
+              />
             </div>
           </CardContent>
         </Card>
