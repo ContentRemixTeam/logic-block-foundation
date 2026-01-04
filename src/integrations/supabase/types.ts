@@ -836,15 +836,61 @@ export type Database = {
         }
         Relationships: []
       }
+      task_settings: {
+        Row: {
+          created_at: string | null
+          daily_capacity_minutes: number | null
+          default_task_duration: number | null
+          enable_sounds: boolean | null
+          enable_time_tracking: boolean | null
+          id: string
+          preferred_view: string | null
+          show_completed_tasks: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          daily_capacity_minutes?: number | null
+          default_task_duration?: number | null
+          enable_sounds?: boolean | null
+          enable_time_tracking?: boolean | null
+          id?: string
+          preferred_view?: string | null
+          show_completed_tasks?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          daily_capacity_minutes?: number | null
+          default_task_duration?: number | null
+          enable_sounds?: boolean | null
+          enable_time_tracking?: boolean | null
+          id?: string
+          preferred_view?: string | null
+          show_completed_tasks?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
+          actual_minutes: number | null
           checklist_progress: Json | null
           completed_at: string | null
+          context_tags: string[] | null
           created_at: string | null
           daily_plan_id: string | null
+          energy_level: string | null
+          estimated_minutes: number | null
+          goal_id: string | null
           is_completed: boolean | null
           is_recurring_parent: boolean | null
+          notes: string | null
           parent_task_id: string | null
+          position_in_column: number | null
           priority: string | null
           priority_order: number | null
           recurrence_days: Json | null
@@ -852,20 +898,32 @@ export type Database = {
           scheduled_date: string | null
           sop_id: string | null
           source: string | null
+          status: string | null
+          subtasks: Json | null
           tags: Json | null
           task_description: string | null
           task_id: string
           task_text: string
+          time_block_end: string | null
+          time_block_start: string | null
           user_id: string
+          waiting_on: string | null
         }
         Insert: {
+          actual_minutes?: number | null
           checklist_progress?: Json | null
           completed_at?: string | null
+          context_tags?: string[] | null
           created_at?: string | null
           daily_plan_id?: string | null
+          energy_level?: string | null
+          estimated_minutes?: number | null
+          goal_id?: string | null
           is_completed?: boolean | null
           is_recurring_parent?: boolean | null
+          notes?: string | null
           parent_task_id?: string | null
+          position_in_column?: number | null
           priority?: string | null
           priority_order?: number | null
           recurrence_days?: Json | null
@@ -873,20 +931,32 @@ export type Database = {
           scheduled_date?: string | null
           sop_id?: string | null
           source?: string | null
+          status?: string | null
+          subtasks?: Json | null
           tags?: Json | null
           task_description?: string | null
           task_id?: string
           task_text: string
+          time_block_end?: string | null
+          time_block_start?: string | null
           user_id: string
+          waiting_on?: string | null
         }
         Update: {
+          actual_minutes?: number | null
           checklist_progress?: Json | null
           completed_at?: string | null
+          context_tags?: string[] | null
           created_at?: string | null
           daily_plan_id?: string | null
+          energy_level?: string | null
+          estimated_minutes?: number | null
+          goal_id?: string | null
           is_completed?: boolean | null
           is_recurring_parent?: boolean | null
+          notes?: string | null
           parent_task_id?: string | null
+          position_in_column?: number | null
           priority?: string | null
           priority_order?: number | null
           recurrence_days?: Json | null
@@ -894,11 +964,16 @@ export type Database = {
           scheduled_date?: string | null
           sop_id?: string | null
           source?: string | null
+          status?: string | null
+          subtasks?: Json | null
           tags?: Json | null
           task_description?: string | null
           task_id?: string
           task_text?: string
+          time_block_end?: string | null
+          time_block_start?: string | null
           user_id?: string
+          waiting_on?: string | null
         }
         Relationships: [
           {

@@ -68,7 +68,20 @@ Deno.serve(async (req) => {
       checklist_progress,
       priority_order, // 1, 2, or 3 for Top 3 tasks
       source, // 'manual', 'scratch_pad', 'top_3'
-      daily_plan_id
+      daily_plan_id,
+      // New enhanced fields
+      estimated_minutes,
+      actual_minutes,
+      time_block_start,
+      time_block_end,
+      energy_level,
+      context_tags,
+      goal_id,
+      status,
+      waiting_on,
+      subtasks,
+      notes,
+      position_in_column
     } = body;
 
     let result;
@@ -112,6 +125,19 @@ Deno.serve(async (req) => {
             checklist_progress: checklist_progress || [],
             priority_order: priority_order || null,
             daily_plan_id: daily_plan_id || null,
+            // New enhanced fields
+            estimated_minutes: estimated_minutes || null,
+            actual_minutes: actual_minutes || null,
+            time_block_start: time_block_start || null,
+            time_block_end: time_block_end || null,
+            energy_level: energy_level || null,
+            context_tags: context_tags || [],
+            goal_id: goal_id || null,
+            status: status || 'backlog',
+            waiting_on: waiting_on || null,
+            subtasks: subtasks || [],
+            notes: notes || null,
+            position_in_column: position_in_column || null,
           })
           .select()
           .single();
@@ -136,6 +162,19 @@ Deno.serve(async (req) => {
         if (checklist_progress !== undefined) updateData.checklist_progress = checklist_progress;
         if (priority_order !== undefined) updateData.priority_order = priority_order;
         if (daily_plan_id !== undefined) updateData.daily_plan_id = daily_plan_id;
+        // New enhanced fields
+        if (estimated_minutes !== undefined) updateData.estimated_minutes = estimated_minutes;
+        if (actual_minutes !== undefined) updateData.actual_minutes = actual_minutes;
+        if (time_block_start !== undefined) updateData.time_block_start = time_block_start;
+        if (time_block_end !== undefined) updateData.time_block_end = time_block_end;
+        if (energy_level !== undefined) updateData.energy_level = energy_level;
+        if (context_tags !== undefined) updateData.context_tags = context_tags;
+        if (goal_id !== undefined) updateData.goal_id = goal_id;
+        if (status !== undefined) updateData.status = status;
+        if (waiting_on !== undefined) updateData.waiting_on = waiting_on;
+        if (subtasks !== undefined) updateData.subtasks = subtasks;
+        if (notes !== undefined) updateData.notes = notes;
+        if (position_in_column !== undefined) updateData.position_in_column = position_in_column;
 
         result = await supabase
           .from('tasks')

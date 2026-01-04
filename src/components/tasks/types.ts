@@ -1,0 +1,101 @@
+// Task type definitions for the enhanced task manager
+
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  order: number;
+}
+
+export interface SOPLink {
+  id: string;
+  title: string;
+  url: string;
+}
+
+export interface SOP {
+  sop_id: string;
+  sop_name: string;
+  description: string | null;
+  checklist_items: ChecklistItem[];
+  links: SOPLink[];
+  notes: string | null;
+}
+
+export interface ChecklistProgress {
+  item_id: string;
+  completed: boolean;
+}
+
+export interface Subtask {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+export interface Task {
+  task_id: string;
+  task_text: string;
+  task_description: string | null;
+  is_completed: boolean;
+  completed_at: string | null;
+  scheduled_date: string | null;
+  priority: string | null;
+  source: string | null;
+  created_at: string;
+  recurrence_pattern: string | null;
+  recurrence_days: string[] | null;
+  parent_task_id: string | null;
+  is_recurring_parent: boolean;
+  sop_id: string | null;
+  checklist_progress: ChecklistProgress[] | null;
+  sop: SOP | null;
+  priority_order: number | null;
+  // New enhanced fields
+  estimated_minutes: number | null;
+  actual_minutes: number | null;
+  time_block_start: string | null;
+  time_block_end: string | null;
+  energy_level: 'high_focus' | 'medium' | 'low_energy' | null;
+  context_tags: string[] | null;
+  goal_id: string | null;
+  status: 'focus' | 'scheduled' | 'backlog' | 'waiting' | null;
+  waiting_on: string | null;
+  subtasks: Subtask[] | null;
+  notes: string | null;
+  position_in_column: number | null;
+}
+
+export type FilterTab = 'today' | 'week' | 'future' | 'all' | 'completed';
+export type RecurrencePattern = 'none' | 'daily' | 'weekly' | 'monthly';
+export type DeleteType = 'single' | 'future' | 'all';
+export type ViewMode = 'list' | 'kanban' | 'timeline';
+export type EnergyLevel = 'high_focus' | 'medium' | 'low_energy';
+export type TaskStatus = 'focus' | 'scheduled' | 'backlog' | 'waiting';
+
+export const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+export const DURATION_OPTIONS = [
+  { value: 15, label: '15m' },
+  { value: 30, label: '30m' },
+  { value: 45, label: '45m' },
+  { value: 60, label: '1h' },
+  { value: 90, label: '1.5h' },
+  { value: 120, label: '2h' },
+  { value: 180, label: '3h' },
+  { value: 240, label: '4h' },
+];
+
+export const ENERGY_LEVELS = [
+  { value: 'high_focus', label: 'High Focus', color: 'text-destructive', bgColor: 'bg-destructive/10' },
+  { value: 'medium', label: 'Medium', color: 'text-warning', bgColor: 'bg-warning/10' },
+  { value: 'low_energy', label: 'Low Energy', color: 'text-success', bgColor: 'bg-success/10' },
+];
+
+export const CONTEXT_TAGS = [
+  { value: 'deep-work', label: 'Deep Work', icon: '🎯' },
+  { value: 'admin', label: 'Admin', icon: '📋' },
+  { value: 'creative', label: 'Creative', icon: '🎨' },
+  { value: 'calls', label: 'Calls', icon: '📞' },
+  { value: 'email', label: 'Email', icon: '📧' },
+  { value: 'research', label: 'Research', icon: '🔍' },
+];

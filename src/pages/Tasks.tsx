@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format, isToday, isTomorrow, isThisWeek, isPast, addDays, startOfWeek, endOfWeek, parseISO } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,71 +21,46 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, CalendarIcon, Pencil, Trash2, Clock, CheckCircle2, Circle, ListTodo, RefreshCw, ChevronDown, X, ClipboardList, ExternalLink, FileText, Unlink } from 'lucide-react';
+import { 
+  Plus, CalendarIcon, Clock, RefreshCw, ChevronDown, 
+  ClipboardList, ExternalLink, Unlink, LayoutList, Columns, 
+  Clock3, Zap, Battery, BatteryLow, Trash2
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface ChecklistItem {
-  id: string;
-  text: string;
-  order: number;
-}
-
-interface SOPLink {
-  id: string;
-  title: string;
-  url: string;
-}
-
-interface SOP {
-  sop_id: string;
-  sop_name: string;
-  description: string | null;
-  checklist_items: ChecklistItem[];
-  links: SOPLink[];
-  notes: string | null;
-}
-
-interface ChecklistProgress {
-  item_id: string;
-  completed: boolean;
-}
-
-interface Task {
-  task_id: string;
-  task_text: string;
-  task_description: string | null;
-  is_completed: boolean;
-  completed_at: string | null;
-  scheduled_date: string | null;
-  priority: string | null;
-  source: string | null;
-  created_at: string;
-  recurrence_pattern: string | null;
-  recurrence_days: string[] | null;
-  parent_task_id: string | null;
-  is_recurring_parent: boolean;
-  sop_id: string | null;
-  checklist_progress: ChecklistProgress[] | null;
-  sop: SOP | null;
-  priority_order: number | null;
-}
-
-type FilterTab = 'today' | 'week' | 'future' | 'all' | 'completed';
-type RecurrencePattern = 'none' | 'daily' | 'weekly' | 'monthly';
-type DeleteType = 'single' | 'future' | 'all';
-
-const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+// Import new components
+import { TaskQuickAdd } from '@/components/tasks/TaskQuickAdd';
+import { TaskFilters } from '@/components/tasks/TaskFilters';
+import { CapacityIndicator } from '@/components/tasks/CapacityIndicator';
+import { TaskListView } from '@/components/tasks/views/TaskListView';
+import { TaskKanbanView } from '@/components/tasks/views/TaskKanbanView';
+import { TaskTimelineView } from '@/components/tasks/views/TaskTimelineView';
+import { 
+  Task, SOP, ChecklistItem, SOPLink, ChecklistProgress, 
+  FilterTab, ViewMode, EnergyLevel, RecurrencePattern, DeleteType,
+  DAYS_OF_WEEK, DURATION_OPTIONS, ENERGY_LEVELS, CONTEXT_TAGS
+} from '@/components/tasks/types';
 
 export default function Tasks() {
   const queryClient = useQueryClient();
+  
+  // View state
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  
+  // Filter state
+  const [energyFilter, setEnergyFilter] = useState<EnergyLevel[]>([]);
+  const [tagsFilter, setTagsFilter] = useState<string[]>([]);
+  
+  // Dialog state
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [deleteTaskInfo, setDeleteTaskInfo] = useState<{ isRecurring: boolean; hasParent: boolean } | null>(null);
   const [deleteType, setDeleteType] = useState<DeleteType>('single');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [recurringExpanded, setRecurringExpanded] = useState(true);
+  const [recurringExpanded, setRecurringExpanded] = useState(false);
   
   // Form state for new task
   const [newTaskText, setNewTaskText] = useState('');
@@ -97,6 +72,9 @@ export default function Tasks() {
   const [newMonthlyDay, setNewMonthlyDay] = useState<number>(1);
   const [selectedSopId, setSelectedSopId] = useState<string>('');
   const [newChecklistProgress, setNewChecklistProgress] = useState<ChecklistProgress[]>([]);
+  const [newEstimatedMinutes, setNewEstimatedMinutes] = useState<number | null>(null);
+  const [newEnergyLevel, setNewEnergyLevel] = useState<EnergyLevel | null>(null);
+  const [newContextTags, setNewContextTags] = useState<string[]>([]);
 
   // Fetch all tasks
   const { data: tasks = [], isLoading } = useQuery({
@@ -151,21 +129,7 @@ export default function Tasks() {
 
   // Manage task mutation
   const manageMutation = useMutation({
-    mutationFn: async (params: { 
-      action: string; 
-      task_id?: string; 
-      task_text?: string;
-      task_description?: string | null;
-      scheduled_date?: string | null; 
-      priority?: string | null; 
-      is_completed?: boolean;
-      recurrence_pattern?: string | null;
-      recurrence_days?: string[];
-      delete_type?: DeleteType;
-      sop_id?: string | null;
-      checklist_progress?: ChecklistProgress[];
-      item_id?: string;
-    }) => {
+    mutationFn: async (params: Record<string, any>) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
@@ -183,53 +147,30 @@ export default function Tasks() {
     },
   });
 
-  // Handle SOP selection - auto-populate description
-  const handleSopSelect = (sopId: string) => {
-    setSelectedSopId(sopId);
-    
-    if (sopId && sopId !== 'none') {
-      const sop = sops.find((s: SOP) => s.sop_id === sopId);
-      if (sop) {
-        // Build formatted description from SOP
-        let description = '';
-        
-        // Add checklist
-        if (sop.checklist_items && sop.checklist_items.length > 0) {
-          description += 'CHECKLIST:\n';
-          const sortedItems = [...sop.checklist_items].sort((a, b) => a.order - b.order);
-          sortedItems.forEach((item: ChecklistItem) => {
-            description += `☐ ${item.text}\n`;
-          });
-          
-          // Initialize checklist progress
-          setNewChecklistProgress(sortedItems.map((item: ChecklistItem) => ({
-            item_id: item.id,
-            completed: false
-          })));
-        }
-        
-        // Add links
-        if (sop.links && sop.links.length > 0) {
-          description += '\nUSEFUL LINKS:\n';
-          sop.links.forEach((link: SOPLink) => {
-            description += `• ${link.title}: ${link.url}\n`;
-          });
-        }
-        
-        // Add notes
-        if (sop.notes) {
-          description += '\nNOTES:\n';
-          description += sop.notes;
-        }
-        
-        setNewTaskDescription(description.trim());
-      }
-    } else {
-      setNewChecklistProgress([]);
-    }
-  };
+  // Calculate capacity
+  const capacityData = useMemo(() => {
+    const todaysTasks = tasks.filter((t: Task) => {
+      if (t.is_completed) return false;
+      if (!t.scheduled_date) return false;
+      return format(parseISO(t.scheduled_date), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+    });
 
-  // Separate recurring parent tasks from regular tasks
+    const plannedMinutes = todaysTasks.reduce((sum: number, t: Task) => 
+      sum + (t.estimated_minutes || 30), 0
+    );
+
+    const completedMinutes = tasks
+      .filter((t: Task) => t.is_completed && t.completed_at)
+      .filter((t: Task) => {
+        const completedDate = t.completed_at ? parseISO(t.completed_at) : null;
+        return completedDate && format(completedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+      })
+      .reduce((sum: number, t: Task) => sum + (t.estimated_minutes || 30), 0);
+
+    return { plannedMinutes, completedMinutes, capacityMinutes: 480 }; // 8 hours default
+  }, [tasks]);
+
+  // Separate recurring parent tasks
   const { regularTasks, recurringParentTasks } = useMemo(() => {
     const regular: Task[] = [];
     const recurring: Task[] = [];
@@ -245,108 +186,62 @@ export default function Tasks() {
     return { regularTasks: regular, recurringParentTasks: recurring };
   }, [tasks]);
 
-  // Filter regular tasks based on active tab
-  const filteredTasks = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const weekStart = startOfWeek(today, { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
-
-    return regularTasks.filter((task: Task) => {
-      const taskDate = task.scheduled_date ? parseISO(task.scheduled_date) : null;
-
-      switch (activeFilter) {
-        case 'today':
-          return !task.is_completed && taskDate && isToday(taskDate);
-        case 'week':
-          return !task.is_completed && taskDate && isThisWeek(taskDate, { weekStartsOn: 1 });
-        case 'future':
-          return !task.is_completed && taskDate && taskDate > weekEnd;
-        case 'all':
-          return !task.is_completed;
-        case 'completed':
-          return task.is_completed;
-        default:
-          return true;
-      }
-    });
-  }, [regularTasks, activeFilter]);
-
-  // Group tasks by date
-  const groupedTasks = useMemo(() => {
-    const groups: Record<string, Task[]> = {
-      overdue: [],
-      today: [],
-      tomorrow: [],
-      thisWeek: [],
-      later: [],
-      unscheduled: [],
-    };
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    filteredTasks.forEach((task: Task) => {
-      if (task.is_completed && activeFilter === 'completed') {
-        if (!groups.completed) groups.completed = [];
-        groups.completed.push(task);
-        return;
-      }
-
-      if (!task.scheduled_date) {
-        groups.unscheduled.push(task);
-        return;
-      }
-
-      const taskDate = parseISO(task.scheduled_date);
-
-      if (isPast(taskDate) && !isToday(taskDate)) {
-        groups.overdue.push(task);
-      } else if (isToday(taskDate)) {
-        groups.today.push(task);
-      } else if (isTomorrow(taskDate)) {
-        groups.tomorrow.push(task);
-      } else if (isThisWeek(taskDate, { weekStartsOn: 1 })) {
-        groups.thisWeek.push(task);
-      } else {
-        groups.later.push(task);
-      }
-    });
-
-    return groups;
-  }, [filteredTasks, activeFilter]);
-
+  // Handlers
   const handleToggleComplete = async (taskId: string) => {
     try {
       await manageMutation.mutateAsync({ action: 'toggle', task_id: taskId });
-      toast.success('Task updated');
+      // Celebration animation could be added here
     } catch (error) {
       toast.error('Failed to update task');
     }
   };
 
-  const handleToggleChecklistItem = async (taskId: string, itemId: string) => {
+  const handleUpdateTask = async (taskId: string, updates: Partial<Task>) => {
     try {
       await manageMutation.mutateAsync({ 
-        action: 'toggle_checklist_item', 
+        action: 'update', 
         task_id: taskId,
-        item_id: itemId
+        ...updates 
       });
     } catch (error) {
-      toast.error('Failed to update checklist');
+      toast.error('Failed to update task');
     }
   };
 
-  const handleDetachSop = async (taskId: string) => {
+  const handleQuickReschedule = async (taskId: string, date: Date | null) => {
     try {
-      await manageMutation.mutateAsync({ action: 'detach_sop', task_id: taskId });
-      toast.success('SOP detached');
-      // Update local state
-      if (selectedTask) {
-        setSelectedTask({ ...selectedTask, sop_id: null, sop: null });
-      }
+      await manageMutation.mutateAsync({
+        action: 'update',
+        task_id: taskId,
+        scheduled_date: date ? format(date, 'yyyy-MM-dd') : null,
+      });
+      toast.success('Task rescheduled');
     } catch (error) {
-      toast.error('Failed to detach SOP');
+      toast.error('Failed to reschedule task');
+    }
+  };
+
+  const handleQuickAdd = async (parsed: {
+    text: string;
+    date?: Date;
+    time?: string;
+    tags: string[];
+    priority?: 'high' | 'medium' | 'low';
+    duration?: number;
+  }) => {
+    try {
+      await manageMutation.mutateAsync({
+        action: 'create',
+        task_text: parsed.text,
+        scheduled_date: parsed.date ? format(parsed.date, 'yyyy-MM-dd') : null,
+        priority: parsed.priority || null,
+        estimated_minutes: parsed.duration || null,
+        context_tags: parsed.tags.length > 0 ? parsed.tags : null,
+        status: 'backlog',
+      });
+      toast.success('Task added');
+    } catch (error) {
+      toast.error('Failed to add task');
     }
   };
 
@@ -371,6 +266,10 @@ export default function Tasks() {
             : [],
         sop_id: selectedSopId && selectedSopId !== 'none' ? selectedSopId : null,
         checklist_progress: newChecklistProgress,
+        estimated_minutes: newEstimatedMinutes,
+        energy_level: newEnergyLevel,
+        context_tags: newContextTags,
+        status: 'backlog',
       });
       toast.success('Task added');
       resetAddForm();
@@ -390,28 +289,63 @@ export default function Tasks() {
     setNewMonthlyDay(1);
     setSelectedSopId('');
     setNewChecklistProgress([]);
+    setNewEstimatedMinutes(null);
+    setNewEnergyLevel(null);
+    setNewContextTags([]);
   };
 
-  const handleUpdateTask = async () => {
-    if (!selectedTask) return;
-
-    try {
-      await manageMutation.mutateAsync({
-        action: 'update',
-        task_id: selectedTask.task_id,
-        task_text: selectedTask.task_text,
-        task_description: selectedTask.task_description,
-        scheduled_date: selectedTask.scheduled_date,
-        priority: selectedTask.priority,
-        recurrence_pattern: selectedTask.recurrence_pattern,
-        recurrence_days: selectedTask.recurrence_days || [],
-      });
-      toast.success('Task updated');
-      setIsDetailDialogOpen(false);
-      setSelectedTask(null);
-    } catch (error) {
-      toast.error('Failed to update task');
+  const handleSopSelect = (sopId: string) => {
+    setSelectedSopId(sopId);
+    
+    if (sopId && sopId !== 'none') {
+      const sop = sops.find((s: SOP) => s.sop_id === sopId);
+      if (sop) {
+        let description = '';
+        
+        if (sop.checklist_items && sop.checklist_items.length > 0) {
+          description += 'CHECKLIST:\n';
+          const sortedItems = [...sop.checklist_items].sort((a: ChecklistItem, b: ChecklistItem) => a.order - b.order);
+          sortedItems.forEach((item: ChecklistItem) => {
+            description += `☐ ${item.text}\n`;
+          });
+          
+          setNewChecklistProgress(sortedItems.map((item: ChecklistItem) => ({
+            item_id: item.id,
+            completed: false
+          })));
+        }
+        
+        if (sop.links && sop.links.length > 0) {
+          description += '\nUSEFUL LINKS:\n';
+          sop.links.forEach((link: SOPLink) => {
+            description += `• ${link.title}: ${link.url}\n`;
+          });
+        }
+        
+        if (sop.notes) {
+          description += '\nNOTES:\n';
+          description += sop.notes;
+        }
+        
+        setNewTaskDescription(description.trim());
+      }
+    } else {
+      setNewChecklistProgress([]);
     }
+  };
+
+  const openTaskDetail = (task: Task) => {
+    setSelectedTask({ ...task });
+    setIsDetailDialogOpen(true);
+  };
+
+  const initiateDelete = (task: Task) => {
+    setDeleteTaskId(task.task_id);
+    setDeleteTaskInfo({
+      isRecurring: task.is_recurring_parent,
+      hasParent: !!task.parent_task_id
+    });
+    setDeleteType('single');
   };
 
   const handleDeleteTask = async () => {
@@ -433,40 +367,61 @@ export default function Tasks() {
     }
   };
 
-  const handleQuickReschedule = async (taskId: string, date: Date | null) => {
+  const handleSaveTaskDetail = async () => {
+    if (!selectedTask) return;
+
     try {
       await manageMutation.mutateAsync({
         action: 'update',
-        task_id: taskId,
-        scheduled_date: date ? format(date, 'yyyy-MM-dd') : null,
+        task_id: selectedTask.task_id,
+        task_text: selectedTask.task_text,
+        task_description: selectedTask.task_description,
+        scheduled_date: selectedTask.scheduled_date,
+        priority: selectedTask.priority,
+        recurrence_pattern: selectedTask.recurrence_pattern,
+        recurrence_days: selectedTask.recurrence_days || [],
+        estimated_minutes: selectedTask.estimated_minutes,
+        energy_level: selectedTask.energy_level,
+        context_tags: selectedTask.context_tags,
+        status: selectedTask.status,
+        waiting_on: selectedTask.waiting_on,
+        notes: selectedTask.notes,
       });
-      toast.success('Task rescheduled');
+      toast.success('Task updated');
+      setIsDetailDialogOpen(false);
+      setSelectedTask(null);
     } catch (error) {
-      toast.error('Failed to reschedule task');
+      toast.error('Failed to update task');
     }
   };
 
-  const openTaskDetail = (task: Task) => {
-    setSelectedTask({ ...task });
-    setIsDetailDialogOpen(true);
-  };
-
-  const initiateDelete = (task: Task) => {
-    setDeleteTaskId(task.task_id);
-    setDeleteTaskInfo({
-      isRecurring: task.is_recurring_parent,
-      hasParent: !!task.parent_task_id
-    });
-    setDeleteType('single');
-  };
-
-  const getPriorityColor = (priority: string | null) => {
-    switch (priority) {
-      case 'high': return 'bg-destructive/20 text-destructive border-destructive/30';
-      case 'medium': return 'bg-warning/20 text-warning border-warning/30';
-      case 'low': return 'bg-muted text-muted-foreground';
-      default: return 'bg-muted/50 text-muted-foreground';
+  const handleToggleChecklistItem = async (taskId: string, itemId: string) => {
+    try {
+      await manageMutation.mutateAsync({ 
+        action: 'toggle_checklist_item', 
+        task_id: taskId,
+        item_id: itemId
+      });
+    } catch (error) {
+      toast.error('Failed to update checklist');
     }
+  };
+
+  const handleDetachSop = async (taskId: string) => {
+    try {
+      await manageMutation.mutateAsync({ action: 'detach_sop', task_id: taskId });
+      toast.success('SOP detached');
+      if (selectedTask) {
+        setSelectedTask({ ...selectedTask, sop_id: null, sop: null });
+      }
+    } catch (error) {
+      toast.error('Failed to detach SOP');
+    }
+  };
+
+  const handleAddTaskAtTime = (hour: number) => {
+    setNewTaskDate(selectedDate);
+    setIsAddDialogOpen(true);
   };
 
   const getRecurrenceLabel = (pattern: string | null, days: string[] | null) => {
@@ -494,7 +449,10 @@ export default function Tasks() {
     }
   };
 
-  // Get checklist completion stats
+  const isChecklistItemCompleted = (task: Task, itemId: string) => {
+    return (task.checklist_progress || []).some(p => p.item_id === itemId && p.completed);
+  };
+
   const getChecklistStats = (task: Task) => {
     if (!task.sop?.checklist_items || task.sop.checklist_items.length === 0) {
       return null;
@@ -504,185 +462,102 @@ export default function Tasks() {
     return { total, completed };
   };
 
-  const isChecklistItemCompleted = (task: Task, itemId: string) => {
-    return (task.checklist_progress || []).some(p => p.item_id === itemId && p.completed);
-  };
-
-  const renderTaskCard = (task: Task) => {
-    const checklistStats = getChecklistStats(task);
-    
-    return (
-      <Card key={task.task_id} className={cn(
-        "transition-all hover:shadow-md cursor-pointer",
-        task.is_completed && "opacity-60"
-      )} onClick={() => openTaskDetail(task)}>
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <div onClick={(e) => e.stopPropagation()}>
-              <Checkbox
-                checked={task.is_completed}
-                onCheckedChange={() => handleToggleComplete(task.task_id)}
-                className="mt-1"
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className={cn(
-                "font-medium",
-                task.is_completed && "line-through text-muted-foreground"
-              )}>
-                {task.task_text}
-              </p>
-              {task.task_description && (
-                <p className="text-sm text-muted-foreground line-clamp-1 mt-1">
-                  {task.task_description}
-                </p>
-              )}
-              <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-muted-foreground">
-                {task.sop && (
-                  <Badge variant="outline" className="text-xs bg-primary/10 border-primary/30 text-primary">
-                    <ClipboardList className="h-3 w-3 mr-1" />
-                    {task.sop.sop_name}
-                  </Badge>
-                )}
-                {checklistStats && (
-                  <Badge variant="secondary" className="text-xs">
-                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                    {checklistStats.completed}/{checklistStats.total}
-                  </Badge>
-                )}
-                {task.parent_task_id && (
-                  <Badge variant="outline" className="text-xs">
-                    <RefreshCw className="h-3 w-3 mr-1" />
-                    Recurring
-                  </Badge>
-                )}
-                {task.source && task.source !== 'recurring' && (
-                  <span className="flex items-center gap-1">
-                    <ListTodo className="h-3 w-3" />
-                    {task.source}
-                  </span>
-                )}
-                {task.scheduled_date && (
-                  <span className="flex items-center gap-1">
-                    <CalendarIcon className="h-3 w-3" />
-                    {format(parseISO(task.scheduled_date), 'MMM d')}
-                  </span>
-                )}
-                {task.priority && (
-                  <Badge variant="outline" className={cn("text-xs", getPriorityColor(task.priority))}>
-                    {task.priority}
-                  </Badge>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <CalendarIcon className="h-4 w-4" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                  <div className="p-2 border-b space-y-1">
-                    <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleQuickReschedule(task.task_id, new Date())}>
-                      Today
-                    </Button>
-                    <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleQuickReschedule(task.task_id, addDays(new Date(), 1))}>
-                      Tomorrow
-                    </Button>
-                    <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => handleQuickReschedule(task.task_id, addDays(new Date(), 7))}>
-                      Next Week
-                    </Button>
-                  </div>
-                  <Calendar
-                    mode="single"
-                    selected={task.scheduled_date ? parseISO(task.scheduled_date) : undefined}
-                    onSelect={(date) => handleQuickReschedule(task.task_id, date || null)}
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => initiateDelete(task)}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  const renderTaskGroup = (title: string, tasks: Task[], showIfEmpty = false) => {
-    if (tasks.length === 0 && !showIfEmpty) return null;
-
-    return (
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">{title}</h3>
-          <Badge variant="secondary" className="text-xs">{tasks.length}</Badge>
-        </div>
-        {tasks.length === 0 ? (
-          <p className="text-muted-foreground text-sm py-2">No tasks</p>
-        ) : (
-          <div className="space-y-2">
-            {tasks.map(renderTaskCard)}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <h1 className="text-3xl font-bold">Tasks</h1>
-            <p className="text-muted-foreground">Manage everything you've captured</p>
+            <p className="text-muted-foreground">Your workflow command center</p>
           </div>
-          <Button onClick={() => setIsAddDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Task
-          </Button>
+          
+          {/* View mode toggle */}
+          <div className="flex items-center gap-2">
+            <div className="bg-muted rounded-lg p-1 flex">
+              <Button
+                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="gap-2"
+              >
+                <LayoutList className="h-4 w-4" />
+                <span className="hidden sm:inline">List</span>
+              </Button>
+              <Button
+                variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('kanban')}
+                className="gap-2"
+              >
+                <Columns className="h-4 w-4" />
+                <span className="hidden sm:inline">Kanban</span>
+              </Button>
+              <Button
+                variant={viewMode === 'timeline' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('timeline')}
+                className="gap-2"
+              >
+                <Clock3 className="h-4 w-4" />
+                <span className="hidden sm:inline">Timeline</span>
+              </Button>
+            </div>
+            <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Add Task</span>
+            </Button>
+          </div>
         </div>
 
-        {/* Recurring Tasks Section */}
+        {/* Quick Add & Capacity */}
+        <div className="grid gap-4 md:grid-cols-[1fr_300px]">
+          <TaskQuickAdd onAddTask={handleQuickAdd} />
+          <CapacityIndicator 
+            plannedMinutes={capacityData.plannedMinutes}
+            capacityMinutes={capacityData.capacityMinutes}
+            completedMinutes={capacityData.completedMinutes}
+          />
+        </div>
+
+        {/* Recurring Tasks (collapsed by default) */}
         {recurringParentTasks.length > 0 && (
           <Collapsible open={recurringExpanded} onOpenChange={setRecurringExpanded}>
-            <Card>
+            <Card className="border-dashed">
               <CollapsibleTrigger asChild>
                 <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-3">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <RefreshCw className="h-4 w-4 text-primary" />
+                    <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+                      <RefreshCw className="h-4 w-4" />
                       Recurring Tasks
                       <Badge variant="secondary">{recurringParentTasks.length}</Badge>
                     </CardTitle>
-                    <ChevronDown className={cn("h-5 w-5 transition-transform", recurringExpanded && "rotate-180")} />
+                    <ChevronDown className={cn("h-4 w-4 transition-transform text-muted-foreground", recurringExpanded && "rotate-180")} />
                   </div>
                 </CardHeader>
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <CardContent className="pt-0 space-y-2">
-                  {recurringParentTasks.map((task) => (
-                    <div key={task.task_id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 cursor-pointer" onClick={() => openTaskDetail(task)}>
+                  {recurringParentTasks.map((task: Task) => (
+                    <div 
+                      key={task.task_id} 
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 cursor-pointer" 
+                      onClick={() => openTaskDetail(task)}
+                    >
                       <div>
-                        <p className="font-medium">{task.task_text}</p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="font-medium text-sm">{task.task_text}</p>
+                        <p className="text-xs text-muted-foreground">
                           {getRecurrenceLabel(task.recurrence_pattern, task.recurrence_days)}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {task.priority && (
-                          <Badge variant="outline" className={cn("text-xs", getPriorityColor(task.priority))}>
-                            {task.priority}
-                          </Badge>
-                        )}
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); initiateDelete(task); }}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-destructive hover:text-destructive" 
+                        onClick={(e) => { e.stopPropagation(); initiateDelete(task); }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   ))}
                 </CardContent>
@@ -691,58 +566,63 @@ export default function Tasks() {
           </Collapsible>
         )}
 
-        {/* Filter Tabs */}
-        <Tabs value={activeFilter} onValueChange={(v) => setActiveFilter(v as FilterTab)}>
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="today" className="flex items-center gap-2">
-              <Circle className="h-3 w-3" />
-              Today
-            </TabsTrigger>
-            <TabsTrigger value="week">This Week</TabsTrigger>
-            <TabsTrigger value="future">Future</TabsTrigger>
-            <TabsTrigger value="all">All Open</TabsTrigger>
-            <TabsTrigger value="completed" className="flex items-center gap-2">
-              <CheckCircle2 className="h-3 w-3" />
-              Completed
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        {/* Filters row */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          {viewMode === 'list' && (
+            <Tabs value={activeFilter} onValueChange={(v) => setActiveFilter(v as FilterTab)}>
+              <TabsList>
+                <TabsTrigger value="today" className="text-xs sm:text-sm">Today</TabsTrigger>
+                <TabsTrigger value="week" className="text-xs sm:text-sm">This Week</TabsTrigger>
+                <TabsTrigger value="all" className="text-xs sm:text-sm">All Open</TabsTrigger>
+                <TabsTrigger value="completed" className="text-xs sm:text-sm">Completed</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+          
+          <TaskFilters
+            selectedEnergy={energyFilter}
+            onEnergyChange={setEnergyFilter}
+            selectedTags={tagsFilter}
+            onTagsChange={setTagsFilter}
+            onClearFilters={() => {
+              setEnergyFilter([]);
+              setTagsFilter([]);
+            }}
+          />
+        </div>
 
-        {/* Task List */}
+        {/* Main content */}
         {isLoading ? (
           <div className="text-center py-12 text-muted-foreground">Loading tasks...</div>
-        ) : filteredTasks.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <ListTodo className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              {activeFilter === 'completed' ? (
-                <>
-                  <h3 className="font-medium mb-2">No completed tasks yet</h3>
-                  <p className="text-muted-foreground text-sm">Complete some tasks and they'll appear here</p>
-                </>
-              ) : (
-                <>
-                  <h3 className="font-medium mb-2">All caught up!</h3>
-                  <p className="text-muted-foreground text-sm">Use #task in your scratch pad to capture tasks, or add one manually</p>
-                </>
-              )}
-            </CardContent>
-          </Card>
+        ) : viewMode === 'list' ? (
+          <TaskListView
+            tasks={regularTasks}
+            activeFilter={activeFilter}
+            energyFilter={energyFilter}
+            tagsFilter={tagsFilter}
+            onToggleComplete={handleToggleComplete}
+            onUpdateTask={handleUpdateTask}
+            onDeleteTask={initiateDelete}
+            onOpenDetail={openTaskDetail}
+            onQuickReschedule={handleQuickReschedule}
+          />
+        ) : viewMode === 'kanban' ? (
+          <TaskKanbanView
+            tasks={regularTasks}
+            onToggleComplete={handleToggleComplete}
+            onUpdateTask={handleUpdateTask}
+            onDeleteTask={initiateDelete}
+            onOpenDetail={openTaskDetail}
+            onQuickReschedule={handleQuickReschedule}
+          />
         ) : (
-          <div>
-            {activeFilter === 'completed' ? (
-              renderTaskGroup('Completed', groupedTasks.completed || filteredTasks, true)
-            ) : (
-              <>
-                {renderTaskGroup('Overdue', groupedTasks.overdue)}
-                {renderTaskGroup('Today', groupedTasks.today)}
-                {renderTaskGroup('Tomorrow', groupedTasks.tomorrow)}
-                {renderTaskGroup('This Week', groupedTasks.thisWeek)}
-                {renderTaskGroup('Later', groupedTasks.later)}
-                {renderTaskGroup('Unscheduled', groupedTasks.unscheduled)}
-              </>
-            )}
-          </div>
+          <TaskTimelineView
+            tasks={regularTasks}
+            selectedDate={selectedDate}
+            onUpdateTask={handleUpdateTask}
+            onOpenDetail={openTaskDetail}
+            onAddTaskAtTime={handleAddTaskAtTime}
+          />
         )}
       </div>
 
@@ -765,11 +645,82 @@ export default function Tasks() {
                 />
               </div>
 
+              {/* Duration & Energy */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Estimated Time</Label>
+                  <Select 
+                    value={newEstimatedMinutes?.toString() || ''} 
+                    onValueChange={(v) => setNewEstimatedMinutes(v ? parseInt(v) : null)}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Duration" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DURATION_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value.toString()}>
+                          <span className="flex items-center gap-2">
+                            <Clock className="h-3 w-3" />
+                            {opt.label}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Energy Required</Label>
+                  <Select 
+                    value={newEnergyLevel || ''} 
+                    onValueChange={(v) => setNewEnergyLevel(v as EnergyLevel || null)}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Energy level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ENERGY_LEVELS.map(level => (
+                        <SelectItem key={level.value} value={level.value}>
+                          <span className="flex items-center gap-2">
+                            {level.value === 'high_focus' && <Zap className="h-3 w-3" />}
+                            {level.value === 'medium' && <Battery className="h-3 w-3" />}
+                            {level.value === 'low_energy' && <BatteryLow className="h-3 w-3" />}
+                            {level.label}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Context Tags */}
+              <div>
+                <Label>Context Tags</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {CONTEXT_TAGS.map(tag => (
+                    <Badge
+                      key={tag.value}
+                      variant={newContextTags.includes(tag.value) ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => {
+                        if (newContextTags.includes(tag.value)) {
+                          setNewContextTags(newContextTags.filter(t => t !== tag.value));
+                        } else {
+                          setNewContextTags([...newContextTags, tag.value]);
+                        }
+                      }}
+                    >
+                      {tag.icon} {tag.label}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
               {/* SOP Selector */}
               <div>
                 <Label>Use SOP (optional)</Label>
                 <Select value={selectedSopId} onValueChange={handleSopSelect}>
-                  <SelectTrigger>
+                  <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Select an SOP to load checklist..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -784,21 +735,16 @@ export default function Tasks() {
                     ))}
                   </SelectContent>
                 </Select>
-                {sops.length === 0 && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Create SOPs in the SOPs page to use here
-                  </p>
-                )}
               </div>
 
               <div>
-                <Label htmlFor="task-desc">Description {selectedSopId && selectedSopId !== 'none' && <span className="text-muted-foreground">(auto-populated from SOP)</span>}</Label>
+                <Label htmlFor="task-desc">Description</Label>
                 <Textarea
                   id="task-desc"
                   placeholder="Add more details..."
                   value={newTaskDescription}
                   onChange={(e) => setNewTaskDescription(e.target.value)}
-                  className="min-h-[120px] font-mono text-sm"
+                  className="min-h-[100px] mt-1"
                 />
               </div>
 
@@ -840,7 +786,7 @@ export default function Tasks() {
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="weekly" id="r-weekly" />
-                    <Label htmlFor="r-weekly" className="font-normal">Weekly (select days)</Label>
+                    <Label htmlFor="r-weekly" className="font-normal">Weekly</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="monthly" id="r-monthly" />
@@ -914,6 +860,70 @@ export default function Tasks() {
                       onChange={(e) => setSelectedTask({ ...selectedTask, task_text: e.target.value })}
                       className="text-lg font-medium"
                     />
+                  </div>
+                </div>
+
+                {/* Duration & Energy */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Estimated Time</Label>
+                    <Select 
+                      value={selectedTask.estimated_minutes?.toString() || ''} 
+                      onValueChange={(v) => setSelectedTask({ ...selectedTask, estimated_minutes: v ? parseInt(v) : null })}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Duration" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DURATION_OPTIONS.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value.toString()}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Energy Required</Label>
+                    <Select 
+                      value={selectedTask.energy_level || ''} 
+                      onValueChange={(v) => setSelectedTask({ ...selectedTask, energy_level: v as EnergyLevel || null })}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Energy level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ENERGY_LEVELS.map(level => (
+                          <SelectItem key={level.value} value={level.value}>
+                            {level.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Context Tags */}
+                <div>
+                  <Label>Context Tags</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {CONTEXT_TAGS.map(tag => (
+                      <Badge
+                        key={tag.value}
+                        variant={(selectedTask.context_tags || []).includes(tag.value) ? "default" : "outline"}
+                        className="cursor-pointer"
+                        onClick={() => {
+                          const current = selectedTask.context_tags || [];
+                          if (current.includes(tag.value)) {
+                            setSelectedTask({ ...selectedTask, context_tags: current.filter(t => t !== tag.value) });
+                          } else {
+                            setSelectedTask({ ...selectedTask, context_tags: [...current, tag.value] });
+                          }
+                        }}
+                      >
+                        {tag.icon} {tag.label}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
 
@@ -1005,12 +1015,12 @@ export default function Tasks() {
                 )}
 
                 <div>
-                  <Label>Description</Label>
+                  <Label>Notes</Label>
                   <Textarea
-                    value={selectedTask.task_description || ''}
-                    onChange={(e) => setSelectedTask({ ...selectedTask, task_description: e.target.value })}
-                    placeholder="Add more details..."
-                    className="min-h-[100px] mt-1"
+                    value={selectedTask.notes || ''}
+                    onChange={(e) => setSelectedTask({ ...selectedTask, notes: e.target.value })}
+                    placeholder="Add notes..."
+                    className="min-h-[80px] mt-1"
                   />
                 </div>
 
@@ -1047,6 +1057,17 @@ export default function Tasks() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+
+                {/* Waiting On */}
+                <div>
+                  <Label>Waiting On</Label>
+                  <Input
+                    value={selectedTask.waiting_on || ''}
+                    onChange={(e) => setSelectedTask({ ...selectedTask, waiting_on: e.target.value })}
+                    placeholder="Who or what are you waiting on?"
+                    className="mt-1"
+                  />
                 </div>
 
                 {/* Recurrence Options for parent tasks */}
@@ -1132,7 +1153,7 @@ export default function Tasks() {
               Delete
             </Button>
             <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleUpdateTask} disabled={manageMutation.isPending}>
+            <Button onClick={handleSaveTaskDetail} disabled={manageMutation.isPending}>
               {manageMutation.isPending ? 'Saving...' : 'Save Changes'}
             </Button>
           </DialogFooter>
