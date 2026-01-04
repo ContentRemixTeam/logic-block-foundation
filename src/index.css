@@ -76,56 +76,56 @@ All colors MUST be HSL.
 
   /* ===== QUEST MODE THEME ===== */
   [data-theme="quest"] {
-    /* Richer, deeper background */
-    --background: 220 33% 8%;
-    --foreground: 30 10% 90%;
+    /* Rich layered background - deeper for contrast */
+    --background: 224 40% 7%;
+    --foreground: 35 20% 95%;
 
-    /* Enhanced card colors */
-    --card: 222 25% 14%;
-    --card-foreground: 30 10% 90%;
+    /* Cards - MUCH lighter for strong contrast */
+    --card: 222 22% 20%;
+    --card-foreground: 35 20% 94%;
 
-    --popover: 222 25% 14%;
-    --popover-foreground: 30 10% 90%;
+    --popover: 222 22% 18%;
+    --popover-foreground: 35 20% 94%;
 
     /* Gold primary */
     --primary: 43 76% 52%;
-    --primary-foreground: 220 33% 8%;
+    --primary-foreground: 224 40% 7%;
 
-    /* Richer secondary */
-    --secondary: 222 22% 18%;
-    --secondary-foreground: 30 10% 90%;
+    /* Lighter secondary */
+    --secondary: 222 18% 24%;
+    --secondary-foreground: 35 20% 92%;
 
     /* Muted states */
-    --muted: 222 20% 16%;
-    --muted-foreground: 30 5% 68%;
+    --muted: 222 16% 22%;
+    --muted-foreground: 35 8% 70%;
 
     /* Copper accent */
     --accent: 28 54% 46%;
-    --accent-foreground: 30 10% 90%;
+    --accent-foreground: 35 20% 95%;
 
     /* Success with emerald */
-    --success: 160 84% 39%;
-    --success-foreground: 30 10% 90%;
+    --success: 160 84% 42%;
+    --success-foreground: 35 20% 95%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 220 33% 8%;
+    --warning: 43 90% 55%;
+    --warning-foreground: 224 40% 7%;
 
-    --destructive: 0 62.8% 50.6%;
-    --destructive-foreground: 30 10% 90%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 35 20% 95%;
 
-    /* Subtle gold-tinted borders */
-    --border: 43 30% 20%;
-    --input: 222 20% 20%;
+    /* Gold-tinted borders - more visible */
+    --border: 43 40% 28%;
+    --input: 222 18% 26%;
     --ring: 43 76% 52%;
 
-    /* Sidebar with glass effect */
-    --sidebar-background: 222 28% 11%;
-    --sidebar-foreground: 30 10% 90%;
-    --sidebar-primary: 43 76% 52%;
-    --sidebar-primary-foreground: 220 33% 8%;
-    --sidebar-accent: 222 22% 16%;
-    --sidebar-accent-foreground: 30 10% 90%;
-    --sidebar-border: 43 30% 18%;
+    /* Sidebar - elevated glass */
+    --sidebar-background: 222 30% 10%;
+    --sidebar-foreground: 35 15% 90%;
+    --sidebar-primary: 43 76% 56%;
+    --sidebar-primary-foreground: 224 40% 7%;
+    --sidebar-accent: 43 40% 20%;
+    --sidebar-accent-foreground: 43 76% 70%;
+    --sidebar-border: 43 35% 22%;
     --sidebar-ring: 43 76% 52%;
     
     --font-heading: 'Cinzel', serif;
@@ -252,120 +252,72 @@ All colors MUST be HSL.
 
 /* ===== QUEST MODE ENHANCED STYLES ===== */
 
-/* Animated gradient background */
+/* Keyframe Animations */
 @keyframes gradientShift {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 
 @keyframes starTwinkle {
-  0%, 100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 0.8;
-  }
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.9; }
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 @keyframes floatSlow {
-  0%, 100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-10px) rotate(1deg);
-  }
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(1deg); }
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 5px hsl(43 76% 52% / 0.3);
-  }
-  50% {
-    box-shadow: 0 0 20px hsl(43 76% 52% / 0.6);
-  }
+  0%, 100% { box-shadow: 0 0 8px hsl(43 76% 52% / 0.4); }
+  50% { box-shadow: 0 0 25px hsl(43 76% 52% / 0.7); }
 }
 
 @keyframes coin-flip {
-  0% {
-    transform: rotateY(0deg);
-  }
-  100% {
-    transform: rotateY(360deg);
-  }
+  0% { transform: rotateY(0deg); }
+  100% { transform: rotateY(360deg); }
 }
 
 @keyframes xp-pop {
-  0% {
-    transform: scale(0) translateY(0);
-    opacity: 0;
-  }
-  50% {
-    transform: scale(1.2) translateY(-10px);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1) translateY(-20px);
-    opacity: 0;
-  }
+  0% { transform: scale(0) translateY(0); opacity: 0; }
+  50% { transform: scale(1.3) translateY(-15px); opacity: 1; }
+  100% { transform: scale(1) translateY(-25px); opacity: 0; }
 }
 
 @keyframes sparkle {
-  0%, 100% {
-    opacity: 0;
-    transform: scale(0);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1);
-  }
+  0%, 100% { opacity: 0; transform: scale(0); }
+  50% { opacity: 1; transform: scale(1); }
 }
 
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
+@keyframes borderGlow {
+  0%, 100% { border-color: hsl(43 76% 52% / 0.25); }
+  50% { border-color: hsl(43 76% 52% / 0.5); }
 }
 
-.animate-coin-flip {
-  animation: coin-flip 0.6s ease-in-out;
-}
+.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+.animate-coin-flip { animation: coin-flip 0.6s ease-in-out; }
+.animate-xp-pop { animation: xp-pop 1s ease-out forwards; }
+.animate-shimmer { animation: shimmer 2.5s linear infinite; }
+.animate-float-slow { animation: floatSlow 6s ease-in-out infinite; }
+.animate-border-glow { animation: borderGlow 3s ease-in-out infinite; }
 
-.animate-xp-pop {
-  animation: xp-pop 1s ease-out forwards;
-}
-
-.animate-shimmer {
-  animation: shimmer 2s linear infinite;
-}
-
-.animate-float-slow {
-  animation: floatSlow 6s ease-in-out infinite;
-}
-
-/* Quest Mode Body Background */
+/* ===== QUEST MODE BODY & BACKGROUND ===== */
 [data-theme="quest"] body {
-  background: linear-gradient(135deg, 
-    hsl(220 33% 6%) 0%, 
-    hsl(222 28% 12%) 50%, 
-    hsl(220 30% 9%) 100%
+  background: linear-gradient(160deg, 
+    #080c14 0%, 
+    #141a28 40%, 
+    #0d1119 100%
   );
-  background-size: 200% 200%;
-  animation: gradientShift 30s ease infinite;
-  position: relative;
+  background-attachment: fixed;
+  min-height: 100vh;
 }
 
-/* Decorative background layer - stars pattern */
+/* Radial glow accents */
 [data-theme="quest"] body::before {
   content: '';
   position: fixed;
@@ -373,22 +325,15 @@ All colors MUST be HSL.
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: 
-    radial-gradient(1px 1px at 10% 20%, hsl(43 76% 52% / 0.4) 50%, transparent 50%),
-    radial-gradient(1px 1px at 30% 60%, hsl(43 76% 52% / 0.3) 50%, transparent 50%),
-    radial-gradient(1.5px 1.5px at 50% 10%, hsl(43 76% 52% / 0.5) 50%, transparent 50%),
-    radial-gradient(1px 1px at 70% 80%, hsl(43 76% 52% / 0.35) 50%, transparent 50%),
-    radial-gradient(1.5px 1.5px at 90% 40%, hsl(43 76% 52% / 0.45) 50%, transparent 50%),
-    radial-gradient(1px 1px at 15% 85%, hsl(43 76% 52% / 0.3) 50%, transparent 50%),
-    radial-gradient(1px 1px at 85% 15%, hsl(43 76% 52% / 0.4) 50%, transparent 50%),
-    radial-gradient(1.5px 1.5px at 45% 45%, hsl(43 76% 52% / 0.35) 50%, transparent 50%);
-  opacity: 0.5;
+  background: 
+    radial-gradient(ellipse 80% 50% at 20% 20%, rgba(212, 175, 55, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(139, 92, 246, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 30% at 60% 30%, rgba(212, 175, 55, 0.03) 0%, transparent 40%);
   pointer-events: none;
   z-index: 0;
-  animation: starTwinkle 4s ease-in-out infinite;
 }
 
-/* Noise texture overlay */
+/* Animated stars */
 [data-theme="quest"] body::after {
   content: '';
   position: fixed;
@@ -396,362 +341,427 @@ All colors MUST be HSL.
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  opacity: 0.02;
+  background-image: 
+    radial-gradient(2px 2px at 15% 25%, rgba(212, 175, 55, 0.5), transparent),
+    radial-gradient(2px 2px at 35% 65%, rgba(255, 255, 255, 0.25), transparent),
+    radial-gradient(1.5px 1.5px at 55% 15%, rgba(212, 175, 55, 0.4), transparent),
+    radial-gradient(2px 2px at 75% 55%, rgba(255, 255, 255, 0.2), transparent),
+    radial-gradient(1.5px 1.5px at 92% 35%, rgba(212, 175, 55, 0.45), transparent),
+    radial-gradient(1px 1px at 25% 88%, rgba(212, 175, 55, 0.35), transparent),
+    radial-gradient(2px 2px at 85% 12%, rgba(255, 255, 255, 0.15), transparent);
+  background-size: 250px 250px;
+  animation: starTwinkle 6s ease-in-out infinite alternate;
   pointer-events: none;
   z-index: 0;
+  opacity: 0.7;
 }
 
-/* Main content wrapper needs proper z-index */
 [data-theme="quest"] #root {
   position: relative;
   z-index: 1;
 }
 
-/* Quest Mode Sidebar */
+/* ===== QUEST MODE SIDEBAR ===== */
 [data-theme="quest"] [data-sidebar] {
-  background: linear-gradient(180deg, 
-    hsl(222 28% 11% / 0.95) 0%, 
-    hsl(222 28% 9% / 0.98) 100%
-  );
-  backdrop-filter: blur(10px);
-  border-right: 1px solid hsl(43 76% 52% / 0.15);
-  box-shadow: 2px 0 30px hsl(0 0% 0% / 0.4);
+  background: rgba(14, 18, 28, 0.97) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  border-right: 1px solid rgba(212, 175, 55, 0.2) !important;
+  box-shadow: 
+    4px 0 32px rgba(0, 0, 0, 0.5),
+    inset -1px 0 0 rgba(212, 175, 55, 0.08) !important;
 }
 
-/* Quest Mode Cards */
-[data-theme="quest"] .card {
-  background: linear-gradient(145deg, 
-    hsl(222 22% 16%) 0%, 
-    hsl(222 25% 13%) 100%
-  );
-  border: 1px solid hsl(43 76% 52% / 0.2);
-  border-radius: 12px;
+/* Sidebar group labels */
+[data-theme="quest"] [data-sidebar-group-label] {
+  color: #d4af37 !important;
+  text-transform: uppercase !important;
+  font-size: 0.7rem !important;
+  letter-spacing: 0.12em !important;
+  font-weight: 600 !important;
+  padding: 0 12px !important;
+  margin-top: 20px !important;
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+}
+
+/* Sidebar nav items */
+[data-theme="quest"] [data-sidebar-menu-button] {
+  color: #a8a6a0 !important;
+  border-radius: 8px !important;
+  transition: all 0.25s ease !important;
+  margin: 2px 8px !important;
+}
+
+[data-theme="quest"] [data-sidebar-menu-button]:hover {
+  background: rgba(212, 175, 55, 0.1) !important;
+  color: #e8d7a8 !important;
+}
+
+[data-theme="quest"] [data-sidebar-menu-button][data-active="true"] {
+  background: linear-gradient(90deg, rgba(212, 175, 55, 0.22) 0%, rgba(212, 175, 55, 0.05) 100%) !important;
+  border-left: 3px solid #d4af37 !important;
+  color: #f4d03f !important;
+  box-shadow: 0 0 24px rgba(212, 175, 55, 0.15) !important;
+}
+
+[data-theme="quest"] [data-sidebar-menu-button][data-active="true"] svg {
+  color: #f4d03f !important;
+  filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.6)) !important;
+}
+
+[data-theme="quest"] [data-sidebar-menu-button] svg {
+  color: #9a9895;
+  transition: all 0.25s ease;
+}
+
+[data-theme="quest"] [data-sidebar-menu-button]:hover svg {
+  color: #e8d7a8;
+}
+
+/* ===== QUEST MODE CARDS - MUCH BETTER CONTRAST ===== */
+[data-theme="quest"] .card,
+[data-theme="quest"] [data-slot="card"] {
+  background: linear-gradient(145deg, #2d3548 0%, #252b3d 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  border-radius: 16px !important;
   box-shadow: 
-    0 8px 32px hsl(0 0% 0% / 0.4),
-    0 0 0 1px hsl(43 76% 52% / 0.05),
-    inset 0 1px 0 hsl(43 76% 52% / 0.05);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    0 8px 32px rgba(0, 0, 0, 0.55),
+    0 2px 8px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
   position: relative;
   overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-[data-theme="quest"] .card::before {
+/* Card golden top edge highlight */
+[data-theme="quest"] .card::before,
+[data-theme="quest"] [data-slot="card"]::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, 
-    transparent 0%,
-    hsl(43 76% 52% / 0.3) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.5), transparent);
+  z-index: 1;
 }
 
-[data-theme="quest"] .card:hover {
-  transform: translateY(-2px);
-  box-shadow: 
-    0 12px 40px hsl(0 0% 0% / 0.5),
-    0 0 30px hsl(43 76% 52% / 0.1),
-    inset 0 1px 0 hsl(43 76% 52% / 0.1);
-  border-color: hsl(43 76% 52% / 0.4);
-}
-
-/* Quest Mode Typography */
-[data-theme="quest"] h1 {
-  font-family: var(--font-heading);
-  font-size: 2rem;
-  font-weight: 700;
-  color: hsl(30 10% 90%);
-  text-shadow: 0 2px 10px hsl(43 76% 52% / 0.3);
-  letter-spacing: 0.05em;
-}
-
-[data-theme="quest"] h2 {
-  font-family: var(--font-heading);
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: hsl(43 76% 52%);
-  letter-spacing: 0.08em;
-}
-
-[data-theme="quest"] h3 {
-  font-family: var(--font-heading);
-  font-size: 1rem;
-  font-weight: 600;
-  color: hsl(30 10% 90%);
-  letter-spacing: 0.05em;
-}
-
-/* Quest Mode Primary Buttons */
-[data-theme="quest"] .btn-primary,
-[data-theme="quest"] button[data-variant="default"] {
-  background: linear-gradient(135deg, hsl(43 76% 52%) 0%, hsl(43 70% 42%) 100%);
-  color: hsl(220 33% 8%);
-  font-weight: 600;
-  border: none;
-  box-shadow: 
-    0 4px 15px hsl(43 76% 52% / 0.3),
-    inset 0 1px 0 hsl(48 85% 60% / 0.3);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-[data-theme="quest"] .btn-primary:hover,
-[data-theme="quest"] button[data-variant="default"]:hover {
-  box-shadow: 
-    0 6px 25px hsl(43 76% 52% / 0.5),
-    inset 0 1px 0 hsl(48 85% 60% / 0.4);
-  transform: translateY(-2px);
-  filter: brightness(1.1);
-}
-
-/* Quest Mode Secondary/Ghost Buttons */
-[data-theme="quest"] .btn-secondary,
-[data-theme="quest"] button[data-variant="outline"],
-[data-theme="quest"] button[data-variant="ghost"] {
-  background: hsl(43 76% 52% / 0.1);
-  border: 1px solid hsl(43 76% 52% / 0.3);
-  color: hsl(43 76% 52%);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-[data-theme="quest"] .btn-secondary:hover,
-[data-theme="quest"] button[data-variant="outline"]:hover,
-[data-theme="quest"] button[data-variant="ghost"]:hover {
-  background: hsl(43 76% 52% / 0.2);
-  border-color: hsl(43 76% 52% / 0.5);
-  transform: translateY(-1px);
-}
-
-/* Quest Mode Inputs */
-[data-theme="quest"] input,
-[data-theme="quest"] textarea,
-[data-theme="quest"] select {
-  background: hsl(222 22% 16% / 0.6);
-  border: 1px solid hsl(43 76% 52% / 0.2);
-  border-radius: 8px;
-  color: hsl(30 10% 90%);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-[data-theme="quest"] input:focus,
-[data-theme="quest"] textarea:focus,
-[data-theme="quest"] select:focus {
-  border-color: hsl(43 76% 52%);
-  box-shadow: 
-    0 0 0 3px hsl(43 76% 52% / 0.1),
-    inset 0 0 10px hsl(43 76% 52% / 0.05);
-  background: hsl(222 22% 18% / 0.8);
-  outline: none;
-}
-
-[data-theme="quest"] input::placeholder,
-[data-theme="quest"] textarea::placeholder {
-  color: hsl(30 5% 50%);
-}
-
-/* Quest Mode Progress Bars */
-[data-theme="quest"] [role="progressbar"] {
-  background: hsl(43 76% 52% / 0.1);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-[data-theme="quest"] [role="progressbar"] > div {
-  background: linear-gradient(90deg, hsl(43 76% 52%) 0%, hsl(48 85% 60%) 100%);
-  box-shadow: 0 0 20px hsl(43 76% 52% / 0.5);
-  position: relative;
-}
-
-[data-theme="quest"] [role="progressbar"] > div::after {
+/* Card corner glow */
+[data-theme="quest"] .card::after,
+[data-theme="quest"] [data-slot="card"]::after {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    hsl(0 0% 100% / 0.3) 50%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 2s linear infinite;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle at top left, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
+  pointer-events: none;
 }
 
-/* Quest Mode Navigation - Active State */
-[data-theme="quest"] [data-sidebar-menu-button][data-active="true"],
-[data-theme="quest"] .nav-item-active {
-  background: linear-gradient(90deg, hsl(43 76% 52% / 0.15) 0%, transparent 100%);
-  border-left: 3px solid hsl(43 76% 52%);
-  color: hsl(43 76% 52%);
+/* Card hover with lift and glow */
+[data-theme="quest"] .card:hover,
+[data-theme="quest"] [data-slot="card"]:hover {
+  transform: translateY(-4px) !important;
+  border-color: rgba(212, 175, 55, 0.5) !important;
+  box-shadow: 
+    0 16px 48px rgba(0, 0, 0, 0.65),
+    0 8px 24px rgba(212, 175, 55, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
 }
 
-/* Quest Mode Navigation - Hover State */
-[data-theme="quest"] [data-sidebar-menu-button]:hover {
-  background: hsl(43 76% 52% / 0.08);
-  color: hsl(30 10% 90%);
+/* ===== QUEST MODE TYPOGRAPHY - BRIGHTER ===== */
+[data-theme="quest"] h1 {
+  font-family: var(--font-heading), serif;
+  color: #f5f3ef !important;
+  text-shadow: 0 2px 16px rgba(212, 175, 55, 0.4);
+  letter-spacing: 0.04em;
 }
 
-/* Quest Mode Icon styling */
-[data-theme="quest"] [data-sidebar-menu-button] svg {
-  color: hsl(30 5% 66%);
-  transition: all 0.3s ease;
-}
-
-[data-theme="quest"] [data-sidebar-menu-button]:hover svg,
-[data-theme="quest"] [data-sidebar-menu-button][data-active="true"] svg {
-  color: hsl(43 76% 52%);
-  filter: drop-shadow(0 0 4px hsl(43 76% 52% / 0.4));
-}
-
-/* Quest Mode Badges */
-[data-theme="quest"] .badge,
-[data-theme="quest"] [data-badge] {
-  background: linear-gradient(135deg, hsl(43 76% 52% / 0.2) 0%, hsl(28 54% 46% / 0.2) 100%);
-  border: 1px solid hsl(43 76% 52% / 0.3);
-  color: hsl(43 76% 52%);
-  font-weight: 600;
-  text-shadow: 0 1px 2px hsl(0 0% 0% / 0.3);
-}
-
-/* Quest Mode Tables */
-[data-theme="quest"] table {
-  border: 1px solid hsl(43 76% 52% / 0.15);
-}
-
-[data-theme="quest"] th {
-  background: hsl(222 25% 12%);
-  color: hsl(43 76% 52%);
-  font-weight: 600;
+[data-theme="quest"] h2 {
+  font-family: var(--font-heading), serif;
+  color: #e8d7a8 !important;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  font-weight: 600;
 }
 
-[data-theme="quest"] td {
-  border-color: hsl(43 76% 52% / 0.1);
+[data-theme="quest"] h3 {
+  color: #f0e6d2 !important;
+  font-weight: 600;
 }
 
-[data-theme="quest"] tr:hover {
-  background: hsl(43 76% 52% / 0.05);
+[data-theme="quest"] p {
+  color: #d1cec8;
 }
 
-/* Quest Mode Dividers */
-[data-theme="quest"] hr,
-[data-theme="quest"] [data-orientation="horizontal"] {
-  border-color: hsl(43 76% 52% / 0.2);
-  background: linear-gradient(90deg, 
-    transparent 0%,
-    hsl(43 76% 52% / 0.3) 50%,
-    transparent 100%
-  );
-}
-
-/* Quest Mode Tooltips & Popovers */
-[data-theme="quest"] [data-radix-popper-content-wrapper] > div,
-[data-theme="quest"] [role="tooltip"] {
-  background: hsl(222 25% 14%);
-  border: 1px solid hsl(43 76% 52% / 0.3);
-  box-shadow: 0 8px 32px hsl(0 0% 0% / 0.5);
-}
-
-/* Quest Mode Accent Colors for specific states */
-.quest-emerald {
-  color: hsl(160 84% 39%);
-}
-
-.quest-gold {
-  color: hsl(43 76% 52%);
-}
-
-.quest-copper {
-  color: hsl(28 54% 46%);
-}
-
-.quest-purple {
-  color: hsl(258 90% 66%);
-}
-
-.quest-blue {
-  color: hsl(213 94% 68%);
-}
-
-/* Quest Mode Glow Effects */
-.quest-glow-gold {
-  box-shadow: 0 0 20px hsl(43 76% 52% / 0.4);
-}
-
-.quest-glow-emerald {
-  box-shadow: 0 0 20px hsl(160 84% 39% / 0.4);
-}
-
-/* Quest Mode Labels */
 [data-theme="quest"] label {
-  font-size: 0.875rem;
-  color: hsl(30 5% 66%);
+  color: #b8b5af !important;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 500;
+  font-size: 0.85rem;
 }
 
-/* Quest Mode Scrollbar */
-[data-theme="quest"] ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* ===== QUEST MODE BUTTONS - RICH GOLD ===== */
+[data-theme="quest"] button[data-variant="default"],
+[data-theme="quest"] .btn-primary {
+  background: linear-gradient(135deg, #d4af37 0%, #c49a2e 100%) !important;
+  color: #0a0e14 !important;
+  font-weight: 600 !important;
+  border: none !important;
+  border-radius: 10px !important;
+  box-shadow: 
+    0 4px 16px rgba(212, 175, 55, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.15);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-[data-theme="quest"] ::-webkit-scrollbar-track {
-  background: hsl(222 25% 10%);
+[data-theme="quest"] button[data-variant="default"]:hover,
+[data-theme="quest"] .btn-primary:hover {
+  background: linear-gradient(135deg, #e8c44a 0%, #d4af37 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 
+    0 8px 28px rgba(212, 175, 55, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
 }
 
-[data-theme="quest"] ::-webkit-scrollbar-thumb {
-  background: hsl(43 76% 52% / 0.3);
-  border-radius: 4px;
+/* Secondary/Ghost buttons */
+[data-theme="quest"] button[data-variant="outline"],
+[data-theme="quest"] button[data-variant="ghost"],
+[data-theme="quest"] .btn-secondary {
+  background: rgba(212, 175, 55, 0.12) !important;
+  border: 1.5px solid rgba(212, 175, 55, 0.4) !important;
+  color: #f4d03f !important;
+  border-radius: 10px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+  transition: all 0.25s ease !important;
 }
 
-[data-theme="quest"] ::-webkit-scrollbar-thumb:hover {
-  background: hsl(43 76% 52% / 0.5);
+[data-theme="quest"] button[data-variant="outline"]:hover,
+[data-theme="quest"] button[data-variant="ghost"]:hover,
+[data-theme="quest"] .btn-secondary:hover {
+  background: rgba(212, 175, 55, 0.22) !important;
+  border-color: rgba(212, 175, 55, 0.65) !important;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.2) !important;
+  transform: translateY(-1px) !important;
 }
 
-/* Quest Mode Tabs */
+/* ===== QUEST MODE INPUTS - INVITING ===== */
+[data-theme="quest"] input,
+[data-theme="quest"] textarea,
+[data-theme="quest"] select,
+[data-theme="quest"] [data-slot="input"] {
+  background: rgba(45, 53, 72, 0.7) !important;
+  border: 1.5px solid rgba(212, 175, 55, 0.25) !important;
+  border-radius: 10px !important;
+  color: #f0e6d2 !important;
+  transition: all 0.3s ease !important;
+}
+
+[data-theme="quest"] input::placeholder,
+[data-theme="quest"] textarea::placeholder {
+  color: #7a7874 !important;
+}
+
+[data-theme="quest"] input:focus,
+[data-theme="quest"] textarea:focus,
+[data-theme="quest"] select:focus,
+[data-theme="quest"] [data-slot="input"]:focus {
+  background: rgba(45, 53, 72, 0.95) !important;
+  border-color: #d4af37 !important;
+  box-shadow: 
+    0 0 0 4px rgba(212, 175, 55, 0.15),
+    0 4px 16px rgba(0, 0, 0, 0.35),
+    inset 0 2px 8px rgba(212, 175, 55, 0.08) !important;
+  outline: none !important;
+}
+
+/* ===== QUEST MODE PROGRESS BARS - GLOWING ===== */
+[data-theme="quest"] [role="progressbar"] {
+  background: rgba(15, 20, 28, 0.7) !important;
+  border: 1px solid rgba(212, 175, 55, 0.18) !important;
+  border-radius: 12px !important;
+  height: 12px !important;
+  overflow: hidden !important;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="quest"] [role="progressbar"] > div {
+  background: linear-gradient(90deg, #c9a227 0%, #f4d03f 50%, #c9a227 100%) !important;
+  background-size: 200% 100% !important;
+  border-radius: 12px !important;
+  box-shadow: 
+    0 0 24px rgba(212, 175, 55, 0.65),
+    0 0 12px rgba(212, 175, 55, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+  animation: shimmer 2.5s linear infinite !important;
+}
+
+/* ===== QUEST MODE BADGES ===== */
+[data-theme="quest"] [data-slot="badge"],
+[data-theme="quest"] .badge {
+  background: rgba(212, 175, 55, 0.18) !important;
+  border: 1px solid rgba(212, 175, 55, 0.4) !important;
+  color: #f4d03f !important;
+  font-weight: 600 !important;
+}
+
+/* Purple accent badge */
+[data-theme="quest"] .badge-purple,
+[data-theme="quest"] [data-accent="purple"] {
+  background: rgba(139, 92, 246, 0.2) !important;
+  color: #a78bfa !important;
+  border: 1px solid rgba(139, 92, 246, 0.45) !important;
+}
+
+/* Success/Emerald accent */
+[data-theme="quest"] .badge-success,
+[data-theme="quest"] [data-accent="success"] {
+  background: rgba(16, 185, 129, 0.18) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.4) !important;
+}
+
+/* Success progress bars */
+[data-theme="quest"] [data-accent="success"] [role="progressbar"] > div {
+  background: linear-gradient(90deg, #10b981 0%, #34d399 50%, #10b981 100%) !important;
+  box-shadow: 
+    0 0 24px rgba(16, 185, 129, 0.55),
+    0 0 12px rgba(16, 185, 129, 0.35) !important;
+}
+
+/* ===== QUEST MODE TABLES ===== */
+[data-theme="quest"] table {
+  background: transparent;
+}
+
+[data-theme="quest"] th {
+  background: rgba(212, 175, 55, 0.1) !important;
+  color: #e8d7a8 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25) !important;
+}
+
+[data-theme="quest"] td {
+  border-bottom: 1px solid rgba(212, 175, 55, 0.12) !important;
+}
+
+[data-theme="quest"] tr:hover td {
+  background: rgba(212, 175, 55, 0.06) !important;
+}
+
+/* ===== QUEST MODE TABS ===== */
 [data-theme="quest"] [role="tablist"] {
-  background: hsl(222 22% 12%);
-  border: 1px solid hsl(43 76% 52% / 0.15);
-  border-radius: 8px;
-  padding: 4px;
+  background: rgba(20, 26, 38, 0.7) !important;
+  border: 1px solid rgba(212, 175, 55, 0.18) !important;
+  border-radius: 12px !important;
+  padding: 4px !important;
+}
+
+[data-theme="quest"] [role="tab"] {
+  color: #a8a6a0 !important;
+  border-radius: 8px !important;
+  transition: all 0.25s ease !important;
+}
+
+[data-theme="quest"] [role="tab"]:hover {
+  color: #e8d7a8 !important;
+  background: rgba(212, 175, 55, 0.1) !important;
 }
 
 [data-theme="quest"] [role="tab"][data-state="active"] {
-  background: linear-gradient(135deg, hsl(43 76% 52% / 0.2) 0%, hsl(43 76% 52% / 0.1) 100%);
-  color: hsl(43 76% 52%);
-  box-shadow: 0 0 10px hsl(43 76% 52% / 0.2);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.22) 0%, rgba(212, 175, 55, 0.1) 100%) !important;
+  color: #f4d03f !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35) !important;
 }
 
-/* Quest Mode Checkboxes */
-[data-theme="quest"] [role="checkbox"][data-state="checked"] {
-  background: linear-gradient(135deg, hsl(43 76% 52%) 0%, hsl(43 70% 42%) 100%);
-  border-color: hsl(43 76% 52%);
-}
-
-/* Quest Mode Switches */
+/* ===== QUEST MODE CHECKBOX & SWITCH ===== */
+[data-theme="quest"] [role="checkbox"][data-state="checked"],
 [data-theme="quest"] [role="switch"][data-state="checked"] {
-  background: linear-gradient(135deg, hsl(43 76% 52%) 0%, hsl(43 70% 42%) 100%);
+  background: linear-gradient(135deg, #d4af37 0%, #b8941f 100%) !important;
+  border-color: #d4af37 !important;
 }
 
-/* Quest Mode Dialog/Modal */
+/* ===== QUEST MODE DIALOGS ===== */
 [data-theme="quest"] [role="dialog"] {
-  background: linear-gradient(145deg, hsl(222 22% 16%) 0%, hsl(222 25% 12%) 100%);
-  border: 1px solid hsl(43 76% 52% / 0.3);
+  background: linear-gradient(145deg, #2d3548 0%, #252b3d 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
   box-shadow: 
-    0 24px 80px hsl(0 0% 0% / 0.6),
-    0 0 40px hsl(43 76% 52% / 0.1);
+    0 24px 80px rgba(0, 0, 0, 0.7),
+    0 0 48px rgba(212, 175, 55, 0.1) !important;
 }
 
-/* Decorative corner flourishes for quest cards */
+/* ===== QUEST MODE TOOLTIPS & POPOVERS ===== */
+[data-theme="quest"] [role="tooltip"],
+[data-theme="quest"] [data-radix-popper-content-wrapper] > div {
+  background: linear-gradient(145deg, #2d3548 0%, #282e3f 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #f0e6d2 !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55) !important;
+}
+
+/* ===== QUEST MODE SCROLLBAR ===== */
+[data-theme="quest"] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+[data-theme="quest"] ::-webkit-scrollbar-track {
+  background: rgba(20, 26, 38, 0.6);
+  border-radius: 5px;
+}
+
+[data-theme="quest"] ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.45) 0%, rgba(212, 175, 55, 0.25) 100%);
+  border-radius: 5px;
+  border: 2px solid rgba(20, 26, 38, 0.5);
+}
+
+[data-theme="quest"] ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.65) 0%, rgba(212, 175, 55, 0.45) 100%);
+}
+
+/* ===== QUEST MODE DIVIDERS ===== */
+[data-theme="quest"] hr,
+[data-theme="quest"] [data-slot="separator"] {
+  border: none !important;
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.35), transparent) !important;
+}
+
+/* ===== QUEST MODE ICONS ===== */
+[data-theme="quest"] svg {
+  transition: all 0.25s ease;
+}
+
+/* ===== QUEST UTILITY CLASSES ===== */
+.quest-emerald { color: #34d399; }
+.quest-gold { color: #f4d03f; }
+.quest-copper { color: #cd8e4e; }
+.quest-purple { color: #a78bfa; }
+.quest-blue { color: #60a5fa; }
+
+.quest-glow-gold { box-shadow: 0 0 24px rgba(212, 175, 55, 0.5); }
+.quest-glow-emerald { box-shadow: 0 0 24px rgba(16, 185, 129, 0.5); }
+.quest-glow-purple { box-shadow: 0 0 24px rgba(139, 92, 246, 0.5); }
+
+/* Quest text glow */
+.quest-text-glow {
+  text-shadow: 0 2px 12px rgba(212, 175, 55, 0.5);
+}
+
+/* Quest percentage styling */
+[data-theme="quest"] .quest-percentage {
+  color: #f4d03f;
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-shadow: 0 2px 10px rgba(212, 175, 55, 0.55);
+}
+
+/* Decorative corner flourishes */
 .quest-flourish {
   position: relative;
 }
@@ -760,9 +770,9 @@ All colors MUST be HSL.
 .quest-flourish::after {
   content: '';
   position: absolute;
-  width: 40px;
-  height: 40px;
-  border: 1px solid hsl(43 76% 52% / 0.2);
+  width: 50px;
+  height: 50px;
+  border: 1px solid rgba(212, 175, 55, 0.25);
   pointer-events: none;
 }
 
@@ -771,7 +781,7 @@ All colors MUST be HSL.
   left: -1px;
   border-right: none;
   border-bottom: none;
-  border-top-left-radius: 12px;
+  border-top-left-radius: 16px;
 }
 
 .quest-flourish::after {
@@ -779,20 +789,23 @@ All colors MUST be HSL.
   right: -1px;
   border-left: none;
   border-top: none;
-  border-bottom-right-radius: 12px;
+  border-bottom-right-radius: 16px;
 }
 
-/* Responsive adjustments for Quest Mode */
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
 @media (max-width: 768px) {
-  [data-theme="quest"] .card {
-    box-shadow: 0 4px 16px hsl(0 0% 0% / 0.3);
+  [data-theme="quest"] .card,
+  [data-theme="quest"] [data-slot="card"] {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45) !important;
   }
   
-  [data-theme="quest"] .card:hover {
-    transform: none;
+  [data-theme="quest"] .card:hover,
+  [data-theme="quest"] [data-slot="card"]:hover {
+    transform: none !important;
   }
   
-  [data-theme="quest"] body::before {
-    opacity: 0.3;
+  [data-theme="quest"] body::before,
+  [data-theme="quest"] body::after {
+    opacity: 0.5;
   }
 }
