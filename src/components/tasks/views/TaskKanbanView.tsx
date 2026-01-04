@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { Target, Calendar, Inbox, Clock } from 'lucide-react';
+import { Target, Calendar, Inbox, Clock, Archive } from 'lucide-react';
 import { Task, TaskStatus } from '../types';
 import { TaskCard } from '../TaskCard';
 
@@ -13,7 +13,7 @@ interface TaskKanbanViewProps {
   onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
   onDeleteTask: (task: Task) => void;
   onOpenDetail: (task: Task) => void;
-  onQuickReschedule: (taskId: string, date: Date | null) => void;
+  onQuickReschedule: (taskId: string, date: Date | null, status?: string) => void;
 }
 
 interface KanbanColumn {
@@ -50,6 +50,12 @@ const columns: KanbanColumn[] = [
     icon: <Clock className="h-4 w-4" />, 
     color: 'border-t-warning'
   },
+  { 
+    id: 'someday', 
+    title: 'Someday', 
+    icon: <Archive className="h-4 w-4" />, 
+    color: 'border-t-secondary'
+  },
 ];
 
 export function TaskKanbanView({
@@ -67,6 +73,7 @@ export function TaskKanbanView({
       scheduled: [],
       backlog: [],
       waiting: [],
+      someday: [],
     };
 
     tasks.forEach(task => {
@@ -109,7 +116,7 @@ export function TaskKanbanView({
   };
 
   return (
-    <div className="grid grid-cols-4 gap-4 h-[calc(100vh-300px)] min-h-[500px]">
+    <div className="grid grid-cols-5 gap-4 h-[calc(100vh-300px)] min-h-[500px]">
       {columns.map(column => {
         const columnTasks = groupedTasks[column.id];
         const isOverLimit = column.maxTasks && columnTasks.length > column.maxTasks;
@@ -145,6 +152,8 @@ export function TaskKanbanView({
                         ? 'Drag tasks here to focus on today'
                         : column.id === 'waiting'
                         ? 'Tasks blocked or delegated'
+                        : column.id === 'someday'
+                        ? 'Tasks for later'
                         : 'No tasks'}
                     </div>
                   ) : (

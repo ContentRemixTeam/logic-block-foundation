@@ -19,8 +19,10 @@ import {
   Zap,
   Battery,
   BatteryLow,
-  CheckCircle2,
-  MoreHorizontal
+  MoreHorizontal,
+  CalendarClock,
+  ArrowRight,
+  Inbox
 } from 'lucide-react';
 import { Task, ENERGY_LEVELS, DURATION_OPTIONS } from './types';
 import {
@@ -37,7 +39,7 @@ interface TaskCardProps {
   onUpdate: (taskId: string, updates: Partial<Task>) => void;
   onDelete: (task: Task) => void;
   onOpenDetail: (task: Task) => void;
-  onQuickReschedule: (taskId: string, date: Date | null) => void;
+  onQuickReschedule: (taskId: string, date: Date | null, status?: string) => void;
   isDragging?: boolean;
 }
 
@@ -246,51 +248,76 @@ export function TaskCard({
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <CalendarIcon className="h-4 w-4" />
+                <Button variant="ghost" size="icon" className="h-7 w-7" title="Reschedule">
+                  <CalendarClock className="h-4 w-4" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <div className="p-2 border-b space-y-1">
+              <PopoverContent className="w-48 p-0" align="end">
+                <div className="p-1 space-y-0.5">
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="w-full justify-start text-xs" 
-                    onClick={() => onQuickReschedule(task.task_id, new Date())}
+                    className="w-full justify-start text-sm h-9" 
+                    onClick={() => onQuickReschedule(task.task_id, new Date(), 'scheduled')}
                   >
+                    <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
                     Today
                   </Button>
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="w-full justify-start text-xs" 
+                    className="w-full justify-start text-sm h-9" 
                     onClick={() => {
                       const tomorrow = new Date();
                       tomorrow.setDate(tomorrow.getDate() + 1);
-                      onQuickReschedule(task.task_id, tomorrow);
+                      onQuickReschedule(task.task_id, tomorrow, 'scheduled');
                     }}
                   >
+                    <ArrowRight className="h-4 w-4 mr-2 text-muted-foreground" />
                     Tomorrow
                   </Button>
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="w-full justify-start text-xs" 
+                    className="w-full justify-start text-sm h-9" 
                     onClick={() => {
                       const nextWeek = new Date();
                       nextWeek.setDate(nextWeek.getDate() + 7);
-                      onQuickReschedule(task.task_id, nextWeek);
+                      onQuickReschedule(task.task_id, nextWeek, 'scheduled');
                     }}
                   >
+                    <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
                     Next Week
                   </Button>
+                  <div className="border-t my-1" />
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="w-full justify-start text-sm h-9" 
+                    onClick={() => onQuickReschedule(task.task_id, null, 'someday')}
+                  >
+                    <Inbox className="h-4 w-4 mr-2 text-muted-foreground" />
+                    Someday
+                  </Button>
                 </div>
-                <Calendar
-                  mode="single"
-                  selected={task.scheduled_date ? parseISO(task.scheduled_date) : undefined}
-                  onSelect={(date) => onQuickReschedule(task.task_id, date || null)}
-                  className="pointer-events-auto"
-                />
+                <div className="border-t p-1">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="sm" className="w-full justify-start text-sm h-9">
+                        <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                        Pick a date...
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end" side="left">
+                      <Calendar
+                        mode="single"
+                        selected={task.scheduled_date ? parseISO(task.scheduled_date) : undefined}
+                        onSelect={(date) => onQuickReschedule(task.task_id, date || null, 'scheduled')}
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </PopoverContent>
             </Popover>
 

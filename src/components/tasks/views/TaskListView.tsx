@@ -16,7 +16,7 @@ interface TaskListViewProps {
   onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
   onDeleteTask: (task: Task) => void;
   onOpenDetail: (task: Task) => void;
-  onQuickReschedule: (taskId: string, date: Date | null) => void;
+  onQuickReschedule: (taskId: string, date: Date | null, status?: string) => void;
 }
 
 export function TaskListView({
