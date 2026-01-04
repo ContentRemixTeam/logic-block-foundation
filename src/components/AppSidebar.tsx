@@ -14,14 +14,12 @@ import {
   Settings,
   LogOut,
   ChevronDown,
-  ChevronRight,
   ListTodo,
   BookOpen,
   ClipboardList,
   Sparkles,
   Users,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import {
   Sidebar,
@@ -37,21 +35,26 @@ import {
 } from '@/components/ui/sidebar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
-const mainNavigation = [
+const planningNavigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Cycle Setup', href: '/cycle-setup', icon: Target },
   { name: 'Daily Plan', href: '/daily-plan', icon: CalendarDays },
-  { name: 'Daily Review', href: '/daily-review', icon: Sparkles },
-  { name: 'Notes', href: '/notes', icon: BookOpen },
-  { name: 'Tasks', href: '/tasks', icon: ListTodo },
-  { name: 'SOPs', href: '/sops', icon: ClipboardList },
   { name: 'Weekly Plan', href: '/weekly-plan', icon: Calendar },
+  { name: 'Tasks', href: '/tasks', icon: ListTodo },
+];
+
+const reflectionNavigation = [
+  { name: 'Daily Review', href: '/daily-review', icon: Sparkles },
   { name: 'Weekly Review', href: '/weekly-review', icon: FileText },
   { name: 'Monthly Review', href: '/monthly-review', icon: BarChart3 },
   { name: 'Progress', href: '/progress', icon: TrendingUp },
+];
+
+const resourcesNavigation = [
+  { name: 'Notes', href: '/notes', icon: BookOpen },
+  { name: 'SOPs', href: '/sops', icon: ClipboardList },
   { name: 'Habits', href: '/habits', icon: CheckSquare },
   { name: 'Ideas', href: '/ideas', icon: Zap },
-  { name: 'Celebration Wall', href: '/community', icon: Users },
 ];
 
 const mindsetNavigation = [
@@ -76,6 +79,21 @@ export function AppSidebar() {
 
   const isActive = (href: string) => location.pathname === href;
 
+  const renderNavItems = (items: typeof planningNavigation) => (
+    <>
+      {items.map((item) => (
+        <SidebarMenuItem key={item.name}>
+          <SidebarMenuButton asChild isActive={isActive(item.href)}>
+            <Link to={item.href}>
+              <item.icon className="h-4 w-4" />
+              <span>{item.name}</span>
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      ))}
+    </>
+  );
+
   return (
     <Sidebar collapsible="icon">
       <div className="flex h-16 items-center border-b px-6">
@@ -86,19 +104,32 @@ export function AppSidebar() {
       </div>
 
       <SidebarContent>
+        {/* PLANNING Section */}
         <SidebarGroup>
+          <SidebarGroupLabel>Planning</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainNavigation.map((item) => (
-                <SidebarMenuItem key={item.name}>
-                  <SidebarMenuButton asChild isActive={isActive(item.href)}>
-                    <Link to={item.href}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.name}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {renderNavItems(planningNavigation)}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* REFLECTION Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Reflection</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {renderNavItems(reflectionNavigation)}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* RESOURCES Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Resources</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {renderNavItems(resourcesNavigation)}
 
               {/* Mindset Section - Collapsible */}
               <Collapsible
@@ -136,7 +167,24 @@ export function AppSidebar() {
                 </CollapsibleContent>
               </Collapsible>
 
-              {/* Settings */}
+              {/* Celebration Wall */}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive('/community')}>
+                  <Link to="/community">
+                    <Users className="h-4 w-4" />
+                    <span>Celebration Wall</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* SETTINGS Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Settings</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive('/settings')}>
                   <Link to="/settings">
@@ -163,4 +211,3 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
-
