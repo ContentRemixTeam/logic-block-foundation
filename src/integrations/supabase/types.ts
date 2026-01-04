@@ -338,6 +338,45 @@ export type Database = {
           },
         ]
       }
+      feature_requests: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          id: string
+          priority: string
+          screenshot_url: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description: string
+          id?: string
+          priority?: string
+          screenshot_url?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          priority?: string
+          screenshot_url?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       habit_logs: {
         Row: {
           completed: boolean | null
@@ -564,6 +603,57 @@ export type Database = {
           supporting_habits?: Json | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      issue_reports: {
+        Row: {
+          browser_info: string | null
+          created_at: string
+          device_info: string | null
+          id: string
+          page_section: string
+          screenshot_url: string | null
+          severity: string
+          status: string
+          ticket_number: string
+          title: string
+          updated_at: string
+          user_id: string
+          what_happened: string
+          what_trying_to_do: string
+        }
+        Insert: {
+          browser_info?: string | null
+          created_at?: string
+          device_info?: string | null
+          id?: string
+          page_section: string
+          screenshot_url?: string | null
+          severity?: string
+          status?: string
+          ticket_number: string
+          title: string
+          updated_at?: string
+          user_id: string
+          what_happened: string
+          what_trying_to_do: string
+        }
+        Update: {
+          browser_info?: string | null
+          created_at?: string
+          device_info?: string | null
+          id?: string
+          page_section?: string
+          screenshot_url?: string | null
+          severity?: string
+          status?: string
+          ticket_number?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          what_happened?: string
+          what_trying_to_do?: string
         }
         Relationships: []
       }

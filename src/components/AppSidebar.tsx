@@ -18,6 +18,7 @@ import {
   BookOpen,
   ClipboardList,
   Sparkles,
+  HelpCircle,
   Users,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -190,6 +191,14 @@ export function AppSidebar() {
                   <Link to="/settings">
                     <Settings className="h-4 w-4" />
                     <span>Settings</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive('/support')}>
+                  <Link to="/support">
+                    <HelpCircle className="h-4 w-4" />
+                    <span>Support</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
