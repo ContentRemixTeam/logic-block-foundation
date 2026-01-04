@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { normalizeArray, normalizeString, normalizeNumber } from '@/lib/normalize';
 import { Target, Calendar, CheckSquare, ArrowRight, TrendingUp, Zap } from 'lucide-react';
+import { OnboardingChecklist } from '@/components/tour/OnboardingChecklist';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -120,6 +121,9 @@ export default function Dashboard() {
           </h1>
           <p className="text-muted-foreground">Your 90-day planning overview</p>
         </div>
+
+        {/* Onboarding Checklist */}
+        <OnboardingChecklist />
 
         {!hasCycle ? (
           <Card>
