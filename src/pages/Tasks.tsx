@@ -208,14 +208,20 @@ export default function Tasks() {
     }
   };
 
-  const handleQuickReschedule = async (taskId: string, date: Date | null) => {
+  const handleQuickReschedule = async (taskId: string, date: Date | null, status?: string) => {
     try {
-      await manageMutation.mutateAsync({
+      const updates: Record<string, unknown> = {
         action: 'update',
         task_id: taskId,
         scheduled_date: date ? format(date, 'yyyy-MM-dd') : null,
-      });
-      toast.success('Task rescheduled');
+      };
+      
+      if (status) {
+        updates.status = status;
+      }
+      
+      await manageMutation.mutateAsync(updates);
+      toast.success(status === 'someday' ? 'Task moved to Someday' : 'Task rescheduled');
     } catch (error) {
       toast.error('Failed to reschedule task');
     }

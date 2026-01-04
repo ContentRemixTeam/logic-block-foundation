@@ -58,7 +58,7 @@ export interface Task {
   energy_level: 'high_focus' | 'medium' | 'low_energy' | null;
   context_tags: string[] | null;
   goal_id: string | null;
-  status: 'focus' | 'scheduled' | 'backlog' | 'waiting' | null;
+  status: 'focus' | 'scheduled' | 'backlog' | 'waiting' | 'someday' | null;
   waiting_on: string | null;
   subtasks: Subtask[] | null;
   notes: string | null;
@@ -70,7 +70,7 @@ export type RecurrencePattern = 'none' | 'daily' | 'weekly' | 'monthly';
 export type DeleteType = 'single' | 'future' | 'all';
 export type ViewMode = 'list' | 'kanban' | 'timeline';
 export type EnergyLevel = 'high_focus' | 'medium' | 'low_energy';
-export type TaskStatus = 'focus' | 'scheduled' | 'backlog' | 'waiting';
+export type TaskStatus = 'focus' | 'scheduled' | 'backlog' | 'waiting' | 'someday';
 
 export const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
