@@ -35,6 +35,11 @@ import { CapacityIndicator } from '@/components/tasks/CapacityIndicator';
 import { TaskListView } from '@/components/tasks/views/TaskListView';
 import { TaskKanbanView } from '@/components/tasks/views/TaskKanbanView';
 import { TaskTimelineView } from '@/components/tasks/views/TaskTimelineView';
+import { TaskWeekView } from '@/components/tasks/views/TaskWeekView';
+import { TaskMonthView } from '@/components/tasks/views/TaskMonthView';
+import { TaskThreeDayView } from '@/components/tasks/views/TaskThreeDayView';
+import { TimelineDayNavigation } from '@/components/tasks/views/TimelineDayNavigation';
+import { TimelineViewSelector, TimelineViewType } from '@/components/tasks/views/TimelineViewSelector';
 import { 
   Task, SOP, ChecklistItem, SOPLink, ChecklistProgress, 
   FilterTab, ViewMode, EnergyLevel, RecurrencePattern, DeleteType,
@@ -46,6 +51,7 @@ export default function Tasks() {
   
   // View state
   const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [timelineViewType, setTimelineViewType] = useState<TimelineViewType>('day');
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
@@ -425,8 +431,8 @@ export default function Tasks() {
     }
   };
 
-  const handleAddTaskAtTime = (hour: number) => {
-    setNewTaskDate(selectedDate);
+  const handleAddTaskAtTime = (hour: number, date?: Date) => {
+    setNewTaskDate(date || selectedDate);
     setIsAddDialogOpen(true);
   };
 
@@ -479,7 +485,7 @@ export default function Tasks() {
           </div>
           
           {/* View mode toggle */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <div className="bg-muted rounded-lg p-1 flex">
               <Button
                 variant={viewMode === 'list' ? 'secondary' : 'ghost'}
@@ -509,6 +515,15 @@ export default function Tasks() {
                 <span className="hidden sm:inline">Timeline</span>
               </Button>
             </div>
+            
+            {/* Timeline view type selector */}
+            {viewMode === 'timeline' && (
+              <TimelineViewSelector
+                viewType={timelineViewType}
+                onViewTypeChange={setTimelineViewType}
+              />
+            )}
+            
             <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Add Task</span>
@@ -622,13 +637,56 @@ export default function Tasks() {
             onQuickReschedule={handleQuickReschedule}
           />
         ) : (
-          <TaskTimelineView
-            tasks={regularTasks}
-            selectedDate={selectedDate}
-            onUpdateTask={handleUpdateTask}
-            onOpenDetail={openTaskDetail}
-            onAddTaskAtTime={handleAddTaskAtTime}
-          />
+          <div className="space-y-4">
+            {/* Day Navigation for day and 3-day views */}
+            {(timelineViewType === 'day' || timelineViewType === '3-day') && (
+              <TimelineDayNavigation
+                selectedDate={selectedDate}
+                onDateChange={setSelectedDate}
+              />
+            )}
+            
+            {/* Render appropriate timeline view */}
+            {timelineViewType === 'day' && (
+              <TaskTimelineView
+                tasks={regularTasks}
+                selectedDate={selectedDate}
+                onUpdateTask={handleUpdateTask}
+                onOpenDetail={openTaskDetail}
+                onAddTaskAtTime={handleAddTaskAtTime}
+              />
+            )}
+            
+            {timelineViewType === '3-day' && (
+              <TaskThreeDayView
+                tasks={regularTasks}
+                selectedDate={selectedDate}
+                onDateChange={setSelectedDate}
+                onUpdateTask={handleUpdateTask}
+                onOpenDetail={openTaskDetail}
+                onAddTaskAtTime={handleAddTaskAtTime}
+              />
+            )}
+            
+            {timelineViewType === 'week' && (
+              <TaskWeekView
+                tasks={regularTasks}
+                selectedDate={selectedDate}
+                onDateChange={setSelectedDate}
+                onUpdateTask={handleUpdateTask}
+                onOpenDetail={openTaskDetail}
+              />
+            )}
+            
+            {timelineViewType === 'month' && (
+              <TaskMonthView
+                tasks={regularTasks}
+                selectedDate={selectedDate}
+                onDateChange={setSelectedDate}
+                onOpenDetail={openTaskDetail}
+              />
+            )}
+          </div>
         )}
       </div>
 
