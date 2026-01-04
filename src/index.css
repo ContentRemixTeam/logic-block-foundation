@@ -62,71 +62,71 @@ All colors MUST be HSL.
     --theme-gray: 0 0% 23%;
     
     /* Quest Mode accent colors */
-    --quest-gold: 43 76% 52%;
-    --quest-gold-light: 48 85% 60%;
-    --quest-copper: 28 54% 46%;
+    --quest-gold: 45 90% 55%;
+    --quest-gold-light: 48 95% 65%;
+    --quest-copper: 28 65% 52%;
     --quest-forest: 100 60% 22%;
-    --quest-emerald: 160 84% 39%;
-    --quest-purple: 258 90% 66%;
+    --quest-emerald: 160 85% 45%;
+    --quest-purple: 265 85% 68%;
     --quest-blue: 213 94% 68%;
     
     /* Font families */
     --font-heading: inherit;
   }
 
-  /* ===== QUEST MODE THEME ===== */
+  /* ===== QUEST MODE THEME - VIBRANT & EXCITING ===== */
   [data-theme="quest"] {
-    /* Rich layered background - deeper for contrast */
-    --background: 224 40% 7%;
-    --foreground: 35 20% 95%;
+    /* Dynamic, vibrant palette */
+    --background: 235 45% 10%;
+    --foreground: 40 25% 96%;
 
-    /* Cards - MUCH lighter for strong contrast */
-    --card: 222 22% 20%;
-    --card-foreground: 35 20% 94%;
+    /* Cards - Glassmorphism light */
+    --card: 235 30% 22%;
+    --card-foreground: 40 25% 96%;
 
-    --popover: 222 22% 18%;
-    --popover-foreground: 35 20% 94%;
+    --popover: 235 30% 20%;
+    --popover-foreground: 40 25% 96%;
 
-    /* Gold primary */
-    --primary: 43 76% 52%;
-    --primary-foreground: 224 40% 7%;
+    /* Vibrant gold primary */
+    --primary: 45 85% 55%;
+    --primary-foreground: 235 45% 8%;
 
-    /* Lighter secondary */
-    --secondary: 222 18% 24%;
-    --secondary-foreground: 35 20% 92%;
+    /* Purple secondary for variety */
+    --secondary: 265 70% 58%;
+    --secondary-foreground: 40 25% 96%;
 
-    /* Muted states */
-    --muted: 222 16% 22%;
-    --muted-foreground: 35 8% 70%;
+    /* Muted with warmth */
+    --muted: 235 25% 28%;
+    --muted-foreground: 40 15% 72%;
 
-    /* Copper accent */
-    --accent: 28 54% 46%;
-    --accent-foreground: 35 20% 95%;
+    /* Rich accent */
+    --accent: 265 70% 58%;
+    --accent-foreground: 40 25% 96%;
 
-    /* Success with emerald */
-    --success: 160 84% 42%;
-    --success-foreground: 35 20% 95%;
+    /* Vibrant success */
+    --success: 160 85% 45%;
+    --success-foreground: 40 25% 96%;
 
-    --warning: 43 90% 55%;
-    --warning-foreground: 224 40% 7%;
+    --warning: 45 95% 58%;
+    --warning-foreground: 235 45% 8%;
 
-    --destructive: 0 72% 55%;
-    --destructive-foreground: 35 20% 95%;
+    --destructive: 0 75% 58%;
+    --destructive-foreground: 40 25% 96%;
 
-    /* Gold-tinted borders - more visible */
-    --border: 43 40% 28%;
-    --input: 222 18% 26%;
-    --ring: 43 76% 52%;
+    /* Warm gold borders */
+    --border: 45 55% 38%;
+    --input: 235 25% 28%;
+    --ring: 45 85% 55%;
 
-    /* Sidebar - elevated glass */
-    --sidebar-background: 222 30% 10%;
-    --sidebar-foreground: 35 15% 90%;
-    --sidebar-primary: 43 76% 56%;
-    --sidebar-primary-foreground: 224 40% 7%;
-    --sidebar-accent: 43 40% 20%;
-    --sidebar-accent-foreground: 43 76% 70%;
-    --sidebar-border: 43 35% 22%;
-    --sidebar-ring: 43 76% 52%;
+    /* Sidebar - Deep & elevated */
+    --sidebar-background: 235 40% 8%;
+    --sidebar-foreground: 40 20% 92%;
+    --sidebar-primary: 45 85% 58%;
+    --sidebar-primary-foreground: 235 45% 8%;
+    --sidebar-accent: 45 45% 25%;
+    --sidebar-accent-foreground: 45 85% 72%;
+    --sidebar-border: 45 40% 28%;
+    --sidebar-ring: 45 85% 55%;
     
     --font-heading: 'Cinzel', serif;
   }
@@ -250,74 +250,111 @@ All colors MUST be HSL.
   }
 }
 
-/* ===== QUEST MODE ENHANCED STYLES ===== */
+/* =====================================================
+   QUEST MODE - VIBRANT, EXCITING, ENGAGING STYLES
+   ===================================================== */
 
-/* Keyframe Animations */
-@keyframes gradientShift {
+/* === KEYFRAME ANIMATIONS === */
+@keyframes gradientFlow {
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
 }
 
-@keyframes starTwinkle {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.9; }
+@keyframes floatBackground {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -20px) scale(1.02); }
+  66% { transform: translate(-20px, 15px) scale(0.98); }
 }
 
-@keyframes shimmer {
+@keyframes shimmerSlide {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes progressShine {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
 
-@keyframes floatSlow {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-10px) rotate(1deg); }
+@keyframes progressGrow {
+  0% { width: 0; opacity: 0.5; }
+  100% { opacity: 1; }
 }
 
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 8px hsl(43 76% 52% / 0.4); }
-  50% { box-shadow: 0 0 25px hsl(43 76% 52% / 0.7); }
+@keyframes pulseGlow {
+  0%, 100% { 
+    box-shadow: 0 0 20px rgba(244, 208, 63, 0.4);
+    transform: scale(1);
+  }
+  50% { 
+    box-shadow: 0 0 35px rgba(244, 208, 63, 0.7);
+    transform: scale(1.05);
+  }
 }
 
-@keyframes coin-flip {
-  0% { transform: rotateY(0deg); }
-  100% { transform: rotateY(360deg); }
+@keyframes iconBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes celebrate {
+  0% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.3) rotate(-10deg); }
+  50% { transform: scale(1.5) rotate(10deg); }
+  75% { transform: scale(1.2) rotate(-5deg); }
+  100% { transform: scale(1) rotate(0deg); }
 }
 
 @keyframes xp-pop {
   0% { transform: scale(0) translateY(0); opacity: 0; }
   50% { transform: scale(1.3) translateY(-15px); opacity: 1; }
-  100% { transform: scale(1) translateY(-25px); opacity: 0; }
+  100% { transform: scale(1) translateY(-30px); opacity: 0; }
 }
 
-@keyframes sparkle {
-  0%, 100% { opacity: 0; transform: scale(0); }
-  50% { opacity: 1; transform: scale(1); }
+@keyframes starTwinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
 }
 
-@keyframes borderGlow {
-  0%, 100% { border-color: hsl(43 76% 52% / 0.25); }
-  50% { border-color: hsl(43 76% 52% / 0.5); }
+@keyframes borderPulse {
+  0%, 100% { border-color: rgba(244, 208, 63, 0.25); }
+  50% { border-color: rgba(244, 208, 63, 0.55); }
 }
 
-.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
-.animate-coin-flip { animation: coin-flip 0.6s ease-in-out; }
+@keyframes glowPulse {
+  0%, 100% { filter: drop-shadow(0 0 5px rgba(244, 208, 63, 0.5)); }
+  50% { filter: drop-shadow(0 0 15px rgba(244, 208, 63, 0.9)); }
+}
+
+/* Animation utility classes */
+.animate-gradient-flow { animation: gradientFlow 8s ease infinite; }
+.animate-float-bg { animation: floatBackground 20s ease-in-out infinite; }
+.animate-shimmer-slide { animation: shimmerSlide 3s ease-in-out infinite; }
+.animate-twinkle { animation: twinkle 2s ease-in-out infinite; }
+.animate-progress-shine { animation: progressShine 2s linear infinite; }
+.animate-pulse-glow { animation: pulseGlow 2s ease-in-out infinite; }
+.animate-icon-bounce { animation: iconBounce 2s ease-in-out infinite; }
+.animate-celebrate { animation: celebrate 0.6s ease-out; }
 .animate-xp-pop { animation: xp-pop 1s ease-out forwards; }
-.animate-shimmer { animation: shimmer 2.5s linear infinite; }
-.animate-float-slow { animation: floatSlow 6s ease-in-out infinite; }
-.animate-border-glow { animation: borderGlow 3s ease-in-out infinite; }
+.animate-border-pulse { animation: borderPulse 3s ease-in-out infinite; }
+.animate-glow-pulse { animation: glowPulse 2s ease-in-out infinite; }
 
-/* ===== QUEST MODE BODY & BACKGROUND ===== */
+/* === QUEST MODE BODY & DYNAMIC BACKGROUND === */
 [data-theme="quest"] body {
-  background: linear-gradient(160deg, 
-    #080c14 0%, 
-    #141a28 40%, 
-    #0d1119 100%
-  );
+  background: linear-gradient(135deg, #1a1f35 0%, #2d1b4e 35%, #1e2847 70%, #1a1f35 100%);
+  background-size: 400% 400%;
+  animation: gradientFlow 15s ease infinite;
   background-attachment: fixed;
   min-height: 100vh;
+  position: relative;
 }
 
-/* Radial glow accents */
+/* Floating decorative orbs */
 [data-theme="quest"] body::before {
   content: '';
   position: fixed;
@@ -325,15 +362,17 @@ All colors MUST be HSL.
   left: 0;
   right: 0;
   bottom: 0;
-  background: 
-    radial-gradient(ellipse 80% 50% at 20% 20%, rgba(212, 175, 55, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(139, 92, 246, 0.04) 0%, transparent 50%),
-    radial-gradient(ellipse 50% 30% at 60% 30%, rgba(212, 175, 55, 0.03) 0%, transparent 40%);
+  background-image: 
+    radial-gradient(circle at 20% 25%, rgba(139, 92, 246, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 80% 75%, rgba(244, 208, 63, 0.12) 0%, transparent 40%),
+    radial-gradient(circle at 60% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 35%),
+    radial-gradient(circle at 30% 80%, rgba(244, 208, 63, 0.1) 0%, transparent 35%);
+  animation: floatBackground 20s ease-in-out infinite;
   pointer-events: none;
   z-index: 0;
 }
 
-/* Animated stars */
+/* Twinkling stars overlay */
 [data-theme="quest"] body::after {
   content: '';
   position: fixed;
@@ -342,18 +381,21 @@ All colors MUST be HSL.
   right: 0;
   bottom: 0;
   background-image: 
-    radial-gradient(2px 2px at 15% 25%, rgba(212, 175, 55, 0.5), transparent),
-    radial-gradient(2px 2px at 35% 65%, rgba(255, 255, 255, 0.25), transparent),
-    radial-gradient(1.5px 1.5px at 55% 15%, rgba(212, 175, 55, 0.4), transparent),
-    radial-gradient(2px 2px at 75% 55%, rgba(255, 255, 255, 0.2), transparent),
-    radial-gradient(1.5px 1.5px at 92% 35%, rgba(212, 175, 55, 0.45), transparent),
-    radial-gradient(1px 1px at 25% 88%, rgba(212, 175, 55, 0.35), transparent),
-    radial-gradient(2px 2px at 85% 12%, rgba(255, 255, 255, 0.15), transparent);
-  background-size: 250px 250px;
-  animation: starTwinkle 6s ease-in-out infinite alternate;
+    radial-gradient(3px 3px at 10% 15%, rgba(244, 208, 63, 0.7), transparent),
+    radial-gradient(2px 2px at 25% 45%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(3px 3px at 40% 25%, rgba(244, 208, 63, 0.6), transparent),
+    radial-gradient(2px 2px at 55% 65%, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(3px 3px at 70% 35%, rgba(139, 92, 246, 0.6), transparent),
+    radial-gradient(2px 2px at 85% 55%, rgba(244, 208, 63, 0.5), transparent),
+    radial-gradient(3px 3px at 95% 25%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(2px 2px at 15% 75%, rgba(244, 208, 63, 0.5), transparent),
+    radial-gradient(3px 3px at 35% 85%, rgba(139, 92, 246, 0.5), transparent),
+    radial-gradient(2px 2px at 75% 95%, rgba(255, 255, 255, 0.4), transparent);
+  background-size: 200px 200px;
+  animation: starTwinkle 4s ease-in-out infinite alternate;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 [data-theme="quest"] #root {
@@ -361,51 +403,56 @@ All colors MUST be HSL.
   z-index: 1;
 }
 
-/* ===== QUEST MODE SIDEBAR ===== */
+/* === QUEST MODE SIDEBAR - GLASS EFFECT === */
 [data-theme="quest"] [data-sidebar] {
-  background: rgba(14, 18, 28, 0.97) !important;
+  background: linear-gradient(180deg, rgba(26, 31, 53, 0.98) 0%, rgba(20, 25, 45, 0.98) 100%) !important;
   backdrop-filter: blur(20px) saturate(180%) !important;
-  border-right: 1px solid rgba(212, 175, 55, 0.2) !important;
+  border-right: 1px solid rgba(244, 208, 63, 0.25) !important;
   box-shadow: 
-    4px 0 32px rgba(0, 0, 0, 0.5),
-    inset -1px 0 0 rgba(212, 175, 55, 0.08) !important;
+    4px 0 40px rgba(0, 0, 0, 0.5),
+    inset -1px 0 0 rgba(244, 208, 63, 0.1) !important;
 }
 
 /* Sidebar group labels */
 [data-theme="quest"] [data-sidebar-group-label] {
-  color: #d4af37 !important;
+  color: #f4d03f !important;
   text-transform: uppercase !important;
-  font-size: 0.7rem !important;
-  letter-spacing: 0.12em !important;
-  font-weight: 600 !important;
-  padding: 0 12px !important;
-  margin-top: 20px !important;
-  text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+  font-size: 0.72rem !important;
+  letter-spacing: 0.14em !important;
+  font-weight: 700 !important;
+  padding: 0 14px !important;
+  margin-top: 24px !important;
+  text-shadow: 0 0 12px rgba(244, 208, 63, 0.5);
 }
 
 /* Sidebar nav items */
 [data-theme="quest"] [data-sidebar-menu-button] {
-  color: #a8a6a0 !important;
-  border-radius: 8px !important;
-  transition: all 0.25s ease !important;
-  margin: 2px 8px !important;
+  color: #b5b3ac !important;
+  border-radius: 10px !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  margin: 3px 10px !important;
+  position: relative;
 }
 
 [data-theme="quest"] [data-sidebar-menu-button]:hover {
-  background: rgba(212, 175, 55, 0.1) !important;
-  color: #e8d7a8 !important;
+  background: linear-gradient(135deg, rgba(244, 208, 63, 0.12) 0%, rgba(139, 92, 246, 0.08) 100%) !important;
+  color: #f0e6d2 !important;
+  transform: translateX(4px);
 }
 
 [data-theme="quest"] [data-sidebar-menu-button][data-active="true"] {
-  background: linear-gradient(90deg, rgba(212, 175, 55, 0.22) 0%, rgba(212, 175, 55, 0.05) 100%) !important;
-  border-left: 3px solid #d4af37 !important;
+  background: linear-gradient(90deg, rgba(244, 208, 63, 0.28) 0%, rgba(139, 92, 246, 0.1) 100%) !important;
+  border-left: 4px solid #f4d03f !important;
   color: #f4d03f !important;
-  box-shadow: 0 0 24px rgba(212, 175, 55, 0.15) !important;
+  box-shadow: 
+    0 0 30px rgba(244, 208, 63, 0.2),
+    inset 0 0 20px rgba(244, 208, 63, 0.05) !important;
 }
 
 [data-theme="quest"] [data-sidebar-menu-button][data-active="true"] svg {
   color: #f4d03f !important;
-  filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.6)) !important;
+  filter: drop-shadow(0 0 10px rgba(244, 208, 63, 0.8)) !important;
+  animation: glowPulse 2s ease-in-out infinite;
 }
 
 [data-theme="quest"] [data-sidebar-menu-button] svg {
@@ -414,351 +461,475 @@ All colors MUST be HSL.
 }
 
 [data-theme="quest"] [data-sidebar-menu-button]:hover svg {
-  color: #e8d7a8;
+  color: #f0e6d2;
+  filter: drop-shadow(0 0 5px rgba(244, 208, 63, 0.4));
 }
 
-/* ===== QUEST MODE CARDS - MUCH BETTER CONTRAST ===== */
+/* === QUEST MODE CARDS - GLASSMORPHISM WITH SHIMMER === */
 [data-theme="quest"] .card,
 [data-theme="quest"] [data-slot="card"] {
-  background: linear-gradient(145deg, #2d3548 0%, #252b3d 100%) !important;
-  border: 1px solid rgba(212, 175, 55, 0.28) !important;
-  border-radius: 16px !important;
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.12) 0%, 
+    rgba(255, 255, 255, 0.05) 100%) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 2px solid rgba(244, 208, 63, 0.25) !important;
+  border-radius: 20px !important;
   box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.55),
-    0 2px 8px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+    0 8px 40px rgba(0, 0, 0, 0.4),
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 0 0 1px rgba(244, 208, 63, 0.08) !important;
   position: relative;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-/* Card golden top edge highlight */
+/* Animated shimmer overlay */
 [data-theme="quest"] .card::before,
 [data-theme="quest"] [data-slot="card"]::before {
   content: '';
   position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.5), transparent);
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(244, 208, 63, 0.08),
+    rgba(255, 255, 255, 0.1),
+    rgba(244, 208, 63, 0.08),
+    transparent
+  );
+  animation: shimmerSlide 4s ease-in-out infinite;
+  pointer-events: none;
   z-index: 1;
 }
 
-/* Card corner glow */
+/* Decorative corner accent */
 [data-theme="quest"] .card::after,
 [data-theme="quest"] [data-slot="card"]::after {
-  content: '';
+  content: '✦';
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100px;
-  height: 100px;
-  background: radial-gradient(circle at top left, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
+  top: 14px;
+  right: 14px;
+  font-size: 18px;
+  color: rgba(244, 208, 63, 0.3);
+  animation: twinkle 3s ease-in-out infinite;
   pointer-events: none;
 }
 
-/* Card hover with lift and glow */
+/* Card hover - dramatic lift and glow */
 [data-theme="quest"] .card:hover,
 [data-theme="quest"] [data-slot="card"]:hover {
-  transform: translateY(-4px) !important;
-  border-color: rgba(212, 175, 55, 0.5) !important;
+  transform: translateY(-8px) scale(1.01) !important;
+  border-color: rgba(244, 208, 63, 0.55) !important;
   box-shadow: 
-    0 16px 48px rgba(0, 0, 0, 0.65),
-    0 8px 24px rgba(212, 175, 55, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    0 12px 30px rgba(244, 208, 63, 0.15),
+    0 0 40px rgba(139, 92, 246, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
 }
 
-/* ===== QUEST MODE TYPOGRAPHY - BRIGHTER ===== */
+/* === QUEST MODE TYPOGRAPHY - BRIGHT & WARM === */
 [data-theme="quest"] h1 {
   font-family: var(--font-heading), serif;
-  color: #f5f3ef !important;
-  text-shadow: 0 2px 16px rgba(212, 175, 55, 0.4);
-  letter-spacing: 0.04em;
+  color: #f8f6f2 !important;
+  text-shadow: 
+    0 2px 20px rgba(244, 208, 63, 0.5),
+    0 0 40px rgba(139, 92, 246, 0.2);
+  letter-spacing: 0.05em;
 }
 
 [data-theme="quest"] h2 {
   font-family: var(--font-heading), serif;
-  color: #e8d7a8 !important;
+  color: #f4d03f !important;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   font-weight: 600;
+  text-shadow: 0 0 15px rgba(244, 208, 63, 0.4);
 }
 
 [data-theme="quest"] h3 {
-  color: #f0e6d2 !important;
+  color: #f0e8d8 !important;
   font-weight: 600;
 }
 
 [data-theme="quest"] p {
-  color: #d1cec8;
+  color: #dcd8d0;
 }
 
 [data-theme="quest"] label {
-  color: #b8b5af !important;
+  color: #c8c4bc !important;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   font-weight: 500;
   font-size: 0.85rem;
 }
 
-/* ===== QUEST MODE BUTTONS - RICH GOLD ===== */
+/* === QUEST MODE BUTTONS - VIBRANT GOLD === */
 [data-theme="quest"] button[data-variant="default"],
 [data-theme="quest"] .btn-primary {
-  background: linear-gradient(135deg, #d4af37 0%, #c49a2e 100%) !important;
-  color: #0a0e14 !important;
-  font-weight: 600 !important;
+  background: linear-gradient(135deg, #f4d03f 0%, #d4af37 50%, #c9a227 100%) !important;
+  color: #1a1f35 !important;
+  font-weight: 700 !important;
   border: none !important;
-  border-radius: 10px !important;
+  border-radius: 12px !important;
   box-shadow: 
-    0 4px 16px rgba(212, 175, 55, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
-  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.15);
+    0 4px 20px rgba(244, 208, 63, 0.5),
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 2px 0 rgba(255, 255, 255, 0.4) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme="quest"] button[data-variant="default"]::before,
+[data-theme="quest"] .btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+[data-theme="quest"] button[data-variant="default"]:hover::before,
+[data-theme="quest"] .btn-primary:hover::before {
+  left: 100%;
 }
 
 [data-theme="quest"] button[data-variant="default"]:hover,
 [data-theme="quest"] .btn-primary:hover {
-  background: linear-gradient(135deg, #e8c44a 0%, #d4af37 100%) !important;
-  transform: translateY(-2px) !important;
+  background: linear-gradient(135deg, #ffd54f 0%, #f4d03f 50%, #d4af37 100%) !important;
+  transform: translateY(-3px) scale(1.02) !important;
   box-shadow: 
-    0 8px 28px rgba(212, 175, 55, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+    0 8px 32px rgba(244, 208, 63, 0.6),
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    inset 0 2px 0 rgba(255, 255, 255, 0.5) !important;
 }
 
 /* Secondary/Ghost buttons */
 [data-theme="quest"] button[data-variant="outline"],
 [data-theme="quest"] button[data-variant="ghost"],
 [data-theme="quest"] .btn-secondary {
-  background: rgba(212, 175, 55, 0.12) !important;
-  border: 1.5px solid rgba(212, 175, 55, 0.4) !important;
+  background: linear-gradient(135deg, rgba(244, 208, 63, 0.15) 0%, rgba(139, 92, 246, 0.08) 100%) !important;
+  border: 2px solid rgba(244, 208, 63, 0.45) !important;
   color: #f4d03f !important;
-  border-radius: 10px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+  border-radius: 12px !important;
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
   transition: all 0.25s ease !important;
+  animation: borderPulse 3s ease-in-out infinite;
 }
 
 [data-theme="quest"] button[data-variant="outline"]:hover,
 [data-theme="quest"] button[data-variant="ghost"]:hover,
 [data-theme="quest"] .btn-secondary:hover {
-  background: rgba(212, 175, 55, 0.22) !important;
-  border-color: rgba(212, 175, 55, 0.65) !important;
-  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.2) !important;
-  transform: translateY(-1px) !important;
+  background: linear-gradient(135deg, rgba(244, 208, 63, 0.25) 0%, rgba(139, 92, 246, 0.15) 100%) !important;
+  border-color: rgba(244, 208, 63, 0.7) !important;
+  box-shadow: 
+    0 6px 24px rgba(244, 208, 63, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+  transform: translateY(-2px) !important;
+  animation: none;
 }
 
-/* ===== QUEST MODE INPUTS - INVITING ===== */
+/* === QUEST MODE INPUTS - INVITING & WARM === */
 [data-theme="quest"] input,
 [data-theme="quest"] textarea,
 [data-theme="quest"] select,
 [data-theme="quest"] [data-slot="input"] {
-  background: rgba(45, 53, 72, 0.7) !important;
-  border: 1.5px solid rgba(212, 175, 55, 0.25) !important;
-  border-radius: 10px !important;
-  color: #f0e6d2 !important;
+  background: rgba(45, 53, 80, 0.6) !important;
+  border: 2px solid rgba(244, 208, 63, 0.2) !important;
+  border-radius: 12px !important;
+  color: #f0e8d8 !important;
   transition: all 0.3s ease !important;
+  backdrop-filter: blur(10px);
 }
 
 [data-theme="quest"] input::placeholder,
 [data-theme="quest"] textarea::placeholder {
-  color: #7a7874 !important;
+  color: #8a8680 !important;
 }
 
 [data-theme="quest"] input:focus,
 [data-theme="quest"] textarea:focus,
 [data-theme="quest"] select:focus,
 [data-theme="quest"] [data-slot="input"]:focus {
-  background: rgba(45, 53, 72, 0.95) !important;
-  border-color: #d4af37 !important;
+  background: rgba(50, 58, 90, 0.9) !important;
+  border-color: #f4d03f !important;
   box-shadow: 
-    0 0 0 4px rgba(212, 175, 55, 0.15),
-    0 4px 16px rgba(0, 0, 0, 0.35),
-    inset 0 2px 8px rgba(212, 175, 55, 0.08) !important;
+    0 0 0 4px rgba(244, 208, 63, 0.2),
+    0 0 30px rgba(244, 208, 63, 0.15),
+    0 4px 20px rgba(0, 0, 0, 0.3),
+    inset 0 2px 10px rgba(244, 208, 63, 0.08) !important;
   outline: none !important;
 }
 
-/* ===== QUEST MODE PROGRESS BARS - GLOWING ===== */
+/* === QUEST MODE PROGRESS BARS - MAGICAL GLOW === */
 [data-theme="quest"] [role="progressbar"] {
-  background: rgba(15, 20, 28, 0.7) !important;
-  border: 1px solid rgba(212, 175, 55, 0.18) !important;
-  border-radius: 12px !important;
-  height: 12px !important;
-  overflow: hidden !important;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5) !important;
+  background: rgba(20, 25, 45, 0.7) !important;
+  border: 2px solid rgba(244, 208, 63, 0.2) !important;
+  border-radius: 16px !important;
+  height: 16px !important;
+  overflow: visible !important;
+  box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.5) !important;
+  position: relative;
 }
 
 [data-theme="quest"] [role="progressbar"] > div {
-  background: linear-gradient(90deg, #c9a227 0%, #f4d03f 50%, #c9a227 100%) !important;
+  background: linear-gradient(90deg,
+    #c9a227 0%,
+    #f4d03f 20%,
+    #ffd54f 40%,
+    #f4d03f 60%,
+    #ffd54f 80%,
+    #c9a227 100%
+  ) !important;
   background-size: 200% 100% !important;
-  border-radius: 12px !important;
+  border-radius: 14px !important;
   box-shadow: 
-    0 0 24px rgba(212, 175, 55, 0.65),
-    0 0 12px rgba(212, 175, 55, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
-  animation: shimmer 2.5s linear infinite !important;
+    0 0 30px rgba(244, 208, 63, 0.8),
+    0 0 60px rgba(244, 208, 63, 0.4),
+    inset 0 2px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2) !important;
+  animation: progressShine 2s linear infinite, progressGrow 0.8s ease-out !important;
+  position: relative;
 }
 
-/* ===== QUEST MODE BADGES ===== */
+/* Percentage text with glow */
+[data-theme="quest"] .quest-percentage {
+  color: #fff !important;
+  font-size: 1.5rem !important;
+  font-weight: 800 !important;
+  text-shadow: 
+    0 0 15px rgba(244, 208, 63, 1),
+    0 0 30px rgba(244, 208, 63, 0.6),
+    0 2px 4px rgba(0, 0, 0, 0.4) !important;
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+/* === QUEST MODE BADGES - VIBRANT === */
 [data-theme="quest"] [data-slot="badge"],
 [data-theme="quest"] .badge {
-  background: rgba(212, 175, 55, 0.18) !important;
-  border: 1px solid rgba(212, 175, 55, 0.4) !important;
+  background: linear-gradient(135deg, rgba(244, 208, 63, 0.25) 0%, rgba(244, 208, 63, 0.15) 100%) !important;
+  border: 1px solid rgba(244, 208, 63, 0.5) !important;
   color: #f4d03f !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 10px rgba(244, 208, 63, 0.2);
 }
 
 /* Purple accent badge */
 [data-theme="quest"] .badge-purple,
 [data-theme="quest"] [data-accent="purple"] {
-  background: rgba(139, 92, 246, 0.2) !important;
-  color: #a78bfa !important;
-  border: 1px solid rgba(139, 92, 246, 0.45) !important;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0.15) 100%) !important;
+  color: #c4b5fd !important;
+  border: 1px solid rgba(139, 92, 246, 0.55) !important;
+  box-shadow: 0 2px 12px rgba(139, 92, 246, 0.3);
 }
 
 /* Success/Emerald accent */
 [data-theme="quest"] .badge-success,
 [data-theme="quest"] [data-accent="success"] {
-  background: rgba(16, 185, 129, 0.18) !important;
-  color: #34d399 !important;
-  border: 1px solid rgba(16, 185, 129, 0.4) !important;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(16, 185, 129, 0.15) 100%) !important;
+  color: #6ee7b7 !important;
+  border: 1px solid rgba(16, 185, 129, 0.55) !important;
+  box-shadow: 0 2px 12px rgba(16, 185, 129, 0.3);
 }
 
 /* Success progress bars */
 [data-theme="quest"] [data-accent="success"] [role="progressbar"] > div {
-  background: linear-gradient(90deg, #10b981 0%, #34d399 50%, #10b981 100%) !important;
+  background: linear-gradient(90deg, #059669 0%, #10b981 25%, #34d399 50%, #10b981 75%, #059669 100%) !important;
   box-shadow: 
-    0 0 24px rgba(16, 185, 129, 0.55),
-    0 0 12px rgba(16, 185, 129, 0.35) !important;
+    0 0 30px rgba(16, 185, 129, 0.7),
+    0 0 60px rgba(16, 185, 129, 0.4),
+    inset 0 2px 0 rgba(255, 255, 255, 0.4) !important;
 }
 
-/* ===== QUEST MODE TABLES ===== */
+/* === QUEST MODE STATS ICONS - BOUNCY === */
+[data-theme="quest"] .stat-icon {
+  display: inline-block;
+  font-size: 1.5rem;
+  margin-right: 10px;
+  animation: iconBounce 2.5s ease-in-out infinite;
+}
+
+[data-theme="quest"] .stat-icon.complete {
+  animation: celebrate 0.6s ease-out;
+}
+
+/* === QUEST MODE TABLES === */
 [data-theme="quest"] table {
   background: transparent;
 }
 
 [data-theme="quest"] th {
-  background: rgba(212, 175, 55, 0.1) !important;
-  color: #e8d7a8 !important;
+  background: linear-gradient(135deg, rgba(244, 208, 63, 0.15) 0%, rgba(139, 92, 246, 0.08) 100%) !important;
+  color: #f4d03f !important;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 0.8rem;
-  border-bottom: 1px solid rgba(212, 175, 55, 0.25) !important;
+  letter-spacing: 0.08em;
+  font-size: 0.82rem;
+  border-bottom: 2px solid rgba(244, 208, 63, 0.3) !important;
 }
 
 [data-theme="quest"] td {
-  border-bottom: 1px solid rgba(212, 175, 55, 0.12) !important;
+  border-bottom: 1px solid rgba(244, 208, 63, 0.15) !important;
 }
 
 [data-theme="quest"] tr:hover td {
-  background: rgba(212, 175, 55, 0.06) !important;
+  background: rgba(244, 208, 63, 0.08) !important;
 }
 
-/* ===== QUEST MODE TABS ===== */
+/* === QUEST MODE TABS === */
 [data-theme="quest"] [role="tablist"] {
-  background: rgba(20, 26, 38, 0.7) !important;
-  border: 1px solid rgba(212, 175, 55, 0.18) !important;
-  border-radius: 12px !important;
-  padding: 4px !important;
+  background: rgba(30, 35, 60, 0.7) !important;
+  border: 2px solid rgba(244, 208, 63, 0.2) !important;
+  border-radius: 16px !important;
+  padding: 6px !important;
+  backdrop-filter: blur(10px);
 }
 
 [data-theme="quest"] [role="tab"] {
-  color: #a8a6a0 !important;
-  border-radius: 8px !important;
+  color: #b5b3ac !important;
+  border-radius: 12px !important;
   transition: all 0.25s ease !important;
 }
 
 [data-theme="quest"] [role="tab"]:hover {
-  color: #e8d7a8 !important;
-  background: rgba(212, 175, 55, 0.1) !important;
+  color: #f0e6d2 !important;
+  background: rgba(244, 208, 63, 0.12) !important;
 }
 
 [data-theme="quest"] [role="tab"][data-state="active"] {
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.22) 0%, rgba(212, 175, 55, 0.1) 100%) !important;
+  background: linear-gradient(135deg, rgba(244, 208, 63, 0.3) 0%, rgba(139, 92, 246, 0.15) 100%) !important;
   color: #f4d03f !important;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35) !important;
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(244, 208, 63, 0.2) !important;
 }
 
-/* ===== QUEST MODE CHECKBOX & SWITCH ===== */
+/* === QUEST MODE CHECKBOX & SWITCH === */
 [data-theme="quest"] [role="checkbox"][data-state="checked"],
 [data-theme="quest"] [role="switch"][data-state="checked"] {
-  background: linear-gradient(135deg, #d4af37 0%, #b8941f 100%) !important;
-  border-color: #d4af37 !important;
+  background: linear-gradient(135deg, #f4d03f 0%, #d4af37 100%) !important;
+  border-color: #f4d03f !important;
+  box-shadow: 0 0 15px rgba(244, 208, 63, 0.5);
 }
 
-/* ===== QUEST MODE DIALOGS ===== */
+/* === QUEST MODE DIALOGS === */
 [data-theme="quest"] [role="dialog"] {
-  background: linear-gradient(145deg, #2d3548 0%, #252b3d 100%) !important;
-  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  background: linear-gradient(145deg, rgba(45, 53, 80, 0.98) 0%, rgba(30, 40, 70, 0.98) 100%) !important;
+  backdrop-filter: blur(20px) !important;
+  border: 2px solid rgba(244, 208, 63, 0.35) !important;
   box-shadow: 
-    0 24px 80px rgba(0, 0, 0, 0.7),
-    0 0 48px rgba(212, 175, 55, 0.1) !important;
+    0 24px 100px rgba(0, 0, 0, 0.8),
+    0 0 80px rgba(244, 208, 63, 0.15),
+    0 0 40px rgba(139, 92, 246, 0.1) !important;
 }
 
-/* ===== QUEST MODE TOOLTIPS & POPOVERS ===== */
+/* === QUEST MODE TOOLTIPS & POPOVERS === */
 [data-theme="quest"] [role="tooltip"],
 [data-theme="quest"] [data-radix-popper-content-wrapper] > div {
-  background: linear-gradient(145deg, #2d3548 0%, #282e3f 100%) !important;
-  border: 1px solid rgba(212, 175, 55, 0.3) !important;
-  color: #f0e6d2 !important;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55) !important;
+  background: linear-gradient(145deg, rgba(45, 53, 80, 0.98) 0%, rgba(35, 42, 65, 0.98) 100%) !important;
+  backdrop-filter: blur(15px) !important;
+  border: 1px solid rgba(244, 208, 63, 0.35) !important;
+  color: #f0e8d8 !important;
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.6) !important;
 }
 
-/* ===== QUEST MODE SCROLLBAR ===== */
+/* === QUEST MODE SCROLLBAR === */
 [data-theme="quest"] ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
 }
 
 [data-theme="quest"] ::-webkit-scrollbar-track {
-  background: rgba(20, 26, 38, 0.6);
-  border-radius: 5px;
+  background: rgba(30, 35, 55, 0.7);
+  border-radius: 6px;
 }
 
 [data-theme="quest"] ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(212, 175, 55, 0.45) 0%, rgba(212, 175, 55, 0.25) 100%);
-  border-radius: 5px;
-  border: 2px solid rgba(20, 26, 38, 0.5);
+  background: linear-gradient(180deg, rgba(244, 208, 63, 0.5) 0%, rgba(139, 92, 246, 0.3) 100%);
+  border-radius: 6px;
+  border: 3px solid rgba(30, 35, 55, 0.5);
 }
 
 [data-theme="quest"] ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(212, 175, 55, 0.65) 0%, rgba(212, 175, 55, 0.45) 100%);
+  background: linear-gradient(180deg, rgba(244, 208, 63, 0.7) 0%, rgba(139, 92, 246, 0.5) 100%);
 }
 
-/* ===== QUEST MODE DIVIDERS ===== */
+/* === QUEST MODE DIVIDERS === */
 [data-theme="quest"] hr,
 [data-theme="quest"] [data-slot="separator"] {
   border: none !important;
-  height: 1px !important;
-  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.35), transparent) !important;
+  height: 2px !important;
+  background: linear-gradient(90deg, transparent, rgba(244, 208, 63, 0.45), rgba(139, 92, 246, 0.25), transparent) !important;
 }
 
-/* ===== QUEST MODE ICONS ===== */
+/* === QUEST MODE ICONS === */
 [data-theme="quest"] svg {
   transition: all 0.25s ease;
 }
 
-/* ===== QUEST UTILITY CLASSES ===== */
-.quest-emerald { color: #34d399; }
+/* === QUEST UTILITY CLASSES === */
+.quest-emerald { color: #6ee7b7; }
 .quest-gold { color: #f4d03f; }
-.quest-copper { color: #cd8e4e; }
-.quest-purple { color: #a78bfa; }
-.quest-blue { color: #60a5fa; }
+.quest-copper { color: #e9a54b; }
+.quest-purple { color: #c4b5fd; }
+.quest-blue { color: #93c5fd; }
 
-.quest-glow-gold { box-shadow: 0 0 24px rgba(212, 175, 55, 0.5); }
-.quest-glow-emerald { box-shadow: 0 0 24px rgba(16, 185, 129, 0.5); }
-.quest-glow-purple { box-shadow: 0 0 24px rgba(139, 92, 246, 0.5); }
+.quest-glow-gold { 
+  box-shadow: 0 0 30px rgba(244, 208, 63, 0.6); 
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+.quest-glow-emerald { 
+  box-shadow: 0 0 30px rgba(16, 185, 129, 0.6); 
+}
+.quest-glow-purple { 
+  box-shadow: 0 0 30px rgba(139, 92, 246, 0.6); 
+}
 
 /* Quest text glow */
 .quest-text-glow {
-  text-shadow: 0 2px 12px rgba(212, 175, 55, 0.5);
+  text-shadow: 
+    0 0 15px rgba(244, 208, 63, 0.6),
+    0 0 30px rgba(244, 208, 63, 0.3);
 }
 
-/* Quest percentage styling */
-[data-theme="quest"] .quest-percentage {
-  color: #f4d03f;
-  font-size: 1.25rem;
-  font-weight: 700;
-  text-shadow: 0 2px 10px rgba(212, 175, 55, 0.55);
+/* Number priority badges */
+[data-theme="quest"] .priority-badge {
+  background: linear-gradient(135deg, #f4d03f 0%, #d4af37 100%) !important;
+  color: #1a1f35 !important;
+  font-weight: 800 !important;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    0 2px 12px rgba(244, 208, 63, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+/* Focus label pill - purple */
+[data-theme="quest"] .focus-label {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0.15) 100%) !important;
+  color: #c4b5fd !important;
+  padding: 6px 18px !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(139, 92, 246, 0.5) !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  font-size: 0.85rem !important;
+  box-shadow: 0 2px 16px rgba(139, 92, 246, 0.3);
 }
 
 /* Decorative corner flourishes */
@@ -770,9 +941,9 @@ All colors MUST be HSL.
 .quest-flourish::after {
   content: '';
   position: absolute;
-  width: 50px;
-  height: 50px;
-  border: 1px solid rgba(212, 175, 55, 0.25);
+  width: 60px;
+  height: 60px;
+  border: 2px solid rgba(244, 208, 63, 0.2);
   pointer-events: none;
 }
 
@@ -781,7 +952,7 @@ All colors MUST be HSL.
   left: -1px;
   border-right: none;
   border-bottom: none;
-  border-top-left-radius: 16px;
+  border-top-left-radius: 20px;
 }
 
 .quest-flourish::after {
@@ -789,14 +960,15 @@ All colors MUST be HSL.
   right: -1px;
   border-left: none;
   border-top: none;
-  border-bottom-right-radius: 16px;
+  border-bottom-right-radius: 20px;
 }
 
-/* ===== RESPONSIVE ADJUSTMENTS ===== */
+/* === RESPONSIVE ADJUSTMENTS === */
 @media (max-width: 768px) {
   [data-theme="quest"] .card,
   [data-theme="quest"] [data-slot="card"] {
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45) !important;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45) !important;
+    border-radius: 16px !important;
   }
   
   [data-theme="quest"] .card:hover,
@@ -804,8 +976,14 @@ All colors MUST be HSL.
     transform: none !important;
   }
   
+  [data-theme="quest"] .card::before,
+  [data-theme="quest"] [data-slot="card"]::before {
+    animation: none;
+  }
+  
   [data-theme="quest"] body::before,
   [data-theme="quest"] body::after {
     opacity: 0.5;
+    animation: none;
   }
 }
