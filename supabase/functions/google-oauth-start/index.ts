@@ -44,15 +44,16 @@ serve(async (req) => {
       );
     }
 
-    // Get the origin from the request for redirect
-    const { origin } = await req.json().catch(() => ({}));
+    // Get the origin and return path from the request for redirect
+    const { origin, returnPath } = await req.json().catch(() => ({}));
     const redirectUri = `${Deno.env.get('SUPABASE_URL')}/functions/v1/google-oauth-callback`;
 
     // Generate state parameter with user ID for CSRF protection
     const state = btoa(JSON.stringify({ 
       userId: user.id, 
       timestamp: Date.now(),
-      origin: origin || 'https://lovable.dev'
+      origin: origin || 'https://lovable.dev',
+      returnPath: returnPath || '/settings'
     }));
 
     // Build OAuth URL
