@@ -11,10 +11,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeArray, normalizeBoolean } from '@/lib/normalize';
-import { Loader2, Save, ArrowLeft, Bug, Trash2 } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, Bug, Trash2, RotateCcw } from 'lucide-react';
 import { ReflectionList } from '@/components/ReflectionList';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useTour } from '@/hooks/useTour';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -225,6 +226,31 @@ export default function Settings() {
     } finally {
       setCleanupLoading(false);
     }
+  };
+
+  // Help section component
+  const HelpSection = () => {
+    const { restartTour } = useTour();
+    
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Help</CardTitle>
+          <CardDescription>
+            Need a refresher? Restart the interactive tour.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button variant="outline" onClick={restartTour}>
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Restart App Tour
+          </Button>
+          <p className="text-xs text-muted-foreground mt-2">
+            This will show you the guided walkthrough of all the main features.
+          </p>
+        </CardContent>
+      </Card>
+    );
   };
 
   if (loading) {
@@ -495,6 +521,9 @@ export default function Settings() {
             )}
           </Button>
         </div>
+
+        {/* Help Section */}
+        <HelpSection />
 
         {/* Account Info */}
         <Card>

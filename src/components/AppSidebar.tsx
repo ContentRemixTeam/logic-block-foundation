@@ -37,22 +37,22 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const planningNavigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Cycle Setup', href: '/cycle-setup', icon: Target },
-  { name: 'Daily Plan', href: '/daily-plan', icon: CalendarDays },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, tourId: 'dashboard' },
+  { name: 'Cycle Setup', href: '/cycle-setup', icon: Target, tourId: 'cycle-setup' },
+  { name: 'Daily Plan', href: '/daily-plan', icon: CalendarDays, tourId: 'planning' },
   { name: 'Weekly Plan', href: '/weekly-plan', icon: Calendar },
   { name: 'Tasks', href: '/tasks', icon: ListTodo },
 ];
 
 const reflectionNavigation = [
-  { name: 'Daily Review', href: '/daily-review', icon: Sparkles },
+  { name: 'Daily Review', href: '/daily-review', icon: Sparkles, tourId: 'reflection' },
   { name: 'Weekly Review', href: '/weekly-review', icon: FileText },
   { name: 'Monthly Review', href: '/monthly-review', icon: BarChart3 },
-  { name: 'Progress', href: '/progress', icon: TrendingUp },
+  { name: 'Progress', href: '/progress', icon: TrendingUp, tourId: 'progress' },
 ];
 
 const resourcesNavigation = [
-  { name: 'Notes', href: '/notes', icon: BookOpen },
+  { name: 'Notes', href: '/notes', icon: BookOpen, tourId: 'resources' },
   { name: 'SOPs', href: '/sops', icon: ClipboardList },
   { name: 'Habits', href: '/habits', icon: CheckSquare },
   { name: 'Ideas', href: '/ideas', icon: Zap },
@@ -85,7 +85,7 @@ export function AppSidebar() {
       {items.map((item) => (
         <SidebarMenuItem key={item.name}>
           <SidebarMenuButton asChild isActive={isActive(item.href)}>
-            <Link to={item.href}>
+            <Link to={item.href} data-tour={item.tourId}>
               <item.icon className="h-4 w-4" />
               <span>{item.name}</span>
             </Link>
@@ -196,7 +196,7 @@ export function AppSidebar() {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive('/support')}>
-                  <Link to="/support">
+                  <Link to="/support" data-tour="support">
                     <HelpCircle className="h-4 w-4" />
                     <span>Support</span>
                   </Link>
