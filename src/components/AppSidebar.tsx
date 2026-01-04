@@ -20,8 +20,14 @@ import {
   Sparkles,
   HelpCircle,
   Users,
+  Map,
+  Scroll,
+  Swords,
+  Compass,
+  Trophy,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/hooks/useTheme';
 import {
   Sidebar,
   SidebarContent,
@@ -35,40 +41,102 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-
-const planningNavigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, tourId: 'dashboard' },
-  { name: 'Cycle Setup', href: '/cycle-setup', icon: Target, tourId: 'cycle-setup' },
-  { name: 'Daily Plan', href: '/daily-plan', icon: CalendarDays, tourId: 'planning' },
-  { name: 'Weekly Plan', href: '/weekly-plan', icon: Calendar },
-  { name: 'Tasks', href: '/tasks', icon: ListTodo },
-];
-
-const reflectionNavigation = [
-  { name: 'Daily Review', href: '/daily-review', icon: Sparkles, tourId: 'reflection' },
-  { name: 'Weekly Review', href: '/weekly-review', icon: FileText },
-  { name: 'Monthly Review', href: '/monthly-review', icon: BarChart3 },
-  { name: 'Progress', href: '/progress', icon: TrendingUp, tourId: 'progress' },
-];
-
-const resourcesNavigation = [
-  { name: 'Notes', href: '/notes', icon: BookOpen, tourId: 'resources' },
-  { name: 'SOPs', href: '/sops', icon: ClipboardList },
-  { name: 'Habits', href: '/habits', icon: CheckSquare },
-  { name: 'Ideas', href: '/ideas', icon: Zap },
-];
-
-const mindsetNavigation = [
-  { name: 'Useful Thoughts', href: '/useful-thoughts', icon: Brain },
-  { name: 'Belief Builder', href: '/belief-builder', icon: TrendingUp },
-  { name: 'Identity Anchors', href: '/identity-anchors', icon: Target },
-  { name: 'Self-Coaching', href: '/self-coaching', icon: Brain },
-];
+import { XPDisplay } from '@/components/quest/XPDisplay';
+import { StreakDisplay } from '@/components/quest/StreakDisplay';
 
 export function AppSidebar() {
   const location = useLocation();
   const { signOut } = useAuth();
   const { open: sidebarOpen } = useSidebar();
+  const { isQuestMode, getNavLabel } = useTheme();
+
+  // Navigation items with quest mode support
+  const planningNavigation = [
+    { 
+      name: getNavLabel('dashboard'), 
+      href: '/dashboard', 
+      icon: isQuestMode ? Map : LayoutDashboard, 
+      tourId: 'dashboard' 
+    },
+    { 
+      name: getNavLabel('cycleSetup'), 
+      href: '/cycle-setup', 
+      icon: isQuestMode ? Compass : Target, 
+      tourId: 'cycle-setup' 
+    },
+    { 
+      name: getNavLabel('dailyPlan'), 
+      href: '/daily-plan', 
+      icon: isQuestMode ? Swords : CalendarDays, 
+      tourId: 'planning' 
+    },
+    { 
+      name: getNavLabel('weeklyPlan'), 
+      href: '/weekly-plan', 
+      icon: Calendar 
+    },
+    { 
+      name: getNavLabel('tasks'), 
+      href: '/tasks', 
+      icon: isQuestMode ? Scroll : ListTodo 
+    },
+  ];
+
+  const reflectionNavigation = [
+    { 
+      name: getNavLabel('dailyReview'), 
+      href: '/daily-review', 
+      icon: Sparkles, 
+      tourId: 'reflection' 
+    },
+    { 
+      name: getNavLabel('weeklyReview'), 
+      href: '/weekly-review', 
+      icon: FileText 
+    },
+    { 
+      name: getNavLabel('monthlyReview'), 
+      href: '/monthly-review', 
+      icon: BarChart3 
+    },
+    { 
+      name: getNavLabel('progress'), 
+      href: '/progress', 
+      icon: TrendingUp, 
+      tourId: 'progress' 
+    },
+  ];
+
+  const resourcesNavigation = [
+    { 
+      name: getNavLabel('notes'), 
+      href: '/notes', 
+      icon: BookOpen, 
+      tourId: 'resources' 
+    },
+    { 
+      name: getNavLabel('sops'), 
+      href: '/sops', 
+      icon: ClipboardList 
+    },
+    { 
+      name: getNavLabel('habits'), 
+      href: '/habits', 
+      icon: CheckSquare 
+    },
+    { 
+      name: getNavLabel('ideas'), 
+      href: '/ideas', 
+      icon: Zap 
+    },
+  ];
+
+  const mindsetNavigation = [
+    { name: 'Useful Thoughts', href: '/useful-thoughts', icon: Brain },
+    { name: 'Belief Builder', href: '/belief-builder', icon: TrendingUp },
+    { name: 'Identity Anchors', href: '/identity-anchors', icon: Target },
+    { name: 'Self-Coaching', href: '/self-coaching', icon: Brain },
+  ];
   
   // Check if any mindset route is active
   const isMindsetRouteActive = mindsetNavigation.some(
@@ -83,9 +151,9 @@ export function AppSidebar() {
   const renderNavItems = (items: typeof planningNavigation) => (
     <>
       {items.map((item) => (
-        <SidebarMenuItem key={item.name}>
+        <SidebarMenuItem key={item.href}>
           <SidebarMenuButton asChild isActive={isActive(item.href)}>
-            <Link to={item.href} data-tour={item.tourId}>
+            <Link to={item.href} data-tour={(item as any).tourId}>
               <item.icon className="h-4 w-4" />
               <span>{item.name}</span>
             </Link>
@@ -100,14 +168,29 @@ export function AppSidebar() {
       <div className="flex h-16 items-center border-b px-6">
         <Target className="h-6 w-6 text-primary flex-shrink-0" />
         {sidebarOpen && (
-          <span className="ml-2 text-lg font-semibold whitespace-nowrap">90-Day Planner</span>
+          <span 
+            className="ml-2 text-lg font-semibold whitespace-nowrap"
+            style={{ fontFamily: isQuestMode ? 'var(--font-heading)' : 'inherit' }}
+          >
+            {isQuestMode ? '90-Day Quest' : '90-Day Planner'}
+          </span>
         )}
       </div>
+
+      {/* Quest Mode XP & Streak Display */}
+      {sidebarOpen && isQuestMode && (
+        <div className="px-4 py-3 border-b space-y-2">
+          <XPDisplay compact />
+          <StreakDisplay compact />
+        </div>
+      )}
 
       <SidebarContent>
         {/* PLANNING Section */}
         <SidebarGroup>
-          <SidebarGroupLabel>Planning</SidebarGroupLabel>
+          <SidebarGroupLabel>
+            {isQuestMode ? 'Quests' : 'Planning'}
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {renderNavItems(planningNavigation)}
@@ -117,7 +200,9 @@ export function AppSidebar() {
 
         {/* REFLECTION Section */}
         <SidebarGroup>
-          <SidebarGroupLabel>Reflection</SidebarGroupLabel>
+          <SidebarGroupLabel>
+            {isQuestMode ? 'Debriefs' : 'Reflection'}
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {renderNavItems(reflectionNavigation)}
@@ -127,7 +212,9 @@ export function AppSidebar() {
 
         {/* RESOURCES Section */}
         <SidebarGroup>
-          <SidebarGroupLabel>Resources</SidebarGroupLabel>
+          <SidebarGroupLabel>
+            {isQuestMode ? 'Inventory' : 'Resources'}
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {renderNavItems(resourcesNavigation)}
@@ -144,7 +231,7 @@ export function AppSidebar() {
                       className={isMindsetRouteActive ? 'bg-accent text-accent-foreground' : ''}
                     >
                       <Brain className="h-4 w-4" />
-                      <span>Mindset</span>
+                      <span>{getNavLabel('mindset')}</span>
                       {sidebarOpen && (
                         <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
                       )}
@@ -168,12 +255,16 @@ export function AppSidebar() {
                 </CollapsibleContent>
               </Collapsible>
 
-              {/* Celebration Wall */}
+              {/* Celebration Wall / Victory Hall */}
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive('/community')}>
                   <Link to="/community">
-                    <Users className="h-4 w-4" />
-                    <span>Celebration Wall</span>
+                    {isQuestMode ? (
+                      <Trophy className="h-4 w-4" />
+                    ) : (
+                      <Users className="h-4 w-4" />
+                    )}
+                    <span>{getNavLabel('community')}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

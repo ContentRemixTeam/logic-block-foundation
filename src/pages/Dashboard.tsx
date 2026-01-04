@@ -8,13 +8,18 @@ import { LoadingState } from '@/components/system/LoadingState';
 import { ErrorState } from '@/components/system/ErrorState';
 import { ReminderPopup } from '@/components/ReminderPopup';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/hooks/useTheme';
 import { supabase } from '@/integrations/supabase/client';
 import { normalizeArray, normalizeString, normalizeNumber } from '@/lib/normalize';
-import { Target, Calendar, CheckSquare, ArrowRight, TrendingUp, Zap } from 'lucide-react';
+import { Target, Calendar, CheckSquare, ArrowRight, TrendingUp, Zap, Map, Compass, Swords } from 'lucide-react';
 import { OnboardingChecklist } from '@/components/tour/OnboardingChecklist';
+import { QuestMapCompact } from '@/components/quest/QuestMap';
+import { XPDisplay } from '@/components/quest/XPDisplay';
+import { StreakDisplay } from '@/components/quest/StreakDisplay';
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { isQuestMode, getNavLabel } = useTheme();
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,18 +114,33 @@ export default function Dashboard() {
   
   // Calculate progress percentage
   const cycleProgress = daysRemaining > 0 ? Math.max(0, Math.min(100, ((90 - daysRemaining) / 90) * 100)) : 100;
+  const currentDay = 90 - daysRemaining;
+  const currentWeek = Math.ceil(currentDay / 7);
 
   return (
     <Layout>
       <ReminderPopup reminders={thingsToRemember} onDismiss={() => {}} />
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <span>⚡</span>
-            Dashboard
+          <h1 
+            className="text-3xl font-bold flex items-center gap-2"
+            style={{ fontFamily: isQuestMode ? 'var(--font-heading)' : 'inherit' }}
+          >
+            {isQuestMode ? <Map className="h-8 w-8 text-primary" /> : <span>⚡</span>}
+            {getNavLabel('dashboard')}
           </h1>
-          <p className="text-muted-foreground">Your 90-day planning overview</p>
+          <p className="text-muted-foreground">
+            {isQuestMode ? 'Your adventure awaits, adventurer' : 'Your 90-day planning overview'}
+          </p>
         </div>
+
+        {/* Quest Mode XP & Streak Display */}
+        {isQuestMode && hasCycle && (
+          <div className="grid gap-4 md:grid-cols-2">
+            <XPDisplay />
+            <StreakDisplay />
+          </div>
+        )}
 
         {/* Onboarding Checklist */}
         <OnboardingChecklist />
@@ -144,40 +164,55 @@ export default function Dashboard() {
           </Card>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {/* 90-Day Goal with Progress */}
+            {/* Quest Map / 90-Day Goal */}
             {goal && (
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-primary/10 to-accent/10">
-                  <CardTitle className="text-sm font-medium flex items-center gap-1">
-                    <span>⚡</span>
-                    90-Day Goal
-                  </CardTitle>
-                  <Target className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold line-clamp-2 mb-3">{goal}</div>
-                  {focusArea && (
-                    <Badge className="mb-3 bg-primary/10 text-primary hover:bg-primary/20 border-primary/20">
-                      Focus: {focusArea}
-                    </Badge>
-                  )}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Progress</span>
-                      <span className="font-medium">{Math.round(cycleProgress)}%</span>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-2">
-                      <div
-                        className="bg-primary rounded-full h-2 transition-all"
-                        style={{ width: `${cycleProgress}%` }}
+              <>
+                {isQuestMode ? (
+                  <Card className="md:col-span-2 lg:col-span-3">
+                    <CardContent className="pt-6">
+                      <QuestMapCompact
+                        cycleGoal={goal}
+                        currentDay={currentDay}
+                        totalDays={90}
+                        currentWeek={currentWeek}
                       />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {daysRemaining > 0 ? `${daysRemaining} days remaining` : 'Cycle complete! 🎉'}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-primary/10 to-accent/10">
+                      <CardTitle className="text-sm font-medium flex items-center gap-1">
+                        <span>⚡</span>
+                        90-Day Goal
+                      </CardTitle>
+                      <Target className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold line-clamp-2 mb-3">{goal}</div>
+                      {focusArea && (
+                        <Badge className="mb-3 bg-primary/10 text-primary hover:bg-primary/20 border-primary/20">
+                          Focus: {focusArea}
+                        </Badge>
+                      )}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">Progress</span>
+                          <span className="font-medium">{Math.round(cycleProgress)}%</span>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-2">
+                          <div
+                            className="bg-primary rounded-full h-2 transition-all"
+                            style={{ width: `${cycleProgress}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {daysRemaining > 0 ? `${daysRemaining} days remaining` : 'Cycle complete! 🎉'}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
             )}
 
             {/* Weekly Priorities */}

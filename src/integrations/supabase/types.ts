@@ -338,6 +338,30 @@ export type Database = {
           },
         ]
       }
+      earned_trophies: {
+        Row: {
+          challenge_name: string | null
+          earned_at: string | null
+          id: string
+          trophy_type: string
+          user_id: string
+        }
+        Insert: {
+          challenge_name?: string | null
+          earned_at?: string | null
+          id?: string
+          trophy_type: string
+          user_id: string
+        }
+        Update: {
+          challenge_name?: string | null
+          earned_at?: string | null
+          id?: string
+          trophy_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       event_sync_mapping: {
         Row: {
           app_block_id: string
@@ -1143,56 +1167,77 @@ export type Database = {
         Row: {
           ai_api_key: string | null
           created_at: string | null
+          current_debrief_streak: number | null
           cycle_summary_questions: Json | null
           daily_anchor_enabled: boolean | null
           daily_review_questions: Json | null
           habit_categories_enabled: boolean | null
+          last_debrief_date: string | null
+          longest_debrief_streak: number | null
           minimal_mode: boolean | null
           monthly_review_questions: Json | null
+          potions_last_reset: string | null
           quick_mode_default: boolean | null
           reminder_preferences: Json | null
           scratch_pad_review_mode: string | null
           show_income_tracker: boolean | null
+          streak_potions_remaining: number | null
           theme_preference: string | null
           updated_at: string | null
           user_id: string
+          user_level: number | null
           weekly_review_questions: Json | null
+          xp_points: number | null
         }
         Insert: {
           ai_api_key?: string | null
           created_at?: string | null
+          current_debrief_streak?: number | null
           cycle_summary_questions?: Json | null
           daily_anchor_enabled?: boolean | null
           daily_review_questions?: Json | null
           habit_categories_enabled?: boolean | null
+          last_debrief_date?: string | null
+          longest_debrief_streak?: number | null
           minimal_mode?: boolean | null
           monthly_review_questions?: Json | null
+          potions_last_reset?: string | null
           quick_mode_default?: boolean | null
           reminder_preferences?: Json | null
           scratch_pad_review_mode?: string | null
           show_income_tracker?: boolean | null
+          streak_potions_remaining?: number | null
           theme_preference?: string | null
           updated_at?: string | null
           user_id: string
+          user_level?: number | null
           weekly_review_questions?: Json | null
+          xp_points?: number | null
         }
         Update: {
           ai_api_key?: string | null
           created_at?: string | null
+          current_debrief_streak?: number | null
           cycle_summary_questions?: Json | null
           daily_anchor_enabled?: boolean | null
           daily_review_questions?: Json | null
           habit_categories_enabled?: boolean | null
+          last_debrief_date?: string | null
+          longest_debrief_streak?: number | null
           minimal_mode?: boolean | null
           monthly_review_questions?: Json | null
+          potions_last_reset?: string | null
           quick_mode_default?: boolean | null
           reminder_preferences?: Json | null
           scratch_pad_review_mode?: string | null
           show_income_tracker?: boolean | null
+          streak_potions_remaining?: number | null
           theme_preference?: string | null
           updated_at?: string | null
           user_id?: string
+          user_level?: number | null
           weekly_review_questions?: Json | null
+          xp_points?: number | null
         }
         Relationships: []
       }
