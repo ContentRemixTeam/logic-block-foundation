@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
-import { format, parseISO, isToday, addHours, startOfDay, isSameHour } from 'date-fns';
+import { format, parseISO, isToday, addHours, startOfDay } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Task } from '../types';
 import { Clock, Plus } from 'lucide-react';
+import { CurrentTimeIndicator } from './CurrentTimeIndicator';
 
 interface TaskTimelineViewProps {
   tasks: Task[];
@@ -15,7 +16,8 @@ interface TaskTimelineViewProps {
   onAddTaskAtTime: (hour: number) => void;
 }
 
-const HOURS = Array.from({ length: 15 }, (_, i) => i + 6); // 6 AM to 8 PM
+const HOURS = Array.from({ length: 17 }, (_, i) => i + 6); // 6 AM to 10 PM
+const HOUR_HEIGHT = 80;
 
 export function TaskTimelineView({
   tasks,
@@ -47,18 +49,19 @@ export function TaskTimelineView({
     return result;
   }, [tasks]);
 
-  // Unscheduled tasks for today
+  // Unscheduled tasks for selected date
   const unscheduledTasks = useMemo(() => {
+    const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
     return tasks.filter(task => {
       if (task.is_completed) return false;
       if (task.time_block_start) return false;
       
       if (task.scheduled_date) {
-        return isToday(parseISO(task.scheduled_date));
+        return task.scheduled_date === selectedDateStr;
       }
       return false;
     });
-  }, [tasks]);
+  }, [tasks, selectedDate]);
 
   const handleDrop = (e: React.DragEvent, hour: number) => {
     e.preventDefault();
@@ -88,10 +91,17 @@ export function TaskTimelineView({
   return (
     <div className="grid grid-cols-[1fr_300px] gap-6">
       {/* Timeline */}
-      <Card>
+      <Card className="relative">
         <CardContent className="p-0">
           <ScrollArea className="h-[calc(100vh-350px)]">
-            <div className="divide-y">
+            <div className="divide-y relative">
+              {/* Current time indicator */}
+              <CurrentTimeIndicator
+                selectedDate={selectedDate}
+                startHour={6}
+                hourHeight={HOUR_HEIGHT}
+              />
+
               {HOURS.map(hour => {
                 const hourTasks = timeBlockedTasks[hour] || [];
                 const isCurrentHour = isToday(selectedDate) && hour === currentHour;
@@ -100,9 +110,10 @@ export function TaskTimelineView({
                   <div
                     key={hour}
                     className={cn(
-                      "flex min-h-[80px] hover:bg-muted/30 transition-colors",
+                      "flex transition-colors",
                       isCurrentHour && "bg-primary/5 border-l-2 border-l-primary"
                     )}
+                    style={{ minHeight: `${HOUR_HEIGHT}px` }}
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, hour)}
                   >
@@ -114,7 +125,7 @@ export function TaskTimelineView({
                     </div>
 
                     {/* Tasks area */}
-                    <div className="flex-1 p-2 min-h-[80px]">
+                    <div className="flex-1 p-2" style={{ minHeight: `${HOUR_HEIGHT - 16}px` }}>
                       {hourTasks.length > 0 ? (
                         <div className="space-y-1">
                           {hourTasks.map(task => {
@@ -129,7 +140,7 @@ export function TaskTimelineView({
                                 onClick={() => onOpenDetail(task)}
                                 className={cn(
                                   "rounded-md px-3 py-2 cursor-pointer transition-all",
-                                  "bg-primary/10 border border-primary/20 hover:bg-primary/20",
+                                  "bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:shadow-md",
                                   "flex items-center gap-2",
                                   heightClass
                                 )}
