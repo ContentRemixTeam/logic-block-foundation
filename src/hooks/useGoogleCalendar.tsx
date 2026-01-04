@@ -51,51 +51,50 @@ export function useGoogleCalendar() {
     fetchStatus();
   }, [fetchStatus]);
 
-  // Listen for OAuth success message
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'google-oauth-success') {
-        setCalendars(event.data.calendars || []);
+  // Handle OAuth return from redirect flow
+  const handleOAuthReturn = useCallback(async () => {
+    const params = new URLSearchParams(window.location.search);
+    const oauthStatus = params.get('oauth');
+    const calendarsParam = params.get('calendars');
+    
+    if (oauthStatus === 'success' && calendarsParam) {
+      try {
+        const calendarsData = JSON.parse(decodeURIComponent(calendarsParam));
+        setCalendars(calendarsData);
         setShowCalendarModal(true);
         toast({
           title: 'Connected to Google Calendar',
           description: 'Please select which calendar to sync.',
         });
-      } else if (event.data?.type === 'google-oauth-error') {
-        toast({
-          title: 'Connection failed',
-          description: `Error: ${event.data.error}`,
-          variant: 'destructive',
-        });
+      } catch (e) {
+        console.error('Error parsing calendars:', e);
       }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (oauthStatus === 'error') {
+      const errorMsg = params.get('error') || 'Unknown error';
+      toast({
+        title: 'Connection failed',
+        description: `Error: ${errorMsg}`,
+        variant: 'destructive',
+      });
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }, [toast]);
 
   const connect = useCallback(async () => {
     try {
       const { data, error } = await supabase.functions.invoke('google-oauth-start', {
-        body: { origin: window.location.origin },
+        body: { 
+          origin: window.location.origin,
+          returnPath: '/settings'
+        },
       });
 
       if (error) throw error;
 
-      // Open OAuth popup
-      const popup = window.open(
-        data.url,
-        'google-oauth',
-        'width=500,height=600,left=200,top=100'
-      );
-
-      if (!popup) {
-        toast({
-          title: 'Popup blocked',
-          description: 'Please allow popups for this site to connect Google Calendar.',
-          variant: 'destructive',
-        });
-      }
+      // Redirect to Google OAuth (not popup)
+      window.location.href = data.url;
     } catch (error) {
       console.error('Error starting OAuth:', error);
       toast({
@@ -244,5 +243,6 @@ export function useGoogleCalendar() {
     syncNow,
     pushBlock,
     refreshStatus: fetchStatus,
+    handleOAuthReturn,
   };
 }

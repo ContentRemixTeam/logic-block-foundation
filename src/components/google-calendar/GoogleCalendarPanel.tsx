@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +19,13 @@ export function GoogleCalendarPanel() {
     selectCalendar,
     disconnect,
     syncNow,
+    handleOAuthReturn,
   } = useGoogleCalendar();
+
+  // Check for OAuth return on mount
+  useEffect(() => {
+    handleOAuthReturn();
+  }, [handleOAuthReturn]);
 
   if (loading) {
     return (

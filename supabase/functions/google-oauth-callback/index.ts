@@ -25,41 +25,42 @@ serve(async (req) => {
     const state = url.searchParams.get('state');
     const error = url.searchParams.get('error');
 
+    // Decode state to get origin for redirect
+    let stateData: { userId: string; origin: string; returnPath: string; timestamp: number } | null = null;
+    try {
+      if (state) {
+        stateData = JSON.parse(atob(state));
+      }
+    } catch (e) {
+      console.error('Failed to parse state:', e);
+    }
+
+    const redirectOrigin = stateData?.origin || 'https://lovable.dev';
+    const returnPath = stateData?.returnPath || '/settings';
+
     if (error) {
       console.error('OAuth error:', error);
-      return new Response(
-        `<html><body><script>window.opener?.postMessage({ type: 'google-oauth-error', error: '${error}' }, '*'); window.close();</script>OAuth failed: ${error}</body></html>`,
-        { status: 400, headers: { 'Content-Type': 'text/html' } }
-      );
+      const redirectUrl = `${redirectOrigin}${returnPath}?oauth=error&error=${encodeURIComponent(error)}`;
+      return Response.redirect(redirectUrl, 302);
     }
 
     if (!code || !state) {
-      return new Response(
-        `<html><body><script>window.opener?.postMessage({ type: 'google-oauth-error', error: 'missing_params' }, '*'); window.close();</script>Missing authorization code or state</body></html>`,
-        { status: 400, headers: { 'Content-Type': 'text/html' } }
-      );
+      const redirectUrl = `${redirectOrigin}${returnPath}?oauth=error&error=missing_params`;
+      return Response.redirect(redirectUrl, 302);
     }
 
-    // Decode and validate state
-    let stateData;
-    try {
-      stateData = JSON.parse(atob(state));
-    } catch (e) {
-      console.error('Invalid state parameter:', e);
-      return new Response(
-        `<html><body><script>window.opener?.postMessage({ type: 'google-oauth-error', error: 'invalid_state' }, '*'); window.close();</script>Invalid state parameter</body></html>`,
-        { status: 400, headers: { 'Content-Type': 'text/html' } }
-      );
+    // Validate state was parsed
+    if (!stateData) {
+      const redirectUrl = `${redirectOrigin}${returnPath}?oauth=error&error=invalid_state`;
+      return Response.redirect(redirectUrl, 302);
     }
 
-    const { userId, origin } = stateData;
+    const { userId } = stateData;
 
     // Check state timestamp (5 minute expiry)
     if (Date.now() - stateData.timestamp > 5 * 60 * 1000) {
-      return new Response(
-        `<html><body><script>window.opener?.postMessage({ type: 'google-oauth-error', error: 'state_expired' }, '*'); window.close();</script>Authorization expired. Please try again.</body></html>`,
-        { status: 400, headers: { 'Content-Type': 'text/html' } }
-      );
+      const redirectUrl = `${redirectOrigin}${returnPath}?oauth=error&error=state_expired`;
+      return Response.redirect(redirectUrl, 302);
     }
 
     // Exchange code for tokens
@@ -83,10 +84,8 @@ serve(async (req) => {
 
     if (tokenData.error) {
       console.error('Token exchange error:', tokenData);
-      return new Response(
-        `<html><body><script>window.opener?.postMessage({ type: 'google-oauth-error', error: '${tokenData.error}' }, '*'); window.close();</script>Token exchange failed: ${tokenData.error}</body></html>`,
-        { status: 400, headers: { 'Content-Type': 'text/html' } }
-      );
+      const redirectUrl = `${redirectOrigin}${returnPath}?oauth=error&error=${encodeURIComponent(tokenData.error)}`;
+      return Response.redirect(redirectUrl, 302);
     }
 
     // Get Google user info
@@ -124,10 +123,8 @@ serve(async (req) => {
 
     if (upsertError) {
       console.error('Error storing connection:', upsertError);
-      return new Response(
-        `<html><body><script>window.opener?.postMessage({ type: 'google-oauth-error', error: 'storage_error' }, '*'); window.close();</script>Failed to store connection</body></html>`,
-        { status: 500, headers: { 'Content-Type': 'text/html' } }
-      );
+      const redirectUrl = `${redirectOrigin}${returnPath}?oauth=error&error=storage_error`;
+      return Response.redirect(redirectUrl, 302);
     }
 
     // Build calendar list for client
@@ -140,38 +137,18 @@ serve(async (req) => {
 
     console.log('OAuth successful for user:', userId, 'Found', calendars.length, 'calendars');
 
-    // Return HTML that posts message to opener window
-    const successHtml = `
-<!DOCTYPE html>
-<html>
-<head><title>Google Calendar Connected</title></head>
-<body>
-<script>
-  const data = {
-    type: 'google-oauth-success',
-    calendars: ${JSON.stringify(calendars)},
-    email: '${userInfo.email}'
-  };
-  if (window.opener) {
-    window.opener.postMessage(data, '*');
-    window.close();
-  } else {
-    document.body.innerHTML = '<h3>Connected successfully! You can close this window.</h3>';
-  }
-</script>
-<h3>Connecting...</h3>
-</body>
-</html>`;
-
-    return new Response(successHtml, { 
-      status: 200, 
-      headers: { 'Content-Type': 'text/html' } 
-    });
+    // Redirect back to app with success and calendar data
+    const calendarsParam = encodeURIComponent(JSON.stringify(calendars));
+    const redirectUrl = `${redirectOrigin}${returnPath}?oauth=success&calendars=${calendarsParam}`;
+    
+    return Response.redirect(redirectUrl, 302);
   } catch (error) {
     console.error('Error in google-oauth-callback:', error);
-    return new Response(
-      `<html><body><script>window.opener?.postMessage({ type: 'google-oauth-error', error: 'server_error' }, '*'); window.close();</script>Server error</body></html>`,
-      { status: 500, headers: { 'Content-Type': 'text/html' } }
-    );
+    // Try to redirect with error, fallback to generic response
+    try {
+      return Response.redirect('https://lovable.dev/settings?oauth=error&error=server_error', 302);
+    } catch {
+      return new Response('Server error', { status: 500 });
+    }
   }
 });
