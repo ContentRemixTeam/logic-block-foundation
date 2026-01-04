@@ -51,7 +51,7 @@ const mainNavigation = [
   { name: 'Progress', href: '/progress', icon: TrendingUp },
   { name: 'Habits', href: '/habits', icon: CheckSquare },
   { name: 'Ideas', href: '/ideas', icon: Zap },
-  { name: 'Community', href: '/community', icon: Users },
+  { name: 'Celebration Wall', href: '/community', icon: Users },
 ];
 
 const mindsetNavigation = [

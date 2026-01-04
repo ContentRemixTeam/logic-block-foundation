@@ -51,7 +51,7 @@ export default function Community() {
         <div className="flex items-center gap-3">
           <Users className="h-8 w-8 text-primary" />
           <div>
-            <h1 className="text-3xl font-bold">Community</h1>
+            <h1 className="text-3xl font-bold">Celebration Wall</h1>
             <p className="text-muted-foreground">
               See what others are learning and celebrating
             </p>
