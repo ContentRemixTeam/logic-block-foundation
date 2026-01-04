@@ -29,7 +29,7 @@ export default function Settings() {
     quick_mode_default: true,
     habit_categories_enabled: true,
     show_income_tracker: false,
-    theme_preference: 'vibrant' as 'vibrant' | 'bw',
+    theme_preference: 'quest' as 'quest' | 'minimal' | 'vibrant' | 'bw',
     scratch_pad_review_mode: 'quick_save' as 'quick_save' | 'organize_now',
   });
 
@@ -282,42 +282,52 @@ export default function Settings() {
         {/* Theme Selector */}
         <Card>
           <CardHeader>
-            <CardTitle>Theme</CardTitle>
+            <CardTitle>Visual Theme</CardTitle>
+            <CardDescription>Choose your preferred experience</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Choose your theme</Label>
-              <div className="flex gap-4">
-                <button
-                  onClick={() => updateSetting('theme_preference', 'vibrant')}
-                  className={`flex-1 p-4 rounded-lg border-2 transition-all ${
-                    settings.theme_preference === 'vibrant'
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border hover:border-primary/50'
-                  }`}
-                >
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <span className="text-2xl">🎨</span>
-                    <span className="font-semibold">Vibrant</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Colorful and energetic</p>
-                </button>
-                <button
-                  onClick={() => updateSetting('theme_preference', 'bw')}
-                  className={`flex-1 p-4 rounded-lg border-2 transition-all ${
-                    settings.theme_preference === 'bw'
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border hover:border-primary/50'
-                  }`}
-                >
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <span className="text-2xl">⬛</span>
-                    <span className="font-semibold">Black & White</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Clean and minimal</p>
-                </button>
-              </div>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => updateSetting('theme_preference', 'quest')}
+                className={`p-4 rounded-lg border-2 transition-all text-left ${
+                  settings.theme_preference === 'quest'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-2xl">⚔️</span>
+                  <span className="font-semibold">Quest Mode</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Adventure theme with XP, levels, and streaks. Transform your goals into epic quests.
+                </p>
+              </button>
+              <button
+                onClick={() => updateSetting('theme_preference', 'minimal')}
+                className={`p-4 rounded-lg border-2 transition-all text-left ${
+                  settings.theme_preference === 'minimal'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-2xl">◯</span>
+                  <span className="font-semibold">Minimal Mode</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Clean and simple. Focus on your tasks without gamification.
+                </p>
+              </button>
             </div>
+            
+            {settings.theme_preference === 'quest' && (
+              <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                <p className="text-sm">
+                  🎮 <strong>Quest Mode Active!</strong> Earn XP for completing reviews, maintain streaks, and level up as you progress through your 90-day journey.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

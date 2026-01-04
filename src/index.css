@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -58,8 +60,123 @@ All colors MUST be HSL.
     --theme-yellow: 48 100% 65%;
     --theme-teal: 185 85% 42%;
     --theme-gray: 0 0% 23%;
+    
+    /* Quest Mode specific */
+    --quest-gold: 43 76% 52%;
+    --quest-copper: 28 54% 46%;
+    --quest-forest: 100 60% 22%;
+    
+    /* Font families */
+    --font-heading: inherit;
   }
 
+  /* ===== QUEST MODE THEME ===== */
+  [data-theme="quest"] {
+    --background: 224 28% 12%;
+    --foreground: 30 10% 90%;
+
+    --card: 224 24% 15%;
+    --card-foreground: 30 10% 90%;
+
+    --popover: 224 24% 15%;
+    --popover-foreground: 30 10% 90%;
+
+    --primary: 43 76% 52%;
+    --primary-foreground: 224 28% 12%;
+
+    --secondary: 224 20% 20%;
+    --secondary-foreground: 30 10% 90%;
+
+    --muted: 224 20% 18%;
+    --muted-foreground: 30 3% 66%;
+
+    --accent: 28 54% 46%;
+    --accent-foreground: 30 10% 90%;
+
+    --success: 100 60% 32%;
+    --success-foreground: 30 10% 90%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 224 28% 12%;
+
+    --destructive: 0 62.8% 50.6%;
+    --destructive-foreground: 30 10% 90%;
+
+    --border: 224 20% 22%;
+    --input: 224 20% 22%;
+    --ring: 43 76% 52%;
+
+    --sidebar-background: 224 28% 10%;
+    --sidebar-foreground: 30 10% 90%;
+    --sidebar-primary: 43 76% 52%;
+    --sidebar-primary-foreground: 224 28% 12%;
+    --sidebar-accent: 224 20% 18%;
+    --sidebar-accent-foreground: 30 10% 90%;
+    --sidebar-border: 224 20% 22%;
+    --sidebar-ring: 43 76% 52%;
+    
+    --font-heading: 'Cinzel', serif;
+  }
+
+  /* Quest mode specific styles */
+  [data-theme="quest"] .card {
+    border: 1px solid hsl(43 76% 52% / 0.15);
+    box-shadow: 0 0 20px hsl(43 76% 52% / 0.05);
+  }
+
+  [data-theme="quest"] h1,
+  [data-theme="quest"] h2,
+  [data-theme="quest"] h3 {
+    font-family: var(--font-heading);
+  }
+
+  /* ===== MINIMAL MODE THEME ===== */
+  [data-theme="minimal"] {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 10%;
+
+    --card: 210 17% 98%;
+    --card-foreground: 0 0% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 17% 95%;
+    --secondary-foreground: 0 0% 10%;
+
+    --muted: 210 17% 95%;
+    --muted-foreground: 0 0% 40%;
+
+    --accent: 221 83% 53%;
+    --accent-foreground: 0 0% 100%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 210 17% 88%;
+    --input: 210 17% 88%;
+    --ring: 221 83% 53%;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 10%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 17% 95%;
+    --sidebar-accent-foreground: 0 0% 10%;
+    --sidebar-border: 210 17% 88%;
+    --sidebar-ring: 221 83% 53%;
+  }
+
+  /* Keep vibrant for backwards compatibility */
   [data-theme="vibrant"] {
     --primary: 348 100% 60%;
     --accent: 185 85% 42%;
@@ -130,4 +247,50 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Quest mode animations */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px hsl(43 76% 52% / 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px hsl(43 76% 52% / 0.6);
+  }
+}
+
+@keyframes coin-flip {
+  0% {
+    transform: rotateY(0deg);
+  }
+  100% {
+    transform: rotateY(360deg);
+  }
+}
+
+@keyframes xp-pop {
+  0% {
+    transform: scale(0) translateY(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2) translateY(-10px);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) translateY(-20px);
+    opacity: 0;
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-coin-flip {
+  animation: coin-flip 0.6s ease-in-out;
+}
+
+.animate-xp-pop {
+  animation: xp-pop 1s ease-out forwards;
 }

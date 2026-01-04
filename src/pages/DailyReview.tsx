@@ -8,21 +8,27 @@ import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/hooks/useTheme';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { CalendarIcon, CheckCircle2, Loader2, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { CalendarIcon, CheckCircle2, Loader2, ChevronLeft, ChevronRight, Sparkles, Swords, Shield, Skull } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function DailyReview() {
   const { user } = useAuth();
+  const { isQuestMode, getNavLabel, refreshXP, refreshStreak } = useTheme();
   const [selectedDate, setSelectedDate] = useState<Date>(subDays(new Date(), 1));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasPlan, setHasPlan] = useState(false);
+  const [showXPAnimation, setShowXPAnimation] = useState(false);
   
   const [whatWorked, setWhatWorked] = useState('');
   const [whatDidnt, setWhatDidnt] = useState('');
   const [wins, setWins] = useState('');
+  
+  // Quest mode quick rating
+  const [quickRating, setQuickRating] = useState<'crushed' | 'survived' | 'struggled' | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -101,7 +107,16 @@ export default function DailyReview() {
         return;
       }
 
-      toast.success('Review saved!');
+      // Quest mode XP animation and messaging
+      if (isQuestMode) {
+        setShowXPAnimation(true);
+        setTimeout(() => setShowXPAnimation(false), 2000);
+        toast.success('Mission logged. Rest, adventurer. +5 XP');
+        // Refresh XP and streak data
+        await Promise.all([refreshXP(), refreshStreak()]);
+      } else {
+        toast.success('Review saved!');
+      }
     } catch (error) {
       console.error('Error saving review:', error);
       toast.error('Failed to save review');
@@ -122,14 +137,28 @@ export default function DailyReview() {
   return (
     <Layout>
       <div className="max-w-2xl mx-auto space-y-6">
+        {/* XP Animation Overlay */}
+        {showXPAnimation && (
+          <div className="fixed inset-0 pointer-events-none flex items-center justify-center z-50">
+            <div className="animate-xp-pop text-4xl font-bold text-primary">
+              +5 XP
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Sparkles className="h-8 w-8 text-primary" />
-              Daily Review
+            <h1 
+              className="text-3xl font-bold flex items-center gap-2"
+              style={{ fontFamily: isQuestMode ? 'var(--font-heading)' : 'inherit' }}
+            >
+              {isQuestMode ? <Swords className="h-8 w-8 text-primary" /> : <Sparkles className="h-8 w-8 text-primary" />}
+              {getNavLabel('dailyReview')}
             </h1>
-            <p className="text-muted-foreground">Reflect on your day and celebrate your wins</p>
+            <p className="text-muted-foreground">
+              {isQuestMode ? 'Debrief your mission and log your victories' : 'Reflect on your day and celebrate your wins'}
+            </p>
           </div>
         </div>
 
@@ -183,21 +212,68 @@ export default function DailyReview() {
         ) : (
           <Card>
             <CardHeader>
-              <CardTitle>Review for {format(selectedDate, 'MMMM d')}</CardTitle>
+              <CardTitle style={{ fontFamily: isQuestMode ? 'var(--font-heading)' : 'inherit' }}>
+                {isQuestMode ? `Mission Debrief - ${format(selectedDate, 'MMMM d')}` : `Review for ${format(selectedDate, 'MMMM d')}`}
+              </CardTitle>
               <CardDescription>
-                Take a moment to reflect on this day
+                {isQuestMode ? "How did today's mission go?" : 'Take a moment to reflect on this day'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Quest Mode Quick Rating */}
+              {isQuestMode && (
+                <div className="space-y-3">
+                  <Label className="text-base font-medium">Quick Assessment</Label>
+                  <div className="grid grid-cols-3 gap-3">
+                    <button
+                      onClick={() => setQuickRating('crushed')}
+                      className={cn(
+                        "p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2",
+                        quickRating === 'crushed'
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50"
+                      )}
+                    >
+                      <Swords className="h-6 w-6 text-primary" />
+                      <span className="text-sm font-medium">Crushed It</span>
+                    </button>
+                    <button
+                      onClick={() => setQuickRating('survived')}
+                      className={cn(
+                        "p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2",
+                        quickRating === 'survived'
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50"
+                      )}
+                    >
+                      <Shield className="h-6 w-6 text-muted-foreground" />
+                      <span className="text-sm font-medium">Survived</span>
+                    </button>
+                    <button
+                      onClick={() => setQuickRating('struggled')}
+                      className={cn(
+                        "p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2",
+                        quickRating === 'struggled'
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50"
+                      )}
+                    >
+                      <Skull className="h-6 w-6 text-muted-foreground" />
+                      <span className="text-sm font-medium">Struggled</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* What did you accomplish? */}
               <div className="space-y-2">
                 <Label htmlFor="wins" className="text-base font-medium flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  What did you accomplish?
+                  <CheckCircle2 className="h-4 w-4 text-success" />
+                  {isQuestMode ? 'Victories & Loot' : 'What did you accomplish?'}
                 </Label>
                 <Textarea
                   id="wins"
-                  placeholder="List your wins and accomplishments for the day..."
+                  placeholder={isQuestMode ? "What treasures did you claim today?" : "List your wins and accomplishments for the day..."}
                   value={wins}
                   onChange={(e) => setWins(e.target.value)}
                   className="min-h-[100px]"
@@ -207,11 +283,11 @@ export default function DailyReview() {
               {/* What went well? */}
               <div className="space-y-2">
                 <Label htmlFor="whatWorked" className="text-base font-medium">
-                  What went well?
+                  {isQuestMode ? 'Successful Strategies' : 'What went well?'}
                 </Label>
                 <Textarea
                   id="whatWorked"
-                  placeholder="What worked well today? What are you proud of?"
+                  placeholder={isQuestMode ? "What tactics served you well?" : "What worked well today? What are you proud of?"}
                   value={whatWorked}
                   onChange={(e) => setWhatWorked(e.target.value)}
                   className="min-h-[100px]"
@@ -221,11 +297,11 @@ export default function DailyReview() {
               {/* What could have been better? */}
               <div className="space-y-2">
                 <Label htmlFor="whatDidnt" className="text-base font-medium">
-                  What could have been better?
+                  {isQuestMode ? 'Lessons Learned' : 'What could have been better?'}
                 </Label>
                 <Textarea
                   id="whatDidnt"
-                  placeholder="What would you do differently? What lessons did you learn?"
+                  placeholder={isQuestMode ? "What would you do differently next time?" : "What would you do differently? What lessons did you learn?"}
                   value={whatDidnt}
                   onChange={(e) => setWhatDidnt(e.target.value)}
                   className="min-h-[100px]"
@@ -243,7 +319,7 @@ export default function DailyReview() {
                   ) : (
                     <>
                       <CheckCircle2 className="h-4 w-4 mr-2" />
-                      Save Review
+                      {isQuestMode ? 'Complete Debrief' : 'Save Review'}
                     </>
                   )}
                 </Button>

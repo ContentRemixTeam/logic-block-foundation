@@ -85,6 +85,12 @@ Deno.serve(async (req) => {
           weekly_review_questions: [],
           monthly_review_questions: [],
           cycle_summary_questions: [],
+          theme_preference: 'quest',
+          xp_points: 0,
+          user_level: 1,
+          streak_potions_remaining: 2,
+          current_debrief_streak: 0,
+          longest_debrief_streak: 0,
         })
         .select()
         .single();
@@ -121,8 +127,16 @@ Deno.serve(async (req) => {
         minimal_mode: settings.minimal_mode ?? false,
         quick_mode_default: settings.quick_mode_default ?? true,
         habit_categories_enabled: settings.habit_categories_enabled ?? true,
-        theme_preference: settings.theme_preference ?? 'vibrant',
+        theme_preference: settings.theme_preference ?? 'quest',
         scratch_pad_review_mode: settings.scratch_pad_review_mode ?? 'quick_save',
+        // Quest Mode fields
+        xp_points: settings.xp_points ?? 0,
+        user_level: settings.user_level ?? 1,
+        current_debrief_streak: settings.current_debrief_streak ?? 0,
+        longest_debrief_streak: settings.longest_debrief_streak ?? 0,
+        streak_potions_remaining: settings.streak_potions_remaining ?? 2,
+        last_debrief_date: settings.last_debrief_date ?? null,
+        potions_last_reset: settings.potions_last_reset ?? null,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
