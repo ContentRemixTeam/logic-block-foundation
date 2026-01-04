@@ -5,7 +5,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
 import { CaptureButton } from '@/components/CaptureButton';
-import { Menu } from 'lucide-react';
+import { CycleTimeline } from '@/components/CycleTimeline';
 
 interface Category {
   id: string;
@@ -13,28 +13,46 @@ interface Category {
   color: string;
 }
 
+interface CycleData {
+  start_date: string;
+  end_date: string;
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [cycleData, setCycleData] = useState<CycleData | null>(null);
   useTheme(); // Load and apply theme
 
   useEffect(() => {
-    const loadCategories = async () => {
+    const loadData = async () => {
       if (!user) return;
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
 
-        const { data } = await supabase.functions.invoke('get-ideas');
-        if (data?.categories) {
-          setCategories(data.categories);
+        // Load categories and cycle data in parallel
+        const [categoriesResult, cycleResult] = await Promise.all([
+          supabase.functions.invoke('get-ideas'),
+          supabase.functions.invoke('get-current-cycle-or-create')
+        ]);
+        
+        if (categoriesResult.data?.categories) {
+          setCategories(categoriesResult.data.categories);
+        }
+        
+        if (cycleResult.data?.cycle) {
+          setCycleData({
+            start_date: cycleResult.data.cycle.start_date,
+            end_date: cycleResult.data.cycle.end_date,
+          });
         }
       } catch (error) {
-        console.error('Error loading categories:', error);
+        console.error('Error loading data:', error);
       }
     };
 
-    loadCategories();
+    loadData();
   }, [user]);
 
   return (
@@ -45,10 +63,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
         {/* Main content area */}
         <div className="flex-1 flex flex-col">
-          {/* Header with sidebar trigger */}
-          <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-6">
-            <SidebarTrigger />
-            <h1 className="text-lg font-semibold">90-Day Planner</h1>
+          {/* Header with sidebar trigger and timeline */}
+          <header className="sticky top-0 z-40 border-b bg-background">
+            <div className="flex h-16 items-center gap-4 px-6">
+              <SidebarTrigger />
+              <h1 className="text-lg font-semibold">90-Day Planner</h1>
+            </div>
+            {cycleData && (
+              <div className="px-6 pb-3">
+                <CycleTimeline 
+                  startDate={cycleData.start_date} 
+                  endDate={cycleData.end_date} 
+                />
+              </div>
+            )}
           </header>
 
           {/* Page content */}

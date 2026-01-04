@@ -10,7 +10,11 @@ import { Layout } from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, X, Target, BarChart3, Brain } from 'lucide-react';
+import { Plus, X, Target, BarChart3, Brain, CalendarIcon } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { format, addDays } from 'date-fns';
 
 export default function CycleSetup() {
   const { user } = useAuth();
@@ -18,6 +22,9 @@ export default function CycleSetup() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
+  const [startDate, setStartDate] = useState<Date>(new Date());
+  const endDate = useMemo(() => addDays(startDate, 90), [startDate]);
+  
   const [goal, setGoal] = useState('');
   const [why, setWhy] = useState('');
   const [identity, setIdentity] = useState('');
@@ -93,17 +100,13 @@ export default function CycleSetup() {
     setLoading(true);
 
     try {
-      const today = new Date();
-      const endDate = new Date(today);
-      endDate.setDate(endDate.getDate() + 90);
-
       // Create cycle with business diagnostic
       const { data: cycle, error: cycleError } = await supabase
         .from('cycles_90_day')
         .insert({
           user_id: user.id,
-          start_date: today.toISOString().split('T')[0],
-          end_date: endDate.toISOString().split('T')[0],
+          start_date: format(startDate, 'yyyy-MM-dd'),
+          end_date: format(endDate, 'yyyy-MM-dd'),
           goal,
           why,
           identity,
@@ -195,6 +198,55 @@ export default function CycleSetup() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Cycle Dates */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Cycle Dates</CardTitle>
+              <CardDescription>Set when your 90-day cycle starts. The end date is automatically calculated.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Start Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !startDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={(date) => date && setStartDate(date)}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-2">
+                  <Label>End Date (90 days from start)</Label>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                    disabled
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(endDate, "PPP")}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Your Goal</CardTitle>
