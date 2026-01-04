@@ -61,10 +61,14 @@ All colors MUST be HSL.
     --theme-teal: 185 85% 42%;
     --theme-gray: 0 0% 23%;
     
-    /* Quest Mode specific */
+    /* Quest Mode accent colors */
     --quest-gold: 43 76% 52%;
+    --quest-gold-light: 48 85% 60%;
     --quest-copper: 28 54% 46%;
     --quest-forest: 100 60% 22%;
+    --quest-emerald: 160 84% 39%;
+    --quest-purple: 258 90% 66%;
+    --quest-blue: 213 94% 68%;
     
     /* Font families */
     --font-heading: inherit;
@@ -72,62 +76,59 @@ All colors MUST be HSL.
 
   /* ===== QUEST MODE THEME ===== */
   [data-theme="quest"] {
-    --background: 224 28% 12%;
+    /* Richer, deeper background */
+    --background: 220 33% 8%;
     --foreground: 30 10% 90%;
 
-    --card: 224 24% 15%;
+    /* Enhanced card colors */
+    --card: 222 25% 14%;
     --card-foreground: 30 10% 90%;
 
-    --popover: 224 24% 15%;
+    --popover: 222 25% 14%;
     --popover-foreground: 30 10% 90%;
 
+    /* Gold primary */
     --primary: 43 76% 52%;
-    --primary-foreground: 224 28% 12%;
+    --primary-foreground: 220 33% 8%;
 
-    --secondary: 224 20% 20%;
+    /* Richer secondary */
+    --secondary: 222 22% 18%;
     --secondary-foreground: 30 10% 90%;
 
-    --muted: 224 20% 18%;
-    --muted-foreground: 30 3% 66%;
+    /* Muted states */
+    --muted: 222 20% 16%;
+    --muted-foreground: 30 5% 68%;
 
+    /* Copper accent */
     --accent: 28 54% 46%;
     --accent-foreground: 30 10% 90%;
 
-    --success: 100 60% 32%;
+    /* Success with emerald */
+    --success: 160 84% 39%;
     --success-foreground: 30 10% 90%;
 
     --warning: 38 92% 50%;
-    --warning-foreground: 224 28% 12%;
+    --warning-foreground: 220 33% 8%;
 
     --destructive: 0 62.8% 50.6%;
     --destructive-foreground: 30 10% 90%;
 
-    --border: 224 20% 22%;
-    --input: 224 20% 22%;
+    /* Subtle gold-tinted borders */
+    --border: 43 30% 20%;
+    --input: 222 20% 20%;
     --ring: 43 76% 52%;
 
-    --sidebar-background: 224 28% 10%;
+    /* Sidebar with glass effect */
+    --sidebar-background: 222 28% 11%;
     --sidebar-foreground: 30 10% 90%;
     --sidebar-primary: 43 76% 52%;
-    --sidebar-primary-foreground: 224 28% 12%;
-    --sidebar-accent: 224 20% 18%;
+    --sidebar-primary-foreground: 220 33% 8%;
+    --sidebar-accent: 222 22% 16%;
     --sidebar-accent-foreground: 30 10% 90%;
-    --sidebar-border: 224 20% 22%;
+    --sidebar-border: 43 30% 18%;
     --sidebar-ring: 43 76% 52%;
     
     --font-heading: 'Cinzel', serif;
-  }
-
-  /* Quest mode specific styles */
-  [data-theme="quest"] .card {
-    border: 1px solid hsl(43 76% 52% / 0.15);
-    box-shadow: 0 0 20px hsl(43 76% 52% / 0.05);
-  }
-
-  [data-theme="quest"] h1,
-  [data-theme="quest"] h2,
-  [data-theme="quest"] h3 {
-    font-family: var(--font-heading);
   }
 
   /* ===== MINIMAL MODE THEME ===== */
@@ -249,7 +250,45 @@ All colors MUST be HSL.
   }
 }
 
-/* Quest mode animations */
+/* ===== QUEST MODE ENHANCED STYLES ===== */
+
+/* Animated gradient background */
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes starTwinkle {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(1deg);
+  }
+}
+
 @keyframes pulse-glow {
   0%, 100% {
     box-shadow: 0 0 5px hsl(43 76% 52% / 0.3);
@@ -283,6 +322,17 @@ All colors MUST be HSL.
   }
 }
 
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .animate-pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
 }
@@ -293,4 +343,456 @@ All colors MUST be HSL.
 
 .animate-xp-pop {
   animation: xp-pop 1s ease-out forwards;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s linear infinite;
+}
+
+.animate-float-slow {
+  animation: floatSlow 6s ease-in-out infinite;
+}
+
+/* Quest Mode Body Background */
+[data-theme="quest"] body {
+  background: linear-gradient(135deg, 
+    hsl(220 33% 6%) 0%, 
+    hsl(222 28% 12%) 50%, 
+    hsl(220 30% 9%) 100%
+  );
+  background-size: 200% 200%;
+  animation: gradientShift 30s ease infinite;
+  position: relative;
+}
+
+/* Decorative background layer - stars pattern */
+[data-theme="quest"] body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(1px 1px at 10% 20%, hsl(43 76% 52% / 0.4) 50%, transparent 50%),
+    radial-gradient(1px 1px at 30% 60%, hsl(43 76% 52% / 0.3) 50%, transparent 50%),
+    radial-gradient(1.5px 1.5px at 50% 10%, hsl(43 76% 52% / 0.5) 50%, transparent 50%),
+    radial-gradient(1px 1px at 70% 80%, hsl(43 76% 52% / 0.35) 50%, transparent 50%),
+    radial-gradient(1.5px 1.5px at 90% 40%, hsl(43 76% 52% / 0.45) 50%, transparent 50%),
+    radial-gradient(1px 1px at 15% 85%, hsl(43 76% 52% / 0.3) 50%, transparent 50%),
+    radial-gradient(1px 1px at 85% 15%, hsl(43 76% 52% / 0.4) 50%, transparent 50%),
+    radial-gradient(1.5px 1.5px at 45% 45%, hsl(43 76% 52% / 0.35) 50%, transparent 50%);
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 0;
+  animation: starTwinkle 4s ease-in-out infinite;
+}
+
+/* Noise texture overlay */
+[data-theme="quest"] body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.02;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Main content wrapper needs proper z-index */
+[data-theme="quest"] #root {
+  position: relative;
+  z-index: 1;
+}
+
+/* Quest Mode Sidebar */
+[data-theme="quest"] [data-sidebar] {
+  background: linear-gradient(180deg, 
+    hsl(222 28% 11% / 0.95) 0%, 
+    hsl(222 28% 9% / 0.98) 100%
+  );
+  backdrop-filter: blur(10px);
+  border-right: 1px solid hsl(43 76% 52% / 0.15);
+  box-shadow: 2px 0 30px hsl(0 0% 0% / 0.4);
+}
+
+/* Quest Mode Cards */
+[data-theme="quest"] .card {
+  background: linear-gradient(145deg, 
+    hsl(222 22% 16%) 0%, 
+    hsl(222 25% 13%) 100%
+  );
+  border: 1px solid hsl(43 76% 52% / 0.2);
+  border-radius: 12px;
+  box-shadow: 
+    0 8px 32px hsl(0 0% 0% / 0.4),
+    0 0 0 1px hsl(43 76% 52% / 0.05),
+    inset 0 1px 0 hsl(43 76% 52% / 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme="quest"] .card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent 0%,
+    hsl(43 76% 52% / 0.3) 50%,
+    transparent 100%
+  );
+}
+
+[data-theme="quest"] .card:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 12px 40px hsl(0 0% 0% / 0.5),
+    0 0 30px hsl(43 76% 52% / 0.1),
+    inset 0 1px 0 hsl(43 76% 52% / 0.1);
+  border-color: hsl(43 76% 52% / 0.4);
+}
+
+/* Quest Mode Typography */
+[data-theme="quest"] h1 {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  font-weight: 700;
+  color: hsl(30 10% 90%);
+  text-shadow: 0 2px 10px hsl(43 76% 52% / 0.3);
+  letter-spacing: 0.05em;
+}
+
+[data-theme="quest"] h2 {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: hsl(43 76% 52%);
+  letter-spacing: 0.08em;
+}
+
+[data-theme="quest"] h3 {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 600;
+  color: hsl(30 10% 90%);
+  letter-spacing: 0.05em;
+}
+
+/* Quest Mode Primary Buttons */
+[data-theme="quest"] .btn-primary,
+[data-theme="quest"] button[data-variant="default"] {
+  background: linear-gradient(135deg, hsl(43 76% 52%) 0%, hsl(43 70% 42%) 100%);
+  color: hsl(220 33% 8%);
+  font-weight: 600;
+  border: none;
+  box-shadow: 
+    0 4px 15px hsl(43 76% 52% / 0.3),
+    inset 0 1px 0 hsl(48 85% 60% / 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="quest"] .btn-primary:hover,
+[data-theme="quest"] button[data-variant="default"]:hover {
+  box-shadow: 
+    0 6px 25px hsl(43 76% 52% / 0.5),
+    inset 0 1px 0 hsl(48 85% 60% / 0.4);
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+/* Quest Mode Secondary/Ghost Buttons */
+[data-theme="quest"] .btn-secondary,
+[data-theme="quest"] button[data-variant="outline"],
+[data-theme="quest"] button[data-variant="ghost"] {
+  background: hsl(43 76% 52% / 0.1);
+  border: 1px solid hsl(43 76% 52% / 0.3);
+  color: hsl(43 76% 52%);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="quest"] .btn-secondary:hover,
+[data-theme="quest"] button[data-variant="outline"]:hover,
+[data-theme="quest"] button[data-variant="ghost"]:hover {
+  background: hsl(43 76% 52% / 0.2);
+  border-color: hsl(43 76% 52% / 0.5);
+  transform: translateY(-1px);
+}
+
+/* Quest Mode Inputs */
+[data-theme="quest"] input,
+[data-theme="quest"] textarea,
+[data-theme="quest"] select {
+  background: hsl(222 22% 16% / 0.6);
+  border: 1px solid hsl(43 76% 52% / 0.2);
+  border-radius: 8px;
+  color: hsl(30 10% 90%);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="quest"] input:focus,
+[data-theme="quest"] textarea:focus,
+[data-theme="quest"] select:focus {
+  border-color: hsl(43 76% 52%);
+  box-shadow: 
+    0 0 0 3px hsl(43 76% 52% / 0.1),
+    inset 0 0 10px hsl(43 76% 52% / 0.05);
+  background: hsl(222 22% 18% / 0.8);
+  outline: none;
+}
+
+[data-theme="quest"] input::placeholder,
+[data-theme="quest"] textarea::placeholder {
+  color: hsl(30 5% 50%);
+}
+
+/* Quest Mode Progress Bars */
+[data-theme="quest"] [role="progressbar"] {
+  background: hsl(43 76% 52% / 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+[data-theme="quest"] [role="progressbar"] > div {
+  background: linear-gradient(90deg, hsl(43 76% 52%) 0%, hsl(48 85% 60%) 100%);
+  box-shadow: 0 0 20px hsl(43 76% 52% / 0.5);
+  position: relative;
+}
+
+[data-theme="quest"] [role="progressbar"] > div::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsl(0 0% 100% / 0.3) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+}
+
+/* Quest Mode Navigation - Active State */
+[data-theme="quest"] [data-sidebar-menu-button][data-active="true"],
+[data-theme="quest"] .nav-item-active {
+  background: linear-gradient(90deg, hsl(43 76% 52% / 0.15) 0%, transparent 100%);
+  border-left: 3px solid hsl(43 76% 52%);
+  color: hsl(43 76% 52%);
+}
+
+/* Quest Mode Navigation - Hover State */
+[data-theme="quest"] [data-sidebar-menu-button]:hover {
+  background: hsl(43 76% 52% / 0.08);
+  color: hsl(30 10% 90%);
+}
+
+/* Quest Mode Icon styling */
+[data-theme="quest"] [data-sidebar-menu-button] svg {
+  color: hsl(30 5% 66%);
+  transition: all 0.3s ease;
+}
+
+[data-theme="quest"] [data-sidebar-menu-button]:hover svg,
+[data-theme="quest"] [data-sidebar-menu-button][data-active="true"] svg {
+  color: hsl(43 76% 52%);
+  filter: drop-shadow(0 0 4px hsl(43 76% 52% / 0.4));
+}
+
+/* Quest Mode Badges */
+[data-theme="quest"] .badge,
+[data-theme="quest"] [data-badge] {
+  background: linear-gradient(135deg, hsl(43 76% 52% / 0.2) 0%, hsl(28 54% 46% / 0.2) 100%);
+  border: 1px solid hsl(43 76% 52% / 0.3);
+  color: hsl(43 76% 52%);
+  font-weight: 600;
+  text-shadow: 0 1px 2px hsl(0 0% 0% / 0.3);
+}
+
+/* Quest Mode Tables */
+[data-theme="quest"] table {
+  border: 1px solid hsl(43 76% 52% / 0.15);
+}
+
+[data-theme="quest"] th {
+  background: hsl(222 25% 12%);
+  color: hsl(43 76% 52%);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.75rem;
+}
+
+[data-theme="quest"] td {
+  border-color: hsl(43 76% 52% / 0.1);
+}
+
+[data-theme="quest"] tr:hover {
+  background: hsl(43 76% 52% / 0.05);
+}
+
+/* Quest Mode Dividers */
+[data-theme="quest"] hr,
+[data-theme="quest"] [data-orientation="horizontal"] {
+  border-color: hsl(43 76% 52% / 0.2);
+  background: linear-gradient(90deg, 
+    transparent 0%,
+    hsl(43 76% 52% / 0.3) 50%,
+    transparent 100%
+  );
+}
+
+/* Quest Mode Tooltips & Popovers */
+[data-theme="quest"] [data-radix-popper-content-wrapper] > div,
+[data-theme="quest"] [role="tooltip"] {
+  background: hsl(222 25% 14%);
+  border: 1px solid hsl(43 76% 52% / 0.3);
+  box-shadow: 0 8px 32px hsl(0 0% 0% / 0.5);
+}
+
+/* Quest Mode Accent Colors for specific states */
+.quest-emerald {
+  color: hsl(160 84% 39%);
+}
+
+.quest-gold {
+  color: hsl(43 76% 52%);
+}
+
+.quest-copper {
+  color: hsl(28 54% 46%);
+}
+
+.quest-purple {
+  color: hsl(258 90% 66%);
+}
+
+.quest-blue {
+  color: hsl(213 94% 68%);
+}
+
+/* Quest Mode Glow Effects */
+.quest-glow-gold {
+  box-shadow: 0 0 20px hsl(43 76% 52% / 0.4);
+}
+
+.quest-glow-emerald {
+  box-shadow: 0 0 20px hsl(160 84% 39% / 0.4);
+}
+
+/* Quest Mode Labels */
+[data-theme="quest"] label {
+  font-size: 0.875rem;
+  color: hsl(30 5% 66%);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+/* Quest Mode Scrollbar */
+[data-theme="quest"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+[data-theme="quest"] ::-webkit-scrollbar-track {
+  background: hsl(222 25% 10%);
+}
+
+[data-theme="quest"] ::-webkit-scrollbar-thumb {
+  background: hsl(43 76% 52% / 0.3);
+  border-radius: 4px;
+}
+
+[data-theme="quest"] ::-webkit-scrollbar-thumb:hover {
+  background: hsl(43 76% 52% / 0.5);
+}
+
+/* Quest Mode Tabs */
+[data-theme="quest"] [role="tablist"] {
+  background: hsl(222 22% 12%);
+  border: 1px solid hsl(43 76% 52% / 0.15);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+[data-theme="quest"] [role="tab"][data-state="active"] {
+  background: linear-gradient(135deg, hsl(43 76% 52% / 0.2) 0%, hsl(43 76% 52% / 0.1) 100%);
+  color: hsl(43 76% 52%);
+  box-shadow: 0 0 10px hsl(43 76% 52% / 0.2);
+}
+
+/* Quest Mode Checkboxes */
+[data-theme="quest"] [role="checkbox"][data-state="checked"] {
+  background: linear-gradient(135deg, hsl(43 76% 52%) 0%, hsl(43 70% 42%) 100%);
+  border-color: hsl(43 76% 52%);
+}
+
+/* Quest Mode Switches */
+[data-theme="quest"] [role="switch"][data-state="checked"] {
+  background: linear-gradient(135deg, hsl(43 76% 52%) 0%, hsl(43 70% 42%) 100%);
+}
+
+/* Quest Mode Dialog/Modal */
+[data-theme="quest"] [role="dialog"] {
+  background: linear-gradient(145deg, hsl(222 22% 16%) 0%, hsl(222 25% 12%) 100%);
+  border: 1px solid hsl(43 76% 52% / 0.3);
+  box-shadow: 
+    0 24px 80px hsl(0 0% 0% / 0.6),
+    0 0 40px hsl(43 76% 52% / 0.1);
+}
+
+/* Decorative corner flourishes for quest cards */
+.quest-flourish {
+  position: relative;
+}
+
+.quest-flourish::before,
+.quest-flourish::after {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border: 1px solid hsl(43 76% 52% / 0.2);
+  pointer-events: none;
+}
+
+.quest-flourish::before {
+  top: -1px;
+  left: -1px;
+  border-right: none;
+  border-bottom: none;
+  border-top-left-radius: 12px;
+}
+
+.quest-flourish::after {
+  bottom: -1px;
+  right: -1px;
+  border-left: none;
+  border-top: none;
+  border-bottom-right-radius: 12px;
+}
+
+/* Responsive adjustments for Quest Mode */
+@media (max-width: 768px) {
+  [data-theme="quest"] .card {
+    box-shadow: 0 4px 16px hsl(0 0% 0% / 0.3);
+  }
+  
+  [data-theme="quest"] .card:hover {
+    transform: none;
+  }
+  
+  [data-theme="quest"] body::before {
+    opacity: 0.3;
+  }
 }

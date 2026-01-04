@@ -65,6 +65,16 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Quest Mode accent colors
+        quest: {
+          gold: "hsl(var(--quest-gold))",
+          "gold-light": "hsl(var(--quest-gold-light))",
+          copper: "hsl(var(--quest-copper))",
+          forest: "hsl(var(--quest-forest))",
+          emerald: "hsl(var(--quest-emerald))",
+          purple: "hsl(var(--quest-purple))",
+          blue: "hsl(var(--quest-blue))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
