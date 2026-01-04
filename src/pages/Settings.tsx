@@ -16,6 +16,7 @@ import { ReflectionList } from '@/components/ReflectionList';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTour } from '@/hooks/useTour';
+import { GoogleCalendarPanel } from '@/components/google-calendar/GoogleCalendarPanel';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -319,6 +320,9 @@ export default function Settings() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Google Calendar Integration */}
+        <GoogleCalendarPanel />
 
         {/* Display Preferences */}
         <Card>
