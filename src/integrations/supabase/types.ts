@@ -338,6 +338,39 @@ export type Database = {
           },
         ]
       }
+      event_sync_mapping: {
+        Row: {
+          app_block_id: string
+          created_at: string | null
+          google_etag: string | null
+          google_event_id: string
+          id: string
+          last_synced_at: string | null
+          sync_direction: string | null
+          user_id: string
+        }
+        Insert: {
+          app_block_id: string
+          created_at?: string | null
+          google_etag?: string | null
+          google_event_id: string
+          id?: string
+          last_synced_at?: string | null
+          sync_direction?: string | null
+          user_id: string
+        }
+        Update: {
+          app_block_id?: string
+          created_at?: string | null
+          google_etag?: string | null
+          google_event_id?: string
+          id?: string
+          last_synced_at?: string | null
+          sync_direction?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       feature_requests: {
         Row: {
           category: string
@@ -373,6 +406,78 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      google_calendar_connection: {
+        Row: {
+          access_token_encrypted: string
+          created_at: string | null
+          google_user_id: string
+          is_active: boolean | null
+          refresh_token_encrypted: string
+          selected_calendar_id: string | null
+          selected_calendar_name: string | null
+          token_expiry: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token_encrypted: string
+          created_at?: string | null
+          google_user_id: string
+          is_active?: boolean | null
+          refresh_token_encrypted: string
+          selected_calendar_id?: string | null
+          selected_calendar_name?: string | null
+          token_expiry: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token_encrypted?: string
+          created_at?: string | null
+          google_user_id?: string
+          is_active?: boolean | null
+          refresh_token_encrypted?: string
+          selected_calendar_id?: string | null
+          selected_calendar_name?: string | null
+          token_expiry?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      google_sync_state: {
+        Row: {
+          calendar_id: string
+          last_error_message: string | null
+          last_full_sync_at: string | null
+          last_incremental_sync_at: string | null
+          sync_status: string | null
+          sync_token: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          calendar_id: string
+          last_error_message?: string | null
+          last_full_sync_at?: string | null
+          last_incremental_sync_at?: string | null
+          sync_status?: string | null
+          sync_token?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          calendar_id?: string
+          last_error_message?: string | null
+          last_full_sync_at?: string | null
+          last_incremental_sync_at?: string | null
+          sync_status?: string | null
+          sync_token?: string | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []

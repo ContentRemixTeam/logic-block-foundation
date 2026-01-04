@@ -1,1 +1,4 @@
 project_id = "wdxelomsouudmidakxiz"
+
+[functions.google-oauth-callback]
+verify_jwt = false
