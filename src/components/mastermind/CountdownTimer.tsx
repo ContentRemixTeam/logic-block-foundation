@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 interface CountdownTimerProps {
   targetDate: string | Date;
   onComplete?: () => void;
+  compact?: boolean;
 }
 
 interface TimeLeft {
@@ -27,7 +28,7 @@ const calculateTimeLeft = (target: Date): TimeLeft => {
   };
 };
 
-export const CountdownTimer = ({ targetDate, onComplete }: CountdownTimerProps) => {
+export const CountdownTimer = ({ targetDate, onComplete, compact = false }: CountdownTimerProps) => {
   const target = new Date(targetDate);
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(calculateTimeLeft(target));
   
@@ -36,7 +37,6 @@ export const CountdownTimer = ({ targetDate, onComplete }: CountdownTimerProps) 
       const newTimeLeft = calculateTimeLeft(target);
       setTimeLeft(newTimeLeft);
       
-      // Check if countdown complete
       if (newTimeLeft.days === 0 && newTimeLeft.hours === 0 && 
           newTimeLeft.minutes === 0 && newTimeLeft.seconds === 0) {
         onComplete?.();
@@ -45,6 +45,20 @@ export const CountdownTimer = ({ targetDate, onComplete }: CountdownTimerProps) 
     
     return () => clearInterval(timer);
   }, [target, onComplete]);
+
+  // Compact inline format: "2d 5h 32m"
+  if (compact) {
+    const parts: string[] = [];
+    if (timeLeft.days > 0) parts.push(`${timeLeft.days}d`);
+    if (timeLeft.hours > 0 || timeLeft.days > 0) parts.push(`${timeLeft.hours}h`);
+    parts.push(`${timeLeft.minutes}m`);
+    
+    return (
+      <span className="text-xs font-medium text-muted-foreground">
+        {parts.join(' ')}
+      </span>
+    );
+  }
   
   return (
     <div className="countdown-timer flex gap-3 sm:gap-4 justify-center">
