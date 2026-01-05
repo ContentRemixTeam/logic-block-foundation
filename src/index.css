@@ -74,59 +74,59 @@ All colors MUST be HSL.
     --font-heading: inherit;
   }
 
-  /* ===== QUEST MODE THEME - VIBRANT & EXCITING ===== */
+  /* ===== QUEST MODE THEME - LIGHT & ELEGANT ===== */
   [data-theme="quest"] {
-    /* Dynamic, vibrant palette */
-    --background: 235 45% 10%;
-    --foreground: 40 25% 96%;
+    /* Light, warm backgrounds */
+    --background: 40 25% 96%;
+    --foreground: 220 25% 15%;
 
-    /* Cards - Glassmorphism light */
-    --card: 235 30% 22%;
-    --card-foreground: 40 25% 96%;
+    /* Cards - Clean white with subtle warmth */
+    --card: 40 20% 99%;
+    --card-foreground: 220 25% 15%;
 
-    --popover: 235 30% 20%;
-    --popover-foreground: 40 25% 96%;
+    --popover: 40 20% 99%;
+    --popover-foreground: 220 25% 15%;
 
     /* Vibrant gold primary */
-    --primary: 45 85% 55%;
-    --primary-foreground: 235 45% 8%;
+    --primary: 45 90% 45%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Purple secondary for variety */
-    --secondary: 265 70% 58%;
-    --secondary-foreground: 40 25% 96%;
+    /* Purple secondary for accents */
+    --secondary: 265 60% 55%;
+    --secondary-foreground: 0 0% 100%;
 
-    /* Muted with warmth */
-    --muted: 235 25% 28%;
-    --muted-foreground: 40 15% 72%;
+    /* Muted - soft gray with warmth */
+    --muted: 40 15% 92%;
+    --muted-foreground: 220 15% 45%;
 
     /* Rich accent */
-    --accent: 265 70% 58%;
-    --accent-foreground: 40 25% 96%;
+    --accent: 265 60% 55%;
+    --accent-foreground: 0 0% 100%;
 
-    /* Vibrant success */
-    --success: 160 85% 45%;
-    --success-foreground: 40 25% 96%;
+    /* Success */
+    --success: 160 85% 40%;
+    --success-foreground: 0 0% 100%;
 
-    --warning: 45 95% 58%;
-    --warning-foreground: 235 45% 8%;
+    --warning: 45 95% 48%;
+    --warning-foreground: 220 25% 15%;
 
-    --destructive: 0 75% 58%;
-    --destructive-foreground: 40 25% 96%;
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    /* Warm gold borders */
-    --border: 45 55% 38%;
-    --input: 235 25% 28%;
-    --ring: 45 85% 55%;
+    /* Gold-tinted borders */
+    --border: 45 40% 80%;
+    --input: 45 20% 88%;
+    --ring: 45 85% 50%;
 
-    /* Sidebar - Deep & elevated */
-    --sidebar-background: 235 40% 8%;
-    --sidebar-foreground: 40 20% 92%;
-    --sidebar-primary: 45 85% 58%;
-    --sidebar-primary-foreground: 235 45% 8%;
-    --sidebar-accent: 45 45% 25%;
-    --sidebar-accent-foreground: 45 85% 72%;
-    --sidebar-border: 45 40% 28%;
-    --sidebar-ring: 45 85% 55%;
+    /* Sidebar - Light & clean */
+    --sidebar-background: 40 20% 98%;
+    --sidebar-foreground: 220 25% 25%;
+    --sidebar-primary: 45 90% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 45 30% 92%;
+    --sidebar-accent-foreground: 220 25% 20%;
+    --sidebar-border: 45 30% 85%;
+    --sidebar-ring: 45 85% 50%;
     
     --font-heading: 'Cinzel', serif;
   }
@@ -344,17 +344,15 @@ All colors MUST be HSL.
 .animate-border-pulse { animation: borderPulse 3s ease-in-out infinite; }
 .animate-glow-pulse { animation: glowPulse 2s ease-in-out infinite; }
 
-/* === QUEST MODE BODY & DYNAMIC BACKGROUND === */
+/* === QUEST MODE BODY - LIGHT & ELEGANT === */
 [data-theme="quest"] body {
-  background: linear-gradient(135deg, #1a1f35 0%, #2d1b4e 35%, #1e2847 70%, #1a1f35 100%);
-  background-size: 400% 400%;
-  animation: gradientFlow 15s ease infinite;
+  background: linear-gradient(135deg, hsl(40 25% 96%) 0%, hsl(45 20% 92%) 100%);
   background-attachment: fixed;
   min-height: 100vh;
   position: relative;
 }
 
-/* Floating decorative orbs */
+/* Subtle decorative pattern - topographic lines */
 [data-theme="quest"] body::before {
   content: '';
   position: fixed;
@@ -363,39 +361,16 @@ All colors MUST be HSL.
   right: 0;
   bottom: 0;
   background-image: 
-    radial-gradient(circle at 20% 25%, rgba(139, 92, 246, 0.15) 0%, transparent 40%),
-    radial-gradient(circle at 80% 75%, rgba(244, 208, 63, 0.12) 0%, transparent 40%),
-    radial-gradient(circle at 60% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 35%),
-    radial-gradient(circle at 30% 80%, rgba(244, 208, 63, 0.1) 0%, transparent 35%);
-  animation: floatBackground 20s ease-in-out infinite;
+    radial-gradient(circle at 20% 30%, rgba(212, 175, 55, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.04) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.03) 0%, transparent 50%);
   pointer-events: none;
   z-index: 0;
 }
 
-/* Twinkling stars overlay */
+/* No heavy overlays - keep it clean */
 [data-theme="quest"] body::after {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: 
-    radial-gradient(3px 3px at 10% 15%, rgba(244, 208, 63, 0.7), transparent),
-    radial-gradient(2px 2px at 25% 45%, rgba(255, 255, 255, 0.5), transparent),
-    radial-gradient(3px 3px at 40% 25%, rgba(244, 208, 63, 0.6), transparent),
-    radial-gradient(2px 2px at 55% 65%, rgba(255, 255, 255, 0.4), transparent),
-    radial-gradient(3px 3px at 70% 35%, rgba(139, 92, 246, 0.6), transparent),
-    radial-gradient(2px 2px at 85% 55%, rgba(244, 208, 63, 0.5), transparent),
-    radial-gradient(3px 3px at 95% 25%, rgba(255, 255, 255, 0.6), transparent),
-    radial-gradient(2px 2px at 15% 75%, rgba(244, 208, 63, 0.5), transparent),
-    radial-gradient(3px 3px at 35% 85%, rgba(139, 92, 246, 0.5), transparent),
-    radial-gradient(2px 2px at 75% 95%, rgba(255, 255, 255, 0.4), transparent);
-  background-size: 200px 200px;
-  animation: starTwinkle 4s ease-in-out infinite alternate;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.8;
+  display: none;
 }
 
 [data-theme="quest"] #root {
@@ -403,107 +378,88 @@ All colors MUST be HSL.
   z-index: 1;
 }
 
-/* === QUEST MODE SIDEBAR - GLASS EFFECT === */
+/* === QUEST MODE SIDEBAR - LIGHT & CLEAN === */
 [data-theme="quest"] [data-sidebar] {
-  background: linear-gradient(180deg, rgba(26, 31, 53, 0.98) 0%, rgba(20, 25, 45, 0.98) 100%) !important;
-  backdrop-filter: blur(20px) saturate(180%) !important;
-  border-right: 1px solid rgba(244, 208, 63, 0.25) !important;
-  box-shadow: 
-    4px 0 40px rgba(0, 0, 0, 0.5),
-    inset -1px 0 0 rgba(244, 208, 63, 0.1) !important;
+  background: hsl(40 20% 98%) !important;
+  backdrop-filter: blur(10px) !important;
+  border-right: 1px solid hsl(45 30% 85%) !important;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.05) !important;
 }
 
 /* Sidebar group labels */
 [data-theme="quest"] [data-sidebar-group-label] {
-  color: #f4d03f !important;
+  color: hsl(45 90% 38%) !important;
   text-transform: uppercase !important;
   font-size: 0.72rem !important;
-  letter-spacing: 0.14em !important;
+  letter-spacing: 0.12em !important;
   font-weight: 700 !important;
   padding: 0 14px !important;
   margin-top: 24px !important;
-  text-shadow: 0 0 12px rgba(244, 208, 63, 0.5);
 }
 
 /* Sidebar nav items */
 [data-theme="quest"] [data-sidebar-menu-button] {
-  color: #b5b3ac !important;
-  border-radius: 10px !important;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  margin: 3px 10px !important;
-  position: relative;
+  color: hsl(220 15% 45%) !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+  margin: 4px 8px !important;
 }
 
 [data-theme="quest"] [data-sidebar-menu-button]:hover {
-  background: linear-gradient(135deg, rgba(244, 208, 63, 0.12) 0%, rgba(139, 92, 246, 0.08) 100%) !important;
-  color: #f0e6d2 !important;
-  transform: translateX(4px);
+  background: hsl(45 30% 92%) !important;
+  color: hsl(220 25% 20%) !important;
 }
 
 [data-theme="quest"] [data-sidebar-menu-button][data-active="true"] {
-  background: linear-gradient(90deg, rgba(244, 208, 63, 0.28) 0%, rgba(139, 92, 246, 0.1) 100%) !important;
-  border-left: 4px solid #f4d03f !important;
-  color: #f4d03f !important;
-  box-shadow: 
-    0 0 30px rgba(244, 208, 63, 0.2),
-    inset 0 0 20px rgba(244, 208, 63, 0.05) !important;
+  background: linear-gradient(90deg, hsl(45 80% 90%) 0%, hsl(45 60% 95%) 100%) !important;
+  border-left: 3px solid hsl(45 90% 45%) !important;
+  color: hsl(220 25% 15%) !important;
+  font-weight: 600 !important;
 }
 
 [data-theme="quest"] [data-sidebar-menu-button][data-active="true"] svg {
-  color: #f4d03f !important;
-  filter: drop-shadow(0 0 10px rgba(244, 208, 63, 0.8)) !important;
-  animation: glowPulse 2s ease-in-out infinite;
+  color: hsl(45 90% 45%) !important;
 }
 
 [data-theme="quest"] [data-sidebar-menu-button] svg {
-  color: #9a9895;
-  transition: all 0.25s ease;
+  color: hsl(45 70% 50%);
+  opacity: 0.7;
+  transition: all 0.2s ease;
 }
 
 [data-theme="quest"] [data-sidebar-menu-button]:hover svg {
-  color: #f0e6d2;
-  filter: drop-shadow(0 0 5px rgba(244, 208, 63, 0.4));
+  opacity: 1;
 }
 
-/* === QUEST MODE CARDS - GLASSMORPHISM WITH SHIMMER === */
+/* === QUEST MODE CARDS - CLEAN WITH SUBTLE ACCENTS === */
 [data-theme="quest"] .card,
 [data-theme="quest"] [data-slot="card"] {
-  background: linear-gradient(145deg, 
-    rgba(255, 255, 255, 0.12) 0%, 
-    rgba(255, 255, 255, 0.05) 100%) !important;
-  backdrop-filter: blur(20px) saturate(180%) !important;
-  border: 2px solid rgba(244, 208, 63, 0.25) !important;
-  border-radius: 20px !important;
+  background: hsl(40 20% 99%) !important;
+  border: 2px solid hsl(45 40% 82%) !important;
+  border-radius: 16px !important;
   box-shadow: 
-    0 8px 40px rgba(0, 0, 0, 0.4),
-    0 4px 16px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15),
-    0 0 0 1px rgba(244, 208, 63, 0.08) !important;
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.04) !important;
   position: relative;
   overflow: hidden;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: all 0.3s ease !important;
 }
 
-/* Animated shimmer overlay */
+/* Subtle top gold accent line */
 [data-theme="quest"] .card::before,
 [data-theme="quest"] [data-slot="card"]::before {
   content: '';
   position: absolute;
   top: 0;
-  left: -100%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(244, 208, 63, 0.08),
-    rgba(255, 255, 255, 0.1),
-    rgba(244, 208, 63, 0.08),
-    transparent
-  );
-  animation: shimmerSlide 4s ease-in-out infinite;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    transparent 0%,
+    hsl(45 90% 55%) 50%,
+    transparent 100%);
+  opacity: 0.5;
   pointer-events: none;
-  z-index: 1;
 }
 
 /* Decorative corner accent */
@@ -511,425 +467,344 @@ All colors MUST be HSL.
 [data-theme="quest"] [data-slot="card"]::after {
   content: '✦';
   position: absolute;
-  top: 14px;
+  top: 12px;
   right: 14px;
-  font-size: 18px;
-  color: rgba(244, 208, 63, 0.3);
-  animation: twinkle 3s ease-in-out infinite;
+  font-size: 16px;
+  color: hsl(45 80% 60%);
+  opacity: 0.25;
   pointer-events: none;
 }
 
-/* Card hover - dramatic lift and glow */
+/* Card hover - subtle lift and gold border */
 [data-theme="quest"] .card:hover,
 [data-theme="quest"] [data-slot="card"]:hover {
-  transform: translateY(-8px) scale(1.01) !important;
-  border-color: rgba(244, 208, 63, 0.55) !important;
+  transform: translateY(-4px) !important;
+  border-color: hsl(45 80% 65%) !important;
   box-shadow: 
-    0 20px 60px rgba(0, 0, 0, 0.5),
-    0 12px 30px rgba(244, 208, 63, 0.15),
-    0 0 40px rgba(139, 92, 246, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 0 20px rgba(212, 175, 55, 0.15) !important;
 }
 
-/* === QUEST MODE TYPOGRAPHY - BRIGHT & WARM === */
+/* === QUEST MODE TYPOGRAPHY - DARK ON LIGHT === */
 [data-theme="quest"] h1 {
   font-family: var(--font-heading), serif;
-  color: #f8f6f2 !important;
-  text-shadow: 
-    0 2px 20px rgba(244, 208, 63, 0.5),
-    0 0 40px rgba(139, 92, 246, 0.2);
-  letter-spacing: 0.05em;
+  color: hsl(220 25% 15%) !important;
+  letter-spacing: 0.03em;
 }
 
 [data-theme="quest"] h2 {
   font-family: var(--font-heading), serif;
-  color: #f4d03f !important;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+  color: hsl(220 25% 20%) !important;
+  letter-spacing: 0.08em;
   font-weight: 600;
-  text-shadow: 0 0 15px rgba(244, 208, 63, 0.4);
 }
 
 [data-theme="quest"] h3 {
-  color: #f0e8d8 !important;
+  color: hsl(220 20% 25%) !important;
   font-weight: 600;
 }
 
 [data-theme="quest"] p {
-  color: #dcd8d0;
+  color: hsl(220 15% 35%);
 }
 
 [data-theme="quest"] label {
-  color: #c8c4bc !important;
+  color: hsl(220 12% 45%) !important;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   font-weight: 500;
   font-size: 0.85rem;
 }
 
-/* === QUEST MODE BUTTONS - VIBRANT GOLD === */
+/* === QUEST MODE BUTTONS - GOLD ON LIGHT === */
 [data-theme="quest"] button[data-variant="default"],
 [data-theme="quest"] .btn-primary {
-  background: linear-gradient(135deg, #f4d03f 0%, #d4af37 50%, #c9a227 100%) !important;
-  color: #1a1f35 !important;
-  font-weight: 700 !important;
+  background: linear-gradient(135deg, hsl(45 90% 50%) 0%, hsl(45 85% 42%) 100%) !important;
+  color: white !important;
+  font-weight: 600 !important;
   border: none !important;
-  border-radius: 12px !important;
+  border-radius: 10px !important;
   box-shadow: 
-    0 4px 20px rgba(244, 208, 63, 0.5),
-    0 2px 8px rgba(0, 0, 0, 0.3),
-    inset 0 2px 0 rgba(255, 255, 255, 0.4) !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  position: relative;
-  overflow: hidden;
-}
-
-[data-theme="quest"] button[data-variant="default"]::before,
-[data-theme="quest"] .btn-primary::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  transition: left 0.5s ease;
-}
-
-[data-theme="quest"] button[data-variant="default"]:hover::before,
-[data-theme="quest"] .btn-primary:hover::before {
-  left: 100%;
+    0 4px 12px rgba(212, 175, 55, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+  transition: all 0.25s ease !important;
 }
 
 [data-theme="quest"] button[data-variant="default"]:hover,
 [data-theme="quest"] .btn-primary:hover {
-  background: linear-gradient(135deg, #ffd54f 0%, #f4d03f 50%, #d4af37 100%) !important;
-  transform: translateY(-3px) scale(1.02) !important;
+  background: linear-gradient(135deg, hsl(45 95% 55%) 0%, hsl(45 90% 48%) 100%) !important;
+  transform: translateY(-2px) !important;
   box-shadow: 
-    0 8px 32px rgba(244, 208, 63, 0.6),
-    0 4px 12px rgba(0, 0, 0, 0.3),
-    inset 0 2px 0 rgba(255, 255, 255, 0.5) !important;
+    0 6px 20px rgba(212, 175, 55, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
 }
 
 /* Secondary/Ghost buttons */
 [data-theme="quest"] button[data-variant="outline"],
 [data-theme="quest"] button[data-variant="ghost"],
 [data-theme="quest"] .btn-secondary {
-  background: linear-gradient(135deg, rgba(244, 208, 63, 0.15) 0%, rgba(139, 92, 246, 0.08) 100%) !important;
-  border: 2px solid rgba(244, 208, 63, 0.45) !important;
-  color: #f4d03f !important;
-  border-radius: 12px !important;
-  box-shadow: 
-    0 4px 16px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
-  transition: all 0.25s ease !important;
-  animation: borderPulse 3s ease-in-out infinite;
+  background: hsl(45 30% 95%) !important;
+  border: 1.5px solid hsl(45 50% 70%) !important;
+  color: hsl(45 80% 35%) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.2s ease !important;
 }
 
 [data-theme="quest"] button[data-variant="outline"]:hover,
 [data-theme="quest"] button[data-variant="ghost"]:hover,
 [data-theme="quest"] .btn-secondary:hover {
-  background: linear-gradient(135deg, rgba(244, 208, 63, 0.25) 0%, rgba(139, 92, 246, 0.15) 100%) !important;
-  border-color: rgba(244, 208, 63, 0.7) !important;
-  box-shadow: 
-    0 6px 24px rgba(244, 208, 63, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
-  transform: translateY(-2px) !important;
-  animation: none;
+  background: hsl(45 40% 92%) !important;
+  border-color: hsl(45 70% 55%) !important;
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2) !important;
 }
 
-/* === QUEST MODE INPUTS - INVITING & WARM === */
+/* === QUEST MODE INPUTS - CLEAN & INVITING === */
 [data-theme="quest"] input,
 [data-theme="quest"] textarea,
 [data-theme="quest"] select,
 [data-theme="quest"] [data-slot="input"] {
-  background: rgba(45, 53, 80, 0.6) !important;
-  border: 2px solid rgba(244, 208, 63, 0.2) !important;
-  border-radius: 12px !important;
-  color: #f0e8d8 !important;
-  transition: all 0.3s ease !important;
-  backdrop-filter: blur(10px);
+  background: white !important;
+  border: 1.5px solid hsl(45 30% 82%) !important;
+  border-radius: 10px !important;
+  color: hsl(220 25% 20%) !important;
+  transition: all 0.2s ease !important;
 }
 
 [data-theme="quest"] input::placeholder,
 [data-theme="quest"] textarea::placeholder {
-  color: #8a8680 !important;
+  color: hsl(220 10% 55%) !important;
 }
 
 [data-theme="quest"] input:focus,
 [data-theme="quest"] textarea:focus,
 [data-theme="quest"] select:focus,
 [data-theme="quest"] [data-slot="input"]:focus {
-  background: rgba(50, 58, 90, 0.9) !important;
-  border-color: #f4d03f !important;
+  border-color: hsl(45 80% 50%) !important;
   box-shadow: 
-    0 0 0 4px rgba(244, 208, 63, 0.2),
-    0 0 30px rgba(244, 208, 63, 0.15),
-    0 4px 20px rgba(0, 0, 0, 0.3),
-    inset 0 2px 10px rgba(244, 208, 63, 0.08) !important;
+    0 0 0 3px hsla(45 80% 50% / 0.15),
+    0 2px 8px rgba(0, 0, 0, 0.08) !important;
   outline: none !important;
 }
 
-/* === QUEST MODE PROGRESS BARS - MAGICAL GLOW === */
+/* === QUEST MODE PROGRESS BARS - ELEGANT GOLD === */
 [data-theme="quest"] [role="progressbar"] {
-  background: rgba(20, 25, 45, 0.7) !important;
-  border: 2px solid rgba(244, 208, 63, 0.2) !important;
-  border-radius: 16px !important;
-  height: 16px !important;
-  overflow: visible !important;
-  box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.5) !important;
-  position: relative;
+  background: hsl(45 20% 90%) !important;
+  border: 1px solid hsl(45 30% 82%) !important;
+  border-radius: 12px !important;
+  height: 12px !important;
+  overflow: hidden !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06) !important;
 }
 
 [data-theme="quest"] [role="progressbar"] > div {
   background: linear-gradient(90deg,
-    #c9a227 0%,
-    #f4d03f 20%,
-    #ffd54f 40%,
-    #f4d03f 60%,
-    #ffd54f 80%,
-    #c9a227 100%
+    hsl(45 90% 48%) 0%,
+    hsl(45 95% 55%) 50%,
+    hsl(45 90% 48%) 100%
   ) !important;
   background-size: 200% 100% !important;
-  border-radius: 14px !important;
+  border-radius: 11px !important;
   box-shadow: 
-    0 0 30px rgba(244, 208, 63, 0.8),
-    0 0 60px rgba(244, 208, 63, 0.4),
-    inset 0 2px 0 rgba(255, 255, 255, 0.5),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.2) !important;
-  animation: progressShine 2s linear infinite, progressGrow 0.8s ease-out !important;
-  position: relative;
+    0 0 20px rgba(212, 175, 55, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+  animation: progressShine 3s linear infinite !important;
 }
 
-/* Percentage text with glow */
+/* Percentage text */
 [data-theme="quest"] .quest-percentage {
-  color: #fff !important;
-  font-size: 1.5rem !important;
-  font-weight: 800 !important;
-  text-shadow: 
-    0 0 15px rgba(244, 208, 63, 1),
-    0 0 30px rgba(244, 208, 63, 0.6),
-    0 2px 4px rgba(0, 0, 0, 0.4) !important;
-  animation: pulseGlow 2s ease-in-out infinite;
+  color: hsl(45 90% 40%) !important;
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
 }
 
-/* === QUEST MODE BADGES - VIBRANT === */
+/* === QUEST MODE BADGES - CLEAN === */
 [data-theme="quest"] [data-slot="badge"],
 [data-theme="quest"] .badge {
-  background: linear-gradient(135deg, rgba(244, 208, 63, 0.25) 0%, rgba(244, 208, 63, 0.15) 100%) !important;
-  border: 1px solid rgba(244, 208, 63, 0.5) !important;
-  color: #f4d03f !important;
-  font-weight: 700 !important;
-  box-shadow: 0 2px 10px rgba(244, 208, 63, 0.2);
+  background: hsl(45 40% 92%) !important;
+  border: 1px solid hsl(45 50% 75%) !important;
+  color: hsl(45 80% 35%) !important;
+  font-weight: 600 !important;
 }
 
 /* Purple accent badge */
 [data-theme="quest"] .badge-purple,
 [data-theme="quest"] [data-accent="purple"] {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0.15) 100%) !important;
-  color: #c4b5fd !important;
-  border: 1px solid rgba(139, 92, 246, 0.55) !important;
-  box-shadow: 0 2px 12px rgba(139, 92, 246, 0.3);
+  background: hsl(265 40% 94%) !important;
+  color: hsl(265 60% 45%) !important;
+  border: 1px solid hsl(265 40% 80%) !important;
 }
 
 /* Success/Emerald accent */
 [data-theme="quest"] .badge-success,
 [data-theme="quest"] [data-accent="success"] {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(16, 185, 129, 0.15) 100%) !important;
-  color: #6ee7b7 !important;
-  border: 1px solid rgba(16, 185, 129, 0.55) !important;
-  box-shadow: 0 2px 12px rgba(16, 185, 129, 0.3);
+  background: hsl(160 40% 92%) !important;
+  color: hsl(160 70% 35%) !important;
+  border: 1px solid hsl(160 40% 75%) !important;
 }
 
 /* Success progress bars */
 [data-theme="quest"] [data-accent="success"] [role="progressbar"] > div {
-  background: linear-gradient(90deg, #059669 0%, #10b981 25%, #34d399 50%, #10b981 75%, #059669 100%) !important;
-  box-shadow: 
-    0 0 30px rgba(16, 185, 129, 0.7),
-    0 0 60px rgba(16, 185, 129, 0.4),
-    inset 0 2px 0 rgba(255, 255, 255, 0.4) !important;
+  background: linear-gradient(90deg, hsl(160 80% 40%) 0%, hsl(160 85% 48%) 50%, hsl(160 80% 40%) 100%) !important;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4) !important;
 }
 
-/* === QUEST MODE STATS ICONS - BOUNCY === */
+/* === QUEST MODE STATS ICONS === */
 [data-theme="quest"] .stat-icon {
   display: inline-block;
-  font-size: 1.5rem;
-  margin-right: 10px;
-  animation: iconBounce 2.5s ease-in-out infinite;
-}
-
-[data-theme="quest"] .stat-icon.complete {
-  animation: celebrate 0.6s ease-out;
+  font-size: 1.25rem;
+  margin-right: 8px;
+  color: hsl(45 80% 45%);
 }
 
 /* === QUEST MODE TABLES === */
 [data-theme="quest"] table {
-  background: transparent;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 [data-theme="quest"] th {
-  background: linear-gradient(135deg, rgba(244, 208, 63, 0.15) 0%, rgba(139, 92, 246, 0.08) 100%) !important;
-  color: #f4d03f !important;
+  background: hsl(45 30% 95%) !important;
+  color: hsl(220 20% 30%) !important;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.82rem;
-  border-bottom: 2px solid rgba(244, 208, 63, 0.3) !important;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+  border-bottom: 1px solid hsl(45 30% 85%) !important;
 }
 
 [data-theme="quest"] td {
-  border-bottom: 1px solid rgba(244, 208, 63, 0.15) !important;
+  border-bottom: 1px solid hsl(45 20% 90%) !important;
 }
 
 [data-theme="quest"] tr:hover td {
-  background: rgba(244, 208, 63, 0.08) !important;
+  background: hsl(45 30% 97%) !important;
 }
 
 /* === QUEST MODE TABS === */
 [data-theme="quest"] [role="tablist"] {
-  background: rgba(30, 35, 60, 0.7) !important;
-  border: 2px solid rgba(244, 208, 63, 0.2) !important;
-  border-radius: 16px !important;
-  padding: 6px !important;
-  backdrop-filter: blur(10px);
+  background: hsl(45 20% 95%) !important;
+  border: 1px solid hsl(45 25% 85%) !important;
+  border-radius: 12px !important;
+  padding: 4px !important;
 }
 
 [data-theme="quest"] [role="tab"] {
-  color: #b5b3ac !important;
-  border-radius: 12px !important;
-  transition: all 0.25s ease !important;
+  color: hsl(220 15% 45%) !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
 }
 
 [data-theme="quest"] [role="tab"]:hover {
-  color: #f0e6d2 !important;
-  background: rgba(244, 208, 63, 0.12) !important;
+  color: hsl(220 20% 30%) !important;
+  background: hsl(45 25% 92%) !important;
 }
 
 [data-theme="quest"] [role="tab"][data-state="active"] {
-  background: linear-gradient(135deg, rgba(244, 208, 63, 0.3) 0%, rgba(139, 92, 246, 0.15) 100%) !important;
-  color: #f4d03f !important;
-  box-shadow: 
-    0 4px 16px rgba(0, 0, 0, 0.4),
-    0 0 20px rgba(244, 208, 63, 0.2) !important;
+  background: white !important;
+  color: hsl(45 80% 40%) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
 }
 
 /* === QUEST MODE CHECKBOX & SWITCH === */
 [data-theme="quest"] [role="checkbox"][data-state="checked"],
 [data-theme="quest"] [role="switch"][data-state="checked"] {
-  background: linear-gradient(135deg, #f4d03f 0%, #d4af37 100%) !important;
-  border-color: #f4d03f !important;
-  box-shadow: 0 0 15px rgba(244, 208, 63, 0.5);
+  background: hsl(45 85% 50%) !important;
+  border-color: hsl(45 85% 50%) !important;
 }
 
 /* === QUEST MODE DIALOGS === */
 [data-theme="quest"] [role="dialog"] {
-  background: linear-gradient(145deg, rgba(45, 53, 80, 0.98) 0%, rgba(30, 40, 70, 0.98) 100%) !important;
-  backdrop-filter: blur(20px) !important;
-  border: 2px solid rgba(244, 208, 63, 0.35) !important;
-  box-shadow: 
-    0 24px 100px rgba(0, 0, 0, 0.8),
-    0 0 80px rgba(244, 208, 63, 0.15),
-    0 0 40px rgba(139, 92, 246, 0.1) !important;
+  background: white !important;
+  border: 2px solid hsl(45 40% 80%) !important;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.2) !important;
 }
 
 /* === QUEST MODE TOOLTIPS & POPOVERS === */
 [data-theme="quest"] [role="tooltip"],
 [data-theme="quest"] [data-radix-popper-content-wrapper] > div {
-  background: linear-gradient(145deg, rgba(45, 53, 80, 0.98) 0%, rgba(35, 42, 65, 0.98) 100%) !important;
-  backdrop-filter: blur(15px) !important;
-  border: 1px solid rgba(244, 208, 63, 0.35) !important;
-  color: #f0e8d8 !important;
-  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.6) !important;
+  background: white !important;
+  border: 1px solid hsl(45 30% 85%) !important;
+  color: hsl(220 20% 25%) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
 }
 
 /* === QUEST MODE SCROLLBAR === */
 [data-theme="quest"] ::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
 }
 
 [data-theme="quest"] ::-webkit-scrollbar-track {
-  background: rgba(30, 35, 55, 0.7);
-  border-radius: 6px;
+  background: hsl(45 15% 92%);
+  border-radius: 5px;
 }
 
 [data-theme="quest"] ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(244, 208, 63, 0.5) 0%, rgba(139, 92, 246, 0.3) 100%);
-  border-radius: 6px;
-  border: 3px solid rgba(30, 35, 55, 0.5);
+  background: hsl(45 40% 75%);
+  border-radius: 5px;
+  border: 2px solid hsl(45 15% 92%);
 }
 
 [data-theme="quest"] ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(244, 208, 63, 0.7) 0%, rgba(139, 92, 246, 0.5) 100%);
+  background: hsl(45 50% 65%);
 }
 
 /* === QUEST MODE DIVIDERS === */
 [data-theme="quest"] hr,
 [data-theme="quest"] [data-slot="separator"] {
   border: none !important;
-  height: 2px !important;
-  background: linear-gradient(90deg, transparent, rgba(244, 208, 63, 0.45), rgba(139, 92, 246, 0.25), transparent) !important;
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent, hsl(45 40% 80%), transparent) !important;
 }
 
 /* === QUEST MODE ICONS === */
 [data-theme="quest"] svg {
-  transition: all 0.25s ease;
+  transition: all 0.2s ease;
 }
 
 /* === QUEST UTILITY CLASSES === */
-.quest-emerald { color: #6ee7b7; }
-.quest-gold { color: #f4d03f; }
-.quest-copper { color: #e9a54b; }
-.quest-purple { color: #c4b5fd; }
-.quest-blue { color: #93c5fd; }
+.quest-emerald { color: hsl(160 70% 40%); }
+.quest-gold { color: hsl(45 90% 45%); }
+.quest-copper { color: hsl(30 70% 50%); }
+.quest-purple { color: hsl(265 60% 55%); }
+.quest-blue { color: hsl(213 80% 55%); }
 
 .quest-glow-gold { 
-  box-shadow: 0 0 30px rgba(244, 208, 63, 0.6); 
-  animation: pulseGlow 2s ease-in-out infinite;
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.35); 
 }
 .quest-glow-emerald { 
-  box-shadow: 0 0 30px rgba(16, 185, 129, 0.6); 
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.35); 
 }
 .quest-glow-purple { 
-  box-shadow: 0 0 30px rgba(139, 92, 246, 0.6); 
-}
-
-/* Quest text glow */
-.quest-text-glow {
-  text-shadow: 
-    0 0 15px rgba(244, 208, 63, 0.6),
-    0 0 30px rgba(244, 208, 63, 0.3);
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.35); 
 }
 
 /* Number priority badges */
 [data-theme="quest"] .priority-badge {
-  background: linear-gradient(135deg, #f4d03f 0%, #d4af37 100%) !important;
-  color: #1a1f35 !important;
-  font-weight: 800 !important;
-  width: 32px;
-  height: 32px;
+  background: linear-gradient(135deg, hsl(45 90% 50%) 0%, hsl(45 85% 42%) 100%) !important;
+  color: white !important;
+  font-weight: 700 !important;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 
-    0 2px 12px rgba(244, 208, 63, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
-  animation: pulseGlow 3s ease-in-out infinite;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.35);
 }
 
 /* Focus label pill - purple */
 [data-theme="quest"] .focus-label {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0.15) 100%) !important;
-  color: #c4b5fd !important;
-  padding: 6px 18px !important;
-  border-radius: 24px !important;
-  border: 1px solid rgba(139, 92, 246, 0.5) !important;
-  font-weight: 700 !important;
+  background: hsl(265 40% 94%) !important;
+  color: hsl(265 60% 50%) !important;
+  padding: 6px 16px !important;
+  border-radius: 20px !important;
+  border: 1px solid hsl(265 40% 82%) !important;
+  font-weight: 600 !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.08em !important;
-  font-size: 0.85rem !important;
-  box-shadow: 0 2px 16px rgba(139, 92, 246, 0.3);
+  letter-spacing: 0.06em !important;
+  font-size: 0.8rem !important;
 }
 
 /* Decorative corner flourishes */
@@ -941,9 +816,9 @@ All colors MUST be HSL.
 .quest-flourish::after {
   content: '';
   position: absolute;
-  width: 60px;
-  height: 60px;
-  border: 2px solid rgba(244, 208, 63, 0.2);
+  width: 40px;
+  height: 40px;
+  border: 2px solid hsl(45 50% 80%);
   pointer-events: none;
 }
 
@@ -952,7 +827,7 @@ All colors MUST be HSL.
   left: -1px;
   border-right: none;
   border-bottom: none;
-  border-top-left-radius: 20px;
+  border-top-left-radius: 16px;
 }
 
 .quest-flourish::after {
@@ -960,30 +835,19 @@ All colors MUST be HSL.
   right: -1px;
   border-left: none;
   border-top: none;
-  border-bottom-right-radius: 20px;
+  border-bottom-right-radius: 16px;
 }
 
 /* === RESPONSIVE ADJUSTMENTS === */
 @media (max-width: 768px) {
   [data-theme="quest"] .card,
   [data-theme="quest"] [data-slot="card"] {
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45) !important;
-    border-radius: 16px !important;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
+    border-radius: 12px !important;
   }
   
   [data-theme="quest"] .card:hover,
   [data-theme="quest"] [data-slot="card"]:hover {
     transform: none !important;
-  }
-  
-  [data-theme="quest"] .card::before,
-  [data-theme="quest"] [data-slot="card"]::before {
-    animation: none;
-  }
-  
-  [data-theme="quest"] body::before,
-  [data-theme="quest"] body::after {
-    opacity: 0.5;
-    animation: none;
   }
 }
