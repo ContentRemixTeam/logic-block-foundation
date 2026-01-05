@@ -1,12 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { CountdownTimer } from './CountdownTimer';
 import { format } from 'date-fns';
-import { ExternalLink, Calendar, Clock, Users } from 'lucide-react';
+import { ExternalLink, Calendar, Clock } from 'lucide-react';
 
 interface CalendarEvent {
   id: string;
@@ -38,69 +36,34 @@ const getCallStatus = (event: CalendarEvent): CallStatus => {
   }
 };
 
-const isMastermindEvent = (event: CalendarEvent): boolean => {
-  const summary = event.summary?.toLowerCase() || '';
-  return (
-    summary.includes('mastermind') ||
-    summary.includes('hot seat') ||
-    summary.includes('q&a') ||
-    summary.includes('coaching') ||
-    summary.includes('group call')
-  );
-};
-
 // Default GHL Events URL - user can customize this
 const DEFAULT_GHL_URL = 'https://www.skool.com/the-90-day-focus-planner-3426';
 
 export const MastermindCallWidget = () => {
-  const { user } = useAuth();
   const [nextCall, setNextCall] = useState<CalendarEvent | null>(null);
   const [upcomingCalls, setUpcomingCalls] = useState<CalendarEvent[]>([]);
   const [callStatus, setCallStatus] = useState<CallStatus>('NO_CALLS');
   const [loading, setLoading] = useState(true);
-  const [isConnected, setIsConnected] = useState(false);
 
   const fetchMastermindCalls = useCallback(async () => {
-    if (!user) return;
-
     try {
-      const now = new Date();
-      const twoWeeksLater = new Date();
-      twoWeeksLater.setDate(now.getDate() + 14);
-
-      const response = await supabase.functions.invoke('get-calendar-events', {
-        body: {
-          startDate: now.toISOString(),
-          endDate: twoWeeksLater.toISOString(),
-        },
-      });
+      // Fetch from the public Mastermind calendar
+      const response = await supabase.functions.invoke('get-mastermind-events');
 
       if (response.error) {
-        console.error('Error fetching calendar events:', response.error);
-        setIsConnected(false);
+        console.error('Error fetching mastermind events:', response.error);
+        setLoading(false);
         return;
       }
 
       const events: CalendarEvent[] = response.data?.events || [];
-      setIsConnected(true);
       
-      // Filter for Mastermind events
-      const mastermindCalls = events.filter(isMastermindEvent);
-      
-      // Sort by start time and filter out ended calls
-      const sortedCalls = mastermindCalls
-        .filter((event) => getCallStatus(event) !== 'ENDED')
-        .sort((a, b) => {
-          const aTime = new Date(a.start.dateTime || a.start.date || '').getTime();
-          const bTime = new Date(b.start.dateTime || b.start.date || '').getTime();
-          return aTime - bTime;
-        });
-
-      if (sortedCalls.length > 0) {
-        const next = sortedCalls[0];
+      // Events are already filtered and sorted by the edge function
+      if (events.length > 0) {
+        const next = events[0];
         setNextCall(next);
         setCallStatus(getCallStatus(next));
-        setUpcomingCalls(sortedCalls.slice(1, 4));
+        setUpcomingCalls(events.slice(1, 4));
       } else {
         setNextCall(null);
         setCallStatus('NO_CALLS');
@@ -108,11 +71,10 @@ export const MastermindCallWidget = () => {
       }
     } catch (error) {
       console.error('Error in fetchMastermindCalls:', error);
-      setIsConnected(false);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     fetchMastermindCalls();
@@ -155,22 +117,7 @@ export const MastermindCallWidget = () => {
     );
   }
 
-  if (!isConnected) {
-    return (
-      <Card className="mastermind-widget border-2 border-dashed border-muted">
-        <CardContent className="py-8 text-center">
-          <div className="text-4xl mb-4">🎓</div>
-          <h3 className="font-semibold text-lg mb-2">Connect Google Calendar</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Connect your calendar to see upcoming Mastermind calls
-          </p>
-          <Button variant="outline" onClick={() => window.location.href = '/settings'}>
-            Go to Settings
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Removed isConnected check - we now fetch from public Mastermind calendar
 
   if (callStatus === 'NO_CALLS' || !nextCall) {
     return (
