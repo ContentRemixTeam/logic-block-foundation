@@ -18,6 +18,7 @@ import { QuestMapCompact } from '@/components/quest/QuestMap';
 import { XPDisplay } from '@/components/quest/XPDisplay';
 import { StreakDisplay } from '@/components/quest/StreakDisplay';
 import { MastermindCallWidget } from '@/components/mastermind/MastermindCallWidget';
+import { PodcastWidget } from '@/components/podcast/PodcastWidget';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -145,9 +146,12 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Mastermind Call Widget */}
+        {/* Mastermind Call & Podcast Widgets */}
         {hasCycle && (
-          <MastermindCallWidget />
+          <div className="grid gap-4 md:grid-cols-2">
+            <MastermindCallWidget />
+            <PodcastWidget />
+          </div>
         )}
 
         {/* Onboarding Checklist */}
