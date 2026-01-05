@@ -16,6 +16,7 @@ import { OnboardingChecklist } from '@/components/tour/OnboardingChecklist';
 import { QuestMapCompact } from '@/components/quest/QuestMap';
 import { XPDisplay } from '@/components/quest/XPDisplay';
 import { StreakDisplay } from '@/components/quest/StreakDisplay';
+import { MastermindCallWidget } from '@/components/mastermind/MastermindCallWidget';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -140,6 +141,11 @@ export default function Dashboard() {
             <XPDisplay />
             <StreakDisplay />
           </div>
+        )}
+
+        {/* Mastermind Call Widget */}
+        {hasCycle && (
+          <MastermindCallWidget />
         )}
 
         {/* Onboarding Checklist */}

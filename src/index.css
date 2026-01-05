@@ -1017,3 +1017,83 @@ All colors MUST be HSL.
   background: hsl(142 76% 32%);
   transform: scale(1.02);
 }
+
+/* === MASTERMIND CALL WIDGET === */
+.mastermind-widget {
+  border: 2px solid hsl(270 60% 85%);
+  background: linear-gradient(135deg, hsl(270 60% 98%) 0%, white 100%);
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.1);
+}
+
+.mastermind-widget-live {
+  animation: livePulse 2s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+}
+
+.mastermind-widget-soon {
+  animation: soonPulse 3s ease-in-out infinite;
+}
+
+@keyframes soonPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.005); }
+}
+
+.mastermind-icon {
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.live-indicator {
+  animation: liveGlow 2s ease-in-out infinite;
+}
+
+@keyframes liveGlow {
+  0%, 100% { box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3); }
+  50% { box-shadow: 0 6px 24px rgba(239, 68, 68, 0.5); }
+}
+
+.btn-join-live {
+  animation: joinGlow 2s ease-in-out infinite;
+}
+
+@keyframes joinGlow {
+  0%, 100% { box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3); }
+  50% { box-shadow: 0 6px 24px rgba(239, 68, 68, 0.5); }
+}
+
+.alert-banner {
+  animation: attention 2s ease-in-out infinite;
+}
+
+@keyframes attention {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.countdown-container {
+  background: linear-gradient(135deg, hsl(270 60% 96%) 0%, hsl(270 50% 98%) 100%);
+  border: 1px solid hsl(270 40% 90%);
+}
+
+.countdown-timer .countdown-number {
+  background: linear-gradient(135deg, hsl(270 70% 50%) 0%, hsl(270 60% 60%) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Quest mode overrides for mastermind widget */
+[data-theme="quest"] .mastermind-widget {
+  border-color: hsl(270 60% 80%);
+  background: linear-gradient(135deg, hsl(270 40% 97%) 0%, white 100%);
+}
+
+[data-theme="quest"] .countdown-container {
+  background: linear-gradient(135deg, hsl(270 40% 95%) 0%, hsl(270 30% 97%) 100%);
+  border-color: hsl(270 30% 88%);
+}
