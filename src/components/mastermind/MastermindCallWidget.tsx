@@ -40,11 +40,11 @@ const getCallStatus = (event: CalendarEvent): CallStatus => {
 const parseEventTitle = (summary: string): { mainTitle: string; subtitle: string | null } => {
   let cleanTitle = summary;
   
-  // Remove "and Faith Mariah" suffix (case insensitive)
-  cleanTitle = cleanTitle.replace(/\s*and\s+Faith\s+Mariah\s*/gi, '');
+  // Remove "and Faith Mariah" or "with Faith Mariah" suffix (case insensitive)
+  cleanTitle = cleanTitle.replace(/\s*(and|with)\s+Faith\s+Mariah\s*/gi, '');
   
-  // Try to extract "Type - Name" pattern
-  const dashMatch = cleanTitle.match(/^(.+?)\s*-\s*(.+)$/);
+  // Try to extract "Type - Name" pattern (must have spaces around dash to avoid matching "Member-led")
+  const dashMatch = cleanTitle.match(/^(.+?)\s+-\s+(.+)$/);
   if (dashMatch) {
     const mainTitle = dashMatch[1].replace(/^Member-led\s+/i, '').trim();
     const participant = dashMatch[2].trim();
