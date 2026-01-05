@@ -19,25 +19,52 @@ interface CalendarEvent {
 }
 
 // Parse iCal date format (e.g., "20250109T190000Z" or "TZID=America/New_York:20250109T140000")
-function parseICalDate(dateStr: string): Date {
-  // Handle TZID format
-  if (dateStr.includes('TZID=')) {
-    const parts = dateStr.split(':');
-    dateStr = parts[1];
+function parseICalDate(dateStr: string): Date | null {
+  try {
+    if (!dateStr || dateStr.length < 8) {
+      return null;
+    }
+    
+    // Handle TZID format
+    if (dateStr.includes('TZID=')) {
+      const parts = dateStr.split(':');
+      if (parts.length < 2) return null;
+      dateStr = parts[1];
+    }
+    
+    // Remove any trailing Z and parse
+    dateStr = dateStr.replace('Z', '');
+    
+    // Format: YYYYMMDDTHHMMSS or YYYYMMDD (all-day events)
+    const year = parseInt(dateStr.substring(0, 4));
+    const month = parseInt(dateStr.substring(4, 6)) - 1;
+    const day = parseInt(dateStr.substring(6, 8));
+    
+    // Validate basic date parts
+    if (isNaN(year) || isNaN(month) || isNaN(day)) {
+      return null;
+    }
+    
+    // Check if there's a time component
+    let hour = 0, minute = 0, second = 0;
+    if (dateStr.length >= 15 && dateStr.includes('T')) {
+      hour = parseInt(dateStr.substring(9, 11)) || 0;
+      minute = parseInt(dateStr.substring(11, 13)) || 0;
+      second = parseInt(dateStr.substring(13, 15)) || 0;
+    }
+    
+    const date = new Date(Date.UTC(year, month, day, hour, minute, second));
+    
+    // Validate the date is valid
+    if (isNaN(date.getTime())) {
+      return null;
+    }
+    
+    return date;
+  } catch (e) {
+    console.error('Error parsing date:', dateStr, e);
+    return null;
   }
-  
-  // Remove any trailing Z and parse
-  dateStr = dateStr.replace('Z', '');
-  
-  // Format: YYYYMMDDTHHMMSS
-  const year = parseInt(dateStr.substring(0, 4));
-  const month = parseInt(dateStr.substring(4, 6)) - 1;
-  const day = parseInt(dateStr.substring(6, 8));
-  const hour = parseInt(dateStr.substring(9, 11)) || 0;
-  const minute = parseInt(dateStr.substring(11, 13)) || 0;
-  const second = parseInt(dateStr.substring(13, 15)) || 0;
-  
-  return new Date(Date.UTC(year, month, day, hour, minute, second));
 }
 
 // Parse iCal format to extract events
@@ -46,7 +73,6 @@ function parseICalEvents(icalData: string): CalendarEvent[] {
   const lines = icalData.split(/\r?\n/);
   
   let currentEvent: Partial<CalendarEvent> | null = null;
-  let currentKey = '';
   
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i];
@@ -86,14 +112,22 @@ function parseICalEvents(icalData: string): CalendarEvent[] {
           case 'LOCATION':
             currentEvent.location = value.replace(/\\,/g, ',');
             break;
-          case 'DTSTART':
-            const startDate = parseICalDate(keyPart.includes('TZID=') ? `${keyPart.split('TZID=')[1]}:${value}` : value);
-            currentEvent.start = { dateTime: startDate.toISOString() };
+          case 'DTSTART': {
+            const dateInput = keyPart.includes('TZID=') ? `${keyPart.split('TZID=')[1]}:${value}` : value;
+            const startDate = parseICalDate(dateInput);
+            if (startDate) {
+              currentEvent.start = { dateTime: startDate.toISOString() };
+            }
             break;
-          case 'DTEND':
-            const endDate = parseICalDate(keyPart.includes('TZID=') ? `${keyPart.split('TZID=')[1]}:${value}` : value);
-            currentEvent.end = { dateTime: endDate.toISOString() };
+          }
+          case 'DTEND': {
+            const dateInput = keyPart.includes('TZID=') ? `${keyPart.split('TZID=')[1]}:${value}` : value;
+            const endDate = parseICalDate(dateInput);
+            if (endDate) {
+              currentEvent.end = { dateTime: endDate.toISOString() };
+            }
             break;
+          }
         }
       }
     }
