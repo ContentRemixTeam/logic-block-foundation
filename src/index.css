@@ -386,7 +386,21 @@ All colors MUST be HSL.
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.05) !important;
 }
 
-/* Sidebar group labels */
+/* Quest sidebar header branding */
+[data-theme="quest"] .quest-sidebar-header {
+  border-bottom: 2px solid hsl(45 40% 85%) !important;
+}
+
+[data-theme="quest"] .quest-logo-icon {
+  animation: questLogoGlow 3s ease-in-out infinite;
+}
+
+@keyframes questLogoGlow {
+  0%, 100% { box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3); }
+  50% { box-shadow: 0 4px 20px rgba(212, 175, 55, 0.5); }
+}
+
+/* Sidebar group labels - Quest section headers */
 [data-theme="quest"] [data-sidebar-group-label] {
   color: hsl(45 90% 38%) !important;
   text-transform: uppercase !important;
@@ -395,24 +409,92 @@ All colors MUST be HSL.
   font-weight: 700 !important;
   padding: 0 14px !important;
   margin-top: 24px !important;
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+[data-theme="quest"] .quest-section-header {
+  padding-bottom: 10px !important;
+}
+
+[data-theme="quest"] .quest-section-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 14px;
+  right: 14px;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    hsl(45 90% 55%) 0%, 
+    transparent 100%);
+  opacity: 0.3;
 }
 
 /* Sidebar nav items */
 [data-theme="quest"] [data-sidebar-menu-button] {
   color: hsl(220 15% 45%) !important;
-  border-radius: 8px !important;
+  border-radius: 10px !important;
   transition: all 0.2s ease !important;
   margin: 4px 8px !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Quest nav icon styling */
+[data-theme="quest"] .quest-nav-icon {
+  filter: grayscale(30%);
+  transition: all 0.2s ease;
+  width: 24px;
+  text-align: center;
+}
+
+[data-theme="quest"] [data-sidebar-menu-button]:hover .quest-nav-icon {
+  filter: grayscale(0%);
+  transform: scale(1.1);
+}
+
+[data-theme="quest"] [data-sidebar-menu-button][data-active="true"] .quest-nav-icon {
+  filter: grayscale(0%);
+  animation: iconBounce 0.5s ease;
+}
+
+@keyframes iconBounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+/* Shimmer effect on hover */
+[data-theme="quest"] [data-sidebar-menu-button]::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg,
+    transparent,
+    hsla(45 80% 55% / 0.1),
+    transparent);
+  transition: left 0.5s ease;
+  pointer-events: none;
+}
+
+[data-theme="quest"] [data-sidebar-menu-button]:hover::before {
+  left: 100%;
 }
 
 [data-theme="quest"] [data-sidebar-menu-button]:hover {
-  background: hsl(45 30% 92%) !important;
+  background: linear-gradient(90deg, 
+    hsl(45 80% 92% / 0.8) 0%, 
+    hsl(45 60% 95% / 0.5) 100%) !important;
   color: hsl(220 25% 20%) !important;
 }
 
 [data-theme="quest"] [data-sidebar-menu-button][data-active="true"] {
-  background: linear-gradient(90deg, hsl(45 80% 90%) 0%, hsl(45 60% 95%) 100%) !important;
-  border-left: 3px solid hsl(45 90% 45%) !important;
+  background: linear-gradient(90deg, hsl(45 80% 88%) 0%, hsl(45 60% 93%) 100%) !important;
+  border-left: 4px solid hsl(45 90% 45%) !important;
   color: hsl(220 25% 15%) !important;
   font-weight: 600 !important;
 }
@@ -429,6 +511,29 @@ All colors MUST be HSL.
 
 [data-theme="quest"] [data-sidebar-menu-button]:hover svg {
   opacity: 1;
+  transform: scale(1.1);
+}
+
+/* Quest Level Card in footer */
+[data-theme="quest"] .quest-level-card {
+  background: linear-gradient(135deg, 
+    hsl(45 80% 95%) 0%, 
+    hsl(45 60% 98%) 100%) !important;
+}
+
+[data-theme="quest"] .quest-level-badge {
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+}
+
+[data-theme="quest"] .quest-xp-bar [role="progressbar"] {
+  height: 6px !important;
+  background: hsl(45 30% 88%) !important;
+  border: none !important;
+}
+
+[data-theme="quest"] .quest-xp-bar [role="progressbar"] > div {
+  background: linear-gradient(90deg, hsl(45 90% 50%) 0%, hsl(48 95% 60%) 100%) !important;
+  border-radius: 3px !important;
 }
 
 /* === QUEST MODE CARDS - CLEAN WITH SUBTLE ACCENTS === */
