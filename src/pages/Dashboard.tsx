@@ -7,6 +7,7 @@ import { Layout } from '@/components/Layout';
 import { LoadingState } from '@/components/system/LoadingState';
 import { ErrorState } from '@/components/system/ErrorState';
 import { ReminderPopup } from '@/components/ReminderPopup';
+import { DebriefReminderPopup } from '@/components/DebriefReminderPopup';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { supabase } from '@/integrations/supabase/client';
@@ -121,6 +122,7 @@ export default function Dashboard() {
   return (
     <Layout>
       <ReminderPopup reminders={thingsToRemember} onDismiss={() => {}} />
+      <DebriefReminderPopup />
       <div className="space-y-8">
         <div>
           <h1 

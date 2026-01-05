@@ -691,6 +691,54 @@ export default function DailyPlan() {
           </Card>
         )}
 
+        {/* Weekly Priorities Display - Prominent at top */}
+        {weeklyPriorities.length > 0 && (
+          <Card className="border-accent/30 bg-gradient-to-r from-accent/10 to-primary/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <TrendingUp className="h-5 w-5 text-accent" />
+                📅 This Week's 3 Priorities
+              </CardTitle>
+              <CardDescription>
+                Your focus areas for the week - align your daily tasks to these
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {weeklyPriorities.map((priority, idx) => (
+                  <div 
+                    key={idx} 
+                    className={`flex items-start gap-3 p-3 rounded-lg transition-colors ${
+                      selectedPriorities.includes(priority) 
+                        ? 'bg-accent/20 border border-accent/40' 
+                        : 'bg-muted/30 hover:bg-muted/50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center h-6 w-6 rounded-full bg-accent/20 text-accent font-bold text-sm shrink-0">
+                      {idx + 1}
+                    </div>
+                    <span className="text-sm font-medium flex-1">{priority}</span>
+                    <Checkbox
+                      checked={selectedPriorities.includes(priority)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedPriorities([...selectedPriorities, priority]);
+                        } else {
+                          setSelectedPriorities(selectedPriorities.filter((p) => p !== priority));
+                        }
+                      }}
+                      className="shrink-0"
+                    />
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                ✓ Check the priorities you're working on today
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* The ONE Thing */}
           <Card className="border-accent/30 bg-accent/5">
@@ -1030,40 +1078,6 @@ export default function DailyPlan() {
                     )}
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Weekly Priorities Selector */}
-          {weeklyPriorities.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>This Week's Priorities</CardTitle>
-                <CardDescription>
-                  Select which weekly priorities you'll work on today
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {weeklyPriorities.map((priority, idx) => (
-                  <div key={idx} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`priority-${idx}`}
-                      checked={selectedPriorities.includes(priority)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedPriorities([...selectedPriorities, priority]);
-                        } else {
-                          setSelectedPriorities(
-                            selectedPriorities.filter((p) => p !== priority)
-                          );
-                        }
-                      }}
-                    />
-                    <label htmlFor={`priority-${idx}`} className="text-sm cursor-pointer">
-                      {priority}
-                    </label>
-                  </div>
-                ))}
               </CardContent>
             </Card>
           )}
