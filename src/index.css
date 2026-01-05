@@ -956,3 +956,64 @@ All colors MUST be HSL.
     transform: none !important;
   }
 }
+
+/* === CALENDAR EVENT BLOCKS === */
+.calendar-event-block {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.calendar-event-block:hover {
+  transform: translateX(2px);
+}
+
+/* Quest theme calendar events */
+[data-theme="quest"] .calendar-event-block {
+  background: linear-gradient(90deg, 
+    hsl(213 50% 97%) 0%,
+    hsl(213 50% 99%) 100%
+  );
+  border-color: hsl(213 60% 70%);
+}
+
+[data-theme="quest"] .calendar-event-block.mastermind {
+  background: linear-gradient(90deg, 
+    hsl(265 50% 97%) 0%,
+    hsl(265 50% 99%) 100%
+  );
+  border-color: hsl(265 60% 70%);
+}
+
+/* User task blocks - distinct gold styling */
+[data-theme="quest"] .user-task-block {
+  background: linear-gradient(90deg, 
+    hsl(45 50% 95%) 0%,
+    hsl(45 50% 98%) 100%
+  );
+  border-left: 4px solid hsl(var(--quest-gold));
+}
+
+/* Timeline hour slots */
+[data-theme="quest"] .timeline-hour-slot {
+  border-bottom: 1px solid hsl(45 30% 90%);
+}
+
+[data-theme="quest"] .timeline-hour-slot:hover {
+  background: hsl(45 20% 97%);
+}
+
+/* Calendar event join button */
+.calendar-event-block .join-btn {
+  background: hsl(142 76% 36%);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.calendar-event-block .join-btn:hover {
+  background: hsl(142 76% 32%);
+  transform: scale(1.02);
+}

@@ -1,12 +1,16 @@
-import { useMemo } from 'react';
-import { format, parseISO, isToday, addHours, startOfDay } from 'date-fns';
+import { useMemo, useState, useEffect, useCallback } from 'react';
+import { format, parseISO, isToday, addHours, startOfDay, endOfDay } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { Task } from '../types';
-import { Clock, Plus } from 'lucide-react';
+import { Clock, Plus, Calendar } from 'lucide-react';
 import { CurrentTimeIndicator } from './CurrentTimeIndicator';
+import { CalendarEventBlock, CalendarEvent } from './CalendarEventBlock';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TaskTimelineViewProps {
   tasks: Task[];
@@ -26,6 +30,43 @@ export function TaskTimelineView({
   onOpenDetail,
   onAddTaskAtTime,
 }: TaskTimelineViewProps) {
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [showCalendarEvents, setShowCalendarEvents] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
+  const [loadingEvents, setLoadingEvents] = useState(false);
+
+  // Fetch calendar events when date changes
+  const fetchCalendarEvents = useCallback(async () => {
+    try {
+      setLoadingEvents(true);
+      const start = startOfDay(selectedDate);
+      const end = endOfDay(selectedDate);
+
+      const { data, error } = await supabase.functions.invoke('get-calendar-events', {
+        body: {
+          startDate: start.toISOString(),
+          endDate: end.toISOString(),
+        },
+      });
+
+      if (error) {
+        console.error('Error fetching calendar events:', error);
+        return;
+      }
+
+      setCalendarEvents(data.events || []);
+      setIsConnected(data.connected ?? false);
+    } catch (error) {
+      console.error('Error fetching calendar events:', error);
+    } finally {
+      setLoadingEvents(false);
+    }
+  }, [selectedDate]);
+
+  useEffect(() => {
+    fetchCalendarEvents();
+  }, [fetchCalendarEvents]);
+
   // Filter and group tasks by time block
   const timeBlockedTasks = useMemo(() => {
     const result: Record<number, Task[]> = {};
@@ -48,6 +89,28 @@ export function TaskTimelineView({
 
     return result;
   }, [tasks]);
+
+  // Group calendar events by hour
+  const timeBlockedEvents = useMemo(() => {
+    const result: Record<number, CalendarEvent[]> = {};
+    
+    HOURS.forEach(hour => {
+      result[hour] = [];
+    });
+
+    calendarEvents.forEach(event => {
+      if (!event.start.dateTime) return; // Skip all-day events for now
+      
+      const startTime = parseISO(event.start.dateTime);
+      const hour = startTime.getHours();
+      
+      if (result[hour]) {
+        result[hour].push(event);
+      }
+    });
+
+    return result;
+  }, [calendarEvents]);
 
   // Unscheduled tasks for selected date
   const unscheduledTasks = useMemo(() => {
@@ -93,6 +156,24 @@ export function TaskTimelineView({
       {/* Timeline */}
       <Card className="relative">
         <CardContent className="p-0">
+          {/* Calendar events toggle */}
+          {isConnected && (
+            <div className="flex items-center gap-3 p-3 border-b bg-muted/30">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="show-calendar" className="text-sm cursor-pointer">
+                Show Calendar Events
+              </Label>
+              <Switch
+                id="show-calendar"
+                checked={showCalendarEvents}
+                onCheckedChange={setShowCalendarEvents}
+              />
+              {loadingEvents && (
+                <span className="text-xs text-muted-foreground animate-pulse">Loading...</span>
+              )}
+            </div>
+          )}
+          
           <ScrollArea className="h-[calc(100vh-350px)]">
             <div className="divide-y relative">
               {/* Current time indicator */}
@@ -104,6 +185,7 @@ export function TaskTimelineView({
 
               {HOURS.map(hour => {
                 const hourTasks = timeBlockedTasks[hour] || [];
+                const hourEvents = timeBlockedEvents[hour] || [];
                 const isCurrentHour = isToday(selectedDate) && hour === currentHour;
 
                 return (
@@ -124,10 +206,20 @@ export function TaskTimelineView({
                       </span>
                     </div>
 
-                    {/* Tasks area */}
+                    {/* Tasks and events area */}
                     <div className="flex-1 p-2" style={{ minHeight: `${HOUR_HEIGHT - 16}px` }}>
-                      {hourTasks.length > 0 ? (
+                      {(hourTasks.length > 0 || (showCalendarEvents && hourEvents.length > 0)) ? (
                         <div className="space-y-1">
+                          {/* Calendar events first (read-only) */}
+                          {showCalendarEvents && hourEvents.map(event => (
+                            <CalendarEventBlock
+                              key={event.id}
+                              event={event}
+                              compact
+                            />
+                          ))}
+                          
+                          {/* User tasks (editable) */}
                           {hourTasks.map(task => {
                             const duration = task.estimated_minutes || 60;
                             const heightClass = duration <= 30 ? 'h-8' : duration <= 60 ? 'h-16' : 'h-24';
@@ -141,10 +233,11 @@ export function TaskTimelineView({
                                 className={cn(
                                   "rounded-md px-3 py-2 cursor-pointer transition-all",
                                   "bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:shadow-md",
-                                  "flex items-center gap-2",
+                                  "flex items-center gap-2 relative",
                                   heightClass
                                 )}
                               >
+                                <span className="absolute top-1 right-1 text-[10px] text-muted-foreground/50">✏️</span>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-medium truncate">
                                     {task.task_text}
