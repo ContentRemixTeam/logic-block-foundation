@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { Task, ENERGY_LEVELS, CONTEXT_TAGS } from '@/components/tasks/types';
+import { Task } from '@/components/tasks/types';
 import { cn } from '@/lib/utils';
 import { GripVertical, Clock } from 'lucide-react';
 
@@ -15,14 +14,6 @@ interface WeeklyTaskCardProps {
 
 export function WeeklyTaskCard({ task, onToggle, isDragging, compact = false }: WeeklyTaskCardProps) {
   const [isHovered, setIsHovered] = useState(false);
-
-  const energyConfig = task.energy_level 
-    ? ENERGY_LEVELS.find(e => e.value === task.energy_level)
-    : null;
-
-  const contextTags = task.context_tags?.map(tag => 
-    CONTEXT_TAGS.find(c => c.value === tag)
-  ).filter(Boolean) || [];
 
   const formatDuration = (minutes: number | null): string => {
     if (!minutes) return '';
@@ -54,37 +45,35 @@ export function WeeklyTaskCard({ task, onToggle, isDragging, compact = false }: 
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         className={cn(
-          "group flex items-center gap-1.5 rounded-md border bg-card transition-all",
-          compact ? "p-1.5" : "p-2",
+          "group flex items-center gap-2 rounded-md border bg-card transition-all cursor-grab active:cursor-grabbing",
+          compact ? "px-2 py-1.5" : "p-2.5",
           isDragging && "opacity-50 scale-95 shadow-lg",
-          isHovered && !isDragging && "shadow-md border-primary/30",
-          task.is_completed && "opacity-50"
+          isHovered && !isDragging && "shadow-sm border-primary/20",
+          task.is_completed && "opacity-60"
         )}
       >
         {/* Drag handle - visible on hover */}
         <div className={cn(
-          "shrink-0 cursor-grab active:cursor-grabbing transition-opacity",
-          isHovered ? "opacity-100" : "opacity-0"
+          "shrink-0 transition-opacity",
+          isHovered ? "opacity-60" : "opacity-0",
+          compact && "hidden sm:block"
         )}>
-          <GripVertical className={cn(
-            "text-muted-foreground",
-            compact ? "h-3 w-3" : "h-4 w-4"
-          )} />
+          <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
         </div>
         
         <Checkbox
           checked={task.is_completed}
           onCheckedChange={() => onToggle(task.task_id, task.is_completed)}
           onClick={(e) => e.stopPropagation()}
-          className={cn(compact && "h-3.5 w-3.5")}
+          className="h-4 w-4 shrink-0"
         />
         
         <div className="flex-1 min-w-0">
           <Tooltip>
             <TooltipTrigger asChild>
               <p className={cn(
-                "truncate",
-                compact ? "text-xs" : "text-sm",
+                "truncate leading-tight",
+                compact ? "text-sm" : "text-sm",
                 task.is_completed && "line-through text-muted-foreground"
               )}>
                 {task.task_text}
@@ -96,47 +85,27 @@ export function WeeklyTaskCard({ task, onToggle, isDragging, compact = false }: 
           </Tooltip>
         </div>
 
-        {/* Metadata badges */}
-        <div className={cn(
-          "flex items-center gap-1 shrink-0",
-          compact && "gap-0.5"
-        )}>
+        {/* Compact metadata: just time + priority dot */}
+        <div className="flex items-center gap-1.5 shrink-0">
           {task.estimated_minutes && (
-            <Badge 
-              variant="secondary" 
-              className={cn(
-                "font-normal",
-                compact ? "text-[10px] px-1 py-0 h-4" : "text-xs px-1.5 py-0"
-              )}
-            >
-              <Clock className={cn(compact ? "h-2.5 w-2.5 mr-0.5" : "h-3 w-3 mr-0.5")} />
+            <span className={cn(
+              "text-muted-foreground flex items-center gap-0.5",
+              compact ? "text-xs" : "text-xs"
+            )}>
+              <Clock className="h-3 w-3" />
               {formatDuration(task.estimated_minutes)}
-            </Badge>
+            </span>
           )}
 
           {task.priority && (
             <div 
               className={cn(
-                "rounded-full",
-                compact ? "w-1.5 h-1.5" : "w-2 h-2",
+                "rounded-full w-2 h-2",
                 priorityColors[task.priority] || 'bg-gray-400'
               )} 
               title={`${task.priority} priority`}
             />
           )}
-
-          {energyConfig && !compact && (
-            <div 
-              className={cn("w-2 h-2 rounded-full", energyConfig.bgColor)} 
-              title={energyConfig.label} 
-            />
-          )}
-
-          {!compact && contextTags.slice(0, 1).map((tag) => (
-            <span key={tag!.value} className="text-xs" title={tag!.label}>
-              {tag!.icon}
-            </span>
-          ))}
         </div>
       </div>
     </TooltipProvider>

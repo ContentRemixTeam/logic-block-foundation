@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { format, isToday } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Task } from '@/components/tasks/types';
 import { WeeklyTaskCard } from './WeeklyTaskCard';
 import { CapacityBar } from './CapacityBar';
+import { InlineTaskAdd } from './InlineTaskAdd';
 import { cn } from '@/lib/utils';
-import { ArrowRight, Plus } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface DayColumnProps {
@@ -15,6 +15,7 @@ interface DayColumnProps {
   capacityMinutes: number;
   onTaskDrop: (taskId: string, fromPlannedDay: string | null, targetDate: string) => void;
   onTaskToggle: (taskId: string, completed: boolean) => void;
+  onQuickAdd?: (text: string, plannedDay: string) => Promise<void>;
 }
 
 export function DayColumn({ 
@@ -22,7 +23,8 @@ export function DayColumn({
   tasks, 
   capacityMinutes, 
   onTaskDrop, 
-  onTaskToggle 
+  onTaskToggle,
+  onQuickAdd
 }: DayColumnProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   
@@ -31,7 +33,6 @@ export function DayColumn({
     .sort((a, b) => (a.day_order || 0) - (b.day_order || 0));
   
   const usedMinutes = dayTasks.reduce((sum, t) => sum + (t.estimated_minutes || 0), 0);
-  const taskCount = dayTasks.length;
   const today = isToday(date);
 
   const formatTime = (minutes: number) => {
@@ -40,7 +41,7 @@ export function DayColumn({
     const mins = minutes % 60;
     if (hours === 0) return `${mins}m`;
     if (mins === 0) return `${hours}h`;
-    return `${hours}h ${mins}m`;
+    return `${hours}h${mins}m`;
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -65,43 +66,49 @@ export function DayColumn({
     }
   };
 
+  const handleInlineAdd = async (text: string) => {
+    if (onQuickAdd) {
+      await onQuickAdd(text, dateStr);
+    }
+  };
+
   return (
     <div 
       className={cn(
-        "flex flex-col h-full bg-card rounded-lg border shadow-sm overflow-hidden transition-all",
-        today && "ring-2 ring-primary/30",
+        "flex flex-col h-full bg-card rounded-lg border shadow-sm overflow-hidden transition-all min-w-[160px]",
+        today && "ring-2 ring-primary/40 border-primary/30",
         isDragOver && "ring-2 ring-primary/50 bg-primary/5"
       )}
     >
-      {/* Header */}
+      {/* Compact Header */}
       <div className={cn(
-        "p-2 border-b",
-        today ? "bg-primary/10" : "bg-muted/50"
+        "px-3 py-2 border-b",
+        today ? "bg-primary/10" : "bg-muted/30"
       )}>
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <span className={cn(
-              "text-xs font-medium",
+              "text-xs font-medium uppercase tracking-wide",
               today ? "text-primary" : "text-muted-foreground"
             )}>
               {format(date, 'EEE')}
             </span>
             <span className={cn(
-              "text-sm font-bold",
+              "text-lg font-bold",
               today && "text-primary"
             )}>
               {format(date, 'd')}
             </span>
             {today && (
-              <Badge className="text-[10px] px-1 py-0 h-4 bg-primary/20 text-primary border-0">
+              <span className="text-[10px] font-medium text-primary bg-primary/20 px-1.5 py-0.5 rounded-full ml-1">
                 Today
-              </Badge>
+              </span>
             )}
           </div>
           <Button 
             variant="ghost" 
             size="icon"
-            className="h-6 w-6 -mr-1"
+            className="h-6 w-6 -mr-1 opacity-60 hover:opacity-100"
             asChild
           >
             <Link to={`/daily-plan?date=${dateStr}`}>
@@ -110,11 +117,10 @@ export function DayColumn({
           </Button>
         </div>
         
-        {/* Capacity */}
-        <div className="space-y-1">
-          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+        {/* Inline Capacity */}
+        <div className="mt-1.5 space-y-1">
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
             <span>{formatTime(usedMinutes)} / {formatTime(capacityMinutes)}</span>
-            {taskCount > 0 && <span>{taskCount} task{taskCount !== 1 ? 's' : ''}</span>}
           </div>
           <CapacityBar usedMinutes={usedMinutes} capacityMinutes={capacityMinutes} />
         </div>
@@ -125,33 +131,39 @@ export function DayColumn({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className="flex-1 p-1.5 space-y-1 overflow-y-auto min-h-[120px]"
+        className="flex-1 p-2 space-y-1.5 overflow-y-auto min-h-[140px]"
       >
-        {dayTasks.length === 0 ? (
-          <div className={cn(
-            "flex flex-col items-center justify-center h-full text-center transition-all rounded-md",
-            isDragOver ? "bg-primary/10" : "bg-transparent"
-          )}>
-            {isDragOver ? (
-              <p className="text-xs font-medium text-primary">Release to schedule</p>
-            ) : (
-              <div className="flex items-center gap-1 text-muted-foreground/60">
-                <Plus className="h-3 w-3" />
-                <p className="text-[10px]">Drop tasks</p>
-              </div>
-            )}
+        {dayTasks.length === 0 && !isDragOver && (
+          <div className="flex items-center justify-center h-full text-center">
+            <p className="text-xs text-muted-foreground/50">Drop tasks here</p>
           </div>
-        ) : (
-          dayTasks.map((task) => (
-            <WeeklyTaskCard
-              key={task.task_id}
-              task={task}
-              onToggle={onTaskToggle}
-              compact
-            />
-          ))
         )}
+        
+        {isDragOver && dayTasks.length === 0 && (
+          <div className="flex items-center justify-center h-full text-center rounded-md bg-primary/10">
+            <p className="text-xs font-medium text-primary">Release to schedule</p>
+          </div>
+        )}
+        
+        {dayTasks.map((task) => (
+          <WeeklyTaskCard
+            key={task.task_id}
+            task={task}
+            onToggle={onTaskToggle}
+            compact
+          />
+        ))}
       </div>
+
+      {/* Inline Add */}
+      {onQuickAdd && (
+        <div className="border-t p-1.5">
+          <InlineTaskAdd 
+            onAdd={handleInlineAdd}
+            placeholder="Add task..."
+          />
+        </div>
+      )}
     </div>
   );
 }

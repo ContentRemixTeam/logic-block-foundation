@@ -10,6 +10,7 @@ interface WeekBoardProps {
   onTaskDrop: (taskId: string, fromPlannedDay: string | null, targetDate: string) => void;
   onTaskToggle: (taskId: string, completed: boolean) => void;
   currentWeekStart: Date;
+  onQuickAdd?: (text: string, plannedDay: string) => Promise<void>;
 }
 
 export function WeekBoard({ 
@@ -18,7 +19,8 @@ export function WeekBoard({
   capacityMinutes,
   onTaskDrop,
   onTaskToggle,
-  currentWeekStart
+  currentWeekStart,
+  onQuickAdd
 }: WeekBoardProps) {
   // Generate 7 days starting from week start
   const weekDays = useMemo(() => {
@@ -30,17 +32,20 @@ export function WeekBoard({
   }, [currentWeekStart]);
 
   return (
-    <div className="grid grid-cols-7 gap-2 h-full">
-      {weekDays.map((date) => (
-        <DayColumn
-          key={format(date, 'yyyy-MM-dd')}
-          date={date}
-          tasks={tasks}
-          capacityMinutes={capacityMinutes}
-          onTaskDrop={onTaskDrop}
-          onTaskToggle={onTaskToggle}
-        />
-      ))}
+    <div className="overflow-x-auto -mx-2 px-2 pb-2">
+      <div className="grid grid-cols-7 gap-3 min-w-[1120px] h-full">
+        {weekDays.map((date) => (
+          <DayColumn
+            key={format(date, 'yyyy-MM-dd')}
+            date={date}
+            tasks={tasks}
+            capacityMinutes={capacityMinutes}
+            onTaskDrop={onTaskDrop}
+            onTaskToggle={onTaskToggle}
+            onQuickAdd={onQuickAdd}
+          />
+        ))}
+      </div>
     </div>
   );
 }

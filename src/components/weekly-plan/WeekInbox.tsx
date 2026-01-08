@@ -2,16 +2,18 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Task, ENERGY_LEVELS, CONTEXT_TAGS } from '@/components/tasks/types';
 import { WeeklyTaskCard } from './WeeklyTaskCard';
-import { Plus, RotateCcw, Loader2, Inbox, X } from 'lucide-react';
+import { InlineTaskAdd } from './InlineTaskAdd';
+import { RotateCcw, Loader2, Inbox, Filter, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface WeekInboxProps {
   tasks: Task[];
   onTaskToggle: (taskId: string, completed: boolean) => void;
   onPullUnfinished: () => Promise<void>;
-  onAddTask: () => void;
+  onAddTask: (text: string) => Promise<void>;
   onMoveToInbox: (taskId: string) => void;
   isPulling: boolean;
 }
@@ -25,6 +27,7 @@ export function WeekInbox({
   isPulling
 }: WeekInboxProps) {
   const [isDragOver, setIsDragOver] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [energyFilter, setEnergyFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [contextFilter, setContextFilter] = useState<string>('all');
@@ -72,95 +75,105 @@ export function WeekInbox({
 
   return (
     <div className="flex flex-col h-full bg-card rounded-lg border shadow-sm">
-      {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b">
+      {/* Compact Header */}
+      <div className="flex items-center justify-between px-3 py-2 border-b">
         <div className="flex items-center gap-2">
           <Inbox className="h-4 w-4 text-muted-foreground" />
-          <span className="font-medium text-sm">Week Inbox</span>
+          <span className="font-medium text-sm">Inbox</span>
           <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5">
             {inboxTasks.length}
           </Badge>
         </div>
-      </div>
-
-      {/* Filters */}
-      <div className="p-3 border-b space-y-2">
-        <div className="grid grid-cols-3 gap-1.5">
-          <Select value={energyFilter} onValueChange={setEnergyFilter}>
-            <SelectTrigger className="h-7 text-xs">
-              <SelectValue placeholder="Energy" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Energy</SelectItem>
-              {ENERGY_LEVELS.map(level => (
-                <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="h-7 text-xs">
-              <SelectValue placeholder="Priority" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Priority</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={contextFilter} onValueChange={setContextFilter}>
-            <SelectTrigger className="h-7 text-xs">
-              <SelectValue placeholder="Context" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Context</SelectItem>
-              {CONTEXT_TAGS.map(tag => (
-                <SelectItem key={tag.value} value={tag.value}>
-                  {tag.icon} {tag.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {hasActiveFilters && (
-          <button
-            onClick={clearFilters}
-            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-          >
-            <X className="h-3 w-3" />
-            Clear filters
-          </button>
-        )}
-      </div>
-
-      {/* Action buttons */}
-      <div className="flex gap-2 p-3 border-b">
         <Button 
-          variant="outline" 
+          variant="ghost" 
           size="sm" 
-          className="flex-1 text-xs h-8"
+          className="h-7 text-xs px-2"
           onClick={onPullUnfinished}
           disabled={isPulling}
         >
           {isPulling ? (
-            <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+            <Loader2 className="h-3 w-3 animate-spin" />
           ) : (
-            <RotateCcw className="h-3 w-3 mr-1.5" />
+            <RotateCcw className="h-3 w-3" />
           )}
-          Pull Last Week
-        </Button>
-        <Button 
-          size="sm"
-          className="h-8 text-xs"
-          onClick={onAddTask}
-        >
-          <Plus className="h-3 w-3 mr-1" />
-          New Task
         </Button>
       </div>
+
+      {/* Collapsible Filters */}
+      <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+        <CollapsibleTrigger asChild>
+          <button className={cn(
+            "w-full flex items-center justify-between px-3 py-1.5 text-xs hover:bg-muted/50 transition-colors border-b",
+            hasActiveFilters && "bg-primary/5"
+          )}>
+            <div className="flex items-center gap-1.5">
+              <Filter className="h-3 w-3 text-muted-foreground" />
+              <span className="text-muted-foreground">Filters</span>
+              {hasActiveFilters && (
+                <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
+                  Active
+                </Badge>
+              )}
+            </div>
+            <ChevronDown className={cn(
+              "h-3 w-3 text-muted-foreground transition-transform",
+              filtersOpen && "rotate-180"
+            )} />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="px-3 py-2 border-b space-y-2">
+            <div className="grid grid-cols-1 gap-1.5">
+              <Select value={energyFilter} onValueChange={setEnergyFilter}>
+                <SelectTrigger className="h-7 text-xs">
+                  <SelectValue placeholder="Energy" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Energy</SelectItem>
+                  {ENERGY_LEVELS.map(level => (
+                    <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                <SelectTrigger className="h-7 text-xs">
+                  <SelectValue placeholder="Priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priority</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={contextFilter} onValueChange={setContextFilter}>
+                <SelectTrigger className="h-7 text-xs">
+                  <SelectValue placeholder="Context" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Context</SelectItem>
+                  {CONTEXT_TAGS.map(tag => (
+                    <SelectItem key={tag.value} value={tag.value}>
+                      {tag.icon} {tag.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="text-xs text-primary hover:underline"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Task list / drop zone */}
       <div 
@@ -168,20 +181,20 @@ export function WeekInbox({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={cn(
-          "flex-1 overflow-y-auto p-2 space-y-1 min-h-[180px] transition-all",
+          "flex-1 overflow-y-auto p-2 space-y-1.5 min-h-[180px] transition-all",
           isDragOver && "bg-primary/5 ring-2 ring-primary/20 ring-inset"
         )}
       >
         {inboxTasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center px-4 py-8">
-            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
-              <Inbox className="h-6 w-6 text-muted-foreground" />
+          <div className="flex flex-col items-center justify-center h-full text-center px-4 py-6">
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-2">
+              <Inbox className="h-5 w-5 text-muted-foreground" />
             </div>
-            <p className="text-sm font-medium text-muted-foreground mb-1">
+            <p className="text-sm font-medium text-muted-foreground">
               Inbox clear 🎉
             </p>
-            <p className="text-xs text-muted-foreground">
-              Pull from last week or add a new task
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Add a task below
             </p>
           </div>
         ) : (
@@ -193,6 +206,14 @@ export function WeekInbox({
             />
           ))
         )}
+      </div>
+
+      {/* Inline Add at bottom */}
+      <div className="border-t p-2">
+        <InlineTaskAdd 
+          onAdd={onAddTask}
+          placeholder="Add to inbox..."
+        />
       </div>
     </div>
   );
