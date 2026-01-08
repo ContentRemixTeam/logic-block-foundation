@@ -363,6 +363,18 @@ export function AppSidebar() {
                   </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild className="quest-nav-item">
+                  <a href="https://gobrunch.com/events/389643/589970" target="_blank" rel="noopener noreferrer">
+                    {isQuestMode ? (
+                      <span className="quest-nav-icon text-base">👥</span>
+                    ) : (
+                      <ExternalLink className="h-4 w-4" />
+                    )}
+                    <span>Coworking Room</span>
+                  </a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
