@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { week_id, wins, challenges, lessons, intentions, weekly_score, focus_reflection, metric_1_actual, metric_2_actual, metric_3_actual, share_to_community } = body;
+    const { week_id, wins, challenges, lessons, intentions, weekly_score, focus_reflection, metric_1_actual, metric_2_actual, metric_3_actual, share_to_community, goal_support } = body;
 
     console.log('Save request:', { week_id, userId, hasWins: Boolean(wins) });
 
@@ -66,6 +66,7 @@ Deno.serve(async (req) => {
       intentions: normalizedIntentions,
       weekly_score: normalizedScore,
       focus_reflection: focus_reflection || '',
+      goal_support: goal_support || '',
     };
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -86,6 +87,7 @@ Deno.serve(async (req) => {
         metric_2_actual: metric_2_actual ?? null,
         metric_3_actual: metric_3_actual ?? null,
         share_to_community: share_to_community ?? false,
+        goal_support: goal_support || null,
         updated_at: new Date().toISOString(),
       }, {
         onConflict: 'user_id,week_id',

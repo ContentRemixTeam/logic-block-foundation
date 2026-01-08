@@ -118,12 +118,31 @@ Deno.serve(async (req) => {
       const week = weekData[0];
       console.log('Found existing week:', week.week_id);
 
-      // Fetch full week data including metric targets
+      // Fetch full week data including metric targets and goal_rewrite
       const { data: fullWeekData } = await supabaseClient
         .from('weekly_plans')
-        .select('metric_1_target, metric_2_target, metric_3_target, challenges, adjustments')
+        .select('metric_1_target, metric_2_target, metric_3_target, challenges, adjustments, goal_rewrite')
         .eq('week_id', week.week_id)
         .maybeSingle();
+      
+      // Fetch previous week's goal_rewrite for autofill
+      const previousWeekStart = new Date(week.start_of_week);
+      previousWeekStart.setDate(previousWeekStart.getDate() - 7);
+      const previousWeekStr = previousWeekStart.toISOString().split('T')[0];
+      
+      const { data: previousWeekData } = await supabaseClient
+        .from('weekly_plans')
+        .select('goal_rewrite')
+        .eq('user_id', userId)
+        .eq('start_of_week', previousWeekStr)
+        .maybeSingle();
+      
+      // Fetch full cycle data for CycleSnapshotCard
+      const { data: fullCycleData } = await supabaseClient
+        .from('cycles_90_day')
+        .select('*')
+        .eq('cycle_id', currentCycle.cycle_id)
+        .single();
       
       // Calculate weekly summary
       const weekStart = new Date(week.start_of_week);
@@ -184,6 +203,26 @@ Deno.serve(async (req) => {
             metric_1_target: fullWeekData?.metric_1_target || null,
             metric_2_target: fullWeekData?.metric_2_target || null,
             metric_3_target: fullWeekData?.metric_3_target || null,
+            // Goal rewrite fields
+            goal_rewrite: fullWeekData?.goal_rewrite || '',
+            previous_goal_rewrite: previousWeekData?.goal_rewrite || '',
+            cycle_goal: fullCycleData?.goal || '',
+            // Full cycle data for CycleSnapshotCard
+            cycle: fullCycleData ? {
+              cycle_id: fullCycleData.cycle_id,
+              goal: fullCycleData.goal,
+              why: fullCycleData.why,
+              identity: fullCycleData.identity,
+              focus_area: fullCycleData.focus_area,
+              start_date: fullCycleData.start_date,
+              end_date: fullCycleData.end_date,
+              metric_1_name: fullCycleData.metric_1_name,
+              metric_1_start: fullCycleData.metric_1_start,
+              metric_2_name: fullCycleData.metric_2_name,
+              metric_2_start: fullCycleData.metric_2_start,
+              metric_3_name: fullCycleData.metric_3_name,
+              metric_3_start: fullCycleData.metric_3_start,
+            } : null,
           }
         }), 
         {

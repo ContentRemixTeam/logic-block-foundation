@@ -223,6 +223,7 @@ export type Database = {
           day_id: string
           deep_mode_notes: Json | null
           feeling: string | null
+          goal_rewrite: string | null
           made_offer: boolean | null
           one_thing: string | null
           scratch_pad_content: string | null
@@ -244,6 +245,7 @@ export type Database = {
           day_id?: string
           deep_mode_notes?: Json | null
           feeling?: string | null
+          goal_rewrite?: string | null
           made_offer?: boolean | null
           one_thing?: string | null
           scratch_pad_content?: string | null
@@ -265,6 +267,7 @@ export type Database = {
           day_id?: string
           deep_mode_notes?: Json | null
           feeling?: string | null
+          goal_rewrite?: string | null
           made_offer?: boolean | null
           one_thing?: string | null
           scratch_pad_content?: string | null
@@ -298,6 +301,7 @@ export type Database = {
         Row: {
           created_at: string | null
           day_id: string | null
+          goal_support: string | null
           reflections: Json | null
           review_id: string
           updated_at: string | null
@@ -309,6 +313,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           day_id?: string | null
+          goal_support?: string | null
           reflections?: Json | null
           review_id?: string
           updated_at?: string | null
@@ -320,6 +325,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           day_id?: string | null
+          goal_support?: string | null
           reflections?: Json | null
           review_id?: string
           updated_at?: string | null
@@ -1277,6 +1283,7 @@ export type Database = {
           challenges: string | null
           created_at: string | null
           cycle_id: string
+          goal_rewrite: string | null
           metric_1_target: number | null
           metric_2_target: number | null
           metric_3_target: number | null
@@ -1293,6 +1300,7 @@ export type Database = {
           challenges?: string | null
           created_at?: string | null
           cycle_id: string
+          goal_rewrite?: string | null
           metric_1_target?: number | null
           metric_2_target?: number | null
           metric_3_target?: number | null
@@ -1309,6 +1317,7 @@ export type Database = {
           challenges?: string | null
           created_at?: string | null
           cycle_id?: string
+          goal_rewrite?: string | null
           metric_1_target?: number | null
           metric_2_target?: number | null
           metric_3_target?: number | null
@@ -1336,6 +1345,7 @@ export type Database = {
           challenges: string | null
           created_at: string | null
           custom_reflections: Json | null
+          goal_support: string | null
           habit_summary: Json | null
           metric_1_actual: number | null
           metric_2_actual: number | null
@@ -1352,6 +1362,7 @@ export type Database = {
           challenges?: string | null
           created_at?: string | null
           custom_reflections?: Json | null
+          goal_support?: string | null
           habit_summary?: Json | null
           metric_1_actual?: number | null
           metric_2_actual?: number | null
@@ -1368,6 +1379,7 @@ export type Database = {
           challenges?: string | null
           created_at?: string | null
           custom_reflections?: Json | null
+          goal_support?: string | null
           habit_summary?: Json | null
           metric_1_actual?: number | null
           metric_2_actual?: number | null

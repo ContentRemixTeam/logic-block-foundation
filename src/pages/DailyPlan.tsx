@@ -19,6 +19,8 @@ import { UsefulThoughtsModal } from '@/components/UsefulThoughtsModal';
 import BeliefSelectorModal from '@/components/BeliefSelectorModal';
 import { ScratchPadOrganizeModal } from '@/components/ScratchPadOrganizeModal';
 import { YesterdayReviewPopup } from '@/components/YesterdayReviewPopup';
+import { CycleSnapshotCard } from '@/components/cycle/CycleSnapshotCard';
+import { GoalRewritePrompt } from '@/components/cycle/GoalRewritePrompt';
 import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb } from 'lucide-react';
 import { PlannedForToday } from '@/components/daily-plan/PlannedForToday';
 import {
@@ -87,6 +89,12 @@ export default function DailyPlan() {
   // Yesterday review popup
   const [showYesterdayReview, setShowYesterdayReview] = useState(false);
   const [checkedYesterdayReview, setCheckedYesterdayReview] = useState(false);
+  
+  // Cycle and goal rewrite
+  const [cycleData, setCycleData] = useState<any>(null);
+  const [goalRewrite, setGoalRewrite] = useState('');
+  const [previousGoalRewrite, setPreviousGoalRewrite] = useState('');
+  const [savingGoalRewrite, setSavingGoalRewrite] = useState(false);
 
   useEffect(() => {
     loadDailyPlan();
@@ -223,6 +231,11 @@ export default function DailyPlan() {
           obstacles: notes.obstacles || '',
           show_up: notes.show_up || '',
         });
+        
+        // Goal rewrite data
+        setGoalRewrite(plan.goal_rewrite || '');
+        setPreviousGoalRewrite(plan.previous_goal_rewrite || '');
+        setCycleData(plan.cycle || null);
       }
 
       // Load habits separately
@@ -447,6 +460,7 @@ export default function DailyPlan() {
           scratch_pad_content: scratchPadContent,
           scratch_pad_title: scratchPadTitle,
           one_thing: oneThing,
+          goal_rewrite: goalRewrite,
         },
       });
 
@@ -681,6 +695,26 @@ export default function DailyPlan() {
             </Button>
           </div>
         </div>
+
+        {/* 90-Day Cycle Snapshot */}
+        {cycleData && (
+          <CycleSnapshotCard />
+        )}
+
+        {/* Goal Rewrite Prompt */}
+        {cycleData && (
+          <GoalRewritePrompt
+            context="daily"
+            currentRewrite={goalRewrite}
+            previousRewrite={previousGoalRewrite}
+            cycleGoal={cycleData?.goal || ''}
+            onSave={(text) => {
+              setGoalRewrite(text);
+              toast({ title: 'Goal saved!' });
+            }}
+            saving={savingGoalRewrite}
+          />
+        )}
 
         {/* Planned for Today from Weekly Plan */}
         <PlannedForToday />

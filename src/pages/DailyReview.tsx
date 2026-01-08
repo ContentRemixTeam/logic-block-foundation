@@ -11,8 +11,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { CalendarIcon, CheckCircle2, Loader2, ChevronLeft, ChevronRight, Sparkles, Swords, Shield, Skull } from 'lucide-react';
+import { CalendarIcon, CheckCircle2, Loader2, ChevronLeft, ChevronRight, Sparkles, Swords, Shield, Skull, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { CycleSnapshotCard } from '@/components/cycle/CycleSnapshotCard';
 
 export default function DailyReview() {
   const { user } = useAuth();
@@ -26,6 +27,8 @@ export default function DailyReview() {
   const [whatWorked, setWhatWorked] = useState('');
   const [whatDidnt, setWhatDidnt] = useState('');
   const [wins, setWins] = useState('');
+  const [goalSupport, setGoalSupport] = useState('');
+  const [cycleData, setCycleData] = useState<any>(null);
   
   // Quest mode quick rating
   const [quickRating, setQuickRating] = useState<'crushed' | 'survived' | 'struggled' | null>(null);
@@ -61,15 +64,18 @@ export default function DailyReview() {
       }
 
       setHasPlan(data.hasPlan);
+      setCycleData(data.cycle || null);
       
       if (data.review) {
         setWhatWorked(data.review.what_worked || '');
         setWhatDidnt(data.review.what_didnt || '');
         setWins(data.review.wins || '');
+        setGoalSupport(data.review.goal_support || '');
       } else {
         setWhatWorked('');
         setWhatDidnt('');
         setWins('');
+        setGoalSupport('');
       }
     } catch (error) {
       console.error('Error loading review:', error);
@@ -97,6 +103,7 @@ export default function DailyReview() {
           what_worked: whatWorked,
           what_didnt: whatDidnt,
           wins,
+          goal_support: goalSupport,
         }),
       });
 
@@ -203,6 +210,9 @@ export default function DailyReview() {
           </CardContent>
         </Card>
 
+        {/* 90-Day Cycle Snapshot */}
+        <CycleSnapshotCard />
+
         {loading ? (
           <Card>
             <CardContent className="py-12 flex items-center justify-center">
@@ -262,6 +272,24 @@ export default function DailyReview() {
                       <span className="text-sm font-medium">Struggled</span>
                     </button>
                   </div>
+                </div>
+              )}
+
+              {/* Goal Support Question */}
+              {cycleData && (
+                <div className="space-y-2">
+                  <Label htmlFor="goalSupport" className="text-base font-medium flex items-center gap-2">
+                    <Target className="h-4 w-4 text-primary" />
+                    {isQuestMode ? 'Quest Progress' : 'What did you do today that supported your 90-day goal?'}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">Today moved me toward: {cycleData.goal}</p>
+                  <Textarea
+                    id="goalSupport"
+                    placeholder={isQuestMode ? "How did today advance your main quest?" : "How did today's actions support your goal?"}
+                    value={goalSupport}
+                    onChange={(e) => setGoalSupport(e.target.value)}
+                    className="min-h-[80px]"
+                  />
                 </div>
               )}
 
