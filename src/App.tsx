@@ -11,6 +11,7 @@ import { TourProvider } from "@/hooks/useTour";
 import { TourOverlay } from "@/components/tour/TourOverlay";
 import { TourWelcome } from "@/components/tour/TourWelcome";
 import { TourKeyboardHandler } from "@/components/tour/TourKeyboardHandler";
+import { QuickCaptureProvider } from "@/components/quick-capture";
 import Auth from "./pages/Auth";
 import LoginHelp from "./pages/LoginHelp";
 import Dashboard from "./pages/Dashboard";
@@ -80,38 +81,40 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <ThemeProvider>
-              <OnlineStatusMonitor />
-              <Routes>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/login-help" element={<LoginHelp />} />
-                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
-                <Route path="/planning" element={<ProtectedRoute><Planning /></ProtectedRoute>} />
-                <Route path="/reviews" element={<ProtectedRoute><Reviews /></ProtectedRoute>} />
-                <Route path="/cycle-setup" element={<ProtectedRoute><CycleSetup /></ProtectedRoute>} />
-                <Route path="/weekly-plan" element={<ProtectedRoute><WeeklyPlan /></ProtectedRoute>} />
-                <Route path="/weekly-review" element={<ProtectedRoute><WeeklyReview /></ProtectedRoute>} />
-                <Route path="/monthly-review" element={<ProtectedRoute><MonthlyReview /></ProtectedRoute>} />
-                <Route path="/cycle-summary" element={<ProtectedRoute><CycleSummary /></ProtectedRoute>} />
-                <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
-                <Route path="/daily-plan" element={<ProtectedRoute><DailyPlan /></ProtectedRoute>} />
-                <Route path="/daily-review" element={<ProtectedRoute><DailyReview /></ProtectedRoute>} />
-                <Route path="/notes" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
-                <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
-                <Route path="/sops" element={<ProtectedRoute><SOPs /></ProtectedRoute>} />
-                <Route path="/habits" element={<ProtectedRoute><Habits /></ProtectedRoute>} />
-                <Route path="/ideas" element={<ProtectedRoute><Ideas /></ProtectedRoute>} />
-                <Route path="/mindset" element={<ProtectedRoute><Mindset /></ProtectedRoute>} />
-                <Route path="/useful-thoughts" element={<ProtectedRoute><UsefulThoughts /></ProtectedRoute>} />
-                <Route path="/belief-builder" element={<ProtectedRoute><BeliefBuilder /></ProtectedRoute>} />
-                <Route path="/identity-anchors" element={<ProtectedRoute><IdentityAnchors /></ProtectedRoute>} />
-                <Route path="/self-coaching" element={<ProtectedRoute><SelfCoaching /></ProtectedRoute>} />
-                <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
-                <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
-                <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <QuickCaptureProvider>
+                <OnlineStatusMonitor />
+                <Routes>
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/login-help" element={<LoginHelp />} />
+                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                  <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+                  <Route path="/planning" element={<ProtectedRoute><Planning /></ProtectedRoute>} />
+                  <Route path="/reviews" element={<ProtectedRoute><Reviews /></ProtectedRoute>} />
+                  <Route path="/cycle-setup" element={<ProtectedRoute><CycleSetup /></ProtectedRoute>} />
+                  <Route path="/weekly-plan" element={<ProtectedRoute><WeeklyPlan /></ProtectedRoute>} />
+                  <Route path="/weekly-review" element={<ProtectedRoute><WeeklyReview /></ProtectedRoute>} />
+                  <Route path="/monthly-review" element={<ProtectedRoute><MonthlyReview /></ProtectedRoute>} />
+                  <Route path="/cycle-summary" element={<ProtectedRoute><CycleSummary /></ProtectedRoute>} />
+                  <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
+                  <Route path="/daily-plan" element={<ProtectedRoute><DailyPlan /></ProtectedRoute>} />
+                  <Route path="/daily-review" element={<ProtectedRoute><DailyReview /></ProtectedRoute>} />
+                  <Route path="/notes" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
+                  <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+                  <Route path="/sops" element={<ProtectedRoute><SOPs /></ProtectedRoute>} />
+                  <Route path="/habits" element={<ProtectedRoute><Habits /></ProtectedRoute>} />
+                  <Route path="/ideas" element={<ProtectedRoute><Ideas /></ProtectedRoute>} />
+                  <Route path="/mindset" element={<ProtectedRoute><Mindset /></ProtectedRoute>} />
+                  <Route path="/useful-thoughts" element={<ProtectedRoute><UsefulThoughts /></ProtectedRoute>} />
+                  <Route path="/belief-builder" element={<ProtectedRoute><BeliefBuilder /></ProtectedRoute>} />
+                  <Route path="/identity-anchors" element={<ProtectedRoute><IdentityAnchors /></ProtectedRoute>} />
+                  <Route path="/self-coaching" element={<ProtectedRoute><SelfCoaching /></ProtectedRoute>} />
+                  <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
+                  <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
+                  <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </QuickCaptureProvider>
             </ThemeProvider>
           </AuthProvider>
         </BrowserRouter>
