@@ -91,14 +91,26 @@ Deno.serve(async (req) => {
     const currentCycle = cycleData[0];
     console.log('Current cycle:', currentCycle.cycle_id);
 
-    // Fetch full cycle data including focus_area
+    // Fetch full cycle data including focus_area and all cycle fields for CycleSnapshotCard
     const { data: fullCycleData } = await supabaseClient
       .from('cycles_90_day')
-      .select('focus_area')
+      .select('*')
       .eq('cycle_id', currentCycle.cycle_id)
       .single();
     
     const focusArea = fullCycleData?.focus_area || null;
+
+    // Fetch yesterday's goal_rewrite for autofill
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    
+    const { data: yesterdayPlan } = await supabaseClient
+      .from('daily_plans')
+      .select('goal_rewrite')
+      .eq('user_id', userId)
+      .eq('date', yesterdayStr)
+      .maybeSingle();
 
     // Get current week
     const { data: weekData, error: weekError } = await supabaseClient.rpc('get_current_week', {
@@ -202,6 +214,25 @@ Deno.serve(async (req) => {
           one_thing: plan.one_thing || '',
           top_3_tasks: top3Tasks || [],
           other_tasks: otherTasks || [],
+          // Goal rewrite fields
+          goal_rewrite: plan.goal_rewrite || '',
+          previous_goal_rewrite: yesterdayPlan?.goal_rewrite || '',
+          // Full cycle data for CycleSnapshotCard
+          cycle: fullCycleData ? {
+            cycle_id: fullCycleData.cycle_id,
+            goal: fullCycleData.goal,
+            why: fullCycleData.why,
+            identity: fullCycleData.identity,
+            focus_area: fullCycleData.focus_area,
+            start_date: fullCycleData.start_date,
+            end_date: fullCycleData.end_date,
+            metric_1_name: fullCycleData.metric_1_name,
+            metric_1_start: fullCycleData.metric_1_start,
+            metric_2_name: fullCycleData.metric_2_name,
+            metric_2_start: fullCycleData.metric_2_start,
+            metric_3_name: fullCycleData.metric_3_name,
+            metric_3_start: fullCycleData.metric_3_start,
+          } : null,
         },
       }),
       {

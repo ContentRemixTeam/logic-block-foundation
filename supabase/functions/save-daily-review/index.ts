@@ -28,7 +28,7 @@ serve(async (req) => {
       throw new Error('Not authenticated');
     }
 
-    const { date, what_worked, what_didnt, wins } = await req.json();
+    const { date, what_worked, what_didnt, wins, goal_support } = await req.json();
     console.log(`Saving daily review for user ${user.id}, date: ${date}`);
 
     // Get the daily plan for this date
@@ -87,6 +87,7 @@ serve(async (req) => {
           what_worked,
           what_didnt,
           wins,
+          goal_support: goal_support || null,
           updated_at: new Date().toISOString(),
         })
         .eq('review_id', existingReview.review_id)
@@ -106,6 +107,7 @@ serve(async (req) => {
           what_worked,
           what_didnt,
           wins,
+          goal_support: goal_support || null,
         })
         .select()
         .single();

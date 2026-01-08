@@ -65,10 +65,28 @@ serve(async (req) => {
       throw reviewError;
     }
 
+    // Get current cycle for goal context
+    const { data: cycleData } = await supabase.rpc('get_current_cycle', {
+      p_user_id: user.id,
+      p_today: date,
+    });
+
+    let cycle = null;
+    if (cycleData && cycleData.length > 0) {
+      // Get full cycle data
+      const { data: fullCycle } = await supabase
+        .from('cycles_90_day')
+        .select('*')
+        .eq('cycle_id', cycleData[0].cycle_id)
+        .single();
+      
+      cycle = fullCycle;
+    }
+
     console.log('Review found:', review ? 'yes' : 'no');
 
     return new Response(
-      JSON.stringify({ review, hasPlan: true }),
+      JSON.stringify({ review, hasPlan: true, cycle }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: unknown) {

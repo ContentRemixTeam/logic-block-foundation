@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
     // Fetch full cycle data including focus_area and metric names
     const { data: fullCycleData } = await supabase
       .from('cycles_90_day')
-      .select('focus_area, metric_1_name, metric_2_name, metric_3_name')
+      .select('*')
       .eq('cycle_id', currentCycle.cycle_id)
       .single();
     
@@ -153,6 +153,7 @@ Deno.serve(async (req) => {
       intentions: [],
       weekly_score: 0,
       focus_reflection: '',
+      goal_support: '',
     };
     
     // If no review exists, auto-create one
@@ -164,6 +165,7 @@ Deno.serve(async (req) => {
         intentions: [],
         weekly_score: 0,
         focus_reflection: '',
+        goal_support: '',
       };
 
       const { error: insertError } = await supabase.from('weekly_reviews').insert({
@@ -173,6 +175,7 @@ Deno.serve(async (req) => {
         wins: '',
         challenges: '',
         adjustments: '',
+        goal_support: null,
       });
 
       if (insertError) {
@@ -181,6 +184,13 @@ Deno.serve(async (req) => {
         console.log('Auto-created new weekly review');
       }
     }
+
+    // Fetch the week's goal_rewrite from weekly_plans
+    const { data: weekPlanData } = await supabase
+      .from('weekly_plans')
+      .select('goal_rewrite')
+      .eq('week_id', currentWeek.week_id)
+      .maybeSingle();
 
     // Get previous week's review for trend comparison
     const previousWeekStart = new Date(currentWeek.start_of_week);
@@ -253,6 +263,7 @@ Deno.serve(async (req) => {
       intentions: Array.isArray(reviewData.intentions) ? reviewData.intentions : [],
       weekly_score: reviewData.weekly_score || 0,
       focus_reflection: reviewData.focus_reflection || '',
+      goal_support: existingReview?.goal_support || reviewData.goal_support || '',
       share_to_community: existingReview?.share_to_community || false,
       habit_stats: {
         total: totalHabits,
@@ -269,6 +280,24 @@ Deno.serve(async (req) => {
       metric_2_actual: existingReview?.metric_2_actual || null,
       metric_3_actual: existingReview?.metric_3_actual || null,
       previous_metrics: previousMetrics,
+      // Goal rewrite from weekly plan (reminder)
+      goal_rewrite: weekPlanData?.goal_rewrite || '',
+      // Full cycle data for CycleSnapshotCard
+      cycle: fullCycleData ? {
+        cycle_id: fullCycleData.cycle_id,
+        goal: fullCycleData.goal,
+        why: fullCycleData.why,
+        identity: fullCycleData.identity,
+        focus_area: fullCycleData.focus_area,
+        start_date: fullCycleData.start_date,
+        end_date: fullCycleData.end_date,
+        metric_1_name: fullCycleData.metric_1_name,
+        metric_1_start: fullCycleData.metric_1_start,
+        metric_2_name: fullCycleData.metric_2_name,
+        metric_2_start: fullCycleData.metric_2_start,
+        metric_3_name: fullCycleData.metric_3_name,
+        metric_3_start: fullCycleData.metric_3_start,
+      } : null,
     };
 
     console.log('Returning review data:', response);

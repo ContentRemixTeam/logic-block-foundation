@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     console.log('User ID from JWT:', userId);
 
     const body = await req.json();
-    const { week_id, top_3_priorities, weekly_thought, weekly_feeling, challenges, adjustments, metric_1_target, metric_2_target, metric_3_target } = body;
+    const { week_id, top_3_priorities, weekly_thought, weekly_feeling, challenges, adjustments, metric_1_target, metric_2_target, metric_3_target, goal_rewrite } = body;
 
     console.log('Saving weekly plan for user:', userId, 'week:', week_id);
 
@@ -69,6 +69,9 @@ Deno.serve(async (req) => {
       priorities = top_3_priorities.filter((p) => typeof p === 'string' && p.trim()).slice(0, 3);
     }
 
+    // Normalize goal_rewrite
+    const normalizedGoalRewrite = typeof goal_rewrite === 'string' ? goal_rewrite.substring(0, 1000) : null;
+
     // Update weekly plan
     const { data, error: updateError } = await supabaseClient
       .from('weekly_plans')
@@ -81,6 +84,7 @@ Deno.serve(async (req) => {
         metric_1_target: metric_1_target ?? null,
         metric_2_target: metric_2_target ?? null,
         metric_3_target: metric_3_target ?? null,
+        goal_rewrite: normalizedGoalRewrite,
         updated_at: new Date().toISOString(),
       })
       .eq('week_id', week_id)
