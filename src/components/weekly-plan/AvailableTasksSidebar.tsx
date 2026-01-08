@@ -1,0 +1,214 @@
+import { useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Task, ENERGY_LEVELS, CONTEXT_TAGS } from '@/components/tasks/types';
+import { WeeklyTaskCard } from './WeeklyTaskCard';
+import { InlineTaskAdd } from './InlineTaskAdd';
+import { Search, RotateCcw, Loader2, Filter, ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+
+interface AvailableTasksSidebarProps {
+  tasks: Task[];
+  onTaskToggle: (taskId: string, completed: boolean) => void;
+  onPullUnfinished: () => Promise<void>;
+  onAddTask: (text: string) => Promise<void>;
+  onMoveToInbox: (taskId: string) => void;
+  isPulling: boolean;
+  highlightTaskId?: string | null;
+}
+
+export function AvailableTasksSidebar({
+  tasks,
+  onTaskToggle,
+  onPullUnfinished,
+  onAddTask,
+  onMoveToInbox,
+  isPulling,
+  highlightTaskId,
+}: AvailableTasksSidebarProps) {
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [energyFilter, setEnergyFilter] = useState<string>('all');
+  const [priorityFilter, setPriorityFilter] = useState<string>('all');
+
+  const hasActiveFilters = energyFilter !== 'all' || priorityFilter !== 'all' || searchQuery.trim() !== '';
+
+  const clearFilters = () => {
+    setEnergyFilter('all');
+    setPriorityFilter('all');
+    setSearchQuery('');
+  };
+
+  // Filter tasks: unscheduled (planned_day is null) and not completed
+  const inboxTasks = tasks.filter((t) => {
+    if (t.planned_day !== null) return false;
+    if (t.is_completed) return false;
+    if (t.status && !['backlog', 'waiting', 'scheduled'].includes(t.status)) return false;
+
+    // Search filter
+    if (searchQuery.trim() && !t.task_text.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false;
+    }
+
+    if (energyFilter !== 'all' && t.energy_level !== energyFilter) return false;
+    if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;
+
+    return true;
+  });
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+
+    const taskId = e.dataTransfer.getData('taskId');
+    if (taskId) {
+      onMoveToInbox(taskId);
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-card rounded-xl border shadow-sm">
+      {/* Header */}
+      <div className="p-4 border-b space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-base">Available Tasks</h3>
+            <p className="text-xs text-muted-foreground">Drag tasks to schedule them</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={onPullUnfinished}
+            disabled={isPulling}
+            title="Pull unfinished tasks"
+          >
+            {isPulling ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RotateCcw className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search tasks..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-9 text-sm bg-muted/50"
+          />
+        </div>
+
+        {/* Collapsible Filters */}
+        <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+          <CollapsibleTrigger asChild>
+            <button
+              className={cn(
+                'w-full flex items-center justify-between px-2 py-1.5 text-xs rounded-md hover:bg-muted/50 transition-colors',
+                hasActiveFilters && 'bg-primary/5'
+              )}
+            >
+              <div className="flex items-center gap-1.5">
+                <Filter className="h-3 w-3 text-muted-foreground" />
+                <span className="text-muted-foreground">Filters</span>
+                {hasActiveFilters && (
+                  <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
+                    Active
+                  </Badge>
+                )}
+              </div>
+              <ChevronDown
+                className={cn('h-3 w-3 text-muted-foreground transition-transform', filtersOpen && 'rotate-180')}
+              />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="pt-2 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <Select value={energyFilter} onValueChange={setEnergyFilter}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Energy" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Energy</SelectItem>
+                    {ENERGY_LEVELS.map((level) => (
+                      <SelectItem key={level.value} value={level.value}>
+                        {level.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Priority</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {hasActiveFilters && (
+                <button onClick={clearFilters} className="text-xs text-primary hover:underline">
+                  Clear filters
+                </button>
+              )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
+
+      {/* Task list / drop zone */}
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={cn(
+          'flex-1 overflow-y-auto p-3 space-y-2 min-h-[300px] transition-all',
+          isDragOver && 'bg-primary/5 ring-2 ring-primary/20 ring-inset'
+        )}
+      >
+        {inboxTasks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center px-4 py-8">
+            <p className="text-sm text-muted-foreground">All tasks are scheduled!</p>
+          </div>
+        ) : (
+          inboxTasks.map((task) => (
+            <WeeklyTaskCard
+              key={task.task_id}
+              task={task}
+              onToggle={onTaskToggle}
+              isHighlighted={highlightTaskId === task.task_id}
+            />
+          ))
+        )}
+      </div>
+
+      {/* Inline Add at bottom */}
+      <div className="border-t p-3">
+        <InlineTaskAdd onAdd={onAddTask} placeholder="Add task..." />
+      </div>
+    </div>
+  );
+}
