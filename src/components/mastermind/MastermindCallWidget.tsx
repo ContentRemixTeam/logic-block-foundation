@@ -160,6 +160,7 @@ export const MastermindCallWidget = () => {
                 LIVE
               </div>
               <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Next Mastermind Call</p>
                 <p className="font-semibold text-sm">{mainTitle}</p>
                 {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
               </div>
@@ -182,6 +183,7 @@ export const MastermindCallWidget = () => {
             <div className="flex items-center gap-3">
               <span className="text-lg">🎓</span>
               <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Next Mastermind Call</p>
                 <div className="flex items-center gap-2">
                   <p className="font-semibold text-sm">{mainTitle}</p>
                   <span className="text-xs bg-amber-400 text-amber-900 px-1.5 py-0.5 rounded font-medium">Soon</span>
@@ -215,6 +217,7 @@ export const MastermindCallWidget = () => {
           <div className="flex items-center gap-3">
             <span className="text-lg">🎓</span>
             <div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Next Mastermind Call</p>
               <p className="font-semibold text-sm">{mainTitle}</p>
               {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
               <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
