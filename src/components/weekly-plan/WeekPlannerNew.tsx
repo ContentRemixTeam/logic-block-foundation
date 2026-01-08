@@ -50,6 +50,9 @@ export function WeekPlannerNew({
 
   // Clear week confirmation
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+  
+  // Weekend toggle
+  const [showWeekend, setShowWeekend] = useState(true);
 
   const loadSettings = useCallback(async () => {
     if (!user) return;
@@ -241,6 +244,8 @@ export function WeekPlannerNew({
         onNextWeek={goToNextWeek}
         onGoToToday={goToCurrentWeek}
         isCurrentWeek={isCurrentWeek}
+        showWeekend={showWeekend}
+        onToggleWeekend={() => setShowWeekend(prev => !prev)}
       />
 
       {/* Week Label */}
@@ -276,6 +281,7 @@ export function WeekPlannerNew({
               currentWeekStart={currentWeekStart}
               officeHoursStart={officeHoursStart}
               officeHoursEnd={officeHoursEnd}
+              showWeekend={showWeekend}
               onTaskDrop={handleTaskDrop}
               onTaskToggle={handleTaskToggle}
             />
