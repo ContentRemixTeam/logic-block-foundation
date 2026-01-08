@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useTour } from '@/hooks/useTour';
+import { AuthLogo } from '@/components/auth/AuthLogo';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -136,17 +137,20 @@ export default function Auth() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl">
-            {isLogin ? 'Sign In' : 'Create Account'}
-          </CardTitle>
-          <CardDescription>
-            {isLogin
-              ? 'Welcome back to your 90-day planning journey'
-              : 'Start your 90-day transformation'}
-          </CardDescription>
-        </CardHeader>
+      <div className="w-full max-w-md">
+        <AuthLogo />
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">
+              {isLogin ? 'Sign In' : 'Create Account'}
+            </CardTitle>
+            <CardDescription>
+              {isLogin
+                ? 'Welcome back to your 90-day planning journey'
+                : 'Start your 90-day transformation'}
+            </CardDescription>
+          </CardHeader>
         <CardContent>
           <form onSubmit={handleAuth} className="space-y-4" noValidate>
             <div className="space-y-2">
@@ -216,7 +220,8 @@ export default function Auth() {
             </Button>
           </form>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }
