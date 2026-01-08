@@ -5,19 +5,33 @@ import { QuickStartGuide } from '@/components/support/QuickStartGuide';
 import { FAQSection } from '@/components/support/FAQSection';
 import { FeatureRequestSection } from '@/components/support/FeatureRequestSection';
 import { ReportIssueSection } from '@/components/support/ReportIssueSection';
-import { Rocket, HelpCircle, Lightbulb, AlertTriangle } from 'lucide-react';
+import { Rocket, HelpCircle, Lightbulb, AlertTriangle, PlayCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTour } from '@/hooks/useTour';
 
 export default function Support() {
   const [activeTab, setActiveTab] = useState('quick-start');
+  const { restartTour } = useTour();
 
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8 max-w-5xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Support Center</h1>
-          <p className="text-muted-foreground">
-            We're here to help you get the most out of your 90-Day Planner journey.
-          </p>
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Support Center</h1>
+            <p className="text-muted-foreground">
+              We're here to help you get the most out of your 90-Day Planner journey.
+            </p>
+          </div>
+          <Button
+            onClick={restartTour}
+            variant="outline"
+            className="flex items-center gap-2 shrink-0"
+          >
+            <PlayCircle className="h-4 w-4" />
+            Start Walkthrough
+          </Button>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

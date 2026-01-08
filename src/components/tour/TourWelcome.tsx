@@ -5,10 +5,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Sparkles, Rocket, X } from 'lucide-react';
 
 export function TourWelcome() {
-  const { hasSeenTour, startTour, skipTour, isActive } = useTour();
+  const { hasSeenTour, startTour, skipTour, isActive, isFirstLoginComplete, markFirstLoginComplete } = useTour();
 
-  // Don't show if tour has been seen or tour is already active
-  if (hasSeenTour || isActive) return null;
+  const handleStartTour = () => {
+    markFirstLoginComplete();
+    startTour();
+  };
+
+  const handleSkipTour = () => {
+    markFirstLoginComplete();
+    skipTour();
+  };
+
+  // Don't show if tour has been seen, tour is already active, or first login is not complete yet
+  if (hasSeenTour || isActive || !isFirstLoginComplete) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 animate-in fade-in-0 duration-300">
@@ -33,7 +43,7 @@ export function TourWelcome() {
 
           <div className="space-y-3">
             <Button
-              onClick={startTour}
+              onClick={handleStartTour}
               className="w-full h-12 text-base"
               size="lg"
             >
@@ -42,7 +52,7 @@ export function TourWelcome() {
             </Button>
             <Button
               variant="ghost"
-              onClick={skipTour}
+              onClick={handleSkipTour}
               className="w-full text-muted-foreground"
             >
               <X className="h-4 w-4 mr-2" />
@@ -51,7 +61,7 @@ export function TourWelcome() {
           </div>
 
           <p className="text-xs text-center text-muted-foreground">
-            You can restart the tour anytime from Settings → Help
+            You can restart the tour anytime from Support → Quick Start
           </p>
         </CardContent>
       </Card>

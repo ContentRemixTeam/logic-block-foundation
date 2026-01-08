@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useTour } from '@/hooks/useTour';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -18,6 +19,7 @@ export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { markFirstLoginComplete } = useTour();
 
   useEffect(() => {
     if (user) {
@@ -81,6 +83,9 @@ export default function Auth() {
         });
 
         if (error) throw error;
+
+        // Mark first login complete - this allows the tour to show
+        markFirstLoginComplete();
 
         toast({
           title: 'Welcome back!',
