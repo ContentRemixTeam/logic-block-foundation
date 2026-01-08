@@ -15,6 +15,7 @@ import Auth from "./pages/Auth";
 import LoginHelp from "./pages/LoginHelp";
 import Dashboard from "./pages/Dashboard";
 import Onboarding from "./pages/Onboarding";
+import Planning from "./pages/Planning";
 import CycleSetup from "./pages/CycleSetup";
 import WeeklyPlan from "./pages/WeeklyPlan";
 import WeeklyReview from "./pages/WeeklyReview";
@@ -84,6 +85,7 @@ const App = () => (
                 <Route path="/login-help" element={<LoginHelp />} />
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+                <Route path="/planning" element={<ProtectedRoute><Planning /></ProtectedRoute>} />
                 <Route path="/cycle-setup" element={<ProtectedRoute><CycleSetup /></ProtectedRoute>} />
                 <Route path="/weekly-plan" element={<ProtectedRoute><WeeklyPlan /></ProtectedRoute>} />
                 <Route path="/weekly-review" element={<ProtectedRoute><WeeklyReview /></ProtectedRoute>} />
