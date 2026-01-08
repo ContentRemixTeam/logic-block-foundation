@@ -14,6 +14,7 @@ interface TourContextType {
   steps: TourStep[];
   hasSeenTour: boolean;
   showChecklist: boolean;
+  isFirstLoginComplete: boolean;
   startTour: () => void;
   endTour: (completed?: boolean) => void;
   nextStep: () => void;
@@ -21,12 +22,14 @@ interface TourContextType {
   skipTour: () => void;
   dismissChecklist: () => void;
   restartTour: () => void;
+  markFirstLoginComplete: () => void;
 }
 
 const TourContext = createContext<TourContextType | undefined>(undefined);
 
 const TOUR_STORAGE_KEY = 'ninety-day-planner-tour-seen';
 const CHECKLIST_STORAGE_KEY = 'ninety-day-planner-checklist-dismissed';
+const FIRST_LOGIN_KEY = 'ninety-day-planner-first-login-complete';
 
 const tourSteps: TourStep[] = [
   {
@@ -85,14 +88,17 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [hasSeenTour, setHasSeenTour] = useState(true); // Default to true to prevent flash
   const [showChecklist, setShowChecklist] = useState(false);
+  const [isFirstLoginComplete, setIsFirstLoginComplete] = useState(true); // Default to true to prevent flash
 
   useEffect(() => {
     // Check localStorage on mount
     const seen = localStorage.getItem(TOUR_STORAGE_KEY);
     const checklistDismissed = localStorage.getItem(CHECKLIST_STORAGE_KEY);
+    const firstLoginComplete = localStorage.getItem(FIRST_LOGIN_KEY);
     
     setHasSeenTour(seen === 'true');
     setShowChecklist(seen === 'true' && checklistDismissed !== 'true');
+    setIsFirstLoginComplete(firstLoginComplete === 'true');
   }, []);
 
   const startTour = useCallback(() => {
@@ -144,6 +150,11 @@ export function TourProvider({ children }: { children: ReactNode }) {
     startTour();
   }, [startTour]);
 
+  const markFirstLoginComplete = useCallback(() => {
+    localStorage.setItem(FIRST_LOGIN_KEY, 'true');
+    setIsFirstLoginComplete(true);
+  }, []);
+
   return (
     <TourContext.Provider
       value={{
@@ -152,6 +163,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
         steps: tourSteps,
         hasSeenTour,
         showChecklist,
+        isFirstLoginComplete,
         startTour,
         endTour,
         nextStep,
@@ -159,6 +171,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
         skipTour,
         dismissChecklist,
         restartTour,
+        markFirstLoginComplete,
       }}
     >
       {children}
