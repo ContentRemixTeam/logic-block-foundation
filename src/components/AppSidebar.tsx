@@ -5,7 +5,6 @@ import {
   Target,
   CalendarDays,
   Calendar,
-  ExternalLink,
   FileText,
   BarChart3,
   CheckSquare,
@@ -34,6 +33,9 @@ import {
   Shield,
   Anchor,
   MessageCircle,
+  Video,
+  GraduationCap,
+  Ticket,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
@@ -357,7 +359,7 @@ export function AppSidebar() {
                     {isQuestMode ? (
                       <span className="quest-nav-icon text-base">🙋</span>
                     ) : (
-                      <ExternalLink className="h-4 w-4" />
+                      <HelpCircle className="h-4 w-4" />
                     )}
                     <span>Ask Faith</span>
                   </a>
@@ -369,7 +371,7 @@ export function AppSidebar() {
                     {isQuestMode ? (
                       <span className="quest-nav-icon text-base">👥</span>
                     ) : (
-                      <ExternalLink className="h-4 w-4" />
+                      <Users className="h-4 w-4" />
                     )}
                     <span>Coworking Room</span>
                   </a>
@@ -381,7 +383,7 @@ export function AppSidebar() {
                     {isQuestMode ? (
                       <span className="quest-nav-icon text-base">🎬</span>
                     ) : (
-                      <ExternalLink className="h-4 w-4" />
+                      <Video className="h-4 w-4" />
                     )}
                     <span>Recent Call Replays</span>
                   </a>
@@ -393,7 +395,7 @@ export function AppSidebar() {
                     {isQuestMode ? (
                       <span className="quest-nav-icon text-base">🎟️</span>
                     ) : (
-                      <ExternalLink className="h-4 w-4" />
+                      <Ticket className="h-4 w-4" />
                     )}
                     <span>Apply for Upcoming Events</span>
                   </a>
@@ -405,7 +407,7 @@ export function AppSidebar() {
                     {isQuestMode ? (
                       <span className="quest-nav-icon text-base">📚</span>
                     ) : (
-                      <ExternalLink className="h-4 w-4" />
+                      <GraduationCap className="h-4 w-4" />
                     )}
                     <span>Learning</span>
                   </a>
@@ -417,7 +419,7 @@ export function AppSidebar() {
                     {isQuestMode ? (
                       <span className="quest-nav-icon text-base">📅</span>
                     ) : (
-                      <ExternalLink className="h-4 w-4" />
+                      <Calendar className="h-4 w-4" />
                     )}
                     <span>Events</span>
                   </a>
@@ -429,7 +431,7 @@ export function AppSidebar() {
                     {isQuestMode ? (
                       <span className="quest-nav-icon text-base">💬</span>
                     ) : (
-                      <ExternalLink className="h-4 w-4" />
+                      <MessageCircle className="h-4 w-4" />
                     )}
                     <span>Community</span>
                   </a>
