@@ -27,8 +27,10 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Extract the JWT token from the Authorization header
+    const token = authHeader.replace('Bearer ', '');
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
     console.log('Environment check:', {
@@ -36,13 +38,11 @@ Deno.serve(async (req) => {
       hasServiceKey: Boolean(supabaseServiceKey),
     });
 
-    // Create client with anon key to validate the user's token
-    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    // Create service role client for database operations
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Validate the token by getting the user
-    const { data: { user }, error: userError } = await authClient.auth.getUser();
+    // Validate the token by getting the user with the token
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
 
     if (userError || !user) {
       console.error('Invalid JWT token:', userError?.message);
@@ -54,9 +54,6 @@ Deno.serve(async (req) => {
 
     const userId = user.id;
     console.log('User ID validated:', { userId: Boolean(userId) });
-
-    // Create service role client for database operations
-    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log('Calling get_dashboard_summary RPC for user:', userId);
     const { data, error: rpcError } = await supabaseClient.rpc('get_dashboard_summary', {
