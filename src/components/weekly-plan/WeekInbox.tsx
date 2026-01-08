@@ -11,6 +11,7 @@ interface WeekInboxProps {
   onTaskToggle: (taskId: string, completed: boolean) => void;
   onPullUnfinished: () => Promise<void>;
   onAddTask: () => void;
+  onMoveToInbox: (taskId: string) => void;
   isPulling: boolean;
 }
 
@@ -19,6 +20,7 @@ export function WeekInbox({
   onTaskToggle, 
   onPullUnfinished,
   onAddTask,
+  onMoveToInbox,
   isPulling
 }: WeekInboxProps) {
   const [isDragOver, setIsDragOver] = useState(false);
@@ -49,6 +51,16 @@ export function WeekInbox({
 
   const handleDragLeave = () => {
     setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    
+    const taskId = e.dataTransfer.getData('taskId');
+    if (taskId) {
+      onMoveToInbox(taskId);
+    }
   };
 
   return (
@@ -131,6 +143,7 @@ export function WeekInbox({
       <div 
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
         className={cn(
           "flex-1 overflow-y-auto space-y-1 p-2 rounded-lg border min-h-[200px] transition-colors",
           isDragOver ? "bg-primary/10 border-primary/50" : "bg-muted/30"

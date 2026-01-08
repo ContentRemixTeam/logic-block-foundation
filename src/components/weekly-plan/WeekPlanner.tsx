@@ -350,6 +350,7 @@ export function WeekPlanner({ initialCollapsed = false }: WeekPlannerProps) {
                     onTaskToggle={handleTaskToggle}
                     onPullUnfinished={handlePullUnfinished}
                     onAddTask={() => setQuickAddOpen(true)}
+                    onMoveToInbox={handleMoveToInbox}
                     isPulling={isPulling}
                   />
                 </div>
