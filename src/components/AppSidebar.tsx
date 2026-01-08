@@ -36,6 +36,7 @@ import {
   Video,
   GraduationCap,
   Ticket,
+  Archive,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
@@ -434,6 +435,18 @@ export function AppSidebar() {
                       <MessageCircle className="h-4 w-4" />
                     )}
                     <span>Community</span>
+                  </a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild className="quest-nav-item">
+                  <a href="https://hub-3pwl3413w2.membership.io/" target="_blank" rel="noopener noreferrer">
+                    {isQuestMode ? (
+                      <span className="quest-nav-icon text-base">🗄️</span>
+                    ) : (
+                      <Archive className="h-4 w-4" />
+                    )}
+                    <span>Replay Vault</span>
                   </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
