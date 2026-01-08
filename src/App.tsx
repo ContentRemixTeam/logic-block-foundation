@@ -39,6 +39,7 @@ import Notes from "./pages/Notes";
 import SOPs from "./pages/SOPs";
 import Community from "./pages/Community";
 import Support from "./pages/Support";
+import CaptureLaunchPage from "./pages/CaptureLaunchPage";
 import NotFound from "./pages/NotFound";
 
 // Configure QueryClient with stability-focused defaults
@@ -112,6 +113,7 @@ const App = () => (
                   <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
                   <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
                   <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                  <Route path="/capture" element={<CaptureLaunchPage />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </QuickCaptureProvider>

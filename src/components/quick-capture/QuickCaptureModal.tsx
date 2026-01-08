@@ -27,9 +27,10 @@ interface QuickCaptureModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onReopenCapture?: () => void;
+  stayOpenAfterSave?: boolean;
 }
 
-export function QuickCaptureModal({ open, onOpenChange, onReopenCapture }: QuickCaptureModalProps) {
+export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpenAfterSave = false }: QuickCaptureModalProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -241,12 +242,31 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture }: Quick
         queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
       }
 
-      onOpenChange(false);
-      
-      // Show actionable toast after modal closes
-      setTimeout(() => {
-        showActionableToast(savedText, savedId, savedType);
-      }, 100);
+      // Handle stay-open mode vs close mode
+      if (stayOpenAfterSave) {
+        // Stay open: clear input, keep mode, refocus
+        setInput('');
+        setParsedTask(null);
+        setShowConvertChips(false);
+        setUserOverrodeType(false);
+        
+        // Show a quick inline toast
+        toast.success(savedType === 'task' ? '✅ Task saved' : '💡 Idea saved', {
+          duration: 2000,
+        });
+        
+        // Refocus input after a short delay
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 50);
+      } else {
+        // Close modal and show actionable toast
+        onOpenChange(false);
+        
+        setTimeout(() => {
+          showActionableToast(savedText, savedId, savedType);
+        }, 100);
+      }
 
     } catch (error: any) {
       console.error('Error saving:', error);
