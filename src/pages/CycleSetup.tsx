@@ -15,6 +15,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { format, addDays } from 'date-fns';
+import { HelpButton } from '@/components/ui/help-button';
 
 export default function CycleSetup() {
   const { user } = useAuth();
@@ -299,6 +300,17 @@ export default function CycleSetup() {
               <div className="flex items-center gap-2">
                 <Target className="h-5 w-5 text-primary" />
                 <CardTitle>Business Diagnostic</CardTitle>
+                <HelpButton
+                  title="Business Diagnostic"
+                  description="Rate your business in 3 key areas. Your lowest score becomes your focus for the next 90 days."
+                  tips={[
+                    "DISCOVER = attracting new potential clients (visibility, traffic)",
+                    "NURTURE = building relationships and trust (content, email list)",
+                    "CONVERT = turning leads into paying clients (offers, sales)",
+                    "Be honest – this helps you prioritize effectively"
+                  ]}
+                  learnMoreHref="/support"
+                />
               </div>
               <CardDescription>Where should you focus this quarter?</CardDescription>
             </CardHeader>
@@ -378,6 +390,16 @@ export default function CycleSetup() {
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-primary" />
                 <CardTitle>Success Metrics</CardTitle>
+                <HelpButton
+                  title="Success Metrics"
+                  description="Choose 3 numbers to track weekly. Pick metrics that align with your focus area."
+                  tips={[
+                    "Make them specific and measurable (not 'more sales')",
+                    "Track weekly to make data-driven decisions",
+                    "Examples: email list size, offers made, revenue"
+                  ]}
+                  learnMoreHref="/support"
+                />
               </div>
               <CardDescription>What 3 numbers will you track this quarter?</CardDescription>
             </CardHeader>
