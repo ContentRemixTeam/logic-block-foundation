@@ -1,0 +1,272 @@
+import { useMemo, useState } from 'react';
+import { addDays, format, isToday, isBefore, startOfDay } from 'date-fns';
+import { Task } from '@/components/tasks/types';
+import { WeeklyTaskCard } from './WeeklyTaskCard';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
+
+interface WeeklyTimelineBoardProps {
+  tasks: Task[];
+  currentWeekStart: Date;
+  officeHoursStart?: string;
+  officeHoursEnd?: string;
+  onTaskDrop: (taskId: string, fromPlannedDay: string | null, targetDate: string, timeSlot?: string) => void;
+  onTaskToggle: (taskId: string, completed: boolean) => void;
+}
+
+// Generate hour slots from 6am to 10pm (configurable)
+const HOUR_START = 6;
+const HOUR_END = 22;
+const HOUR_SLOTS = Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => HOUR_START + i);
+
+export function WeeklyTimelineBoard({
+  tasks,
+  currentWeekStart,
+  officeHoursStart = '9:00',
+  officeHoursEnd = '17:00',
+  onTaskDrop,
+  onTaskToggle,
+}: WeeklyTimelineBoardProps) {
+  const [dragOverCell, setDragOverCell] = useState<string | null>(null);
+
+  // Generate 7 days
+  const weekDays = useMemo(() => {
+    const days: Date[] = [];
+    for (let i = 0; i < 7; i++) {
+      days.push(addDays(currentWeekStart, i));
+    }
+    return days;
+  }, [currentWeekStart]);
+
+  // Parse office hours
+  const parseTime = (timeStr: string): number => {
+    const [hours] = timeStr.split(':').map(Number);
+    return hours;
+  };
+
+  const officeStart = parseTime(officeHoursStart);
+  const officeEnd = parseTime(officeHoursEnd);
+
+  // Group tasks by day and time slot
+  const tasksByDayAndHour = useMemo(() => {
+    const map: Record<string, Record<number, Task[]>> = {};
+    
+    weekDays.forEach((day) => {
+      const dateStr = format(day, 'yyyy-MM-dd');
+      map[dateStr] = {};
+      HOUR_SLOTS.forEach((hour) => {
+        map[dateStr][hour] = [];
+      });
+    });
+
+    tasks.forEach((task) => {
+      if (!task.planned_day) return;
+      if (!map[task.planned_day]) return;
+      
+      // If task has time_block_start, place it at that hour
+      if (task.time_block_start) {
+        const hour = parseInt(task.time_block_start.split(':')[0], 10);
+        if (map[task.planned_day][hour]) {
+          map[task.planned_day][hour].push(task);
+        }
+      }
+    });
+
+    return map;
+  }, [tasks, weekDays]);
+
+  // Tasks scheduled for a day but without time blocks (show in "All Day" row)
+  const untimedTasksByDay = useMemo(() => {
+    const map: Record<string, Task[]> = {};
+    
+    weekDays.forEach((day) => {
+      const dateStr = format(day, 'yyyy-MM-dd');
+      map[dateStr] = tasks.filter(
+        (t) => t.planned_day === dateStr && !t.time_block_start && !t.is_completed
+      ).sort((a, b) => (a.day_order || 0) - (b.day_order || 0));
+    });
+
+    return map;
+  }, [tasks, weekDays]);
+
+  const handleDragOver = (e: React.DragEvent, dateStr: string, hour?: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const cellKey = hour !== undefined ? `${dateStr}-${hour}` : `${dateStr}-allday`;
+    setDragOverCell(cellKey);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverCell(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, dateStr: string, hour?: number) => {
+    e.preventDefault();
+    setDragOverCell(null);
+
+    const taskId = e.dataTransfer.getData('taskId');
+    const fromPlannedDay = e.dataTransfer.getData('fromPlannedDay') || null;
+
+    if (taskId) {
+      const timeSlot = hour !== undefined ? `${String(hour).padStart(2, '0')}:00` : undefined;
+      onTaskDrop(taskId, fromPlannedDay, dateStr, timeSlot);
+    }
+  };
+
+  const formatHour = (hour: number): string => {
+    if (hour === 0) return '12 AM';
+    if (hour < 12) return `${hour} AM`;
+    if (hour === 12) return '12 PM';
+    return `${hour - 12} PM`;
+  };
+
+  const isWithinOfficeHours = (hour: number): boolean => {
+    return hour >= officeStart && hour < officeEnd;
+  };
+
+  return (
+    <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+      <ScrollArea className="w-full">
+        <div className="min-w-[900px]">
+          {/* Header row with days */}
+          <div className="flex border-b bg-muted/30 sticky top-0 z-10">
+            {/* Time column header */}
+            <div className="w-16 shrink-0 border-r px-2 py-3">
+              <span className="text-xs text-muted-foreground font-medium">Time</span>
+            </div>
+            
+            {/* Day headers */}
+            {weekDays.map((day) => {
+              const dateStr = format(day, 'yyyy-MM-dd');
+              const today = isToday(day);
+              const isPast = isBefore(startOfDay(day), startOfDay(new Date())) && !today;
+              
+              return (
+                <div
+                  key={dateStr}
+                  className={cn(
+                    'flex-1 min-w-[120px] border-r last:border-r-0 px-2 py-2 text-center',
+                    today && 'bg-primary/5'
+                  )}
+                >
+                  <div className={cn(
+                    'text-xs font-medium',
+                    today ? 'text-primary' : isPast ? 'text-muted-foreground' : 'text-foreground'
+                  )}>
+                    {format(day, 'EEE')}
+                  </div>
+                  <div className={cn(
+                    'text-lg font-semibold',
+                    today ? 'text-primary' : isPast ? 'text-muted-foreground' : 'text-foreground'
+                  )}>
+                    {format(day, 'd')}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                    {officeHoursStart} – {officeHoursEnd}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* All Day row */}
+          <div className="flex border-b">
+            <div className="w-16 shrink-0 border-r px-2 py-2 flex items-center">
+              <span className="text-xs text-muted-foreground">All Day</span>
+            </div>
+            
+            {weekDays.map((day) => {
+              const dateStr = format(day, 'yyyy-MM-dd');
+              const today = isToday(day);
+              const cellKey = `${dateStr}-allday`;
+              const isOver = dragOverCell === cellKey;
+              const dayTasks = untimedTasksByDay[dateStr] || [];
+              
+              return (
+                <div
+                  key={cellKey}
+                  onDragOver={(e) => handleDragOver(e, dateStr)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, dateStr)}
+                  className={cn(
+                    'flex-1 min-w-[120px] border-r last:border-r-0 p-1.5 min-h-[60px]',
+                    today && 'bg-primary/5',
+                    isOver && 'bg-primary/10 ring-2 ring-inset ring-primary/30'
+                  )}
+                >
+                  <div className="space-y-1">
+                    {dayTasks.slice(0, 3).map((task) => (
+                      <WeeklyTaskCard
+                        key={task.task_id}
+                        task={task}
+                        onToggle={onTaskToggle}
+                        compact
+                      />
+                    ))}
+                    {dayTasks.length > 3 && (
+                      <div className="text-xs text-muted-foreground text-center py-0.5">
+                        +{dayTasks.length - 3} more
+                      </div>
+                    )}
+                    {dayTasks.length === 0 && isOver && (
+                      <div className="text-xs text-primary text-center py-2">
+                        Drop here
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Hour rows */}
+          {HOUR_SLOTS.map((hour) => (
+            <div key={hour} className="flex border-b last:border-b-0">
+              {/* Time label */}
+              <div className="w-16 shrink-0 border-r px-2 py-1 flex items-start">
+                <span className="text-xs text-muted-foreground -mt-2">
+                  {formatHour(hour)}
+                </span>
+              </div>
+              
+              {/* Day cells */}
+              {weekDays.map((day) => {
+                const dateStr = format(day, 'yyyy-MM-dd');
+                const today = isToday(day);
+                const cellKey = `${dateStr}-${hour}`;
+                const isOver = dragOverCell === cellKey;
+                const isOfficeHour = isWithinOfficeHours(hour);
+                const cellTasks = tasksByDayAndHour[dateStr]?.[hour] || [];
+                
+                return (
+                  <div
+                    key={cellKey}
+                    onDragOver={(e) => handleDragOver(e, dateStr, hour)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, dateStr, hour)}
+                    className={cn(
+                      'flex-1 min-w-[120px] border-r last:border-r-0 min-h-[48px] p-0.5 transition-colors',
+                      today && 'bg-primary/5',
+                      isOfficeHour && !today && 'bg-muted/20',
+                      isOver && 'bg-primary/10 ring-2 ring-inset ring-primary/30'
+                    )}
+                  >
+                    {cellTasks.map((task) => (
+                      <WeeklyTaskCard
+                        key={task.task_id}
+                        task={task}
+                        onToggle={onTaskToggle}
+                        compact
+                      />
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
+    </div>
+  );
+}

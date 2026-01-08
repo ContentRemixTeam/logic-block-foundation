@@ -81,38 +81,35 @@ export function AvailableTasksSidebar({
   };
 
   return (
-    <div className="flex flex-col h-full bg-card rounded-xl border shadow-sm">
+    <div className="flex flex-col h-full bg-card rounded-lg border w-full">
       {/* Header */}
-      <div className="p-4 border-b space-y-3">
+      <div className="p-3 border-b space-y-2">
         <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-base">Available Tasks</h3>
-            <p className="text-xs text-muted-foreground">Drag tasks to schedule them</p>
-          </div>
+          <h3 className="font-medium text-sm">Available Tasks</h3>
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-7 w-7"
             onClick={onPullUnfinished}
             disabled={isPulling}
             title="Pull unfinished tasks"
           >
             {isPulling ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
-              <RotateCcw className="h-4 w-4" />
+              <RotateCcw className="h-3.5 w-3.5" />
             )}
           </Button>
         </div>
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
-            placeholder="Search tasks..."
+            placeholder="Search..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-9 text-sm bg-muted/50"
+            className="pl-8 h-8 text-xs bg-muted/30"
           />
         </div>
 
