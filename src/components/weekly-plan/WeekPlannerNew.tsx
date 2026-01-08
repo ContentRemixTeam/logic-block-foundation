@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { startOfWeek, addDays, subDays, format, isThisWeek } from 'date-fns';
-import { Task } from '@/components/tasks/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -13,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { WeeklyPlannerHeader } from './WeeklyPlannerHeader';
 import { WeeklyPlannerTabs } from './WeeklyPlannerTabs';
 import { AvailableTasksSidebar } from './AvailableTasksSidebar';
-import { WeekBoardNew } from './WeekBoardNew';
+import { WeeklyTimelineBoard } from './WeeklyTimelineBoard';
 
 interface WeekPlannerNewProps {
   highlightTaskId?: string | null;
@@ -78,24 +77,40 @@ export function WeekPlannerNew({
     loadSettings();
   }, [loadSettings]);
 
-  const handleTaskDrop = async (taskId: string, fromPlannedDay: string | null, targetDate: string) => {
+  const handleTaskDrop = async (taskId: string, fromPlannedDay: string | null, targetDate: string, timeSlot?: string) => {
     // Get max order for the target day and add 1
     const tasksOnDay = tasks.filter((t) => t.planned_day === targetDate);
     const maxOrder = Math.max(0, ...tasksOnDay.map((t) => t.day_order || 0));
     const newOrder = maxOrder + 1;
 
-    moveToDay.mutate(
-      { taskId, plannedDay: targetDate, dayOrder: newOrder },
-      {
-        onSuccess: () => {
-          const targetDay = new Date(targetDate);
-          toast({
-            title: `Scheduled for ${format(targetDay, 'EEE')}`,
-            duration: 2000,
-          });
-        },
-      }
-    );
+    // If timeSlot provided, also update time_block_start
+    if (timeSlot) {
+      updateTask.mutate(
+        { taskId, updates: { planned_day: targetDate, day_order: newOrder, time_block_start: timeSlot } },
+        {
+          onSuccess: () => {
+            const targetDay = new Date(targetDate);
+            toast({
+              title: `Scheduled for ${format(targetDay, 'EEE')} at ${timeSlot}`,
+              duration: 2000,
+            });
+          },
+        }
+      );
+    } else {
+      moveToDay.mutate(
+        { taskId, plannedDay: targetDate, dayOrder: newOrder },
+        {
+          onSuccess: () => {
+            const targetDay = new Date(targetDate);
+            toast({
+              title: `Scheduled for ${format(targetDay, 'EEE')}`,
+              duration: 2000,
+            });
+          },
+        }
+      );
+    }
   };
 
   const handleMoveToInbox = async (taskId: string) => {
@@ -240,9 +255,9 @@ export function WeekPlannerNew({
 
       {/* Task Planner Content */}
       {activeTab === 'planner' && (
-        <div className="flex gap-6" style={{ minHeight: '500px' }}>
+        <div className="flex gap-4" style={{ minHeight: '600px' }}>
           {/* Available Tasks Sidebar */}
-          <div className="w-72 shrink-0">
+          <div className="w-56 shrink-0">
             <AvailableTasksSidebar
               tasks={tasks}
               onTaskToggle={handleTaskToggle}
@@ -254,18 +269,15 @@ export function WeekPlannerNew({
             />
           </div>
 
-          {/* Week Board */}
+          {/* Timeline Board */}
           <div className="flex-1 min-w-0">
-            <WeekBoardNew
+            <WeeklyTimelineBoard
               tasks={tasks}
-              weekStartDay={weekStartDay}
-              capacityMinutes={capacityMinutes}
+              currentWeekStart={currentWeekStart}
               officeHoursStart={officeHoursStart}
               officeHoursEnd={officeHoursEnd}
               onTaskDrop={handleTaskDrop}
               onTaskToggle={handleTaskToggle}
-              currentWeekStart={currentWeekStart}
-              onQuickAdd={handleQuickAdd}
             />
           </div>
         </div>
