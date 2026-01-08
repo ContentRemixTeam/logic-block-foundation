@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isBefore, startOfDay } from 'date-fns';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,6 +41,8 @@ import { TaskMonthView } from '@/components/tasks/views/TaskMonthView';
 import { TaskThreeDayView } from '@/components/tasks/views/TaskThreeDayView';
 import { TimelineDayNavigation } from '@/components/tasks/views/TimelineDayNavigation';
 import { TimelineViewSelector, TimelineViewType } from '@/components/tasks/views/TimelineViewSelector';
+import { TaskPlanningCards } from '@/components/tasks/TaskPlanningCards';
+import { TaskViewsToolbar } from '@/components/tasks/TaskViewsToolbar';
 import { 
   Task, SOP, ChecklistItem, SOPLink, ChecklistProgress, 
   FilterTab, ViewMode, EnergyLevel, RecurrencePattern, DeleteType,
@@ -175,6 +177,16 @@ export default function Tasks() {
       .reduce((sum: number, t: Task) => sum + (t.estimated_minutes || 30), 0);
 
     return { plannedMinutes, completedMinutes, capacityMinutes: 480 }; // 8 hours default
+  }, [tasks]);
+
+  // Calculate overdue tasks count
+  const overdueCount = useMemo(() => {
+    const today = startOfDay(new Date());
+    return tasks.filter((t: Task) => {
+      if (t.is_completed || t.is_recurring_parent) return false;
+      if (!t.scheduled_date) return false;
+      return isBefore(parseISO(t.scheduled_date), today);
+    }).length;
   }, [tasks]);
 
   // Separate recurring parent tasks
@@ -484,53 +496,26 @@ export default function Tasks() {
             <h1 className="text-3xl font-bold">Tasks</h1>
             <p className="text-muted-foreground">Your workflow command center</p>
           </div>
-          
-          {/* View mode toggle */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="bg-muted rounded-lg p-1 flex">
-              <Button
-                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('list')}
-                className="gap-2"
-              >
-                <LayoutList className="h-4 w-4" />
-                <span className="hidden sm:inline">List</span>
-              </Button>
-              <Button
-                variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('kanban')}
-                className="gap-2"
-              >
-                <Columns className="h-4 w-4" />
-                <span className="hidden sm:inline">Kanban</span>
-              </Button>
-              <Button
-                variant={viewMode === 'timeline' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('timeline')}
-                className="gap-2"
-              >
-                <Clock3 className="h-4 w-4" />
-                <span className="hidden sm:inline">Timeline</span>
-              </Button>
-            </div>
-            
-            {/* Timeline view type selector */}
-            {viewMode === 'timeline' && (
-              <TimelineViewSelector
-                viewType={timelineViewType}
-                onViewTypeChange={setTimelineViewType}
-              />
-            )}
-            
-            <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Add Task</span>
-            </Button>
-          </div>
         </div>
+
+        {/* Task Planning Cards */}
+        <TaskPlanningCards />
+
+        {/* Views Toolbar */}
+        <TaskViewsToolbar
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          onAddTask={() => setIsAddDialogOpen(true)}
+          overdueCount={overdueCount}
+        />
+
+        {/* Timeline view type selector */}
+        {viewMode === 'timeline' && (
+          <TimelineViewSelector
+            viewType={timelineViewType}
+            onViewTypeChange={setTimelineViewType}
+          />
+        )}
 
         {/* Quick Add & Capacity */}
         <div className="grid gap-4 md:grid-cols-[1fr_300px]">
@@ -554,7 +539,7 @@ export default function Tasks() {
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground">Capacity</span>
+              <span className="text-xs text-muted-foreground">Today's Capacity</span>
               <HelpButton
                 title="Daily Capacity"
                 description="Shows how much of your 8-hour workday is scheduled."
