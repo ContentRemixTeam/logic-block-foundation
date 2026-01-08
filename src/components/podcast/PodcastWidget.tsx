@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Headphones, ExternalLink, Loader2 } from 'lucide-react';
+import { Headphones, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 
@@ -18,7 +18,6 @@ interface PodcastEpisode {
 
 interface PodcastData {
   latestEpisode: PodcastEpisode | null;
-  listenUrl: string | null;
   totalEpisodes: number;
 }
 
@@ -69,7 +68,7 @@ export function PodcastWidget() {
     return null; // Don't show widget if there's an error or no episodes
   }
 
-  const { latestEpisode, listenUrl } = data;
+  const { latestEpisode } = data;
 
   return (
     <Card className={`border-border/50 transition-all ${latestEpisode.isNew ? 'ring-2 ring-primary/30 border-primary/50' : ''}`}>
@@ -104,19 +103,9 @@ export function PodcastWidget() {
           </div>
         </div>
         
-        {listenUrl && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-full"
-            asChild
-          >
-            <a href={listenUrl} target="_blank" rel="noopener noreferrer">
-              Listen Now
-              <ExternalLink className="h-3 w-3 ml-2" />
-            </a>
-          </Button>
-        )}
+        <p className="text-xs text-muted-foreground text-center pt-1">
+          Listen in your podcast app
+        </p>
       </CardContent>
     </Card>
   );
