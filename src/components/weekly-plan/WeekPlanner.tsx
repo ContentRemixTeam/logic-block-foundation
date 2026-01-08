@@ -90,10 +90,15 @@ export function WeekPlanner({ initialCollapsed = false }: WeekPlannerProps) {
   }, [loadTasks, loadSettings]);
 
   const handleTaskDrop = async (taskId: string, fromPlannedDay: string | null, targetDate: string) => {
+    // Get max order for the target day and add 1 (avoid Date.now() which overflows integer)
+    const tasksOnDay = tasks.filter(t => t.planned_day === targetDate);
+    const maxOrder = Math.max(0, ...tasksOnDay.map(t => t.day_order || 0));
+    const newOrder = maxOrder + 1;
+
     // Optimistic update
     setTasks(prev => prev.map(t => 
       t.task_id === taskId 
-        ? { ...t, planned_day: targetDate, day_order: Date.now() }
+        ? { ...t, planned_day: targetDate, day_order: newOrder }
         : t
     ));
 
@@ -103,7 +108,7 @@ export function WeekPlanner({ initialCollapsed = false }: WeekPlannerProps) {
           action: 'update',
           task_id: taskId,
           planned_day: targetDate,
-          day_order: Date.now(),
+          day_order: newOrder,
         }
       });
 
