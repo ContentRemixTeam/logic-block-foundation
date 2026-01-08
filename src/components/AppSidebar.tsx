@@ -74,24 +74,11 @@ export function AppSidebar() {
       tourId: 'dashboard' 
     },
     { 
-      name: getNavLabel('cycleSetup'), 
-      href: '/cycle-setup', 
-      icon: isQuestMode ? Compass : Target,
+      name: 'Planning', 
+      href: '/planning', 
+      icon: isQuestMode ? Compass : CalendarDays,
       questIcon: '🧭',
-      tourId: 'cycle-setup' 
-    },
-    { 
-      name: getNavLabel('dailyPlan'), 
-      href: '/daily-plan', 
-      icon: isQuestMode ? Swords : CalendarDays,
-      questIcon: '⚔️',
       tourId: 'planning' 
-    },
-    { 
-      name: getNavLabel('weeklyPlan'), 
-      href: '/weekly-plan', 
-      icon: isQuestMode ? Flag : Calendar,
-      questIcon: '🚩',
     },
     { 
       name: getNavLabel('tasks'), 
