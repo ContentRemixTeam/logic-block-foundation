@@ -12,6 +12,7 @@ import { AuthLogo } from '@/components/auth/AuthLogo';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -66,9 +67,11 @@ export default function Auth() {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate inputs
+    // Validate email always
     const isEmailValid = validateEmail(email);
-    const isPasswordValid = validatePassword(password);
+    
+    // Only validate password if not forgot password mode
+    const isPasswordValid = isForgotPassword ? true : validatePassword(password);
     
     if (!isEmailValid || !isPasswordValid) {
       return;
@@ -77,7 +80,21 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      if (isLogin) {
+      if (isForgotPassword) {
+        const redirectUrl = `${window.location.origin}/auth`;
+        const { error } = await supabase.auth.resetPasswordForEmail(
+          email.trim().toLowerCase(),
+          { redirectTo: redirectUrl }
+        );
+
+        if (error) throw error;
+
+        toast({
+          title: 'Reset link sent!',
+          description: 'Check your email for the password reset link.',
+        });
+        setIsForgotPassword(false);
+      } else if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({
           email: email.trim().toLowerCase(),
           password,
@@ -143,10 +160,12 @@ export default function Auth() {
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">
-              {isLogin ? 'Sign In' : 'Create Account'}
+              {isForgotPassword ? 'Reset Password' : isLogin ? 'Sign In' : 'Create Account'}
             </CardTitle>
             <CardDescription>
-              {isLogin
+              {isForgotPassword
+                ? 'Enter your email to receive a reset link'
+                : isLogin
                 ? 'Welcome back to your 90-day planning journey'
                 : 'Start your 90-day transformation'}
             </CardDescription>
@@ -177,32 +196,47 @@ export default function Auth() {
                 </p>
               )}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (passwordError) validatePassword(e.target.value);
+            {!isForgotPassword && (
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (passwordError) validatePassword(e.target.value);
+                  }}
+                  onBlur={() => validatePassword(password)}
+                  className={passwordError ? 'border-destructive' : ''}
+                  aria-invalid={!!passwordError}
+                  aria-describedby={passwordError ? 'password-error' : undefined}
+                  maxLength={72}
+                  autoComplete={isLogin ? 'current-password' : 'new-password'}
+                />
+                {passwordError && (
+                  <p id="password-error" className="text-sm text-destructive">
+                    {passwordError}
+                  </p>
+                )}
+              </div>
+            )}
+            {isLogin && !isForgotPassword && (
+              <Button
+                type="button"
+                variant="link"
+                className="w-full text-sm text-muted-foreground"
+                onClick={() => {
+                  setIsForgotPassword(true);
+                  setPasswordError('');
                 }}
-                onBlur={() => validatePassword(password)}
-                className={passwordError ? 'border-destructive' : ''}
-                aria-invalid={!!passwordError}
-                aria-describedby={passwordError ? 'password-error' : undefined}
-                maxLength={72}
-                autoComplete={isLogin ? 'current-password' : 'new-password'}
-              />
-              {passwordError && (
-                <p id="password-error" className="text-sm text-destructive">
-                  {passwordError}
-                </p>
-              )}
-            </div>
+              >
+                Forgot your password?
+              </Button>
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Loading...' : isLogin ? 'Sign In' : 'Sign Up'}
+              {loading ? 'Loading...' : isForgotPassword ? 'Send Reset Link' : isLogin ? 'Sign In' : 'Sign Up'}
             </Button>
             <Button
               type="button"
@@ -210,11 +244,14 @@ export default function Auth() {
               className="w-full"
               onClick={() => {
                 setIsLogin(!isLogin);
+                setIsForgotPassword(false);
                 setEmailError('');
                 setPasswordError('');
               }}
             >
-              {isLogin
+              {isForgotPassword
+                ? 'Back to Sign In'
+                : isLogin
                 ? "Don't have an account? Sign up"
                 : 'Already have an account? Sign in'}
             </Button>
