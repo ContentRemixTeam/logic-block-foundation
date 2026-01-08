@@ -90,23 +90,11 @@ export function AppSidebar() {
 
   const reflectionNavigation = [
     { 
-      name: getNavLabel('dailyReview'), 
-      href: '/daily-review', 
+      name: 'Reviews', 
+      href: '/reviews', 
       icon: isQuestMode ? Sparkles : Sparkles,
       questIcon: '✨',
       tourId: 'reflection' 
-    },
-    { 
-      name: getNavLabel('weeklyReview'), 
-      href: '/weekly-review', 
-      icon: isQuestMode ? Flag : FileText,
-      questIcon: '🏁',
-    },
-    { 
-      name: getNavLabel('monthlyReview'), 
-      href: '/monthly-review', 
-      icon: isQuestMode ? Mountain : BarChart3,
-      questIcon: '⛰️',
     },
     { 
       name: getNavLabel('progress'), 
