@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
         .from('cycles_90_day')
         .select('focus_area, things_to_remember')
         .eq('cycle_id', currentCycle.cycle_id)
-        .single();
+        .maybeSingle();
       
       focusArea = fullCycleData?.focus_area || null;
       thingsToRemember = fullCycleData?.things_to_remember || [];

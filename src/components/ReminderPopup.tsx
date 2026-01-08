@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Sparkles } from 'lucide-react';
+import { getStorageItem, setStorageItem, getSessionItem, setSessionItem } from '@/lib/storage';
 
 interface ReminderPopupProps {
   reminders: string[];
@@ -21,16 +22,16 @@ export function ReminderPopup({ reminders, onDismiss }: ReminderPopupProps) {
     if (reminders.length === 0) return;
 
     // Check if we've shown a reminder in this session
-    const lastShown = sessionStorage.getItem('lastReminderShown');
+    const lastShown = getSessionItem('lastReminderShown');
     if (lastShown) return;
 
     // Get the last index used and rotate
-    const lastIndex = parseInt(localStorage.getItem('reminderIndex') || '0', 10);
+    const lastIndex = parseInt(getStorageItem('reminderIndex') || '0', 10);
     const nextIndex = (lastIndex + 1) % reminders.length;
     
     setCurrentReminder(reminders[nextIndex]);
-    localStorage.setItem('reminderIndex', nextIndex.toString());
-    sessionStorage.setItem('lastReminderShown', 'true');
+    setStorageItem('reminderIndex', nextIndex.toString());
+    setSessionItem('lastReminderShown', 'true');
     
     // Small delay before showing for better UX
     const timer = setTimeout(() => setIsOpen(true), 500);
