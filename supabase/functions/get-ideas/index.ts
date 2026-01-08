@@ -12,28 +12,42 @@ Deno.serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'No authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    // Validate token by getting user with anon key client
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: userError } = await authClient.auth.getUser();
 
     if (userError || !user) {
-      throw new Error('Invalid user token');
+      console.error('[get-ideas] Invalid token:', userError?.message);
+      return new Response(JSON.stringify({ error: 'Invalid user token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    console.log('[get-ideas] Fetching ideas for user:', user.id);
+    const userId = user.id;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    console.log('[get-ideas] Fetching ideas for user:', userId);
 
     // Fetch categories
     const { data: categories, error: categoriesError } = await supabase
       .from('ideas_categories')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('name', { ascending: true });
 
     if (categoriesError) {
@@ -45,7 +59,7 @@ Deno.serve(async (req) => {
     const { data: ideas, error: ideasError } = await supabase
       .from('ideas')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
     if (ideasError) {
