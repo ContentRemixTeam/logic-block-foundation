@@ -69,7 +69,11 @@ export function QuickCaptureProvider({ children }: QuickCaptureProviderProps) {
   return (
     <QuickCaptureContext.Provider value={{ isOpen, openQuickCapture, closeQuickCapture }}>
       {children}
-      <QuickCaptureModal open={isOpen} onOpenChange={setIsOpen} />
+      <QuickCaptureModal 
+        open={isOpen} 
+        onOpenChange={setIsOpen} 
+        onReopenCapture={openQuickCapture}
+      />
     </QuickCaptureContext.Provider>
   );
 }
