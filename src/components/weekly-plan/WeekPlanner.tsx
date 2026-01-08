@@ -10,6 +10,7 @@ import { WeekBoard } from './WeekBoard';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useTasks, useTaskMutations } from '@/hooks/useTasks';
 import { ChevronLeft, ChevronRight, Calendar, Trash2, Loader2, ChevronDown, CalendarDays } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
@@ -23,10 +24,12 @@ export function WeekPlanner({ initialCollapsed = false, highlightTaskId }: WeekP
   const { toast } = useToast();
   
   const [isOpen, setIsOpen] = useState(!initialCollapsed);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isPulling, setIsPulling] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  
+  // Use centralized task data
+  const { data: tasks = [], isLoading: loading } = useTasks();
+  const { createTask, updateTask, toggleComplete, moveToDay } = useTaskMutations();
   
   // Settings
   const [weekStartDay, setWeekStartDay] = useState(1);
@@ -39,22 +42,6 @@ export function WeekPlanner({ initialCollapsed = false, highlightTaskId }: WeekP
 
   // Clear week confirmation
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
-
-  const loadTasks = useCallback(async () => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('get-all-tasks');
-      
-      if (error) throw error;
-      
-      setTasks(data?.data || []);
-    } catch (error) {
-      console.error('Error loading tasks:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
 
   const loadSettings = useCallback(async () => {
     if (!user) return;
@@ -79,100 +66,42 @@ export function WeekPlanner({ initialCollapsed = false, highlightTaskId }: WeekP
   }, [user]);
 
   useEffect(() => {
-    loadTasks();
     loadSettings();
-  }, [loadTasks, loadSettings]);
+  }, [loadSettings]);
 
   const handleTaskDrop = async (taskId: string, fromPlannedDay: string | null, targetDate: string) => {
-    // Get max order for the target day and add 1 (avoid Date.now() which overflows integer)
+    // Get max order for the target day and add 1
     const tasksOnDay = tasks.filter(t => t.planned_day === targetDate);
     const maxOrder = Math.max(0, ...tasksOnDay.map(t => t.day_order || 0));
     const newOrder = maxOrder + 1;
 
-    // Optimistic update
-    setTasks(prev => prev.map(t => 
-      t.task_id === taskId 
-        ? { ...t, planned_day: targetDate, day_order: newOrder }
-        : t
-    ));
-
-    try {
-      const { error } = await supabase.functions.invoke('manage-task', {
-        body: {
-          action: 'update',
-          task_id: taskId,
-          planned_day: targetDate,
-          day_order: newOrder,
-        }
-      });
-
-      if (error) throw error;
-      
-      // Show toast for scheduling
-      const targetDay = new Date(targetDate);
-      toast({
-        title: `Scheduled for ${format(targetDay, 'EEE')}`,
-        duration: 2000,
-      });
-    } catch (error) {
-      console.error('Error updating task:', error);
-      loadTasks();
-      toast({
-        title: 'Error moving task',
-        variant: 'destructive',
-      });
-    }
+    moveToDay.mutate(
+      { taskId, plannedDay: targetDate, dayOrder: newOrder },
+      {
+        onSuccess: () => {
+          const targetDay = new Date(targetDate);
+          toast({
+            title: `Scheduled for ${format(targetDay, 'EEE')}`,
+            duration: 2000,
+          });
+        },
+      }
+    );
   };
 
   const handleMoveToInbox = async (taskId: string) => {
-    setTasks(prev => prev.map(t => 
-      t.task_id === taskId 
-        ? { ...t, planned_day: null, day_order: 0 }
-        : t
-    ));
-
-    try {
-      const { error } = await supabase.functions.invoke('manage-task', {
-        body: {
-          action: 'update',
-          task_id: taskId,
-          planned_day: null,
-          day_order: 0,
-        }
-      });
-
-      if (error) throw error;
-      
-      toast({
-        title: 'Moved to inbox',
-        duration: 2000,
-      });
-    } catch (error) {
-      console.error('Error moving task to inbox:', error);
-      loadTasks();
-    }
+    moveToDay.mutate({ taskId, plannedDay: null, dayOrder: 0 }, {
+      onSuccess: () => {
+        toast({
+          title: 'Moved to inbox',
+          duration: 2000,
+        });
+      },
+    });
   };
 
   const handleTaskToggle = async (taskId: string, currentCompleted: boolean) => {
-    setTasks(prev => prev.map(t => 
-      t.task_id === taskId 
-        ? { ...t, is_completed: !currentCompleted }
-        : t
-    ));
-
-    try {
-      const { error } = await supabase.functions.invoke('manage-task', {
-        body: {
-          action: 'toggle',
-          task_id: taskId,
-        }
-      });
-
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error toggling task:', error);
-      loadTasks();
-    }
+    toggleComplete.mutate(taskId);
   };
 
   const handlePullUnfinished = async () => {
@@ -187,7 +116,7 @@ export function WeekPlanner({ initialCollapsed = false, highlightTaskId }: WeekP
         description: data?.count > 0 ? `Moved ${data.count} tasks` : undefined,
       });
       
-      await loadTasks();
+      // The realtime subscription will update the cache
     } catch (error: any) {
       console.error('Error pulling tasks:', error);
       toast({
@@ -203,35 +132,19 @@ export function WeekPlanner({ initialCollapsed = false, highlightTaskId }: WeekP
   const handleQuickAdd = async (text: string, plannedDay: string | null = null) => {
     if (!text.trim() || !user) return;
     
-    try {
-      const { data, error } = await supabase.functions.invoke('manage-task', {
-        body: {
-          action: 'create',
-          task_text: text.trim(),
-          status: 'backlog',
-          planned_day: plannedDay,
-          day_order: plannedDay ? Date.now() % 1000000 : 0, // Use smaller number for day_order
-        }
-      });
-
-      if (error) throw error;
-
-      if (data?.data) {
-        setTasks(prev => [data.data, ...prev]);
-      }
-
-      toast({ 
-        title: plannedDay ? `Added to ${format(new Date(plannedDay), 'EEE')}` : 'Added to inbox',
-        duration: 2000,
-      });
-    } catch (error: any) {
-      console.error('Error adding task:', error);
-      toast({
-        title: 'Error adding task',
-        description: error?.message,
-        variant: 'destructive',
-      });
-    }
+    createTask.mutate({
+      task_text: text.trim(),
+      status: 'backlog',
+      planned_day: plannedDay,
+      day_order: plannedDay ? (Date.now() % 1000000) : 0,
+    }, {
+      onSuccess: () => {
+        toast({ 
+          title: plannedDay ? `Added to ${format(new Date(plannedDay), 'EEE')}` : 'Added to inbox',
+          duration: 2000,
+        });
+      },
+    });
   };
 
   const handleClearWeek = async () => {
@@ -247,17 +160,9 @@ export function WeekPlanner({ initialCollapsed = false, highlightTaskId }: WeekP
       });
 
       await Promise.all(tasksToMove.map(t => 
-        supabase.functions.invoke('manage-task', {
-          body: {
-            action: 'update',
-            task_id: t.task_id,
-            planned_day: null,
-            day_order: 0,
-          }
-        })
+        moveToDay.mutateAsync({ taskId: t.task_id, plannedDay: null, dayOrder: 0 })
       ));
 
-      await loadTasks();
       setClearConfirmOpen(false);
       toast({ title: `Moved ${tasksToMove.length} tasks to inbox` });
     } catch (error: any) {

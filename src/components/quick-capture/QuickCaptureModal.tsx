@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useTaskMutations } from '@/hooks/useTasks';
 import { Zap, ListTodo, Lightbulb, LogIn, Calendar, Plus, Mic, MicOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -36,6 +37,7 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const inputRef = useRef<HTMLInputElement>(null);
+  const { createTask } = useTaskMutations();
 
   const [input, setInput] = useState('');
   const [captureType, setCaptureType] = useState<CaptureType>('task');
@@ -220,26 +222,20 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
         savedId = data?.idea?.id || '';
         queryClient.invalidateQueries({ queryKey: ['ideas'] });
       } else {
-        // Save as task
+        // Save as task using unified hook
         const parsed = parseTaskInput(input);
         savedText = parsed.text;
         
-        const { data, error } = await supabase.functions.invoke('manage-task', {
-          body: {
-            action: 'create',
-            task_text: parsed.text,
-            scheduled_date: parsed.date ? format(parsed.date, 'yyyy-MM-dd') : null,
-            priority: parsed.priority || null,
-            estimated_minutes: parsed.duration || null,
-            context_tags: parsed.tags.length > 0 ? parsed.tags : null,
-            status: 'backlog',
-          },
-          headers: { Authorization: `Bearer ${session.access_token}` },
+        const createdTask = await createTask.mutateAsync({
+          task_text: parsed.text,
+          scheduled_date: parsed.date ? format(parsed.date, 'yyyy-MM-dd') : null,
+          priority: parsed.priority || null,
+          estimated_minutes: parsed.duration || null,
+          context_tags: parsed.tags.length > 0 ? parsed.tags : null,
+          status: 'backlog',
         });
-        if (error) throw error;
         
-        savedId = data?.data?.task_id || '';
-        queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
+        savedId = createdTask?.task_id || '';
       }
 
       // Handle stay-open mode vs close mode
