@@ -5,6 +5,7 @@ import {
   Target,
   CalendarDays,
   Calendar,
+  ExternalLink,
   FileText,
   BarChart3,
   CheckSquare,
@@ -332,6 +333,34 @@ export function AppSidebar() {
                     )}
                     <span>{getNavLabel('community')}</span>
                   </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* MASTERMIND Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel className={isQuestMode ? 'quest-section-header' : ''}>
+            {isQuestMode ? (
+              <>
+                <span className="mr-2">🎓</span>
+                Mastermind
+              </>
+            ) : 'Mastermind'}
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild className="quest-nav-item">
+                  <a href="https://airtable.com/appP01GhbZAtwT4nN/shrIRdOHFXijc8462" target="_blank" rel="noopener noreferrer">
+                    {isQuestMode ? (
+                      <span className="quest-nav-icon text-base">🙋</span>
+                    ) : (
+                      <ExternalLink className="h-4 w-4" />
+                    )}
+                    <span>Ask Faith</span>
+                  </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
