@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays, Calendar, CalendarRange, Target, CheckCircle2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { Layout } from '@/components/Layout';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, eachWeekOfInterval } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, eachWeekOfInterval } from 'date-fns';
 
 interface PlanningCard {
   title: string;
@@ -134,11 +135,12 @@ export default function Planning() {
     : 0;
 
   return (
-    <div className="container max-w-4xl py-8 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold">Planning</h1>
-        <p className="text-muted-foreground">Your planning command center</p>
-      </div>
+    <Layout>
+      <div className="max-w-4xl space-y-8">
+        <div>
+          <h1 className="text-2xl font-bold">Planning</h1>
+          <p className="text-muted-foreground">Your planning command center</p>
+        </div>
 
       {/* Planning Tracker */}
       <Card className="p-6">
@@ -236,6 +238,7 @@ export default function Planning() {
           ))}
         </div>
       </div>
-    </div>
+      </div>
+    </Layout>
   );
 }
