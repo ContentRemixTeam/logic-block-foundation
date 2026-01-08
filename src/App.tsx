@@ -12,6 +12,7 @@ import { TourOverlay } from "@/components/tour/TourOverlay";
 import { TourWelcome } from "@/components/tour/TourWelcome";
 import { TourKeyboardHandler } from "@/components/tour/TourKeyboardHandler";
 import Auth from "./pages/Auth";
+import LoginHelp from "./pages/LoginHelp";
 import Dashboard from "./pages/Dashboard";
 import Onboarding from "./pages/Onboarding";
 import CycleSetup from "./pages/CycleSetup";
@@ -80,6 +81,7 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/login-help" element={<LoginHelp />} />
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
                 <Route path="/cycle-setup" element={<ProtectedRoute><CycleSetup /></ProtectedRoute>} />
