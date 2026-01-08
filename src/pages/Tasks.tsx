@@ -32,6 +32,7 @@ import { cn } from '@/lib/utils';
 import { TaskQuickAdd } from '@/components/tasks/TaskQuickAdd';
 import { TaskFilters } from '@/components/tasks/TaskFilters';
 import { CapacityIndicator } from '@/components/tasks/CapacityIndicator';
+import { HelpButton } from '@/components/ui/help-button';
 import { TaskListView } from '@/components/tasks/views/TaskListView';
 import { TaskKanbanView } from '@/components/tasks/views/TaskKanbanView';
 import { TaskTimelineView } from '@/components/tasks/views/TaskTimelineView';
@@ -533,12 +534,44 @@ export default function Tasks() {
 
         {/* Quick Add & Capacity */}
         <div className="grid gap-4 md:grid-cols-[1fr_300px]">
-          <TaskQuickAdd onAddTask={handleQuickAdd} />
-          <CapacityIndicator 
-            plannedMinutes={capacityData.plannedMinutes}
-            capacityMinutes={capacityData.capacityMinutes}
-            completedMinutes={capacityData.completedMinutes}
-          />
+          <div className="space-y-1">
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground">Quick Add</span>
+              <HelpButton
+                title="Quick Add Syntax"
+                description="Add tasks faster using natural language shortcuts."
+                tips={[
+                  "Type 'today' or 'tomorrow' to set the date",
+                  "Use #tag for context (e.g., #calls, #deep-work)",
+                  "Add !high, !med, or !low for priority",
+                  "Include '30m' or '2h' to set duration"
+                ]}
+                learnMoreHref="/support"
+                side="right"
+              />
+            </div>
+            <TaskQuickAdd onAddTask={handleQuickAdd} />
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground">Capacity</span>
+              <HelpButton
+                title="Daily Capacity"
+                description="Shows how much of your 8-hour workday is scheduled."
+                tips={[
+                  "Green = plenty of time available",
+                  "Yellow = approaching capacity (80%+)",
+                  "Red = over capacity – consider rescheduling"
+                ]}
+                side="left"
+              />
+            </div>
+            <CapacityIndicator 
+              plannedMinutes={capacityData.plannedMinutes}
+              capacityMinutes={capacityData.capacityMinutes}
+              completedMinutes={capacityData.completedMinutes}
+            />
+          </div>
         </div>
 
         {/* Recurring Tasks (collapsed by default) */}

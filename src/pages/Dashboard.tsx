@@ -19,6 +19,7 @@ import { XPDisplay } from '@/components/quest/XPDisplay';
 import { StreakDisplay } from '@/components/quest/StreakDisplay';
 import { MastermindCallWidget } from '@/components/mastermind/MastermindCallWidget';
 import { PodcastWidget } from '@/components/podcast/PodcastWidget';
+import { HelpButton } from '@/components/ui/help-button';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -205,6 +206,18 @@ export default function Dashboard() {
                       <CardTitle className="text-sm font-medium flex items-center gap-1">
                         <span>⚡</span>
                         90-Day Goal
+                        <HelpButton
+                          title="90-Day Cycle"
+                          description="Your 90-day cycle breaks down into weeks and days, keeping you focused on what matters most."
+                          tips={[
+                            "Set one clear goal for the entire 90 days",
+                            "Weekly priorities support your main goal",
+                            "Daily Top 3 tasks drive weekly progress",
+                            "Reviews help you adjust and stay on track"
+                          ]}
+                          learnMoreHref="/support"
+                          size="sm"
+                        />
                       </CardTitle>
                       <Target className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
