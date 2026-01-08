@@ -21,7 +21,9 @@ import { ScratchPadOrganizeModal } from '@/components/ScratchPadOrganizeModal';
 import { YesterdayReviewPopup } from '@/components/YesterdayReviewPopup';
 import { CycleSnapshotCard } from '@/components/cycle/CycleSnapshotCard';
 import { GoalRewritePrompt } from '@/components/cycle/GoalRewritePrompt';
-import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb } from 'lucide-react';
+import { DailyTimelineView } from '@/components/daily-plan/DailyTimelineView';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, LayoutList } from 'lucide-react';
 import { PlannedForToday } from '@/components/daily-plan/PlannedForToday';
 import {
   AlertDialog,
@@ -95,6 +97,9 @@ export default function DailyPlan() {
   const [goalRewrite, setGoalRewrite] = useState('');
   const [previousGoalRewrite, setPreviousGoalRewrite] = useState('');
   const [savingGoalRewrite, setSavingGoalRewrite] = useState(false);
+  
+  // View mode toggle
+  const [viewMode, setViewMode] = useState<'planning' | 'timeline'>('planning');
 
   useEffect(() => {
     loadDailyPlan();
@@ -674,13 +679,30 @@ export default function DailyPlan() {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-3xl space-y-8">
+      <div className={viewMode === 'timeline' ? 'mx-auto max-w-6xl space-y-6' : 'mx-auto max-w-3xl space-y-8'}>
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold">Daily Plan</h1>
             <p className="text-muted-foreground">{today}</p>
           </div>
           <div className="flex gap-2 items-center">
+            {/* View Toggle */}
+            <ToggleGroup 
+              type="single" 
+              value={viewMode} 
+              onValueChange={(value) => value && setViewMode(value as 'planning' | 'timeline')}
+              className="bg-muted rounded-lg p-0.5"
+            >
+              <ToggleGroupItem value="planning" aria-label="Planning view" className="px-3 py-1.5 text-xs data-[state=on]:bg-background">
+                <LayoutList className="h-3.5 w-3.5 mr-1.5" />
+                Plan
+              </ToggleGroupItem>
+              <ToggleGroupItem value="timeline" aria-label="Timeline view" className="px-3 py-1.5 text-xs data-[state=on]:bg-background">
+                <Clock className="h-3.5 w-3.5 mr-1.5" />
+                Timeline
+              </ToggleGroupItem>
+            </ToggleGroup>
+            
             {lastSaved && (
               <Badge variant="outline" className="text-xs">
                 <CheckCircle2 className="mr-1 h-3 w-3" />
@@ -696,38 +718,51 @@ export default function DailyPlan() {
           </div>
         </div>
 
-        {/* 90-Day Cycle Snapshot */}
-        {cycleData && (
-          <CycleSnapshotCard />
-        )}
-
-        {/* Goal Rewrite Prompt */}
-        {cycleData && (
-          <GoalRewritePrompt
-            context="daily"
-            currentRewrite={goalRewrite}
-            previousRewrite={previousGoalRewrite}
-            cycleGoal={cycleData?.goal || ''}
-            onSave={(text) => {
-              setGoalRewrite(text);
-              toast({ title: 'Goal saved!' });
+        {/* Timeline View */}
+        {viewMode === 'timeline' && (
+          <DailyTimelineView
+            onTaskToggle={(taskId, currentStatus) => {
+              // Refresh tasks after toggle
+              loadDailyPlan();
             }}
-            saving={savingGoalRewrite}
           />
         )}
 
-        {/* Planned for Today from Weekly Plan */}
-        <PlannedForToday />
+        {/* Planning View */}
+        {viewMode === 'planning' && (
+          <>
+            {/* 90-Day Cycle Snapshot */}
+            {cycleData && (
+              <CycleSnapshotCard />
+            )}
 
-        {/* Focus Area Reminder */}
-        {focusArea && (
-          <Card className="border-primary/20 bg-primary/5">
-            <CardContent className="py-3 flex items-center gap-2">
-              <Target className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">🎯 This quarter: <span className="text-primary font-bold">{focusArea}</span></span>
-            </CardContent>
-          </Card>
-        )}
+            {/* Goal Rewrite Prompt */}
+            {cycleData && (
+              <GoalRewritePrompt
+                context="daily"
+                currentRewrite={goalRewrite}
+                previousRewrite={previousGoalRewrite}
+                cycleGoal={cycleData?.goal || ''}
+                onSave={(text) => {
+                  setGoalRewrite(text);
+                  toast({ title: 'Goal saved!' });
+                }}
+                saving={savingGoalRewrite}
+              />
+            )}
+
+            {/* Planned for Today from Weekly Plan */}
+            <PlannedForToday />
+
+            {/* Focus Area Reminder */}
+            {focusArea && (
+              <Card className="border-primary/20 bg-primary/5">
+                <CardContent className="py-3 flex items-center gap-2">
+                  <Target className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">🎯 This quarter: <span className="text-primary font-bold">{focusArea}</span></span>
+                </CardContent>
+              </Card>
+            )}
 
         {/* Weekly Priorities Display - Prominent at top */}
         {weeklyPriorities.length > 0 && (
@@ -1261,6 +1296,8 @@ export default function DailyPlan() {
             </Link>
           </CardContent>
         </Card>
+          </>
+        )}
       </div>
       
       <UsefulThoughtsModal
