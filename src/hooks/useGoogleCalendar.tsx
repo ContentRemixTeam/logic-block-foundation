@@ -82,12 +82,12 @@ export function useGoogleCalendar() {
     }
   }, [toast]);
 
-  const connect = useCallback(async () => {
+  const connect = useCallback(async (returnPath?: string) => {
     try {
       const { data, error } = await supabase.functions.invoke('google-oauth-start', {
         body: { 
           origin: window.location.origin,
-          returnPath: '/settings'
+          returnPath: returnPath || window.location.pathname
         },
       });
 

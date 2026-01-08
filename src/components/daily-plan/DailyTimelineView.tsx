@@ -289,7 +289,7 @@ export function DailyTimelineView({ onTaskToggle, onTaskClick }: DailyTimelineVi
               <p className="text-xs text-muted-foreground mb-3">
                 See your events alongside tasks
               </p>
-              <Button size="sm" onClick={connect}>
+              <Button size="sm" onClick={() => connect()}>
                 Connect
               </Button>
             </CardContent>
