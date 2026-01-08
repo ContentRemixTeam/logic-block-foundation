@@ -399,6 +399,18 @@ export function AppSidebar() {
                   </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild className="quest-nav-item">
+                  <a href="https://portal.faithmariah.com/communities/groups/mastermind/learning" target="_blank" rel="noopener noreferrer">
+                    {isQuestMode ? (
+                      <span className="quest-nav-icon text-base">📚</span>
+                    ) : (
+                      <ExternalLink className="h-4 w-4" />
+                    )}
+                    <span>Learning</span>
+                  </a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
