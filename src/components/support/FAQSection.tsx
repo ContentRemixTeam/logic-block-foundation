@@ -20,6 +20,11 @@ const faqData: FAQItem[] = [
   },
   {
     category: 'Getting Started',
+    question: 'What is the Business Diagnostic and how does it work?',
+    answer: 'The Business Diagnostic helps you identify where to focus this quarter. Rate yourself 1-10 on three areas: DISCOVER (visibility/traffic), NURTURE (building trust/content), and CONVERT (making offers/sales). Your lowest score becomes your focus area for the 90 days. This prevents spreading yourself too thin and ensures you address your biggest bottleneck first.'
+  },
+  {
+    category: 'Getting Started',
     question: 'What are the 3 key metrics and how do I choose them?',
     answer: 'Your 3 key metrics are the numbers that best represent progress toward your goal. Choose metrics that are: 1) Measurable (you can track them objectively), 2) Meaningful (they actually matter for your goal), and 3) Within your control (actions you take, not outcomes you hope for). For example, if your goal is to grow your business, metrics might be: calls made, proposals sent, and content pieces published.'
   },
@@ -27,6 +32,37 @@ const faqData: FAQItem[] = [
     category: 'Getting Started',
     question: 'What\'s the best way to use this app daily?',
     answer: 'Start each day with your Daily Plan (5-10 minutes)—set your intentions, check in with your mood, and pick your top 3 priorities. End each day with your Daily Review (5 minutes)—note what worked, what didn\'t, and any wins. This simple ritual creates powerful momentum over time.'
+  },
+  // Task Management
+  {
+    category: 'Task Management',
+    question: 'How do I use the Quick Add feature?',
+    answer: 'Quick Add lets you create tasks using natural language. Press Cmd/Ctrl + K to focus the input, then type naturally. For example: "Call client tomorrow #calls !high 30m" creates a high-priority task scheduled for tomorrow, tagged with #calls, estimated at 30 minutes. The parser shows a live preview of what will be created.'
+  },
+  {
+    category: 'Task Management',
+    question: 'What does the Capacity Indicator show?',
+    answer: 'The Capacity Indicator shows how much of your 8-hour workday is scheduled with tasks. Green means plenty of time, yellow means approaching capacity (80%+), and red means you\'re over capacity. This helps prevent overcommitment. Add duration estimates to your tasks for accurate tracking.'
+  },
+  {
+    category: 'Task Management',
+    question: 'How do recurring tasks work?',
+    answer: 'Recurring tasks repeat automatically on a schedule. Set a task to repeat daily, weekly (choose specific days like Mon/Wed/Fri), or monthly (choose a specific day like the 1st or 15th). A "parent" task is created that generates individual instances. Edit the parent to change all future occurrences, or delete individual instances without affecting others.'
+  },
+  {
+    category: 'Task Management',
+    question: 'What are SOPs and how do I use them?',
+    answer: 'SOPs (Standard Operating Procedures) are reusable checklists you can attach to tasks. Create an SOP once with a checklist, useful links, and notes. When you attach it to a task, the checklist becomes interactive—check off items as you complete them. Great for ensuring consistency in processes you repeat, like client onboarding or content publishing.'
+  },
+  {
+    category: 'Task Management',
+    question: 'How do I attach an SOP to a task?',
+    answer: 'When creating or editing a task, look for the SOP dropdown. Select an SOP and its checklist, links, and notes will populate the task. Check off items directly within the task—progress is saved automatically. You\'ll see a completion indicator (e.g., "3/5") on the task card. You can detach an SOP anytime if you no longer need it.'
+  },
+  {
+    category: 'Task Management',
+    question: 'What are the different task views?',
+    answer: 'List view groups tasks by date (Overdue, Today, Tomorrow, etc.). Kanban view shows drag-and-drop columns (Today\'s Focus, Scheduled, Backlog, Waiting On, Someday). Timeline views show your schedule hour-by-hour—choose Day, 3-Day, Week, or Month views. Use the view that matches how you like to work.'
   },
   // Planning & Reviews
   {
@@ -44,6 +80,11 @@ const faqData: FAQItem[] = [
     question: 'What should I include in my weekly priorities?',
     answer: 'Focus on 3-5 priorities that, if completed, would make this week a success. These should connect to your 90-day goal. Avoid filling this with routine tasks—prioritize the things that require focus and move the needle. Ask yourself: "What must happen this week?"'
   },
+  {
+    category: 'Planning & Reviews',
+    question: 'What is the Scratch Pad in Daily Plan?',
+    answer: 'The Scratch Pad is a space for brain dumps and quick captures during the day. Write anything—ideas, tasks that pop up, notes from calls. At the end of the day or during your daily review, process the scratch pad: move items to your task list, ideas bank, or notes. It keeps your mind clear during focused work.'
+  },
   // Metrics & Progress
   {
     category: 'Metrics & Progress',
@@ -60,6 +101,27 @@ const faqData: FAQItem[] = [
     question: 'What happens at the end of a 90-day cycle?',
     answer: 'When your cycle ends, you\'ll have the option to complete a Cycle Summary—a comprehensive review of what you accomplished, what you learned, and what you want to carry forward. Then you can start a fresh cycle with new goals (or continue the momentum on the same goal!).'
   },
+  // Features
+  {
+    category: 'Features',
+    question: 'What is Quest Mode?',
+    answer: 'Quest Mode is an optional gamified experience you can enable in Settings. It turns your 90-day journey into an adventure—earn XP for completing plans and reviews, build streaks, see your progress on a Quest Map, and level up. Great for adding motivation and fun to your planning routine.'
+  },
+  {
+    category: 'Features',
+    question: 'What are Identity Anchors?',
+    answer: 'Identity Anchors help you embody the person you\'re becoming. Create an identity statement (e.g., "I am a disciplined entrepreneur"), then add supporting actions and habits that reinforce this identity. See your anchor during daily planning as a reminder of who you\'re choosing to be.'
+  },
+  {
+    category: 'Features',
+    question: 'What are Useful Thoughts?',
+    answer: 'Useful Thoughts is a library of mindset reframes, affirmations, and perspectives that serve you. Capture thoughts from books, mentors, or your own realizations. Organize them by category, mark favorites, and browse them when you need a perspective shift. Insert them into your daily/weekly plans.'
+  },
+  {
+    category: 'Features',
+    question: 'How does the Ideas Capture work?',
+    answer: 'Ideas Capture is a dedicated space for inspiration that doesn\'t belong on your task list. Quickly save ideas as they come, organize into categories, and review during weekly planning. When you\'re ready to act on an idea, convert it into a task. This keeps ideas alive without cluttering your workflow.'
+  },
   // Troubleshooting
   {
     category: 'Troubleshooting',
@@ -75,10 +137,15 @@ const faqData: FAQItem[] = [
     category: 'Troubleshooting',
     question: 'I missed a few days—should I backfill my data?',
     answer: 'That\'s up to you! If you have quick notes about what happened, adding them can help you see patterns in your reviews. But don\'t stress about perfect data—the goal is progress, not perfection. Just pick up where you are today and keep moving forward.'
+  },
+  {
+    category: 'Troubleshooting',
+    question: 'How do I see the question mark help buttons throughout the app?',
+    answer: 'Look for small question mark icons (?) next to feature labels like Quick Add, Capacity Indicator, and the 90-Day Goal card. Click them to see a popup with tips and explanations. They\'re there to help you understand features at a glance without leaving the page you\'re on.'
   }
 ];
 
-const categories = ['All', 'Getting Started', 'Planning & Reviews', 'Metrics & Progress', 'Troubleshooting'];
+const categories = ['All', 'Getting Started', 'Task Management', 'Planning & Reviews', 'Metrics & Progress', 'Features', 'Troubleshooting'];
 
 export function FAQSection() {
   const [searchQuery, setSearchQuery] = useState('');
