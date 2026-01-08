@@ -6,6 +6,7 @@ import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
 import { CaptureButton } from '@/components/CaptureButton';
 import { CycleTimeline } from '@/components/CycleTimeline';
+import { SmartActionButton } from '@/components/SmartActionButton';
 
 interface Category {
   id: string;
@@ -84,6 +85,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <div className="mx-auto max-w-7xl p-4 md:p-8">{children}</div>
           </main>
         </div>
+
+        {/* Smart Action Button */}
+        <SmartActionButton />
 
         {/* Global Capture Button */}
         <CaptureButton 
