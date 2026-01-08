@@ -79,10 +79,14 @@ serve(async (req) => {
 
     const episodesData = await episodesResponse.json();
     console.log(`Found ${episodesData.episodes?.length || 0} episodes`);
+    
+    // Log first episode to see status field values
+    if (episodesData.episodes?.length > 0) {
+      console.log('Sample episode status:', episodesData.episodes[0].status);
+    }
 
-    // Get published episodes only, sorted by publish date
+    // Get all episodes sorted by publish date (Captivate may use different status values)
     const episodes = (episodesData.episodes || [])
-      .filter((ep: any) => ep.status === 'published')
       .sort((a: any, b: any) => 
         new Date(b.published_date).getTime() - new Date(a.published_date).getTime()
       );
