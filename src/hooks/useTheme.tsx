@@ -23,13 +23,16 @@ interface ThemeContextType {
   longestStreak: number;
   potions: number;
   refreshStreak: () => Promise<void>;
+  // Loading state
+  themeLoaded: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const [theme, setThemeState] = useState<ThemeMode>('quest');
+  const [theme, setThemeState] = useState<ThemeMode | null>(null);
+  const [themeLoaded, setThemeLoaded] = useState(false);
   const [xp, setXP] = useState(0);
   const [level, setLevel] = useState(1);
   const [levelTitle, setLevelTitle] = useState('Novice Adventurer');
@@ -39,15 +42,25 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [longestStreak, setLongestStreak] = useState(0);
   const [potions, setPotions] = useState(2);
 
-  const isQuestMode = theme === 'quest';
-  const isMinimalMode = theme === 'minimal';
+  // Only compute these once theme is loaded to prevent flash
+  const isQuestMode = themeLoaded && theme === 'quest';
+  const isMinimalMode = themeLoaded && theme === 'minimal';
 
   const loadTheme = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      // No user - set default theme and mark as loaded
+      setThemeState('minimal');
+      setThemeLoaded(true);
+      return;
+    }
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      if (!session) {
+        setThemeState('minimal');
+        setThemeLoaded(true);
+        return;
+      }
 
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-user-settings`, {
         method: "POST",
@@ -59,7 +72,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
       if (res.ok) {
         const data = await res.json();
-        const userTheme = data.theme_preference || 'quest';
+        const userTheme = (data.theme_preference || 'minimal') as ThemeMode;
         setThemeState(userTheme);
         document.documentElement.setAttribute('data-theme', userTheme);
         
@@ -76,9 +89,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         setStreak(data.current_debrief_streak || 0);
         setLongestStreak(data.longest_debrief_streak || 0);
         setPotions(data.streak_potions_remaining ?? 2);
+      } else {
+        setThemeState('minimal');
       }
     } catch (error) {
       console.error('Failed to load theme:', error);
+      setThemeState('minimal');
+    } finally {
+      setThemeLoaded(true);
     }
   }, [user]);
 
@@ -122,7 +140,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   return (
     <ThemeContext.Provider
       value={{
-        theme,
+        theme: theme || 'minimal',
         isQuestMode,
         isMinimalMode,
         setTheme,
@@ -137,6 +155,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         longestStreak,
         potions,
         refreshStreak,
+        themeLoaded,
       }}
     >
       {children}
@@ -149,9 +168,9 @@ export function useTheme() {
   if (!context) {
     // Fallback for components outside provider
     return {
-      theme: 'quest' as ThemeMode,
-      isQuestMode: true,
-      isMinimalMode: false,
+      theme: 'minimal' as ThemeMode,
+      isQuestMode: false,
+      isMinimalMode: true,
       setTheme: async () => {},
       getNavLabel: (key: string) => defaultLabels[key as keyof typeof defaultLabels] || key,
       xp: 0,
@@ -164,6 +183,7 @@ export function useTheme() {
       longestStreak: 0,
       potions: 2,
       refreshStreak: async () => {},
+      themeLoaded: false,
     };
   }
   return context;
