@@ -1,19 +1,15 @@
-import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Target,
   CalendarDays,
   Calendar,
-  FileText,
-  BarChart3,
   CheckSquare,
   Zap,
   Brain,
   TrendingUp,
   Settings,
   LogOut,
-  ChevronDown,
   ListTodo,
   BookOpen,
   ClipboardList,
@@ -22,21 +18,15 @@ import {
   Users,
   Map,
   Scroll,
-  Swords,
   Compass,
-  Trophy,
-  Flag,
-  Mountain,
   Flame,
   BookMarked,
   Lightbulb,
-  Shield,
-  Anchor,
-  MessageCircle,
   Video,
   GraduationCap,
   Ticket,
   Archive,
+  MessageCircle,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
@@ -52,7 +42,6 @@ import {
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { XPDisplay } from '@/components/quest/XPDisplay';
 import { StreakDisplay } from '@/components/quest/StreakDisplay';
 import { Progress } from '@/components/ui/progress';
@@ -132,21 +121,6 @@ export function AppSidebar() {
       questIcon: '💡',
     },
   ];
-
-  const mindsetNavigation = [
-    { name: 'Useful Thoughts', href: '/useful-thoughts', icon: Brain, questIcon: '💭' },
-    { name: 'Belief Builder', href: '/belief-builder', icon: Shield, questIcon: '🛡️' },
-    { name: 'Identity Anchors', href: '/identity-anchors', icon: Anchor, questIcon: '⚓' },
-    { name: 'Self-Coaching', href: '/self-coaching', icon: MessageCircle, questIcon: '💬' },
-  ];
-  
-  // Check if any mindset route is active
-  const isMindsetRouteActive = mindsetNavigation.some(
-    (item) => location.pathname === item.href
-  );
-  
-  // Keep mindset section open if any child is active
-  const [mindsetOpen, setMindsetOpen] = useState(isMindsetRouteActive);
 
   const isActive = (href: string) => location.pathname === href;
 
@@ -256,49 +230,19 @@ export function AppSidebar() {
             <SidebarMenu>
               {renderNavItems(resourcesNavigation)}
 
-              {/* Mindset Section - Collapsible */}
-              <Collapsible
-                open={mindsetOpen || isMindsetRouteActive}
-                onOpenChange={setMindsetOpen}
-                className="group/collapsible"
-              >
-                <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton
-                      className={`quest-nav-item ${isMindsetRouteActive ? 'bg-accent text-accent-foreground' : ''}`}
-                    >
-                      {isQuestMode ? (
-                        <span className="quest-nav-icon text-base">🧠</span>
-                      ) : (
-                        <Brain className="h-4 w-4" />
-                      )}
-                      <span>{getNavLabel('mindset')}</span>
-                      {sidebarOpen && (
-                        <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                      )}
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                </SidebarMenuItem>
-
-                <CollapsibleContent>
-                  <SidebarMenu className="ml-4">
-                    {mindsetNavigation.map((item) => (
-                      <SidebarMenuItem key={item.name}>
-                        <SidebarMenuButton asChild isActive={isActive(item.href)} className="quest-nav-item">
-                          <Link to={item.href}>
-                            {isQuestMode ? (
-                              <span className="quest-nav-icon text-sm">{item.questIcon}</span>
-                            ) : (
-                              <item.icon className="h-3 w-3" />
-                            )}
-                            <span className="text-sm">{item.name}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </CollapsibleContent>
-              </Collapsible>
+              {/* Mindset Hub */}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive('/mindset') || location.pathname.includes('useful-thoughts') || location.pathname.includes('belief-builder') || location.pathname.includes('identity-anchors') || location.pathname.includes('self-coaching')} className="quest-nav-item">
+                  <Link to="/mindset">
+                    {isQuestMode ? (
+                      <span className="quest-nav-icon text-base">🧠</span>
+                    ) : (
+                      <Brain className="h-4 w-4" />
+                    )}
+                    <span>{getNavLabel('mindset')}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
 
               {/* Celebration Wall / Victory Hall */}
               <SidebarMenuItem>
