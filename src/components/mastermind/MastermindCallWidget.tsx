@@ -60,8 +60,8 @@ const parseEventTitle = (summary: string): { mainTitle: string; subtitle: string
   return { mainTitle: cleanTitle || 'Mastermind Call', subtitle: null };
 };
 
-// Default GHL Events URL - user can customize this
-const DEFAULT_GHL_URL = 'https://www.skool.com/the-90-day-focus-planner-3426';
+// Circle community events page URL
+const CIRCLE_EVENTS_URL = 'https://portal.faithmariah.com/communities/groups/mastermind/events';
 
 export const MastermindCallWidget = () => {
   const [nextCall, setNextCall] = useState<CalendarEvent | null>(null);
@@ -109,8 +109,8 @@ export const MastermindCallWidget = () => {
     return () => clearInterval(statusInterval);
   }, [nextCall]);
 
-  const openGHLEvents = () => {
-    window.open(DEFAULT_GHL_URL, '_blank');
+  const openCircleEvents = () => {
+    window.open(CIRCLE_EVENTS_URL, '_blank');
   };
 
   if (loading) {
@@ -134,7 +134,7 @@ export const MastermindCallWidget = () => {
               <span className="text-lg">🎓</span>
               <span className="text-sm text-muted-foreground">No upcoming calls</span>
             </div>
-            <Button variant="ghost" size="sm" onClick={openGHLEvents}>
+            <Button variant="ghost" size="sm" onClick={openCircleEvents}>
               <ExternalLink className="h-3 w-3" />
             </Button>
           </div>
@@ -164,7 +164,7 @@ export const MastermindCallWidget = () => {
                 {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
               </div>
             </div>
-            <Button size="sm" className="bg-red-500 hover:bg-red-600" onClick={openGHLEvents}>
+            <Button size="sm" className="bg-red-500 hover:bg-red-600" onClick={openCircleEvents}>
               Join Now
             </Button>
           </div>
@@ -197,7 +197,7 @@ export const MastermindCallWidget = () => {
               <div className="text-right">
                 <CountdownTimer targetDate={startTime} onComplete={fetchMastermindCalls} compact />
               </div>
-              <Button size="sm" className="bg-purple-600 hover:bg-purple-700" onClick={openGHLEvents}>
+              <Button size="sm" className="bg-purple-600 hover:bg-purple-700" onClick={openCircleEvents}>
                 Join
               </Button>
             </div>
@@ -227,7 +227,7 @@ export const MastermindCallWidget = () => {
             <div className="text-right">
               <CountdownTimer targetDate={startTime} onComplete={fetchMastermindCalls} compact />
             </div>
-            <Button size="sm" variant="outline" onClick={openGHLEvents}>
+            <Button size="sm" variant="outline" onClick={openCircleEvents}>
               <ExternalLink className="h-3 w-3" />
             </Button>
           </div>
