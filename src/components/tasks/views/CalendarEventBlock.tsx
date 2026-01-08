@@ -56,13 +56,19 @@ export function CalendarEventBlock({ event, compact = false, onClick }: Calendar
     event.summary?.toLowerCase().includes('coaching') ||
     event.summary?.toLowerCase().includes('hot seat');
 
-  const hasVideoCall = event.hangoutLink || event.conferenceData?.entryPoints?.some(
+  // Check if this is a coworking event - use GoBrunch link instead
+  const isCoworkingEvent = event.summary?.toLowerCase().includes('member led coworking');
+  const gobrunchLink = 'https://gobrunch.com/events/389643/589970';
+
+  const hasVideoCall = isCoworkingEvent || event.hangoutLink || event.conferenceData?.entryPoints?.some(
     ep => ep.entryPointType === 'video'
   );
 
-  const videoLink = event.hangoutLink || event.conferenceData?.entryPoints?.find(
-    ep => ep.entryPointType === 'video'
-  )?.uri;
+  const videoLink = isCoworkingEvent 
+    ? gobrunchLink 
+    : (event.hangoutLink || event.conferenceData?.entryPoints?.find(
+        ep => ep.entryPointType === 'video'
+      )?.uri);
 
   const handleJoinClick = (e: React.MouseEvent) => {
     e.stopPropagation();
