@@ -436,13 +436,39 @@ export type Database = {
       }
       google_calendar_connection: {
         Row: {
-          access_token_encrypted: string
           created_at: string | null
           google_user_id: string
           is_active: boolean | null
-          refresh_token_encrypted: string
           selected_calendar_id: string | null
           selected_calendar_name: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          google_user_id: string
+          is_active?: boolean | null
+          selected_calendar_id?: string | null
+          selected_calendar_name?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          google_user_id?: string
+          is_active?: boolean | null
+          selected_calendar_id?: string | null
+          selected_calendar_name?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      google_calendar_secrets: {
+        Row: {
+          access_token_encrypted: string
+          created_at: string | null
+          refresh_token_encrypted: string
           token_expiry: string
           updated_at: string | null
           user_id: string
@@ -450,11 +476,7 @@ export type Database = {
         Insert: {
           access_token_encrypted: string
           created_at?: string | null
-          google_user_id: string
-          is_active?: boolean | null
           refresh_token_encrypted: string
-          selected_calendar_id?: string | null
-          selected_calendar_name?: string | null
           token_expiry: string
           updated_at?: string | null
           user_id: string
@@ -462,11 +484,7 @@ export type Database = {
         Update: {
           access_token_encrypted?: string
           created_at?: string | null
-          google_user_id?: string
-          is_active?: boolean | null
           refresh_token_encrypted?: string
-          selected_calendar_id?: string | null
-          selected_calendar_name?: string | null
           token_expiry?: string
           updated_at?: string | null
           user_id?: string
