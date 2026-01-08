@@ -10,10 +10,8 @@ import { WeekBoard } from './WeekBoard';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { ChevronLeft, ChevronRight, Calendar, Trash2, Loader2, ChevronDown, CalendarDays, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Trash2, Loader2, ChevronDown, CalendarDays } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 
 interface WeekPlannerProps {
   initialCollapsed?: boolean;
@@ -37,11 +35,6 @@ export function WeekPlanner({ initialCollapsed = false }: WeekPlannerProps) {
   const [currentWeekStart, setCurrentWeekStart] = useState(() => 
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
-  
-  // Quick add modal
-  const [quickAddOpen, setQuickAddOpen] = useState(false);
-  const [quickAddText, setQuickAddText] = useState('');
-  const [isAddingTask, setIsAddingTask] = useState(false);
 
   // Clear week confirmation
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
@@ -206,17 +199,17 @@ export function WeekPlanner({ initialCollapsed = false }: WeekPlannerProps) {
     }
   };
 
-  const handleQuickAdd = async () => {
-    if (!quickAddText.trim() || !user) return;
+  const handleQuickAdd = async (text: string, plannedDay: string | null = null) => {
+    if (!text.trim() || !user) return;
     
-    setIsAddingTask(true);
     try {
       const { data, error } = await supabase.functions.invoke('manage-task', {
         body: {
           action: 'create',
-          task_text: quickAddText.trim(),
+          task_text: text.trim(),
           status: 'backlog',
-          planned_day: null,
+          planned_day: plannedDay,
+          day_order: plannedDay ? Date.now() % 1000000 : 0, // Use smaller number for day_order
         }
       });
 
@@ -226,9 +219,10 @@ export function WeekPlanner({ initialCollapsed = false }: WeekPlannerProps) {
         setTasks(prev => [data.data, ...prev]);
       }
 
-      setQuickAddText('');
-      setQuickAddOpen(false);
-      toast({ title: 'Task added to inbox' });
+      toast({ 
+        title: plannedDay ? `Added to ${format(new Date(plannedDay), 'EEE')}` : 'Added to inbox',
+        duration: 2000,
+      });
     } catch (error: any) {
       console.error('Error adding task:', error);
       toast({
@@ -236,8 +230,6 @@ export function WeekPlanner({ initialCollapsed = false }: WeekPlannerProps) {
         description: error?.message,
         variant: 'destructive',
       });
-    } finally {
-      setIsAddingTask(false);
     }
   };
 
@@ -369,22 +361,22 @@ export function WeekPlanner({ initialCollapsed = false }: WeekPlannerProps) {
           
           <CollapsibleContent>
             <CardContent className="p-4 bg-muted/30">
-              {/* Two-panel layout */}
-              <div className="grid grid-cols-12 gap-4" style={{ minHeight: '420px' }}>
-                {/* Week Inbox - 35% */}
-                <div className="col-span-12 md:col-span-4 lg:col-span-3">
+              {/* Two-panel layout - narrower inbox, wider board */}
+              <div className="flex gap-4" style={{ minHeight: '450px' }}>
+                {/* Week Inbox - fixed width */}
+                <div className="w-64 shrink-0">
                   <WeekInbox
                     tasks={tasks}
                     onTaskToggle={handleTaskToggle}
                     onPullUnfinished={handlePullUnfinished}
-                    onAddTask={() => setQuickAddOpen(true)}
+                    onAddTask={(text) => handleQuickAdd(text, null)}
                     onMoveToInbox={handleMoveToInbox}
                     isPulling={isPulling}
                   />
                 </div>
 
-                {/* Week Board - 65% */}
-                <div className="col-span-12 md:col-span-8 lg:col-span-9">
+                {/* Week Board - takes remaining space */}
+                <div className="flex-1 min-w-0">
                   <WeekBoard
                     tasks={tasks}
                     weekStartDay={weekStartDay}
@@ -392,6 +384,7 @@ export function WeekPlanner({ initialCollapsed = false }: WeekPlannerProps) {
                     onTaskDrop={handleTaskDrop}
                     onTaskToggle={handleTaskToggle}
                     currentWeekStart={currentWeekStart}
+                    onQuickAdd={handleQuickAdd}
                   />
                 </div>
               </div>
@@ -399,41 +392,6 @@ export function WeekPlanner({ initialCollapsed = false }: WeekPlannerProps) {
           </CollapsibleContent>
         </Card>
       </Collapsible>
-
-      {/* Quick Add Modal */}
-      <Dialog open={quickAddOpen} onOpenChange={setQuickAddOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add Task to Inbox</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="task-text">Task</Label>
-              <Input
-                id="task-text"
-                value={quickAddText}
-                onChange={(e) => setQuickAddText(e.target.value)}
-                placeholder="What needs to be done?"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && quickAddText.trim()) {
-                    handleQuickAdd();
-                  }
-                }}
-                autoFocus
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setQuickAddOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleQuickAdd} disabled={!quickAddText.trim() || isAddingTask}>
-              {isAddingTask && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Add Task
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Clear Week Confirmation */}
       <Dialog open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
