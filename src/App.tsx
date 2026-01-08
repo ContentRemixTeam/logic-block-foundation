@@ -17,6 +17,7 @@ import Dashboard from "./pages/Dashboard";
 import Onboarding from "./pages/Onboarding";
 import Planning from "./pages/Planning";
 import Reviews from "./pages/Reviews";
+import Mindset from "./pages/Mindset";
 import CycleSetup from "./pages/CycleSetup";
 import WeeklyPlan from "./pages/WeeklyPlan";
 import WeeklyReview from "./pages/WeeklyReview";
@@ -101,6 +102,7 @@ const App = () => (
                 <Route path="/sops" element={<ProtectedRoute><SOPs /></ProtectedRoute>} />
                 <Route path="/habits" element={<ProtectedRoute><Habits /></ProtectedRoute>} />
                 <Route path="/ideas" element={<ProtectedRoute><Ideas /></ProtectedRoute>} />
+                <Route path="/mindset" element={<ProtectedRoute><Mindset /></ProtectedRoute>} />
                 <Route path="/useful-thoughts" element={<ProtectedRoute><UsefulThoughts /></ProtectedRoute>} />
                 <Route path="/belief-builder" element={<ProtectedRoute><BeliefBuilder /></ProtectedRoute>} />
                 <Route path="/identity-anchors" element={<ProtectedRoute><IdentityAnchors /></ProtectedRoute>} />
