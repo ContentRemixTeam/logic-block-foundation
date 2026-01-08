@@ -59,7 +59,7 @@ export function GoogleCalendarPanel() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={connect} className="w-full">
+            <Button onClick={() => connect()} className="w-full">
               <Calendar className="h-4 w-4 mr-2" />
               Connect Google Calendar
             </Button>

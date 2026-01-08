@@ -43,6 +43,8 @@ import { TimelineDayNavigation } from '@/components/tasks/views/TimelineDayNavig
 import { TimelineViewSelector, TimelineViewType } from '@/components/tasks/views/TimelineViewSelector';
 import { TaskPlanningCards } from '@/components/tasks/TaskPlanningCards';
 import { TaskViewsToolbar } from '@/components/tasks/TaskViewsToolbar';
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
+import { CalendarSelectionModal } from '@/components/google-calendar/CalendarSelectionModal';
 import { 
   Task, SOP, ChecklistItem, SOPLink, ChecklistProgress, 
   FilterTab, ViewMode, EnergyLevel, RecurrencePattern, DeleteType,
@@ -51,6 +53,22 @@ import {
 
 export default function Tasks() {
   const queryClient = useQueryClient();
+  
+  // Google Calendar integration
+  const { 
+    status: calendarStatus, 
+    connect: connectCalendar,
+    calendars,
+    showCalendarModal,
+    setShowCalendarModal,
+    selectCalendar,
+    handleOAuthReturn 
+  } = useGoogleCalendar();
+
+  // Handle OAuth return on mount
+  useEffect(() => {
+    handleOAuthReturn();
+  }, [handleOAuthReturn]);
   
   // View state
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -507,6 +525,8 @@ export default function Tasks() {
           onViewModeChange={setViewMode}
           onAddTask={() => setIsAddDialogOpen(true)}
           overdueCount={overdueCount}
+          isCalendarConnected={calendarStatus.connected && calendarStatus.calendarSelected}
+          onConnectCalendar={() => connectCalendar()}
         />
 
         {/* Timeline view type selector */}
@@ -1285,6 +1305,14 @@ export default function Tasks() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Google Calendar Selection Modal */}
+      <CalendarSelectionModal
+        open={showCalendarModal}
+        onOpenChange={setShowCalendarModal}
+        calendars={calendars}
+        onSelect={selectCalendar}
+      />
     </Layout>
   );
 }

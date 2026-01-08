@@ -277,7 +277,7 @@ export function WeeklyTimelineView({ onTaskToggle, onTaskClick }: WeeklyTimeline
             <p className="text-xs text-muted-foreground mb-3">
               See your events alongside tasks
             </p>
-            <Button size="sm" onClick={connect}>
+            <Button size="sm" onClick={() => connect()}>
               Connect
             </Button>
           </div>
