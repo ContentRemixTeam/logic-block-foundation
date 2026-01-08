@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
-import { addDays, startOfWeek, format } from 'date-fns';
+import { addDays, format } from 'date-fns';
 import { Task } from '@/components/tasks/types';
 import { DayColumn } from './DayColumn';
 
 interface WeekBoardProps {
   tasks: Task[];
-  weekStartDay: number; // 0 = Sunday, 1 = Monday
+  weekStartDay: number;
   capacityMinutes: number;
   onTaskDrop: (taskId: string, fromPlannedDay: string | null, targetDate: string) => void;
   onTaskToggle: (taskId: string, completed: boolean) => void;
@@ -30,7 +30,7 @@ export function WeekBoard({
   }, [currentWeekStart]);
 
   return (
-    <div className="grid grid-cols-7 gap-1 h-full">
+    <div className="grid grid-cols-7 gap-2 h-full">
       {weekDays.map((date) => (
         <DayColumn
           key={format(date, 'yyyy-MM-dd')}

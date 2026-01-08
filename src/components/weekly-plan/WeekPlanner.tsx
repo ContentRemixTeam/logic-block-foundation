@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
-import { startOfWeek, addDays, subDays, format } from 'date-fns';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { startOfWeek, addDays, subDays, format, isThisWeek } from 'date-fns';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Task } from '@/components/tasks/types';
 import { WeekInbox } from './WeekInbox';
 import { WeekBoard } from './WeekBoard';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Calendar, Trash2, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Trash2, Loader2, ChevronDown, CalendarDays, RotateCcw } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,8 +30,8 @@ export function WeekPlanner({ initialCollapsed = false }: WeekPlannerProps) {
   const [isClearing, setIsClearing] = useState(false);
   
   // Settings
-  const [weekStartDay, setWeekStartDay] = useState(1); // 1 = Monday
-  const [capacityMinutes, setCapacityMinutes] = useState(240); // 4 hours
+  const [weekStartDay, setWeekStartDay] = useState(1);
+  const [capacityMinutes, setCapacityMinutes] = useState(240);
   
   // Current week navigation
   const [currentWeekStart, setCurrentWeekStart] = useState(() => 
@@ -102,14 +103,20 @@ export function WeekPlanner({ initialCollapsed = false }: WeekPlannerProps) {
           action: 'update',
           task_id: taskId,
           planned_day: targetDate,
-          day_order: Date.now(), // Use timestamp for ordering
+          day_order: Date.now(),
         }
       });
 
       if (error) throw error;
+      
+      // Show toast for scheduling
+      const targetDay = new Date(targetDate);
+      toast({
+        title: `Scheduled for ${format(targetDay, 'EEE')}`,
+        duration: 2000,
+      });
     } catch (error) {
       console.error('Error updating task:', error);
-      // Revert on error
       loadTasks();
       toast({
         title: 'Error moving task',
@@ -119,7 +126,6 @@ export function WeekPlanner({ initialCollapsed = false }: WeekPlannerProps) {
   };
 
   const handleMoveToInbox = async (taskId: string) => {
-    // Optimistic update
     setTasks(prev => prev.map(t => 
       t.task_id === taskId 
         ? { ...t, planned_day: null, day_order: 0 }
@@ -137,6 +143,11 @@ export function WeekPlanner({ initialCollapsed = false }: WeekPlannerProps) {
       });
 
       if (error) throw error;
+      
+      toast({
+        title: 'Moved to inbox',
+        duration: 2000,
+      });
     } catch (error) {
       console.error('Error moving task to inbox:', error);
       loadTasks();
@@ -144,7 +155,6 @@ export function WeekPlanner({ initialCollapsed = false }: WeekPlannerProps) {
   };
 
   const handleTaskToggle = async (taskId: string, currentCompleted: boolean) => {
-    // Optimistic update
     setTasks(prev => prev.map(t => 
       t.task_id === taskId 
         ? { ...t, is_completed: !currentCompleted }
@@ -229,7 +239,6 @@ export function WeekPlanner({ initialCollapsed = false }: WeekPlannerProps) {
   const handleClearWeek = async () => {
     setIsClearing(true);
     try {
-      // Get all tasks for the current week
       const weekEnd = addDays(currentWeekStart, 6);
       const weekStartStr = format(currentWeekStart, 'yyyy-MM-dd');
       const weekEndStr = format(weekEnd, 'yyyy-MM-dd');
@@ -239,7 +248,6 @@ export function WeekPlanner({ initialCollapsed = false }: WeekPlannerProps) {
         return t.planned_day >= weekStartStr && t.planned_day <= weekEndStr;
       });
 
-      // Update all in parallel
       await Promise.all(tasksToMove.map(t => 
         supabase.functions.invoke('manage-task', {
           body: {
@@ -277,74 +285,89 @@ export function WeekPlanner({ initialCollapsed = false }: WeekPlannerProps) {
     setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: weekStartDay as 0 | 1 }));
   };
 
+  const isCurrentWeek = isThisWeek(currentWeekStart, { weekStartsOn: weekStartDay as 0 | 1 });
+
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Plan Your Week
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center py-12">
+      <Card className="overflow-hidden">
+        <div className="flex items-center justify-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </CardContent>
+        </div>
       </Card>
     );
   }
 
   return (
-    <>
+    <TooltipProvider>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <Card id="plan-your-week">
-          <CollapsibleTrigger asChild>
-            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Plan Your Week
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setClearConfirmOpen(true);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                  {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                </div>
+        <Card className="overflow-hidden" id="plan-your-week">
+          {/* Sticky Header */}
+          <div className="sticky top-0 z-10 bg-card border-b">
+            <div className="flex items-center justify-between px-4 py-3">
+              {/* Left: Title */}
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-semibold">Plan Your Week</h2>
               </div>
-            </CardHeader>
-          </CollapsibleTrigger>
-          
-          <CollapsibleContent>
-            <CardContent className="pt-0">
-              {/* Week Navigation */}
-              <div className="flex items-center justify-between mb-4">
-                <Button variant="ghost" size="sm" onClick={goToPreviousWeek}>
+
+              {/* Center: Week Navigation */}
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goToPreviousWeek}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">
-                    {format(currentWeekStart, 'MMM d')} - {format(addDays(currentWeekStart, 6), 'MMM d, yyyy')}
-                  </span>
-                  <Button variant="outline" size="sm" onClick={goToCurrentWeek}>
-                    Today
-                  </Button>
-                </div>
-                <Button variant="ghost" size="sm" onClick={goToNextWeek}>
+                <span className="text-sm font-medium px-2 min-w-[140px] text-center">
+                  {format(currentWeekStart, 'MMM d')} – {format(addDays(currentWeekStart, 6), 'MMM d')}
+                </span>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goToNextWeek}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
 
+              {/* Right: Actions */}
+              <div className="flex items-center gap-1">
+                {!isCurrentWeek && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goToCurrentWeek}>
+                        <CalendarDays className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Today</TooltipContent>
+                  </Tooltip>
+                )}
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setClearConfirmOpen(true);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Clear week</TooltipContent>
+                </Tooltip>
+
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+            </div>
+          </div>
+          
+          <CollapsibleContent>
+            <CardContent className="p-4 bg-muted/30">
               {/* Two-panel layout */}
-              <div className="grid grid-cols-12 gap-4" style={{ minHeight: '400px' }}>
+              <div className="grid grid-cols-12 gap-4" style={{ minHeight: '420px' }}>
                 {/* Week Inbox - 35% */}
-                <div className="col-span-4">
+                <div className="col-span-12 md:col-span-4 lg:col-span-3">
                   <WeekInbox
                     tasks={tasks}
                     onTaskToggle={handleTaskToggle}
@@ -356,7 +379,7 @@ export function WeekPlanner({ initialCollapsed = false }: WeekPlannerProps) {
                 </div>
 
                 {/* Week Board - 65% */}
-                <div className="col-span-8">
+                <div className="col-span-12 md:col-span-8 lg:col-span-9">
                   <WeekBoard
                     tasks={tasks}
                     weekStartDay={weekStartDay}
@@ -427,6 +450,6 @@ export function WeekPlanner({ initialCollapsed = false }: WeekPlannerProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </TooltipProvider>
   );
 }
