@@ -40,6 +40,15 @@ export default function Dashboard() {
       setError(null);
       console.log('Loading dashboard summary...');
       
+      // Verify we have a valid session before making requests
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error('No active session found');
+        setError('Please log in to view your dashboard');
+        setLoading(false);
+        return;
+      }
+      
       const [dashboardData, ideasData] = await Promise.all([
         supabase.functions.invoke('get-dashboard-summary'),
         supabase.functions.invoke('get-ideas'),
