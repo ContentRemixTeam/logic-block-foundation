@@ -10,6 +10,8 @@ interface WeeklyPlannerHeaderProps {
   onGoToToday: () => void;
   isCurrentWeek: boolean;
   onOpenOfficeHours?: () => void;
+  showWeekend?: boolean;
+  onToggleWeekend?: () => void;
 }
 
 export function WeeklyPlannerHeader({
@@ -19,6 +21,8 @@ export function WeeklyPlannerHeader({
   onGoToToday,
   isCurrentWeek,
   onOpenOfficeHours,
+  showWeekend = true,
+  onToggleWeekend,
 }: WeeklyPlannerHeaderProps) {
   const weekEnd = addDays(currentWeekStart, 6);
   const weekLabel = `Week of ${format(currentWeekStart, 'MMMM d, yyyy')}`;
@@ -28,6 +32,16 @@ export function WeeklyPlannerHeader({
       <h1 className="text-2xl font-bold tracking-tight">Weekly Planner</h1>
 
       <div className="flex items-center gap-2">
+        {onToggleWeekend && (
+          <Button 
+            variant={showWeekend ? "outline" : "default"} 
+            size="sm" 
+            onClick={onToggleWeekend}
+          >
+            {showWeekend ? "Hide Weekend" : "Show Weekend"}
+          </Button>
+        )}
+
         {onOpenOfficeHours && (
           <Button variant="outline" size="sm" className="gap-2" onClick={onOpenOfficeHours}>
             <Settings2 className="h-4 w-4" />

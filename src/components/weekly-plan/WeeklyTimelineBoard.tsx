@@ -10,6 +10,7 @@ interface WeeklyTimelineBoardProps {
   currentWeekStart: Date;
   officeHoursStart?: string;
   officeHoursEnd?: string;
+  showWeekend?: boolean;
   onTaskDrop: (taskId: string, fromPlannedDay: string | null, targetDate: string, timeSlot?: string) => void;
   onTaskToggle: (taskId: string, completed: boolean) => void;
 }
@@ -24,19 +25,29 @@ export function WeeklyTimelineBoard({
   currentWeekStart,
   officeHoursStart = '9:00',
   officeHoursEnd = '17:00',
+  showWeekend = true,
   onTaskDrop,
   onTaskToggle,
 }: WeeklyTimelineBoardProps) {
   const [dragOverCell, setDragOverCell] = useState<string | null>(null);
 
-  // Generate 7 days
+  // Generate days (7 or 5 depending on showWeekend)
   const weekDays = useMemo(() => {
     const days: Date[] = [];
     for (let i = 0; i < 7; i++) {
       days.push(addDays(currentWeekStart, i));
     }
+    
+    if (!showWeekend) {
+      // Filter out Saturday (day 6) and Sunday (day 0)
+      return days.filter(day => {
+        const dayOfWeek = day.getDay();
+        return dayOfWeek !== 0 && dayOfWeek !== 6;
+      });
+    }
+    
     return days;
-  }, [currentWeekStart]);
+  }, [currentWeekStart, showWeekend]);
 
   // Parse office hours
   const parseTime = (timeStr: string): number => {
