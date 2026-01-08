@@ -15,7 +15,9 @@ import { useToast } from '@/hooks/use-toast';
 import { normalizeArray, normalizeString, normalizeNumber, normalizeObject } from '@/lib/normalize';
 import { UsefulThoughtsModal } from '@/components/UsefulThoughtsModal';
 import { WeekPlanner } from '@/components/weekly-plan/WeekPlanner';
-import { ArrowLeft, Calendar, Loader2, Save, CheckCircle2, TrendingUp, Brain, Zap, Target, BarChart3 } from 'lucide-react';
+import { WeeklyTimelineView } from '@/components/weekly-plan/WeeklyTimelineView';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { ArrowLeft, Calendar, Loader2, Save, CheckCircle2, TrendingUp, Brain, Zap, Target, BarChart3, Clock, LayoutList } from 'lucide-react';
 
 export default function WeeklyPlan() {
   const { user } = useAuth();
@@ -51,7 +53,9 @@ export default function WeeklyPlan() {
   const [metric1Target, setMetric1Target] = useState<number | ''>('');
   const [metric2Target, setMetric2Target] = useState<number | ''>('');
   const [metric3Target, setMetric3Target] = useState<number | ''>('');
-
+  
+  // View mode toggle
+  const [viewMode, setViewMode] = useState<'planning' | 'timeline'>('planning');
   useEffect(() => {
     loadWeeklyPlan();
     loadIdentityAnchor();
@@ -269,15 +273,32 @@ export default function WeeklyPlan() {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-3xl space-y-8">
-        <div className="flex items-center justify-between">
+      <div className={viewMode === 'timeline' ? 'mx-auto max-w-7xl space-y-6' : 'mx-auto max-w-3xl space-y-8'}>
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold">Weekly Plan</h1>
             <p className="text-muted-foreground">
               Set your top 3 priorities for this week
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center flex-wrap">
+            {/* View Toggle */}
+            <ToggleGroup 
+              type="single" 
+              value={viewMode} 
+              onValueChange={(value) => value && setViewMode(value as 'planning' | 'timeline')}
+              className="bg-muted rounded-lg p-0.5"
+            >
+              <ToggleGroupItem value="planning" aria-label="Planning view" className="px-3 py-1.5 text-xs data-[state=on]:bg-background">
+                <LayoutList className="h-3.5 w-3.5 mr-1.5" />
+                Plan
+              </ToggleGroupItem>
+              <ToggleGroupItem value="timeline" aria-label="Timeline view" className="px-3 py-1.5 text-xs data-[state=on]:bg-background">
+                <Clock className="h-3.5 w-3.5 mr-1.5" />
+                Timeline
+              </ToggleGroupItem>
+            </ToggleGroup>
+            
             <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
               Dashboard
             </Button>
@@ -299,36 +320,48 @@ export default function WeeklyPlan() {
           </div>
         </div>
 
-        {/* Weekly Summary */}
-        <Card>
-          <CardHeader>
-            <CardTitle>This Week's Progress</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-3">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Daily Plans</p>
-                <p className="text-2xl font-bold">{weeklySummary.daily_plans_completed} / 7</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Habit Completion</p>
-                <p className="text-2xl font-bold">{weeklySummary.habit_completion_percent}%</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Weekly Review</p>
-                <p className="text-2xl font-bold">{weeklySummary.review_completed ? '✓ Complete' : '○ Pending'}</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/daily-plan">Go to Daily Plan</Link>
-              </Button>
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/habits">Track Habits</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Timeline View */}
+        {viewMode === 'timeline' && (
+          <WeeklyTimelineView
+            onTaskToggle={() => {
+              // Optional: refresh data after toggle
+            }}
+          />
+        )}
+
+        {/* Planning View */}
+        {viewMode === 'planning' && (
+          <>
+            {/* Weekly Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle>This Week's Progress</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Daily Plans</p>
+                    <p className="text-2xl font-bold">{weeklySummary.daily_plans_completed} / 7</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Habit Completion</p>
+                    <p className="text-2xl font-bold">{weeklySummary.habit_completion_percent}%</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Weekly Review</p>
+                    <p className="text-2xl font-bold">{weeklySummary.review_completed ? '✓ Complete' : '○ Pending'}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/daily-plan">Go to Daily Plan</Link>
+                  </Button>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/habits">Track Habits</Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <Card>
@@ -570,6 +603,8 @@ export default function WeeklyPlan() {
             </Link>
           </CardContent>
         </Card>
+          </>
+        )}
       </div>
       
       <UsefulThoughtsModal
