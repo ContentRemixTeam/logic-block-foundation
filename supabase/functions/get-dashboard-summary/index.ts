@@ -5,26 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Decode JWT to get user ID (basic validation)
-function getUserIdFromJWT(authHeader: string): string | null {
-  try {
-    const token = authHeader.replace('Bearer ', '');
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-    const payload = JSON.parse(jsonPayload);
-    return payload.sub || null;
-  } catch (error) {
-    console.error('JWT decode error:', error);
-    return null;
-  }
-}
-
 Deno.serve(async (req) => {
   console.log('EDGE FUNC: get-dashboard-summary called', {
     method: req.method,
@@ -37,11 +17,9 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
-    console.log('Auth header check:', {
-      hasAuthHeader: Boolean(authHeader),
-    });
+    console.log('Auth header check:', { hasAuthHeader: Boolean(authHeader) });
 
-    if (!authHeader) {
+    if (!authHeader?.startsWith('Bearer ')) {
       console.error('No authorization header provided');
       return new Response(JSON.stringify({ error: 'No authorization header' }), {
         status: 401,
@@ -49,44 +27,36 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Extract user ID from JWT
-    const userId = getUserIdFromJWT(authHeader);
-    console.log('User ID from JWT:', { userId: Boolean(userId) });
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    if (!userId) {
-      console.error('Invalid JWT or missing user ID');
+    console.log('Environment check:', {
+      hasUrl: Boolean(supabaseUrl),
+      hasServiceKey: Boolean(supabaseServiceKey),
+    });
+
+    // Create client with anon key to validate the user's token
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    // Validate the token by getting the user
+    const { data: { user }, error: userError } = await authClient.auth.getUser();
+
+    if (userError || !user) {
+      console.error('Invalid JWT token:', userError?.message);
       return new Response(JSON.stringify({ error: 'Invalid authorization token' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const userId = user.id;
+    console.log('User ID validated:', { userId: Boolean(userId) });
 
-    console.log('Environment check:', {
-      hasUrl: Boolean(SUPABASE_URL),
-      hasServiceKey: Boolean(SUPABASE_SERVICE_ROLE_KEY),
-    });
-
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('Missing environment variables');
-      return new Response(JSON.stringify({ error: 'Server configuration error' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Create service role client with user's JWT for auth context
-    const supabaseClient = createClient(
-      SUPABASE_URL,
-      SUPABASE_SERVICE_ROLE_KEY,
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
-    );
+    // Create service role client for database operations
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log('Calling get_dashboard_summary RPC for user:', userId);
     const { data, error: rpcError } = await supabaseClient.rpc('get_dashboard_summary', {
@@ -116,6 +86,7 @@ Deno.serve(async (req) => {
     });
 
     let focusArea = null;
+    let thingsToRemember: any[] = [];
     let weeklyReviewStatus = { exists: false, score: null as number | null };
     let monthlyReviewStatus = { exists: false, score: null as number | null, wins_count: 0 };
     let cycleSummaryStatus = { exists: false, is_complete: false, score: null as number | null, wins_count: 0 };
@@ -131,7 +102,7 @@ Deno.serve(async (req) => {
         .single();
       
       focusArea = fullCycleData?.focus_area || null;
-      var thingsToRemember = fullCycleData?.things_to_remember || [];
+      thingsToRemember = fullCycleData?.things_to_remember || [];
       
       // Check weekly review
       const { data: weekData } = await supabaseClient.rpc('get_current_week', {
@@ -216,7 +187,7 @@ Deno.serve(async (req) => {
       cycle: {
         ...(data?.cycle || {}),
         focus_area: focusArea,
-        things_to_remember: typeof thingsToRemember !== 'undefined' ? thingsToRemember : [],
+        things_to_remember: thingsToRemember,
       },
       weekly_review_status: weeklyReviewStatus,
       monthly_review_status: monthlyReviewStatus,
