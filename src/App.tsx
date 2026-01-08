@@ -36,7 +36,27 @@ import Community from "./pages/Community";
 import Support from "./pages/Support";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+// Configure QueryClient with stability-focused defaults
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Retry failed queries up to 3 times with exponential backoff
+      retry: 3,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      // Keep data fresh but don't refetch too aggressively
+      staleTime: 1000 * 60, // 1 minute
+      gcTime: 1000 * 60 * 5, // 5 minutes (formerly cacheTime)
+      // Don't refetch on window focus in production to reduce API calls
+      refetchOnWindowFocus: false,
+      // Don't refetch on reconnect automatically
+      refetchOnReconnect: 'always',
+    },
+    mutations: {
+      retry: 1,
+      retryDelay: 1000,
+    },
+  },
+});
 
 // Online status monitor component
 function OnlineStatusMonitor() {

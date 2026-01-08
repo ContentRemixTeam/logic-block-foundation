@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { getStorageItem, setStorageItem, removeStorageItem } from '@/lib/storage';
 
 interface TourStep {
   id: string;
@@ -91,10 +92,10 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const [isFirstLoginComplete, setIsFirstLoginComplete] = useState(true); // Default to true to prevent flash
 
   useEffect(() => {
-    // Check localStorage on mount
-    const seen = localStorage.getItem(TOUR_STORAGE_KEY);
-    const checklistDismissed = localStorage.getItem(CHECKLIST_STORAGE_KEY);
-    const firstLoginComplete = localStorage.getItem(FIRST_LOGIN_KEY);
+    // Check storage on mount using safe storage utilities
+    const seen = getStorageItem(TOUR_STORAGE_KEY);
+    const checklistDismissed = getStorageItem(CHECKLIST_STORAGE_KEY);
+    const firstLoginComplete = getStorageItem(FIRST_LOGIN_KEY);
     
     setHasSeenTour(seen === 'true');
     setShowChecklist(seen === 'true' && checklistDismissed !== 'true');
@@ -110,14 +111,14 @@ export function TourProvider({ children }: { children: ReactNode }) {
     setIsActive(false);
     setCurrentStep(0);
     if (completed) {
-      localStorage.setItem(TOUR_STORAGE_KEY, 'true');
+      setStorageItem(TOUR_STORAGE_KEY, 'true');
       setHasSeenTour(true);
       setShowChecklist(true);
     }
   }, []);
 
   const skipTour = useCallback(() => {
-    localStorage.setItem(TOUR_STORAGE_KEY, 'true');
+    setStorageItem(TOUR_STORAGE_KEY, 'true');
     setHasSeenTour(true);
     setIsActive(false);
     setCurrentStep(0);
@@ -138,20 +139,20 @@ export function TourProvider({ children }: { children: ReactNode }) {
   }, [currentStep]);
 
   const dismissChecklist = useCallback(() => {
-    localStorage.setItem(CHECKLIST_STORAGE_KEY, 'true');
+    setStorageItem(CHECKLIST_STORAGE_KEY, 'true');
     setShowChecklist(false);
   }, []);
 
   const restartTour = useCallback(() => {
-    localStorage.removeItem(TOUR_STORAGE_KEY);
-    localStorage.removeItem(CHECKLIST_STORAGE_KEY);
+    removeStorageItem(TOUR_STORAGE_KEY);
+    removeStorageItem(CHECKLIST_STORAGE_KEY);
     setHasSeenTour(false);
     setShowChecklist(false);
     startTour();
   }, [startTour]);
 
   const markFirstLoginComplete = useCallback(() => {
-    localStorage.setItem(FIRST_LOGIN_KEY, 'true');
+    setStorageItem(FIRST_LOGIN_KEY, 'true');
     setIsFirstLoginComplete(true);
   }, []);
 
