@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,10 +23,24 @@ export default function WeeklyPlan() {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const highlightTaskId = searchParams.get('highlightTask');
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  // Clear highlight param after 3 seconds
+  useEffect(() => {
+    if (highlightTaskId) {
+      const timer = setTimeout(() => {
+        searchParams.delete('highlightTask');
+        setSearchParams(searchParams, { replace: true });
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightTaskId, searchParams, setSearchParams]);
   const [weekId, setWeekId] = useState<string | null>(null);
   const [priorities, setPriorities] = useState<string[]>(['', '', '']);
   const [thought, setThought] = useState('');
@@ -568,7 +582,7 @@ export default function WeeklyPlan() {
         </form>
 
         {/* Plan Your Week Section */}
-        <WeekPlanner />
+        <WeekPlanner highlightTaskId={highlightTaskId} />
 
         {/* Navigation Links */}
         <Card>

@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Zap, Edit, Trash2, Plus, ArrowUpDown } from 'lucide-react';
 import { normalizeString } from '@/lib/normalize';
+import { cn } from '@/lib/utils';
 
 interface Category {
   id: string;
@@ -33,12 +35,34 @@ interface Idea {
 export default function Ideas() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const highlightIdeaId = searchParams.get('highlightIdea');
+  const highlightedRef = useRef<HTMLDivElement>(null);
+  
   const [categories, setCategories] = useState<Category[]>([]);
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  
+  // Clear highlight after 3 seconds
+  useEffect(() => {
+    if (highlightIdeaId) {
+      const timer = setTimeout(() => {
+        searchParams.delete('highlightIdea');
+        setSearchParams(searchParams, { replace: true });
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightIdeaId, searchParams, setSearchParams]);
+  
+  // Scroll to highlighted idea
+  useEffect(() => {
+    if (highlightIdeaId && !loading && highlightedRef.current) {
+      highlightedRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [highlightIdeaId, loading, ideas]);
   
   // Add idea modal
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -361,10 +385,15 @@ export default function Ideas() {
           ) : (
             filteredIdeas.map((idea) => {
               const category = getCategoryById(idea.category_id);
+              const isHighlighted = highlightIdeaId === idea.id;
               return (
                 <Card
                   key={idea.id}
-                  className="relative"
+                  ref={isHighlighted ? highlightedRef : undefined}
+                  className={cn(
+                    "relative transition-all",
+                    isHighlighted && "ring-2 ring-primary ring-offset-2 animate-pulse"
+                  )}
                   style={{
                     borderLeft: category ? `4px solid ${category.color}` : undefined,
                   }}

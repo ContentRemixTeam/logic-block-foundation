@@ -16,6 +16,7 @@ interface WeekInboxProps {
   onAddTask: (text: string) => Promise<void>;
   onMoveToInbox: (taskId: string) => void;
   isPulling: boolean;
+  highlightTaskId?: string | null;
 }
 
 export function WeekInbox({ 
@@ -24,7 +25,8 @@ export function WeekInbox({
   onPullUnfinished,
   onAddTask,
   onMoveToInbox,
-  isPulling
+  isPulling,
+  highlightTaskId
 }: WeekInboxProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -203,6 +205,7 @@ export function WeekInbox({
               key={task.task_id}
               task={task}
               onToggle={onTaskToggle}
+              isHighlighted={highlightTaskId === task.task_id}
             />
           ))
         )}

@@ -1,15 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Zap, ListTodo, Lightbulb, LogIn } from 'lucide-react';
+import { Zap, ListTodo, Lightbulb, LogIn, Calendar, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import {
@@ -23,11 +24,12 @@ import {
 interface QuickCaptureModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onReopenCapture?: () => void;
 }
 
-export function QuickCaptureModal({ open, onOpenChange }: QuickCaptureModalProps) {
+export function QuickCaptureModal({ open, onOpenChange, onReopenCapture }: QuickCaptureModalProps) {
   const { user } = useAuth();
-  const { toast } = useToast();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -36,6 +38,7 @@ export function QuickCaptureModal({ open, onOpenChange }: QuickCaptureModalProps
   const [captureType, setCaptureType] = useState<CaptureType>('task');
   const [parsedTask, setParsedTask] = useState<ParsedTask | null>(null);
   const [saving, setSaving] = useState(false);
+  const [lastCaptureType, setLastCaptureType] = useState<CaptureType>('task');
 
   // Auto-detect type and parse input
   useEffect(() => {
@@ -52,50 +55,117 @@ export function QuickCaptureModal({ open, onOpenChange }: QuickCaptureModalProps
   // Focus input when modal opens
   useEffect(() => {
     if (open) {
+      // Preserve last mode when reopening
+      setCaptureType(lastCaptureType);
       // Small delay to ensure modal is rendered
       setTimeout(() => {
         inputRef.current?.focus();
       }, 100);
     } else {
-      // Reset state when closing
+      // Reset input but preserve mode
       setInput('');
-      setCaptureType('task');
       setParsedTask(null);
     }
-  }, [open]);
+  }, [open, lastCaptureType]);
+
+  const truncateText = (text: string, maxLength: number = 40) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+
+  const handleAddAnother = () => {
+    // Reopen the modal with preserved mode
+    if (onReopenCapture) {
+      onReopenCapture();
+    }
+  };
+
+  const handlePlanForWeek = (id: string, type: CaptureType) => {
+    if (type === 'task') {
+      navigate(`/weekly-plan?highlightTask=${id}`);
+    } else {
+      navigate(`/ideas?highlightIdea=${id}`);
+    }
+  };
+
+  const showActionableToast = (
+    savedText: string, 
+    savedId: string, 
+    savedType: CaptureType
+  ) => {
+    const truncated = truncateText(savedText);
+    
+    toast.success(
+      <div className="flex flex-col gap-1">
+        <span className="font-medium">
+          {savedType === 'task' ? '✅ Task saved' : '💡 Idea saved'}
+        </span>
+        <span className="text-sm text-muted-foreground">{truncated}</span>
+      </div>,
+      {
+        duration: 5000,
+        action: {
+          label: (
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              Plan this week
+            </span>
+          ),
+          onClick: () => handlePlanForWeek(savedId, savedType),
+        },
+        cancel: {
+          label: (
+            <span className="flex items-center gap-1">
+              <Plus className="h-3 w-3" />
+              Add another
+            </span>
+          ),
+          onClick: handleAddAnother,
+        },
+      }
+    );
+  };
 
   const handleSave = async () => {
     if (!input.trim()) return;
 
     if (!user) {
-      toast({
-        title: 'Not logged in',
+      toast.error('Not logged in', {
         description: 'Please log in to capture tasks and ideas',
-        variant: 'destructive',
       });
       return;
     }
 
     setSaving(true);
+    const savedInput = input;
+    const savedType = captureType;
+    setLastCaptureType(captureType);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('No session');
 
+      let savedId = '';
+      let savedText = '';
+
       if (captureType === 'idea') {
         // Save as idea
         const ideaContent = cleanIdeaInput(input);
-        const { error } = await supabase.functions.invoke('save-idea', {
+        savedText = ideaContent;
+        
+        const { data, error } = await supabase.functions.invoke('save-idea', {
           body: { content: ideaContent },
         });
         if (error) throw error;
-
-        toast({ title: '💡 Idea saved!' });
+        
+        savedId = data?.idea?.id || '';
         queryClient.invalidateQueries({ queryKey: ['ideas'] });
       } else {
         // Save as task
         const parsed = parseTaskInput(input);
-        const { error } = await supabase.functions.invoke('manage-task', {
+        savedText = parsed.text;
+        
+        const { data, error } = await supabase.functions.invoke('manage-task', {
           body: {
             action: 'create',
             task_text: parsed.text,
@@ -108,18 +178,22 @@ export function QuickCaptureModal({ open, onOpenChange }: QuickCaptureModalProps
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
         if (error) throw error;
-
-        toast({ title: '✅ Task saved!' });
+        
+        savedId = data?.data?.task_id || '';
         queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
       }
 
       onOpenChange(false);
+      
+      // Show actionable toast after modal closes
+      setTimeout(() => {
+        showActionableToast(savedText, savedId, savedType);
+      }, 100);
+
     } catch (error: any) {
       console.error('Error saving:', error);
-      toast({
-        title: 'Error',
+      toast.error('Error', {
         description: error.message || 'Failed to save',
-        variant: 'destructive',
       });
     } finally {
       setSaving(false);
@@ -135,10 +209,7 @@ export function QuickCaptureModal({ open, onOpenChange }: QuickCaptureModalProps
 
   const toggleCaptureType = (type: CaptureType) => {
     setCaptureType(type);
-    // Update input if switching to idea and no prefix exists
-    if (type === 'idea' && !input.toLowerCase().startsWith('#idea') && !input.toLowerCase().startsWith('idea:')) {
-      // Don't modify input, just set the type
-    }
+    setLastCaptureType(type);
   };
 
   // Content for both mobile and desktop

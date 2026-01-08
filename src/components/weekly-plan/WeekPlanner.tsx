@@ -15,9 +15,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 
 interface WeekPlannerProps {
   initialCollapsed?: boolean;
+  highlightTaskId?: string | null;
 }
 
-export function WeekPlanner({ initialCollapsed = false }: WeekPlannerProps) {
+export function WeekPlanner({ initialCollapsed = false, highlightTaskId }: WeekPlannerProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -372,6 +373,7 @@ export function WeekPlanner({ initialCollapsed = false }: WeekPlannerProps) {
                     onAddTask={(text) => handleQuickAdd(text, null)}
                     onMoveToInbox={handleMoveToInbox}
                     isPulling={isPulling}
+                    highlightTaskId={highlightTaskId}
                   />
                 </div>
 

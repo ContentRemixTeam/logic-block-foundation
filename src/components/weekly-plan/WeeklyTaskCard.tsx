@@ -10,9 +10,10 @@ interface WeeklyTaskCardProps {
   onToggle: (taskId: string, completed: boolean) => void;
   isDragging?: boolean;
   compact?: boolean;
+  isHighlighted?: boolean;
 }
 
-export function WeeklyTaskCard({ task, onToggle, isDragging, compact = false }: WeeklyTaskCardProps) {
+export function WeeklyTaskCard({ task, onToggle, isDragging, compact = false, isHighlighted = false }: WeeklyTaskCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   const formatDuration = (minutes: number | null): string => {
@@ -49,8 +50,10 @@ export function WeeklyTaskCard({ task, onToggle, isDragging, compact = false }: 
           compact ? "px-2 py-1.5" : "p-2.5",
           isDragging && "opacity-50 scale-95 shadow-lg",
           isHovered && !isDragging && "shadow-sm border-primary/20",
-          task.is_completed && "opacity-60"
+          task.is_completed && "opacity-60",
+          isHighlighted && "ring-2 ring-primary ring-offset-2 animate-pulse"
         )}
+        data-task-id={task.task_id}
       >
         {/* Drag handle - visible on hover */}
         <div className={cn(
