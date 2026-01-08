@@ -1,10 +1,16 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { QuickCaptureModal } from './QuickCaptureModal';
 
+interface QuickCaptureOptions {
+  stayOpenAfterSave?: boolean;
+}
+
 interface QuickCaptureContextType {
   isOpen: boolean;
-  openQuickCapture: () => void;
+  openQuickCapture: (options?: QuickCaptureOptions) => void;
   closeQuickCapture: () => void;
+  stayOpenAfterSave: boolean;
+  setStayOpenAfterSave: (value: boolean) => void;
 }
 
 const QuickCaptureContext = createContext<QuickCaptureContextType | undefined>(undefined);
@@ -23,8 +29,12 @@ interface QuickCaptureProviderProps {
 
 export function QuickCaptureProvider({ children }: QuickCaptureProviderProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [stayOpenAfterSave, setStayOpenAfterSave] = useState(false);
 
-  const openQuickCapture = useCallback(() => {
+  const openQuickCapture = useCallback((options?: QuickCaptureOptions) => {
+    if (options?.stayOpenAfterSave !== undefined) {
+      setStayOpenAfterSave(options.stayOpenAfterSave);
+    }
     setIsOpen(true);
   }, []);
 
@@ -67,12 +77,19 @@ export function QuickCaptureProvider({ children }: QuickCaptureProviderProps) {
   }, [isOpen, openQuickCapture, closeQuickCapture]);
 
   return (
-    <QuickCaptureContext.Provider value={{ isOpen, openQuickCapture, closeQuickCapture }}>
+    <QuickCaptureContext.Provider value={{ 
+      isOpen, 
+      openQuickCapture, 
+      closeQuickCapture,
+      stayOpenAfterSave,
+      setStayOpenAfterSave
+    }}>
       {children}
       <QuickCaptureModal 
         open={isOpen} 
         onOpenChange={setIsOpen} 
         onReopenCapture={openQuickCapture}
+        stayOpenAfterSave={stayOpenAfterSave}
       />
     </QuickCaptureContext.Provider>
   );
