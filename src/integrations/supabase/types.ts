@@ -995,6 +995,8 @@ export type Database = {
           show_completed_tasks: boolean | null
           updated_at: string | null
           user_id: string
+          week_start_day: number | null
+          weekly_capacity_minutes: number | null
         }
         Insert: {
           created_at?: string | null
@@ -1007,6 +1009,8 @@ export type Database = {
           show_completed_tasks?: boolean | null
           updated_at?: string | null
           user_id: string
+          week_start_day?: number | null
+          weekly_capacity_minutes?: number | null
         }
         Update: {
           created_at?: string | null
@@ -1019,6 +1023,8 @@ export type Database = {
           show_completed_tasks?: boolean | null
           updated_at?: string | null
           user_id?: string
+          week_start_day?: number | null
+          weekly_capacity_minutes?: number | null
         }
         Relationships: []
       }
@@ -1030,6 +1036,7 @@ export type Database = {
           context_tags: string[] | null
           created_at: string | null
           daily_plan_id: string | null
+          day_order: number | null
           energy_level: string | null
           estimated_minutes: number | null
           goal_id: string | null
@@ -1037,6 +1044,7 @@ export type Database = {
           is_recurring_parent: boolean | null
           notes: string | null
           parent_task_id: string | null
+          planned_day: string | null
           position_in_column: number | null
           priority: string | null
           priority_order: number | null
@@ -1063,6 +1071,7 @@ export type Database = {
           context_tags?: string[] | null
           created_at?: string | null
           daily_plan_id?: string | null
+          day_order?: number | null
           energy_level?: string | null
           estimated_minutes?: number | null
           goal_id?: string | null
@@ -1070,6 +1079,7 @@ export type Database = {
           is_recurring_parent?: boolean | null
           notes?: string | null
           parent_task_id?: string | null
+          planned_day?: string | null
           position_in_column?: number | null
           priority?: string | null
           priority_order?: number | null
@@ -1096,6 +1106,7 @@ export type Database = {
           context_tags?: string[] | null
           created_at?: string | null
           daily_plan_id?: string | null
+          day_order?: number | null
           energy_level?: string | null
           estimated_minutes?: number | null
           goal_id?: string | null
@@ -1103,6 +1114,7 @@ export type Database = {
           is_recurring_parent?: boolean | null
           notes?: string | null
           parent_task_id?: string | null
+          planned_day?: string | null
           position_in_column?: number | null
           priority?: string | null
           priority_order?: number | null

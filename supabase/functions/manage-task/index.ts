@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
       priority_order, // 1, 2, or 3 for Top 3 tasks
       source, // 'manual', 'scratch_pad', 'top_3'
       daily_plan_id,
-      // New enhanced fields
+      // Enhanced fields
       estimated_minutes,
       actual_minutes,
       time_block_start,
@@ -81,7 +81,10 @@ Deno.serve(async (req) => {
       waiting_on,
       subtasks,
       notes,
-      position_in_column
+      position_in_column,
+      // Weekly planning fields
+      planned_day,
+      day_order
     } = body;
 
     let result;
@@ -138,6 +141,8 @@ Deno.serve(async (req) => {
             subtasks: subtasks || [],
             notes: notes || null,
             position_in_column: position_in_column || null,
+            planned_day: planned_day || null,
+            day_order: day_order || 0,
           })
           .select()
           .single();
@@ -175,6 +180,9 @@ Deno.serve(async (req) => {
         if (subtasks !== undefined) updateData.subtasks = subtasks;
         if (notes !== undefined) updateData.notes = notes;
         if (position_in_column !== undefined) updateData.position_in_column = position_in_column;
+        // Weekly planning fields
+        if (planned_day !== undefined) updateData.planned_day = planned_day;
+        if (day_order !== undefined) updateData.day_order = day_order;
 
         result = await supabase
           .from('tasks')

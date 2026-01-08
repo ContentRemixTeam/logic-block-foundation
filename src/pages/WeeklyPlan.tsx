@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeArray, normalizeString, normalizeNumber, normalizeObject } from '@/lib/normalize';
 import { UsefulThoughtsModal } from '@/components/UsefulThoughtsModal';
+import { WeekPlanner } from '@/components/weekly-plan/WeekPlanner';
 import { ArrowLeft, Calendar, Loader2, Save, CheckCircle2, TrendingUp, Brain, Zap, Target, BarChart3 } from 'lucide-react';
 
 export default function WeeklyPlan() {
@@ -532,6 +533,9 @@ export default function WeeklyPlan() {
             </Button>
           </div>
         </form>
+
+        {/* Plan Your Week Section */}
+        <WeekPlanner />
 
         {/* Navigation Links */}
         <Card>
