@@ -4,15 +4,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
-import { CaptureButton } from '@/components/CaptureButton';
+import { QuickCaptureButton } from '@/components/quick-capture';
 import { CycleTimeline } from '@/components/CycleTimeline';
 import { SmartActionButton } from '@/components/SmartActionButton';
-
-interface Category {
-  id: string;
-  name: string;
-  color: string;
-}
 
 interface CycleData {
   start_date: string;
@@ -21,7 +15,6 @@ interface CycleData {
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const [categories, setCategories] = useState<Category[]>([]);
   const [cycleData, setCycleData] = useState<CycleData | null>(null);
   useTheme(); // Load and apply theme
 
@@ -32,15 +25,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
 
-        // Load categories and cycle data in parallel
-        const [categoriesResult, cycleResult] = await Promise.all([
-          supabase.functions.invoke('get-ideas'),
-          supabase.functions.invoke('get-current-cycle-or-create')
-        ]);
-        
-        if (categoriesResult.data?.categories) {
-          setCategories(categoriesResult.data.categories);
-        }
+        const cycleResult = await supabase.functions.invoke('get-current-cycle-or-create');
         
         if (cycleResult.data?.cycle) {
           setCycleData({
@@ -89,21 +74,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {/* Smart Action Button */}
         <SmartActionButton />
 
-        {/* Global Capture Button */}
-        <CaptureButton 
-          categories={categories} 
-          onIdeaSaved={async () => {
-            try {
-              const { data: { session } } = await supabase.auth.getSession();
-              if (session) {
-                const { data } = await supabase.functions.invoke('get-ideas');
-                if (data?.categories) setCategories(data.categories);
-              }
-            } catch (error) {
-              console.error('Error refreshing categories:', error);
-            }
-          }} 
-        />
+        {/* Global Quick Capture Button */}
+        <QuickCaptureButton />
       </div>
     </SidebarProvider>
   );
