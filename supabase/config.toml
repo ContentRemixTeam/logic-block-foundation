@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.get-podcast-episodes]
 verify_jwt = false
+
+[functions.pull-unfinished-tasks]
+verify_jwt = false

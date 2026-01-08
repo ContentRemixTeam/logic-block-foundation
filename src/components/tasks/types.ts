@@ -50,7 +50,7 @@ export interface Task {
   checklist_progress: ChecklistProgress[] | null;
   sop: SOP | null;
   priority_order: number | null;
-  // New enhanced fields
+  // Enhanced fields
   estimated_minutes: number | null;
   actual_minutes: number | null;
   time_block_start: string | null;
@@ -63,6 +63,9 @@ export interface Task {
   subtasks: Subtask[] | null;
   notes: string | null;
   position_in_column: number | null;
+  // Weekly planning fields
+  planned_day: string | null;
+  day_order: number | null;
 }
 
 export type FilterTab = 'today' | 'week' | 'future' | 'all' | 'completed';

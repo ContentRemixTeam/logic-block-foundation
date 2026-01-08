@@ -20,6 +20,7 @@ import BeliefSelectorModal from '@/components/BeliefSelectorModal';
 import { ScratchPadOrganizeModal } from '@/components/ScratchPadOrganizeModal';
 import { YesterdayReviewPopup } from '@/components/YesterdayReviewPopup';
 import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb } from 'lucide-react';
+import { PlannedForToday } from '@/components/daily-plan/PlannedForToday';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -680,6 +681,9 @@ export default function DailyPlan() {
             </Button>
           </div>
         </div>
+
+        {/* Planned for Today from Weekly Plan */}
+        <PlannedForToday />
 
         {/* Focus Area Reminder */}
         {focusArea && (
