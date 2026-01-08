@@ -9,19 +9,79 @@ export interface ParsedTask {
   duration?: number;
 }
 
+export interface DetectionResult {
+  suggestedType: CaptureType;
+  confidence: 'high' | 'medium' | 'low';
+  reason?: string;
+}
+
+// Action verbs that suggest a task
+const ACTION_VERBS = [
+  'call', 'write', 'send', 'finish', 'record', 'edit', 'post', 'schedule',
+  'email', 'meet', 'review', 'create', 'update', 'fix', 'check', 'submit',
+  'prepare', 'buy', 'book', 'cancel', 'follow', 'contact', 'complete',
+  'start', 'begin', 'organize', 'plan', 'setup', 'set up', 'make', 'do'
+];
+
+// Idea-related phrases
+const IDEA_PHRASES = [
+  'idea', 'content idea', 'offer idea', 'brain dump', 'brainstorm',
+  'what if', 'maybe', 'could try', 'concept', 'thought about',
+  'inspiration', 'consider', 'explore', 'potential'
+];
+
+// Time/date patterns that suggest tasks
+const TIME_DATE_PATTERNS = [
+  /\btoday\b/i,
+  /\btomorrow\b/i,
+  /\bnext week\b/i,
+  /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i,
+  /\b\d{1,2}(:\d{2})?\s*(am|pm)\b/i,
+  /\b\d+(m|h|min|hr|hour)\b/i,
+  /!(high|med|medium|low)/i,
+];
+
 /**
- * Detects if the input should be saved as an idea or task
+ * Enhanced detection with confidence scoring
  */
-export function detectCaptureType(input: string): CaptureType {
+export function detectCaptureTypeWithConfidence(input: string): DetectionResult {
   const trimmed = input.trim().toLowerCase();
   
-  // Explicit idea markers
+  // Explicit idea markers - high confidence
   if (trimmed.startsWith('#idea') || trimmed.startsWith('idea:')) {
-    return 'idea';
+    return { suggestedType: 'idea', confidence: 'high', reason: 'Explicit idea marker' };
   }
   
-  // Default to task
-  return 'task';
+  // Check for idea phrases
+  const hasIdeaPhrase = IDEA_PHRASES.some(phrase => trimmed.includes(phrase));
+  if (hasIdeaPhrase) {
+    return { suggestedType: 'idea', confidence: 'medium', reason: 'Contains idea-related phrase' };
+  }
+  
+  // Check for time/date patterns - suggests task
+  const hasTimeDate = TIME_DATE_PATTERNS.some(pattern => pattern.test(trimmed));
+  if (hasTimeDate) {
+    return { suggestedType: 'task', confidence: 'high', reason: 'Contains time/date pattern' };
+  }
+  
+  // Check for action verbs at the start
+  const firstWord = trimmed.split(/\s+/)[0];
+  const startsWithAction = ACTION_VERBS.some(verb => 
+    firstWord === verb || firstWord === verb + 's' || firstWord === verb + 'ing'
+  );
+  if (startsWithAction) {
+    return { suggestedType: 'task', confidence: 'medium', reason: 'Starts with action verb' };
+  }
+  
+  // Default to task with low confidence
+  return { suggestedType: 'task', confidence: 'low', reason: 'Default' };
+}
+
+/**
+ * Simple detection for backwards compatibility
+ */
+export function detectCaptureType(input: string): CaptureType {
+  return detectCaptureTypeWithConfidence(input).suggestedType;
 }
 
 /**

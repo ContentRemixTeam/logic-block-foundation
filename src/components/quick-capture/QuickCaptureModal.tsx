@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
@@ -10,16 +10,18 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Zap, ListTodo, Lightbulb, LogIn, Calendar, Plus } from 'lucide-react';
+import { Zap, ListTodo, Lightbulb, LogIn, Calendar, Plus, Mic, MicOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import {
   CaptureType,
-  detectCaptureType,
+  detectCaptureTypeWithConfidence,
   cleanIdeaInput,
   parseTaskInput,
   ParsedTask,
 } from './useCaptureTypeDetection';
+import { useSpeechDictation } from './useSpeechDictation';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface QuickCaptureModalProps {
   open: boolean;
@@ -39,24 +41,61 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture }: Quick
   const [parsedTask, setParsedTask] = useState<ParsedTask | null>(null);
   const [saving, setSaving] = useState(false);
   const [lastCaptureType, setLastCaptureType] = useState<CaptureType>('task');
+  const [showConvertChips, setShowConvertChips] = useState(false);
+  const [userOverrodeType, setUserOverrodeType] = useState(false);
 
-  // Auto-detect type and parse input
+  // Speech dictation
+  const {
+    isSupported: speechSupported,
+    isListening,
+    interimText,
+    finalText,
+    error: speechError,
+    start: startListening,
+    stop: stopListening,
+    reset: resetSpeech,
+  } = useSpeechDictation();
+
+  // Handle speech dictation results
   useEffect(() => {
-    const detected = detectCaptureType(input);
-    setCaptureType(detected);
+    if (finalText) {
+      setInput(prev => prev + finalText);
+      setShowConvertChips(true);
+      setUserOverrodeType(false);
+      resetSpeech();
+    }
+  }, [finalText, resetSpeech]);
 
-    if (detected === 'task' && input.trim()) {
+  // Show error toast for speech
+  useEffect(() => {
+    if (speechError) {
+      toast.error('Voice capture failed', {
+        description: speechError,
+      });
+    }
+  }, [speechError]);
+
+  // Auto-detect type and parse input (only if user hasn't manually overridden)
+  useEffect(() => {
+    if (!userOverrodeType) {
+      const detection = detectCaptureTypeWithConfidence(input);
+      setCaptureType(detection.suggestedType);
+    }
+
+    if (captureType === 'task' && input.trim()) {
       setParsedTask(parseTaskInput(input));
     } else {
       setParsedTask(null);
     }
-  }, [input]);
+  }, [input, userOverrodeType, captureType]);
 
   // Focus input when modal opens
   useEffect(() => {
     if (open) {
       // Preserve last mode when reopening
       setCaptureType(lastCaptureType);
+      setUserOverrodeType(false);
+      setShowConvertChips(false);
       // Small delay to ensure modal is rendered
       setTimeout(() => {
         inputRef.current?.focus();
@@ -65,8 +104,27 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture }: Quick
       // Reset input but preserve mode
       setInput('');
       setParsedTask(null);
+      setShowConvertChips(false);
+      setUserOverrodeType(false);
+      if (isListening) {
+        stopListening();
+      }
     }
-  }, [open, lastCaptureType]);
+  }, [open, lastCaptureType, isListening, stopListening]);
+
+  // Handle paste to show convert chips
+  const handlePaste = useCallback(() => {
+    setShowConvertChips(true);
+    setUserOverrodeType(false);
+  }, []);
+
+  const handleMicClick = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
 
   const truncateText = (text: string, maxLength: number = 40) => {
     if (text.length <= maxLength) return text;
@@ -207,9 +265,12 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture }: Quick
     }
   };
 
-  const toggleCaptureType = (type: CaptureType) => {
+  const toggleCaptureType = (type: CaptureType, isUserOverride: boolean = false) => {
     setCaptureType(type);
     setLastCaptureType(type);
+    if (isUserOverride) {
+      setUserOverrodeType(true);
+    }
   };
 
   // Content for both mobile and desktop
@@ -245,7 +306,7 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture }: Quick
             <Button
               variant={captureType === 'task' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => toggleCaptureType('task')}
+              onClick={() => toggleCaptureType('task', true)}
               className="gap-1"
             >
               <ListTodo className="h-4 w-4" />
@@ -254,7 +315,7 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture }: Quick
             <Button
               variant={captureType === 'idea' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => toggleCaptureType('idea')}
+              onClick={() => toggleCaptureType('idea', true)}
               className="gap-1"
             >
               <Lightbulb className="h-4 w-4" />
@@ -262,20 +323,98 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture }: Quick
             </Button>
           </div>
 
-          {/* Input field */}
-          <Input
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              captureType === 'task'
-                ? "Call client tomorrow 2pm 30m !high #sales"
-                : "Start with #idea or idea: for ideas..."
-            }
-            className="text-base h-12"
-            autoComplete="off"
-          />
+          {/* Input field with mic button */}
+          <div className="relative">
+            <Input
+              ref={inputRef}
+              value={isListening ? input + interimText : input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              placeholder={
+                isListening 
+                  ? "Listening..."
+                  : captureType === 'task'
+                    ? "Call client tomorrow 2pm 30m !high #sales"
+                    : "Start with #idea or idea: for ideas..."
+              }
+              className={cn(
+                "text-base h-12 pr-12",
+                isListening && "border-primary ring-2 ring-primary/20"
+              )}
+              autoComplete="off"
+              disabled={isListening}
+            />
+            
+            {/* Mic button */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleMicClick}
+                    disabled={!speechSupported}
+                    className={cn(
+                      "absolute right-1 top-1/2 -translate-y-1/2 h-10 w-10",
+                      isListening && "text-primary animate-pulse"
+                    )}
+                  >
+                    {isListening ? (
+                      <MicOff className="h-5 w-5" />
+                    ) : (
+                      <Mic className="h-5 w-5" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {!speechSupported 
+                    ? "Voice capture isn't supported in this browser"
+                    : isListening 
+                      ? "Stop listening" 
+                      : "Start voice capture"
+                  }
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
+          {/* Listening indicator */}
+          {isListening && (
+            <div className="flex items-center gap-2 text-sm text-primary">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+              </span>
+              Listening... Tap mic or speak to finish
+            </div>
+          )}
+
+          {/* Convert chips - shown after dictation or paste */}
+          {showConvertChips && input.trim() && !isListening && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-muted-foreground">Detected as:</span>
+              <Button
+                variant={captureType === 'task' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => toggleCaptureType('task', true)}
+                className="h-9 gap-1"
+              >
+                <ListTodo className="h-4 w-4" />
+                Convert to Task
+              </Button>
+              <Button
+                variant={captureType === 'idea' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => toggleCaptureType('idea', true)}
+                className="h-9 gap-1"
+              >
+                <Lightbulb className="h-4 w-4" />
+                Convert to Idea
+              </Button>
+            </div>
+          )}
 
           {/* Parsed preview for tasks */}
           {captureType === 'task' && parsedTask && input.trim() && (
