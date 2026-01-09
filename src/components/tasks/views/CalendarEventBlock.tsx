@@ -1,5 +1,6 @@
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { MASTERMIND_LINKS } from '@/lib/mastermindLinks';
 import { Video, MapPin, ExternalLink, Users, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -57,8 +58,8 @@ export function CalendarEventBlock({ event, compact = false, onClick }: Calendar
     event.summary?.toLowerCase().includes('hot seat');
 
   // Check if this is a coworking event - use GoBrunch link instead
-  const isCoworkingEvent = event.summary?.toLowerCase().includes('member led coworking');
-  const gobrunchLink = 'https://gobrunch.com/events/389643/589970';
+  const isCoworkingEvent = event.summary?.toLowerCase().includes('coworking');
+  const gobrunchLink = MASTERMIND_LINKS.COWORKING_ROOM;
 
   const hasVideoCall = isCoworkingEvent || event.hangoutLink || event.conferenceData?.entryPoints?.some(
     ep => ep.entryPointType === 'video'

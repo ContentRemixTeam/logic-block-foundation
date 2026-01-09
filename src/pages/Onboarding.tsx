@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Layout } from '@/components/Layout';
+import { MASTERMIND_LINKS } from '@/lib/mastermindLinks';
 
 const checklistItems = [
   { id: 'mastermind', label: 'Join the Mastermind Group' },
@@ -63,8 +64,9 @@ export default function Onboarding() {
           <CardContent className="space-y-3">
             <div>
               <a
-                href="#"
+                href={MASTERMIND_LINKS.MASTERMIND_GROUP}
                 target="_blank"
+                rel="noopener noreferrer"
                 className="text-primary hover:underline"
               >
                 Mastermind Group Link →
@@ -72,8 +74,9 @@ export default function Onboarding() {
             </div>
             <div>
               <a
-                href="#"
+                href={MASTERMIND_LINKS.COWORKING_ROOM}
                 target="_blank"
+                rel="noopener noreferrer"
                 className="text-primary hover:underline"
               >
                 Coworking Sessions →
@@ -81,8 +84,9 @@ export default function Onboarding() {
             </div>
             <div>
               <a
-                href="#"
+                href={MASTERMIND_LINKS.EVENTS_CALENDAR}
                 target="_blank"
+                rel="noopener noreferrer"
                 className="text-primary hover:underline"
               >
                 Event Calendar →
