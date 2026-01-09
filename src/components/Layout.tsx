@@ -2,11 +2,14 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
+import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
 import { QuickCaptureButton } from '@/components/quick-capture';
 import { CycleTimeline } from '@/components/CycleTimeline';
 import { SmartActionButton } from '@/components/SmartActionButton';
+import { TrialBanner, TrialExpiredScreen } from '@/components/trial';
+import { Loader2 } from 'lucide-react';
 
 interface CycleData {
   start_date: string;
@@ -16,6 +19,7 @@ interface CycleData {
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [cycleData, setCycleData] = useState<CycleData | null>(null);
+  const trialStatus = useTrialStatus();
   useTheme(); // Load and apply theme
 
   useEffect(() => {
@@ -41,6 +45,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
     loadData();
   }, [user]);
 
+  // Show loading while checking trial status
+  if (trialStatus.loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Show expired screen if trial has ended
+  if (!trialStatus.hasAccess && trialStatus.reason === 'trial_expired') {
+    return <TrialExpiredScreen expiredAt={trialStatus.expiredAt} />;
+  }
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
@@ -49,6 +67,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
         {/* Main content area */}
         <div className="flex-1 flex flex-col">
+          {/* Trial Banner - shown for trial users */}
+          {(trialStatus.reason === 'trial' || trialStatus.reason === 'grace_period') && 
+           trialStatus.expiresAt && (
+            <TrialBanner 
+              expiresAt={trialStatus.expiresAt} 
+              isGracePeriod={trialStatus.isGracePeriod}
+            />
+          )}
+
           {/* Header with sidebar trigger and timeline */}
           <header className="sticky top-0 z-40 border-b bg-background">
             <div className="flex h-16 items-center gap-4 px-6">
