@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
       throw new Error('Invalid user token');
     }
 
-    const { id, content, category_id } = await req.json();
+    const { id, content, category_id, priority, tags, project_id } = await req.json();
 
     // Input validation
     if (!content || typeof content !== 'string') {
@@ -52,7 +52,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('[save-idea] Saving idea for user:', user.id, { id, contentLength: trimmedContent.length, category_id });
+    // Validate priority if provided
+    const validPriorities = ['asap', 'next_week', 'next_month', 'someday'];
+    if (priority && !validPriorities.includes(priority)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid priority value' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Normalize tags
+    const normalizedTags = Array.isArray(tags) ? tags.filter((t: any) => typeof t === 'string' && t.trim()) : [];
+
+    console.log('[save-idea] Saving idea for user:', user.id, { id, contentLength: trimmedContent.length, category_id, priority, tags: normalizedTags, project_id });
 
     if (id) {
       // Update existing idea
@@ -61,6 +73,9 @@ Deno.serve(async (req) => {
         .update({
           content: trimmedContent,
           category_id: category_id || null,
+          priority: priority || null,
+          tags: normalizedTags,
+          project_id: project_id || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
@@ -86,6 +101,9 @@ Deno.serve(async (req) => {
           user_id: user.id,
           content: trimmedContent,
           category_id: category_id || null,
+          priority: priority || null,
+          tags: normalizedTags,
+          project_id: project_id || null,
         })
         .select()
         .single();

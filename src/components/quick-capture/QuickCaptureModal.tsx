@@ -11,7 +11,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTaskMutations } from '@/hooks/useTasks';
-import { Zap, ListTodo, Lightbulb, LogIn, Calendar, Plus, Mic, MicOff } from 'lucide-react';
+import { useProjects } from '@/hooks/useProjects';
+import { Zap, ListTodo, Lightbulb, LogIn, Calendar, Plus, Mic, MicOff, FolderKanban, Clock, Hash, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import {
@@ -24,6 +25,8 @@ import {
 import { useSpeechDictation } from './useSpeechDictation';
 import { EditableChips } from './EditableChips';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface QuickCaptureModalProps {
   open: boolean;
@@ -32,6 +35,19 @@ interface QuickCaptureModalProps {
   stayOpenAfterSave?: boolean;
 }
 
+interface IdeaData {
+  priority: string | null;
+  tags: string[];
+  projectId: string | null;
+}
+
+const PRIORITY_OPTIONS = [
+  { value: 'asap', label: 'ASAP' },
+  { value: 'next_week', label: 'Next Week' },
+  { value: 'next_month', label: 'Next Month' },
+  { value: 'someday', label: 'Someday' },
+];
+
 export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpenAfterSave = false }: QuickCaptureModalProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -39,14 +55,17 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
   const isMobile = useIsMobile();
   const inputRef = useRef<HTMLInputElement>(null);
   const { createTask } = useTaskMutations();
+  const { data: projects = [] } = useProjects();
 
   const [input, setInput] = useState('');
   const [captureType, setCaptureType] = useState<CaptureType>('task');
   const [parsedTask, setParsedTask] = useState<ParsedTask | null>(null);
+  const [ideaData, setIdeaData] = useState<IdeaData>({ priority: null, tags: [], projectId: null });
   const [saving, setSaving] = useState(false);
   const [lastCaptureType, setLastCaptureType] = useState<CaptureType>('task');
   const [showConvertChips, setShowConvertChips] = useState(false);
   const [userOverrodeType, setUserOverrodeType] = useState(false);
+  const [newIdeaTag, setNewIdeaTag] = useState('');
 
   // Speech dictation
   const {
@@ -118,6 +137,8 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
       // Reset input but preserve mode
       setInput('');
       setParsedTask(null);
+      setIdeaData({ priority: null, tags: [], projectId: null });
+      setNewIdeaTag('');
       setShowConvertChips(false);
       setUserOverrodeType(false);
       if (isListening) {
@@ -198,6 +219,17 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
     );
   };
 
+  const handleAddIdeaTag = () => {
+    if (newIdeaTag.trim() && !ideaData.tags.includes(newIdeaTag.trim())) {
+      setIdeaData(prev => ({ ...prev, tags: [...prev.tags, newIdeaTag.trim()] }));
+      setNewIdeaTag('');
+    }
+  };
+
+  const handleRemoveIdeaTag = (tag: string) => {
+    setIdeaData(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
+  };
+
   const handleSave = async () => {
     if (!input.trim()) return;
 
@@ -221,12 +253,17 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
       let savedText = '';
 
       if (captureType === 'idea') {
-        // Save as idea
+        // Save as idea with new fields
         const ideaContent = cleanIdeaInput(input);
         savedText = ideaContent;
         
         const { data, error } = await supabase.functions.invoke('save-idea', {
-          body: { content: ideaContent },
+          body: { 
+            content: ideaContent,
+            priority: ideaData.priority,
+            tags: ideaData.tags,
+            project_id: ideaData.projectId,
+          },
         });
         if (error) throw error;
         
@@ -255,6 +292,8 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
         // Stay open: clear input, keep mode, refocus
         setInput('');
         setParsedTask(null);
+        setIdeaData({ priority: null, tags: [], projectId: null });
+        setNewIdeaTag('');
         setShowConvertChips(false);
         setUserOverrodeType(false);
         
@@ -459,12 +498,141 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
             </div>
           )}
 
-          {/* Idea preview */}
+          {/* Idea preview with editable chips */}
           {captureType === 'idea' && input.trim() && (
-            <div className="p-3 rounded-lg bg-muted/50">
+            <div className="p-3 rounded-lg bg-muted/50 space-y-3">
               <div className="text-sm font-medium flex items-center gap-2">
                 <Lightbulb className="h-4 w-4 text-yellow-500" />
                 {cleanIdeaInput(input) || '(enter your idea)'}
+              </div>
+              
+              {/* Idea chips */}
+              <div className="flex flex-wrap gap-2 items-center">
+                {/* Priority */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    {ideaData.priority ? (
+                      <Badge variant="secondary" className="text-xs cursor-pointer hover:bg-secondary/80 gap-1 pr-1">
+                        <Clock className="h-3 w-3" />
+                        {PRIORITY_OPTIONS.find(p => p.value === ideaData.priority)?.label}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setIdeaData(prev => ({ ...prev, priority: null })); }}
+                          className="ml-1 hover:bg-destructive/20 rounded-full p-0.5"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ) : (
+                      <Button variant="outline" size="sm" className="h-6 text-xs gap-1 text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        Priority
+                      </Button>
+                    )}
+                  </PopoverTrigger>
+                  <PopoverContent className="w-36 p-2" align="start">
+                    <div className="flex flex-col gap-1">
+                      {PRIORITY_OPTIONS.map(opt => (
+                        <Button
+                          key={opt.value}
+                          variant={ideaData.priority === opt.value ? 'default' : 'ghost'}
+                          size="sm"
+                          className="h-7 text-xs justify-start"
+                          onClick={() => setIdeaData(prev => ({ ...prev, priority: opt.value }))}
+                        >
+                          {opt.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                {/* Project */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    {ideaData.projectId ? (
+                      <Badge variant="secondary" className="text-xs cursor-pointer hover:bg-secondary/80 gap-1 pr-1">
+                        <FolderKanban className="h-3 w-3" />
+                        {projects.find(p => p.id === ideaData.projectId)?.name || 'Project'}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setIdeaData(prev => ({ ...prev, projectId: null })); }}
+                          className="ml-1 hover:bg-destructive/20 rounded-full p-0.5"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ) : (
+                      <Button variant="outline" size="sm" className="h-6 text-xs gap-1 text-muted-foreground">
+                        <FolderKanban className="h-3 w-3" />
+                        Project
+                      </Button>
+                    )}
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48 p-2" align="start">
+                    <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
+                      {projects.filter(p => !p.is_template).map(project => (
+                        <Button
+                          key={project.id}
+                          variant={ideaData.projectId === project.id ? 'default' : 'ghost'}
+                          size="sm"
+                          className="h-7 text-xs justify-start gap-2"
+                          onClick={() => setIdeaData(prev => ({ ...prev, projectId: project.id }))}
+                        >
+                          <div 
+                            className="w-2 h-2 rounded-full" 
+                            style={{ backgroundColor: project.color || 'hsl(var(--primary))' }}
+                          />
+                          {project.name}
+                        </Button>
+                      ))}
+                      {projects.filter(p => !p.is_template).length === 0 && (
+                        <p className="text-xs text-muted-foreground p-2">No projects yet</p>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                {/* Tags */}
+                {ideaData.tags.map(tag => (
+                  <Badge key={tag} variant="outline" className="text-xs gap-1 pr-1">
+                    <Hash className="h-3 w-3" />
+                    {tag}
+                    <button
+                      onClick={() => handleRemoveIdeaTag(tag)}
+                      className="ml-1 hover:bg-destructive/20 rounded-full p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+
+                {/* Add tag */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-6 text-xs gap-1 text-muted-foreground">
+                      <Plus className="h-3 w-3" />
+                      Tag
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-40 p-2" align="start">
+                    <div className="flex gap-1">
+                      <Input
+                        value={newIdeaTag}
+                        onChange={(e) => setNewIdeaTag(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddIdeaTag();
+                          }
+                        }}
+                        placeholder="Tag name"
+                        className="h-7 text-xs"
+                      />
+                      <Button size="sm" className="h-7" onClick={handleAddIdeaTag}>
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           )}

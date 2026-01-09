@@ -982,6 +982,9 @@ export type Database = {
           content: string
           created_at: string | null
           id: string
+          priority: string | null
+          project_id: string | null
+          tags: string[] | null
           updated_at: string | null
           user_id: string
         }
@@ -990,6 +993,9 @@ export type Database = {
           content: string
           created_at?: string | null
           id?: string
+          priority?: string | null
+          project_id?: string | null
+          tags?: string[] | null
           updated_at?: string | null
           user_id: string
         }
@@ -998,6 +1004,9 @@ export type Database = {
           content?: string
           created_at?: string | null
           id?: string
+          priority?: string | null
+          project_id?: string | null
+          tags?: string[] | null
           updated_at?: string | null
           user_id?: string
         }
@@ -1007,6 +1016,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "ideas_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ideas_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
