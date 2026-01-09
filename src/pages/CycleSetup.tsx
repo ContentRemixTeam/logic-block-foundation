@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,15 +11,57 @@ import { Layout } from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, X, Target, BarChart3, Brain, CalendarIcon, Users, Megaphone, DollarSign, ChevronLeft, ChevronRight, Check, Sparkles, Heart, TrendingUp } from 'lucide-react';
+import { Plus, X, Target, BarChart3, Brain, CalendarIcon, Users, Megaphone, DollarSign, ChevronLeft, ChevronRight, Check, Sparkles, Heart, TrendingUp, Upload, FileJson } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { format, addDays } from 'date-fns';
+import { format, addDays, parseISO } from 'date-fns';
 import { HelpButton } from '@/components/ui/help-button';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+
+interface WorkshopImportData {
+  startDate?: string;
+  goal?: string;
+  why?: string;
+  identity?: string;
+  feeling?: string;
+  discoverScore?: number;
+  nurtureScore?: number;
+  convertScore?: number;
+  biggestBottleneck?: string;
+  focusArea?: string;
+  audienceTarget?: string;
+  audienceFrustration?: string;
+  signatureMessage?: string;
+  leadPlatform?: string;
+  leadContentType?: string;
+  leadFrequency?: string;
+  leadCommitted?: boolean;
+  nurtureMethod?: string;
+  nurtureFrequency?: string;
+  freeTransformation?: string;
+  proofMethods?: string[];
+  offers?: Array<{
+    name: string;
+    price: string;
+    frequency: string;
+    transformation: string;
+    isPrimary: boolean;
+  }>;
+  revenueGoal?: string;
+  pricePerSale?: string;
+  salesNeeded?: number;
+  launchSchedule?: string;
+  monthPlans?: Array<{
+    monthName: string;
+    projects: string;
+    salesPromos: string;
+    mainFocus: string;
+  }>;
+}
 
 interface Offer {
   name: string;
@@ -64,6 +106,113 @@ export default function CycleSetup() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importJson, setImportJson] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Import from workshop JSON
+  const handleImportFromJson = (jsonData: WorkshopImportData) => {
+    try {
+      // Step 1: Dates & Goal
+      if (jsonData.startDate) {
+        try {
+          setStartDate(parseISO(jsonData.startDate));
+        } catch (e) {
+          setStartDate(new Date());
+        }
+      }
+      if (jsonData.goal) setGoal(jsonData.goal);
+      if (jsonData.why) setWhy(jsonData.why);
+      if (jsonData.identity) setIdentity(jsonData.identity);
+      if (jsonData.feeling) setFeeling(jsonData.feeling);
+
+      // Step 2: Business Diagnostic
+      if (jsonData.discoverScore !== undefined) setDiscoverScore(jsonData.discoverScore);
+      if (jsonData.nurtureScore !== undefined) setNurtureScore(jsonData.nurtureScore);
+      if (jsonData.convertScore !== undefined) setConvertScore(jsonData.convertScore);
+      if (jsonData.biggestBottleneck) setBiggestBottleneck(jsonData.biggestBottleneck);
+
+      // Step 3: Audience & Message
+      if (jsonData.audienceTarget) setAudienceTarget(jsonData.audienceTarget);
+      if (jsonData.audienceFrustration) setAudienceFrustration(jsonData.audienceFrustration);
+      if (jsonData.signatureMessage) setSignatureMessage(jsonData.signatureMessage);
+
+      // Step 4: Lead Gen Strategy
+      if (jsonData.leadPlatform) setLeadPlatform(jsonData.leadPlatform);
+      if (jsonData.leadContentType) setLeadContentType(jsonData.leadContentType);
+      if (jsonData.leadFrequency) setLeadFrequency(jsonData.leadFrequency);
+      if (jsonData.leadCommitted !== undefined) setLeadCommitted(jsonData.leadCommitted);
+
+      // Step 5: Nurture Strategy
+      if (jsonData.nurtureMethod) setNurtureMethod(jsonData.nurtureMethod);
+      if (jsonData.nurtureFrequency) setNurtureFrequency(jsonData.nurtureFrequency);
+      if (jsonData.freeTransformation) setFreeTransformation(jsonData.freeTransformation);
+      if (jsonData.proofMethods) setProofMethods(jsonData.proofMethods);
+
+      // Step 6: Offers
+      if (jsonData.offers && jsonData.offers.length > 0) {
+        setOffers(jsonData.offers);
+      }
+
+      // Step 7: Revenue & Months
+      if (jsonData.revenueGoal) setRevenueGoal(jsonData.revenueGoal);
+      if (jsonData.pricePerSale) setPricePerSale(jsonData.pricePerSale);
+      if (jsonData.launchSchedule) setLaunchSchedule(jsonData.launchSchedule);
+      if (jsonData.monthPlans && jsonData.monthPlans.length > 0) {
+        setMonthPlans(jsonData.monthPlans);
+      }
+
+      toast({
+        title: 'Workshop plan imported!',
+        description: 'Your data has been loaded. Review and add habits/projects, then save.',
+      });
+      setShowImportDialog(false);
+      setImportJson('');
+    } catch (error) {
+      console.error('Import error:', error);
+      toast({
+        title: 'Import failed',
+        description: 'Could not parse the JSON data. Make sure it\'s a valid workshop export.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const data = JSON.parse(content);
+        handleImportFromJson(data);
+      } catch (error) {
+        toast({
+          title: 'Invalid file',
+          description: 'Could not read the JSON file.',
+          variant: 'destructive',
+        });
+      }
+    };
+    reader.readAsText(file);
+    // Reset the input so the same file can be selected again
+    event.target.value = '';
+  };
+
+  const handlePasteImport = () => {
+    try {
+      const data = JSON.parse(importJson);
+      handleImportFromJson(data);
+    } catch (error) {
+      toast({
+        title: 'Invalid JSON',
+        description: 'Could not parse the JSON. Make sure it\'s a valid workshop export.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   // Step 1: Dates & Goal
   const [startDate, setStartDate] = useState<Date>(new Date());
@@ -395,16 +544,90 @@ export default function CycleSetup() {
     <Layout>
       <div className="mx-auto max-w-4xl space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold">Create Your 90-Day Cycle</h1>
             <p className="text-muted-foreground">
               Define your goals and strategy for the next 90 days
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
-            Dashboard
-          </Button>
+          <div className="flex gap-2">
+            <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import Workshop Plan
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Import Workshop Plan</DialogTitle>
+                  <DialogDescription>
+                    Import your 90-day plan from the free Workshop Planner
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  {/* File Upload */}
+                  <div>
+                    <input
+                      type="file"
+                      accept=".json"
+                      ref={fileInputRef}
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                    <Button
+                      variant="outline"
+                      className="w-full h-24 border-dashed"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <FileJson className="h-8 w-8 text-muted-foreground" />
+                        <span>Click to upload JSON file</span>
+                      </div>
+                    </Button>
+                  </div>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">Or paste JSON</span>
+                    </div>
+                  </div>
+
+                  {/* Paste JSON */}
+                  <div className="space-y-2">
+                    <Textarea
+                      placeholder='Paste your exported JSON here...'
+                      value={importJson}
+                      onChange={(e) => setImportJson(e.target.value)}
+                      rows={6}
+                      className="font-mono text-xs"
+                    />
+                    <Button
+                      onClick={handlePasteImport}
+                      disabled={!importJson.trim()}
+                      className="w-full"
+                    >
+                      Import from JSON
+                    </Button>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground text-center">
+                    Don't have a plan yet?{' '}
+                    <a href="/workshop-planner" target="_blank" className="text-primary hover:underline">
+                      Try our free Workshop Planner
+                    </a>
+                  </p>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
+              Dashboard
+            </Button>
+          </div>
         </div>
 
         {/* Progress Bar */}
