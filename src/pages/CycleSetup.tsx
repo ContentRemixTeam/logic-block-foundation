@@ -24,6 +24,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useCycleSetupDraft, CycleSetupDraft, SecondaryPlatform } from '@/hooks/useCycleSetupDraft';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { AutopilotSetupModal, AutopilotOptions } from '@/components/cycle/AutopilotSetupModal';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+
+const WORKSHOP_STORAGE_KEY = 'workshop-planner-data';
 
 interface WorkshopImportData {
   startDate?: string;
@@ -183,6 +186,7 @@ export default function CycleSetup() {
   const [showDraftDialog, setShowDraftDialog] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [showAutopilotModal, setShowAutopilotModal] = useState(false);
+  const [showWorkshopImportBanner, setShowWorkshopImportBanner] = useState(false);
   
   const { hasDraft, saveDraft, loadDraft, clearDraft, getDraftAge } = useCycleSetupDraft();
 
@@ -367,6 +371,41 @@ export default function CycleSetup() {
       setShowDraftDialog(true);
     }
   }, [hasDraft]);
+
+  // Check for workshop planner data on mount
+  useEffect(() => {
+    try {
+      const workshopData = localStorage.getItem(WORKSHOP_STORAGE_KEY);
+      if (workshopData && !hasDraft) {
+        setShowWorkshopImportBanner(true);
+      }
+    } catch (e) {
+      console.error('Failed to check workshop data:', e);
+    }
+  }, [hasDraft]);
+
+  // Import from workshop localStorage
+  const handleImportFromWorkshop = () => {
+    try {
+      const workshopData = localStorage.getItem(WORKSHOP_STORAGE_KEY);
+      if (workshopData) {
+        const data = JSON.parse(workshopData);
+        handleImportFromJson(data);
+        setShowWorkshopImportBanner(false);
+        toast({
+          title: 'Workshop plan imported!',
+          description: 'Your data has been loaded. Review each step and add habits/projects.',
+        });
+      }
+    } catch (error) {
+      console.error('Import error:', error);
+      toast({
+        title: 'Import failed',
+        description: 'Could not import workshop data.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   // Restore draft data
   const handleRestoreDraft = useCallback(() => {
@@ -896,6 +935,25 @@ export default function CycleSetup() {
       </AlertDialog>
 
       <div className="mx-auto max-w-4xl space-y-6">
+        {/* Workshop Import Banner */}
+        {showWorkshopImportBanner && (
+          <Alert className="border-primary/30 bg-primary/5">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <AlertTitle>Workshop Plan Detected!</AlertTitle>
+            <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <span>We found your workshop planner data. Import it to pre-fill this form.</span>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleImportFromWorkshop}>
+                  Import Now
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setShowWorkshopImportBanner(false)}>
+                  Dismiss
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
