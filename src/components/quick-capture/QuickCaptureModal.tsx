@@ -12,7 +12,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTaskMutations } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
-import { Zap, ListTodo, Lightbulb, LogIn, Calendar, Plus, Mic, MicOff, FolderKanban, Clock, Hash, X } from 'lucide-react';
+import { Zap, ListTodo, Lightbulb, LogIn, Calendar, Plus, Mic, MicOff, FolderKanban, Clock, Hash, X, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import {
@@ -27,6 +27,7 @@ import { EditableChips } from './EditableChips';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ContentSaveModal } from '@/components/content/ContentSaveModal';
 
 interface QuickCaptureModalProps {
   open: boolean;
@@ -66,6 +67,7 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
   const [showConvertChips, setShowConvertChips] = useState(false);
   const [userOverrodeType, setUserOverrodeType] = useState(false);
   const [newIdeaTag, setNewIdeaTag] = useState('');
+  const [contentModalOpen, setContentModalOpen] = useState(false);
 
   // Speech dictation
   const {
@@ -317,6 +319,12 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
   };
 
   const toggleCaptureType = (type: CaptureType, isUserOverride: boolean = false) => {
+    if (type === 'content') {
+      // Open content modal and close quick capture
+      onOpenChange(false);
+      setContentModalOpen(true);
+      return;
+    }
     setCaptureType(type);
     setLastCaptureType(type);
     if (isUserOverride) {
@@ -371,6 +379,15 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
             >
               <Lightbulb className="h-4 w-4" />
               Idea
+            </Button>
+            <Button
+              variant={captureType === 'content' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => toggleCaptureType('content', true)}
+              className="gap-1"
+            >
+              <FileText className="h-4 w-4" />
+              Content
             </Button>
           </div>
 
@@ -651,10 +668,19 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        {modalContent}
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          {modalContent}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Content Save Modal */}
+      <ContentSaveModal
+        open={contentModalOpen}
+        onOpenChange={setContentModalOpen}
+        onSaved={() => {}}
+      />
+    </>
   );
 }

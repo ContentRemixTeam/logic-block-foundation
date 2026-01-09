@@ -1,4 +1,4 @@
-export type CaptureType = 'task' | 'idea';
+export type CaptureType = 'task' | 'idea' | 'content';
 
 export interface ParsedTask {
   text: string;
