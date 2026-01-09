@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Target,
   CalendarDays,
-  Calendar,
   CheckSquare,
   Zap,
   Brain,
@@ -22,12 +21,8 @@ import {
   Flame,
   BookMarked,
   Lightbulb,
-  Video,
-  GraduationCap,
-  Ticket,
-  Archive,
-  MessageCircle,
   FolderKanban,
+  Sparkle,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
@@ -281,99 +276,15 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild className="quest-nav-item">
-                  <a href="https://airtable.com/appP01GhbZAtwT4nN/shrIRdOHFXijc8462" target="_blank" rel="noopener noreferrer">
+                <SidebarMenuButton asChild isActive={isActive('/mastermind')} className="quest-nav-item">
+                  <Link to="/mastermind">
                     {isQuestMode ? (
-                      <span className="quest-nav-icon text-base">🙋</span>
+                      <span className="quest-nav-icon text-base">🎓</span>
                     ) : (
-                      <HelpCircle className="h-4 w-4" />
+                      <Sparkle className="h-4 w-4" />
                     )}
-                    <span>Ask Faith</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild className="quest-nav-item">
-                  <a href="https://gobrunch.com/events/389643/589970" target="_blank" rel="noopener noreferrer">
-                    {isQuestMode ? (
-                      <span className="quest-nav-icon text-base">👥</span>
-                    ) : (
-                      <Users className="h-4 w-4" />
-                    )}
-                    <span>Coworking Room</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild className="quest-nav-item">
-                  <a href="https://portal.faithmariah.com/communities/groups/mastermind/learning?productId=8cd48d79-e6dd-4e11-9e4c-5d643703bad1" target="_blank" rel="noopener noreferrer">
-                    {isQuestMode ? (
-                      <span className="quest-nav-icon text-base">🎬</span>
-                    ) : (
-                      <Video className="h-4 w-4" />
-                    )}
-                    <span>Recent Call Replays</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild className="quest-nav-item">
-                  <a href="https://www.faithmariahevents.com/" target="_blank" rel="noopener noreferrer">
-                    {isQuestMode ? (
-                      <span className="quest-nav-icon text-base">🎟️</span>
-                    ) : (
-                      <Ticket className="h-4 w-4" />
-                    )}
-                    <span>Apply for Upcoming Events</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild className="quest-nav-item">
-                  <a href="https://portal.faithmariah.com/communities/groups/mastermind/learning" target="_blank" rel="noopener noreferrer">
-                    {isQuestMode ? (
-                      <span className="quest-nav-icon text-base">📚</span>
-                    ) : (
-                      <GraduationCap className="h-4 w-4" />
-                    )}
-                    <span>Learning</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild className="quest-nav-item">
-                  <a href="https://portal.faithmariah.com/communities/groups/mastermind/events" target="_blank" rel="noopener noreferrer">
-                    {isQuestMode ? (
-                      <span className="quest-nav-icon text-base">📅</span>
-                    ) : (
-                      <Calendar className="h-4 w-4" />
-                    )}
-                    <span>Events</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild className="quest-nav-item">
-                  <a href="https://portal.faithmariah.com/communities/groups/mastermind/home" target="_blank" rel="noopener noreferrer">
-                    {isQuestMode ? (
-                      <span className="quest-nav-icon text-base">💬</span>
-                    ) : (
-                      <MessageCircle className="h-4 w-4" />
-                    )}
-                    <span>Community</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild className="quest-nav-item">
-                  <a href="https://hub-3pwl3413w2.membership.io/" target="_blank" rel="noopener noreferrer">
-                    {isQuestMode ? (
-                      <span className="quest-nav-icon text-base">🗄️</span>
-                    ) : (
-                      <Archive className="h-4 w-4" />
-                    )}
-                    <span>Replay Vault</span>
-                  </a>
+                    <span>Mastermind Hub</span>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
