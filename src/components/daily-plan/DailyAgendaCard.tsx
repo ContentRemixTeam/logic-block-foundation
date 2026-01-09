@@ -42,6 +42,10 @@ export function DailyAgendaCard({ date = new Date(), onTaskToggle }: DailyAgenda
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
 
+  // Extract primitive values to avoid re-render loops
+  const isConnected = calendarStatus.connected;
+  const isCalendarSelected = calendarStatus.calendarSelected;
+
   const today = useMemo(() => startOfDay(date), [date]);
   const todayStr = format(today, 'yyyy-MM-dd');
   const dateDisplay = format(today, 'EEEE, MMMM d');
@@ -49,7 +53,7 @@ export function DailyAgendaCard({ date = new Date(), onTaskToggle }: DailyAgenda
   // Fetch calendar events
   useEffect(() => {
     const fetchCalendarEvents = async () => {
-      if (!calendarStatus.connected || !calendarStatus.calendarSelected) {
+      if (!isConnected || !isCalendarSelected) {
         setLoadingEvents(false);
         return;
       }
@@ -72,7 +76,7 @@ export function DailyAgendaCard({ date = new Date(), onTaskToggle }: DailyAgenda
     };
 
     fetchCalendarEvents();
-  }, [calendarStatus.connected, calendarStatus.calendarSelected, todayStr]);
+  }, [isConnected, isCalendarSelected, todayStr]);
 
   // Filter tasks for today
   const todayTasks = useMemo(() => {

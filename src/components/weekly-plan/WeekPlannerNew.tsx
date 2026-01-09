@@ -56,6 +56,10 @@ export function WeekPlannerNew({
     handleOAuthReturn,
   } = useGoogleCalendar();
 
+  // Extract primitive values to avoid re-render loops
+  const isGoogleConnected = googleStatus.connected;
+  const isCalendarSelected = googleStatus.calendarSelected;
+
   // Calendar events
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
@@ -110,36 +114,35 @@ export function WeekPlannerNew({
   }, []);
 
   // Fetch calendar events for the current week
-  const fetchCalendarEvents = useCallback(async () => {
-    if (!googleStatus.connected || !googleStatus.calendarSelected) {
-      setCalendarEvents([]);
-      return;
-    }
-
-    setLoadingEvents(true);
-    try {
-      const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: weekStartDay as 0 | 1 });
-      const startDate = currentWeekStart.toISOString();
-      const endDate = addDays(weekEnd, 1).toISOString();
-
-      const { data, error } = await supabase.functions.invoke('get-calendar-events', {
-        body: { startDate, endDate },
-      });
-
-      if (error) throw error;
-      setCalendarEvents(data?.events || []);
-    } catch (error) {
-      console.error('Error fetching calendar events:', error);
-      setCalendarEvents([]);
-    } finally {
-      setLoadingEvents(false);
-    }
-  }, [currentWeekStart, weekStartDay, googleStatus.connected, googleStatus.calendarSelected]);
-
-  // Fetch events when week changes or google connects
   useEffect(() => {
+    const fetchCalendarEvents = async () => {
+      if (!isGoogleConnected || !isCalendarSelected) {
+        setCalendarEvents([]);
+        return;
+      }
+
+      setLoadingEvents(true);
+      try {
+        const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: weekStartDay as 0 | 1 });
+        const startDate = currentWeekStart.toISOString();
+        const endDate = addDays(weekEnd, 1).toISOString();
+
+        const { data, error } = await supabase.functions.invoke('get-calendar-events', {
+          body: { startDate, endDate },
+        });
+
+        if (error) throw error;
+        setCalendarEvents(data?.events || []);
+      } catch (error) {
+        console.error('Error fetching calendar events:', error);
+        setCalendarEvents([]);
+      } finally {
+        setLoadingEvents(false);
+      }
+    };
+
     fetchCalendarEvents();
-  }, [fetchCalendarEvents]);
+  }, [currentWeekStart, weekStartDay, isGoogleConnected, isCalendarSelected]);
 
   const handleTaskDrop = async (taskId: string, fromPlannedDay: string | null, targetDate: string, timeSlot?: string) => {
     // Get the task to save previous state for undo
