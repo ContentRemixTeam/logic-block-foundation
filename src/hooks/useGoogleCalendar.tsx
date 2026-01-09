@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { logApiError } from '@/lib/errorLogger';
 
 export interface GoogleCalendar {
   id: string;
@@ -168,12 +169,19 @@ export function useGoogleCalendar() {
       setSyncing(true);
       const { data, error } = await supabase.functions.invoke('google-poll-changes');
 
-      if (error) throw error;
+      if (error) {
+        // Log the error for admin visibility
+        await logApiError('google-poll-changes', error, { action: 'sync' });
+        throw error;
+      }
 
       if (data.requiresRetry) {
         // Sync token expired, retry
         const { data: retryData, error: retryError } = await supabase.functions.invoke('google-poll-changes');
-        if (retryError) throw retryError;
+        if (retryError) {
+          await logApiError('google-poll-changes', retryError, { action: 'sync-retry' });
+          throw retryError;
+        }
         
         toast({
           title: 'Sync complete',
@@ -187,11 +195,13 @@ export function useGoogleCalendar() {
       }
 
       await fetchStatus();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error syncing:', error);
+      // Log to backend for admin visibility
+      await logApiError('google-poll-changes', error, { action: 'sync-failed' });
       toast({
         title: 'Sync failed',
-        description: 'Could not sync with Google Calendar.',
+        description: error?.message || 'Could not sync with Google Calendar.',
         variant: 'destructive',
       });
     } finally {

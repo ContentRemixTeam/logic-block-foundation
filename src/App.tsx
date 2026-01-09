@@ -44,6 +44,7 @@ import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
 import MastermindHub from "./pages/MastermindHub";
 import WorkshopPlanner from "./pages/WorkshopPlanner";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 // Configure QueryClient with stability-focused defaults
@@ -122,6 +123,7 @@ const App = () => (
                   <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                   <Route path="/capture" element={<CaptureLaunchPage />} />
                   <Route path="/workshop-planner" element={<WorkshopPlanner />} />
+                  <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </QuickCaptureProvider>
