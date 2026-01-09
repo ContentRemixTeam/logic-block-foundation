@@ -37,6 +37,9 @@ export interface CycleSetupDraft {
   leadPlatformGoal: string;
   leadCommitted: boolean;
   secondaryPlatforms: SecondaryPlatform[];
+  postingDays: string[];
+  postingTime: string;
+  batchDay: string;
 
   // Step 5: Nurture Strategy
   nurtureMethod: string;
@@ -99,6 +102,9 @@ const DEFAULT_DRAFT: CycleSetupDraft = {
   leadPlatformGoal: 'leads',
   leadCommitted: false,
   secondaryPlatforms: [],
+  postingDays: [],
+  postingTime: '',
+  batchDay: '',
   nurtureMethod: '',
   nurtureFrequency: '',
   freeTransformation: '',
