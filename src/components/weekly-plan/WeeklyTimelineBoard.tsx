@@ -104,9 +104,11 @@ export function WeeklyTimelineBoard({
       if (task.time_block_start) {
         let hour: number;
         // Handle both full ISO timestamps and simple time strings
+        // IMPORTANT: Extract hour directly from string to avoid timezone conversion bugs
         if (task.time_block_start.includes('T')) {
-          // Full ISO timestamp: "2026-01-09T09:00:00"
-          hour = new Date(task.time_block_start).getHours();
+          // Full ISO timestamp: "2026-01-09T09:00:00" - parse directly without Date object
+          const timeMatch = task.time_block_start.match(/T(\d{2}):/);
+          hour = timeMatch ? parseInt(timeMatch[1], 10) : 0;
         } else {
           // Simple time string: "09:00" (legacy support)
           hour = parseInt(task.time_block_start.split(':')[0], 10);
