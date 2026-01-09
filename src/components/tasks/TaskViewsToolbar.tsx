@@ -1,8 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Plus, Columns, Calendar, Clock3, AlertTriangle, 
-  CalendarSync, LayoutList
+  Plus, Columns, Clock3, AlertTriangle, 
+  CalendarSync, LayoutList, Filter
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ViewMode } from './types';
@@ -25,81 +25,75 @@ export function TaskViewsToolbar({
   overdueCount,
   isCalendarConnected = false,
   onConnectCalendar,
-  showOverdue = false,
-  onShowOverdueChange,
 }: TaskViewsToolbarProps) {
   return (
-    <div className="space-y-3">
-      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-        Views
-      </h2>
-      
-      <div className="flex flex-wrap gap-2">
-        {/* Add Task - Primary */}
-        <Button onClick={onAddTask} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Task
-        </Button>
-
-        {/* View Mode Buttons */}
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* Left: View Toggles */}
+      <div className="flex items-center gap-2">
         <Button
-          variant={viewMode === 'kanban' ? 'secondary' : 'outline'}
-          onClick={() => onViewModeChange('kanban')}
-          className="gap-2"
-        >
-          <Columns className="h-4 w-4" />
-          Kanban Board
-        </Button>
-
-        <Button
-          variant={viewMode === 'list' ? 'secondary' : 'outline'}
+          variant={viewMode === 'list' ? 'default' : 'outline'}
+          size="sm"
           onClick={() => onViewModeChange('list')}
           className="gap-2"
         >
           <LayoutList className="h-4 w-4" />
-          List View
+          <span className="hidden sm:inline">List</span>
+        </Button>
+        
+        <Button
+          variant={viewMode === 'kanban' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => onViewModeChange('kanban')}
+          className="gap-2"
+        >
+          <Columns className="h-4 w-4" />
+          <span className="hidden sm:inline">Board</span>
         </Button>
 
         <Button
-          variant={viewMode === 'timeline' ? 'secondary' : 'outline'}
+          variant={viewMode === 'timeline' ? 'default' : 'outline'}
+          size="sm"
           onClick={() => onViewModeChange('timeline')}
           className="gap-2"
         >
           <Clock3 className="h-4 w-4" />
-          Timeline View
+          <span className="hidden sm:inline">Timeline</span>
         </Button>
+
+        {/* Overdue indicator */}
+        {overdueCount > 0 && (
+          <Badge 
+            variant="destructive" 
+            className="gap-1 ml-2"
+          >
+            <AlertTriangle className="h-3 w-3" />
+            {overdueCount} overdue
+          </Badge>
+        )}
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {/* Overdue Tasks */}
-        {overdueCount > 0 && (
-          <Button
-            variant={showOverdue ? 'secondary' : 'outline'}
-            onClick={() => onShowOverdueChange?.(!showOverdue)}
-            className={cn(
-              "gap-2",
-              overdueCount > 0 && "border-destructive/50 text-destructive hover:bg-destructive/10"
-            )}
-          >
-            <AlertTriangle className="h-4 w-4" />
-            Overdue Tasks
-            <Badge variant="destructive" className="ml-1">
-              {overdueCount}
-            </Badge>
-          </Button>
-        )}
-
+      {/* Right: Actions */}
+      <div className="flex items-center gap-2">
         {/* Google Calendar */}
         {onConnectCalendar && (
           <Button
             variant="outline"
+            size="sm"
             onClick={onConnectCalendar}
             className="gap-2"
           >
             <CalendarSync className="h-4 w-4" />
-            {isCalendarConnected ? 'Google Calendar' : 'Connect Calendar'}
+            <span className="hidden sm:inline">
+              {isCalendarConnected ? 'Calendar' : 'Connect Calendar'}
+            </span>
           </Button>
         )}
+
+        {/* Add Task Button */}
+        <Button onClick={onAddTask} size="sm" className="gap-2">
+          <Plus className="h-4 w-4" />
+          Add Task
+        </Button>
       </div>
     </div>
   );
