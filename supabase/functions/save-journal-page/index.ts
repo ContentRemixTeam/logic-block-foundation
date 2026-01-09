@@ -17,6 +17,15 @@ function getUserIdFromJWT(authHeader: string): string | null {
   }
 }
 
+// Extract hashtags from content
+function extractHashtags(content: string): string[] {
+  if (!content) return [];
+  const regex = /#[\w-]+/g;
+  const matches = content.match(regex) || [];
+  // Return unique hashtags, lowercased
+  return [...new Set(matches.map(tag => tag.toLowerCase()))];
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -44,7 +53,12 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const body = await req.json();
-    const { id, title, content, tags, is_archived } = body;
+    const { id, title, content, tags, is_archived, project_id } = body;
+
+    // Auto-extract hashtags from content and merge with provided tags
+    const extractedTags = extractHashtags(content || '');
+    const providedTags = Array.isArray(tags) ? tags : [];
+    const allTags = [...new Set([...providedTags, ...extractedTags])];
 
     if (id) {
       // Update existing page
@@ -53,13 +67,17 @@ Deno.serve(async (req) => {
         .update({
           title: title || 'Untitled Page',
           content: content || '',
-          tags: tags || [],
+          tags: allTags,
           is_archived: is_archived || false,
+          project_id: project_id || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
         .eq('user_id', userId)
-        .select()
+        .select(`
+          *,
+          project:projects(id, name, color)
+        `)
         .single();
 
       if (error) {
@@ -81,9 +99,13 @@ Deno.serve(async (req) => {
           user_id: userId,
           title: title || 'Untitled Page',
           content: content || '',
-          tags: tags || [],
+          tags: allTags,
+          project_id: project_id || null,
         })
-        .select()
+        .select(`
+          *,
+          project:projects(id, name, color)
+        `)
         .single();
 
       if (error) {

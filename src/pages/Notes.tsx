@@ -33,10 +33,12 @@ import {
   Plus,
   FileText,
   Trash2,
-  Pencil
+  Pencil,
+  FolderOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useProjects } from '@/hooks/useProjects';
 
 interface JournalEntry {
   day_id: string;
@@ -57,6 +59,8 @@ interface JournalPage {
   content: string;
   tags: string[];
   is_archived: boolean;
+  project_id: string | null;
+  project?: { id: string; name: string; color: string } | null;
   created_at: string;
   updated_at: string;
 }
@@ -68,11 +72,13 @@ const HASHTAG_FILTERS = ['#task', '#idea', '#thought', '#win', '#offer'];
 
 export default function Notes() {
   const queryClient = useQueryClient();
+  const { data: projects = [] } = useProjects();
   const [activeTab, setActiveTab] = useState<ViewTab>('entries');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [searchQuery, setSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState<DateRange>('all');
   const [hashtagFilter, setHashtagFilter] = useState<string | null>(null);
+  const [projectFilter, setProjectFilter] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
   
@@ -81,6 +87,9 @@ export default function Notes() {
   const [editingPage, setEditingPage] = useState<JournalPage | null>(null);
   const [pageTitle, setPageTitle] = useState('');
   const [pageContent, setPageContent] = useState('');
+  const [pageProjectId, setPageProjectId] = useState<string | null>(null);
+  const [pageTags, setPageTags] = useState<string[]>([]);
+  const [newTagInput, setNewTagInput] = useState('');
 
   // Fetch journal entries
   const { data, isLoading } = useQuery({
@@ -109,15 +118,10 @@ export default function Notes() {
 
   // Fetch journal pages
   const { data: pagesData, isLoading: pagesLoading } = useQuery({
-    queryKey: ['journal-pages', searchQuery],
+    queryKey: ['journal-pages', searchQuery, projectFilter, hashtagFilter],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
-
-      const params = new URLSearchParams();
-      if (searchQuery.trim()) {
-        params.set('search', searchQuery.trim());
-      }
 
       const response = await supabase.functions.invoke('get-journal-pages', {
         headers: { Authorization: `Bearer ${session.access_token}` },
@@ -131,7 +135,13 @@ export default function Notes() {
 
   // Save page mutation
   const savePageMutation = useMutation({
-    mutationFn: async (pageData: { id?: string; title: string; content: string }) => {
+    mutationFn: async (pageData: { 
+      id?: string; 
+      title: string; 
+      content: string;
+      tags?: string[];
+      project_id?: string | null;
+    }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
@@ -181,6 +191,7 @@ export default function Notes() {
   const entries: JournalEntry[] = data?.data || [];
   const datesWithEntries: string[] = data?.datesWithEntries || [];
   const pages: JournalPage[] = pagesData?.pages || [];
+  const allTags: string[] = pagesData?.allTags || [];
 
   // Filter entries based on search, date range, and hashtag
   const filteredEntries = useMemo(() => {
@@ -212,15 +223,34 @@ export default function Notes() {
     return result;
   }, [entries, searchQuery, dateRange, hashtagFilter]);
 
-  // Filter pages based on search
+  // Filter pages based on search, project, and hashtag
   const filteredPages = useMemo(() => {
-    if (!searchQuery.trim()) return pages;
-    const query = searchQuery.toLowerCase();
-    return pages.filter(page => 
-      page.title?.toLowerCase().includes(query) ||
-      page.content?.toLowerCase().includes(query)
-    );
-  }, [pages, searchQuery]);
+    let result = pages;
+
+    // Filter by project
+    if (projectFilter) {
+      result = result.filter(page => page.project_id === projectFilter);
+    }
+
+    // Filter by hashtag
+    if (hashtagFilter && activeTab === 'pages') {
+      result = result.filter(page => {
+        const pageTags = Array.isArray(page.tags) ? page.tags : [];
+        return pageTags.some(t => t.toLowerCase().includes(hashtagFilter.toLowerCase()));
+      });
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(page => 
+        page.title?.toLowerCase().includes(query) ||
+        page.content?.toLowerCase().includes(query)
+      );
+    }
+
+    return result;
+  }, [pages, searchQuery, projectFilter, hashtagFilter, activeTab]);
 
   // Group entries by date for display
   const groupedEntries = useMemo(() => {
@@ -287,6 +317,7 @@ export default function Notes() {
     setSearchQuery('');
     setDateRange('all');
     setHashtagFilter(null);
+    setProjectFilter(null);
   };
 
   const toggleEntry = (id: string) => {
@@ -305,6 +336,9 @@ export default function Notes() {
     setEditingPage(null);
     setPageTitle('');
     setPageContent('');
+    setPageProjectId(null);
+    setPageTags([]);
+    setNewTagInput('');
     setPageModalOpen(true);
   };
 
@@ -312,6 +346,9 @@ export default function Notes() {
     setEditingPage(page);
     setPageTitle(page.title);
     setPageContent(page.content);
+    setPageProjectId(page.project_id);
+    setPageTags(Array.isArray(page.tags) ? page.tags : []);
+    setNewTagInput('');
     setPageModalOpen(true);
   };
 
@@ -320,6 +357,22 @@ export default function Notes() {
     setEditingPage(null);
     setPageTitle('');
     setPageContent('');
+    setPageProjectId(null);
+    setPageTags([]);
+    setNewTagInput('');
+  };
+
+  const handleAddTag = () => {
+    const tag = newTagInput.trim().toLowerCase();
+    if (tag && !pageTags.includes(tag)) {
+      const formattedTag = tag.startsWith('#') ? tag : `#${tag}`;
+      setPageTags([...pageTags, formattedTag]);
+    }
+    setNewTagInput('');
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setPageTags(pageTags.filter(t => t !== tagToRemove));
   };
 
   const handleSavePage = () => {
@@ -331,6 +384,8 @@ export default function Notes() {
       id: editingPage?.id,
       title: pageTitle.trim() || 'Untitled Page',
       content: pageContent,
+      tags: pageTags,
+      project_id: pageProjectId,
     });
   };
 
@@ -346,7 +401,7 @@ export default function Notes() {
     },
   };
 
-  const hasActiveFilters = selectedDate || searchQuery || dateRange !== 'all' || hashtagFilter;
+  const hasActiveFilters = selectedDate || searchQuery || dateRange !== 'all' || hashtagFilter || projectFilter;
 
   return (
     <Layout>
@@ -467,30 +522,55 @@ export default function Notes() {
                     </div>
                   </>
                 )}
+
+                {/* Project Filter - only for pages */}
+                {activeTab === 'pages' && projects.length > 0 && (
+                  <Select 
+                    value={projectFilter || 'all'} 
+                    onValueChange={(v) => setProjectFilter(v === 'all' ? null : v)}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <FolderOpen className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="All Projects" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Projects</SelectItem>
+                      {projects.map(project => (
+                        <SelectItem key={project.id} value={project.id}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: project.color || '#6B7280' }}
+                            />
+                            {project.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
-              {/* Hashtag Filters - only for entries */}
-              {activeTab === 'entries' && (
-                <div className="flex flex-wrap gap-2 items-center">
-                  <Hash className="h-4 w-4 text-muted-foreground" />
-                  {HASHTAG_FILTERS.map(tag => (
-                    <Badge
-                      key={tag}
-                      variant={hashtagFilter === tag ? "default" : "outline"}
-                      className="cursor-pointer hover:bg-primary/20 transition-colors"
-                      onClick={() => setHashtagFilter(hashtagFilter === tag ? null : tag)}
-                    >
-                      {tag}
-                    </Badge>
-                  ))}
-                  {hasActiveFilters && (
-                    <Button variant="ghost" size="sm" onClick={clearFilters} className="ml-auto">
-                      <X className="h-4 w-4 mr-1" />
-                      Clear filters
-                    </Button>
-                  )}
-                </div>
-              )}
+              {/* Hashtag Filters */}
+              <div className="flex flex-wrap gap-2 items-center">
+                <Hash className="h-4 w-4 text-muted-foreground" />
+                {(activeTab === 'entries' ? HASHTAG_FILTERS : [...new Set([...HASHTAG_FILTERS, ...allTags])]).map(tag => (
+                  <Badge
+                    key={tag}
+                    variant={hashtagFilter === tag ? "default" : "outline"}
+                    className="cursor-pointer hover:bg-primary/20 transition-colors"
+                    onClick={() => setHashtagFilter(hashtagFilter === tag ? null : tag)}
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+                {hasActiveFilters && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters} className="ml-auto">
+                    <X className="h-4 w-4 mr-1" />
+                    Clear filters
+                  </Button>
+                )}
+              </div>
 
               {/* Stats */}
               <div className="flex gap-4 text-sm text-muted-foreground border-t pt-3">
@@ -677,13 +757,13 @@ export default function Notes() {
               <Card>
                 <CardContent className="py-12 text-center">
                   <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  {searchQuery ? (
+                  {searchQuery || projectFilter || hashtagFilter ? (
                     <>
                       <h3 className="font-medium mb-2">No pages found</h3>
                       <p className="text-muted-foreground text-sm mb-4">
-                        Try adjusting your search
+                        Try adjusting your search or filters
                       </p>
-                      <Button variant="outline" onClick={() => setSearchQuery('')}>Clear search</Button>
+                      <Button variant="outline" onClick={clearFilters}>Clear filters</Button>
                     </>
                   ) : (
                     <>
@@ -709,15 +789,43 @@ export default function Notes() {
                           className="flex-1 min-w-0 cursor-pointer"
                           onClick={() => openEditPageModal(page)}
                         >
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <FileText className="h-4 w-4 text-primary shrink-0" />
                             <h3 className="font-medium truncate">
                               {searchQuery ? highlightText(page.title, searchQuery) : page.title}
                             </h3>
+                            {page.project && (
+                              <Badge 
+                                variant="outline" 
+                                className="text-xs"
+                                style={{ 
+                                  borderColor: page.project.color || undefined,
+                                  color: page.project.color || undefined,
+                                }}
+                              >
+                                <FolderOpen className="h-3 w-3 mr-1" />
+                                {page.project.name}
+                              </Badge>
+                            )}
                           </div>
                           <p className="text-sm text-muted-foreground line-clamp-2">
                             {searchQuery ? highlightText(getPreview(page.content, 120), searchQuery) : getPreview(page.content, 120)}
                           </p>
+                          {/* Tags */}
+                          {Array.isArray(page.tags) && page.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {page.tags.slice(0, 5).map(tag => (
+                                <Badge key={tag} variant="secondary" className="text-xs">
+                                  {tag}
+                                </Badge>
+                              ))}
+                              {page.tags.length > 5 && (
+                                <Badge variant="secondary" className="text-xs">
+                                  +{page.tags.length - 5} more
+                                </Badge>
+                              )}
+                            </div>
+                          )}
                           <p className="text-xs text-muted-foreground mt-2">
                             Updated {format(parseISO(page.updated_at), 'MMM d, yyyy h:mm a')}
                           </p>
@@ -779,11 +887,90 @@ export default function Notes() {
                 onChange={(e) => setPageTitle(e.target.value)}
                 className="text-lg font-medium"
               />
+              
+              {/* Project Selector */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <FolderOpen className="h-4 w-4" />
+                  Project
+                </label>
+                <Select 
+                  value={pageProjectId || 'none'} 
+                  onValueChange={(v) => setPageProjectId(v === 'none' ? null : v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a project (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No project</SelectItem>
+                    {projects.map(project => (
+                      <SelectItem key={project.id} value={project.id}>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: project.color || '#6B7280' }}
+                          />
+                          {project.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Tags */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Hash className="h-4 w-4" />
+                  Tags
+                </label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {pageTags.map(tag => (
+                    <Badge key={tag} variant="secondary" className="gap-1">
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTag(tag)}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Add a tag (e.g., idea, task, win)..."
+                    value={newTagInput}
+                    onChange={(e) => setNewTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddTag();
+                      }
+                    }}
+                    className="flex-1"
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon"
+                    onClick={handleAddTag}
+                    disabled={!newTagInput.trim()}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Tip: Hashtags in your content (like #idea) are auto-extracted as tags
+                </p>
+              </div>
+
               <Textarea
-                placeholder="Start writing your ideas..."
+                placeholder="Start writing your ideas... Use #hashtags to tag content automatically."
                 value={pageContent}
                 onChange={(e) => setPageContent(e.target.value)}
-                className="min-h-[300px] resize-none"
+                className="min-h-[250px] resize-none"
               />
             </div>
             <DialogFooter className="gap-2">

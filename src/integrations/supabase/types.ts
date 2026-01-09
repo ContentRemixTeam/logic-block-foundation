@@ -1381,6 +1381,7 @@ export type Database = {
           created_at: string | null
           id: string
           is_archived: boolean | null
+          project_id: string | null
           tags: Json | null
           title: string
           updated_at: string | null
@@ -1391,6 +1392,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_archived?: boolean | null
+          project_id?: string | null
           tags?: Json | null
           title?: string
           updated_at?: string | null
@@ -1401,12 +1403,21 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_archived?: boolean | null
+          project_id?: string | null
           tags?: Json | null
           title?: string
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "journal_pages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mindset_categories: {
         Row: {
