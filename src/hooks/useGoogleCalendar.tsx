@@ -77,12 +77,15 @@ export function useGoogleCalendar() {
   }, [fetchStatus]);
 
   // Handle OAuth return from redirect flow
-  const handleOAuthReturn = useCallback(async () => {
+  const handleOAuthReturn = useCallback(() => {
     const params = new URLSearchParams(window.location.search);
     const oauthStatus = params.get('oauth');
     const calendarsParam = params.get('calendars');
     const errorParam = params.get('error');
     const emailParam = params.get('email');
+    
+    // Only process once if there are OAuth params
+    if (!oauthStatus) return;
     
     // Store params for debugging
     lastOAuthParams = Object.fromEntries(params.entries());
@@ -126,16 +129,8 @@ export function useGoogleCalendar() {
       
       toast({
         title: 'Connection failed',
-        description: friendlyError,
+        description: `${friendlyError}. Please try connecting again.`,
         variant: 'destructive',
-        action: (
-          <button
-            onClick={() => connect()}
-            className="text-xs underline hover:no-underline"
-          >
-            Try again
-          </button>
-        ),
       });
       window.history.replaceState({}, '', window.location.pathname);
     }

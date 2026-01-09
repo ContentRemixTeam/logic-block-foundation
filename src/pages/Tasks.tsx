@@ -67,10 +67,11 @@ export default function Tasks() {
     handleOAuthReturn 
   } = useGoogleCalendar();
 
-  // Handle OAuth return on mount
+  // Handle OAuth return on mount - only once
   useEffect(() => {
     handleOAuthReturn();
-  }, [handleOAuthReturn]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   // View state
   const [viewMode, setViewMode] = useState<ViewMode>('database');

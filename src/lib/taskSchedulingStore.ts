@@ -85,19 +85,38 @@ export const scheduleStore = {
 };
 
 // Hook to use in React components
+// Create stable snapshot function to avoid infinite re-renders
+function getSnapshot() {
+  return {
+    highlightedSlots,
+    undoHistory: [...undoHistory],
+  };
+}
+
+// Cache the last snapshot to avoid creating new objects unnecessarily
+let cachedSnapshot = getSnapshot();
+let lastHighlightedSize = highlightedSlots.size;
+let lastUndoLength = undoHistory.length;
+
+function getStableSnapshot() {
+  // Only create new snapshot if data actually changed
+  if (highlightedSlots.size !== lastHighlightedSize || undoHistory.length !== lastUndoLength) {
+    cachedSnapshot = getSnapshot();
+    lastHighlightedSize = highlightedSlots.size;
+    lastUndoLength = undoHistory.length;
+  }
+  return cachedSnapshot;
+}
+
 export function useScheduleStore() {
-  const state = useSyncExternalStore(
+  useSyncExternalStore(
     scheduleStore.subscribe,
-    () => ({
-      highlightedSlots: scheduleStore.getHighlightedSlots(),
-      undoHistory: scheduleStore.getUndoHistory(),
-    })
+    getStableSnapshot
   );
   
   return {
-    ...state,
-    addHighlightedSlot: scheduleStore.addHighlightedSlot,
     isSlotHighlighted: scheduleStore.isSlotHighlighted,
+    addHighlightedSlot: scheduleStore.addHighlightedSlot,
     pushUndo: scheduleStore.pushUndo,
     popUndo: scheduleStore.popUndo,
     peekUndo: scheduleStore.peekUndo,

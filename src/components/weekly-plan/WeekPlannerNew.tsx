@@ -103,10 +103,11 @@ export function WeekPlannerNew({
     loadSettings();
   }, [loadSettings]);
 
-  // Handle OAuth return from Google
+  // Handle OAuth return from Google - only once on mount
   useEffect(() => {
     handleOAuthReturn();
-  }, [handleOAuthReturn]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Fetch calendar events for the current week
   const fetchCalendarEvents = useCallback(async () => {
