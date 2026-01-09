@@ -1,4 +1,4 @@
-import { Task, ENERGY_LEVELS, CONTEXT_TAGS } from '@/components/tasks/types';
+import { Task, ENERGY_LEVELS, CONTEXT_TAGS, ChecklistItem, ChecklistProgress } from '@/components/tasks/types';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,9 +10,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Trash2, Clock } from 'lucide-react';
+import { Calendar as CalendarIcon, Trash2, Clock, ClipboardList } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { SOPSelector } from '@/components/tasks/SOPSelector';
+import { useSOPs } from '@/hooks/useSOPs';
 
 interface TaskDetailsDrawerProps {
   task: Task | null;
@@ -46,12 +48,16 @@ const DURATION_OPTIONS = [
 
 export function TaskDetailsDrawer({ task, onClose, onUpdate, onDelete }: TaskDetailsDrawerProps) {
   const [localTask, setLocalTask] = useState<Task | null>(task);
+  const { data: sops = [] } = useSOPs();
 
   useEffect(() => {
     setLocalTask(task);
   }, [task]);
 
   if (!task || !localTask) return null;
+
+  // Get the full SOP data if a task has an SOP attached
+  const attachedSop = localTask.sop_id ? sops.find(s => s.sop_id === localTask.sop_id) : null;
 
   const handleChange = (field: keyof Task, value: any) => {
     setLocalTask(prev => prev ? { ...prev, [field]: value } : null);
@@ -64,6 +70,28 @@ export function TaskDetailsDrawer({ task, onClose, onUpdate, onDelete }: TaskDet
       ? currentTags.filter(t => t !== tag)
       : [...currentTags, tag];
     handleChange('context_tags', newTags);
+  };
+
+  const handleChecklistToggle = (itemId: string) => {
+    const currentProgress = localTask.checklist_progress || [];
+    const existingItem = currentProgress.find((p: ChecklistProgress) => p.item_id === itemId);
+    
+    let newProgress: ChecklistProgress[];
+    if (existingItem) {
+      newProgress = currentProgress.map((p: ChecklistProgress) => 
+        p.item_id === itemId ? { ...p, completed: !p.completed } : p
+      );
+    } else {
+      newProgress = [...currentProgress, { item_id: itemId, completed: true }];
+    }
+    
+    handleChange('checklist_progress', newProgress);
+  };
+
+  const isChecklistItemCompleted = (itemId: string): boolean => {
+    const progress = localTask.checklist_progress || [];
+    const item = progress.find((p: ChecklistProgress) => p.item_id === itemId);
+    return item?.completed || false;
   };
 
   return (
@@ -208,6 +236,43 @@ export function TaskDetailsDrawer({ task, onClose, onUpdate, onDelete }: TaskDet
                 </Badge>
               ))}
             </div>
+          </div>
+
+          {/* SOP */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <ClipboardList className="h-4 w-4" />
+              Standard Operating Procedure
+            </Label>
+            <SOPSelector
+              value={localTask.sop_id}
+              onChange={(sopId) => handleChange('sop_id', sopId)}
+            />
+            
+            {/* SOP Checklist */}
+            {attachedSop && attachedSop.checklist_items && attachedSop.checklist_items.length > 0 && (
+              <div className="mt-3 bg-primary/5 rounded-lg p-4 space-y-2">
+                <div className="text-sm font-medium text-muted-foreground mb-2">
+                  Checklist ({(localTask.checklist_progress || []).filter((p: ChecklistProgress) => p.completed).length}/{attachedSop.checklist_items.length})
+                </div>
+                {attachedSop.checklist_items
+                  .sort((a: ChecklistItem, b: ChecklistItem) => a.order - b.order)
+                  .map((item: ChecklistItem) => (
+                    <div key={item.id} className="flex items-center gap-3">
+                      <Checkbox
+                        checked={isChecklistItemCompleted(item.id)}
+                        onCheckedChange={() => handleChecklistToggle(item.id)}
+                      />
+                      <span className={cn(
+                        'text-sm',
+                        isChecklistItemCompleted(item.id) && 'line-through text-muted-foreground'
+                      )}>
+                        {item.text}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
 
           {/* Description */}

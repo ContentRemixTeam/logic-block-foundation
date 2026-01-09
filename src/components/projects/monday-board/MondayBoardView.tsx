@@ -244,6 +244,7 @@ export function MondayBoardView({ projectId, tasks }: MondayBoardViewProps) {
         onOpenChange={setIsColumnCustomizerOpen}
         visibleColumns={visibleColumns}
         onUpdate={handleUpdateVisibleColumns}
+        projectId={projectId}
       />
     </div>
   );

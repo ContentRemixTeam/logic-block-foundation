@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Task, ENERGY_LEVELS } from '@/components/tasks/types';
+import { Task, ENERGY_LEVELS, CONTEXT_TAGS, DURATION_OPTIONS } from '@/components/tasks/types';
 import { ProjectSection, BOARD_COLUMNS } from '@/types/project';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { Calendar, MoreHorizontal, Trash2, FileText, MoveRight } from 'lucide-react';
+import { Calendar, MoreHorizontal, Trash2, FileText, MoveRight, ClipboardList } from 'lucide-react';
+import { SOPSelector } from '@/components/tasks/SOPSelector';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -174,20 +175,57 @@ export function BoardRow({
         );
 
       case 'tags':
+        const toggleTag = (tagValue: string) => {
+          const currentTags = task.context_tags || [];
+          const newTags = currentTags.includes(tagValue)
+            ? currentTags.filter(t => t !== tagValue)
+            : [...currentTags, tagValue];
+          onUpdate(task.task_id, { context_tags: newTags });
+        };
         return (
-          <div key={columnId} className={cellClass} style={{ width, minWidth: width }}>
-            <div className="flex flex-wrap gap-1">
-              {(task.context_tags || []).slice(0, 2).map(tag => (
-                <Badge key={tag} variant="outline" className="text-xs">
-                  {tag}
-                </Badge>
-              ))}
-              {(task.context_tags || []).length > 2 && (
-                <Badge variant="outline" className="text-xs">
-                  +{(task.context_tags || []).length - 2}
-                </Badge>
-              )}
-            </div>
+          <div key={columnId} className={cellClass} style={{ width, minWidth: width }} onClick={(e) => e.stopPropagation()}>
+            <Popover>
+              <PopoverTrigger asChild>
+                <div className="flex flex-wrap gap-1 cursor-pointer min-h-[24px] w-full">
+                  {(task.context_tags || []).slice(0, 2).map(tag => {
+                    const tagInfo = CONTEXT_TAGS.find(t => t.value === tag);
+                    return (
+                      <Badge key={tag} variant="outline" className="text-xs">
+                        {tagInfo?.icon} {tagInfo?.label || tag}
+                      </Badge>
+                    );
+                  })}
+                  {(task.context_tags || []).length > 2 && (
+                    <Badge variant="outline" className="text-xs">
+                      +{(task.context_tags || []).length - 2}
+                    </Badge>
+                  )}
+                  {!(task.context_tags || []).length && (
+                    <span className="text-muted-foreground text-xs hover:text-foreground">+ Add</span>
+                  )}
+                </div>
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-2" align="start">
+                <div className="space-y-1">
+                  {CONTEXT_TAGS.map(tag => (
+                    <div
+                      key={tag.value}
+                      className={cn(
+                        'flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-muted',
+                        (task.context_tags || []).includes(tag.value) && 'bg-primary/10'
+                      )}
+                      onClick={() => toggleTag(tag.value)}
+                    >
+                      <span>{tag.icon}</span>
+                      <span className="text-sm">{tag.label}</span>
+                      {(task.context_tags || []).includes(tag.value) && (
+                        <span className="ml-auto text-primary">✓</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         );
 
@@ -245,10 +283,38 @@ export function BoardRow({
 
       case 'estimated_minutes':
         return (
-          <div key={columnId} className={cellClass} style={{ width, minWidth: width }}>
-            <span className="text-sm text-muted-foreground">
-              {task.estimated_minutes ? `${task.estimated_minutes}m` : '—'}
-            </span>
+          <div key={columnId} className={cellClass} style={{ width, minWidth: width }} onClick={(e) => e.stopPropagation()}>
+            <Select
+              value={task.estimated_minutes?.toString() || ''}
+              onValueChange={(value) => onUpdate(task.task_id, { estimated_minutes: value ? parseInt(value) : null })}
+            >
+              <SelectTrigger className="h-7 border-0 shadow-none p-0 w-full">
+                {task.estimated_minutes ? (
+                  <span className="text-sm">{task.estimated_minutes}m</span>
+                ) : (
+                  <span className="text-muted-foreground text-xs">—</span>
+                )}
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">None</SelectItem>
+                {DURATION_OPTIONS.map(option => (
+                  <SelectItem key={option.value} value={option.value.toString()}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        );
+
+      case 'sop':
+        return (
+          <div key={columnId} className={cellClass} style={{ width, minWidth: width }} onClick={(e) => e.stopPropagation()}>
+            <SOPSelector
+              value={task.sop_id}
+              onChange={(sopId) => onUpdate(task.task_id, { sop_id: sopId })}
+              size="sm"
+            />
           </div>
         );
 
