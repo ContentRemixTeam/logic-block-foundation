@@ -1,6 +1,7 @@
 import { format, addDays } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Settings2, CalendarDays, RefreshCw, Loader2, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Settings2, CalendarDays, RefreshCw, Loader2, Calendar, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -36,12 +37,24 @@ export function WeeklyPlannerHeader({
   onSyncGoogle,
   googleSyncing = false,
 }: WeeklyPlannerHeaderProps) {
+  const navigate = useNavigate();
   const weekEnd = addDays(currentWeekStart, 6);
   const weekLabel = `Week of ${format(currentWeekStart, 'MMMM d, yyyy')}`;
 
   return (
     <div className="flex items-center justify-between pb-4">
-      <h1 className="text-2xl font-bold tracking-tight">Weekly Planner</h1>
+      <div className="flex items-center gap-3">
+        <h1 className="text-2xl font-bold tracking-tight">Weekly Planner</h1>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => navigate('/daily-plan')}
+          className="gap-1.5"
+        >
+          <Eye className="h-4 w-4" />
+          View Today
+        </Button>
+      </div>
 
       <div className="flex items-center gap-2">
         {/* Google Calendar Status/Connect */}
