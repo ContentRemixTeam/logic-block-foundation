@@ -243,6 +243,7 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
           priority: taskData.priority || null,
           estimated_minutes: taskData.duration || null,
           context_tags: taskData.tags.length > 0 ? taskData.tags : null,
+          project_id: taskData.projectId || null,
           status: 'backlog',
         });
         

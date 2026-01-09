@@ -7,6 +7,7 @@ export interface ParsedTask {
   tags: string[];
   priority?: 'high' | 'medium' | 'low';
   duration?: number;
+  projectId?: string;
 }
 
 export interface DetectionResult {

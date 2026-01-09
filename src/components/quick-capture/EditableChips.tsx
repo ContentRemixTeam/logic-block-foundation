@@ -5,10 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, Calendar as CalendarIcon, Clock, Timer, Flag, Hash, Plus } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Clock, Timer, Flag, Hash, Plus, FolderKanban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ParsedTask } from './useCaptureTypeDetection';
+import { useProjects } from '@/hooks/useProjects';
 
 interface EditableChipsProps {
   parsedTask: ParsedTask;
@@ -19,6 +20,7 @@ export function EditableChips({ parsedTask, onUpdate }: EditableChipsProps) {
   const [editingField, setEditingField] = useState<string | null>(null);
   const [newTag, setNewTag] = useState('');
   const newTagInputRef = useRef<HTMLInputElement>(null);
+  const { data: projects = [] } = useProjects();
 
   // Focus new tag input when editing
   useEffect(() => {
@@ -73,6 +75,15 @@ export function EditableChips({ parsedTask, onUpdate }: EditableChipsProps) {
       setNewTag('');
     }
     setEditingField(null);
+  };
+
+  const handleProjectChange = (projectId: string | null) => {
+    onUpdate({ projectId: projectId || undefined });
+    setEditingField(null);
+  };
+
+  const handleRemoveProject = () => {
+    onUpdate({ projectId: undefined });
   };
 
   const timeOptions = [
@@ -341,6 +352,80 @@ export function EditableChips({ parsedTask, onUpdate }: EditableChipsProps) {
                   {p}
                 </Button>
               ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
+
+      {/* Project chip */}
+      {parsedTask.projectId ? (
+        <Popover open={editingField === 'project'} onOpenChange={(open) => setEditingField(open ? 'project' : null)}>
+          <PopoverTrigger asChild>
+            <Badge 
+              variant="secondary" 
+              className="text-xs cursor-pointer hover:bg-secondary/80 gap-1 pr-1"
+            >
+              <FolderKanban className="h-3 w-3" />
+              {projects.find(p => p.id === parsedTask.projectId)?.name || 'Project'}
+              <button
+                onClick={(e) => { e.stopPropagation(); handleRemoveProject(); }}
+                className="ml-1 hover:bg-destructive/20 rounded-full p-0.5"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          </PopoverTrigger>
+          <PopoverContent className="w-48 p-2" align="start">
+            <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
+              {projects.filter(p => !p.is_template).map(project => (
+                <Button
+                  key={project.id}
+                  variant={parsedTask.projectId === project.id ? 'default' : 'ghost'}
+                  size="sm"
+                  className="h-7 text-xs justify-start gap-2"
+                  onClick={() => handleProjectChange(project.id)}
+                >
+                  <div 
+                    className="w-2 h-2 rounded-full" 
+                    style={{ backgroundColor: project.color || 'hsl(var(--primary))' }}
+                  />
+                  {project.name}
+                </Button>
+              ))}
+              {projects.filter(p => !p.is_template).length === 0 && (
+                <p className="text-xs text-muted-foreground p-2">No projects yet</p>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
+      ) : (
+        <Popover open={editingField === 'project'} onOpenChange={(open) => setEditingField(open ? 'project' : null)}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="h-6 text-xs gap-1 text-muted-foreground">
+              <FolderKanban className="h-3 w-3" />
+              Project
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-48 p-2" align="start">
+            <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
+              {projects.filter(p => !p.is_template).map(project => (
+                <Button
+                  key={project.id}
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs justify-start gap-2"
+                  onClick={() => handleProjectChange(project.id)}
+                >
+                  <div 
+                    className="w-2 h-2 rounded-full" 
+                    style={{ backgroundColor: project.color || 'hsl(var(--primary))' }}
+                  />
+                  {project.name}
+                </Button>
+              ))}
+              {projects.filter(p => !p.is_template).length === 0 && (
+                <p className="text-xs text-muted-foreground p-2">No projects yet</p>
+              )}
             </div>
           </PopoverContent>
         </Popover>
