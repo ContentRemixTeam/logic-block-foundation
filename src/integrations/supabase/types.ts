@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_users: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       belief_evidence_logs: {
         Row: {
           belief_id: string
@@ -574,6 +595,42 @@ export type Database = {
           id?: string
           trophy_type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      error_logs: {
+        Row: {
+          component: string | null
+          created_at: string
+          error_message: string
+          error_stack: string | null
+          error_type: string
+          id: string
+          metadata: Json | null
+          route: string | null
+          user_id: string | null
+        }
+        Insert: {
+          component?: string | null
+          created_at?: string
+          error_message: string
+          error_stack?: string | null
+          error_type: string
+          id?: string
+          metadata?: Json | null
+          route?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          component?: string | null
+          created_at?: string
+          error_message?: string
+          error_stack?: string | null
+          error_type?: string
+          id?: string
+          metadata?: Json | null
+          route?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
