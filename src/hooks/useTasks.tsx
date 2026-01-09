@@ -281,7 +281,7 @@ export function useTaskMutations() {
     },
   });
 
-  // Move task to a specific day
+  // Move task to a specific day (also clears time_block_start)
   const moveToDay = useMutation({
     mutationFn: async ({ taskId, plannedDay, dayOrder }: { taskId: string; plannedDay: string | null; dayOrder?: number }) => {
       const session = await getSession();
@@ -291,6 +291,7 @@ export function useTaskMutations() {
           task_id: taskId, 
           planned_day: plannedDay,
           day_order: dayOrder ?? 0,
+          time_block_start: null, // Clear time block when using moveToDay
         },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
@@ -303,7 +304,7 @@ export function useTaskMutations() {
 
       queryClient.setQueryData<Task[]>(taskQueryKeys.all, (old) =>
         old?.map(t => t.task_id === taskId 
-          ? { ...t, planned_day: plannedDay, day_order: dayOrder ?? 0 } 
+          ? { ...t, planned_day: plannedDay, day_order: dayOrder ?? 0, time_block_start: null } 
           : t
         )
       );

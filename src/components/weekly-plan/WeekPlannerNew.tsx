@@ -159,8 +159,9 @@ export function WeekPlannerNew({
         }
       );
     } else {
-      moveToDay.mutate(
-        { taskId, plannedDay: targetDate, dayOrder: newOrder },
+      // When moving to All Day (no time slot), explicitly clear time_block_start
+      updateTask.mutate(
+        { taskId, updates: { planned_day: targetDate, day_order: newOrder, time_block_start: null } },
         {
           onSuccess: () => {
             const targetDay = new Date(targetDate);
