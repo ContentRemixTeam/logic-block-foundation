@@ -138,8 +138,208 @@ export type Database = {
           },
         ]
       }
+      cycle_month_plans: {
+        Row: {
+          created_at: string | null
+          cycle_id: string
+          id: string
+          main_focus: string | null
+          month_name: string | null
+          month_number: number
+          projects_text: string | null
+          sales_promos_text: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          cycle_id: string
+          id?: string
+          main_focus?: string | null
+          month_name?: string | null
+          month_number: number
+          projects_text?: string | null
+          sales_promos_text?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          cycle_id?: string
+          id?: string
+          main_focus?: string | null
+          month_name?: string | null
+          month_number?: number
+          projects_text?: string | null
+          sales_promos_text?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cycle_month_plans_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+        ]
+      }
+      cycle_offers: {
+        Row: {
+          created_at: string | null
+          cycle_id: string
+          id: string
+          is_primary: boolean | null
+          offer_name: string
+          price: number | null
+          sales_frequency: string | null
+          sort_order: number | null
+          transformation: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          cycle_id: string
+          id?: string
+          is_primary?: boolean | null
+          offer_name: string
+          price?: number | null
+          sales_frequency?: string | null
+          sort_order?: number | null
+          transformation?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          cycle_id?: string
+          id?: string
+          is_primary?: boolean | null
+          offer_name?: string
+          price?: number | null
+          sales_frequency?: string | null
+          sort_order?: number | null
+          transformation?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cycle_offers_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+        ]
+      }
+      cycle_revenue_plan: {
+        Row: {
+          created_at: string | null
+          cycle_id: string
+          id: string
+          launch_schedule: string | null
+          price_per_sale: number | null
+          revenue_goal: number | null
+          sales_needed: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          cycle_id: string
+          id?: string
+          launch_schedule?: string | null
+          price_per_sale?: number | null
+          revenue_goal?: number | null
+          sales_needed?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          cycle_id?: string
+          id?: string
+          launch_schedule?: string | null
+          price_per_sale?: number | null
+          revenue_goal?: number | null
+          sales_needed?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cycle_revenue_plan_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: true
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+        ]
+      }
+      cycle_strategy: {
+        Row: {
+          created_at: string | null
+          cycle_id: string
+          free_transformation: string | null
+          id: string
+          lead_committed_90_days: boolean | null
+          lead_content_type: string | null
+          lead_frequency: string | null
+          lead_primary_platform: string | null
+          nurture_frequency: string | null
+          nurture_method: string | null
+          proof_methods: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          cycle_id: string
+          free_transformation?: string | null
+          id?: string
+          lead_committed_90_days?: boolean | null
+          lead_content_type?: string | null
+          lead_frequency?: string | null
+          lead_primary_platform?: string | null
+          nurture_frequency?: string | null
+          nurture_method?: string | null
+          proof_methods?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          cycle_id?: string
+          free_transformation?: string | null
+          id?: string
+          lead_committed_90_days?: boolean | null
+          lead_content_type?: string | null
+          lead_frequency?: string | null
+          lead_primary_platform?: string | null
+          nurture_frequency?: string | null
+          nurture_method?: string | null
+          proof_methods?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cycle_strategy_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: true
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+        ]
+      }
       cycles_90_day: {
         Row: {
+          audience_frustration: string | null
+          audience_target: string | null
+          biggest_bottleneck: string | null
           convert_score: number | null
           created_at: string | null
           cycle_id: string
@@ -155,6 +355,7 @@ export type Database = {
           metric_3_name: string | null
           metric_3_start: number | null
           nurture_score: number | null
+          signature_message: string | null
           start_date: string
           supporting_projects: Json | null
           target_feeling: string | null
@@ -164,6 +365,9 @@ export type Database = {
           why: string | null
         }
         Insert: {
+          audience_frustration?: string | null
+          audience_target?: string | null
+          biggest_bottleneck?: string | null
           convert_score?: number | null
           created_at?: string | null
           cycle_id?: string
@@ -179,6 +383,7 @@ export type Database = {
           metric_3_name?: string | null
           metric_3_start?: number | null
           nurture_score?: number | null
+          signature_message?: string | null
           start_date: string
           supporting_projects?: Json | null
           target_feeling?: string | null
@@ -188,6 +393,9 @@ export type Database = {
           why?: string | null
         }
         Update: {
+          audience_frustration?: string | null
+          audience_target?: string | null
+          biggest_bottleneck?: string | null
           convert_score?: number | null
           created_at?: string | null
           cycle_id?: string
@@ -203,6 +411,7 @@ export type Database = {
           metric_3_name?: string | null
           metric_3_start?: number | null
           nurture_score?: number | null
+          signature_message?: string | null
           start_date?: string
           supporting_projects?: Json | null
           target_feeling?: string | null
@@ -599,6 +808,7 @@ export type Database = {
         Row: {
           category: string | null
           created_at: string | null
+          cycle_id: string | null
           description: string | null
           display_order: number | null
           habit_id: string
@@ -613,6 +823,7 @@ export type Database = {
         Insert: {
           category?: string | null
           created_at?: string | null
+          cycle_id?: string | null
           description?: string | null
           display_order?: number | null
           habit_id?: string
@@ -627,6 +838,7 @@ export type Database = {
         Update: {
           category?: string | null
           created_at?: string | null
+          cycle_id?: string | null
           description?: string | null
           display_order?: number | null
           habit_id?: string
@@ -638,7 +850,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "habits_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+        ]
       }
       ideas: {
         Row: {
@@ -921,6 +1141,7 @@ export type Database = {
         Row: {
           color: string | null
           created_at: string | null
+          cycle_id: string | null
           description: string | null
           end_date: string | null
           id: string
@@ -934,6 +1155,7 @@ export type Database = {
         Insert: {
           color?: string | null
           created_at?: string | null
+          cycle_id?: string | null
           description?: string | null
           end_date?: string | null
           id?: string
@@ -947,6 +1169,7 @@ export type Database = {
         Update: {
           color?: string | null
           created_at?: string | null
+          cycle_id?: string | null
           description?: string | null
           end_date?: string | null
           id?: string
@@ -957,7 +1180,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+        ]
       }
       reminders: {
         Row: {
