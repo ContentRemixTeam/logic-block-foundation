@@ -31,8 +31,8 @@ export function ShareToGroupButton({ content, contentType, disabled }: ShareToGr
       setCopied(true);
       
       toast({
-        title: "Copied!",
-        description: `Paste your ${contentType} in the group 👇`,
+        title: `Your ${contentType} is copied!`,
+        description: "Open the post editor and paste it there",
       });
 
       // Open community group after brief delay

@@ -2718,6 +2718,7 @@ export type Database = {
         Args: { p_user_id: string; p_week_id: string }
         Returns: Json
       }
+      is_admin: { Args: { check_user_id: string }; Returns: boolean }
       toggle_habit: {
         Args: { p_date: string; p_habit_id: string; p_user_id: string }
         Returns: boolean
