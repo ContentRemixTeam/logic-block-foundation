@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { format, parseISO } from 'date-fns';
-import { Card, CardContent } from '@/components/ui/card';
+import { format, parseISO, isToday, isTomorrow, isPast, startOfDay, differenceInDays } from 'date-fns';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,7 +21,11 @@ import {
   MoreHorizontal,
   CalendarClock,
   ArrowRight,
-  Inbox
+  Inbox,
+  Folder,
+  Flag,
+  Eye,
+  Edit2
 } from 'lucide-react';
 import { Task, ENERGY_LEVELS, DURATION_OPTIONS } from './types';
 import {
@@ -41,6 +44,36 @@ interface TaskCardProps {
   onOpenDetail: (task: Task) => void;
   onQuickReschedule: (taskId: string, date: Date | null, status?: string) => void;
   isDragging?: boolean;
+}
+
+// Format due date with relative time
+function formatDueDate(dateStr: string): string {
+  const date = parseISO(dateStr);
+  const today = startOfDay(new Date());
+  const dueDate = startOfDay(date);
+  const diffDays = differenceInDays(dueDate, today);
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Tomorrow';
+  if (diffDays === -1) return 'Yesterday';
+  if (diffDays > 1 && diffDays <= 7) return `In ${diffDays} days`;
+  if (diffDays < -1) return `${Math.abs(diffDays)} days ago`;
+  
+  return format(date, 'MMM d');
+}
+
+// Get color class based on due date
+function getDueDateStyles(dateStr: string): string {
+  const date = parseISO(dateStr);
+  const today = startOfDay(new Date());
+  const dueDate = startOfDay(date);
+  const diffDays = differenceInDays(dueDate, today);
+
+  if (diffDays < 0) return 'text-destructive font-medium'; // Overdue
+  if (diffDays === 0) return 'text-amber-600 dark:text-amber-500 font-medium'; // Today
+  if (diffDays === 1) return 'text-blue-600 dark:text-blue-400'; // Tomorrow
+  
+  return 'text-muted-foreground'; // Future
 }
 
 export function TaskCard({ 
@@ -81,24 +114,24 @@ export function TaskCard({
 
   const getEnergyIcon = () => {
     switch (task.energy_level) {
-      case 'high_focus': return <Zap className="h-3 w-3" />;
-      case 'medium': return <Battery className="h-3 w-3" />;
-      case 'low_energy': return <BatteryLow className="h-3 w-3" />;
+      case 'high_focus': return <Zap className="h-3.5 w-3.5" />;
+      case 'medium': return <Battery className="h-3.5 w-3.5" />;
+      case 'low_energy': return <BatteryLow className="h-3.5 w-3.5" />;
       default: return null;
     }
   };
 
-  const getEnergyStyle = () => {
+  const getEnergyLabel = () => {
     const level = ENERGY_LEVELS.find(e => e.value === task.energy_level);
-    return level ? `${level.color} ${level.bgColor}` : '';
+    return level?.label || '';
   };
 
-  const getPriorityStyle = () => {
+  const getPriorityStyles = () => {
     switch (task.priority) {
-      case 'high': return 'border-l-destructive bg-destructive/5';
-      case 'medium': return 'border-l-warning bg-warning/5';
-      case 'low': return 'border-l-muted-foreground bg-muted/30';
-      default: return '';
+      case 'high': return { border: 'border-l-destructive', bg: 'bg-destructive/5', badge: 'destructive' as const };
+      case 'medium': return { border: 'border-l-amber-500', bg: 'bg-amber-500/5', badge: 'default' as const };
+      case 'low': return { border: 'border-l-muted-foreground', bg: 'bg-muted/30', badge: 'secondary' as const };
+      default: return { border: 'border-l-transparent', bg: '', badge: 'outline' as const };
     }
   };
 
@@ -116,240 +149,282 @@ export function TaskCard({
   };
 
   const subtaskProgress = getSubtaskProgress();
+  const priorityStyles = getPriorityStyles();
 
   return (
-    <Card 
+    <div 
       className={cn(
-        "group transition-all duration-200 hover:shadow-md cursor-pointer border-l-4",
-        task.is_completed && "opacity-50",
+        "group relative flex items-start gap-3 p-4 rounded-lg border bg-card hover:shadow-md transition-all duration-200 border-l-4",
+        task.is_completed && "opacity-60",
         isDragging && "shadow-lg ring-2 ring-primary/20",
-        getPriorityStyle() || "border-l-transparent"
+        priorityStyles.border,
+        priorityStyles.bg || ""
       )}
     >
-      <CardContent className="p-3">
-        <div className="flex items-start gap-3">
-          {/* Drag handle */}
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab">
-            <GripVertical className="h-5 w-5 text-muted-foreground" />
-          </div>
+      {/* Drag handle */}
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab mt-1">
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </div>
 
-          {/* Checkbox */}
-          <div onClick={(e) => e.stopPropagation()}>
-            <Checkbox
-              checked={task.is_completed}
-              onCheckedChange={() => onToggleComplete(task.task_id)}
-              className={cn(
-                "mt-0.5 transition-all",
-                task.is_completed && "bg-success border-success"
-              )}
-            />
-          </div>
+      {/* Checkbox */}
+      <div onClick={(e) => e.stopPropagation()}>
+        <Checkbox
+          checked={task.is_completed}
+          onCheckedChange={() => onToggleComplete(task.task_id)}
+          className={cn(
+            "mt-0.5 h-5 w-5 transition-all",
+            task.is_completed && "bg-primary border-primary"
+          )}
+        />
+      </div>
 
-          {/* Main content */}
-          <div className="flex-1 min-w-0" onClick={() => !isEditing && onOpenDetail(task)}>
-            {isEditing ? (
-              <Input
-                ref={inputRef}
-                value={editText}
-                onChange={(e) => setEditText(e.target.value)}
-                onBlur={handleSaveEdit}
-                onKeyDown={handleKeyDown}
-                className="h-7 text-sm"
-                onClick={(e) => e.stopPropagation()}
-              />
-            ) : (
-              <p 
-                className={cn(
-                  "font-medium text-sm leading-tight",
-                  task.is_completed && "line-through text-muted-foreground"
-                )}
-                onDoubleClick={(e) => {
-                  e.stopPropagation();
-                  setIsEditing(true);
-                }}
-              >
-                {task.task_text}
-              </p>
+      {/* Main content */}
+      <div className="flex-1 min-w-0" onClick={() => !isEditing && onOpenDetail(task)}>
+        {/* Task Title */}
+        {isEditing ? (
+          <Input
+            ref={inputRef}
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            onBlur={handleSaveEdit}
+            onKeyDown={handleKeyDown}
+            className="h-8 text-base font-medium"
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <h3 
+            className={cn(
+              "font-medium text-base leading-tight line-clamp-2 mb-1",
+              task.is_completed && "line-through text-muted-foreground"
             )}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              setIsEditing(true);
+            }}
+          >
+            {task.task_text}
+          </h3>
+        )}
 
-            {/* Subtask progress bar */}
-            {subtaskProgress && (
-              <div className="mt-2 flex items-center gap-2">
-                <Progress value={subtaskProgress.percent} className="h-1.5 flex-1" />
-                <span className="text-xs text-muted-foreground">
-                  {subtaskProgress.completed}/{subtaskProgress.total}
-                </span>
-              </div>
-            )}
+        {/* Task Metadata Row */}
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mt-2">
+          {/* Due Date */}
+          {task.scheduled_date && (
+            <div className={cn("flex items-center gap-1.5", getDueDateStyles(task.scheduled_date))}>
+              <CalendarIcon className="w-3.5 h-3.5" />
+              <span>{formatDueDate(task.scheduled_date)}</span>
+            </div>
+          )}
 
-            {/* Meta badges */}
-            <div className="flex flex-wrap items-center gap-1.5 mt-2">
-              {/* Duration badge */}
-              {task.estimated_minutes && (
-                <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5">
-                  <Clock className="h-3 w-3 mr-1" />
-                  {getDurationLabel()}
-                </Badge>
-              )}
+          {/* Time Estimate */}
+          {task.estimated_minutes && (
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" />
+              <span>{getDurationLabel()}</span>
+            </div>
+          )}
 
-              {/* Energy level */}
-              {task.energy_level && (
-                <Badge 
-                  variant="outline" 
-                  className={cn("text-xs px-1.5 py-0 h-5", getEnergyStyle())}
-                >
-                  {getEnergyIcon()}
-                </Badge>
-              )}
+          {/* Priority */}
+          {task.priority && (
+            <Badge variant={priorityStyles.badge} className="gap-1 text-xs px-1.5 py-0 h-5">
+              <Flag className="w-3 h-3" />
+              {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+            </Badge>
+          )}
 
-              {/* Context tags */}
-              {task.context_tags?.slice(0, 2).map(tag => (
-                <Badge key={tag} variant="outline" className="text-xs px-1.5 py-0 h-5">
+          {/* Energy Level */}
+          {task.energy_level && (
+            <div className="flex items-center gap-1.5">
+              {getEnergyIcon()}
+              <span className="text-xs">{getEnergyLabel()}</span>
+            </div>
+          )}
+
+          {/* Project */}
+          {task.project && (
+            <div className="flex items-center gap-1.5">
+              <Folder className="w-3.5 h-3.5" />
+              <span className="truncate max-w-[120px]">{task.project.name}</span>
+            </div>
+          )}
+
+          {/* SOP badge */}
+          {task.sop && (
+            <Badge variant="outline" className="text-xs px-1.5 py-0 h-5 bg-primary/10 border-primary/30 text-primary">
+              <ClipboardList className="h-3 w-3 mr-1" />
+              SOP
+            </Badge>
+          )}
+
+          {/* Recurring indicator */}
+          {task.parent_task_id && (
+            <Badge variant="outline" className="text-xs px-1.5 py-0 h-5">
+              <RefreshCw className="h-3 w-3" />
+            </Badge>
+          )}
+
+          {/* Context tags */}
+          {task.context_tags && task.context_tags.length > 0 && (
+            <div className="flex items-center gap-1">
+              {task.context_tags.slice(0, 2).map(tag => (
+                <Badge key={tag} variant="secondary" className="text-xs px-1.5 py-0 h-5">
                   #{tag}
                 </Badge>
               ))}
-
-              {/* SOP badge */}
-              {task.sop && (
-                <Badge 
-                  variant="outline" 
-                  className="text-xs px-1.5 py-0 h-5 bg-primary/10 border-primary/30 text-primary"
-                >
-                  <ClipboardList className="h-3 w-3 mr-1" />
-                  SOP
-                </Badge>
-              )}
-
-              {/* Recurring indicator */}
-              {task.parent_task_id && (
-                <Badge variant="outline" className="text-xs px-1.5 py-0 h-5">
-                  <RefreshCw className="h-3 w-3" />
-                </Badge>
-              )}
-
-              {/* Waiting on */}
-              {task.waiting_on && (
+              {task.context_tags.length > 2 && (
                 <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5">
-                  ⏳ {task.waiting_on}
+                  +{task.context_tags.length - 2}
                 </Badge>
-              )}
-
-              {/* Date */}
-              {task.scheduled_date && (
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <CalendarIcon className="h-3 w-3" />
-                  {format(parseISO(task.scheduled_date), 'MMM d')}
-                </span>
               )}
             </div>
-          </div>
+          )}
 
-          {/* Actions */}
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" title="Reschedule">
-                  <CalendarClock className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-48 p-0" align="end">
-                <div className="p-1 space-y-0.5">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="w-full justify-start text-sm h-9" 
-                    onClick={() => onQuickReschedule(task.task_id, new Date(), 'scheduled')}
-                  >
-                    <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                    Today
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="w-full justify-start text-sm h-9" 
-                    onClick={() => {
-                      const tomorrow = new Date();
-                      tomorrow.setDate(tomorrow.getDate() + 1);
-                      onQuickReschedule(task.task_id, tomorrow, 'scheduled');
-                    }}
-                  >
-                    <ArrowRight className="h-4 w-4 mr-2 text-muted-foreground" />
-                    Tomorrow
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="w-full justify-start text-sm h-9" 
-                    onClick={() => {
-                      const nextWeek = new Date();
-                      nextWeek.setDate(nextWeek.getDate() + 7);
-                      onQuickReschedule(task.task_id, nextWeek, 'scheduled');
-                    }}
-                  >
-                    <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                    Next Week
-                  </Button>
-                  <div className="border-t my-1" />
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="w-full justify-start text-sm h-9" 
-                    onClick={() => onQuickReschedule(task.task_id, null, 'someday')}
-                  >
-                    <Inbox className="h-4 w-4 mr-2 text-muted-foreground" />
-                    Someday
-                  </Button>
-                </div>
-                <div className="border-t p-1">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="ghost" size="sm" className="w-full justify-start text-sm h-9">
-                        <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                        Pick a date...
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="end" side="left">
-                      <Calendar
-                        mode="single"
-                        selected={task.scheduled_date ? parseISO(task.scheduled_date) : undefined}
-                        onSelect={(date) => onQuickReschedule(task.task_id, date || null, 'scheduled')}
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onOpenDetail(task)}>
-                  Edit details
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onUpdate(task.task_id, { status: 'focus' } as Partial<Task>)}>
-                  Move to Focus
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onUpdate(task.task_id, { status: 'backlog' } as Partial<Task>)}>
-                  Move to Backlog
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={() => onDelete(task)}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          {/* Waiting on */}
+          {task.waiting_on && (
+            <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5">
+              ⏳ {task.waiting_on}
+            </Badge>
+          )}
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Task Description (truncated) */}
+        {task.task_description && !task.is_completed && (
+          <p className="text-sm text-muted-foreground mt-2 line-clamp-1">
+            {task.task_description}
+          </p>
+        )}
+
+        {/* Subtask Progress */}
+        {subtaskProgress && (
+          <div className="flex items-center gap-2 mt-3">
+            <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-primary transition-all"
+                style={{ width: `${subtaskProgress.percent}%` }}
+              />
+            </div>
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
+              {subtaskProgress.completed}/{subtaskProgress.total}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Quick Actions */}
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() => onOpenDetail(task)}
+          title="View details"
+        >
+          <Eye className="w-4 h-4" />
+        </Button>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8" title="Reschedule">
+              <CalendarClock className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-48 p-0" align="end">
+            <div className="p-1 space-y-0.5">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="w-full justify-start text-sm h-9" 
+                onClick={() => onQuickReschedule(task.task_id, new Date(), 'scheduled')}
+              >
+                <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                Today
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="w-full justify-start text-sm h-9" 
+                onClick={() => {
+                  const tomorrow = new Date();
+                  tomorrow.setDate(tomorrow.getDate() + 1);
+                  onQuickReschedule(task.task_id, tomorrow, 'scheduled');
+                }}
+              >
+                <ArrowRight className="h-4 w-4 mr-2 text-muted-foreground" />
+                Tomorrow
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="w-full justify-start text-sm h-9" 
+                onClick={() => {
+                  const nextWeek = new Date();
+                  nextWeek.setDate(nextWeek.getDate() + 7);
+                  onQuickReschedule(task.task_id, nextWeek, 'scheduled');
+                }}
+              >
+                <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                Next Week
+              </Button>
+              <div className="border-t my-1" />
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="w-full justify-start text-sm h-9" 
+                onClick={() => onQuickReschedule(task.task_id, null, 'someday')}
+              >
+                <Inbox className="h-4 w-4 mr-2 text-muted-foreground" />
+                Someday
+              </Button>
+            </div>
+            <div className="border-t p-1">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="sm" className="w-full justify-start text-sm h-9">
+                    <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                    Pick a date...
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end" side="left">
+                  <Calendar
+                    mode="single"
+                    selected={task.scheduled_date ? parseISO(task.scheduled_date) : undefined}
+                    onSelect={(date) => onQuickReschedule(task.task_id, date || null, 'scheduled')}
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onOpenDetail(task)}>
+              <Edit2 className="h-4 w-4 mr-2" />
+              Edit details
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onUpdate(task.task_id, { status: 'focus' } as Partial<Task>)}>
+              Move to Focus
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onUpdate(task.task_id, { status: 'backlog' } as Partial<Task>)}>
+              Move to Backlog
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => onDelete(task)}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
   );
 }

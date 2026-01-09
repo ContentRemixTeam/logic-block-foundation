@@ -31,7 +31,6 @@ import { cn } from '@/lib/utils';
 // Import new components
 import { TaskQuickAdd } from '@/components/tasks/TaskQuickAdd';
 import { TaskFilters } from '@/components/tasks/TaskFilters';
-import { CapacityIndicator } from '@/components/tasks/CapacityIndicator';
 import { HelpButton } from '@/components/ui/help-button';
 import { TaskListView } from '@/components/tasks/views/TaskListView';
 import { TaskKanbanView } from '@/components/tasks/views/TaskKanbanView';
@@ -173,29 +172,6 @@ export default function Tasks() {
       queryClient.invalidateQueries({ queryKey: ['sops'] });
     },
   });
-
-  // Calculate capacity
-  const capacityData = useMemo(() => {
-    const todaysTasks = tasks.filter((t: Task) => {
-      if (t.is_completed) return false;
-      if (!t.scheduled_date) return false;
-      return format(parseISO(t.scheduled_date), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
-    });
-
-    const plannedMinutes = todaysTasks.reduce((sum: number, t: Task) => 
-      sum + (t.estimated_minutes || 30), 0
-    );
-
-    const completedMinutes = tasks
-      .filter((t: Task) => t.is_completed && t.completed_at)
-      .filter((t: Task) => {
-        const completedDate = t.completed_at ? parseISO(t.completed_at) : null;
-        return completedDate && format(completedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
-      })
-      .reduce((sum: number, t: Task) => sum + (t.estimated_minutes || 30), 0);
-
-    return { plannedMinutes, completedMinutes, capacityMinutes: 480 }; // 8 hours default
-  }, [tasks]);
 
   // Calculate overdue tasks count
   const overdueCount = useMemo(() => {
@@ -537,46 +513,24 @@ export default function Tasks() {
           />
         )}
 
-        {/* Quick Add & Capacity */}
-        <div className="grid gap-4 md:grid-cols-[1fr_300px]">
-          <div className="space-y-1">
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground">Quick Add</span>
-              <HelpButton
-                title="Quick Add Syntax"
-                description="Add tasks faster using natural language shortcuts."
-                tips={[
-                  "Type 'today' or 'tomorrow' to set the date",
-                  "Use #tag for context (e.g., #calls, #deep-work)",
-                  "Add !high, !med, or !low for priority",
-                  "Include '30m' or '2h' to set duration"
-                ]}
-                learnMoreHref="/support"
-                side="right"
-              />
-            </div>
-            <TaskQuickAdd onAddTask={handleQuickAdd} />
-          </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground">Today's Capacity</span>
-              <HelpButton
-                title="Daily Capacity"
-                description="Shows how much of your 8-hour workday is scheduled."
-                tips={[
-                  "Green = plenty of time available",
-                  "Yellow = approaching capacity (80%+)",
-                  "Red = over capacity – consider rescheduling"
-                ]}
-                side="left"
-              />
-            </div>
-            <CapacityIndicator 
-              plannedMinutes={capacityData.plannedMinutes}
-              capacityMinutes={capacityData.capacityMinutes}
-              completedMinutes={capacityData.completedMinutes}
+        {/* Quick Add Bar */}
+        <div className="space-y-1">
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-muted-foreground">Quick Add</span>
+            <HelpButton
+              title="Quick Add Syntax"
+              description="Add tasks faster using natural language shortcuts."
+              tips={[
+                "Type 'today' or 'tomorrow' to set the date",
+                "Use #tag for context (e.g., #calls, #deep-work)",
+                "Add !high, !med, or !low for priority",
+                "Include '30m' or '2h' to set duration"
+              ]}
+              learnMoreHref="/support"
+              side="right"
             />
           </div>
+          <TaskQuickAdd onAddTask={handleQuickAdd} />
         </div>
 
         {/* Recurring Tasks (collapsed by default) */}
@@ -664,6 +618,7 @@ export default function Tasks() {
             onDeleteTask={initiateDelete}
             onOpenDetail={openTaskDetail}
             onQuickReschedule={handleQuickReschedule}
+            onAddTask={() => setIsAddDialogOpen(true)}
           />
         ) : viewMode === 'kanban' ? (
           <TaskKanbanView
