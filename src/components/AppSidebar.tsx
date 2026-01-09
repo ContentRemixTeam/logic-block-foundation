@@ -27,6 +27,7 @@ import {
   Ticket,
   Archive,
   MessageCircle,
+  FolderKanban,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
@@ -74,6 +75,12 @@ export function AppSidebar() {
       href: '/tasks', 
       icon: isQuestMode ? Scroll : ListTodo,
       questIcon: '📜',
+    },
+    { 
+      name: 'Projects', 
+      href: '/projects', 
+      icon: FolderKanban,
+      questIcon: '📁',
     },
   ];
 
