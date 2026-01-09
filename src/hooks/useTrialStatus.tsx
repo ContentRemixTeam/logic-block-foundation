@@ -37,7 +37,7 @@ export function useTrialStatus(): TrialStatus {
     try {
       const { data: profile, error } = await supabase
         .from('user_profiles')
-        .select('user_type, trial_expires_at')
+        .select('user_type, trial_expires_at, membership_status, membership_tier')
         .eq('id', user.id)
         .single();
 
@@ -52,10 +52,16 @@ export function useTrialStatus(): TrialStatus {
       }
 
       // Members and admins always have access - no trial logic needed
-      if (profile.user_type === 'member' || profile.user_type === 'admin') {
+      // Also check membership_status for users who signed up via regular auth but were added to mastermind
+      const isActiveMember = 
+        profile.user_type === 'member' || 
+        profile.user_type === 'admin' ||
+        profile.membership_status === 'active';
+        
+      if (isActiveMember) {
         setStatus({
           hasAccess: true,
-          reason: profile.user_type as TrialReason,
+          reason: profile.user_type === 'admin' ? 'admin' : 'member',
           userType: profile.user_type,
           // Don't set expiresAt for members - they shouldn't see trial banner
           loading: false,
