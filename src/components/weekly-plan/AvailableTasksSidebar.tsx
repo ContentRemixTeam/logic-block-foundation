@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Task, ENERGY_LEVELS, CONTEXT_TAGS } from '@/components/tasks/types';
+import { Task, ENERGY_LEVELS } from '@/components/tasks/types';
 import { WeeklyTaskCard } from './WeeklyTaskCard';
 import { InlineTaskAdd } from './InlineTaskAdd';
 import { Search, RotateCcw, Loader2, Filter, ChevronDown } from 'lucide-react';
@@ -60,25 +60,66 @@ export function AvailableTasksSidebar({
     return true;
   });
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     e.dataTransfer.dropEffect = 'move';
     setIsDragOver(true);
-  };
+  }, []);
 
-  const handleDragLeave = () => {
-    setIsDragOver(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Only set to false if we're actually leaving the container
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) {
+      setIsDragOver(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setIsDragOver(false);
 
-    const taskId = e.dataTransfer.getData('taskId');
+    // Try to get data from JSON format first, then fall back to plain text
+    let taskId: string | null = null;
+
+    try {
+      const jsonData = e.dataTransfer.getData('application/json');
+      if (jsonData) {
+        const parsed = JSON.parse(jsonData);
+        taskId = parsed.taskId;
+      }
+    } catch {
+      // Fall back to plain text format
+      taskId = e.dataTransfer.getData('taskId');
+    }
+
     if (taskId) {
       onMoveToInbox(taskId);
     }
-  };
+  }, [onMoveToInbox]);
+
+  // Reset drag state when drag ends globally
+  useEffect(() => {
+    const handleDragEnd = () => {
+      setIsDragOver(false);
+    };
+
+    document.addEventListener('dragend', handleDragEnd);
+    return () => document.removeEventListener('dragend', handleDragEnd);
+  }, []);
 
   return (
     <div className="flex flex-col h-full bg-card rounded-lg border w-full">
@@ -179,14 +220,22 @@ export function AvailableTasksSidebar({
       {/* Task list / drop zone */}
       <div
         onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={cn(
-          'flex-1 overflow-y-auto p-3 space-y-2 min-h-[300px] transition-all',
-          isDragOver && 'bg-primary/5 ring-2 ring-primary/20 ring-inset'
+          'flex-1 overflow-y-auto p-3 space-y-2 min-h-[300px] transition-all duration-150',
+          isDragOver && 'bg-primary/10 ring-2 ring-primary/30 ring-inset scale-[1.01]'
         )}
       >
-        {inboxTasks.length === 0 ? (
+        {/* Drop indicator */}
+        {isDragOver && (
+          <div className="text-xs text-primary text-center py-2 font-medium animate-pulse border-2 border-dashed border-primary/30 rounded-md mb-2">
+            Drop to move to inbox
+          </div>
+        )}
+        
+        {inboxTasks.length === 0 && !isDragOver ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4 py-8">
             <p className="text-sm text-muted-foreground">All tasks are scheduled!</p>
           </div>
