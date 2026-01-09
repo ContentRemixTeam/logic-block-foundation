@@ -3,6 +3,14 @@ import { parseISO } from 'date-fns';
 
 const DRAFT_STORAGE_KEY = 'boss-planner-cycle-setup-draft';
 
+// Secondary platform interface for Step 4
+export interface SecondaryPlatform {
+  platform: string;
+  contentType: string;
+  frequency: string;
+  goal: 'leads' | 'nurture' | 'sales' | '';
+}
+
 export interface CycleSetupDraft {
   // Step 1: Dates & Goal
   startDate: string;
@@ -26,7 +34,9 @@ export interface CycleSetupDraft {
   leadPlatform: string;
   leadContentType: string;
   leadFrequency: string;
+  leadPlatformGoal: string;
   leadCommitted: boolean;
+  secondaryPlatforms: SecondaryPlatform[];
 
   // Step 5: Nurture Strategy
   nurtureMethod: string;
@@ -86,7 +96,9 @@ const DEFAULT_DRAFT: CycleSetupDraft = {
   leadPlatform: '',
   leadContentType: '',
   leadFrequency: '',
+  leadPlatformGoal: 'leads',
   leadCommitted: false,
+  secondaryPlatforms: [],
   nurtureMethod: '',
   nurtureFrequency: '',
   freeTransformation: '',

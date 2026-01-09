@@ -21,7 +21,7 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useCycleSetupDraft, CycleSetupDraft } from '@/hooks/useCycleSetupDraft';
+import { useCycleSetupDraft, CycleSetupDraft, SecondaryPlatform } from '@/hooks/useCycleSetupDraft';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 interface WorkshopImportData {
@@ -91,6 +91,45 @@ const PROOF_METHODS = [
   'Media Features'
 ];
 
+const PLATFORM_GOALS = [
+  { value: 'leads', label: 'Get New Leads' },
+  { value: 'nurture', label: 'Nurture Lurkers into Buyers' },
+  { value: 'sales', label: 'Sales' },
+];
+
+const PLATFORM_OPTIONS = [
+  { value: 'instagram', label: 'Instagram' },
+  { value: 'linkedin', label: 'LinkedIn' },
+  { value: 'youtube', label: 'YouTube' },
+  { value: 'tiktok', label: 'TikTok' },
+  { value: 'facebook', label: 'Facebook' },
+  { value: 'podcast', label: 'Podcast' },
+  { value: 'blog', label: 'Blog/SEO' },
+  { value: 'pinterest', label: 'Pinterest' },
+  { value: 'email', label: 'Email' },
+  { value: 'twitter', label: 'Twitter/X' },
+  { value: 'other', label: 'Other' },
+];
+
+const CONTENT_TYPE_OPTIONS = [
+  { value: 'short-video', label: 'Short-form Video (Reels/TikTok)' },
+  { value: 'long-video', label: 'Long-form Video (YouTube)' },
+  { value: 'carousel', label: 'Carousel Posts' },
+  { value: 'stories', label: 'Stories' },
+  { value: 'live', label: 'Live Streams' },
+  { value: 'written', label: 'Written Posts/Articles' },
+  { value: 'podcast', label: 'Podcast Episodes' },
+  { value: 'newsletter', label: 'Newsletter' },
+];
+
+const FREQUENCY_OPTIONS = [
+  { value: 'daily', label: 'Daily' },
+  { value: '5x-week', label: '5x per week' },
+  { value: '3x-week', label: '3x per week' },
+  { value: '2x-week', label: '2x per week' },
+  { value: 'weekly', label: 'Weekly' },
+];
+
 const STEPS = [
   { id: 1, name: 'Dates & Goal', icon: Target },
   { id: 2, name: 'Business Diagnostic', icon: BarChart3 },
@@ -147,7 +186,9 @@ export default function CycleSetup() {
       if (jsonData.leadPlatform) setLeadPlatform(jsonData.leadPlatform);
       if (jsonData.leadContentType) setLeadContentType(jsonData.leadContentType);
       if (jsonData.leadFrequency) setLeadFrequency(jsonData.leadFrequency);
+      if ((jsonData as any).leadPlatformGoal) setLeadPlatformGoal((jsonData as any).leadPlatformGoal);
       if (jsonData.leadCommitted !== undefined) setLeadCommitted(jsonData.leadCommitted);
+      if ((jsonData as any).secondaryPlatforms?.length) setSecondaryPlatforms((jsonData as any).secondaryPlatforms);
 
       // Step 5: Nurture Strategy
       if (jsonData.nurtureMethod) setNurtureMethod(jsonData.nurtureMethod);
@@ -243,7 +284,9 @@ export default function CycleSetup() {
   const [leadPlatform, setLeadPlatform] = useState('');
   const [leadContentType, setLeadContentType] = useState('');
   const [leadFrequency, setLeadFrequency] = useState('');
+  const [leadPlatformGoal, setLeadPlatformGoal] = useState('leads');
   const [leadCommitted, setLeadCommitted] = useState(false);
+  const [secondaryPlatforms, setSecondaryPlatforms] = useState<SecondaryPlatform[]>([]);
 
   // Step 5: Nurture Strategy
   const [nurtureMethod, setNurtureMethod] = useState('');
@@ -309,7 +352,9 @@ export default function CycleSetup() {
       setLeadPlatform(draft.leadPlatform || '');
       setLeadContentType(draft.leadContentType || '');
       setLeadFrequency(draft.leadFrequency || '');
+      setLeadPlatformGoal(draft.leadPlatformGoal || 'leads');
       setLeadCommitted(draft.leadCommitted ?? false);
+      if (draft.secondaryPlatforms?.length) setSecondaryPlatforms(draft.secondaryPlatforms);
       setNurtureMethod(draft.nurtureMethod || '');
       setNurtureFrequency(draft.nurtureFrequency || '');
       setFreeTransformation(draft.freeTransformation || '');
@@ -357,7 +402,9 @@ export default function CycleSetup() {
         leadPlatform,
         leadContentType,
         leadFrequency,
+        leadPlatformGoal,
         leadCommitted,
+        secondaryPlatforms,
         nurtureMethod,
         nurtureFrequency,
         freeTransformation,
@@ -387,7 +434,7 @@ export default function CycleSetup() {
     startDate, goal, why, identity, feeling,
     discoverScore, nurtureScore, convertScore, biggestBottleneck,
     audienceTarget, audienceFrustration, signatureMessage,
-    leadPlatform, leadContentType, leadFrequency, leadCommitted,
+    leadPlatform, leadContentType, leadFrequency, leadPlatformGoal, leadCommitted, secondaryPlatforms,
     nurtureMethod, nurtureFrequency, freeTransformation, proofMethods,
     offers, revenueGoal, pricePerSale, launchSchedule, monthPlans,
     metric1Name, metric1Start, metric2Name, metric2Start, metric3Name, metric3Start,
@@ -475,6 +522,19 @@ export default function CycleSetup() {
     const updated = [...thingsToRemember];
     updated[idx] = value;
     setThingsToRemember(updated);
+  };
+
+  // Secondary platform helpers
+  const addSecondaryPlatform = () => {
+    setSecondaryPlatforms([...secondaryPlatforms, { platform: '', contentType: '', frequency: '', goal: '' }]);
+  };
+  const updateSecondaryPlatform = (idx: number, field: keyof SecondaryPlatform, value: string) => {
+    const updated = [...secondaryPlatforms];
+    updated[idx] = { ...updated[idx], [field]: value };
+    setSecondaryPlatforms(updated);
+  };
+  const removeSecondaryPlatform = (idx: number) => {
+    setSecondaryPlatforms(secondaryPlatforms.filter((_, i) => i !== idx));
   };
 
   // Proof method toggle
@@ -1061,85 +1121,194 @@ export default function CycleSetup() {
 
           {/* Step 4: Lead Gen Strategy */}
           {currentStep === 4 && (
-            <Card className="border-blue-500/20">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Megaphone className="h-5 w-5 text-blue-600" />
-                  <CardTitle>Lead Generation Strategy</CardTitle>
-                  <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">DISCOVER</Badge>
-                </div>
-                <CardDescription>How will you attract new potential clients?</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <Label htmlFor="leadPlatform">Primary Platform</Label>
-                  <Select value={leadPlatform} onValueChange={setLeadPlatform}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Where will you show up?" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="instagram">Instagram</SelectItem>
-                      <SelectItem value="linkedin">LinkedIn</SelectItem>
-                      <SelectItem value="youtube">YouTube</SelectItem>
-                      <SelectItem value="tiktok">TikTok</SelectItem>
-                      <SelectItem value="facebook">Facebook</SelectItem>
-                      <SelectItem value="podcast">Podcast</SelectItem>
-                      <SelectItem value="blog">Blog/SEO</SelectItem>
-                      <SelectItem value="pinterest">Pinterest</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="leadContentType">Content Type</Label>
-                  <Select value={leadContentType} onValueChange={setLeadContentType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="What format will you create?" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="short-video">Short-form Video (Reels/TikTok)</SelectItem>
-                      <SelectItem value="long-video">Long-form Video (YouTube)</SelectItem>
-                      <SelectItem value="carousel">Carousel Posts</SelectItem>
-                      <SelectItem value="stories">Stories</SelectItem>
-                      <SelectItem value="live">Live Streams</SelectItem>
-                      <SelectItem value="written">Written Posts/Articles</SelectItem>
-                      <SelectItem value="podcast">Podcast Episodes</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="leadFrequency">Posting Frequency</Label>
-                  <Select value={leadFrequency} onValueChange={setLeadFrequency}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="How often will you post?" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="5x-week">5x per week</SelectItem>
-                      <SelectItem value="3x-week">3x per week</SelectItem>
-                      <SelectItem value="2x-week">2x per week</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-center space-x-3 p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
-                  <Checkbox
-                    id="leadCommitted"
-                    checked={leadCommitted}
-                    onCheckedChange={(checked) => setLeadCommitted(checked as boolean)}
-                  />
-                  <div>
-                    <Label htmlFor="leadCommitted" className="text-base font-medium cursor-pointer">
-                      I commit to this for 90 days
-                    </Label>
-                    <p className="text-sm text-muted-foreground">No changing platforms, no giving up early</p>
+            <div className="space-y-6">
+              {/* Primary Platform Card */}
+              <Card className="border-blue-500/20">
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Megaphone className="h-5 w-5 text-blue-600" />
+                    <CardTitle>Lead Generation Strategy</CardTitle>
+                    <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">DISCOVER</Badge>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                  <CardDescription>How will you attract new potential clients?</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
+                    <Label className="text-sm font-semibold text-blue-600 mb-3 block">Primary Platform</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="leadPlatform" className="text-xs text-muted-foreground">Platform</Label>
+                        <Select value={leadPlatform} onValueChange={setLeadPlatform}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Where will you show up?" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PLATFORM_OPTIONS.map(opt => (
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="leadContentType" className="text-xs text-muted-foreground">Content Type</Label>
+                        <Select value={leadContentType} onValueChange={setLeadContentType}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="What format?" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CONTENT_TYPE_OPTIONS.map(opt => (
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="leadFrequency" className="text-xs text-muted-foreground">Posting Frequency</Label>
+                        <Select value={leadFrequency} onValueChange={setLeadFrequency}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="How often?" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {FREQUENCY_OPTIONS.map(opt => (
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="leadPlatformGoal" className="text-xs text-muted-foreground">Goal</Label>
+                        <Select value={leadPlatformGoal} onValueChange={setLeadPlatformGoal}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Main goal?" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PLATFORM_GOALS.map(opt => (
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Secondary Platforms */}
+                  {secondaryPlatforms.length > 0 && (
+                    <div className="space-y-3">
+                      <Label className="text-sm font-semibold">Secondary Platforms</Label>
+                      {secondaryPlatforms.map((platform, idx) => (
+                        <div key={idx} className="p-4 rounded-lg bg-muted/50 border border-border relative">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-destructive"
+                            onClick={() => removeSecondaryPlatform(idx)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 pr-8">
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Platform</Label>
+                              <Select 
+                                value={platform.platform} 
+                                onValueChange={(v) => updateSecondaryPlatform(idx, 'platform', v)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Platform" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {PLATFORM_OPTIONS.filter(opt => opt.value !== leadPlatform).map(opt => (
+                                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Content Type</Label>
+                              <Select 
+                                value={platform.contentType} 
+                                onValueChange={(v) => updateSecondaryPlatform(idx, 'contentType', v)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Content" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {CONTENT_TYPE_OPTIONS.map(opt => (
+                                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Frequency</Label>
+                              <Select 
+                                value={platform.frequency} 
+                                onValueChange={(v) => updateSecondaryPlatform(idx, 'frequency', v)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Frequency" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {FREQUENCY_OPTIONS.map(opt => (
+                                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Goal</Label>
+                              <Select 
+                                value={platform.goal} 
+                                onValueChange={(v) => updateSecondaryPlatform(idx, 'goal', v)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Goal" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {PLATFORM_GOALS.map(opt => (
+                                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addSecondaryPlatform}
+                    className="w-full border-dashed"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Secondary Platform
+                  </Button>
+
+                  <div className="flex items-center space-x-3 p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
+                    <Checkbox
+                      id="leadCommitted"
+                      checked={leadCommitted}
+                      onCheckedChange={(checked) => setLeadCommitted(checked as boolean)}
+                    />
+                    <div>
+                      <Label htmlFor="leadCommitted" className="text-base font-medium cursor-pointer">
+                        I commit to this for 90 days
+                      </Label>
+                      <p className="text-sm text-muted-foreground">No changing platforms, no giving up early</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {/* Step 5: Nurture Strategy */}
