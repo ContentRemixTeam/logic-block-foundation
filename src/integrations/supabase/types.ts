@@ -1297,11 +1297,16 @@ export type Database = {
       monthly_reviews: {
         Row: {
           adjustments: Json | null
+          challenges: Json | null
           created_at: string | null
           custom_reflections: Json | null
           cycle_id: string | null
           habit_trends: Json | null
+          lessons: Json | null
           month: number
+          month_in_cycle: number | null
+          month_score: number | null
+          next_month_priorities: Json | null
           review_id: string
           thought_patterns: Json | null
           updated_at: string | null
@@ -1310,11 +1315,16 @@ export type Database = {
         }
         Insert: {
           adjustments?: Json | null
+          challenges?: Json | null
           created_at?: string | null
           custom_reflections?: Json | null
           cycle_id?: string | null
           habit_trends?: Json | null
+          lessons?: Json | null
           month: number
+          month_in_cycle?: number | null
+          month_score?: number | null
+          next_month_priorities?: Json | null
           review_id?: string
           thought_patterns?: Json | null
           updated_at?: string | null
@@ -1323,11 +1333,16 @@ export type Database = {
         }
         Update: {
           adjustments?: Json | null
+          challenges?: Json | null
           created_at?: string | null
           custom_reflections?: Json | null
           cycle_id?: string | null
           habit_trends?: Json | null
+          lessons?: Json | null
           month?: number
+          month_in_cycle?: number | null
+          month_score?: number | null
+          next_month_priorities?: Json | null
           review_id?: string
           thought_patterns?: Json | null
           updated_at?: string | null
@@ -1820,6 +1835,7 @@ export type Database = {
       tasks: {
         Row: {
           actual_minutes: number | null
+          category: string | null
           checklist_progress: Json | null
           completed_at: string | null
           context_tags: string[] | null
@@ -1827,6 +1843,7 @@ export type Database = {
           cycle_id: string | null
           daily_plan_id: string | null
           day_order: number | null
+          due_date: string | null
           energy_level: string | null
           estimated_minutes: number | null
           goal_id: string | null
@@ -1834,6 +1851,7 @@ export type Database = {
           is_recurring_parent: boolean | null
           is_system_generated: boolean | null
           last_rescheduled_at: string | null
+          month_in_cycle: number | null
           notes: string | null
           original_due_date: string | null
           original_scheduled_at: string | null
@@ -1865,9 +1883,11 @@ export type Database = {
           time_block_start: string | null
           user_id: string
           waiting_on: string | null
+          week_in_cycle: number | null
         }
         Insert: {
           actual_minutes?: number | null
+          category?: string | null
           checklist_progress?: Json | null
           completed_at?: string | null
           context_tags?: string[] | null
@@ -1875,6 +1895,7 @@ export type Database = {
           cycle_id?: string | null
           daily_plan_id?: string | null
           day_order?: number | null
+          due_date?: string | null
           energy_level?: string | null
           estimated_minutes?: number | null
           goal_id?: string | null
@@ -1882,6 +1903,7 @@ export type Database = {
           is_recurring_parent?: boolean | null
           is_system_generated?: boolean | null
           last_rescheduled_at?: string | null
+          month_in_cycle?: number | null
           notes?: string | null
           original_due_date?: string | null
           original_scheduled_at?: string | null
@@ -1913,9 +1935,11 @@ export type Database = {
           time_block_start?: string | null
           user_id: string
           waiting_on?: string | null
+          week_in_cycle?: number | null
         }
         Update: {
           actual_minutes?: number | null
+          category?: string | null
           checklist_progress?: Json | null
           completed_at?: string | null
           context_tags?: string[] | null
@@ -1923,6 +1947,7 @@ export type Database = {
           cycle_id?: string | null
           daily_plan_id?: string | null
           day_order?: number | null
+          due_date?: string | null
           energy_level?: string | null
           estimated_minutes?: number | null
           goal_id?: string | null
@@ -1930,6 +1955,7 @@ export type Database = {
           is_recurring_parent?: boolean | null
           is_system_generated?: boolean | null
           last_rescheduled_at?: string | null
+          month_in_cycle?: number | null
           notes?: string | null
           original_due_date?: string | null
           original_scheduled_at?: string | null
@@ -1961,6 +1987,7 @@ export type Database = {
           time_block_start?: string | null
           user_id?: string
           waiting_on?: string | null
+          week_in_cycle?: number | null
         }
         Relationships: [
           {
@@ -2179,6 +2206,47 @@ export type Database = {
           xp_points?: number | null
         }
         Relationships: []
+      }
+      weekly_goals: {
+        Row: {
+          created_at: string
+          cycle_id: string | null
+          id: string
+          practice_thought: string | null
+          updated_at: string
+          user_id: string
+          week_start_date: string
+          weekly_goal_text: string | null
+        }
+        Insert: {
+          created_at?: string
+          cycle_id?: string | null
+          id?: string
+          practice_thought?: string | null
+          updated_at?: string
+          user_id: string
+          week_start_date: string
+          weekly_goal_text?: string | null
+        }
+        Update: {
+          created_at?: string
+          cycle_id?: string | null
+          id?: string
+          practice_thought?: string | null
+          updated_at?: string
+          user_id?: string
+          week_start_date?: string
+          weekly_goal_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_goals_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+        ]
       }
       weekly_plans: {
         Row: {

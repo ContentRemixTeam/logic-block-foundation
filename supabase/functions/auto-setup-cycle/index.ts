@@ -348,6 +348,7 @@ Deno.serve(async (req) => {
               time_block_end: posting_time ? addMinutes(posting_time, 30) : null,
               estimated_minutes: 30,
               status: 'todo',
+              category: 'content',
               source: 'auto-content-engine',
               is_system_generated: true,
               system_source: 'cycle_autopilot',
@@ -604,22 +605,23 @@ Deno.serve(async (req) => {
               .eq('template_key', templateKey)
               .maybeSingle();
             
-            if (!existing) {
-              nurtureTasksToCreate.push({
-                user_id: userId,
-                cycle_id: cycle_id,
-                project_id: nurtureProjectId,
-                task_text: template.text,
-                scheduled_date: formatDate(date),
-                estimated_minutes: template.minutes,
-                status: 'todo',
-                source: 'auto-nurture',
-                is_system_generated: true,
-                system_source: 'cycle_autopilot',
-                template_key: templateKey,
-                context_tags: ['nurture', nurture_method],
-              });
-            }
+              if (!existing) {
+                nurtureTasksToCreate.push({
+                  user_id: userId,
+                  cycle_id: cycle_id,
+                  project_id: nurtureProjectId,
+                  task_text: template.text,
+                  scheduled_date: formatDate(date),
+                  estimated_minutes: template.minutes,
+                  status: 'todo',
+                  category: 'nurture',
+                  source: 'auto-nurture',
+                  is_system_generated: true,
+                  system_source: 'cycle_autopilot',
+                  template_key: templateKey,
+                  context_tags: ['nurture', nurture_method],
+                });
+              }
           }
         }
 
@@ -719,6 +721,7 @@ Deno.serve(async (req) => {
                   scheduled_date: formatDate(date),
                   estimated_minutes: 15,
                   status: 'todo',
+                  category: 'offer',
                   source: 'auto-offer',
                   is_system_generated: true,
                   system_source: 'cycle_autopilot',
