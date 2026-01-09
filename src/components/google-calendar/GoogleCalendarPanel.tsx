@@ -23,10 +23,11 @@ export function GoogleCalendarPanel() {
     handleOAuthReturn,
   } = useGoogleCalendar();
 
-  // Check for OAuth return on mount
+  // Check for OAuth return on mount - only once
   useEffect(() => {
     handleOAuthReturn();
-  }, [handleOAuthReturn]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Show debug info in dev mode
   const showDebug = new URLSearchParams(window.location.search).has('debug');
