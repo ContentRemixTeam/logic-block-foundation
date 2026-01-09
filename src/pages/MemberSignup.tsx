@@ -42,8 +42,12 @@ export default function MemberSignup() {
       if (signUpError) {
         if (signUpError.message.includes('already registered')) {
           setError('This email is already registered. Please sign in instead.');
+        } else if (signUpError.message.includes('Database error')) {
+          setError('There was an issue creating your account. Please try again in a moment, or contact support if the problem persists.');
+        } else if (signUpError.message.includes('rate limit')) {
+          setError('Too many attempts. Please wait a moment and try again.');
         } else {
-          setError(signUpError.message);
+          setError('Unable to create account. Please check your details and try again.');
         }
         setLoading(false);
         return;
