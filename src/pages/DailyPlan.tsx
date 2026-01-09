@@ -25,7 +25,7 @@ import { DailyTimelineView } from '@/components/daily-plan/DailyTimelineView';
 import { DailyScheduleView } from '@/components/daily-plan/DailyScheduleView';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, LayoutList, CalendarDays } from 'lucide-react';
-import { PlannedForToday } from '@/components/daily-plan/PlannedForToday';
+import { DailyAgendaCard } from '@/components/daily-plan/DailyAgendaCard';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -752,8 +752,8 @@ export default function DailyPlan() {
               />
             )}
 
-            {/* Planned for Today from Weekly Plan */}
-            <PlannedForToday />
+            {/* Today's Agenda from Weekly Plan */}
+            <DailyAgendaCard onTaskToggle={() => loadDailyPlan()} />
 
             {/* Focus Area Reminder */}
             {focusArea && (
