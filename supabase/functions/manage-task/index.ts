@@ -104,7 +104,9 @@ Deno.serve(async (req) => {
       day_order,
       // Project fields
       project_id,
-      project_column
+      project_column,
+      // Cycle field
+      cycle_id
     } = body;
 
     // Validate action
@@ -224,6 +226,7 @@ Deno.serve(async (req) => {
             day_order: day_order || 0,
             project_id: project_id || null,
             project_column: project_column || 'todo',
+            cycle_id: cycle_id || null,
           })
           .select()
           .single();
@@ -267,6 +270,8 @@ Deno.serve(async (req) => {
         // Project fields
         if (project_id !== undefined) updateData.project_id = project_id;
         if (project_column !== undefined) updateData.project_column = project_column;
+        // Cycle field
+        if (cycle_id !== undefined) updateData.cycle_id = cycle_id;
 
         result = await supabase
           .from('tasks')

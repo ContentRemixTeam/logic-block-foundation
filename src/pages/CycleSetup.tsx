@@ -624,7 +624,7 @@ export default function CycleSetup() {
 
       const cycleId = cycle.cycle_id;
 
-      // Create cycle strategy
+      // Create cycle strategy with posting schedule
       const { error: strategyError } = await supabase
         .from('cycle_strategy')
         .insert({
@@ -638,6 +638,10 @@ export default function CycleSetup() {
           nurture_frequency: nurtureFrequency || null,
           free_transformation: freeTransformation || null,
           proof_methods: proofMethods,
+          // New posting schedule fields
+          posting_days: postingDays,
+          posting_time: postingTime && postingTime !== 'none' ? postingTime : null,
+          batch_day: batchDay && batchDay !== 'none' ? batchDay : null,
         });
 
       if (strategyError) console.error('Strategy error:', strategyError);
@@ -735,6 +739,69 @@ export default function CycleSetup() {
         .upsert({ user_id: user.id }, { onConflict: 'user_id' });
 
       if (settingsError) console.error('Settings error:', settingsError);
+
+      // Auto-setup: Create Content Engine project + posting tasks
+      if (leadPlatform && postingDays.length > 0) {
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData?.session?.access_token;
+          
+          const autoSetupResponse = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auto-setup-cycle`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                cycle_id: cycleId,
+                platform: leadPlatform,
+                content_type: leadContentType,
+                posting_days: postingDays,
+                posting_time: postingTime && postingTime !== 'none' ? postingTime : null,
+                batch_day: batchDay && batchDay !== 'none' ? batchDay : null,
+                start_date: format(startDate, 'yyyy-MM-dd'),
+                end_date: format(endDate, 'yyyy-MM-dd'),
+                create_content_engine: true,
+              }),
+            }
+          );
+
+          const autoSetupResult = await autoSetupResponse.json();
+          
+          if (autoSetupResult.success) {
+            const taskCount = autoSetupResult.data?.tasks?.length || 0;
+            toast({
+              title: 'Content Engine created!',
+              description: `Created project + ${taskCount} posting tasks for your 90-day cycle.`,
+            });
+          } else if (autoSetupResult.data?.errors?.length > 0) {
+            console.error('Auto-setup partial errors:', autoSetupResult.data.errors);
+            toast({
+              title: 'Content Engine created with warnings',
+              description: autoSetupResult.data.errors[0],
+              variant: 'destructive',
+            });
+          }
+        } catch (autoSetupError) {
+          console.error('Auto-setup error:', autoSetupError);
+          // Log error to database
+          await supabase.functions.invoke('log-error', {
+            body: {
+              error_type: 'auto_setup_cycle',
+              error_message: String(autoSetupError),
+              component: 'CycleSetup',
+              route: '/cycle-setup',
+            },
+          });
+          toast({
+            title: 'Auto-setup failed',
+            description: 'Could not create Content Engine. You can create it manually in Projects.',
+            variant: 'destructive',
+          });
+        }
+      }
 
       // Clear draft on successful save
       clearDraft();

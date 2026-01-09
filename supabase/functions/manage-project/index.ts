@@ -67,6 +67,7 @@ Deno.serve(async (req) => {
             start_date: project.start_date || null,
             end_date: project.end_date || null,
             is_template: project.is_template || false,
+            cycle_id: project.cycle_id || null,
           })
           .select()
           .single();
@@ -96,6 +97,7 @@ Deno.serve(async (req) => {
             start_date: project.start_date,
             end_date: project.end_date,
             is_template: project.is_template,
+            cycle_id: project.cycle_id,
             updated_at: new Date().toISOString(),
           })
           .eq('id', project.id)
