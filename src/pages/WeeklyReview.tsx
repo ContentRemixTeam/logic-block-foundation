@@ -436,6 +436,7 @@ export default function WeeklyReview() {
               onChange={setWins}
               label="Win"
               placeholder="What went well this week?"
+              shareableType="win"
             />
           </CardContent>
         </Card>
@@ -452,6 +453,7 @@ export default function WeeklyReview() {
               onChange={setChallenges}
               label="Challenge"
               placeholder="What was difficult?"
+              shareableType="challenge"
             />
           </CardContent>
         </Card>
@@ -468,6 +470,7 @@ export default function WeeklyReview() {
               onChange={setLessons}
               label="Lesson"
               placeholder="What insights did you gain?"
+              shareableType="lesson"
             />
           </CardContent>
         </Card>
@@ -484,6 +487,7 @@ export default function WeeklyReview() {
               onChange={setIntentions}
               label="Intention"
               placeholder="How will you approach next week?"
+              shareableType="intention"
             />
           </CardContent>
         </Card>
