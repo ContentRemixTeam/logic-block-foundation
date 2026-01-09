@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -27,6 +28,7 @@ import {
   PanelLeft,
   Smartphone,
   Library,
+  Shield,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
@@ -50,6 +52,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useQuickCapture } from '@/components/quick-capture';
+import { supabase } from '@/integrations/supabase/client';
 
 const MAIN_NAV = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, questIcon: '🗺️' },
@@ -93,10 +96,45 @@ const SETTINGS_NAV = [
 
 export function AppSidebar() {
   const location = useLocation();
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const { open: sidebarOpen, toggleSidebar } = useSidebar();
   const { isQuestMode, level, currentLevelXP, xpToNextLevel, levelTitle } = useTheme();
   const { openQuickCapture } = useQuickCapture();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+      
+      // Check by user_id first
+      const { data: byId } = await supabase
+        .from('admin_users')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (byId) {
+        setIsAdmin(true);
+        return;
+      }
+      
+      // Check by email for pre-registered admins
+      if (user.email) {
+        const { data: byEmail } = await supabase
+          .from('admin_users')
+          .select('id')
+          .ilike('email', user.email)
+          .maybeSingle();
+        
+        setIsAdmin(!!byEmail);
+      }
+    };
+    
+    checkAdmin();
+  }, [user]);
 
   const isActive = (item: { href: string; isActiveCheck?: (path: string) => boolean }) => {
     if (item.isActiveCheck) {
@@ -232,6 +270,49 @@ export function AppSidebar() {
         <NavSection label="Mindset" items={MINDSET_NAV} />
         <NavSection label="Community" items={COMMUNITY_NAV} />
         <NavSection label="Settings" items={SETTINGS_NAV} />
+        
+        {/* Admin Section - Only visible to admins */}
+        {isAdmin && (
+          <SidebarGroup>
+            {sidebarOpen && (
+              <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold px-3 mb-1">
+                Admin
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SidebarMenuButton 
+                        asChild 
+                        isActive={location.pathname === '/admin'}
+                        className={cn(
+                          "h-9 gap-3 transition-colors",
+                          location.pathname === '/admin' && "bg-primary/10 text-primary font-medium"
+                        )}
+                      >
+                        <Link to="/admin">
+                          {isQuestMode ? (
+                            <span className="text-base w-5 text-center">🛡️</span>
+                          ) : (
+                            <Shield className="h-4 w-4" />
+                          )}
+                          <span className="truncate">Admin Panel</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </TooltipTrigger>
+                    {!sidebarOpen && (
+                      <TooltipContent side="right" className="font-medium">
+                        Admin Panel
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       {/* Footer */}
