@@ -10,6 +10,8 @@ interface AddMemberRequest {
   email: string;
   firstName?: string;
   lastName?: string;
+  userId?: string;
+  entitlementId?: string;
 }
 
 serve(async (req: Request) => {
@@ -25,7 +27,7 @@ serve(async (req: Request) => {
     // Use service role to bypass RLS
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { email, firstName, lastName }: AddMemberRequest = await req.json();
+    const { email, firstName, lastName, userId, entitlementId }: AddMemberRequest = await req.json();
 
     if (!email) {
       return new Response(
@@ -34,9 +36,38 @@ serve(async (req: Request) => {
       );
     }
 
-    console.log(`[add-mastermind-entitlement] Adding entitlement for: ${email}`);
+    console.log(`[add-mastermind-entitlement] Processing for: ${email}, userId: ${userId}`);
 
-    // Check if entitlement already exists
+    // If we have an entitlementId, update that specific record
+    if (entitlementId) {
+      console.log(`[add-mastermind-entitlement] Updating existing entitlement: ${entitlementId}`);
+      
+      const { error: updateError } = await supabase
+        .from('entitlements')
+        .update({ 
+          status: 'active', 
+          tier: 'mastermind',
+          first_name: firstName || undefined,
+          last_name: lastName || undefined,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', entitlementId);
+
+      if (updateError) {
+        console.error('[add-mastermind-entitlement] Update error:', updateError);
+        return new Response(
+          JSON.stringify({ error: updateError.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Entitlement activated' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if entitlement already exists by email
     const { data: existing } = await supabase
       .from('entitlements')
       .select('id')
@@ -49,7 +80,13 @@ serve(async (req: Request) => {
       // Update to active if not already
       await supabase
         .from('entitlements')
-        .update({ status: 'active', tier: 'mastermind' })
+        .update({ 
+          status: 'active', 
+          tier: 'mastermind',
+          first_name: firstName || undefined,
+          last_name: lastName || undefined,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', existing.id);
       
       return new Response(
@@ -58,7 +95,7 @@ serve(async (req: Request) => {
       );
     }
 
-    // Create new entitlement
+    // Create new entitlement (fallback, shouldn't happen with verified flow)
     const { error: insertError } = await supabase
       .from('entitlements')
       .insert({
