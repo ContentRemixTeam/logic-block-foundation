@@ -168,6 +168,7 @@ export function BoardRow({
                   mode="single"
                   selected={task.scheduled_date ? new Date(task.scheduled_date) : undefined}
                   onSelect={(date) => onUpdate(task.task_id, { scheduled_date: date ? format(date, 'yyyy-MM-dd') : null })}
+                  className="pointer-events-auto"
                 />
               </PopoverContent>
             </Popover>
