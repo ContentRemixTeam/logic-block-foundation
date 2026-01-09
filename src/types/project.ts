@@ -81,6 +81,7 @@ export const BOARD_COLUMNS = [
   { id: 'priority', label: 'Priority', required: false, width: 100 },
   { id: 'energy_level', label: 'Energy', required: false, width: 100 },
   { id: 'estimated_minutes', label: 'Estimate', required: false, width: 80 },
+  { id: 'sop', label: 'SOP', required: false, width: 150 },
   { id: 'notes', label: 'Notes', required: false, width: 60 },
 ];
 

@@ -1309,6 +1309,53 @@ export type Database = {
           },
         ]
       }
+      project_custom_fields: {
+        Row: {
+          created_at: string | null
+          field_name: string
+          field_options: Json | null
+          field_type: string
+          id: string
+          is_visible: boolean | null
+          project_id: string
+          sort_order: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          field_name: string
+          field_options?: Json | null
+          field_type: string
+          id?: string
+          is_visible?: boolean | null
+          project_id: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          field_name?: string
+          field_options?: Json | null
+          field_type?: string
+          id?: string
+          is_visible?: boolean | null
+          project_id?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_custom_fields_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_sections: {
         Row: {
           color: string
@@ -1497,6 +1544,48 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      task_custom_field_values: {
+        Row: {
+          created_at: string | null
+          field_id: string
+          id: string
+          task_id: string
+          updated_at: string | null
+          value: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          field_id: string
+          id?: string
+          task_id: string
+          updated_at?: string | null
+          value?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          field_id?: string
+          id?: string
+          task_id?: string
+          updated_at?: string | null
+          value?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_custom_field_values_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "project_custom_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_custom_field_values_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
+          },
+        ]
       }
       task_settings: {
         Row: {
