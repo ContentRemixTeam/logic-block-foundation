@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { startOfWeek, addDays, subDays, format, isThisWeek, endOfWeek } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useTasks, useTaskMutations } from '@/hooks/useTasks';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
-import { Loader2 } from 'lucide-react';
+import { scheduleStore } from '@/lib/taskSchedulingStore';
+import { Loader2, Eye, Undo2, Calendar } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CalendarEvent } from '@/components/tasks/views/CalendarEventBlock';
@@ -31,7 +33,7 @@ export function WeekPlannerNew({
   onTabChange 
 }: WeekPlannerNewProps) {
   const { user } = useAuth();
-  const { toast } = useToast();
+  const navigate = useNavigate();
 
   const [isPulling, setIsPulling] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
@@ -139,53 +141,113 @@ export function WeekPlannerNew({
   }, [fetchCalendarEvents]);
 
   const handleTaskDrop = async (taskId: string, fromPlannedDay: string | null, targetDate: string, timeSlot?: string) => {
+    // Get the task to save previous state for undo
+    const task = tasks.find(t => t.task_id === taskId);
+    if (!task) return;
+    
+    const previousState = {
+      planned_day: task.planned_day,
+      day_order: task.day_order,
+      time_block_start: task.time_block_start,
+    };
+    
     // Get max order for the target day and add 1
     const tasksOnDay = tasks.filter((t) => t.planned_day === targetDate);
     const maxOrder = Math.max(0, ...tasksOnDay.map((t) => t.day_order || 0));
     const newOrder = maxOrder + 1;
 
+    // Construct slot key for highlighting
+    const slotKey = timeSlot ? `${targetDate}-${parseInt(timeSlot.split(':')[0], 10)}` : `${targetDate}-allday`;
+
     // If timeSlot provided, construct full ISO timestamp and update time_block_start
-    if (timeSlot) {
-      // Construct full ISO timestamp: "2026-01-09" + "09:00" → "2026-01-09T09:00:00"
-      const fullTimestamp = `${targetDate}T${timeSlot}:00`;
-      
-      updateTask.mutate(
-        { taskId, updates: { planned_day: targetDate, day_order: newOrder, time_block_start: fullTimestamp } },
-        {
-          onSuccess: () => {
-            const targetDay = new Date(targetDate);
-            toast({
-              title: `Scheduled for ${format(targetDay, 'EEE')} at ${timeSlot}`,
-              duration: 2000,
-            });
-          },
-        }
-      );
-    } else {
-      // When moving to All Day (no time slot), explicitly clear time_block_start
-      updateTask.mutate(
-        { taskId, updates: { planned_day: targetDate, day_order: newOrder, time_block_start: null } },
-        {
-          onSuccess: () => {
-            const targetDay = new Date(targetDate);
-            toast({
-              title: `Scheduled for ${format(targetDay, 'EEE')}`,
-              duration: 2000,
-            });
-          },
-        }
-      );
-    }
+    const updates = timeSlot
+      ? { planned_day: targetDate, day_order: newOrder, time_block_start: `${targetDate}T${timeSlot}:00` }
+      : { planned_day: targetDate, day_order: newOrder, time_block_start: null };
+    
+    const newState = updates;
+    
+    updateTask.mutate(
+      { taskId, updates },
+      {
+        onSuccess: () => {
+          // Add slot highlight animation
+          scheduleStore.addHighlightedSlot(slotKey);
+          
+          // Save undo action
+          scheduleStore.pushUndo({
+            taskId,
+            taskText: task.task_text,
+            previousState,
+            newState,
+            timestamp: Date.now(),
+          });
+          
+          const targetDay = new Date(targetDate);
+          const timeLabel = timeSlot ? ` at ${timeSlot}` : '';
+          
+          // Show toast with View and Undo actions
+          toast.success(
+            <div className="flex flex-col gap-0.5">
+              <span className="font-medium">Task scheduled</span>
+              <span className="text-sm text-muted-foreground truncate max-w-[200px]">{task.task_text}</span>
+            </div>,
+            {
+              description: `${format(targetDay, 'EEEE')}${timeLabel}`,
+              duration: 5000,
+              action: {
+                label: 'Undo',
+                onClick: () => handleUndoSchedule(taskId, previousState),
+              },
+            }
+          );
+        },
+        onError: (error: any) => {
+          toast.error('Failed to schedule task', {
+            description: error?.message || 'Please try again',
+          });
+        },
+      }
+    );
+  };
+
+  const handleUndoSchedule = async (taskId: string, previousState: { planned_day: string | null; day_order: number | null; time_block_start: string | null }) => {
+    updateTask.mutate(
+      { 
+        taskId, 
+        updates: { 
+          planned_day: previousState.planned_day, 
+          day_order: previousState.day_order, 
+          time_block_start: previousState.time_block_start 
+        } 
+      },
+      {
+        onSuccess: () => {
+          toast.success('Scheduling undone');
+        },
+        onError: () => {
+          toast.error('Failed to undo');
+        },
+      }
+    );
   };
 
   const handleMoveToInbox = async (taskId: string) => {
+    const task = tasks.find(t => t.task_id === taskId);
+    const previousState = task ? {
+      planned_day: task.planned_day,
+      day_order: task.day_order,
+      time_block_start: task.time_block_start,
+    } : null;
+    
     moveToDay.mutate(
       { taskId, plannedDay: null, dayOrder: 0 },
       {
         onSuccess: () => {
-          toast({
-            title: 'Moved to inbox',
-            duration: 2000,
+          toast.success('Moved to inbox', {
+            action: previousState ? {
+              label: 'Undo',
+              onClick: () => handleUndoSchedule(taskId, previousState),
+            } : undefined,
           });
         },
       }
@@ -203,16 +265,13 @@ export function WeekPlannerNew({
 
       if (error) throw error;
 
-      toast({
-        title: data?.message || 'Tasks pulled to inbox',
+      toast.success(data?.message || 'Tasks pulled to inbox', {
         description: data?.count > 0 ? `Moved ${data.count} tasks` : undefined,
       });
     } catch (error: any) {
       console.error('Error pulling tasks:', error);
-      toast({
-        title: 'Error pulling tasks',
+      toast.error('Error pulling tasks', {
         description: error?.message,
-        variant: 'destructive',
       });
     } finally {
       setIsPulling(false);
@@ -230,10 +289,19 @@ export function WeekPlannerNew({
         day_order: plannedDay ? Date.now() % 1000000 : 0,
       },
       {
-        onSuccess: () => {
-          toast({
-            title: plannedDay ? `Added to ${format(new Date(plannedDay), 'EEE')}` : 'Added to inbox',
-            duration: 2000,
+        onSuccess: (createdTask) => {
+          const label = plannedDay ? `Added to ${format(new Date(plannedDay), 'EEE')}` : 'Added to inbox';
+          toast.success(label, {
+            action: {
+              label: 'View',
+              onClick: () => {
+                if (plannedDay) {
+                  navigate(`/weekly-plan?highlightTask=${createdTask?.task_id}`);
+                } else {
+                  navigate('/tasks');
+                }
+              },
+            },
           });
         },
       }
@@ -257,13 +325,10 @@ export function WeekPlannerNew({
       );
 
       setClearConfirmOpen(false);
-      toast({ title: `Moved ${tasksToMove.length} tasks to inbox` });
+      toast.success(`Moved ${tasksToMove.length} tasks to inbox`);
     } catch (error: any) {
       console.error('Error clearing week:', error);
-      toast({
-        title: 'Error clearing week',
-        variant: 'destructive',
-      });
+      toast.error('Error clearing week');
     } finally {
       setIsClearing(false);
     }
