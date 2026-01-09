@@ -106,6 +106,72 @@ export default function Ideas() {
   
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Inline category creation state for Add modal
+  const [showInlineAddCategory, setShowInlineAddCategory] = useState(false);
+  const [inlineAddCategoryName, setInlineAddCategoryName] = useState('');
+  const [inlineAddCategoryColor, setInlineAddCategoryColor] = useState('#FF3370');
+
+  // Inline category creation state for Edit modal
+  const [showInlineEditCategory, setShowInlineEditCategory] = useState(false);
+  const [inlineEditCategoryName, setInlineEditCategoryName] = useState('');
+  const [inlineEditCategoryColor, setInlineEditCategoryColor] = useState('#FF3370');
+
+  const handleInlineCategoryCreate = async (isEdit: boolean) => {
+    const name = isEdit ? inlineEditCategoryName : inlineAddCategoryName;
+    const color = isEdit ? inlineEditCategoryColor : inlineAddCategoryColor;
+    
+    if (!name.trim()) return;
+
+    setActionLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No session');
+
+      const { data, error } = await supabase.functions.invoke('save-category', {
+        body: {
+          id: null,
+          name: name.trim(),
+          color: color,
+        },
+      });
+
+      if (error) throw error;
+
+      // Get the new category ID from the response or reload to get it
+      await loadData();
+      
+      // Find the newly created category and select it
+      const { data: refreshData } = await supabase.functions.invoke('get-ideas');
+      const newCategories = Array.isArray(refreshData?.categories) ? refreshData.categories : [];
+      const newCat = newCategories.find((c: any) => c.name === name.trim());
+      
+      if (newCat) {
+        if (isEdit) {
+          setEditCategoryId(newCat.id);
+          setShowInlineEditCategory(false);
+          setInlineEditCategoryName('');
+          setInlineEditCategoryColor('#FF3370');
+        } else {
+          setNewCategoryId(newCat.id);
+          setShowInlineAddCategory(false);
+          setInlineAddCategoryName('');
+          setInlineAddCategoryColor('#FF3370');
+        }
+      }
+
+      toast({ title: 'Category created!' });
+    } catch (error: any) {
+      console.error('Error creating category:', error);
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const loadData = useCallback(async () => {
     if (!user) return;
 
@@ -172,6 +238,9 @@ export default function Ideas() {
     setNewTags([]);
     setNewTagInput('');
     setNewProjectId('');
+    setShowInlineAddCategory(false);
+    setInlineAddCategoryName('');
+    setInlineAddCategoryColor('#FF3370');
   };
 
   const handleAddTag = (isEdit: boolean) => {
@@ -417,22 +486,84 @@ export default function Ideas() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label>Category</Label>
-            <Select value={categoryId || "uncategorized"} onValueChange={(val) => setCategoryId(val === "uncategorized" ? "" : val)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="uncategorized">No category</SelectItem>
-                {categories.filter(cat => cat.id).map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
-                      {cat.name}
+            {(isEdit ? showInlineEditCategory : showInlineAddCategory) ? (
+              <div className="space-y-2 p-3 border rounded-md bg-muted/30">
+                <Input
+                  placeholder="Category name"
+                  value={isEdit ? inlineEditCategoryName : inlineAddCategoryName}
+                  onChange={(e) => isEdit ? setInlineEditCategoryName(e.target.value) : setInlineAddCategoryName(e.target.value)}
+                  autoFocus
+                />
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground">Color:</Label>
+                  <input
+                    type="color"
+                    value={isEdit ? inlineEditCategoryColor : inlineAddCategoryColor}
+                    onChange={(e) => isEdit ? setInlineEditCategoryColor(e.target.value) : setInlineAddCategoryColor(e.target.value)}
+                    className="w-8 h-8 rounded cursor-pointer border-0"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => handleInlineCategoryCreate(isEdit)}
+                    disabled={actionLoading || !(isEdit ? inlineEditCategoryName : inlineAddCategoryName).trim()}
+                  >
+                    Create
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      if (isEdit) {
+                        setShowInlineEditCategory(false);
+                        setInlineEditCategoryName('');
+                      } else {
+                        setShowInlineAddCategory(false);
+                        setInlineAddCategoryName('');
+                      }
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Select value={categoryId || "uncategorized"} onValueChange={(val) => {
+                if (val === "__create_new__") {
+                  if (isEdit) {
+                    setShowInlineEditCategory(true);
+                  } else {
+                    setShowInlineAddCategory(true);
+                  }
+                } else {
+                  setCategoryId(val === "uncategorized" ? "" : val);
+                }
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="uncategorized">No category</SelectItem>
+                  {categories.filter(cat => cat.id).map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
+                        {cat.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="__create_new__">
+                    <div className="flex items-center gap-2 text-primary">
+                      <Plus className="h-3 w-3" />
+                      Create new category
                     </div>
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                </SelectContent>
+              </Select>
+            )}
           </div>
           
           <div>
