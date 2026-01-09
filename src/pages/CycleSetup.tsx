@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useCycleSetupDraft, CycleSetupDraft, SecondaryPlatform } from '@/hooks/useCycleSetupDraft';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { AutopilotSetupModal, AutopilotOptions } from '@/components/cycle/AutopilotSetupModal';
 
 interface WorkshopImportData {
   startDate?: string;
@@ -181,6 +182,7 @@ export default function CycleSetup() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showDraftDialog, setShowDraftDialog] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [showAutopilotModal, setShowAutopilotModal] = useState(false);
   
   const { hasDraft, saveDraft, loadDraft, clearDraft, getDraftAge } = useCycleSetupDraft();
 
@@ -584,9 +586,10 @@ export default function CycleSetup() {
     );
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (autopilotOptions?: AutopilotOptions) => {
     if (!user) return;
     setLoading(true);
+    setShowAutopilotModal(false);
 
     try {
       // Create cycle with all new fields
@@ -740,8 +743,8 @@ export default function CycleSetup() {
 
       if (settingsError) console.error('Settings error:', settingsError);
 
-      // Auto-setup: Create Content Engine project + posting tasks
-      if (leadPlatform && postingDays.length > 0) {
+      // Auto-setup: Create Content Engine project + posting tasks (if enabled)
+      if (autopilotOptions?.createContentEngine && leadPlatform && postingDays.length > 0) {
         try {
           const { data: sessionData } = await supabase.auth.getSession();
           const token = sessionData?.session?.access_token;
@@ -764,6 +767,21 @@ export default function CycleSetup() {
                 start_date: format(startDate, 'yyyy-MM-dd'),
                 end_date: format(endDate, 'yyyy-MM-dd'),
                 create_content_engine: true,
+                // Pass other autopilot options
+                create_metrics_checkin: autopilotOptions?.createMetricsCheckin,
+                create_nurture_tasks: autopilotOptions?.createNurtureTasks,
+                create_offer_tasks: autopilotOptions?.createOfferTasks,
+                create_weekly_blocks: autopilotOptions?.createWeeklyBlocks,
+                // Context for other automations
+                focus_area: focusArea,
+                nurture_method: nurtureMethod,
+                nurture_frequency: nurtureFrequency,
+                offers: offers.filter(o => o.name.trim()),
+                metrics: {
+                  metric1: metric1Name,
+                  metric2: metric2Name,
+                  metric3: metric3Name,
+                },
               }),
             }
           );
@@ -773,13 +791,13 @@ export default function CycleSetup() {
           if (autoSetupResult.success) {
             const taskCount = autoSetupResult.data?.tasks?.length || 0;
             toast({
-              title: 'Content Engine created!',
-              description: `Created project + ${taskCount} posting tasks for your 90-day cycle.`,
+              title: 'Autopilot setup complete!',
+              description: `Created project + ${taskCount} tasks for your 90-day cycle.`,
             });
           } else if (autoSetupResult.data?.errors?.length > 0) {
             console.error('Auto-setup partial errors:', autoSetupResult.data.errors);
             toast({
-              title: 'Content Engine created with warnings',
+              title: 'Setup completed with warnings',
               description: autoSetupResult.data.errors[0],
               variant: 'destructive',
             });
@@ -797,7 +815,7 @@ export default function CycleSetup() {
           });
           toast({
             title: 'Auto-setup failed',
-            description: 'Could not create Content Engine. You can create it manually in Projects.',
+            description: 'Could not create automations. You can set them up manually.',
             variant: 'destructive',
           });
         }
@@ -1904,11 +1922,24 @@ export default function CycleSetup() {
               <ChevronRight className="ml-2 h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={loading || !goal}>
+            <Button onClick={() => setShowAutopilotModal(true)} disabled={loading || !goal}>
               {loading ? 'Creating...' : 'Create Cycle →'}
             </Button>
           )}
         </div>
+
+        {/* Autopilot Setup Modal */}
+        <AutopilotSetupModal
+          open={showAutopilotModal}
+          onOpenChange={setShowAutopilotModal}
+          onConfirm={handleSubmit}
+          loading={loading}
+          hasPlatform={!!leadPlatform}
+          hasPostingDays={postingDays.length > 0}
+          hasMetrics={!!(metric1Name || metric2Name || metric3Name)}
+          hasNurtureMethod={!!nurtureMethod}
+          hasOffers={offers.some(o => o.name.trim())}
+        />
       </div>
     </Layout>
   );

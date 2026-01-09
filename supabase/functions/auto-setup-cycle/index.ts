@@ -123,6 +123,16 @@ Deno.serve(async (req) => {
       end_date,
       // Options for what to create
       create_content_engine = true,
+      create_metrics_checkin = false,
+      create_nurture_tasks = false,
+      create_offer_tasks = false,
+      create_weekly_blocks = false,
+      // Context for other automations
+      focus_area,
+      nurture_method,
+      nurture_frequency,
+      offers = [],
+      metrics = {},
     } = body;
 
     if (!cycle_id || !platform) {
@@ -348,6 +358,202 @@ Deno.serve(async (req) => {
               results.tasks = [...(results.tasks || []), ...batchTasks];
               console.log(`[AutoSetup] Created ${batchTasks.length} batch tasks`);
             }
+          }
+        }
+      }
+    }
+
+    // ==================== METRICS CHECK-IN TASKS ====================
+    if (create_metrics_checkin && (metrics?.metric1 || metrics?.metric2 || metrics?.metric3)) {
+      const startDateObj = new Date(start_date);
+      const endDateObj = new Date(end_date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const effectiveStart = startDateObj > today ? startDateObj : today;
+
+      // Get all Mondays in the cycle
+      const mondays = getNextOccurrences(effectiveStart, endDateObj, [1]); // 1 = Monday
+
+      // Check for existing metrics tasks
+      const { data: existingMetricsTasks } = await supabase
+        .from('tasks')
+        .select('task_id, scheduled_date')
+        .eq('cycle_id', cycle_id)
+        .eq('user_id', userId)
+        .eq('source', 'auto-metrics-checkin');
+
+      const existingMetricsDates = new Set(existingMetricsTasks?.map(t => t.scheduled_date) || []);
+
+      const metricsTasksToCreate = mondays
+        .filter(date => !existingMetricsDates.has(formatDate(date)))
+        .map(date => ({
+          user_id: userId,
+          cycle_id: cycle_id,
+          task_text: `Update Weekly Metrics`,
+          task_description: `Review and update your 3 key metrics:\n• ${metrics.metric1 || 'Metric 1'}\n• ${metrics.metric2 || 'Metric 2'}\n• ${metrics.metric3 || 'Metric 3'}`,
+          scheduled_date: formatDate(date),
+          time_block_start: '09:00',
+          time_block_end: '09:30',
+          estimated_minutes: 30,
+          status: 'todo',
+          source: 'auto-metrics-checkin',
+          context_tags: ['metrics', 'weekly'],
+          priority: 'high',
+        }));
+
+      if (metricsTasksToCreate.length > 0) {
+        const { data: metricsTasks, error: metricsError } = await supabase
+          .from('tasks')
+          .insert(metricsTasksToCreate)
+          .select();
+
+        if (metricsError) {
+          console.error('[AutoSetup] Error creating metrics tasks:', metricsError);
+          results.errors.push(`Failed to create metrics tasks: ${metricsError.message}`);
+        } else {
+          results.tasks = [...(results.tasks || []), ...metricsTasks];
+          console.log(`[AutoSetup] Created ${metricsTasks.length} metrics check-in tasks`);
+        }
+      }
+    }
+
+    // ==================== NURTURE TASKS ====================
+    if (create_nurture_tasks && nurture_method) {
+      const startDateObj = new Date(start_date);
+      const endDateObj = new Date(end_date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const effectiveStart = startDateObj > today ? startDateObj : today;
+
+      // Determine frequency and days based on nurture method
+      let nurtureDays: number[] = [];
+      let taskText = '';
+      
+      switch (nurture_method) {
+        case 'email':
+          nurtureDays = [2, 4]; // Tue, Thu by default
+          taskText = 'Write & send email newsletter';
+          break;
+        case 'podcast':
+          nurtureDays = [3]; // Wed
+          taskText = 'Record/publish podcast episode';
+          break;
+        case 'community':
+          nurtureDays = [1, 3, 5]; // Mon, Wed, Fri
+          taskText = 'Engage in community';
+          break;
+        case 'dm':
+          nurtureDays = [1, 2, 3, 4, 5]; // Weekdays
+          taskText = 'DM conversations (10 min)';
+          break;
+        case 'webinar':
+          nurtureDays = [4]; // Thu
+          taskText = 'Host weekly webinar/workshop';
+          break;
+        case 'challenge':
+          nurtureDays = [1]; // Mon
+          taskText = 'Prepare/run challenge content';
+          break;
+        default:
+          nurtureDays = [2]; // Default to Tue
+          taskText = `Nurture: ${nurture_method}`;
+      }
+
+      const nurtureDates = getNextOccurrences(effectiveStart, endDateObj, nurtureDays);
+
+      // Check for existing nurture tasks
+      const { data: existingNurtureTasks } = await supabase
+        .from('tasks')
+        .select('task_id, scheduled_date')
+        .eq('cycle_id', cycle_id)
+        .eq('user_id', userId)
+        .eq('source', 'auto-nurture');
+
+      const existingNurtureDates = new Set(existingNurtureTasks?.map(t => t.scheduled_date) || []);
+
+      const nurtureTasksToCreate = nurtureDates
+        .filter(date => !existingNurtureDates.has(formatDate(date)))
+        .map(date => ({
+          user_id: userId,
+          cycle_id: cycle_id,
+          task_text: taskText,
+          scheduled_date: formatDate(date),
+          estimated_minutes: nurture_method === 'dm' ? 10 : 60,
+          status: 'todo',
+          source: 'auto-nurture',
+          context_tags: ['nurture', nurture_method],
+        }));
+
+      if (nurtureTasksToCreate.length > 0) {
+        const { data: nurtureTasks, error: nurtureError } = await supabase
+          .from('tasks')
+          .insert(nurtureTasksToCreate)
+          .select();
+
+        if (nurtureError) {
+          console.error('[AutoSetup] Error creating nurture tasks:', nurtureError);
+          results.errors.push(`Failed to create nurture tasks: ${nurtureError.message}`);
+        } else {
+          results.tasks = [...(results.tasks || []), ...nurtureTasks];
+          console.log(`[AutoSetup] Created ${nurtureTasks.length} nurture tasks`);
+        }
+      }
+    }
+
+    // ==================== OFFER TASKS ====================
+    if (create_offer_tasks && offers && offers.length > 0) {
+      const startDateObj = new Date(start_date);
+      const endDateObj = new Date(end_date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const effectiveStart = startDateObj > today ? startDateObj : today;
+
+      // For each offer, create recurring tasks based on sales frequency
+      for (const offer of offers) {
+        if (!offer.name) continue;
+
+        // Check for existing offer tasks
+        const { data: existingOfferTasks } = await supabase
+          .from('tasks')
+          .select('task_id, scheduled_date')
+          .eq('cycle_id', cycle_id)
+          .eq('user_id', userId)
+          .eq('source', 'auto-offer')
+          .ilike('task_text', `%${offer.name}%`);
+
+        const existingOfferDates = new Set(existingOfferTasks?.map(t => t.scheduled_date) || []);
+
+        // Default to weekly offers
+        const offerDays = [2, 4]; // Tue, Thu
+        const offerDates = getNextOccurrences(effectiveStart, endDateObj, offerDays);
+
+        const offerTasksToCreate = offerDates
+          .filter(date => !existingOfferDates.has(formatDate(date)))
+          .slice(0, 26) // Limit to ~13 weeks worth
+          .map((date, idx) => ({
+            user_id: userId,
+            cycle_id: cycle_id,
+            task_text: idx % 2 === 0 ? `Make offer: ${offer.name}` : `Follow up: ${offer.name}`,
+            scheduled_date: formatDate(date),
+            estimated_minutes: 15,
+            status: 'todo',
+            source: 'auto-offer',
+            context_tags: ['sales', 'offer'],
+            priority: offer.isPrimary ? 'high' : 'medium',
+          }));
+
+        if (offerTasksToCreate.length > 0) {
+          const { data: offerTasks, error: offerError } = await supabase
+            .from('tasks')
+            .insert(offerTasksToCreate)
+            .select();
+
+          if (offerError) {
+            console.error('[AutoSetup] Error creating offer tasks:', offerError);
+            results.errors.push(`Failed to create offer tasks for ${offer.name}: ${offerError.message}`);
+          } else {
+            results.tasks = [...(results.tasks || []), ...offerTasks];
+            console.log(`[AutoSetup] Created ${offerTasks.length} offer tasks for ${offer.name}`);
           }
         }
       }
