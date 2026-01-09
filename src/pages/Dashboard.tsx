@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { supabase } from '@/integrations/supabase/client';
 import { normalizeArray, normalizeString, normalizeNumber } from '@/lib/normalize';
+import { MASTERMIND_LINKS } from '@/lib/mastermindLinks';
 import { Target, Calendar, CheckSquare, ArrowRight, TrendingUp, Zap, Map, Compass, Swords } from 'lucide-react';
 import { OnboardingChecklist } from '@/components/tour/OnboardingChecklist';
 import { QuestMapCompact } from '@/components/quest/QuestMap';
@@ -510,23 +511,26 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="space-y-2">
               <a
-                href="#"
+                href={MASTERMIND_LINKS.MASTERMIND_GROUP}
                 className="block text-sm text-primary hover:underline"
                 target="_blank"
+                rel="noopener noreferrer"
               >
                 Join Mastermind Group →
               </a>
               <a
-                href="#"
+                href={MASTERMIND_LINKS.COWORKING_ROOM}
                 className="block text-sm text-primary hover:underline"
                 target="_blank"
+                rel="noopener noreferrer"
               >
                 Coworking Sessions →
               </a>
               <a
-                href="#"
+                href={MASTERMIND_LINKS.EVENTS_CALENDAR}
                 className="block text-sm text-primary hover:underline"
                 target="_blank"
+                rel="noopener noreferrer"
               >
                 Calendar & Events →
               </a>
