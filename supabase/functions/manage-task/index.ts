@@ -25,12 +25,12 @@ function getUserIdFromJWT(authHeader: string): string | null {
   }
 }
 
-// Helper to validate if a value is a valid timestamp (not just a time string like "06:00")
-function isValidTimestamp(value: any): boolean {
+// Helper to check if a value is a valid time value (accepts both simple time strings and ISO timestamps)
+function isValidTimeValue(value: any): boolean {
   if (!value || typeof value !== 'string') return false;
-  // Check if it's a full ISO timestamp or at least has a date component
-  // Simple time strings like "06:00" or "17:00" should return false
-  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(value)) return false;
+  // Accept simple time strings like "09:00" or "17:30"
+  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(value)) return true;
+  // Also accept full ISO timestamps
   const date = new Date(value);
   return !isNaN(date.getTime());
 }
@@ -210,8 +210,8 @@ Deno.serve(async (req) => {
             // New enhanced fields
             estimated_minutes: estimated_minutes || null,
             actual_minutes: actual_minutes || null,
-            time_block_start: isValidTimestamp(time_block_start) ? time_block_start : null,
-            time_block_end: isValidTimestamp(time_block_end) ? time_block_end : null,
+            time_block_start: isValidTimeValue(time_block_start) ? time_block_start : null,
+            time_block_end: isValidTimeValue(time_block_end) ? time_block_end : null,
             energy_level: energy_level || null,
             context_tags: context_tags || [],
             goal_id: goal_id || null,
@@ -251,8 +251,8 @@ Deno.serve(async (req) => {
         // New enhanced fields
         if (estimated_minutes !== undefined) updateData.estimated_minutes = estimated_minutes;
         if (actual_minutes !== undefined) updateData.actual_minutes = actual_minutes;
-        if (time_block_start !== undefined) updateData.time_block_start = isValidTimestamp(time_block_start) ? time_block_start : null;
-        if (time_block_end !== undefined) updateData.time_block_end = isValidTimestamp(time_block_end) ? time_block_end : null;
+        if (time_block_start !== undefined) updateData.time_block_start = time_block_start === null ? null : (isValidTimeValue(time_block_start) ? time_block_start : null);
+        if (time_block_end !== undefined) updateData.time_block_end = time_block_end === null ? null : (isValidTimeValue(time_block_end) ? time_block_end : null);
         if (energy_level !== undefined) updateData.energy_level = energy_level;
         if (context_tags !== undefined) updateData.context_tags = context_tags;
         if (goal_id !== undefined) updateData.goal_id = goal_id;
