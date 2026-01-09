@@ -5,6 +5,7 @@ import { CalendarEvent, CalendarEventBlock } from '@/components/tasks/views/Cale
 import { WeeklyTaskCard } from './WeeklyTaskCard';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { useScheduleStore } from '@/lib/taskSchedulingStore';
 
 interface WeeklyTimelineBoardProps {
   tasks: Task[];
@@ -34,6 +35,7 @@ export function WeeklyTimelineBoard({
 }: WeeklyTimelineBoardProps) {
   const [dragOverCell, setDragOverCell] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const { isSlotHighlighted } = useScheduleStore();
 
   // Prevent body scroll during drag
   useEffect(() => {
@@ -315,6 +317,7 @@ export function WeeklyTimelineBoard({
               const isOver = dragOverCell === cellKey;
               const dayTasks = untimedTasksByDay[dateStr] || [];
               const dayEvents = allDayEventsByDay[dateStr] || [];
+              const isHighlighted = isSlotHighlighted(cellKey);
               
               return (
                 <div
@@ -327,7 +330,8 @@ export function WeeklyTimelineBoard({
                     'flex-1 min-w-[120px] border-r last:border-r-0 p-1.5 min-h-[60px] transition-all duration-150',
                     today && 'bg-primary/5',
                     isOver && 'bg-primary/10 ring-2 ring-inset ring-primary/40 scale-[1.01]',
-                    isDragging && !isOver && 'hover:bg-muted/40'
+                    isDragging && !isOver && 'hover:bg-muted/40',
+                    isHighlighted && 'bg-success/20 ring-2 ring-success/50 animate-pulse'
                   )}
                 >
                   <div className="space-y-1">
@@ -388,6 +392,7 @@ export function WeeklyTimelineBoard({
                 const isOfficeHour = isWithinOfficeHours(hour);
                 const cellTasks = tasksByDayAndHour[dateStr]?.[hour] || [];
                 const cellEvents = eventsByDayAndHour[dateStr]?.[hour] || [];
+                const isHighlighted = isSlotHighlighted(cellKey);
                 
                 return (
                   <div
@@ -401,7 +406,8 @@ export function WeeklyTimelineBoard({
                       today && 'bg-primary/5',
                       isOfficeHour && !today && 'bg-muted/20',
                       isOver && 'bg-primary/10 ring-2 ring-inset ring-primary/40 scale-[1.01]',
-                      isDragging && !isOver && 'hover:bg-muted/30'
+                      isDragging && !isOver && 'hover:bg-muted/30',
+                      isHighlighted && 'bg-success/20 ring-2 ring-success/50 animate-pulse'
                     )}
                   >
                     {/* Drop indicator when hovering empty cell */}
