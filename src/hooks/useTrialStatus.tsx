@@ -51,12 +51,13 @@ export function useTrialStatus(): TrialStatus {
         return;
       }
 
-      // Members and admins always have access
+      // Members and admins always have access - no trial logic needed
       if (profile.user_type === 'member' || profile.user_type === 'admin') {
         setStatus({
           hasAccess: true,
           reason: profile.user_type as TrialReason,
           userType: profile.user_type,
+          // Don't set expiresAt for members - they shouldn't see trial banner
           loading: false,
         });
         return;
