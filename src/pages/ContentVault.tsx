@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -8,11 +8,11 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { 
   ContentTable, 
   ContentCards, 
-  ContentEditorModal, 
   SendLog, 
   SubjectLineLibrary, 
   RepurposePanel,
 } from '@/components/content';
+import { ContentSaveModal } from '@/components/content/ContentSaveModal';
 import { 
   getContentItems, 
   duplicateContentItem,
@@ -61,6 +61,19 @@ export default function ContentVault() {
   const [selectedTypes, setSelectedTypes] = useState<ContentType[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<ContentStatus[]>([]);
   const [filterThisCycle, setFilterThisCycle] = useState(false);
+
+  // Keyboard shortcut: Shift+N to open new content modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.shiftKey && e.key === 'N' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        handleCreate();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -341,11 +354,10 @@ export default function ContentVault() {
         </Tabs>
 
         {/* Editor Modal */}
-        <ContentEditorModal
+        <ContentSaveModal
           open={editorOpen}
           onOpenChange={setEditorOpen}
           item={editingItem}
-          cycleId={activeCycle?.cycle_id}
           onSaved={loadItems}
         />
 
