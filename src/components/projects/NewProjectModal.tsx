@@ -20,9 +20,17 @@ interface NewProjectModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editingProject?: Project | null;
+  defaultBoardId?: string;
+  defaultColumnId?: string;
 }
 
-export function NewProjectModal({ open, onOpenChange, editingProject }: NewProjectModalProps) {
+export function NewProjectModal({ 
+  open, 
+  onOpenChange, 
+  editingProject,
+  defaultBoardId,
+  defaultColumnId,
+}: NewProjectModalProps) {
   const { createProject, updateProject } = useProjectMutations();
   
   const [name, setName] = useState('');
@@ -59,7 +67,7 @@ export function NewProjectModal({ open, onOpenChange, editingProject }: NewProje
     
     if (!name.trim()) return;
 
-    const projectData = {
+    const projectData: Partial<Project> = {
       name: name.trim(),
       description: description.trim() || null,
       status,
@@ -67,6 +75,8 @@ export function NewProjectModal({ open, onOpenChange, editingProject }: NewProje
       start_date: startDate || null,
       end_date: endDate || null,
       is_template: isTemplate,
+      ...(defaultBoardId && { board_id: defaultBoardId }),
+      ...(defaultColumnId && { column_id: defaultColumnId }),
     };
 
     if (editingProject) {
