@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.log-error]
 verify_jwt = false
+
+[functions.create-tasks-from-priorities]
+verify_jwt = false

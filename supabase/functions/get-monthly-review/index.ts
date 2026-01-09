@@ -24,6 +24,35 @@ function getUserIdFromJWT(authHeader: string): string | null {
   }
 }
 
+// Calculate month_in_cycle (1, 2, or 3) based on cycle start date
+function calculateMonthInCycle(cycleStartDate: string): number {
+  const start = new Date(cycleStartDate);
+  const now = new Date();
+  const diffMs = now.getTime() - start.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  // Month 1: Days 0-29, Month 2: Days 30-59, Month 3: Days 60-89
+  if (diffDays < 30) return 1;
+  if (diffDays < 60) return 2;
+  return 3;
+}
+
+// Get month date range for queries
+function getMonthDateRange(cycleStartDate: string, monthInCycle: number): { startDate: string; endDate: string } {
+  const start = new Date(cycleStartDate);
+  
+  const monthStart = new Date(start);
+  monthStart.setDate(monthStart.getDate() + (monthInCycle - 1) * 30);
+  
+  const monthEnd = new Date(monthStart);
+  monthEnd.setDate(monthEnd.getDate() + 29);
+  
+  return {
+    startDate: monthStart.toISOString().split('T')[0],
+    endDate: monthEnd.toISOString().split('T')[0],
+  };
+}
+
 Deno.serve(async (req) => {
   console.log('EDGE FUNC: get-monthly-review called');
 
@@ -60,7 +89,7 @@ Deno.serve(async (req) => {
 
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Get current cycle
+    // Get current cycle with full details
     const { data: cycleData } = await supabaseClient.rpc('get_current_cycle', {
       p_user_id: userId,
     });
@@ -76,7 +105,16 @@ Deno.serve(async (req) => {
     }
 
     const currentCycle = cycleData[0];
-    const currentMonth = new Date().getMonth() + 1;
+    const monthInCycle = calculateMonthInCycle(currentCycle.start_date);
+    const { startDate: monthStartDate, endDate: monthEndDate } = getMonthDateRange(currentCycle.start_date, monthInCycle);
+
+    // Get cycle month plan for current month focus
+    const { data: monthPlanData } = await supabaseClient
+      .from('cycle_month_plans')
+      .select('main_focus, projects_text, sales_promos_text')
+      .eq('cycle_id', currentCycle.cycle_id)
+      .eq('month_number', monthInCycle)
+      .maybeSingle();
 
     // Try to get existing monthly review
     const { data: existingReview } = await supabaseClient
@@ -84,24 +122,26 @@ Deno.serve(async (req) => {
       .select('*')
       .eq('user_id', userId)
       .eq('cycle_id', currentCycle.cycle_id)
-      .eq('month', currentMonth)
+      .eq('month_in_cycle', monthInCycle)
       .maybeSingle();
 
     let reviewData = existingReview;
 
     // Auto-create if missing
     if (!reviewData) {
-      console.log('Auto-creating monthly review for month:', currentMonth);
+      console.log('Auto-creating monthly review for month_in_cycle:', monthInCycle);
       const { data: newReview, error: insertError } = await supabaseClient
         .from('monthly_reviews')
         .insert({
           user_id: userId,
           cycle_id: currentCycle.cycle_id,
-          month: currentMonth,
-          wins: JSON.stringify([]),
-          habit_trends: JSON.stringify({ challenges: [] }),
-          thought_patterns: JSON.stringify({ lessons: [] }),
-          adjustments: JSON.stringify([]),
+          month: new Date().getMonth() + 1,
+          month_in_cycle: monthInCycle,
+          wins: null,
+          challenges: [],
+          lessons: [],
+          next_month_priorities: [],
+          month_score: 5,
         })
         .select()
         .single();
@@ -121,16 +161,75 @@ Deno.serve(async (req) => {
       console.log('Monthly review auto-created successfully');
     }
 
-    // Calculate habit consistency for the month
-    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const endOfMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+    // ==================== EXECUTION SUMMARY METRICS ====================
+    
+    // Total tasks scheduled this month (cycle-linked)
+    const { count: tasksScheduledCount } = await supabaseClient
+      .from('tasks')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('cycle_id', currentCycle.cycle_id)
+      .gte('scheduled_date', monthStartDate)
+      .lte('scheduled_date', monthEndDate);
 
+    // Completed tasks this month
+    const { count: tasksCompletedCount } = await supabaseClient
+      .from('tasks')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('cycle_id', currentCycle.cycle_id)
+      .eq('is_completed', true)
+      .gte('completed_at', monthStartDate)
+      .lte('completed_at', monthEndDate + 'T23:59:59Z');
+
+    // Tasks rescheduled 3+ times
+    const { count: tasksRescheduled3Plus } = await supabaseClient
+      .from('tasks')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('cycle_id', currentCycle.cycle_id)
+      .gte('reschedule_count_30d', 3);
+
+    // Content tasks completed
+    const { count: contentTasksCompleted } = await supabaseClient
+      .from('tasks')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('cycle_id', currentCycle.cycle_id)
+      .eq('is_completed', true)
+      .eq('category', 'content')
+      .gte('completed_at', monthStartDate)
+      .lte('completed_at', monthEndDate + 'T23:59:59Z');
+
+    // Nurture tasks completed  
+    const { count: nurtureTasksCompleted } = await supabaseClient
+      .from('tasks')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('cycle_id', currentCycle.cycle_id)
+      .eq('is_completed', true)
+      .eq('category', 'nurture')
+      .gte('completed_at', monthStartDate)
+      .lte('completed_at', monthEndDate + 'T23:59:59Z');
+
+    // Offer tasks completed
+    const { count: offerTasksCompleted } = await supabaseClient
+      .from('tasks')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('cycle_id', currentCycle.cycle_id)
+      .eq('is_completed', true)
+      .eq('category', 'offer')
+      .gte('completed_at', monthStartDate)
+      .lte('completed_at', monthEndDate + 'T23:59:59Z');
+
+    // Calculate habit consistency for the month
     const { data: habitLogs } = await supabaseClient
       .from('habit_logs')
       .select('completed')
       .eq('user_id', userId)
-      .gte('date', startOfMonth.toISOString().split('T')[0])
-      .lte('date', endOfMonth.toISOString().split('T')[0]);
+      .gte('date', monthStartDate)
+      .lte('date', monthEndDate);
 
     const totalLogs = habitLogs?.length || 0;
     const completedLogs = habitLogs?.filter((log) => log.completed).length || 0;
@@ -144,6 +243,21 @@ Deno.serve(async (req) => {
     const completedDays = Math.ceil((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     const cycleProgressPercent = Math.min(100, Math.max(0, Math.round((completedDays / totalDays) * 100)));
 
+    // Generate suggested wins from execution summary
+    const suggestedWins: string[] = [];
+    if ((contentTasksCompleted || 0) > 0) {
+      suggestedWins.push(`Completed ${contentTasksCompleted} content tasks this month`);
+    }
+    if ((nurtureTasksCompleted || 0) > 0) {
+      suggestedWins.push(`Completed ${nurtureTasksCompleted} nurture activities`);
+    }
+    if ((offerTasksCompleted || 0) > 0) {
+      suggestedWins.push(`Made ${offerTasksCompleted} offers/sales activities`);
+    }
+    if (habitConsistency >= 70) {
+      suggestedWins.push(`Maintained ${habitConsistency}% habit consistency`);
+    }
+
     // Parse and normalize data
     const parseJSON = (value: any, fallback: any) => {
       if (!value) return fallback;
@@ -154,24 +268,52 @@ Deno.serve(async (req) => {
           return fallback;
         }
       }
-      return value;
+      return Array.isArray(value) ? value : fallback;
     };
 
-    const wins = parseJSON(reviewData.wins, []).map(String).filter(Boolean);
-    const challenges = parseJSON(reviewData.habit_trends, {}).challenges || [];
-    const lessons = parseJSON(reviewData.thought_patterns, {}).lessons || [];
-    const priorities = parseJSON(reviewData.adjustments, []).map(String).filter(Boolean);
+    // Handle wins - could be text or array
+    let wins = [];
+    if (reviewData.wins) {
+      if (typeof reviewData.wins === 'string') {
+        wins = [reviewData.wins].filter(Boolean);
+      } else {
+        wins = parseJSON(reviewData.wins, []);
+      }
+    }
+    
+    const challenges = parseJSON(reviewData.challenges, []).map(String).filter(Boolean);
+    const lessons = parseJSON(reviewData.lessons, []).map(String).filter(Boolean);
+    const priorities = parseJSON(reviewData.next_month_priorities, []).map(String).filter(Boolean);
 
     return new Response(
       JSON.stringify({
         review_id: reviewData.review_id,
         cycle_id: reviewData.cycle_id,
         month: reviewData.month,
+        month_in_cycle: monthInCycle,
+        cycle_goal: currentCycle.goal,
+        month_focus: monthPlanData?.main_focus || null,
+        month_projects: monthPlanData?.projects_text || null,
+        
+        // Reflection data
         wins,
-        challenges: Array.isArray(challenges) ? challenges.map(String).filter(Boolean) : [],
-        lessons: Array.isArray(lessons) ? lessons.map(String).filter(Boolean) : [],
+        challenges,
+        lessons,
         priorities,
-        month_score: 5,
+        month_score: reviewData.month_score || 5,
+        
+        // Execution summary
+        execution_summary: {
+          tasks_scheduled: tasksScheduledCount || 0,
+          tasks_completed: tasksCompletedCount || 0,
+          tasks_rescheduled_3plus: tasksRescheduled3Plus || 0,
+          content_tasks_completed: contentTasksCompleted || 0,
+          nurture_tasks_completed: nurtureTasksCompleted || 0,
+          offer_tasks_completed: offerTasksCompleted || 0,
+          habit_consistency: habitConsistency,
+        },
+        
+        suggested_wins: suggestedWins,
         habit_consistency: habitConsistency,
         cycle_progress_percent: cycleProgressPercent,
       }),
