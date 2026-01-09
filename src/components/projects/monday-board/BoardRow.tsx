@@ -285,8 +285,8 @@ export function BoardRow({
         return (
           <div key={columnId} className={cellClass} style={{ width, minWidth: width }} onClick={(e) => e.stopPropagation()}>
             <Select
-              value={task.estimated_minutes?.toString() || ''}
-              onValueChange={(value) => onUpdate(task.task_id, { estimated_minutes: value ? parseInt(value) : null })}
+              value={task.estimated_minutes?.toString() || '__none__'}
+              onValueChange={(value) => onUpdate(task.task_id, { estimated_minutes: value === '__none__' ? null : parseInt(value) })}
             >
               <SelectTrigger className="h-7 border-0 shadow-none p-0 w-full">
                 {task.estimated_minutes ? (
@@ -296,7 +296,7 @@ export function BoardRow({
                 )}
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="__none__">None</SelectItem>
                 {DURATION_OPTIONS.map(option => (
                   <SelectItem key={option.value} value={option.value.toString()}>
                     {option.label}

@@ -24,8 +24,8 @@ export function SOPSelector({ value, onChange, size = 'default', className }: SO
 
   return (
     <Select
-      value={value || ''}
-      onValueChange={(val) => onChange(val || null)}
+      value={value || '__none__'}
+      onValueChange={(val) => onChange(val === '__none__' ? null : val)}
     >
       <SelectTrigger 
         className={cn(
@@ -47,7 +47,7 @@ export function SOPSelector({ value, onChange, size = 'default', className }: SO
         )}
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="">None</SelectItem>
+        <SelectItem value="__none__">None</SelectItem>
         {sops.map(sop => (
           <SelectItem key={sop.sop_id} value={sop.sop_id}>
             <div className="flex items-center gap-2">
