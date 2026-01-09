@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { useProject, useProjectMutations } from '@/hooks/useProjects';
 import { useTasks, useTaskMutations } from '@/hooks/useTasks';
-import { ProjectKanbanBoard } from '@/components/projects/ProjectKanbanBoard';
+import { TaskKanbanBoard } from '@/components/projects/TaskKanbanBoard';
 import { UncategorizedTasksPanel } from '@/components/projects/UncategorizedTasksPanel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,7 +35,7 @@ export default function ProjectDetail() {
   const project = useProject(id);
   const { data: allTasks } = useTasks();
   const { updateProject, deleteProject } = useProjectMutations();
-  const { toggleComplete, updateTask } = useTaskMutations();
+  const { toggleComplete, updateTask, deleteTask } = useTaskMutations();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [showUncategorizedPanel, setShowUncategorizedPanel] = useState(false);
@@ -211,11 +211,16 @@ export default function ProjectDetail() {
         <div className="flex-1 flex overflow-hidden">
           {/* Kanban Board */}
           <div className="flex-1 overflow-auto">
-            <ProjectKanbanBoard
+            <TaskKanbanBoard
               tasks={projectTasks}
               projectId={project.id}
               onTaskToggle={handleTaskToggle}
               onUpdateColumn={handleUpdateTaskColumn}
+              onDeleteTask={(taskId) => {
+                if (confirm('Are you sure you want to delete this task?')) {
+                  deleteTask.mutate({ taskId });
+                }
+              }}
             />
           </div>
 
