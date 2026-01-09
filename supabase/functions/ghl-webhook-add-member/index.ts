@@ -70,6 +70,23 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Also update user_profiles if user already exists (for trial-to-member upgrades)
+    const { error: profileError } = await supabase
+      .from('user_profiles')
+      .update({
+        membership_tier: 'mastermind',
+        membership_status: 'active',
+        user_type: 'member'
+      })
+      .eq('email', email.toLowerCase().trim());
+
+    if (profileError) {
+      console.log('Profile update (user may not exist yet):', profileError.message);
+      // Not fatal - profile will be updated on next login via useMembership hook
+    } else {
+      console.log('User profile upgraded to member:', email);
+    }
+
     console.log('Member added successfully:', email);
     return new Response(
       JSON.stringify({ success: true, message: `Member ${email} added`, data }),

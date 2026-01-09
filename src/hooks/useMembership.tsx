@@ -44,12 +44,13 @@ export function MembershipProvider({ children }: { children: React.ReactNode }) 
         setMembershipTier('mastermind');
         setMembershipStatus('active');
 
-        // Upsert profile with membership info
+        // Upsert profile with membership info (including user_type for trial upgrades)
         const { error: upsertError } = await supabase
           .from('user_profiles')
           .update({
             membership_tier: 'mastermind',
-            membership_status: 'active'
+            membership_status: 'active',
+            user_type: 'member'
           })
           .eq('id', user.id);
 
