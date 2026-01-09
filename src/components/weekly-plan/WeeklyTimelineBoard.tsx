@@ -102,7 +102,15 @@ export function WeeklyTimelineBoard({
       
       // If task has time_block_start, place it at that hour
       if (task.time_block_start) {
-        const hour = parseInt(task.time_block_start.split(':')[0], 10);
+        let hour: number;
+        // Handle both full ISO timestamps and simple time strings
+        if (task.time_block_start.includes('T')) {
+          // Full ISO timestamp: "2026-01-09T09:00:00"
+          hour = new Date(task.time_block_start).getHours();
+        } else {
+          // Simple time string: "09:00" (legacy support)
+          hour = parseInt(task.time_block_start.split(':')[0], 10);
+        }
         if (map[task.planned_day][hour]) {
           map[task.planned_day][hour].push(task);
         }
