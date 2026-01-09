@@ -144,10 +144,13 @@ export function WeekPlannerNew({
     const maxOrder = Math.max(0, ...tasksOnDay.map((t) => t.day_order || 0));
     const newOrder = maxOrder + 1;
 
-    // If timeSlot provided, also update time_block_start
+    // If timeSlot provided, construct full ISO timestamp and update time_block_start
     if (timeSlot) {
+      // Construct full ISO timestamp: "2026-01-09" + "09:00" → "2026-01-09T09:00:00"
+      const fullTimestamp = `${targetDate}T${timeSlot}:00`;
+      
       updateTask.mutate(
-        { taskId, updates: { planned_day: targetDate, day_order: newOrder, time_block_start: timeSlot } },
+        { taskId, updates: { planned_day: targetDate, day_order: newOrder, time_block_start: fullTimestamp } },
         {
           onSuccess: () => {
             const targetDay = new Date(targetDate);
