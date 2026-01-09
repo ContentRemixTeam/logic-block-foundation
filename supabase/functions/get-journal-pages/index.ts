@@ -46,15 +46,24 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const search = url.searchParams.get('search') || '';
     const includeArchived = url.searchParams.get('includeArchived') === 'true';
+    const projectId = url.searchParams.get('project_id');
+    const tag = url.searchParams.get('tag');
 
     let query = supabase
       .from('journal_pages')
-      .select('*')
+      .select(`
+        *,
+        project:projects(id, name, color)
+      `)
       .eq('user_id', userId)
       .order('updated_at', { ascending: false });
 
     if (!includeArchived) {
       query = query.eq('is_archived', false);
+    }
+
+    if (projectId) {
+      query = query.eq('project_id', projectId);
     }
 
     if (search) {
@@ -71,7 +80,30 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ pages: data || [] }), {
+    // Filter by tag if specified (tags are stored as JSON array)
+    let filteredData = data || [];
+    if (tag) {
+      filteredData = filteredData.filter(page => {
+        const pageTags = Array.isArray(page.tags) ? page.tags : [];
+        return pageTags.some((t: string) => t.toLowerCase() === tag.toLowerCase());
+      });
+    }
+
+    // Get all unique tags across pages for the filter UI
+    const allTags: string[] = [];
+    (data || []).forEach(page => {
+      const pageTags = Array.isArray(page.tags) ? page.tags : [];
+      pageTags.forEach((t: string) => {
+        if (!allTags.includes(t)) {
+          allTags.push(t);
+        }
+      });
+    });
+
+    return new Response(JSON.stringify({ 
+      pages: filteredData,
+      allTags: allTags.sort(),
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
