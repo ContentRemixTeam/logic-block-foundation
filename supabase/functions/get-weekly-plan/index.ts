@@ -5,26 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Decode JWT to get user ID
-function getUserIdFromJWT(authHeader: string): string | null {
-  try {
-    const token = authHeader.replace('Bearer ', '');
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-    const payload = JSON.parse(jsonPayload);
-    return payload.sub || null;
-  } catch (error) {
-    console.error('JWT decode error:', error);
-    return null;
-  }
-}
-
 Deno.serve(async (req) => {
   console.log('EDGE FUNC: get-weekly-plan called');
 
@@ -34,32 +14,35 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'No authorization header' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const userId = getUserIdFromJWT(authHeader);
-    if (!userId) {
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    // Create client with user's auth header to validate the token
+    const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Validate the user's token by calling getUser
+    const { data: userData, error: userError } = await authClient.auth.getUser();
+    
+    if (userError || !userData?.user?.id) {
+      console.error('Auth error:', userError);
       return new Response(JSON.stringify({ error: 'Invalid authorization token' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    const userId = userData.user.id;
     console.log('Getting weekly plan for user:', userId);
-
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      return new Response(JSON.stringify({ error: 'Server configuration error' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
 
     // Use service role for database operations
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -91,16 +74,16 @@ Deno.serve(async (req) => {
     console.log('Current cycle:', currentCycle.cycle_id);
 
     // Fetch full cycle data to get metric names
-    const { data: fullCycleData } = await supabaseClient
+    const { data: cycleMetricsData } = await supabaseClient
       .from('cycles_90_day')
       .select('metric_1_name, metric_2_name, metric_3_name')
       .eq('cycle_id', currentCycle.cycle_id)
       .maybeSingle();
 
     const cycleMetrics = {
-      metric_1_name: fullCycleData?.metric_1_name || null,
-      metric_2_name: fullCycleData?.metric_2_name || null,
-      metric_3_name: fullCycleData?.metric_3_name || null,
+      metric_1_name: cycleMetricsData?.metric_1_name || null,
+      metric_2_name: cycleMetricsData?.metric_2_name || null,
+      metric_3_name: cycleMetricsData?.metric_3_name || null,
     };
 
     // Get current week
