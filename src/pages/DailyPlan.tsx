@@ -22,8 +22,9 @@ import { YesterdayReviewPopup } from '@/components/YesterdayReviewPopup';
 import { CycleSnapshotCard } from '@/components/cycle/CycleSnapshotCard';
 import { GoalRewritePrompt } from '@/components/cycle/GoalRewritePrompt';
 import { DailyTimelineView } from '@/components/daily-plan/DailyTimelineView';
+import { DailyScheduleView } from '@/components/daily-plan/DailyScheduleView';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, LayoutList } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, LayoutList, CalendarDays } from 'lucide-react';
 import { PlannedForToday } from '@/components/daily-plan/PlannedForToday';
 import {
   AlertDialog,
@@ -99,7 +100,7 @@ export default function DailyPlan() {
   const [savingGoalRewrite, setSavingGoalRewrite] = useState(false);
   
   // View mode toggle
-  const [viewMode, setViewMode] = useState<'planning' | 'timeline'>('planning');
+  const [viewMode, setViewMode] = useState<'planning' | 'schedule'>('planning');
 
   useEffect(() => {
     loadDailyPlan();
@@ -679,7 +680,7 @@ export default function DailyPlan() {
 
   return (
     <Layout>
-      <div className={viewMode === 'timeline' ? 'mx-auto max-w-6xl space-y-6' : 'mx-auto max-w-3xl space-y-8'}>
+      <div className={viewMode === 'schedule' ? 'mx-auto max-w-6xl space-y-6' : 'mx-auto max-w-3xl space-y-8'}>
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold">Daily Plan</h1>
@@ -690,16 +691,16 @@ export default function DailyPlan() {
             <ToggleGroup 
               type="single" 
               value={viewMode} 
-              onValueChange={(value) => value && setViewMode(value as 'planning' | 'timeline')}
+              onValueChange={(value) => value && setViewMode(value as 'planning' | 'schedule')}
               className="bg-muted rounded-lg p-0.5"
             >
               <ToggleGroupItem value="planning" aria-label="Planning view" className="px-3 py-1.5 text-xs data-[state=on]:bg-background">
                 <LayoutList className="h-3.5 w-3.5 mr-1.5" />
                 Plan
               </ToggleGroupItem>
-              <ToggleGroupItem value="timeline" aria-label="Timeline view" className="px-3 py-1.5 text-xs data-[state=on]:bg-background">
-                <Clock className="h-3.5 w-3.5 mr-1.5" />
-                Timeline
+              <ToggleGroupItem value="schedule" aria-label="Schedule view" className="px-3 py-1.5 text-xs data-[state=on]:bg-background">
+                <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
+                Schedule
               </ToggleGroupItem>
             </ToggleGroup>
             
@@ -718,9 +719,9 @@ export default function DailyPlan() {
           </div>
         </div>
 
-        {/* Timeline View */}
-        {viewMode === 'timeline' && (
-          <DailyTimelineView
+        {/* Schedule View */}
+        {viewMode === 'schedule' && (
+          <DailyScheduleView
             onTaskToggle={(taskId, currentStatus) => {
               // Refresh tasks after toggle
               loadDailyPlan();
