@@ -9,12 +9,14 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon, Trash2, Clock, ClipboardList } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { SOPSelector } from '@/components/tasks/SOPSelector';
 import { useSOPs } from '@/hooks/useSOPs';
+import { CoachYourselfModal, CoachingHistorySection } from '@/components/coaching';
 
 interface TaskDetailsDrawerProps {
   task: Task | null;
@@ -48,6 +50,7 @@ const DURATION_OPTIONS = [
 
 export function TaskDetailsDrawer({ task, onClose, onUpdate, onDelete }: TaskDetailsDrawerProps) {
   const [localTask, setLocalTask] = useState<Task | null>(task);
+  const [showCoachingModal, setShowCoachingModal] = useState(false);
   const { data: sops = [] } = useSOPs();
 
   useEffect(() => {
@@ -311,6 +314,13 @@ export function TaskDetailsDrawer({ task, onClose, onUpdate, onDelete }: TaskDet
             </div>
           )}
 
+          {/* Coaching Section */}
+          <Separator />
+          <CoachingHistorySection 
+            taskId={task.task_id} 
+            onCoachClick={() => setShowCoachingModal(true)}
+          />
+
           {/* Delete button */}
           <div className="pt-4 border-t">
             <Button
@@ -327,6 +337,13 @@ export function TaskDetailsDrawer({ task, onClose, onUpdate, onDelete }: TaskDet
           </div>
         </div>
       </SheetContent>
+
+      {/* Coaching Modal */}
+      <CoachYourselfModal
+        open={showCoachingModal}
+        onOpenChange={setShowCoachingModal}
+        task={task}
+      />
     </Sheet>
   );
 }
