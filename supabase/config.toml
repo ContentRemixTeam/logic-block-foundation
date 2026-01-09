@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.add-mastermind-entitlement]
 verify_jwt = false
+
+[functions.import-tasks]
+verify_jwt = false

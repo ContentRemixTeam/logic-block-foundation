@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
   Plus, Columns, Clock3, AlertTriangle, 
-  CalendarSync, LayoutList, Filter
+  CalendarSync, LayoutList, Filter, Upload
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ViewMode } from './types';
@@ -11,6 +11,7 @@ interface TaskViewsToolbarProps {
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
   onAddTask: () => void;
+  onImportCSV?: () => void;
   overdueCount: number;
   isCalendarConnected?: boolean;
   onConnectCalendar?: () => void;
@@ -22,6 +23,7 @@ export function TaskViewsToolbar({
   viewMode,
   onViewModeChange,
   onAddTask,
+  onImportCSV,
   overdueCount,
   isCalendarConnected = false,
   onConnectCalendar,
@@ -96,6 +98,19 @@ export function TaskViewsToolbar({
             <span className="hidden sm:inline">
               {isCalendarConnected ? 'Calendar' : 'Connect Calendar'}
             </span>
+          </Button>
+        )}
+
+        {/* Import CSV Button */}
+        {onImportCSV && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onImportCSV}
+            className="gap-2"
+          >
+            <Upload className="h-4 w-4" />
+            <span className="hidden sm:inline">Import</span>
           </Button>
         )}
 

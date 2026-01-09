@@ -43,6 +43,7 @@ import { TimelineDayNavigation } from '@/components/tasks/views/TimelineDayNavig
 import { TimelineViewSelector, TimelineViewType } from '@/components/tasks/views/TimelineViewSelector';
 import { TaskPlanningCards } from '@/components/tasks/TaskPlanningCards';
 import { TaskViewsToolbar } from '@/components/tasks/TaskViewsToolbar';
+import { TaskImportModal } from '@/components/tasks/TaskImportModal';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { CalendarSelectionModal } from '@/components/google-calendar/CalendarSelectionModal';
 import { 
@@ -91,6 +92,7 @@ export default function Tasks() {
   // Dialog state
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [deleteTaskInfo, setDeleteTaskInfo] = useState<{ isRecurring: boolean; hasParent: boolean } | null>(null);
   const [deleteType, setDeleteType] = useState<DeleteType>('single');
@@ -519,9 +521,17 @@ export default function Tasks() {
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           onAddTask={() => setIsAddDialogOpen(true)}
+          onImportCSV={() => setIsImportModalOpen(true)}
           overdueCount={overdueCount}
           isCalendarConnected={calendarStatus.connected && calendarStatus.calendarSelected}
           onConnectCalendar={() => connectCalendar()}
+        />
+
+        {/* Import Modal */}
+        <TaskImportModal
+          open={isImportModalOpen}
+          onOpenChange={setIsImportModalOpen}
+          onImportComplete={() => queryClient.invalidateQueries({ queryKey: ['tasks'] })}
         />
 
         {/* Timeline view type selector */}
