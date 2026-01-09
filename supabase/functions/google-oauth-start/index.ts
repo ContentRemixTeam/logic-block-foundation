@@ -1,3 +1,14 @@
+/**
+ * Google OAuth Start Handler
+ * 
+ * OAUTH FLOW TYPE: Edge Function Callback (NOT Supabase Auth OAuth)
+ * 
+ * This function initiates the Google OAuth flow by generating the authorization URL.
+ * The callback will be handled by google-oauth-callback edge function.
+ * 
+ * Redirect URI: ${SUPABASE_URL}/functions/v1/google-oauth-callback
+ */
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -5,6 +16,9 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Default production origin
+const DEFAULT_ORIGIN = 'https://plan.faithmariah.com';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -37,23 +51,33 @@ serve(async (req) => {
 
     const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
     if (!clientId) {
-      console.error('GOOGLE_CLIENT_ID not configured');
+      console.error('[OAuth Start] GOOGLE_CLIENT_ID not configured');
       return new Response(
-        JSON.stringify({ error: 'Google OAuth not configured' }),
+        JSON.stringify({ error: 'Google OAuth not configured. Please contact support.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Get the origin and return path from the request for redirect
     const { origin, returnPath } = await req.json().catch(() => ({}));
+    
+    // Use provided origin or default to production
+    const safeOrigin = origin || DEFAULT_ORIGIN;
+    const safeReturnPath = returnPath || '/settings';
+    
+    // The redirect URI for Google OAuth - this is the edge function callback URL
     const redirectUri = `${Deno.env.get('SUPABASE_URL')}/functions/v1/google-oauth-callback`;
+
+    console.log('[OAuth Start] Starting OAuth for user:', user.id);
+    console.log('[OAuth Start] Origin:', safeOrigin, 'Return path:', safeReturnPath);
+    console.log('[OAuth Start] Redirect URI:', redirectUri);
 
     // Generate state parameter with user ID for CSRF protection
     const state = btoa(JSON.stringify({ 
       userId: user.id, 
       timestamp: Date.now(),
-      origin: origin || 'https://lovable.dev',
-      returnPath: returnPath || '/settings'
+      origin: safeOrigin,
+      returnPath: safeReturnPath
     }));
 
     // Build OAuth URL
@@ -75,14 +99,21 @@ serve(async (req) => {
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 
-    console.log('Generated OAuth URL for user:', user.id);
+    console.log('[OAuth Start] Generated OAuth URL for user:', user.id);
 
     return new Response(
-      JSON.stringify({ url: authUrl }),
+      JSON.stringify({ 
+        url: authUrl,
+        debug: {
+          origin: safeOrigin,
+          returnPath: safeReturnPath,
+          redirectUri: redirectUri,
+        }
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: unknown) {
-    console.error('Error in google-oauth-start:', error);
+    console.error('[OAuth Start] Error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: message }),

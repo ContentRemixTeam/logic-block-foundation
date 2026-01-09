@@ -2,8 +2,8 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Calendar, RefreshCw, Unplug, Settings2, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
-import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
+import { Loader2, Calendar, RefreshCw, Unplug, Settings2, CheckCircle2, AlertCircle, Clock, Mail } from 'lucide-react';
+import { useGoogleCalendar, getOAuthDebugInfo } from '@/hooks/useGoogleCalendar';
 import { CalendarSelectionModal } from './CalendarSelectionModal';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -11,6 +11,7 @@ export function GoogleCalendarPanel() {
   const {
     status,
     loading,
+    connecting,
     syncing,
     calendars,
     showCalendarModal,
@@ -26,6 +27,9 @@ export function GoogleCalendarPanel() {
   useEffect(() => {
     handleOAuthReturn();
   }, [handleOAuthReturn]);
+
+  // Show debug info in dev mode
+  const showDebug = new URLSearchParams(window.location.search).has('debug');
 
   if (loading) {
     return (
@@ -46,6 +50,8 @@ export function GoogleCalendarPanel() {
   }
 
   if (!status.connected) {
+    const debugInfo = showDebug ? getOAuthDebugInfo() : null;
+    
     return (
       <>
         <Card>
@@ -58,14 +64,48 @@ export function GoogleCalendarPanel() {
               Sync your time blocks with Google Calendar automatically
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button onClick={() => connect()} className="w-full">
-              <Calendar className="h-4 w-4 mr-2" />
-              Connect Google Calendar
+          <CardContent className="space-y-4">
+            <Button 
+              onClick={() => connect()} 
+              className="w-full"
+              disabled={connecting}
+            >
+              {connecting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Connecting to Google...
+                </>
+              ) : (
+                <>
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Connect Google Calendar
+                </>
+              )}
             </Button>
-            <p className="text-xs text-muted-foreground mt-3 text-center">
+            <p className="text-xs text-muted-foreground text-center">
               Your calendar events will sync bidirectionally
             </p>
+            
+            {/* Debug panel for OAuth troubleshooting */}
+            {debugInfo && (
+              <div className="mt-4 p-3 bg-muted rounded-lg text-xs space-y-1 font-mono">
+                <p className="font-semibold text-foreground">OAuth Debug Info:</p>
+                <p>Flow Type: {debugInfo.flowType}</p>
+                <p>Current Origin: {debugInfo.currentOrigin}</p>
+                <p className="break-all">Redirect URI: {debugInfo.redirectUri}</p>
+                {debugInfo.lastError && (
+                  <p className="text-destructive">Last Error: {debugInfo.lastError}</p>
+                )}
+                {Object.keys(debugInfo.lastOAuthParams || {}).length > 0 && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer">Last OAuth Params</summary>
+                    <pre className="mt-1 text-[10px] overflow-auto">
+                      {JSON.stringify(debugInfo.lastOAuthParams, null, 2)}
+                    </pre>
+                  </details>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -118,8 +158,14 @@ export function GoogleCalendarPanel() {
             </CardTitle>
             {getSyncStatusBadge()}
           </div>
-          <CardDescription>
-            Connected to: {status.calendarName || 'Unknown calendar'}
+          <CardDescription className="space-y-1">
+            <span>Connected to: {status.calendarName || 'Unknown calendar'}</span>
+            {status.connectedEmail && (
+              <span className="flex items-center gap-1 text-xs">
+                <Mail className="h-3 w-3" />
+                {status.connectedEmail}
+              </span>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -169,6 +215,19 @@ export function GoogleCalendarPanel() {
               Disconnect
             </Button>
           </div>
+
+          {/* Reconnect option if there are sync issues */}
+          {status.lastError && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => connect()}
+              className="w-full"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Reconnect to fix issues
+            </Button>
+          )}
         </CardContent>
       </Card>
 

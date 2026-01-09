@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { X, ChevronDown, ChevronUp, Check, AlertCircle, Clock } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, Check, AlertCircle, Clock, Calendar, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getOAuthDebugInfo } from '@/hooks/useGoogleCalendar';
 
 interface MutationLogEntry {
   id: string;
@@ -98,10 +99,13 @@ export function logMutation<T>(
     });
 }
 
+type DebugTab = 'mutations' | 'oauth';
+
 export function DevDebugPanel() {
   const location = useLocation();
   const [isVisible, setIsVisible] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [activeTab, setActiveTab] = useState<DebugTab>('mutations');
   const [entries, setEntries] = useState<MutationLogEntry[]>([]);
 
   // Check if debug mode is enabled via query param
@@ -120,16 +124,17 @@ export function DevDebugPanel() {
     return mutationLogger.subscribe(updateEntries);
   }, []);
 
-  if (!isVisible || process.env.NODE_ENV === 'production') {
+  if (!isVisible) {
     return null;
   }
 
   const successCount = entries.filter(e => e.status === 'success').length;
   const errorCount = entries.filter(e => e.status === 'error').length;
   const pendingCount = entries.filter(e => e.status === 'pending').length;
+  const oauthDebugInfo = getOAuthDebugInfo();
 
   return (
-    <div className="fixed bottom-4 right-4 z-[9999] w-80 bg-card border rounded-lg shadow-lg font-mono text-xs">
+    <div className="fixed bottom-4 right-4 z-[9999] w-96 bg-card border rounded-lg shadow-lg font-mono text-xs">
       {/* Header */}
       <div 
         className="flex items-center justify-between p-2 border-b bg-muted/50 cursor-pointer"
@@ -153,6 +158,11 @@ export function DevDebugPanel() {
                 ⏳{pendingCount}
               </span>
             )}
+            {oauthDebugInfo.lastError && (
+              <span className="bg-orange-500/20 text-orange-600 px-1.5 rounded">
+                OAuth ✗
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -170,8 +180,34 @@ export function DevDebugPanel() {
         </div>
       </div>
 
-      {/* Entries */}
+      {/* Tab Navigation */}
       {!isCollapsed && (
+        <div className="flex border-b">
+          <button
+            className={cn(
+              "flex-1 p-2 text-center hover:bg-muted/50 transition-colors",
+              activeTab === 'mutations' && "bg-muted border-b-2 border-primary"
+            )}
+            onClick={() => setActiveTab('mutations')}
+          >
+            <Clock className="h-3 w-3 inline mr-1" />
+            Mutations
+          </button>
+          <button
+            className={cn(
+              "flex-1 p-2 text-center hover:bg-muted/50 transition-colors",
+              activeTab === 'oauth' && "bg-muted border-b-2 border-primary"
+            )}
+            onClick={() => setActiveTab('oauth')}
+          >
+            <Calendar className="h-3 w-3 inline mr-1" />
+            OAuth
+          </button>
+        </div>
+      )}
+
+      {/* Tab Content */}
+      {!isCollapsed && activeTab === 'mutations' && (
         <div className="max-h-64 overflow-y-auto">
           {entries.length === 0 ? (
             <div className="p-4 text-center text-muted-foreground">
@@ -246,6 +282,58 @@ export function DevDebugPanel() {
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {/* OAuth Debug Tab */}
+      {!isCollapsed && activeTab === 'oauth' && (
+        <div className="p-3 space-y-2 max-h-64 overflow-y-auto">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <Globe className="h-3 w-3 text-muted-foreground" />
+              <span className="text-muted-foreground">Flow Type:</span>
+              <span className="text-primary font-medium">{oauthDebugInfo.flowType}</span>
+            </div>
+            
+            <div className="flex items-start gap-2">
+              <Globe className="h-3 w-3 text-muted-foreground mt-0.5" />
+              <span className="text-muted-foreground">Origin:</span>
+              <span className="text-foreground break-all">{oauthDebugInfo.currentOrigin}</span>
+            </div>
+            
+            <div className="flex items-start gap-2">
+              <Calendar className="h-3 w-3 text-muted-foreground mt-0.5" />
+              <span className="text-muted-foreground">Redirect URI:</span>
+            </div>
+            <div className="bg-muted/50 p-1.5 rounded text-[10px] break-all">
+              {oauthDebugInfo.redirectUri}
+            </div>
+            
+            {oauthDebugInfo.lastError && (
+              <div className="mt-2 p-2 bg-red-500/10 border border-red-500/30 rounded">
+                <span className="text-red-500 font-medium">Last Error:</span>
+                <div className="text-red-400 mt-1">{oauthDebugInfo.lastError}</div>
+              </div>
+            )}
+            
+            {Object.keys(oauthDebugInfo.lastOAuthParams || {}).length > 0 && (
+              <details className="mt-2">
+                <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                  Last OAuth Params
+                </summary>
+                <pre className="mt-1 p-2 bg-muted/50 rounded text-[10px] overflow-auto">
+                  {JSON.stringify(oauthDebugInfo.lastOAuthParams, null, 2)}
+                </pre>
+              </details>
+            )}
+          </div>
+          
+          <div className="pt-2 border-t text-muted-foreground">
+            <p className="text-[10px]">
+              ℹ️ Google OAuth uses Edge Function callback at 
+              <code className="ml-1 text-primary">/functions/v1/google-oauth-callback</code>
+            </p>
+          </div>
         </div>
       )}
     </div>
