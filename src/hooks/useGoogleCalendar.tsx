@@ -18,6 +18,29 @@ export interface GoogleCalendarStatus {
   syncStatus?: string;
   lastSyncAt?: string;
   lastError?: string;
+  connectedEmail?: string;
+}
+
+export interface OAuthDebugInfo {
+  flowType: 'edge-function';
+  currentOrigin: string;
+  redirectUri: string;
+  lastError?: string;
+  lastOAuthParams?: Record<string, string>;
+}
+
+// Store last OAuth error for debugging
+let lastOAuthError: string | null = null;
+let lastOAuthParams: Record<string, string> = {};
+
+export function getOAuthDebugInfo(): OAuthDebugInfo {
+  return {
+    flowType: 'edge-function',
+    currentOrigin: window.location.origin,
+    redirectUri: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-oauth-callback`,
+    lastError: lastOAuthError || undefined,
+    lastOAuthParams,
+  };
 }
 
 export function useGoogleCalendar() {
@@ -26,6 +49,7 @@ export function useGoogleCalendar() {
     calendarSelected: false,
   });
   const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [calendars, setCalendars] = useState<GoogleCalendar[]>([]);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
@@ -57,27 +81,61 @@ export function useGoogleCalendar() {
     const params = new URLSearchParams(window.location.search);
     const oauthStatus = params.get('oauth');
     const calendarsParam = params.get('calendars');
+    const errorParam = params.get('error');
+    const emailParam = params.get('email');
+    
+    // Store params for debugging
+    lastOAuthParams = Object.fromEntries(params.entries());
     
     if (oauthStatus === 'success' && calendarsParam) {
       try {
         const calendarsData = JSON.parse(decodeURIComponent(calendarsParam));
         setCalendars(calendarsData);
         setShowCalendarModal(true);
+        
+        // Update status with email if provided
+        if (emailParam) {
+          setStatus(prev => ({ ...prev, connectedEmail: decodeURIComponent(emailParam) }));
+        }
+        
         toast({
-          title: 'Connected to Google Calendar',
+          title: '✅ Connected to Google Calendar',
           description: 'Please select which calendar to sync.',
         });
+        
+        lastOAuthError = null;
       } catch (e) {
         console.error('Error parsing calendars:', e);
+        lastOAuthError = 'Failed to parse calendar data';
+        toast({
+          title: 'Connection issue',
+          description: 'Connected but could not load calendars. Please try again.',
+          variant: 'destructive',
+        });
       }
       // Clean URL
       window.history.replaceState({}, '', window.location.pathname);
     } else if (oauthStatus === 'error') {
-      const errorMsg = params.get('error') || 'Unknown error';
+      // Decode and format error message
+      const rawError = errorParam || 'Unknown error';
+      const friendlyError = rawError
+        .replace(/_/g, ' ')
+        .replace(/\+/g, ' ');
+      
+      lastOAuthError = friendlyError;
+      
       toast({
         title: 'Connection failed',
-        description: `Error: ${errorMsg}`,
+        description: friendlyError,
         variant: 'destructive',
+        action: (
+          <button
+            onClick={() => connect()}
+            className="text-xs underline hover:no-underline"
+          >
+            Try again
+          </button>
+        ),
       });
       window.history.replaceState({}, '', window.location.pathname);
     }
@@ -85,6 +143,10 @@ export function useGoogleCalendar() {
 
   const connect = useCallback(async (returnPath?: string) => {
     try {
+      setConnecting(true);
+      
+      console.log('[GoogleCalendar] Starting OAuth from origin:', window.location.origin);
+      
       const { data, error } = await supabase.functions.invoke('google-oauth-start', {
         body: { 
           origin: window.location.origin,
@@ -92,17 +154,29 @@ export function useGoogleCalendar() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[GoogleCalendar] OAuth start error:', error);
+        throw error;
+      }
 
-      // Redirect to Google OAuth (not popup)
+      if (!data?.url) {
+        throw new Error('No OAuth URL returned');
+      }
+
+      console.log('[GoogleCalendar] Redirecting to Google OAuth...');
+      console.log('[GoogleCalendar] Debug info:', data.debug);
+      
+      // Redirect to Google OAuth
       window.location.href = data.url;
-    } catch (error) {
-      console.error('Error starting OAuth:', error);
+    } catch (error: any) {
+      console.error('[GoogleCalendar] Error starting OAuth:', error);
+      lastOAuthError = error?.message || 'Failed to start connection';
       toast({
         title: 'Failed to connect',
-        description: 'Could not start Google Calendar connection.',
+        description: error?.message || 'Could not start Google Calendar connection.',
         variant: 'destructive',
       });
+      setConnecting(false);
     }
   }, [toast]);
 
@@ -243,6 +317,7 @@ export function useGoogleCalendar() {
   return {
     status,
     loading,
+    connecting,
     syncing,
     calendars,
     showCalendarModal,
