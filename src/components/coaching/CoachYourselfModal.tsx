@@ -54,6 +54,8 @@ interface CoachYourselfModalProps {
   onOpenChange: (open: boolean) => void;
   task?: Task | null;
   onTaskSelect?: () => void;
+  prefilledCircumstance?: string;
+  prefilledThought?: string;
 }
 
 export function CoachYourselfModal({ 
@@ -61,6 +63,8 @@ export function CoachYourselfModal({
   onOpenChange, 
   task,
   onTaskSelect,
+  prefilledCircumstance,
+  prefilledThought,
 }: CoachYourselfModalProps) {
   const navigate = useNavigate();
   const { data: activeCycle } = useActiveCycle();
@@ -92,8 +96,10 @@ export function CoachYourselfModal({
       setStep(1);
       setHasChanges(false);
       
-      // Auto-fill circumstance based on task
-      if (task) {
+      // Auto-fill circumstance based on prefilled value or task
+      if (prefilledCircumstance) {
+        setCircumstance(prefilledCircumstance);
+      } else if (task) {
         const scheduledInfo = task.time_block_start 
           ? format(new Date(task.time_block_start), "EEEE 'at' h:mm a")
           : task.planned_day 
@@ -107,8 +113,10 @@ export function CoachYourselfModal({
         setCircumstance('');
       }
       
+      // Use prefilled thought or reset
+      setThought(prefilledThought || '');
+      
       // Reset other fields
-      setThought('');
       setFeeling('');
       setCustomFeeling('');
       setAction('');
@@ -119,7 +127,7 @@ export function CoachYourselfModal({
       setScheduleTinyTaskAt(undefined);
       setScheduleTime('');
     }
-  }, [open, task]);
+  }, [open, task, prefilledCircumstance, prefilledThought]);
 
   const handleClose = useCallback(() => {
     if (hasChanges && (circumstance || thought || reframeThought)) {

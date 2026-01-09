@@ -1,9 +1,20 @@
+/**
+ * Weekly Task Card with Reschedule Loop Detection
+ * 
+ * QA CHECKLIST:
+ * - Move a task 3 times → banner appears
+ * - Push a task out by 7+ days → banner appears  
+ * - Banner suppressed after dismiss for 24h
+ * - Tap banner → micro prompt opens
+ */
+
 import { useState, useRef, useCallback } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Task } from '@/components/tasks/types';
 import { cn } from '@/lib/utils';
 import { GripVertical, Clock } from 'lucide-react';
+import { RescheduleLoopBanner } from '@/components/coaching/RescheduleLoopBanner';
 
 interface WeeklyTaskCardProps {
   task: Task;
@@ -141,6 +152,11 @@ export function WeeklyTaskCard({ task, onToggle, isDragging, compact = false, is
               {task.task_text}
             </TooltipContent>
           </Tooltip>
+          
+          {/* Reschedule loop banner */}
+          {!compact && task.reschedule_loop_active && (
+            <RescheduleLoopBanner task={task} variant="card" className="mt-1" />
+          )}
         </div>
 
         {/* Compact metadata: just time + priority dot */}
