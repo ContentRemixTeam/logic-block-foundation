@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { Plus, X, Target, BarChart3, Users, Megaphone, DollarSign, ChevronLeft, ChevronRight, Check, Heart, TrendingUp, Download, FileJson, FileText, Sparkles, CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -128,6 +129,7 @@ const getDefaultData = (): WorkshopData => ({
 
 export default function WorkshopPlanner() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isComplete, setIsComplete] = useState(false);
   
@@ -453,26 +455,48 @@ export default function WorkshopPlanner() {
             </CardContent>
           </Card>
 
-          {/* CTA to Join */}
+          {/* CTA - Dynamic based on auth status */}
           <Card className="border-primary/30 bg-primary/5">
             <CardContent className="pt-6">
               <div className="text-center space-y-4">
                 <Sparkles className="h-10 w-10 text-primary mx-auto" />
-                <h3 className="text-xl font-bold">Ready to Execute This Plan?</h3>
-                <p className="text-muted-foreground max-w-lg mx-auto">
-                  Join the Mastermind to track your habits, manage projects, get weekly reviews, 
-                  and have accountability partners to keep you on track.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-                  <Button asChild size="lg">
-                    <Link to="/auth">
-                      Join the Mastermind →
-                    </Link>
-                  </Button>
-                  <Button variant="outline" size="lg" onClick={() => setIsComplete(false)}>
-                    Edit Plan
-                  </Button>
-                </div>
+                {user ? (
+                  <>
+                    <h3 className="text-xl font-bold">Set Up Your 90-Day Cycle</h3>
+                    <p className="text-muted-foreground max-w-lg mx-auto">
+                      Your workshop data is saved! Continue to Cycle Setup to import your plan, 
+                      add habits, track projects, and get weekly reviews.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                      <Button asChild size="lg">
+                        <Link to="/cycle-setup">
+                          Set Up Your 90-Day Cycle →
+                        </Link>
+                      </Button>
+                      <Button variant="outline" size="lg" onClick={() => setIsComplete(false)}>
+                        Edit Plan
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-xl font-bold">Ready to Execute This Plan?</h3>
+                    <p className="text-muted-foreground max-w-lg mx-auto">
+                      Sign up free to track your habits, manage projects, get weekly reviews, 
+                      and have accountability partners to keep you on track.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                      <Button asChild size="lg">
+                        <Link to="/trial">
+                          Sign Up Free →
+                        </Link>
+                      </Button>
+                      <Button variant="outline" size="lg" onClick={() => setIsComplete(false)}>
+                        Edit Plan
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
