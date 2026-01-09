@@ -40,6 +40,8 @@ import SOPs from "./pages/SOPs";
 import Community from "./pages/Community";
 import Support from "./pages/Support";
 import CaptureLaunchPage from "./pages/CaptureLaunchPage";
+import Projects from "./pages/Projects";
+import ProjectDetail from "./pages/ProjectDetail";
 import NotFound from "./pages/NotFound";
 
 // Configure QueryClient with stability-focused defaults
@@ -102,6 +104,8 @@ const App = () => (
                   <Route path="/daily-review" element={<ProtectedRoute><DailyReview /></ProtectedRoute>} />
                   <Route path="/notes" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
                   <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+                  <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
+                  <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
                   <Route path="/sops" element={<ProtectedRoute><SOPs /></ProtectedRoute>} />
                   <Route path="/habits" element={<ProtectedRoute><Habits /></ProtectedRoute>} />
                   <Route path="/ideas" element={<ProtectedRoute><Ideas /></ProtectedRoute>} />
