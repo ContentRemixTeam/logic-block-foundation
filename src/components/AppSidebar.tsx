@@ -170,12 +170,15 @@ export function AppSidebar() {
               <Target className="h-5 w-5 text-primary shrink-0" />
             )}
             {sidebarOpen && (
-              <span 
-                className="text-sm font-semibold truncate"
-                style={{ fontFamily: isQuestMode ? 'var(--font-heading)' : 'inherit' }}
-              >
-                {isQuestMode ? '90-Day Quest' : '90-Day Planner'}
-              </span>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span 
+                  className="text-sm font-semibold truncate"
+                  style={{ fontFamily: isQuestMode ? 'var(--font-heading)' : 'inherit' }}
+                >
+                  {isQuestMode ? 'Boss Quest' : 'Boss Planner'}
+                </span>
+                <span className="text-amber-500 text-sm">⚡</span>
+              </div>
             )}
           </div>
           <Tooltip>
