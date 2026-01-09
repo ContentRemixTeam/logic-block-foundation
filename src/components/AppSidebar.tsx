@@ -109,28 +109,18 @@ export function AppSidebar() {
         return;
       }
       
-      // Check by user_id first
-      const { data: byId } = await supabase
-        .from('admin_users')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      // Use the is_admin function which has SECURITY DEFINER
+      // This bypasses RLS and properly checks admin status
+      const { data, error } = await supabase
+        .rpc('is_admin', { check_user_id: user.id });
       
-      if (byId) {
-        setIsAdmin(true);
+      if (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
         return;
       }
       
-      // Check by email for pre-registered admins
-      if (user.email) {
-        const { data: byEmail } = await supabase
-          .from('admin_users')
-          .select('id')
-          .ilike('email', user.email)
-          .maybeSingle();
-        
-        setIsAdmin(!!byEmail);
-      }
+      setIsAdmin(data === true);
     };
     
     checkAdmin();
