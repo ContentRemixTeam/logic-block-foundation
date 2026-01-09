@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Task } from '@/components/tasks/types';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useTasks, useTaskMutations } from '@/hooks/useTasks';
 import { Calendar, Clock, Edit, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -17,56 +16,24 @@ interface PlannedForTodayProps {
 }
 
 export function PlannedForToday({ date = new Date(), onTaskToggle }: PlannedForTodayProps) {
-  const { user } = useAuth();
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: allTasks = [], isLoading } = useTasks();
+  const { toggleComplete } = useTaskMutations();
   
   const dateStr = format(date, 'yyyy-MM-dd');
   const dateDisplay = format(date, 'EEEE, MMMM d');
 
-  useEffect(() => {
-    loadPlannedTasks();
-  }, [user, dateStr]);
-
-  const loadPlannedTasks = async () => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('get-all-tasks');
-      
-      if (error) throw error;
-      
-      // Filter tasks planned for this day
-      const plannedTasks = (data?.data || []).filter((t: Task) => 
-        t.planned_day === dateStr && !t.is_completed
-      ).sort((a: Task, b: Task) => (a.day_order || 0) - (b.day_order || 0));
-      
-      setTasks(plannedTasks);
-    } catch (error) {
-      console.error('Error loading planned tasks:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Filter tasks planned for this day from shared data
+  const tasks = useMemo(() => {
+    return allTasks
+      .filter((t: Task) => t.planned_day === dateStr && !t.is_completed && !t.is_recurring_parent)
+      .sort((a: Task, b: Task) => (a.day_order || 0) - (b.day_order || 0));
+  }, [allTasks, dateStr]);
 
   const handleToggle = async (taskId: string, currentCompleted: boolean) => {
-    // Optimistic update
-    setTasks(prev => prev.filter(t => t.task_id !== taskId));
+    toggleComplete.mutate(taskId);
     
-    try {
-      await supabase.functions.invoke('manage-task', {
-        body: {
-          action: 'toggle',
-          task_id: taskId,
-        }
-      });
-      
-      if (onTaskToggle) {
-        onTaskToggle(taskId, currentCompleted);
-      }
-    } catch (error) {
-      console.error('Error toggling task:', error);
-      loadPlannedTasks(); // Reload on error
+    if (onTaskToggle) {
+      onTaskToggle(taskId, currentCompleted);
     }
   };
 
@@ -82,7 +49,7 @@ export function PlannedForToday({ date = new Date(), onTaskToggle }: PlannedForT
 
   const totalMinutes = tasks.reduce((sum, t) => sum + (t.estimated_minutes || 0), 0);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Card>
         <CardContent className="py-4 flex items-center justify-center">
