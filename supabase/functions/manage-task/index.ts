@@ -233,6 +233,14 @@ Deno.serve(async (req) => {
         break;
 
       case 'update':
+        // First, fetch current task state for reschedule tracking
+        const { data: currentTaskState } = await supabase
+          .from('tasks')
+          .select('scheduled_date, planned_day, time_block_start, original_scheduled_at, original_due_date')
+          .eq('task_id', task_id)
+          .eq('user_id', userId)
+          .single();
+
         const updateData: Record<string, any> = {};
         if (task_text !== undefined) updateData.task_text = task_text.substring(0, 500);
         if (task_description !== undefined) updateData.task_description = task_description ? task_description.substring(0, 5000) : null;
@@ -272,6 +280,73 @@ Deno.serve(async (req) => {
         if (project_column !== undefined) updateData.project_column = project_column;
         // Cycle field
         if (cycle_id !== undefined) updateData.cycle_id = cycle_id;
+
+        // Reschedule tracking: detect if schedule changed
+        const prevScheduled = currentTaskState?.planned_day || currentTaskState?.time_block_start;
+        const newScheduled = planned_day !== undefined ? planned_day : (time_block_start !== undefined ? time_block_start : null);
+        const prevDueDate = currentTaskState?.scheduled_date;
+        const newDueDate = scheduled_date !== undefined ? scheduled_date : null;
+        
+        const scheduleChanged = (planned_day !== undefined && prevScheduled !== planned_day) || 
+                               (time_block_start !== undefined && currentTaskState?.time_block_start !== time_block_start);
+        const dueDateChanged = scheduled_date !== undefined && prevDueDate !== scheduled_date;
+        
+        if (scheduleChanged || dueDateChanged) {
+          // Set original values if not already set
+          if (!currentTaskState?.original_scheduled_at && prevScheduled) {
+            updateData.original_scheduled_at = prevScheduled;
+          }
+          if (!currentTaskState?.original_due_date && prevDueDate) {
+            updateData.original_due_date = prevDueDate;
+          }
+          
+          // Update last_rescheduled_at
+          updateData.last_rescheduled_at = new Date().toISOString();
+          
+          // Log to schedule history
+          await supabase
+            .from('task_schedule_history')
+            .insert({
+              user_id: userId,
+              task_id: task_id,
+              previous_scheduled_at: prevScheduled || null,
+              new_scheduled_at: newScheduled || planned_day || null,
+              previous_due_date: prevDueDate || null,
+              new_due_date: newDueDate || null,
+              change_source: body.change_source || 'api',
+            });
+          
+          // Count reschedules in last 30 days
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          
+          const { count } = await supabase
+            .from('task_schedule_history')
+            .select('*', { count: 'exact', head: true })
+            .eq('task_id', task_id)
+            .eq('user_id', userId)
+            .gte('changed_at', thirtyDaysAgo.toISOString());
+          
+          updateData.reschedule_count_30d = count || 0;
+          
+          // Calculate if pushed 7+ days from original
+          let daysPushed = 0;
+          const originalScheduled = currentTaskState?.original_scheduled_at || prevScheduled;
+          const originalDue = currentTaskState?.original_due_date || prevDueDate;
+          
+          if (originalScheduled && newScheduled) {
+            const origDate = new Date(originalScheduled);
+            const newDate = new Date(newScheduled);
+            daysPushed = Math.floor((newDate.getTime() - origDate.getTime()) / (1000 * 60 * 60 * 24));
+          } else if (originalDue && newDueDate) {
+            const origDate = new Date(originalDue);
+            const newDate = new Date(newDueDate);
+            daysPushed = Math.floor((newDate.getTime() - origDate.getTime()) / (1000 * 60 * 60 * 24));
+          }
+          
+          // Determine if in reschedule loop (3+ moves OR 7+ days pushed)
+          updateData.reschedule_loop_active = (count || 0) >= 3 || daysPushed >= 7;
+        }
 
         result = await supabase
           .from('tasks')

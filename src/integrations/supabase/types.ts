@@ -1728,6 +1728,50 @@ export type Database = {
           },
         ]
       }
+      task_schedule_history: {
+        Row: {
+          change_source: string | null
+          changed_at: string
+          id: string
+          new_due_date: string | null
+          new_scheduled_at: string | null
+          previous_due_date: string | null
+          previous_scheduled_at: string | null
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          change_source?: string | null
+          changed_at?: string
+          id?: string
+          new_due_date?: string | null
+          new_scheduled_at?: string | null
+          previous_due_date?: string | null
+          previous_scheduled_at?: string | null
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          change_source?: string | null
+          changed_at?: string
+          id?: string
+          new_due_date?: string | null
+          new_scheduled_at?: string | null
+          previous_due_date?: string | null
+          previous_scheduled_at?: string | null
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_schedule_history_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
+          },
+        ]
+      }
       task_settings: {
         Row: {
           created_at: string | null
@@ -1789,7 +1833,10 @@ export type Database = {
           is_completed: boolean | null
           is_recurring_parent: boolean | null
           is_system_generated: boolean | null
+          last_rescheduled_at: string | null
           notes: string | null
+          original_due_date: string | null
+          original_scheduled_at: string | null
           parent_task_id: string | null
           planned_day: string | null
           position_in_column: number | null
@@ -1799,6 +1846,9 @@ export type Database = {
           project_id: string | null
           recurrence_days: Json | null
           recurrence_pattern: string | null
+          reschedule_count_30d: number
+          reschedule_loop_active: boolean
+          reschedule_nudge_dismissed_until: string | null
           scheduled_date: string | null
           section_id: string | null
           sop_id: string | null
@@ -1831,7 +1881,10 @@ export type Database = {
           is_completed?: boolean | null
           is_recurring_parent?: boolean | null
           is_system_generated?: boolean | null
+          last_rescheduled_at?: string | null
           notes?: string | null
+          original_due_date?: string | null
+          original_scheduled_at?: string | null
           parent_task_id?: string | null
           planned_day?: string | null
           position_in_column?: number | null
@@ -1841,6 +1894,9 @@ export type Database = {
           project_id?: string | null
           recurrence_days?: Json | null
           recurrence_pattern?: string | null
+          reschedule_count_30d?: number
+          reschedule_loop_active?: boolean
+          reschedule_nudge_dismissed_until?: string | null
           scheduled_date?: string | null
           section_id?: string | null
           sop_id?: string | null
@@ -1873,7 +1929,10 @@ export type Database = {
           is_completed?: boolean | null
           is_recurring_parent?: boolean | null
           is_system_generated?: boolean | null
+          last_rescheduled_at?: string | null
           notes?: string | null
+          original_due_date?: string | null
+          original_scheduled_at?: string | null
           parent_task_id?: string | null
           planned_day?: string | null
           position_in_column?: number | null
@@ -1883,6 +1942,9 @@ export type Database = {
           project_id?: string | null
           recurrence_days?: Json | null
           recurrence_pattern?: string | null
+          reschedule_count_30d?: number
+          reschedule_loop_active?: boolean
+          reschedule_nudge_dismissed_until?: string | null
           scheduled_date?: string | null
           section_id?: string | null
           sop_id?: string | null

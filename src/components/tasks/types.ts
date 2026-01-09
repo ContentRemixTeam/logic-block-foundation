@@ -76,6 +76,13 @@ export interface Task {
   is_system_generated: boolean | null;
   system_source: string | null;
   template_key: string | null;
+  // Reschedule loop tracking fields
+  original_scheduled_at?: string | null;
+  original_due_date?: string | null;
+  reschedule_count_30d?: number;
+  last_rescheduled_at?: string | null;
+  reschedule_loop_active?: boolean;
+  reschedule_nudge_dismissed_until?: string | null;
 }
 
 export type FilterTab = 'today' | 'week' | 'future' | 'all' | 'completed';
