@@ -159,6 +159,47 @@ export type Database = {
           },
         ]
       }
+      cycle_metric_updates: {
+        Row: {
+          created_at: string | null
+          cycle_id: string
+          id: string
+          logged_at: string
+          metric_number: number
+          notes: string | null
+          user_id: string
+          value: number
+        }
+        Insert: {
+          created_at?: string | null
+          cycle_id: string
+          id?: string
+          logged_at?: string
+          metric_number: number
+          notes?: string | null
+          user_id: string
+          value: number
+        }
+        Update: {
+          created_at?: string | null
+          cycle_id?: string
+          id?: string
+          logged_at?: string
+          metric_number?: number
+          notes?: string | null
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cycle_metric_updates_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+        ]
+      }
       cycle_month_plans: {
         Row: {
           created_at: string | null
@@ -1656,6 +1697,7 @@ export type Database = {
           goal_id: string | null
           is_completed: boolean | null
           is_recurring_parent: boolean | null
+          is_system_generated: boolean | null
           notes: string | null
           parent_task_id: string | null
           planned_day: string | null
@@ -1672,10 +1714,12 @@ export type Database = {
           source: string | null
           status: string | null
           subtasks: Json | null
+          system_source: string | null
           tags: Json | null
           task_description: string | null
           task_id: string
           task_text: string
+          template_key: string | null
           time_block_end: string | null
           time_block_start: string | null
           user_id: string
@@ -1695,6 +1739,7 @@ export type Database = {
           goal_id?: string | null
           is_completed?: boolean | null
           is_recurring_parent?: boolean | null
+          is_system_generated?: boolean | null
           notes?: string | null
           parent_task_id?: string | null
           planned_day?: string | null
@@ -1711,10 +1756,12 @@ export type Database = {
           source?: string | null
           status?: string | null
           subtasks?: Json | null
+          system_source?: string | null
           tags?: Json | null
           task_description?: string | null
           task_id?: string
           task_text: string
+          template_key?: string | null
           time_block_end?: string | null
           time_block_start?: string | null
           user_id: string
@@ -1734,6 +1781,7 @@ export type Database = {
           goal_id?: string | null
           is_completed?: boolean | null
           is_recurring_parent?: boolean | null
+          is_system_generated?: boolean | null
           notes?: string | null
           parent_task_id?: string | null
           planned_day?: string | null
@@ -1750,10 +1798,12 @@ export type Database = {
           source?: string | null
           status?: string | null
           subtasks?: Json | null
+          system_source?: string | null
           tags?: Json | null
           task_description?: string | null
           task_id?: string
           task_text?: string
+          template_key?: string | null
           time_block_end?: string | null
           time_block_start?: string | null
           user_id?: string
