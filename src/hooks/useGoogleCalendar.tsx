@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { logApiError } from '@/lib/errorLogger';
@@ -54,6 +54,9 @@ export function useGoogleCalendar() {
   const [calendars, setCalendars] = useState<GoogleCalendar[]>([]);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const { toast } = useToast();
+  
+  // Ref to prevent handleOAuthReturn from running multiple times
+  const oauthProcessedRef = useRef(false);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -78,14 +81,20 @@ export function useGoogleCalendar() {
 
   // Handle OAuth return from redirect flow
   const handleOAuthReturn = useCallback(() => {
+    // Prevent multiple executions
+    if (oauthProcessedRef.current) return;
+    
     const params = new URLSearchParams(window.location.search);
     const oauthStatus = params.get('oauth');
     const calendarsParam = params.get('calendars');
     const errorParam = params.get('error');
     const emailParam = params.get('email');
     
-    // Only process once if there are OAuth params
+    // Only process if there are OAuth params
     if (!oauthStatus) return;
+    
+    // Mark as processed
+    oauthProcessedRef.current = true;
     
     // Store params for debugging
     lastOAuthParams = Object.fromEntries(params.entries());
