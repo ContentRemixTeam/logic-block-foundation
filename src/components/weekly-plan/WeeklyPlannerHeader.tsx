@@ -1,6 +1,7 @@
 import { format, addDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Settings2, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Settings2, CalendarDays, RefreshCw, Loader2, Calendar } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 interface WeeklyPlannerHeaderProps {
@@ -12,6 +13,12 @@ interface WeeklyPlannerHeaderProps {
   onOpenOfficeHours?: () => void;
   showWeekend?: boolean;
   onToggleWeekend?: () => void;
+  // Google Calendar props
+  googleConnected?: boolean;
+  googleCalendarName?: string;
+  onConnectGoogle?: () => void;
+  onSyncGoogle?: () => void;
+  googleSyncing?: boolean;
 }
 
 export function WeeklyPlannerHeader({
@@ -23,6 +30,11 @@ export function WeeklyPlannerHeader({
   onOpenOfficeHours,
   showWeekend = true,
   onToggleWeekend,
+  googleConnected = false,
+  googleCalendarName,
+  onConnectGoogle,
+  onSyncGoogle,
+  googleSyncing = false,
 }: WeeklyPlannerHeaderProps) {
   const weekEnd = addDays(currentWeekStart, 6);
   const weekLabel = `Week of ${format(currentWeekStart, 'MMMM d, yyyy')}`;
@@ -32,6 +44,41 @@ export function WeeklyPlannerHeader({
       <h1 className="text-2xl font-bold tracking-tight">Weekly Planner</h1>
 
       <div className="flex items-center gap-2">
+        {/* Google Calendar Status/Connect */}
+        {googleConnected ? (
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="gap-1.5 bg-green-500/10 text-green-600 border-green-500/30">
+              <Calendar className="h-3 w-3" />
+              {googleCalendarName || 'Calendar'}
+            </Badge>
+            {onSyncGoogle && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={onSyncGoogle}
+                disabled={googleSyncing}
+                className="h-8 px-2"
+              >
+                {googleSyncing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+              </Button>
+            )}
+          </div>
+        ) : onConnectGoogle && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onConnectGoogle}
+            className="gap-2"
+          >
+            <Calendar className="h-4 w-4" />
+            Connect Calendar
+          </Button>
+        )}
+
         {onToggleWeekend && (
           <Button 
             variant={showWeekend ? "outline" : "default"} 
