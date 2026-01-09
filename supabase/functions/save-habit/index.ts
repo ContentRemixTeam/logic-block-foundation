@@ -51,9 +51,44 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { habit_id, habit_name, category, type, description, success_definition } = body;
 
-    if (!habit_name) {
+    // Input validation
+    if (!habit_name || typeof habit_name !== 'string') {
       return new Response(
         JSON.stringify({ error: 'Habit name is required' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    const trimmedName = habit_name.trim();
+    if (trimmedName.length === 0 || trimmedName.length > 200) {
+      return new Response(
+        JSON.stringify({ error: 'Habit name must be 1-200 characters' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Validate type if provided
+    const validTypes = ['daily', 'weekly', null, undefined];
+    if (type !== undefined && !validTypes.includes(type)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid habit type' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Validate category length if provided
+    if (category && typeof category === 'string' && category.length > 100) {
+      return new Response(
+        JSON.stringify({ error: 'Category must be less than 100 characters' }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -78,11 +113,11 @@ Deno.serve(async (req) => {
       const { error } = await supabaseClient
         .from('habits')
         .update({
-          habit_name,
-          category: category || null,
+          habit_name: trimmedName,
+          category: category?.trim()?.substring(0, 100) || null,
           type: type || 'daily',
-          description: description || null,
-          success_definition: success_definition || null,
+          description: description?.substring(0, 1000) || null,
+          success_definition: success_definition?.substring(0, 500) || null,
           updated_at: new Date().toISOString(),
         })
         .eq('habit_id', habit_id)
@@ -101,11 +136,11 @@ Deno.serve(async (req) => {
         .from('habits')
         .insert({
           user_id: userId,
-          habit_name,
-          category: category || null,
+          habit_name: trimmedName,
+          category: category?.trim()?.substring(0, 100) || null,
           type: type || 'daily',
-          description: description || null,
-          success_definition: success_definition || null,
+          description: description?.substring(0, 1000) || null,
+          success_definition: success_definition?.substring(0, 500) || null,
         });
 
       if (error) {

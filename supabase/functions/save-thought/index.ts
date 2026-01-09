@@ -35,9 +35,18 @@ Deno.serve(async (req) => {
 
     const { id, text, category_id } = await req.json();
 
-    if (!text?.trim()) {
+    // Input validation
+    if (!text || typeof text !== 'string' || !text.trim()) {
       return new Response(
         JSON.stringify({ error: 'Thought text is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const trimmedText = text.trim();
+    if (trimmedText.length > 5000) {
+      return new Response(
+        JSON.stringify({ error: 'Thought text must be less than 5000 characters' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -54,7 +63,7 @@ Deno.serve(async (req) => {
       const { data, error } = await supabase
         .from('useful_thoughts')
         .update({
-          text: text.trim(),
+          text: trimmedText,
           category_id: category_id || null,
         })
         .eq('id', id)
@@ -70,7 +79,7 @@ Deno.serve(async (req) => {
         .from('useful_thoughts')
         .insert({
           user_id: userId,
-          text: text.trim(),
+          text: trimmedText,
           category_id: category_id || null,
         })
         .select()

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { Layout } from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, X, Target, BarChart3, Brain, CalendarIcon, Users, Megaphone, DollarSign, ChevronLeft, ChevronRight, Check, Sparkles, Heart, TrendingUp, Upload, FileJson } from 'lucide-react';
+import { Plus, X, Target, BarChart3, Brain, CalendarIcon, Users, Megaphone, DollarSign, ChevronLeft, ChevronRight, Check, Sparkles, Heart, TrendingUp, Upload, FileJson, Save } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -21,6 +21,8 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useCycleSetupDraft, CycleSetupDraft } from '@/hooks/useCycleSetupDraft';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 interface WorkshopImportData {
   startDate?: string;
@@ -109,6 +111,10 @@ export default function CycleSetup() {
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importJson, setImportJson] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showDraftDialog, setShowDraftDialog] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  
+  const { hasDraft, saveDraft, loadDraft, clearDraft, getDraftAge } = useCycleSetupDraft();
 
   // Import from workshop JSON
   const handleImportFromJson = (jsonData: WorkshopImportData) => {
@@ -272,6 +278,121 @@ export default function CycleSetup() {
     { name: '', category: '' },
   ]);
   const [thingsToRemember, setThingsToRemember] = useState<string[]>(['', '', '']);
+
+  // Check for existing draft on mount
+  useEffect(() => {
+    if (hasDraft) {
+      setShowDraftDialog(true);
+    }
+  }, [hasDraft]);
+
+  // Restore draft data
+  const handleRestoreDraft = useCallback(() => {
+    const draft = loadDraft();
+    if (draft) {
+      try {
+        setStartDate(new Date(draft.startDate));
+      } catch {
+        setStartDate(new Date());
+      }
+      setGoal(draft.goal || '');
+      setWhy(draft.why || '');
+      setIdentity(draft.identity || '');
+      setFeeling(draft.feeling || '');
+      setDiscoverScore(draft.discoverScore ?? 5);
+      setNurtureScore(draft.nurtureScore ?? 5);
+      setConvertScore(draft.convertScore ?? 5);
+      setBiggestBottleneck(draft.biggestBottleneck || '');
+      setAudienceTarget(draft.audienceTarget || '');
+      setAudienceFrustration(draft.audienceFrustration || '');
+      setSignatureMessage(draft.signatureMessage || '');
+      setLeadPlatform(draft.leadPlatform || '');
+      setLeadContentType(draft.leadContentType || '');
+      setLeadFrequency(draft.leadFrequency || '');
+      setLeadCommitted(draft.leadCommitted ?? false);
+      setNurtureMethod(draft.nurtureMethod || '');
+      setNurtureFrequency(draft.nurtureFrequency || '');
+      setFreeTransformation(draft.freeTransformation || '');
+      setProofMethods(draft.proofMethods || []);
+      if (draft.offers?.length) setOffers(draft.offers);
+      setRevenueGoal(draft.revenueGoal || '');
+      setPricePerSale(draft.pricePerSale || '');
+      setLaunchSchedule(draft.launchSchedule || '');
+      if (draft.monthPlans?.length) setMonthPlans(draft.monthPlans);
+      setMetric1Name(draft.metric1Name || '');
+      setMetric1Start(draft.metric1Start ?? '');
+      setMetric2Name(draft.metric2Name || '');
+      setMetric2Start(draft.metric2Start ?? '');
+      setMetric3Name(draft.metric3Name || '');
+      setMetric3Start(draft.metric3Start ?? '');
+      if (draft.projects?.length) setProjects(draft.projects);
+      if (draft.habits?.length) setHabits(draft.habits);
+      if (draft.thingsToRemember?.length) setThingsToRemember(draft.thingsToRemember);
+      setCurrentStep(draft.currentStep || 1);
+      
+      toast({
+        title: 'Draft restored',
+        description: 'Your previous work has been loaded.',
+      });
+    }
+    setShowDraftDialog(false);
+  }, [loadDraft, toast]);
+
+  // Auto-save draft on state changes (debounced)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const draftData: Partial<CycleSetupDraft> = {
+        startDate: startDate.toISOString(),
+        goal,
+        why,
+        identity,
+        feeling,
+        discoverScore,
+        nurtureScore,
+        convertScore,
+        biggestBottleneck,
+        audienceTarget,
+        audienceFrustration,
+        signatureMessage,
+        leadPlatform,
+        leadContentType,
+        leadFrequency,
+        leadCommitted,
+        nurtureMethod,
+        nurtureFrequency,
+        freeTransformation,
+        proofMethods,
+        offers,
+        revenueGoal,
+        pricePerSale,
+        launchSchedule,
+        monthPlans,
+        metric1Name,
+        metric1Start,
+        metric2Name,
+        metric2Start,
+        metric3Name,
+        metric3Start,
+        projects,
+        habits,
+        thingsToRemember,
+        currentStep,
+      };
+      saveDraft(draftData);
+      setLastSaved(new Date());
+    }, 2000); // Debounce 2 seconds
+
+    return () => clearTimeout(timeoutId);
+  }, [
+    startDate, goal, why, identity, feeling,
+    discoverScore, nurtureScore, convertScore, biggestBottleneck,
+    audienceTarget, audienceFrustration, signatureMessage,
+    leadPlatform, leadContentType, leadFrequency, leadCommitted,
+    nurtureMethod, nurtureFrequency, freeTransformation, proofMethods,
+    offers, revenueGoal, pricePerSale, launchSchedule, monthPlans,
+    metric1Name, metric1Start, metric2Name, metric2Start, metric3Name, metric3Start,
+    projects, habits, thingsToRemember, currentStep, saveDraft
+  ]);
 
   // Calculate focus area based on lowest score
   const focusArea = useMemo(() => {
@@ -517,6 +638,9 @@ export default function CycleSetup() {
 
       if (settingsError) console.error('Settings error:', settingsError);
 
+      // Clear draft on successful save
+      clearDraft();
+
       toast({
         title: 'Cycle created!',
         description: 'Your 90-day journey has begun.',
@@ -542,6 +666,29 @@ export default function CycleSetup() {
 
   return (
     <Layout>
+      {/* Draft Restore Dialog */}
+      <AlertDialog open={showDraftDialog} onOpenChange={setShowDraftDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Resume your draft?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have an unsaved cycle plan from {getDraftAge()}. Would you like to continue where you left off?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              clearDraft();
+              setShowDraftDialog(false);
+            }}>
+              Start Fresh
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleRestoreDraft}>
+              Resume Draft
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="mx-auto max-w-4xl space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
@@ -628,6 +775,13 @@ export default function CycleSetup() {
               Dashboard
             </Button>
           </div>
+          {/* Auto-save indicator */}
+          {lastSaved && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Save className="h-3 w-3" />
+              <span>Draft saved</span>
+            </div>
+          )}
         </div>
 
         {/* Progress Bar */}

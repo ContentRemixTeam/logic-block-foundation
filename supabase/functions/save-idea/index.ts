@@ -29,14 +29,37 @@ Deno.serve(async (req) => {
 
     const { id, content, category_id } = await req.json();
 
-    console.log('[save-idea] Saving idea for user:', user.id, { id, content, category_id });
+    // Input validation
+    if (!content || typeof content !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Content is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const trimmedContent = content.trim();
+    if (trimmedContent.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Content cannot be empty' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (trimmedContent.length > 10000) {
+      return new Response(
+        JSON.stringify({ error: 'Content must be less than 10000 characters' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('[save-idea] Saving idea for user:', user.id, { id, contentLength: trimmedContent.length, category_id });
 
     if (id) {
       // Update existing idea
       const { data, error } = await supabase
         .from('ideas')
         .update({
-          content,
+          content: trimmedContent,
           category_id: category_id || null,
           updated_at: new Date().toISOString(),
         })
@@ -61,7 +84,7 @@ Deno.serve(async (req) => {
         .from('ideas')
         .insert({
           user_id: user.id,
-          content,
+          content: trimmedContent,
           category_id: category_id || null,
         })
         .select()

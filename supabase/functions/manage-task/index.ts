@@ -63,6 +63,13 @@ Deno.serve(async (req) => {
     );
 
     const body = await req.json();
+    
+    // Input validation
+    const validActions = ['create', 'update', 'delete', 'toggle', 'toggle_checklist_item', 'detach_sop'];
+    const validPriorities = ['low', 'medium', 'high', null, undefined];
+    const validEnergyLevels = ['low', 'medium', 'high', null, undefined];
+    const validStatuses = ['backlog', 'todo', 'in_progress', 'blocked', 'done', null, undefined];
+    
     const { 
       action, 
       task_id, 
@@ -99,6 +106,65 @@ Deno.serve(async (req) => {
       project_id,
       project_column
     } = body;
+
+    // Validate action
+    if (!action || !validActions.includes(action)) {
+      return new Response(JSON.stringify({ error: 'Invalid or missing action' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate task_text for create action
+    if (action === 'create' && (!task_text || typeof task_text !== 'string' || task_text.trim().length === 0)) {
+      return new Response(JSON.stringify({ error: 'Task text is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate task_id for actions that require it
+    if (['update', 'delete', 'toggle', 'toggle_checklist_item', 'detach_sop'].includes(action) && !task_id) {
+      return new Response(JSON.stringify({ error: 'Task ID is required for this action' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate priority if provided
+    if (priority !== undefined && !validPriorities.includes(priority)) {
+      return new Response(JSON.stringify({ error: 'Invalid priority value' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate energy_level if provided
+    if (energy_level !== undefined && !validEnergyLevels.includes(energy_level)) {
+      return new Response(JSON.stringify({ error: 'Invalid energy level value' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate status if provided
+    if (status !== undefined && !validStatuses.includes(status)) {
+      return new Response(JSON.stringify({ error: 'Invalid status value' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate estimated_minutes if provided
+    if (estimated_minutes !== undefined && estimated_minutes !== null) {
+      const mins = Number(estimated_minutes);
+      if (isNaN(mins) || mins < 0 || mins > 1440) {
+        return new Response(JSON.stringify({ error: 'Invalid estimated minutes (must be 0-1440)' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
 
     let result;
 
