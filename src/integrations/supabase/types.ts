@@ -2089,6 +2089,54 @@ export type Database = {
           },
         ]
       }
+      weekly_reflections: {
+        Row: {
+          created_at: string | null
+          id: string
+          include_goal: boolean | null
+          include_prompts: boolean | null
+          learned: string | null
+          next_week_focus: string | null
+          share_count: number | null
+          shared_at: string | null
+          updated_at: string | null
+          user_id: string
+          week_start_date: string
+          went_well: string | null
+          wins: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          include_goal?: boolean | null
+          include_prompts?: boolean | null
+          learned?: string | null
+          next_week_focus?: string | null
+          share_count?: number | null
+          shared_at?: string | null
+          updated_at?: string | null
+          user_id: string
+          week_start_date: string
+          went_well?: string | null
+          wins?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          include_goal?: boolean | null
+          include_prompts?: boolean | null
+          learned?: string | null
+          next_week_focus?: string | null
+          share_count?: number | null
+          shared_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+          week_start_date?: string
+          went_well?: string | null
+          wins?: string | null
+        }
+        Relationships: []
+      }
       weekly_reviews: {
         Row: {
           adjustments: string | null

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, FileText, BarChart3, Target, CheckCircle2 } from 'lucide-react';
+import { Sparkles, FileText, BarChart3, Target, CheckCircle2, Share2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Layout } from '@/components/Layout';
 import { cn } from '@/lib/utils';
@@ -33,6 +33,14 @@ const reviewCards: ReviewCard[] = [
     icon: FileText,
     iconBgClass: 'bg-blue-100 dark:bg-blue-900/30',
     iconColorClass: 'text-blue-600 dark:text-blue-400',
+  },
+  {
+    title: 'Weekly Reflection (Share)',
+    description: 'Share your wins and lessons with the group.',
+    href: '/weekly-reflection',
+    icon: Share2,
+    iconBgClass: 'bg-teal-100 dark:bg-teal-900/30',
+    iconColorClass: 'text-teal-600 dark:text-teal-400',
   },
   {
     title: 'Monthly Review',
