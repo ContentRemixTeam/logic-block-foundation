@@ -23,6 +23,8 @@ import {
   Lightbulb,
   FolderKanban,
   Sparkle,
+  PanelLeftClose,
+  PanelLeft,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
@@ -31,39 +33,38 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
+  SidebarHeader,
   useSidebar,
 } from '@/components/ui/sidebar';
 import { XPDisplay } from '@/components/quest/XPDisplay';
 import { StreakDisplay } from '@/components/quest/StreakDisplay';
 import { Progress } from '@/components/ui/progress';
-import { getLevelTitle } from '@/lib/questLabels';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export function AppSidebar() {
   const location = useLocation();
   const { signOut } = useAuth();
-  const { open: sidebarOpen } = useSidebar();
+  const { open: sidebarOpen, toggleSidebar } = useSidebar();
   const { isQuestMode, getNavLabel, level, currentLevelXP, xpToNextLevel, levelTitle } = useTheme();
 
-  // Navigation items with quest mode support
-  const planningNavigation = [
+  // All navigation items in a single flat list
+  const navigationItems = [
     { 
       name: getNavLabel('dashboard'), 
       href: '/dashboard', 
       icon: isQuestMode ? Map : LayoutDashboard,
       questIcon: '🗺️',
-      tourId: 'dashboard' 
     },
     { 
       name: 'Planning', 
       href: '/planning', 
       icon: isQuestMode ? Compass : CalendarDays,
       questIcon: '🧭',
-      tourId: 'planning' 
     },
     { 
       name: getNavLabel('tasks'), 
@@ -77,32 +78,23 @@ export function AppSidebar() {
       icon: FolderKanban,
       questIcon: '📁',
     },
-  ];
-
-  const reflectionNavigation = [
     { 
       name: 'Reviews', 
       href: '/reviews', 
-      icon: isQuestMode ? Sparkles : Sparkles,
+      icon: Sparkles,
       questIcon: '✨',
-      tourId: 'reflection' 
     },
     { 
       name: getNavLabel('progress'), 
       href: '/progress', 
-      icon: isQuestMode ? TrendingUp : TrendingUp,
+      icon: TrendingUp,
       questIcon: '📊',
-      tourId: 'progress' 
     },
-  ];
-
-  const resourcesNavigation = [
     { 
       name: getNavLabel('notes'), 
       href: '/notes', 
       icon: isQuestMode ? BookMarked : BookOpen,
       questIcon: '📒',
-      tourId: 'resources' 
     },
     { 
       name: getNavLabel('sops'), 
@@ -122,211 +114,127 @@ export function AppSidebar() {
       icon: isQuestMode ? Lightbulb : Zap,
       questIcon: '💡',
     },
+    { 
+      name: getNavLabel('mindset'), 
+      href: '/mindset', 
+      icon: Brain,
+      questIcon: '🧠',
+      isActiveCheck: (path: string) => path === '/mindset' || path.includes('useful-thoughts') || path.includes('belief-builder') || path.includes('identity-anchors') || path.includes('self-coaching'),
+    },
+    { 
+      name: getNavLabel('community'), 
+      href: '/community', 
+      icon: Users,
+      questIcon: '🏆',
+    },
+    { 
+      name: 'Mastermind', 
+      href: '/mastermind', 
+      icon: Sparkle,
+      questIcon: '🎓',
+    },
+    { 
+      name: 'Settings', 
+      href: '/settings', 
+      icon: Settings,
+      questIcon: '⚙️',
+    },
+    { 
+      name: 'Support', 
+      href: '/support', 
+      icon: HelpCircle,
+      questIcon: '❓',
+    },
   ];
 
-  const isActive = (href: string) => location.pathname === href;
-
-  const renderNavItems = (items: typeof planningNavigation) => (
-    <>
-      {items.map((item) => (
-        <SidebarMenuItem key={item.href}>
-          <SidebarMenuButton asChild isActive={isActive(item.href)} className="quest-nav-item">
-            <Link to={item.href} data-tour={(item as any).tourId}>
-              {isQuestMode ? (
-                <span className="quest-nav-icon text-base">{item.questIcon}</span>
-              ) : (
-                <item.icon className="h-4 w-4" />
-              )}
-              <span>{item.name}</span>
-            </Link>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      ))}
-    </>
-  );
+  const isActive = (item: typeof navigationItems[0]) => {
+    if (item.isActiveCheck) {
+      return item.isActiveCheck(location.pathname);
+    }
+    return location.pathname === item.href;
+  };
 
   const xpProgress = xpToNextLevel > 0 ? (currentLevelXP / xpToNextLevel) * 100 : 0;
 
   return (
     <Sidebar collapsible="icon">
-      {/* Quest-branded header */}
-      <div className={`flex h-16 items-center border-b px-6 ${isQuestMode ? 'quest-sidebar-header' : ''}`}>
-        {isQuestMode ? (
-          <div className="quest-logo-icon flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-[hsl(var(--quest-gold))] to-[hsl(var(--quest-gold-light))] shadow-md">
-            <span className="text-xl">🎯</span>
-          </div>
-        ) : (
-          <Target className="h-6 w-6 text-primary flex-shrink-0" />
-        )}
-        {sidebarOpen && (
-          <div className="ml-3">
-            <span 
-              className="text-lg font-semibold whitespace-nowrap block"
-              style={{ fontFamily: isQuestMode ? 'var(--font-heading)' : 'inherit' }}
-            >
-              {isQuestMode ? '90-Day Quest' : '90-Day Planner'}
-            </span>
-            {isQuestMode && (
-              <span className="text-xs font-semibold text-[hsl(var(--quest-gold))] uppercase tracking-wider">
-                Epic Quest Mode
+      <SidebarHeader>
+        {/* Header with logo and collapse button */}
+        <div className={`flex h-14 items-center justify-between px-3 ${isQuestMode ? 'quest-sidebar-header' : ''}`}>
+          <div className="flex items-center gap-2 min-w-0">
+            {isQuestMode ? (
+              <div className="quest-logo-icon flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-[hsl(var(--quest-gold))] to-[hsl(var(--quest-gold-light))] shadow-md shrink-0">
+                <span className="text-lg">🎯</span>
+              </div>
+            ) : (
+              <Target className="h-5 w-5 text-primary shrink-0" />
+            )}
+            {sidebarOpen && (
+              <span 
+                className="text-sm font-semibold truncate"
+                style={{ fontFamily: isQuestMode ? 'var(--font-heading)' : 'inherit' }}
+              >
+                {isQuestMode ? '90-Day Quest' : '90-Day Planner'}
               </span>
             )}
           </div>
-        )}
-      </div>
-
-      {/* Quest Mode XP & Streak Display */}
-      {sidebarOpen && isQuestMode && (
-        <div className="px-4 py-3 border-b space-y-2">
-          <XPDisplay compact />
-          <StreakDisplay compact />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-7 w-7 shrink-0"
+                onClick={toggleSidebar}
+              >
+                {sidebarOpen ? (
+                  <PanelLeftClose className="h-4 w-4" />
+                ) : (
+                  <PanelLeft className="h-4 w-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              {sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+            </TooltipContent>
+          </Tooltip>
         </div>
-      )}
+
+        {/* Quest Mode XP & Streak Display */}
+        {sidebarOpen && isQuestMode && (
+          <div className="px-3 pb-2 space-y-2">
+            <XPDisplay compact />
+            <StreakDisplay compact />
+          </div>
+        )}
+      </SidebarHeader>
 
       <SidebarContent>
-        {/* PLANNING Section */}
         <SidebarGroup>
-          <SidebarGroupLabel className={isQuestMode ? 'quest-section-header' : ''}>
-            {isQuestMode ? (
-              <>
-                <span className="mr-2">⚔️</span>
-                Quests
-              </>
-            ) : 'Planning'}
-          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {renderNavItems(planningNavigation)}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* REFLECTION Section */}
-        <SidebarGroup>
-          <SidebarGroupLabel className={isQuestMode ? 'quest-section-header' : ''}>
-            {isQuestMode ? (
-              <>
-                <span className="mr-2">🔍</span>
-                Debriefs
-              </>
-            ) : 'Reflection'}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {renderNavItems(reflectionNavigation)}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* RESOURCES Section */}
-        <SidebarGroup>
-          <SidebarGroupLabel className={isQuestMode ? 'quest-section-header' : ''}>
-            {isQuestMode ? (
-              <>
-                <span className="mr-2">🎒</span>
-                Inventory
-              </>
-            ) : 'Resources'}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {renderNavItems(resourcesNavigation)}
-
-              {/* Mindset Hub */}
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive('/mindset') || location.pathname.includes('useful-thoughts') || location.pathname.includes('belief-builder') || location.pathname.includes('identity-anchors') || location.pathname.includes('self-coaching')} className="quest-nav-item">
-                  <Link to="/mindset">
-                    {isQuestMode ? (
-                      <span className="quest-nav-icon text-base">🧠</span>
-                    ) : (
-                      <Brain className="h-4 w-4" />
+              {navigationItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SidebarMenuButton asChild isActive={isActive(item)} className="quest-nav-item">
+                        <Link to={item.href}>
+                          {isQuestMode ? (
+                            <span className="quest-nav-icon text-base">{item.questIcon}</span>
+                          ) : (
+                            <item.icon className="h-4 w-4" />
+                          )}
+                          <span>{item.name}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </TooltipTrigger>
+                    {!sidebarOpen && (
+                      <TooltipContent side="right">
+                        {item.name}
+                      </TooltipContent>
                     )}
-                    <span>{getNavLabel('mindset')}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              {/* Celebration Wall / Victory Hall */}
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive('/community')} className="quest-nav-item">
-                  <Link to="/community">
-                    {isQuestMode ? (
-                      <span className="quest-nav-icon text-base">🏆</span>
-                    ) : (
-                      <Users className="h-4 w-4" />
-                    )}
-                    <span>{getNavLabel('community')}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* MASTERMIND Section */}
-        <SidebarGroup>
-          <SidebarGroupLabel className={isQuestMode ? 'quest-section-header' : ''}>
-            {isQuestMode ? (
-              <>
-                <span className="mr-2">🎓</span>
-                Mastermind
-              </>
-            ) : 'Mastermind'}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive('/mastermind')} className="quest-nav-item">
-                  <Link to="/mastermind">
-                    {isQuestMode ? (
-                      <span className="quest-nav-icon text-base">🎓</span>
-                    ) : (
-                      <Sparkle className="h-4 w-4" />
-                    )}
-                    <span>Mastermind Hub</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* SETTINGS Section */}
-        <SidebarGroup>
-          <SidebarGroupLabel className={isQuestMode ? 'quest-section-header' : ''}>
-            {isQuestMode ? (
-              <>
-                <span className="mr-2">⚙️</span>
-                Settings
-              </>
-            ) : 'Settings'}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive('/settings')} className="quest-nav-item">
-                  <Link to="/settings">
-                    {isQuestMode ? (
-                      <span className="quest-nav-icon text-base">⚙️</span>
-                    ) : (
-                      <Settings className="h-4 w-4" />
-                    )}
-                    <span>Settings</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive('/support')} className="quest-nav-item">
-                  <Link to="/support" data-tour="support">
-                    {isQuestMode ? (
-                      <span className="quest-nav-icon text-base">❓</span>
-                    ) : (
-                      <HelpCircle className="h-4 w-4" />
-                    )}
-                    <span>Support</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+                  </Tooltip>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -338,16 +246,16 @@ export function AppSidebar() {
           <div className="px-3 pb-3">
             <div className="quest-level-card rounded-xl p-3 border-2 border-[hsl(var(--quest-gold)/0.2)] bg-gradient-to-br from-[hsl(var(--quest-gold)/0.1)] to-[hsl(var(--quest-gold)/0.05)]">
               <div className="flex items-center gap-3">
-                <div className="quest-level-badge w-12 h-12 rounded-full bg-gradient-to-br from-[hsl(var(--quest-gold))] to-[hsl(var(--quest-gold-light))] flex flex-col items-center justify-center shadow-lg">
-                  <span className="text-sm">⭐</span>
-                  <span className="text-sm font-bold text-foreground">{level}</span>
+                <div className="quest-level-badge w-10 h-10 rounded-full bg-gradient-to-br from-[hsl(var(--quest-gold))] to-[hsl(var(--quest-gold-light))] flex flex-col items-center justify-center shadow-lg">
+                  <span className="text-xs">⭐</span>
+                  <span className="text-xs font-bold text-foreground">{level}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground truncate">{levelTitle}</p>
+                  <p className="text-xs font-semibold text-foreground truncate">{levelTitle}</p>
                   <div className="mt-1">
-                    <Progress value={xpProgress} className="h-1.5 quest-xp-bar" />
+                    <Progress value={xpProgress} className="h-1 quest-xp-bar" />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">{currentLevelXP} / {xpToNextLevel} XP</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{currentLevelXP} / {xpToNextLevel} XP</p>
                 </div>
               </div>
             </div>
@@ -356,14 +264,23 @@ export function AppSidebar() {
         
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={signOut} className="quest-nav-item">
-              {isQuestMode ? (
-                <span className="quest-nav-icon text-base">🚪</span>
-              ) : (
-                <LogOut className="h-4 w-4" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <SidebarMenuButton onClick={signOut} className="quest-nav-item">
+                  {isQuestMode ? (
+                    <span className="quest-nav-icon text-base">🚪</span>
+                  ) : (
+                    <LogOut className="h-4 w-4" />
+                  )}
+                  <span>Sign Out</span>
+                </SidebarMenuButton>
+              </TooltipTrigger>
+              {!sidebarOpen && (
+                <TooltipContent side="right">
+                  Sign Out
+                </TooltipContent>
               )}
-              <span>Sign Out</span>
-            </SidebarMenuButton>
+            </Tooltip>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
