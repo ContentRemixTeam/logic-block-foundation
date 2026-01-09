@@ -302,6 +302,7 @@ export type Database = {
       }
       cycle_strategy: {
         Row: {
+          batch_day: string | null
           created_at: string | null
           cycle_id: string
           free_transformation: string | null
@@ -312,11 +313,14 @@ export type Database = {
           lead_primary_platform: string | null
           nurture_frequency: string | null
           nurture_method: string | null
+          posting_days: Json | null
+          posting_time: string | null
           proof_methods: Json | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          batch_day?: string | null
           created_at?: string | null
           cycle_id: string
           free_transformation?: string | null
@@ -327,11 +331,14 @@ export type Database = {
           lead_primary_platform?: string | null
           nurture_frequency?: string | null
           nurture_method?: string | null
+          posting_days?: Json | null
+          posting_time?: string | null
           proof_methods?: Json | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          batch_day?: string | null
           created_at?: string | null
           cycle_id?: string
           free_transformation?: string | null
@@ -342,6 +349,8 @@ export type Database = {
           lead_primary_platform?: string | null
           nurture_frequency?: string | null
           nurture_method?: string | null
+          posting_days?: Json | null
+          posting_time?: string | null
           proof_methods?: Json | null
           updated_at?: string | null
           user_id?: string
@@ -1639,6 +1648,7 @@ export type Database = {
           completed_at: string | null
           context_tags: string[] | null
           created_at: string | null
+          cycle_id: string | null
           daily_plan_id: string | null
           day_order: number | null
           energy_level: string | null
@@ -1677,6 +1687,7 @@ export type Database = {
           completed_at?: string | null
           context_tags?: string[] | null
           created_at?: string | null
+          cycle_id?: string | null
           daily_plan_id?: string | null
           day_order?: number | null
           energy_level?: string | null
@@ -1715,6 +1726,7 @@ export type Database = {
           completed_at?: string | null
           context_tags?: string[] | null
           created_at?: string | null
+          cycle_id?: string | null
           daily_plan_id?: string | null
           day_order?: number | null
           energy_level?: string | null
@@ -1748,6 +1760,13 @@ export type Database = {
           waiting_on?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
           {
             foreignKeyName: "tasks_daily_plan_id_fkey"
             columns: ["daily_plan_id"]
@@ -1819,6 +1838,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_custom_options: {
+        Row: {
+          created_at: string | null
+          id: string
+          option_type: string
+          option_value: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          option_type: string
+          option_value: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          option_type?: string
+          option_value?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_profiles: {
         Row: {
