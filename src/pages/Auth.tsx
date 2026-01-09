@@ -188,9 +188,17 @@ export default function Auth() {
 
       if (error) throw error;
     } catch (error: any) {
+      let errorMessage = 'Failed to sign in with Google. Please try again.';
+      
+      if (error?.message?.includes('provider is not enabled') || error?.message?.includes('Provider not enabled')) {
+        errorMessage = 'Google Sign-In is not available. Please use email and password instead.';
+      } else if (error?.message?.includes('popup')) {
+        errorMessage = 'Sign-in popup was blocked. Please allow popups and try again.';
+      }
+      
       toast({
-        title: 'Error',
-        description: error?.message || 'Failed to sign in with Google',
+        title: 'Google Sign-In Unavailable',
+        description: errorMessage,
         variant: 'destructive',
       });
       setGoogleLoading(false);
