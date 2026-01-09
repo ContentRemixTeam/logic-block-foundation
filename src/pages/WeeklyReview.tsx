@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Zap, Target, BarChart3, TrendingUp, TrendingDown, Users } from "lucide-react";
+import { Loader2, Zap, Target, BarChart3, TrendingUp, TrendingDown, Users, Share2 } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { ReflectionList } from "@/components/ReflectionList";
 
@@ -535,6 +535,40 @@ export default function WeeklyReview() {
             </CardContent>
           </Card>
         )}
+
+        {/* Share to Community CTA */}
+        <Card className="border-teal-200 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-900/20">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-teal-100 dark:bg-teal-800/50">
+                  <Share2 className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                </div>
+                <div>
+                  <p className="font-semibold">Want to share this with the group?</p>
+                  <p className="text-sm text-muted-foreground">
+                    Generate a polished post and share your wins!
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                className="border-teal-300 dark:border-teal-700 hover:bg-teal-100 dark:hover:bg-teal-800"
+                onClick={() => navigate('/weekly-reflection', {
+                  state: {
+                    prefill: {
+                      wins: wins.filter(Boolean),
+                      lessons: lessons.filter(Boolean),
+                      intentions: intentions.filter(Boolean),
+                    }
+                  }
+                })}
+              >
+                Share Reflection
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Save Button */}
         <div className="flex justify-end gap-3">
