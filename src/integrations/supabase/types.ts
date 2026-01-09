@@ -861,6 +861,45 @@ export type Database = {
         }
         Relationships: []
       }
+      entitlements: {
+        Row: {
+          created_at: string
+          email: string
+          ends_at: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          starts_at: string | null
+          status: string
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          ends_at?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          starts_at?: string | null
+          status?: string
+          tier?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          ends_at?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          starts_at?: string | null
+          status?: string
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       error_logs: {
         Row: {
           component: string | null
@@ -2344,6 +2383,8 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          membership_status: string | null
+          membership_tier: string | null
           trial_expires_at: string | null
           trial_started_at: string | null
           updated_at: string
@@ -2355,6 +2396,8 @@ export type Database = {
           created_at?: string
           email?: string | null
           id: string
+          membership_status?: string | null
+          membership_tier?: string | null
           trial_expires_at?: string | null
           trial_started_at?: string | null
           updated_at?: string
@@ -2366,6 +2409,8 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          membership_status?: string | null
+          membership_tier?: string | null
           trial_expires_at?: string | null
           trial_started_at?: string | null
           updated_at?: string
@@ -2671,6 +2716,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_mastermind_entitlement: {
+        Args: { user_email: string }
+        Returns: boolean
+      }
       create_daily_plan: {
         Args: {
           p_date: string
@@ -2717,6 +2766,16 @@ export type Database = {
       get_habit_summary_for_week: {
         Args: { p_user_id: string; p_week_id: string }
         Returns: Json
+      }
+      get_user_entitlement: {
+        Args: { user_email: string }
+        Returns: {
+          ends_at: string
+          id: string
+          starts_at: string
+          status: string
+          tier: string
+        }[]
       }
       is_admin: { Args: { check_user_id: string }; Returns: boolean }
       toggle_habit: {
