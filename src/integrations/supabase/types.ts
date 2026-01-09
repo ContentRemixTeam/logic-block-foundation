@@ -106,6 +106,81 @@ export type Database = {
         }
         Relationships: []
       }
+      coaching_entries: {
+        Row: {
+          action: string | null
+          circumstance: string | null
+          context_summary: string | null
+          create_tiny_task: boolean | null
+          created_at: string
+          cycle_id: string | null
+          feeling: string | null
+          id: string
+          reframe_thought: string | null
+          result: string | null
+          schedule_tiny_task_at: string | null
+          shareable_post: string | null
+          task_id: string | null
+          thought: string | null
+          tiny_next_action: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action?: string | null
+          circumstance?: string | null
+          context_summary?: string | null
+          create_tiny_task?: boolean | null
+          created_at?: string
+          cycle_id?: string | null
+          feeling?: string | null
+          id?: string
+          reframe_thought?: string | null
+          result?: string | null
+          schedule_tiny_task_at?: string | null
+          shareable_post?: string | null
+          task_id?: string | null
+          thought?: string | null
+          tiny_next_action?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action?: string | null
+          circumstance?: string | null
+          context_summary?: string | null
+          create_tiny_task?: boolean | null
+          created_at?: string
+          cycle_id?: string | null
+          feeling?: string | null
+          id?: string
+          reframe_thought?: string | null
+          result?: string | null
+          schedule_tiny_task_at?: string | null
+          shareable_post?: string | null
+          task_id?: string | null
+          thought?: string | null
+          tiny_next_action?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coaching_entries_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+          {
+            foreignKeyName: "coaching_entries_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
+          },
+        ]
+      }
       ctfar: {
         Row: {
           action: string | null
