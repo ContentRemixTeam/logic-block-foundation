@@ -50,6 +50,7 @@ import WorkshopPlanner from "./pages/WorkshopPlanner";
 import TrialSignup from "./pages/TrialSignup";
 import Admin from "./pages/Admin";
 import CoachingLog from "./pages/CoachingLog";
+import ContentVault from "./pages/ContentVault";
 import NotFound from "./pages/NotFound";
 
 // Configure QueryClient with stability-focused defaults
@@ -134,6 +135,7 @@ const App = () => (
                   <Route path="/trial" element={<TrialSignup />} />
                   <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
                   <Route path="/coaching-log" element={<ProtectedRoute><CoachingLog /></ProtectedRoute>} />
+                  <Route path="/content-vault" element={<ProtectedRoute><ContentVault /></ProtectedRoute>} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
                 <DevDebugPanel />

@@ -4,7 +4,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Copy, Edit, Trash2, CheckCircle2, Send, ExternalLink } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { MoreHorizontal, Copy, Edit, Trash2, CheckCircle2, Send, ExternalLink, FileText } from 'lucide-react';
 import { ContentItem, ContentType, ContentStatus } from '@/lib/contentService';
 import { toast } from 'sonner';
 
@@ -61,119 +62,129 @@ export function ContentTable({ items, onEdit, onDuplicate, onDelete, onMarkPubli
           </TableRow>
         </TableHeader>
         <TableBody>
-          {items.map((item) => (
-            <TableRow key={item.id} className="group">
-              <TableCell>
-                <button
-                  onClick={() => onEdit(item)}
-                  className="text-left font-medium hover:text-primary transition-colors line-clamp-1"
-                >
-                  {item.title}
-                </button>
-                {item.subject_line && (
-                  <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                    📧 {item.subject_line}
-                  </p>
-                )}
-              </TableCell>
-              <TableCell>
-                <Badge variant="outline" className={`text-xs ${typeColors[item.type]}`}>
-                  {item.type}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <Badge variant="outline" className={`text-xs ${statusColors[item.status]}`}>
-                  {item.status}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <span className="text-sm text-muted-foreground">
-                  {item.channel || '—'}
-                </span>
-              </TableCell>
-              <TableCell>
-                <span className="text-sm text-muted-foreground line-clamp-1">
-                  {item.topic || '—'}
-                </span>
-              </TableCell>
-              <TableCell>
-                <div className="flex flex-wrap gap-1">
-                  {item.tags.slice(0, 2).map((tag) => (
-                    <Badge key={tag} variant="secondary" className="text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
-                  {item.tags.length > 2 && (
-                    <Badge variant="secondary" className="text-xs">
-                      +{item.tags.length - 2}
-                    </Badge>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell>
-                <span className="text-sm text-muted-foreground">
-                  {item.published_at ? format(new Date(item.published_at), 'MMM d, yyyy') : '—'}
-                </span>
-              </TableCell>
-              <TableCell>
-                <span className="text-sm text-muted-foreground line-clamp-1">
-                  {item.offer || '—'}
-                </span>
-              </TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={() => onEdit(item)}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onDuplicate(item.id)}>
-                      <Copy className="h-4 w-4 mr-2" />
-                      Duplicate
-                    </DropdownMenuItem>
-                    {item.body && (
-                      <DropdownMenuItem onClick={() => copyToClipboard(item.body!)}>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy Body
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuSeparator />
-                    {item.status !== 'Published' && (
-                      <DropdownMenuItem onClick={() => onMarkPublished(item.id)}>
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
-                        Mark Published
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem onClick={() => onLogSend(item)}>
-                      <Send className="h-4 w-4 mr-2" />
-                      Log Send
-                    </DropdownMenuItem>
-                    {item.link_url && (
-                      <DropdownMenuItem asChild>
-                        <a href={item.link_url} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          Open Link
-                        </a>
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      onClick={() => onDelete(item.id)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+          {items.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={9} className="text-center py-12">
+                <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-50" />
+                <p className="text-muted-foreground">No content yet</p>
+                <p className="text-sm text-muted-foreground">Create your first content item to get started</p>
               </TableCell>
             </TableRow>
-          ))}
+          ) : (
+            items.map((item) => (
+              <TableRow key={item.id} className="group">
+                <TableCell>
+                  <button
+                    onClick={() => onEdit(item)}
+                    className="text-left font-medium hover:text-primary transition-colors line-clamp-1"
+                  >
+                    {item.title}
+                  </button>
+                  {item.subject_line && (
+                    <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                      📧 {item.subject_line}
+                    </p>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className={`text-xs ${typeColors[item.type]}`}>
+                    {item.type}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className={`text-xs ${statusColors[item.status]}`}>
+                    {item.status}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-muted-foreground">
+                    {item.channel || '—'}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-muted-foreground line-clamp-1">
+                    {item.topic || '—'}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {item.tags.slice(0, 2).map((tag) => (
+                      <Badge key={tag} variant="secondary" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                    {item.tags.length > 2 && (
+                      <Badge variant="secondary" className="text-xs">
+                        +{item.tags.length - 2}
+                      </Badge>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-muted-foreground">
+                    {item.published_at ? format(new Date(item.published_at), 'MMM d, yyyy') : '—'}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-muted-foreground line-clamp-1">
+                    {item.offer || '—'}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem onClick={() => onEdit(item)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onDuplicate(item.id)}>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Duplicate
+                      </DropdownMenuItem>
+                      {item.body && (
+                        <DropdownMenuItem onClick={() => copyToClipboard(item.body!)}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy Body
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuSeparator />
+                      {item.status !== 'Published' && (
+                        <DropdownMenuItem onClick={() => onMarkPublished(item.id)}>
+                          <CheckCircle2 className="h-4 w-4 mr-2" />
+                          Mark Published
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={() => onLogSend(item)}>
+                        <Send className="h-4 w-4 mr-2" />
+                        Log Send
+                      </DropdownMenuItem>
+                      {item.link_url && (
+                        <DropdownMenuItem asChild>
+                          <a href={item.link_url} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Open Link
+                          </a>
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => onDelete(item.id)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
     </div>

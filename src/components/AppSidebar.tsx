@@ -26,6 +26,7 @@ import {
   PanelLeftClose,
   PanelLeft,
   Smartphone,
+  Library,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
@@ -124,6 +125,12 @@ export function AppSidebar() {
       href: '/ideas', 
       icon: isQuestMode ? Lightbulb : Zap,
       questIcon: '💡',
+    },
+    { 
+      name: 'Content Vault', 
+      href: '/content-vault', 
+      icon: Library,
+      questIcon: '📚',
     },
     { 
       name: getNavLabel('mindset'), 
