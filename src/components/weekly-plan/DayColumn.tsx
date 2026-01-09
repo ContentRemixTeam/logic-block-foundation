@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { format, isToday } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Task } from '@/components/tasks/types';
@@ -35,6 +35,16 @@ export function DayColumn({
   const usedMinutes = dayTasks.reduce((sum, t) => sum + (t.estimated_minutes || 0), 0);
   const today = isToday(date);
 
+  // Reset drag state when drag ends globally
+  useEffect(() => {
+    const handleDragEnd = () => {
+      setIsDragOver(false);
+    };
+
+    document.addEventListener('dragend', handleDragEnd);
+    return () => document.removeEventListener('dragend', handleDragEnd);
+  }, []);
+
   const formatTime = (minutes: number) => {
     if (minutes === 0) return '0h';
     const hours = Math.floor(minutes / 60);
@@ -44,27 +54,59 @@ export function DayColumn({
     return `${hours}h${mins}m`;
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     e.dataTransfer.dropEffect = 'move';
     setIsDragOver(true);
-  };
+  }, []);
 
-  const handleDragLeave = () => {
-    setIsDragOver(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Only set to false if we're actually leaving the container
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) {
+      setIsDragOver(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setIsDragOver(false);
     
-    const taskId = e.dataTransfer.getData('taskId');
-    const fromPlannedDay = e.dataTransfer.getData('fromPlannedDay') || null;
+    // Try to get data from JSON format first, then fall back to plain text
+    let taskId: string | null = null;
+    let fromPlannedDay: string | null = null;
+
+    try {
+      const jsonData = e.dataTransfer.getData('application/json');
+      if (jsonData) {
+        const parsed = JSON.parse(jsonData);
+        taskId = parsed.taskId;
+        fromPlannedDay = parsed.fromPlannedDay || null;
+      }
+    } catch {
+      // Fall back to plain text format
+      taskId = e.dataTransfer.getData('taskId');
+      fromPlannedDay = e.dataTransfer.getData('fromPlannedDay') || null;
+    }
     
     if (taskId) {
       onTaskDrop(taskId, fromPlannedDay, dateStr);
     }
-  };
+  }, [dateStr, onTaskDrop]);
 
   const handleInlineAdd = async (text: string) => {
     if (onQuickAdd) {
@@ -77,7 +119,7 @@ export function DayColumn({
       className={cn(
         "flex flex-col h-full bg-card rounded-lg border shadow-sm overflow-hidden transition-all min-w-[160px]",
         today && "ring-2 ring-primary/40 border-primary/30",
-        isDragOver && "ring-2 ring-primary/50 bg-primary/5"
+        isDragOver && "ring-2 ring-primary/50 bg-primary/5 scale-[1.01]"
       )}
     >
       {/* Compact Header */}
@@ -129,9 +171,13 @@ export function DayColumn({
       {/* Task list / drop zone */}
       <div 
         onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className="flex-1 p-2 space-y-1.5 overflow-y-auto min-h-[140px]"
+        className={cn(
+          "flex-1 p-2 space-y-1.5 overflow-y-auto min-h-[140px] transition-all duration-150",
+          isDragOver && "bg-primary/10"
+        )}
       >
         {dayTasks.length === 0 && !isDragOver && (
           <div className="flex items-center justify-center h-full text-center">
@@ -140,8 +186,8 @@ export function DayColumn({
         )}
         
         {isDragOver && dayTasks.length === 0 && (
-          <div className="flex items-center justify-center h-full text-center rounded-md bg-primary/10">
-            <p className="text-xs font-medium text-primary">Release to schedule</p>
+          <div className="flex items-center justify-center h-full text-center rounded-md border-2 border-dashed border-primary/40">
+            <p className="text-xs font-medium text-primary animate-pulse">Release to schedule</p>
           </div>
         )}
         

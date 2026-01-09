@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Task } from '@/components/tasks/types';
@@ -16,7 +16,7 @@ interface WeeklyTaskCardProps {
 export function WeeklyTaskCard({ task, onToggle, isDragging, compact = false, isHighlighted = false }: WeeklyTaskCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isDraggingLocal, setIsDraggingLocal] = useState(false);
-  const dragHandleRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const formatDuration = (minutes: number | null): string => {
     if (!minutes) return '';
@@ -28,16 +28,7 @@ export function WeeklyTaskCard({ task, onToggle, isDragging, compact = false, is
     return `${minutes}m`;
   };
 
-  const handleDragStart = (e: React.DragEvent) => {
-    // Only allow drag if initiated from the drag handle
-    const target = e.target as HTMLElement;
-    const isFromHandle = dragHandleRef.current?.contains(target) || target.closest('[data-drag-handle]');
-    
-    if (!isFromHandle) {
-      e.preventDefault();
-      return;
-    }
-
+  const handleDragStart = useCallback((e: React.DragEvent) => {
     e.stopPropagation();
     
     // Set drag data
@@ -57,35 +48,36 @@ export function WeeklyTaskCard({ task, onToggle, isDragging, compact = false, is
     document.body.style.overflow = 'hidden';
     document.body.style.userSelect = 'none';
 
-    // Create a custom drag image
-    const currentTarget = e.currentTarget as HTMLElement;
-    const dragImage = currentTarget.cloneNode(true) as HTMLElement;
-    dragImage.style.opacity = '0.9';
-    dragImage.style.transform = 'rotate(2deg) scale(1.02)';
-    dragImage.style.position = 'absolute';
-    dragImage.style.top = '-9999px';
-    dragImage.style.left = '-9999px';
-    dragImage.style.width = `${currentTarget.offsetWidth}px`;
-    dragImage.style.pointerEvents = 'none';
-    document.body.appendChild(dragImage);
-    e.dataTransfer.setDragImage(dragImage, 20, 20);
-    
-    // Clean up drag image after drag starts
-    requestAnimationFrame(() => {
-      if (document.body.contains(dragImage)) {
-        document.body.removeChild(dragImage);
-      }
-    });
-  };
+    // Create a custom drag image from the card
+    if (cardRef.current) {
+      const dragImage = cardRef.current.cloneNode(true) as HTMLElement;
+      dragImage.style.opacity = '0.9';
+      dragImage.style.transform = 'rotate(2deg) scale(1.02)';
+      dragImage.style.position = 'absolute';
+      dragImage.style.top = '-9999px';
+      dragImage.style.left = '-9999px';
+      dragImage.style.width = `${cardRef.current.offsetWidth}px`;
+      dragImage.style.pointerEvents = 'none';
+      document.body.appendChild(dragImage);
+      e.dataTransfer.setDragImage(dragImage, 20, 20);
+      
+      // Clean up drag image after drag starts
+      requestAnimationFrame(() => {
+        if (document.body.contains(dragImage)) {
+          document.body.removeChild(dragImage);
+        }
+      });
+    }
+  }, [task.task_id, task.planned_day]);
 
-  const handleDragEnd = (e: React.DragEvent) => {
+  const handleDragEnd = useCallback((e: React.DragEvent) => {
     e.stopPropagation();
     setIsDraggingLocal(false);
     
     // Re-enable body scroll
     document.body.style.overflow = '';
     document.body.style.userSelect = '';
-  };
+  }, []);
 
   const priorityColors: Record<string, string> = {
     high: 'bg-red-500',
@@ -98,9 +90,7 @@ export function WeeklyTaskCard({ task, onToggle, isDragging, compact = false, is
   return (
     <TooltipProvider>
       <div
-        draggable
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
+        ref={cardRef}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         className={cn(
@@ -113,10 +103,11 @@ export function WeeklyTaskCard({ task, onToggle, isDragging, compact = false, is
         )}
         data-task-id={task.task_id}
       >
-        {/* Drag handle - ONLY this triggers drag */}
+        {/* Drag handle - THIS IS THE ONLY DRAGGABLE ELEMENT */}
         <div 
-          ref={dragHandleRef}
-          data-drag-handle
+          draggable
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
           className={cn(
             "shrink-0 cursor-grab active:cursor-grabbing touch-none select-none p-0.5 -ml-1 rounded hover:bg-muted transition-colors",
             isHovered || isCurrentlyDragging ? "opacity-100" : "opacity-0",
@@ -124,7 +115,7 @@ export function WeeklyTaskCard({ task, onToggle, isDragging, compact = false, is
           )}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
+          <GripVertical className="h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
         </div>
         
         <Checkbox
