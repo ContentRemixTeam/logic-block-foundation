@@ -28,6 +28,7 @@ import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, 
 import { DailyAgendaCard } from '@/components/daily-plan/DailyAgendaCard';
 import { PostingSlotCard } from '@/components/daily-plan/PostingSlotCard';
 import { CategoryProjectLinks } from '@/components/daily-plan/CategoryProjectLinks';
+import { QuickLogCard } from '@/components/content';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -756,6 +757,9 @@ export default function DailyPlan() {
 
             {/* Posting Slot Card - shows if today is a posting day */}
             <PostingSlotCard />
+
+            {/* Nurture Log Card */}
+            <QuickLogCard />
 
             {/* Today's Agenda from Weekly Plan */}
             <DailyAgendaCard onTaskToggle={() => loadDailyPlan()} />

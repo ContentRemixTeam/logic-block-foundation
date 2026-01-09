@@ -12,9 +12,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Zap, Target, BarChart3, TrendingUp, TrendingDown, Users, Share2 } from "lucide-react";
+import { Loader2, Zap, Target, BarChart3, TrendingUp, TrendingDown, Users, Share2, Send, Mail } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { ReflectionList } from "@/components/ReflectionList";
+import { getNurtureStats } from "@/lib/contentService";
 
 interface Belief {
   belief_id: string;
@@ -115,6 +116,7 @@ export default function WeeklyReview() {
 
   const [habitStats, setHabitStats] = useState({ total: 0, completed: 0, percent: 0 });
   const [cycleProgress, setCycleProgress] = useState({ total_days: 90, completed_days: 0, percent: 0 });
+  const [nurtureStats, setNurtureStats] = useState({ thisWeekEmails: 0, thisWeekTotal: 0, streak: 0 });
 
   // Fetch beliefs
   const { data: beliefs = [] } = useQuery<Belief[]>({
@@ -187,6 +189,14 @@ export default function WeeklyReview() {
       // Set previous week's metrics for trend comparison
       if (data.previous_metrics) {
         setPreviousMetrics(data.previous_metrics);
+      }
+
+      // Load nurture stats
+      try {
+        const stats = await getNurtureStats();
+        setNurtureStats(stats);
+      } catch (e) {
+        console.error('Error loading nurture stats:', e);
       }
 
     } catch (error) {
@@ -297,12 +307,12 @@ export default function WeeklyReview() {
         </div>
 
         {/* Progress Metrics */}
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-3">
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-2">
               <CardTitle className="text-lg">Habit Completion</CardTitle>
               <CardDescription>
-                {habitStats.completed} of {habitStats.total} habits completed
+                {habitStats.completed} of {habitStats.total} habits
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -312,7 +322,7 @@ export default function WeeklyReview() {
           </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-2">
               <CardTitle className="text-lg">Cycle Progress</CardTitle>
               <CardDescription>
                 Day {cycleProgress.completed_days} of {cycleProgress.total_days}
@@ -321,6 +331,28 @@ export default function WeeklyReview() {
             <CardContent>
               <Progress value={cycleProgress.percent} className="h-2" />
               <p className="text-sm text-muted-foreground mt-2">{cycleProgress.percent}%</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-primary/20">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <Send className="h-4 w-4 text-primary" />
+                <CardTitle className="text-lg">Nurture Consistency</CardTitle>
+              </div>
+              <CardDescription>
+                {nurtureStats.streak} week streak
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-1">
+                  <Mail className="h-4 w-4 text-blue-500" />
+                  <span>{nurtureStats.thisWeekEmails} emails</span>
+                </div>
+                <span className="text-muted-foreground">•</span>
+                <span>{nurtureStats.thisWeekTotal} total touches</span>
+              </div>
             </CardContent>
           </Card>
         </div>
