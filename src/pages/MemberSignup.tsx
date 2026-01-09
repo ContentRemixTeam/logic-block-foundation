@@ -34,7 +34,7 @@ export default function MemberSignup() {
           data: {
             first_name: firstName,
             last_name: lastName,
-            user_type: 'mastermind',
+            user_type: 'member',
           },
         },
       });
