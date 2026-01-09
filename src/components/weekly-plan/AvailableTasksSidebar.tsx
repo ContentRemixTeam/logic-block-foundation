@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo, memo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +20,7 @@ interface AvailableTasksSidebarProps {
   highlightTaskId?: string | null;
 }
 
-export function AvailableTasksSidebar({
+function AvailableTasksSidebarInner({
   tasks,
   onTaskToggle,
   onPullUnfinished,
@@ -44,21 +44,23 @@ export function AvailableTasksSidebar({
   };
 
   // Filter tasks: unscheduled (planned_day is null) and not completed
-  const inboxTasks = tasks.filter((t) => {
-    if (t.planned_day !== null) return false;
-    if (t.is_completed) return false;
-    if (t.status && !['backlog', 'waiting', 'scheduled'].includes(t.status)) return false;
+  const inboxTasks = useMemo(() => {
+    return tasks.filter((t) => {
+      if (t.planned_day !== null) return false;
+      if (t.is_completed) return false;
+      if (t.status && !['backlog', 'waiting', 'scheduled'].includes(t.status)) return false;
 
-    // Search filter
-    if (searchQuery.trim() && !t.task_text.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
-    }
+      // Search filter
+      if (searchQuery.trim() && !t.task_text.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return false;
+      }
 
-    if (energyFilter !== 'all' && t.energy_level !== energyFilter) return false;
-    if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;
+      if (energyFilter !== 'all' && t.energy_level !== energyFilter) return false;
+      if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;
 
-    return true;
-  });
+      return true;
+    });
+  }, [tasks, searchQuery, energyFilter, priorityFilter]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -258,3 +260,5 @@ export function AvailableTasksSidebar({
     </div>
   );
 }
+
+export const AvailableTasksSidebar = memo(AvailableTasksSidebarInner);

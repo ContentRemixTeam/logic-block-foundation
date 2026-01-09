@@ -1,11 +1,10 @@
-import { useMemo, useState, useCallback, useEffect } from 'react';
+import { useMemo, useState, useCallback, useEffect, memo } from 'react';
 import { addDays, format, isToday, isBefore, startOfDay, parseISO } from 'date-fns';
 import { Task } from '@/components/tasks/types';
 import { CalendarEvent, CalendarEventBlock } from '@/components/tasks/views/CalendarEventBlock';
 import { WeeklyTaskCard } from './WeeklyTaskCard';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { useScheduleStore } from '@/lib/taskSchedulingStore';
 
 interface WeeklyTimelineBoardProps {
   tasks: Task[];
@@ -23,7 +22,68 @@ const HOUR_START = 6;
 const HOUR_END = 22;
 const HOUR_SLOTS = Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => HOUR_START + i);
 
-export function WeeklyTimelineBoard({
+// Memoized hour cell component for better performance
+const HourCell = memo(function HourCell({
+  dateStr,
+  hour,
+  isToday: isTodayFlag,
+  isOfficeHour,
+  isOver,
+  isDragging,
+  cellTasks,
+  cellEvents,
+  onTaskToggle,
+  onDragOver,
+  onDragEnter,
+  onDragLeave,
+  onDrop,
+  formatHour,
+}: {
+  dateStr: string;
+  hour: number;
+  isToday: boolean;
+  isOfficeHour: boolean;
+  isOver: boolean;
+  isDragging: boolean;
+  cellTasks: Task[];
+  cellEvents: CalendarEvent[];
+  onTaskToggle: (taskId: string, completed: boolean) => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragEnter: (e: React.DragEvent) => void;
+  onDragLeave: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
+  formatHour: (hour: number) => string;
+}) {
+  return (
+    <div
+      onDragOver={onDragOver}
+      onDragEnter={onDragEnter}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      className={cn(
+        'flex-1 min-w-[120px] border-r last:border-r-0 min-h-[48px] p-0.5 transition-colors',
+        isTodayFlag && 'bg-primary/5',
+        isOfficeHour && !isTodayFlag && 'bg-muted/20',
+        isOver && 'bg-primary/10 ring-2 ring-inset ring-primary/40',
+        isDragging && !isOver && 'hover:bg-muted/30'
+      )}
+    >
+      {isOver && cellTasks.length === 0 && cellEvents.length === 0 && (
+        <div className="text-xs text-primary text-center py-3 font-medium">
+          {formatHour(hour)}
+        </div>
+      )}
+      {cellEvents.map((event) => (
+        <CalendarEventBlock key={event.id} event={event} compact />
+      ))}
+      {cellTasks.map((task) => (
+        <WeeklyTaskCard key={task.task_id} task={task} onToggle={onTaskToggle} compact />
+      ))}
+    </div>
+  );
+});
+
+function WeeklyTimelineBoardInner({
   tasks,
   calendarEvents = [],
   currentWeekStart,
@@ -35,7 +95,6 @@ export function WeeklyTimelineBoard({
 }: WeeklyTimelineBoardProps) {
   const [dragOverCell, setDragOverCell] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const { isSlotHighlighted } = useScheduleStore();
 
   // Prevent body scroll during drag
   useEffect(() => {
@@ -317,23 +376,21 @@ export function WeeklyTimelineBoard({
               const isOver = dragOverCell === cellKey;
               const dayTasks = untimedTasksByDay[dateStr] || [];
               const dayEvents = allDayEventsByDay[dateStr] || [];
-              const isHighlighted = isSlotHighlighted(cellKey);
               
-              return (
-                <div
-                  key={cellKey}
-                  onDragOver={(e) => handleDragOver(e, dateStr)}
-                  onDragEnter={(e) => handleDragEnter(e, dateStr)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, dateStr)}
-                  className={cn(
-                    'flex-1 min-w-[120px] border-r last:border-r-0 p-1.5 min-h-[60px] transition-all duration-150',
-                    today && 'bg-primary/5',
-                    isOver && 'bg-primary/10 ring-2 ring-inset ring-primary/40 scale-[1.01]',
-                    isDragging && !isOver && 'hover:bg-muted/40',
-                    isHighlighted && 'bg-success/20 ring-2 ring-success/50 animate-pulse'
-                  )}
-                >
+                  return (
+                    <div
+                      key={cellKey}
+                      onDragOver={(e) => handleDragOver(e, dateStr)}
+                      onDragEnter={(e) => handleDragEnter(e, dateStr)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, dateStr)}
+                      className={cn(
+                        'flex-1 min-w-[120px] border-r last:border-r-0 p-1.5 min-h-[60px] transition-colors',
+                        today && 'bg-primary/5',
+                        isOver && 'bg-primary/10 ring-2 ring-inset ring-primary/40',
+                        isDragging && !isOver && 'hover:bg-muted/40'
+                      )}
+                    >
                   <div className="space-y-1">
                     {/* All-day calendar events */}
                     {dayEvents.slice(0, 2).map((event) => (
@@ -392,48 +449,25 @@ export function WeeklyTimelineBoard({
                 const isOfficeHour = isWithinOfficeHours(hour);
                 const cellTasks = tasksByDayAndHour[dateStr]?.[hour] || [];
                 const cellEvents = eventsByDayAndHour[dateStr]?.[hour] || [];
-                const isHighlighted = isSlotHighlighted(cellKey);
                 
                 return (
-                  <div
+                  <HourCell
                     key={cellKey}
+                    dateStr={dateStr}
+                    hour={hour}
+                    isToday={today}
+                    isOfficeHour={isOfficeHour}
+                    isOver={isOver}
+                    isDragging={isDragging}
+                    cellTasks={cellTasks}
+                    cellEvents={cellEvents}
+                    onTaskToggle={onTaskToggle}
                     onDragOver={(e) => handleDragOver(e, dateStr, hour)}
                     onDragEnter={(e) => handleDragEnter(e, dateStr, hour)}
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, dateStr, hour)}
-                    className={cn(
-                      'flex-1 min-w-[120px] border-r last:border-r-0 min-h-[48px] p-0.5 transition-all duration-150',
-                      today && 'bg-primary/5',
-                      isOfficeHour && !today && 'bg-muted/20',
-                      isOver && 'bg-primary/10 ring-2 ring-inset ring-primary/40 scale-[1.01]',
-                      isDragging && !isOver && 'hover:bg-muted/30',
-                      isHighlighted && 'bg-success/20 ring-2 ring-success/50 animate-pulse'
-                    )}
-                  >
-                    {/* Drop indicator when hovering empty cell */}
-                    {isOver && cellTasks.length === 0 && cellEvents.length === 0 && (
-                      <div className="text-xs text-primary text-center py-3 font-medium animate-pulse">
-                        {formatHour(hour)}
-                      </div>
-                    )}
-                    {/* Calendar events for this hour */}
-                    {cellEvents.map((event) => (
-                      <CalendarEventBlock
-                        key={event.id}
-                        event={event}
-                        compact
-                      />
-                    ))}
-                    {/* Tasks for this hour */}
-                    {cellTasks.map((task) => (
-                      <WeeklyTaskCard
-                        key={task.task_id}
-                        task={task}
-                        onToggle={onTaskToggle}
-                        compact
-                      />
-                    ))}
-                  </div>
+                    formatHour={formatHour}
+                  />
                 );
               })}
             </div>
@@ -444,3 +478,6 @@ export function WeeklyTimelineBoard({
     </div>
   );
 }
+
+// Export memoized component
+export const WeeklyTimelineBoard = memo(WeeklyTimelineBoardInner);

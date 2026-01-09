@@ -8,7 +8,7 @@
  * - Tap banner → micro prompt opens
  */
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, memo } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Task } from '@/components/tasks/types';
@@ -24,7 +24,7 @@ interface WeeklyTaskCardProps {
   isHighlighted?: boolean;
 }
 
-export function WeeklyTaskCard({ task, onToggle, isDragging, compact = false, isHighlighted = false }: WeeklyTaskCardProps) {
+const WeeklyTaskCardInner = memo(function WeeklyTaskCardInner({ task, onToggle, isDragging, compact = false, isHighlighted = false }: WeeklyTaskCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isDraggingLocal, setIsDraggingLocal] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -184,4 +184,20 @@ export function WeeklyTaskCard({ task, onToggle, isDragging, compact = false, is
       </div>
     </TooltipProvider>
   );
-}
+});
+
+// Export with stable reference comparison
+export const WeeklyTaskCard = memo(WeeklyTaskCardInner, (prevProps, nextProps) => {
+  // Only re-render if these props changed
+  return (
+    prevProps.task.task_id === nextProps.task.task_id &&
+    prevProps.task.task_text === nextProps.task.task_text &&
+    prevProps.task.is_completed === nextProps.task.is_completed &&
+    prevProps.task.priority === nextProps.task.priority &&
+    prevProps.task.estimated_minutes === nextProps.task.estimated_minutes &&
+    prevProps.task.reschedule_loop_active === nextProps.task.reschedule_loop_active &&
+    prevProps.isDragging === nextProps.isDragging &&
+    prevProps.compact === nextProps.compact &&
+    prevProps.isHighlighted === nextProps.isHighlighted
+  );
+});

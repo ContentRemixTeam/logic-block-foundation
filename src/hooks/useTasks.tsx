@@ -37,8 +37,9 @@ export function useTasks() {
       return (response.data?.data || []) as Task[];
     },
     enabled: !!user,
-    staleTime: 1000 * 60, // 1 minute
-    refetchOnWindowFocus: true,
+    staleTime: 1000 * 60 * 2, // 2 minutes - data stays fresh longer
+    gcTime: 1000 * 60 * 5, // Keep in cache for 5 minutes
+    refetchOnWindowFocus: false, // Don't refetch on window focus (realtime handles updates)
   });
 
   // Set up real-time subscription for tasks
