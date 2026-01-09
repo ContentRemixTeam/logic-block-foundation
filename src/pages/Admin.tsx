@@ -136,33 +136,29 @@ export default function Admin() {
     }
 
     try {
-      const { data: adminData, error: adminError } = await supabase
-        .from('admin_users')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      // Use the is_admin RPC function which has SECURITY DEFINER
+      // This bypasses RLS and properly checks admin status
+      const { data: isAdminResult, error: adminError } = await supabase
+        .rpc('is_admin', { check_user_id: user.id });
 
-      if (adminError) throw adminError;
-      
-      // Also check by email for pre-registered admins
-      if (!adminData) {
-        const { data: emailAdmin } = await supabase
-          .from('admin_users')
-          .select('id')
-          .ilike('email', user.email || '')
-          .maybeSingle();
-        
-        if (!emailAdmin) {
-          setIsAdmin(false);
-          setLoading(false);
-          return;
-        }
+      if (adminError) {
+        console.error('Admin check error:', adminError);
+        setIsAdmin(false);
+        setLoading(false);
+        return;
+      }
+
+      if (!isAdminResult) {
+        setIsAdmin(false);
+        setLoading(false);
+        return;
       }
 
       setIsAdmin(true);
       await loadAllData();
     } catch (err: any) {
       console.error('Admin check error:', err);
+      setIsAdmin(false);
     } finally {
       setLoading(false);
     }
