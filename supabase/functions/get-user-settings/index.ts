@@ -75,35 +75,46 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Auto-create if missing
+    // Auto-create if missing - use upsert to handle race conditions
     if (!settings) {
-      const { data: newSettings, error: insertError } = await supabaseClient
+      const { data: newSettings, error: upsertError } = await supabaseClient
         .from('user_settings')
-        .insert({
+        .upsert({
           user_id: userId,
           daily_review_questions: [],
           weekly_review_questions: [],
           monthly_review_questions: [],
           cycle_summary_questions: [],
-          theme_preference: 'quest',
+          theme_preference: 'vibrant',
           xp_points: 0,
           user_level: 1,
           streak_potions_remaining: 2,
           current_debrief_streak: 0,
           longest_debrief_streak: 0,
-        })
+        }, { onConflict: 'user_id', ignoreDuplicates: true })
         .select()
         .single();
 
-      if (insertError) {
-        console.error('Error creating settings:', insertError);
-        return new Response(JSON.stringify({ error: 'Failed to create settings' }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+      if (upsertError) {
+        // If upsert failed, try to fetch existing record (race condition)
+        const { data: existingSettings } = await supabaseClient
+          .from('user_settings')
+          .select('*')
+          .eq('user_id', userId)
+          .single();
+        
+        if (existingSettings) {
+          settings = existingSettings;
+        } else {
+          console.error('Error creating settings:', upsertError);
+          return new Response(JSON.stringify({ error: 'Failed to create settings' }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      } else {
+        settings = newSettings;
       }
-
-      settings = newSettings;
     }
 
     const parseJSON = (value: any, fallback: any) => {
