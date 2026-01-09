@@ -1,260 +1,437 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cinzel:wght@400;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* =====================================================
+   PREMIUM DESIGN SYSTEM - Token-Based Architecture
+   Sunsama x Monday.com Inspired
+   ===================================================== */
 
 @layer base {
   :root {
-    --background: 0 0% 99%;
-    --foreground: 216 28% 12%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 216 28% 12%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 216 28% 12%;
-
-    --primary: 198 93% 32%;
+    /* === SURFACE HIERARCHY === */
+    --background: 220 14% 96%;
+    --surface: 0 0% 100%;
+    --surface-elevated: 0 0% 100%;
+    --surface-sunken: 220 14% 94%;
+    
+    /* === TEXT HIERARCHY === */
+    --foreground: 222 47% 11%;
+    --foreground-muted: 220 9% 46%;
+    --foreground-subtle: 220 9% 60%;
+    
+    /* === BORDER & DIVIDERS === */
+    --border: 220 13% 91%;
+    --border-subtle: 220 13% 94%;
+    --border-strong: 220 13% 84%;
+    
+    /* === PRIMARY BRAND === */
+    --primary: 217 91% 60%;
+    --primary-hover: 217 91% 55%;
     --primary-foreground: 0 0% 100%;
-
-    --secondary: 214 20% 95%;
-    --secondary-foreground: 216 28% 12%;
-
-    --muted: 214 20% 95%;
-    --muted-foreground: 216 14% 48%;
-
-    --accent: 198 93% 32%;
+    
+    /* === SECONDARY === */
+    --secondary: 220 14% 96%;
+    --secondary-hover: 220 14% 92%;
+    --secondary-foreground: 222 47% 11%;
+    
+    /* === ACCENT (Pink Premium) === */
+    --accent: 330 81% 60%;
+    --accent-hover: 330 81% 55%;
     --accent-foreground: 0 0% 100%;
-
-    --success: 142 76% 36%;
+    
+    /* === SEMANTIC COLORS === */
+    --success: 142 71% 45%;
+    --success-light: 142 71% 95%;
     --success-foreground: 0 0% 100%;
-
+    
     --warning: 38 92% 50%;
+    --warning-light: 38 92% 95%;
     --warning-foreground: 0 0% 100%;
-
-    --destructive: 0 84.2% 60.2%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-light: 0 84% 97%;
     --destructive-foreground: 0 0% 100%;
-
-    --border: 214 20% 88%;
-    --input: 214 20% 88%;
-    --ring: 198 93% 32%;
-
-    --radius: 0.75rem;
-
-    --sidebar-background: 0 0% 99%;
-    --sidebar-foreground: 216 28% 12%;
-    --sidebar-primary: 198 93% 32%;
+    
+    --info: 199 89% 48%;
+    --info-light: 199 89% 95%;
+    --info-foreground: 0 0% 100%;
+    
+    /* === MUTED === */
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+    
+    /* === CARDS & POPOVERS === */
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    
+    /* === INPUT & RING === */
+    --input: 220 13% 91%;
+    --ring: 217 91% 60%;
+    
+    /* === RADIUS SCALE === */
+    --radius: 0.5rem;
+    --radius-sm: 0.375rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-full: 9999px;
+    
+    /* === SHADOW SCALE === */
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+    
+    /* === SPACING SCALE === */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-10: 2.5rem;
+    --space-12: 3rem;
+    
+    /* === SIDEBAR === */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 214 20% 95%;
-    --sidebar-accent-foreground: 216 28% 12%;
-    --sidebar-border: 214 20% 88%;
-    --sidebar-ring: 198 93% 32%;
-
-    /* Theme colors */
-    --theme-pink: 348 100% 60%;
-    --theme-yellow: 48 100% 65%;
-    --theme-teal: 185 85% 42%;
-    --theme-gray: 0 0% 23%;
+    --sidebar-accent: 220 14% 96%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217 91% 60%;
     
-    /* Quest Mode accent colors */
-    --quest-gold: 45 90% 55%;
-    --quest-gold-light: 48 95% 65%;
+    /* === THEME COLORS === */
+    --theme-pink: 330 81% 60%;
+    --theme-yellow: 48 96% 53%;
+    --theme-teal: 173 80% 40%;
+    --theme-gray: 220 9% 46%;
+    
+    /* === QUEST MODE COLORS === */
+    --quest-gold: 45 93% 47%;
+    --quest-gold-light: 48 96% 53%;
     --quest-copper: 28 65% 52%;
-    --quest-forest: 100 60% 22%;
-    --quest-emerald: 160 85% 45%;
-    --quest-purple: 265 85% 68%;
-    --quest-blue: 213 94% 68%;
+    --quest-forest: 160 84% 39%;
+    --quest-emerald: 160 84% 45%;
+    --quest-purple: 262 83% 58%;
+    --quest-blue: 217 91% 60%;
     
-    /* Font families */
-    --font-heading: inherit;
+    /* === FONT === */
+    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-heading: 'Inter', system-ui, sans-serif;
   }
 
-  /* ===== QUEST MODE THEME - LIGHT & ELEGANT ===== */
+  /* ===== PINK PREMIUM THEME ===== */
+  [data-theme="pink"], [data-theme="vibrant"] {
+    --primary: 330 81% 60%;
+    --primary-hover: 330 81% 55%;
+    --accent: 330 81% 60%;
+    --accent-hover: 330 81% 55%;
+    --ring: 330 81% 60%;
+    --sidebar-primary: 330 81% 60%;
+    --sidebar-ring: 330 81% 60%;
+  }
+
+  /* ===== QUEST MODE THEME ===== */
   [data-theme="quest"] {
-    /* Light, warm backgrounds */
     --background: 40 25% 96%;
+    --surface: 40 20% 99%;
+    --surface-elevated: 40 20% 100%;
     --foreground: 220 25% 15%;
-
-    /* Cards - Clean white with subtle warmth */
-    --card: 40 20% 99%;
-    --card-foreground: 220 25% 15%;
-
-    --popover: 40 20% 99%;
-    --popover-foreground: 220 25% 15%;
-
-    /* Vibrant gold primary */
-    --primary: 45 90% 45%;
+    --foreground-muted: 220 15% 45%;
+    
+    --primary: 45 93% 47%;
+    --primary-hover: 45 93% 42%;
     --primary-foreground: 0 0% 100%;
-
-    /* Purple secondary for accents */
-    --secondary: 265 60% 55%;
+    
+    --secondary: 262 60% 55%;
     --secondary-foreground: 0 0% 100%;
-
-    /* Muted - soft gray with warmth */
+    
+    --accent: 262 60% 55%;
+    --accent-foreground: 0 0% 100%;
+    
     --muted: 40 15% 92%;
     --muted-foreground: 220 15% 45%;
-
-    /* Rich accent */
-    --accent: 265 60% 55%;
-    --accent-foreground: 0 0% 100%;
-
-    /* Success */
-    --success: 160 85% 40%;
-    --success-foreground: 0 0% 100%;
-
-    --warning: 45 95% 48%;
-    --warning-foreground: 220 25% 15%;
-
-    --destructive: 0 75% 55%;
-    --destructive-foreground: 0 0% 100%;
-
-    /* Gold-tinted borders */
-    --border: 45 40% 80%;
+    
+    --border: 45 40% 85%;
+    --border-subtle: 45 30% 90%;
     --input: 45 20% 88%;
-    --ring: 45 85% 50%;
-
-    /* Sidebar - Light & clean */
+    --ring: 45 93% 47%;
+    
+    --card: 40 20% 99%;
+    --card-foreground: 220 25% 15%;
+    
     --sidebar-background: 40 20% 98%;
     --sidebar-foreground: 220 25% 25%;
-    --sidebar-primary: 45 90% 45%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary: 45 93% 47%;
     --sidebar-accent: 45 30% 92%;
-    --sidebar-accent-foreground: 220 25% 20%;
     --sidebar-border: 45 30% 85%;
-    --sidebar-ring: 45 85% 50%;
     
     --font-heading: 'Cinzel', serif;
   }
 
-  /* ===== MINIMAL MODE THEME ===== */
+  /* ===== MINIMAL THEME ===== */
   [data-theme="minimal"] {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 10%;
-
-    --card: 210 17% 98%;
-    --card-foreground: 0 0% 10%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
-
     --primary: 221 83% 53%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 210 17% 95%;
-    --secondary-foreground: 0 0% 10%;
-
-    --muted: 210 17% 95%;
-    --muted-foreground: 0 0% 40%;
-
+    --primary-hover: 221 83% 48%;
     --accent: 221 83% 53%;
-    --accent-foreground: 0 0% 100%;
-
-    --success: 142 76% 36%;
-    --success-foreground: 0 0% 100%;
-
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 210 17% 88%;
-    --input: 210 17% 88%;
     --ring: 221 83% 53%;
-
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 10%;
     --sidebar-primary: 221 83% 53%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 17% 95%;
-    --sidebar-accent-foreground: 0 0% 10%;
-    --sidebar-border: 210 17% 88%;
-    --sidebar-ring: 221 83% 53%;
   }
 
-  /* Keep vibrant for backwards compatibility */
-  [data-theme="vibrant"] {
-    --primary: 348 100% 60%;
-    --accent: 185 85% 42%;
-    --ring: 348 100% 60%;
-    --sidebar-primary: 348 100% 60%;
-    --sidebar-ring: 348 100% 60%;
-  }
-
+  /* ===== B&W THEME ===== */
   [data-theme="bw"] {
-    --primary: 0 0% 0%;
+    --primary: 0 0% 9%;
+    --primary-hover: 0 0% 15%;
     --accent: 0 0% 23%;
-    --ring: 0 0% 0%;
-    --sidebar-primary: 0 0% 0%;
-    --sidebar-ring: 0 0% 0%;
+    --ring: 0 0% 9%;
+    --sidebar-primary: 0 0% 9%;
   }
 
+  /* ===== DARK MODE ===== */
   .dark {
-    --background: 216 28% 7%;
-    --foreground: 0 0% 98%;
-
-    --card: 216 24% 10%;
-    --card-foreground: 0 0% 98%;
-
-    --popover: 216 24% 10%;
-    --popover-foreground: 0 0% 98%;
-
-    --primary: 198 93% 42%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 216 20% 15%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 216 20% 15%;
-    --muted-foreground: 216 14% 58%;
-
-    --accent: 198 93% 42%;
-    --accent-foreground: 0 0% 100%;
-
-    --success: 142 76% 46%;
-    --success-foreground: 0 0% 100%;
-
-    --warning: 38 92% 60%;
-    --warning-foreground: 0 0% 100%;
-
-    --destructive: 0 62.8% 50.6%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 216 20% 18%;
-    --input: 216 20% 18%;
-    --ring: 198 93% 42%;
-
-    --sidebar-background: 216 28% 7%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 198 93% 42%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 216 20% 15%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 216 20% 18%;
-    --sidebar-ring: 198 93% 42%;
+    --background: 222 47% 7%;
+    --surface: 222 47% 10%;
+    --surface-elevated: 222 47% 12%;
+    --surface-sunken: 222 47% 5%;
+    
+    --foreground: 210 40% 98%;
+    --foreground-muted: 215 20% 65%;
+    --foreground-subtle: 215 20% 50%;
+    
+    --border: 217 33% 17%;
+    --border-subtle: 217 33% 12%;
+    --border-strong: 217 33% 25%;
+    
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    
+    --card: 222 47% 10%;
+    --card-foreground: 210 40% 98%;
+    
+    --popover: 222 47% 10%;
+    --popover-foreground: 210 40% 98%;
+    
+    --input: 217 33% 17%;
+    
+    --sidebar-background: 222 47% 7%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-border: 217 33% 17%;
   }
 }
+
+/* =====================================================
+   BASE STYLES
+   ===================================================== */
 
 @layer base {
   * {
     @apply border-border;
   }
 
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    @apply tracking-tight font-semibold;
   }
 }
 
 /* =====================================================
-   QUEST MODE - VIBRANT, EXCITING, ENGAGING STYLES
+   COMPONENT UTILITIES
    ===================================================== */
 
-/* === KEYFRAME ANIMATIONS === */
+@layer components {
+  /* Premium Card Styles */
+  .card-premium {
+    @apply bg-card rounded-lg border shadow-sm transition-shadow hover:shadow-md;
+  }
+
+  .card-elevated {
+    @apply bg-surface-elevated rounded-lg shadow-md;
+  }
+
+  /* Board Column Styles */
+  .board-column {
+    @apply flex flex-col bg-surface-sunken rounded-lg min-w-[280px] max-w-[320px];
+  }
+
+  .board-column-header {
+    @apply sticky top-0 z-10 px-3 py-2.5 bg-surface-sunken border-b border-border-subtle;
+  }
+
+  /* Timeline Grid */
+  .timeline-grid {
+    @apply grid gap-px bg-border;
+  }
+
+  .timeline-cell {
+    @apply bg-surface min-h-[48px] relative;
+  }
+
+  .timeline-cell-active {
+    @apply bg-primary/5 border-l-2 border-primary;
+  }
+
+  /* Premium Input */
+  .input-premium {
+    @apply h-10 rounded-md border border-input bg-surface px-3 py-2 text-sm
+           placeholder:text-muted-foreground
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0
+           transition-shadow duration-200;
+  }
+
+  /* Task Card Styles */
+  .task-card {
+    @apply bg-card rounded-md border shadow-xs p-3
+           hover:shadow-sm hover:border-border-strong
+           transition-all duration-150 cursor-pointer;
+  }
+
+  .task-card-dragging {
+    @apply shadow-lg ring-2 ring-primary/30 rotate-2 scale-105;
+  }
+
+  /* Navigation Item */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium
+           text-foreground-muted hover:text-foreground hover:bg-muted
+           transition-colors duration-150;
+  }
+
+  .nav-item-active {
+    @apply text-primary bg-primary/10 hover:bg-primary/15;
+  }
+
+  /* Top Bar */
+  .top-bar {
+    @apply sticky top-0 z-40 flex items-center justify-between h-14 px-4 
+           bg-surface/95 backdrop-blur-sm border-b;
+  }
+
+  /* Page Header */
+  .page-header {
+    @apply flex items-center justify-between gap-4 mb-6;
+  }
+
+  .page-title {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+
+  .page-description {
+    @apply text-sm text-muted-foreground;
+  }
+
+  /* View Switcher */
+  .view-switcher {
+    @apply inline-flex items-center rounded-lg border bg-surface p-1 text-muted-foreground;
+  }
+
+  .view-switcher-item {
+    @apply inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium 
+           ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 
+           focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .view-switcher-item[data-state="active"] {
+    @apply bg-card text-foreground shadow-sm;
+  }
+
+  /* Status Badges */
+  .status-badge {
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
+  }
+
+  .status-todo { @apply bg-muted text-muted-foreground; }
+  .status-in-progress { @apply bg-info-light text-info; }
+  .status-done { @apply bg-success-light text-success; }
+  .status-blocked { @apply bg-destructive-light text-destructive; }
+
+  /* Skeleton Loader */
+  .skeleton {
+    @apply animate-pulse rounded-md bg-muted;
+  }
+
+  /* Empty State */
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-12 text-center;
+  }
+
+  .empty-state-icon {
+    @apply h-12 w-12 text-muted-foreground/40 mb-4;
+  }
+
+  .empty-state-title {
+    @apply text-lg font-medium text-foreground mb-1;
+  }
+
+  .empty-state-description {
+    @apply text-sm text-muted-foreground max-w-sm mb-4;
+  }
+
+  /* Hover Controls */
+  .hover-controls {
+    @apply opacity-0 group-hover:opacity-100 transition-opacity duration-150;
+  }
+
+  /* Drag Handle */
+  .drag-handle {
+    @apply cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-muted-foreground;
+  }
+}
+
+/* =====================================================
+   KEYFRAME ANIMATIONS
+   ===================================================== */
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slide-out-right {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
 @keyframes gradientFlow {
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
@@ -266,93 +443,28 @@ All colors MUST be HSL.
   66% { transform: translate(-20px, 15px) scale(0.98); }
 }
 
-@keyframes shimmerSlide {
-  0% { left: -100%; }
-  100% { left: 200%; }
+.animate-fade-in { animation: fade-in 0.2s ease-out; }
+.animate-slide-in-right { animation: slide-in-right 0.3s ease-out; }
+.animate-slide-out-right { animation: slide-out-right 0.3s ease-out; }
+.animate-scale-in { animation: scale-in 0.15s ease-out; }
+.animate-shimmer { 
+  animation: shimmer 2s linear infinite;
+  background: linear-gradient(90deg, transparent, hsl(var(--muted)) 50%, transparent);
+  background-size: 200% 100%;
 }
-
-@keyframes twinkle {
-  0%, 100% { opacity: 0.2; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1.2); }
-}
-
-@keyframes progressShine {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-@keyframes progressGrow {
-  0% { width: 0; opacity: 0.5; }
-  100% { opacity: 1; }
-}
-
-@keyframes pulseGlow {
-  0%, 100% { 
-    box-shadow: 0 0 20px rgba(244, 208, 63, 0.4);
-    transform: scale(1);
-  }
-  50% { 
-    box-shadow: 0 0 35px rgba(244, 208, 63, 0.7);
-    transform: scale(1.05);
-  }
-}
-
-@keyframes iconBounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
-
-@keyframes celebrate {
-  0% { transform: scale(1) rotate(0deg); }
-  25% { transform: scale(1.3) rotate(-10deg); }
-  50% { transform: scale(1.5) rotate(10deg); }
-  75% { transform: scale(1.2) rotate(-5deg); }
-  100% { transform: scale(1) rotate(0deg); }
-}
-
-@keyframes xp-pop {
-  0% { transform: scale(0) translateY(0); opacity: 0; }
-  50% { transform: scale(1.3) translateY(-15px); opacity: 1; }
-  100% { transform: scale(1) translateY(-30px); opacity: 0; }
-}
-
-@keyframes starTwinkle {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 1; }
-}
-
-@keyframes borderPulse {
-  0%, 100% { border-color: rgba(244, 208, 63, 0.25); }
-  50% { border-color: rgba(244, 208, 63, 0.55); }
-}
-
-@keyframes glowPulse {
-  0%, 100% { filter: drop-shadow(0 0 5px rgba(244, 208, 63, 0.5)); }
-  50% { filter: drop-shadow(0 0 15px rgba(244, 208, 63, 0.9)); }
-}
-
-/* Animation utility classes */
+.animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
 .animate-gradient-flow { animation: gradientFlow 8s ease infinite; }
 .animate-float-bg { animation: floatBackground 20s ease-in-out infinite; }
-.animate-shimmer-slide { animation: shimmerSlide 3s ease-in-out infinite; }
-.animate-twinkle { animation: twinkle 2s ease-in-out infinite; }
-.animate-progress-shine { animation: progressShine 2s linear infinite; }
-.animate-pulse-glow { animation: pulseGlow 2s ease-in-out infinite; }
-.animate-icon-bounce { animation: iconBounce 2s ease-in-out infinite; }
-.animate-celebrate { animation: celebrate 0.6s ease-out; }
-.animate-xp-pop { animation: xp-pop 1s ease-out forwards; }
-.animate-border-pulse { animation: borderPulse 3s ease-in-out infinite; }
-.animate-glow-pulse { animation: glowPulse 2s ease-in-out infinite; }
 
-/* === QUEST MODE BODY - LIGHT & ELEGANT === */
+/* =====================================================
+   QUEST MODE SPECIFIC STYLES
+   ===================================================== */
+
 [data-theme="quest"] body {
   background: linear-gradient(135deg, hsl(40 25% 96%) 0%, hsl(45 20% 92%) 100%);
   background-attachment: fixed;
-  min-height: 100vh;
-  position: relative;
 }
 
-/* Subtle decorative pattern - topographic lines */
 [data-theme="quest"] body::before {
   content: '';
   position: fixed;
@@ -362,15 +474,9 @@ All colors MUST be HSL.
   bottom: 0;
   background-image: 
     radial-gradient(circle at 20% 30%, rgba(212, 175, 55, 0.06) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.04) 0%, transparent 50%),
-    radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.03) 0%, transparent 50%);
+    radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.04) 0%, transparent 50%);
   pointer-events: none;
   z-index: 0;
-}
-
-/* No heavy overlays - keep it clean */
-[data-theme="quest"] body::after {
-  display: none;
 }
 
 [data-theme="quest"] #root {
@@ -378,722 +484,76 @@ All colors MUST be HSL.
   z-index: 1;
 }
 
-/* === QUEST MODE SIDEBAR - LIGHT & CLEAN === */
 [data-theme="quest"] [data-sidebar] {
   background: hsl(40 20% 98%) !important;
-  backdrop-filter: blur(10px) !important;
+  backdrop-filter: blur(10px);
   border-right: 1px solid hsl(45 30% 85%) !important;
-  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.05) !important;
-}
-
-/* Quest sidebar header branding */
-[data-theme="quest"] .quest-sidebar-header {
-  border-bottom: 2px solid hsl(45 40% 85%) !important;
-}
-
-[data-theme="quest"] .quest-logo-icon {
-  animation: questLogoGlow 3s ease-in-out infinite;
-}
-
-@keyframes questLogoGlow {
-  0%, 100% { box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3); }
-  50% { box-shadow: 0 4px 20px rgba(212, 175, 55, 0.5); }
-}
-
-/* Sidebar group labels - Quest section headers */
-[data-theme="quest"] [data-sidebar-group-label] {
-  color: hsl(45 90% 38%) !important;
-  text-transform: uppercase !important;
-  font-size: 0.72rem !important;
-  letter-spacing: 0.12em !important;
-  font-weight: 700 !important;
-  padding: 0 14px !important;
-  margin-top: 24px !important;
-  position: relative !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-}
-
-[data-theme="quest"] .quest-section-header {
-  padding-bottom: 10px !important;
-}
-
-[data-theme="quest"] .quest-section-header::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 14px;
-  right: 14px;
-  height: 2px;
-  background: linear-gradient(90deg, 
-    hsl(45 90% 55%) 0%, 
-    transparent 100%);
-  opacity: 0.3;
-}
-
-/* Sidebar nav items */
-[data-theme="quest"] [data-sidebar-menu-button] {
-  color: hsl(220 15% 45%) !important;
-  border-radius: 10px !important;
-  transition: all 0.2s ease !important;
-  margin: 4px 8px !important;
-  position: relative !important;
-  overflow: hidden !important;
-}
-
-/* Quest nav icon styling */
-[data-theme="quest"] .quest-nav-icon {
-  filter: grayscale(30%);
-  transition: all 0.2s ease;
-  width: 24px;
-  text-align: center;
-}
-
-[data-theme="quest"] [data-sidebar-menu-button]:hover .quest-nav-icon {
-  filter: grayscale(0%);
-  transform: scale(1.1);
-}
-
-[data-theme="quest"] [data-sidebar-menu-button][data-active="true"] .quest-nav-icon {
-  filter: grayscale(0%);
-  animation: iconBounce 0.5s ease;
-}
-
-@keyframes iconBounce {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.2); }
-}
-
-/* Shimmer effect on hover */
-[data-theme="quest"] [data-sidebar-menu-button]::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg,
-    transparent,
-    hsla(45 80% 55% / 0.1),
-    transparent);
-  transition: left 0.5s ease;
-  pointer-events: none;
-}
-
-[data-theme="quest"] [data-sidebar-menu-button]:hover::before {
-  left: 100%;
-}
-
-[data-theme="quest"] [data-sidebar-menu-button]:hover {
-  background: linear-gradient(90deg, 
-    hsl(45 80% 92% / 0.8) 0%, 
-    hsl(45 60% 95% / 0.5) 100%) !important;
-  color: hsl(220 25% 20%) !important;
 }
 
 [data-theme="quest"] [data-sidebar-menu-button][data-active="true"] {
   background: linear-gradient(90deg, hsl(45 80% 88%) 0%, hsl(45 60% 93%) 100%) !important;
-  border-left: 4px solid hsl(45 90% 45%) !important;
+  border-left: 3px solid hsl(45 90% 45%) !important;
   color: hsl(220 25% 15%) !important;
   font-weight: 600 !important;
 }
 
-[data-theme="quest"] [data-sidebar-menu-button][data-active="true"] svg {
-  color: hsl(45 90% 45%) !important;
+/* =====================================================
+   SCROLLBAR STYLING
+   ===================================================== */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-[data-theme="quest"] [data-sidebar-menu-button] svg {
-  color: hsl(45 70% 50%);
-  opacity: 0.7;
-  transition: all 0.2s ease;
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-[data-theme="quest"] [data-sidebar-menu-button]:hover svg {
-  opacity: 1;
-  transform: scale(1.1);
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 4px;
 }
 
-/* Quest Level Card in footer */
-[data-theme="quest"] .quest-level-card {
-  background: linear-gradient(135deg, 
-    hsl(45 80% 95%) 0%, 
-    hsl(45 60% 98%) 100%) !important;
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--border-strong));
 }
 
-[data-theme="quest"] .quest-level-badge {
-  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+/* =====================================================
+   ACCORDION ANIMATIONS
+   ===================================================== */
+
+@keyframes accordion-down {
+  from { height: 0; opacity: 0; }
+  to { height: var(--radix-accordion-content-height); opacity: 1; }
 }
 
-[data-theme="quest"] .quest-xp-bar [role="progressbar"] {
-  height: 6px !important;
-  background: hsl(45 30% 88%) !important;
-  border: none !important;
+@keyframes accordion-up {
+  from { height: var(--radix-accordion-content-height); opacity: 1; }
+  to { height: 0; opacity: 0; }
 }
 
-[data-theme="quest"] .quest-xp-bar [role="progressbar"] > div {
-  background: linear-gradient(90deg, hsl(45 90% 50%) 0%, hsl(48 95% 60%) 100%) !important;
-  border-radius: 3px !important;
+.animate-accordion-down { animation: accordion-down 0.2s ease-out; }
+.animate-accordion-up { animation: accordion-up 0.2s ease-out; }
+
+/* =====================================================
+   UTILITY OVERRIDES
+   ===================================================== */
+
+/* Tighter text tracking for headers */
+.tracking-tight { letter-spacing: -0.025em; }
+.tracking-tighter { letter-spacing: -0.05em; }
+
+/* Premium focus states */
+*:focus-visible {
+  @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
 }
 
-/* === QUEST MODE CARDS - CLEAN WITH SUBTLE ACCENTS === */
-[data-theme="quest"] .card,
-[data-theme="quest"] [data-slot="card"] {
-  background: hsl(40 20% 99%) !important;
-  border: 2px solid hsl(45 40% 82%) !important;
-  border-radius: 16px !important;
-  box-shadow: 
-    0 4px 16px rgba(0, 0, 0, 0.08),
-    0 2px 8px rgba(0, 0, 0, 0.04) !important;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease !important;
-}
-
-/* Subtle top gold accent line */
-[data-theme="quest"] .card::before,
-[data-theme="quest"] [data-slot="card"]::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, 
-    transparent 0%,
-    hsl(45 90% 55%) 50%,
-    transparent 100%);
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-/* Decorative corner accent */
-[data-theme="quest"] .card::after,
-[data-theme="quest"] [data-slot="card"]::after {
-  content: '✦';
-  position: absolute;
-  top: 12px;
-  right: 14px;
-  font-size: 16px;
-  color: hsl(45 80% 60%);
-  opacity: 0.25;
-  pointer-events: none;
-}
-
-/* Card hover - subtle lift and gold border */
-[data-theme="quest"] .card:hover,
-[data-theme="quest"] [data-slot="card"]:hover {
-  transform: translateY(-4px) !important;
-  border-color: hsl(45 80% 65%) !important;
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.12),
-    0 0 20px rgba(212, 175, 55, 0.15) !important;
-}
-
-/* === QUEST MODE TYPOGRAPHY - DARK ON LIGHT === */
-[data-theme="quest"] h1 {
-  font-family: var(--font-heading), serif;
-  color: hsl(220 25% 15%) !important;
-  letter-spacing: 0.03em;
-}
-
-[data-theme="quest"] h2 {
-  font-family: var(--font-heading), serif;
-  color: hsl(220 25% 20%) !important;
-  letter-spacing: 0.08em;
-  font-weight: 600;
-}
-
-[data-theme="quest"] h3 {
-  color: hsl(220 20% 25%) !important;
-  font-weight: 600;
-}
-
-[data-theme="quest"] p {
-  color: hsl(220 15% 35%);
-}
-
-[data-theme="quest"] label {
-  color: hsl(220 12% 45%) !important;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 500;
-  font-size: 0.85rem;
-}
-
-/* === QUEST MODE BUTTONS - GOLD ON LIGHT === */
-[data-theme="quest"] button[data-variant="default"],
-[data-theme="quest"] .btn-primary {
-  background: linear-gradient(135deg, hsl(45 90% 50%) 0%, hsl(45 85% 42%) 100%) !important;
-  color: white !important;
-  font-weight: 600 !important;
-  border: none !important;
-  border-radius: 10px !important;
-  box-shadow: 
-    0 4px 12px rgba(212, 175, 55, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
-  transition: all 0.25s ease !important;
-}
-
-[data-theme="quest"] button[data-variant="default"]:hover,
-[data-theme="quest"] .btn-primary:hover {
-  background: linear-gradient(135deg, hsl(45 95% 55%) 0%, hsl(45 90% 48%) 100%) !important;
-  transform: translateY(-2px) !important;
-  box-shadow: 
-    0 6px 20px rgba(212, 175, 55, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
-}
-
-/* Secondary/Ghost buttons */
-[data-theme="quest"] button[data-variant="outline"],
-[data-theme="quest"] button[data-variant="ghost"],
-[data-theme="quest"] .btn-secondary {
-  background: hsl(45 30% 95%) !important;
-  border: 1.5px solid hsl(45 50% 70%) !important;
-  color: hsl(45 80% 35%) !important;
-  border-radius: 10px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
-  transition: all 0.2s ease !important;
-}
-
-[data-theme="quest"] button[data-variant="outline"]:hover,
-[data-theme="quest"] button[data-variant="ghost"]:hover,
-[data-theme="quest"] .btn-secondary:hover {
-  background: hsl(45 40% 92%) !important;
-  border-color: hsl(45 70% 55%) !important;
-  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2) !important;
-}
-
-/* === QUEST MODE INPUTS - CLEAN & INVITING === */
-[data-theme="quest"] input,
-[data-theme="quest"] textarea,
-[data-theme="quest"] select,
-[data-theme="quest"] [data-slot="input"] {
-  background: white !important;
-  border: 1.5px solid hsl(45 30% 82%) !important;
-  border-radius: 10px !important;
-  color: hsl(220 25% 20%) !important;
-  transition: all 0.2s ease !important;
-}
-
-[data-theme="quest"] input::placeholder,
-[data-theme="quest"] textarea::placeholder {
-  color: hsl(220 10% 55%) !important;
-}
-
-[data-theme="quest"] input:focus,
-[data-theme="quest"] textarea:focus,
-[data-theme="quest"] select:focus,
-[data-theme="quest"] [data-slot="input"]:focus {
-  border-color: hsl(45 80% 50%) !important;
-  box-shadow: 
-    0 0 0 3px hsla(45 80% 50% / 0.15),
-    0 2px 8px rgba(0, 0, 0, 0.08) !important;
-  outline: none !important;
-}
-
-/* === QUEST MODE PROGRESS BARS - ELEGANT GOLD === */
-[data-theme="quest"] [role="progressbar"] {
-  background: hsl(45 20% 90%) !important;
-  border: 1px solid hsl(45 30% 82%) !important;
-  border-radius: 12px !important;
-  height: 12px !important;
-  overflow: hidden !important;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06) !important;
-}
-
-[data-theme="quest"] [role="progressbar"] > div {
-  background: linear-gradient(90deg,
-    hsl(45 90% 48%) 0%,
-    hsl(45 95% 55%) 50%,
-    hsl(45 90% 48%) 100%
-  ) !important;
-  background-size: 200% 100% !important;
-  border-radius: 11px !important;
-  box-shadow: 
-    0 0 20px rgba(212, 175, 55, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
-  animation: progressShine 3s linear infinite !important;
-}
-
-/* Percentage text */
-[data-theme="quest"] .quest-percentage {
-  color: hsl(45 90% 40%) !important;
-  font-size: 1.25rem !important;
-  font-weight: 700 !important;
-}
-
-/* === QUEST MODE BADGES - CLEAN === */
-[data-theme="quest"] [data-slot="badge"],
-[data-theme="quest"] .badge {
-  background: hsl(45 40% 92%) !important;
-  border: 1px solid hsl(45 50% 75%) !important;
-  color: hsl(45 80% 35%) !important;
-  font-weight: 600 !important;
-}
-
-/* Purple accent badge */
-[data-theme="quest"] .badge-purple,
-[data-theme="quest"] [data-accent="purple"] {
-  background: hsl(265 40% 94%) !important;
-  color: hsl(265 60% 45%) !important;
-  border: 1px solid hsl(265 40% 80%) !important;
-}
-
-/* Success/Emerald accent */
-[data-theme="quest"] .badge-success,
-[data-theme="quest"] [data-accent="success"] {
-  background: hsl(160 40% 92%) !important;
-  color: hsl(160 70% 35%) !important;
-  border: 1px solid hsl(160 40% 75%) !important;
-}
-
-/* Success progress bars */
-[data-theme="quest"] [data-accent="success"] [role="progressbar"] > div {
-  background: linear-gradient(90deg, hsl(160 80% 40%) 0%, hsl(160 85% 48%) 50%, hsl(160 80% 40%) 100%) !important;
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4) !important;
-}
-
-/* === QUEST MODE STATS ICONS === */
-[data-theme="quest"] .stat-icon {
-  display: inline-block;
-  font-size: 1.25rem;
-  margin-right: 8px;
-  color: hsl(45 80% 45%);
-}
-
-/* === QUEST MODE TABLES === */
-[data-theme="quest"] table {
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-[data-theme="quest"] th {
-  background: hsl(45 30% 95%) !important;
-  color: hsl(220 20% 30%) !important;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 0.8rem;
-  border-bottom: 1px solid hsl(45 30% 85%) !important;
-}
-
-[data-theme="quest"] td {
-  border-bottom: 1px solid hsl(45 20% 90%) !important;
-}
-
-[data-theme="quest"] tr:hover td {
-  background: hsl(45 30% 97%) !important;
-}
-
-/* === QUEST MODE TABS === */
-[data-theme="quest"] [role="tablist"] {
-  background: hsl(45 20% 95%) !important;
-  border: 1px solid hsl(45 25% 85%) !important;
-  border-radius: 12px !important;
-  padding: 4px !important;
-}
-
-[data-theme="quest"] [role="tab"] {
-  color: hsl(220 15% 45%) !important;
-  border-radius: 8px !important;
-  transition: all 0.2s ease !important;
-}
-
-[data-theme="quest"] [role="tab"]:hover {
-  color: hsl(220 20% 30%) !important;
-  background: hsl(45 25% 92%) !important;
-}
-
-[data-theme="quest"] [role="tab"][data-state="active"] {
-  background: white !important;
-  color: hsl(45 80% 40%) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
-}
-
-/* === QUEST MODE CHECKBOX & SWITCH === */
-[data-theme="quest"] [role="checkbox"][data-state="checked"],
-[data-theme="quest"] [role="switch"][data-state="checked"] {
-  background: hsl(45 85% 50%) !important;
-  border-color: hsl(45 85% 50%) !important;
-}
-
-/* === QUEST MODE DIALOGS === */
-[data-theme="quest"] [role="dialog"] {
-  background: white !important;
-  border: 2px solid hsl(45 40% 80%) !important;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.2) !important;
-}
-
-/* === QUEST MODE TOOLTIPS & POPOVERS === */
-[data-theme="quest"] [role="tooltip"],
-[data-theme="quest"] [data-radix-popper-content-wrapper] > div {
-  background: white !important;
-  border: 1px solid hsl(45 30% 85%) !important;
-  color: hsl(220 20% 25%) !important;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
-}
-
-/* === QUEST MODE SCROLLBAR === */
-[data-theme="quest"] ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-[data-theme="quest"] ::-webkit-scrollbar-track {
-  background: hsl(45 15% 92%);
-  border-radius: 5px;
-}
-
-[data-theme="quest"] ::-webkit-scrollbar-thumb {
-  background: hsl(45 40% 75%);
-  border-radius: 5px;
-  border: 2px solid hsl(45 15% 92%);
-}
-
-[data-theme="quest"] ::-webkit-scrollbar-thumb:hover {
-  background: hsl(45 50% 65%);
-}
-
-/* === QUEST MODE DIVIDERS === */
-[data-theme="quest"] hr,
-[data-theme="quest"] [data-slot="separator"] {
-  border: none !important;
-  height: 1px !important;
-  background: linear-gradient(90deg, transparent, hsl(45 40% 80%), transparent) !important;
-}
-
-/* === QUEST MODE ICONS === */
-[data-theme="quest"] svg {
-  transition: all 0.2s ease;
-}
-
-/* === QUEST UTILITY CLASSES === */
-.quest-emerald { color: hsl(160 70% 40%); }
-.quest-gold { color: hsl(45 90% 45%); }
-.quest-copper { color: hsl(30 70% 50%); }
-.quest-purple { color: hsl(265 60% 55%); }
-.quest-blue { color: hsl(213 80% 55%); }
-
-.quest-glow-gold { 
-  box-shadow: 0 0 20px rgba(212, 175, 55, 0.35); 
-}
-.quest-glow-emerald { 
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.35); 
-}
-.quest-glow-purple { 
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.35); 
-}
-
-/* Number priority badges */
-[data-theme="quest"] .priority-badge {
-  background: linear-gradient(135deg, hsl(45 90% 50%) 0%, hsl(45 85% 42%) 100%) !important;
-  color: white !important;
-  font-weight: 700 !important;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.35);
-}
-
-/* Focus label pill - purple */
-[data-theme="quest"] .focus-label {
-  background: hsl(265 40% 94%) !important;
-  color: hsl(265 60% 50%) !important;
-  padding: 6px 16px !important;
-  border-radius: 20px !important;
-  border: 1px solid hsl(265 40% 82%) !important;
-  font-weight: 600 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.06em !important;
-  font-size: 0.8rem !important;
-}
-
-/* Decorative corner flourishes */
-.quest-flourish {
-  position: relative;
-}
-
-.quest-flourish::before,
-.quest-flourish::after {
-  content: '';
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  border: 2px solid hsl(45 50% 80%);
-  pointer-events: none;
-}
-
-.quest-flourish::before {
-  top: -1px;
-  left: -1px;
-  border-right: none;
-  border-bottom: none;
-  border-top-left-radius: 16px;
-}
-
-.quest-flourish::after {
-  bottom: -1px;
-  right: -1px;
-  border-left: none;
-  border-top: none;
-  border-bottom-right-radius: 16px;
-}
-
-/* === RESPONSIVE ADJUSTMENTS === */
-@media (max-width: 768px) {
-  [data-theme="quest"] .card,
-  [data-theme="quest"] [data-slot="card"] {
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
-    border-radius: 12px !important;
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
-  
-  [data-theme="quest"] .card:hover,
-  [data-theme="quest"] [data-slot="card"]:hover {
-    transform: none !important;
-  }
-}
-
-/* === CALENDAR EVENT BLOCKS === */
-.calendar-event-block {
-  position: relative;
-  transition: all 0.2s ease;
-}
-
-.calendar-event-block:hover {
-  transform: translateX(2px);
-}
-
-/* Quest theme calendar events */
-[data-theme="quest"] .calendar-event-block {
-  background: linear-gradient(90deg, 
-    hsl(213 50% 97%) 0%,
-    hsl(213 50% 99%) 100%
-  );
-  border-color: hsl(213 60% 70%);
-}
-
-[data-theme="quest"] .calendar-event-block.mastermind {
-  background: linear-gradient(90deg, 
-    hsl(265 50% 97%) 0%,
-    hsl(265 50% 99%) 100%
-  );
-  border-color: hsl(265 60% 70%);
-}
-
-/* User task blocks - distinct gold styling */
-[data-theme="quest"] .user-task-block {
-  background: linear-gradient(90deg, 
-    hsl(45 50% 95%) 0%,
-    hsl(45 50% 98%) 100%
-  );
-  border-left: 4px solid hsl(var(--quest-gold));
-}
-
-/* Timeline hour slots */
-[data-theme="quest"] .timeline-hour-slot {
-  border-bottom: 1px solid hsl(45 30% 90%);
-}
-
-[data-theme="quest"] .timeline-hour-slot:hover {
-  background: hsl(45 20% 97%);
-}
-
-/* Calendar event join button */
-.calendar-event-block .join-btn {
-  background: hsl(142 76% 36%);
-  color: white;
-  padding: 4px 12px;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  transition: all 0.2s ease;
-}
-
-.calendar-event-block .join-btn:hover {
-  background: hsl(142 76% 32%);
-  transform: scale(1.02);
-}
-
-/* === MASTERMIND CALL WIDGET === */
-.mastermind-widget {
-  border: 2px solid hsl(270 60% 85%);
-  background: linear-gradient(135deg, hsl(270 60% 98%) 0%, white 100%);
-  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.1);
-}
-
-.mastermind-widget-live {
-  animation: livePulse 2s ease-in-out infinite;
-}
-
-@keyframes livePulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-  50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
-}
-
-.mastermind-widget-soon {
-  animation: soonPulse 3s ease-in-out infinite;
-}
-
-@keyframes soonPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.005); }
-}
-
-.mastermind-icon {
-  color: white;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.live-indicator {
-  animation: liveGlow 2s ease-in-out infinite;
-}
-
-@keyframes liveGlow {
-  0%, 100% { box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3); }
-  50% { box-shadow: 0 6px 24px rgba(239, 68, 68, 0.5); }
-}
-
-.btn-join-live {
-  animation: joinGlow 2s ease-in-out infinite;
-}
-
-@keyframes joinGlow {
-  0%, 100% { box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3); }
-  50% { box-shadow: 0 6px 24px rgba(239, 68, 68, 0.5); }
-}
-
-.alert-banner {
-  animation: attention 2s ease-in-out infinite;
-}
-
-@keyframes attention {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.02); }
-}
-
-.countdown-container {
-  background: linear-gradient(135deg, hsl(270 60% 96%) 0%, hsl(270 50% 98%) 100%);
-  border: 1px solid hsl(270 40% 90%);
-}
-
-.countdown-timer .countdown-number {
-  background: linear-gradient(135deg, hsl(270 70% 50%) 0%, hsl(270 60% 60%) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Quest mode overrides for mastermind widget */
-[data-theme="quest"] .mastermind-widget {
-  border-color: hsl(270 60% 80%);
-  background: linear-gradient(135deg, hsl(270 40% 97%) 0%, white 100%);
-}
-
-[data-theme="quest"] .countdown-container {
-  background: linear-gradient(135deg, hsl(270 40% 95%) 0%, hsl(270 30% 97%) 100%);
-  border-color: hsl(270 30% 88%);
 }

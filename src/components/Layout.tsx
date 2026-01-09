@@ -6,50 +6,23 @@ import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
 import { QuickCaptureButton } from '@/components/quick-capture';
-import { CycleTimeline } from '@/components/CycleTimeline';
 import { SmartActionButton } from '@/components/SmartActionButton';
 import { TrialBanner, TrialExpiredScreen } from '@/components/trial';
 import { Loader2 } from 'lucide-react';
 
-interface CycleData {
-  start_date: string;
-  end_date: string;
-}
-
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const [cycleData, setCycleData] = useState<CycleData | null>(null);
   const trialStatus = useTrialStatus();
-  useTheme(); // Load and apply theme
-
-  useEffect(() => {
-    const loadData = async () => {
-      if (!user) return;
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
-
-        const cycleResult = await supabase.functions.invoke('get-current-cycle-or-create');
-        
-        if (cycleResult.data?.cycle) {
-          setCycleData({
-            start_date: cycleResult.data.cycle.start_date,
-            end_date: cycleResult.data.cycle.end_date,
-          });
-        }
-      } catch (error) {
-        console.error('Error loading data:', error);
-      }
-    };
-
-    loadData();
-  }, [user]);
+  useTheme();
 
   // Show loading while checking trial status
   if (trialStatus.loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="text-sm text-muted-foreground">Loading...</span>
+        </div>
       </div>
     );
   }
@@ -61,13 +34,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background">
-        {/* Sidebar */}
+      <div className="flex min-h-screen w-full">
+        {/* Premium Sidebar */}
         <AppSidebar />
 
-        {/* Main content area */}
-        <div className="flex-1 flex flex-col">
-          {/* Trial Banner - shown for trial users */}
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Trial Banner */}
           {(trialStatus.reason === 'trial' || trialStatus.reason === 'grace_period') && 
            trialStatus.expiresAt && (
             <TrialBanner 
@@ -76,35 +49,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
             />
           )}
 
-          {/* Header with sidebar trigger and timeline */}
-          <header className="sticky top-0 z-40 border-b bg-background">
-            <div className="flex h-16 items-center gap-4 px-6">
-              <SidebarTrigger />
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-semibold">Becoming Boss Mastermind</h1>
-                <span className="text-amber-500">⚡</span>
-              </div>
+          {/* Top Bar */}
+          <header className="top-bar">
+            <div className="flex items-center gap-3">
+              <SidebarTrigger className="h-8 w-8" />
             </div>
-            {cycleData && (
-              <div className="px-6 pb-3">
-                <CycleTimeline 
-                  startDate={cycleData.start_date} 
-                  endDate={cycleData.end_date} 
-                />
-              </div>
-            )}
           </header>
 
-          {/* Page content */}
-          <main className="flex-1 overflow-auto">
-            <div className="mx-auto max-w-7xl p-4 md:p-8">{children}</div>
+          {/* Page Content */}
+          <main className="flex-1 overflow-auto bg-background">
+            <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8">
+              {children}
+            </div>
           </main>
         </div>
 
-        {/* Smart Action Button */}
+        {/* Floating Actions */}
         <SmartActionButton />
-
-        {/* Global Quick Capture Button */}
         <QuickCaptureButton />
       </div>
     </SidebarProvider>

@@ -4,30 +4,83 @@ import { useProjects, useProjectMutations } from '@/hooks/useProjects';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { NewProjectModal } from '@/components/projects/NewProjectModal';
 import { ProjectBoardView } from '@/components/projects/ProjectBoardView';
+import { PageHeader, ViewSwitcher, EmptyState, SkeletonList } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, FolderKanban, Archive, CheckCircle2, Copy, LayoutGrid, List } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Plus, 
+  FolderKanban, 
+  Archive, 
+  CheckCircle2, 
+  Copy, 
+  LayoutGrid, 
+  List, 
+  Table2,
+  Calendar,
+  Search,
+  Filter,
+} from 'lucide-react';
 import { Project, ProjectStatus } from '@/types/project';
+import { cn } from '@/lib/utils';
 
-type ViewMode = 'list' | 'board';
+type ViewMode = 'list' | 'board' | 'table' | 'calendar';
+type TabFilter = ProjectStatus | 'templates';
+
+const VIEW_OPTIONS = [
+  { id: 'list', label: 'List', icon: <List className="h-4 w-4" /> },
+  { id: 'board', label: 'Board', icon: <LayoutGrid className="h-4 w-4" /> },
+];
+
+const TAB_OPTIONS: { id: TabFilter; label: string; icon: React.ReactNode }[] = [
+  { id: 'active', label: 'Active', icon: <FolderKanban className="h-4 w-4" /> },
+  { id: 'completed', label: 'Completed', icon: <CheckCircle2 className="h-4 w-4" /> },
+  { id: 'archived', label: 'Archived', icon: <Archive className="h-4 w-4" /> },
+  { id: 'templates', label: 'Templates', icon: <Copy className="h-4 w-4" /> },
+];
 
 export default function Projects() {
   const { data: projects, isLoading } = useProjects();
   const { deleteProject, updateProject } = useProjectMutations();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [activeTab, setActiveTab] = useState<ProjectStatus | 'templates'>('active');
+  const [activeTab, setActiveTab] = useState<TabFilter>('active');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
 
   const filteredProjects = useMemo(() => {
     if (!projects) return [];
     
+    let result = projects;
+    
+    // Filter by tab
     if (activeTab === 'templates') {
-      return projects.filter(p => p.is_template);
+      result = result.filter(p => p.is_template);
+    } else {
+      result = result.filter(p => p.status === activeTab && !p.is_template);
     }
     
-    return projects.filter(p => p.status === activeTab && !p.is_template);
-  }, [projects, activeTab]);
+    // Filter by search
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(p => 
+        p.name.toLowerCase().includes(query) ||
+        p.description?.toLowerCase().includes(query)
+      );
+    }
+    
+    return result;
+  }, [projects, activeTab, searchQuery]);
+
+  const projectCounts = useMemo(() => {
+    if (!projects) return { active: 0, completed: 0, archived: 0, templates: 0 };
+    return {
+      active: projects.filter(p => p.status === 'active' && !p.is_template).length,
+      completed: projects.filter(p => p.status === 'completed' && !p.is_template).length,
+      archived: projects.filter(p => p.status === 'archived' && !p.is_template).length,
+      templates: projects.filter(p => p.is_template).length,
+    };
+  }, [projects]);
 
   const handleEditProject = (project: Project) => {
     setEditingProject(project);
@@ -47,7 +100,7 @@ export default function Projects() {
   };
 
   const handleDeleteProject = (project: Project) => {
-    if (confirm('Are you sure you want to delete this project? Tasks will be removed from the project but not deleted.')) {
+    if (confirm('Are you sure you want to delete this project?')) {
       deleteProject.mutate(project.id);
     }
   };
@@ -57,17 +110,14 @@ export default function Projects() {
     setEditingProject(null);
   };
 
-  const getTabIcon = (tab: string) => {
-    switch (tab) {
-      case 'active': return <FolderKanban className="h-4 w-4" />;
-      case 'completed': return <CheckCircle2 className="h-4 w-4" />;
-      case 'archived': return <Archive className="h-4 w-4" />;
-      case 'templates': return <Copy className="h-4 w-4" />;
-      default: return null;
-    }
-  };
-
   const getEmptyState = () => {
+    if (searchQuery) {
+      return {
+        title: 'No projects found',
+        description: `No projects match "${searchQuery}". Try a different search term.`,
+        showCta: false,
+      };
+    }
     switch (activeTab) {
       case 'active':
         return {
@@ -90,7 +140,7 @@ export default function Projects() {
       case 'templates':
         return {
           title: 'No project templates',
-          description: 'Save projects as templates to quickly create similar projects in the future.',
+          description: 'Save projects as templates to quickly create similar projects.',
           showCta: true,
         };
       default:
@@ -102,112 +152,108 @@ export default function Projects() {
 
   return (
     <Layout>
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
-            <p className="text-muted-foreground">
-              Organize your tasks into focused projects
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* View Mode Toggle */}
-            <div className="flex border rounded-lg">
-              <Button
-                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('list')}
-                className="rounded-r-none"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === 'board' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('board')}
-                className="rounded-l-none"
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </Button>
-            </div>
+      <div className="space-y-6">
+        {/* Page Header */}
+        <PageHeader
+          title="Projects"
+          description="Organize your work into focused projects"
+          icon={<FolderKanban className="h-5 w-5 text-primary" />}
+          actions={
             <Button onClick={() => setIsNewProjectModalOpen(true)} className="gap-2">
               <Plus className="h-4 w-4" />
               New Project
             </Button>
-          </div>
-        </div>
+          }
+        >
+          {/* Toolbar Row */}
+          <div className="flex items-center justify-between gap-4 pt-4 border-t">
+            {/* Tab Filters */}
+            <div className="flex items-center gap-1">
+              {TAB_OPTIONS.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+                    activeTab === tab.id
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                >
+                  {tab.icon}
+                  {tab.label}
+                  <Badge 
+                    variant="secondary" 
+                    className={cn(
+                      "ml-1 h-5 min-w-[20px] px-1.5 text-[10px]",
+                      activeTab === tab.id && "bg-primary/20"
+                    )}
+                  >
+                    {projectCounts[tab.id as keyof typeof projectCounts]}
+                  </Badge>
+                </button>
+              ))}
+            </div>
 
+            {/* Right Side Controls */}
+            <div className="flex items-center gap-3">
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search projects..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 w-[200px] h-9"
+                />
+              </div>
+
+              {/* View Switcher */}
+              <ViewSwitcher
+                views={VIEW_OPTIONS}
+                activeView={viewMode}
+                onViewChange={(v) => setViewMode(v as ViewMode)}
+              />
+            </div>
+          </div>
+        </PageHeader>
+
+        {/* Content */}
         {viewMode === 'board' ? (
           <ProjectBoardView onSwitchToList={() => setViewMode('list')} />
         ) : (
-          /* List View with Tabs */
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ProjectStatus | 'templates')}>
-            <TabsList>
-              <TabsTrigger value="active" className="gap-2">
-                {getTabIcon('active')}
-                Active
-              </TabsTrigger>
-              <TabsTrigger value="completed" className="gap-2">
-                {getTabIcon('completed')}
-                Completed
-              </TabsTrigger>
-              <TabsTrigger value="archived" className="gap-2">
-                {getTabIcon('archived')}
-                Archived
-              </TabsTrigger>
-              <TabsTrigger value="templates" className="gap-2">
-                {getTabIcon('templates')}
-                Templates
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value={activeTab} className="mt-6">
-              {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-40 bg-muted animate-pulse rounded-lg" />
-                  ))}
-                </div>
-              ) : filteredProjects.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="rounded-full bg-muted p-4 mb-4">
-                    <FolderKanban className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <h3 className="text-lg font-semibold">{emptyState.title}</h3>
-                  <p className="text-muted-foreground max-w-sm mt-1">
-                    {emptyState.description}
-                  </p>
-                  {emptyState.showCta && (
-                    <Button 
-                      onClick={() => setIsNewProjectModalOpen(true)} 
-                      className="mt-4 gap-2"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Create Project
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredProjects.map((project) => (
-                    <ProjectCard
-                      key={project.id}
-                      project={project}
-                      onEdit={handleEditProject}
-                      onArchive={handleArchiveProject}
-                      onComplete={handleCompleteProject}
-                      onReactivate={handleReactivateProject}
-                      onDelete={handleDeleteProject}
-                    />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+          <div className="animate-fade-in">
+            {isLoading ? (
+              <SkeletonList count={6} />
+            ) : filteredProjects.length === 0 ? (
+              <EmptyState
+                icon={<FolderKanban className="h-12 w-12" />}
+                title={emptyState.title}
+                description={emptyState.description}
+                action={emptyState.showCta ? {
+                  label: 'Create Project',
+                  onClick: () => setIsNewProjectModalOpen(true),
+                } : undefined}
+              />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredProjects.map((project) => (
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    onEdit={handleEditProject}
+                    onArchive={handleArchiveProject}
+                    onComplete={handleCompleteProject}
+                    onReactivate={handleReactivateProject}
+                    onDelete={handleDeleteProject}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
-        {/* New/Edit Project Modal */}
+        {/* Modal */}
         <NewProjectModal
           open={isNewProjectModalOpen}
           onOpenChange={handleCloseModal}
