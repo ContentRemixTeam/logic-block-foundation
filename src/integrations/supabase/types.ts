@@ -1639,6 +1639,42 @@ export type Database = {
           },
         ]
       }
+      user_profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          trial_expires_at: string | null
+          trial_started_at: string | null
+          updated_at: string
+          upgraded_at: string | null
+          user_type: string
+          workshop_date: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id: string
+          trial_expires_at?: string | null
+          trial_started_at?: string | null
+          updated_at?: string
+          upgraded_at?: string | null
+          user_type?: string
+          workshop_date?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          trial_expires_at?: string | null
+          trial_started_at?: string | null
+          updated_at?: string
+          upgraded_at?: string | null
+          user_type?: string
+          workshop_date?: string | null
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
           ai_api_key: string | null
