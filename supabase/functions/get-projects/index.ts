@@ -5,7 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Decode JWT to get user ID
 function getUserIdFromJWT(authHeader: string): string | null {
   try {
     const token = authHeader.replace('Bearer ', '');
@@ -52,26 +51,52 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Fetch all tasks for the user with SOP and Project data
-    const { data: tasks, error } = await supabase
-      .from('tasks')
-      .select(`
-        *,
-        sop:sops(sop_id, sop_name, description, checklist_items, links, notes),
-        project:projects(id, name, color)
-      `)
+    // Fetch all projects for the user
+    const { data: projects, error: projectsError } = await supabase
+      .from('projects')
+      .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching tasks:', error);
-      return new Response(JSON.stringify({ error: error.message }), {
+    if (projectsError) {
+      console.error('Error fetching projects:', projectsError);
+      return new Response(JSON.stringify({ error: projectsError.message }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    return new Response(JSON.stringify({ data: tasks || [] }), {
+    // Get task counts for each project
+    const projectIds = projects?.map(p => p.id) || [];
+    
+    if (projectIds.length > 0) {
+      const { data: taskCounts, error: countError } = await supabase
+        .from('tasks')
+        .select('project_id')
+        .in('project_id', projectIds)
+        .eq('user_id', userId);
+
+      if (!countError && taskCounts) {
+        // Count tasks per project
+        const counts: Record<string, number> = {};
+        taskCounts.forEach(task => {
+          if (task.project_id) {
+            counts[task.project_id] = (counts[task.project_id] || 0) + 1;
+          }
+        });
+
+        // Add task_count to each project
+        projects?.forEach(project => {
+          project.task_count = counts[project.id] || 0;
+        });
+      }
+    } else {
+      projects?.forEach(project => {
+        project.task_count = 0;
+      });
+    }
+
+    return new Response(JSON.stringify({ data: projects || [] }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

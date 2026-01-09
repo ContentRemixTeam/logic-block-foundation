@@ -66,6 +66,10 @@ export interface Task {
   // Weekly planning fields
   planned_day: string | null;
   day_order: number | null;
+  // Project fields
+  project_id: string | null;
+  project_column: 'todo' | 'in_progress' | 'done' | null;
+  project?: { id: string; name: string; color: string } | null;
 }
 
 export type FilterTab = 'today' | 'week' | 'future' | 'all' | 'completed';
