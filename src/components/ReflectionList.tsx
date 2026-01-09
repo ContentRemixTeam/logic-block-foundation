@@ -1,15 +1,17 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus, X } from "lucide-react";
+import { ShareToGroupButton } from "@/components/sharing";
 
 interface ReflectionListProps {
   items: string[];
   onChange: (updated: string[]) => void;
   label: string;
   placeholder?: string;
+  shareableType?: 'win' | 'lesson' | 'challenge' | 'intention';
 }
 
-export function ReflectionList({ items, onChange, label, placeholder }: ReflectionListProps) {
+export function ReflectionList({ items, onChange, label, placeholder, shareableType }: ReflectionListProps) {
   const addField = () => {
     onChange([...items, ""]);
   };
@@ -31,6 +33,9 @@ export function ReflectionList({ items, onChange, label, placeholder }: Reflecti
             onChange={(e) => updateField(index, e.target.value)}
             placeholder={placeholder || `Enter ${label.toLowerCase()}...`}
           />
+          {shareableType && item.trim() && (
+            <ShareToGroupButton content={item} contentType={shareableType} />
+          )}
           {items.length > 1 && (
             <Button
               variant="ghost"
