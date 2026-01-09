@@ -168,26 +168,40 @@ export default function InstallApp() {
                 <Apple className="h-5 w-5" />
                 Install on iPhone / iPad
               </CardTitle>
-              <CardDescription>Follow these steps in Safari</CardDescription>
+              <CardDescription>
+                <span className="font-medium text-destructive">Important:</span> You must use Safari browser for this to work
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <InstallStep 
                 number={1}
-                title="Tap the Share button"
-                description="Look for the share icon at the bottom of Safari"
-                icon={<Share className="h-6 w-6" />}
+                title="Open this page in Safari"
+                description="If you're using Chrome, copy this page's URL and paste it in Safari. The install feature only works in Safari on iOS."
+                icon={<Apple className="h-6 w-6" />}
               />
               <InstallStep 
                 number={2}
-                title='Scroll down and tap "Add to Home Screen"'
-                description="You may need to scroll to find this option"
-                icon={<PlusSquare className="h-6 w-6" />}
+                title="Tap the Share button"
+                description="Look at the bottom of your screen for the Share icon — it's a square with an upward arrow. Tap it to open the share menu."
+                icon={<Share className="h-6 w-6" />}
               />
               <InstallStep 
                 number={3}
-                title='Tap "Add" in the top right'
-                description="Boss Planner will appear on your home screen"
+                title='Scroll down and tap "Add to Home Screen"'
+                description='In the share menu, scroll down the list of options. Look for "Add to Home Screen" with a plus icon. You may need to scroll quite a bit to find it.'
+                icon={<PlusSquare className="h-6 w-6" />}
+              />
+              <InstallStep 
+                number={4}
+                title='Tap "Add" in the top right corner'
+                description='A screen will appear showing the app name and icon. Tap "Add" in the top right corner to confirm. Boss Planner will now appear on your home screen!'
                 icon={<Check className="h-6 w-6" />}
+              />
+              <InstallStep 
+                number={5}
+                title="Find the app on your home screen"
+                description="Go to your home screen — you'll see the Boss Planner icon. Tap it anytime to open the app instantly without opening Safari first."
+                icon={<Smartphone className="h-6 w-6" />}
               />
             </CardContent>
           </Card>
@@ -200,26 +214,40 @@ export default function InstallApp() {
                 <Chrome className="h-5 w-5" />
                 Install on Android
               </CardTitle>
-              <CardDescription>Follow these steps in Chrome</CardDescription>
+              <CardDescription>
+                <span className="font-medium">Recommended:</span> Use Chrome browser for the best experience
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <InstallStep 
                 number={1}
-                title="Tap the menu button"
-                description="Look for the three dots in the top right corner"
-                icon={<MoreVertical className="h-6 w-6" />}
+                title="Open this page in Chrome"
+                description="Make sure you're viewing this page in the Chrome browser. Other browsers may work but Chrome provides the best experience."
+                icon={<Chrome className="h-6 w-6" />}
               />
               <InstallStep 
                 number={2}
-                title='Tap "Add to Home screen" or "Install app"'
-                description="This option may appear as a banner at the bottom"
-                icon={<PlusSquare className="h-6 w-6" />}
+                title="Tap the menu button (⋮)"
+                description="Look in the top right corner of Chrome for three vertical dots. Tap them to open the browser menu."
+                icon={<MoreVertical className="h-6 w-6" />}
               />
               <InstallStep 
                 number={3}
-                title='Tap "Add" or "Install"'
-                description="Boss Planner will appear on your home screen"
+                title='Tap "Add to Home screen" or "Install app"'
+                description='In the menu, look for "Add to Home screen" or "Install app". The wording varies by Android version. You might also see an install banner at the bottom of the screen — you can tap that too.'
+                icon={<PlusSquare className="h-6 w-6" />}
+              />
+              <InstallStep 
+                number={4}
+                title='Confirm by tapping "Add" or "Install"'
+                description='A popup will appear asking you to confirm. Tap "Add" or "Install" to complete the installation. Boss Planner will be added to your home screen!'
                 icon={<Check className="h-6 w-6" />}
+              />
+              <InstallStep 
+                number={5}
+                title="Find the app on your home screen"
+                description="Go to your home screen or app drawer — you'll see the Boss Planner icon. Tap it anytime to open the app instantly!"
+                icon={<Smartphone className="h-6 w-6" />}
               />
             </CardContent>
           </Card>
@@ -232,23 +260,108 @@ export default function InstallApp() {
                 <Chrome className="h-5 w-5" />
                 Install on Desktop
               </CardTitle>
-              <CardDescription>Works in Chrome, Edge, and other modern browsers</CardDescription>
+              <CardDescription>Works in Chrome, Edge, Brave, and other Chromium-based browsers</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <InstallStep 
                 number={1}
                 title="Look for the install icon in the address bar"
-                description="It looks like a computer with a down arrow, or a plus sign"
+                description="On the right side of your browser's address bar, look for a small icon — it usually looks like a computer monitor with a download arrow, or a plus (+) sign inside a circle."
                 icon={<Download className="h-6 w-6" />}
               />
               <InstallStep 
                 number={2}
-                title='Click "Install"'
-                description="Boss Planner will install as a desktop app"
+                title="Click the install icon"
+                description="Click the icon, then click Install in the popup that appears. If you do not see the icon, click the three-dot menu (⋮) and look for Install Boss Planner or Install app."
+                icon={<PlusSquare className="h-6 w-6" />}
+              />
+              <InstallStep 
+                number={3}
+                title="Launch from your desktop or start menu"
+                description="After installing, Boss Planner will open in its own window. You can find it in your Start menu (Windows), Applications folder (Mac), or pinned to your taskbar/dock."
                 icon={<Check className="h-6 w-6" />}
               />
             </CardContent>
           </Card>
+        )}
+
+        {/* Show all instructions if device unknown */}
+        {device === 'unknown' && (
+          <>
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Apple className="h-5 w-5" />
+                  iPhone / iPad Instructions
+                </CardTitle>
+                <CardDescription>
+                  <span className="font-medium text-destructive">Important:</span> You must use Safari browser
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <InstallStep 
+                  number={1}
+                  title="Open in Safari"
+                  description="Copy this URL and open it in Safari. The install feature only works in Safari on iOS."
+                  icon={<Apple className="h-6 w-6" />}
+                />
+                <InstallStep 
+                  number={2}
+                  title="Tap the Share button"
+                  description="Look for the square with an upward arrow at the bottom of your screen."
+                  icon={<Share className="h-6 w-6" />}
+                />
+                <InstallStep 
+                  number={3}
+                  title='Tap "Add to Home Screen"'
+                  description='Scroll down in the share menu to find this option.'
+                  icon={<PlusSquare className="h-6 w-6" />}
+                />
+                <InstallStep 
+                  number={4}
+                  title='Tap "Add" to confirm'
+                  description='The app will appear on your home screen.'
+                  icon={<Check className="h-6 w-6" />}
+                />
+              </CardContent>
+            </Card>
+
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Chrome className="h-5 w-5" />
+                  Android Instructions
+                </CardTitle>
+                <CardDescription>Use Chrome for the best experience</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <InstallStep 
+                  number={1}
+                  title="Open in Chrome"
+                  description="Make sure you're viewing this page in Chrome browser."
+                  icon={<Chrome className="h-6 w-6" />}
+                />
+                <InstallStep 
+                  number={2}
+                  title="Tap the menu (⋮)"
+                  description="Look for three vertical dots in the top right corner."
+                  icon={<MoreVertical className="h-6 w-6" />}
+                />
+                <InstallStep 
+                  number={3}
+                  title='Tap "Add to Home screen"'
+                  description='Or look for "Install app" in the menu.'
+                  icon={<PlusSquare className="h-6 w-6" />}
+                />
+                <InstallStep 
+                  number={4}
+                  title="Confirm installation"
+                  description='Tap "Add" or "Install" to complete.'
+                  icon={<Check className="h-6 w-6" />}
+                />
+              </CardContent>
+            </Card>
+          </>
         )}
 
         {/* Footer actions */}
