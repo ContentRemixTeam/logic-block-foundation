@@ -1,6 +1,8 @@
 export { QuickCaptureProvider, useQuickCapture } from './QuickCaptureProvider';
 export { QuickCaptureButton } from './QuickCaptureButton';
 export { QuickCaptureModal } from './QuickCaptureModal';
+export { EditableChips } from './EditableChips';
+export { useSpeechDictation } from './useSpeechDictation';
 export { 
   detectCaptureType, 
   cleanIdeaInput, 

@@ -22,6 +22,7 @@ import {
   ParsedTask,
 } from './useCaptureTypeDetection';
 import { useSpeechDictation } from './useSpeechDictation';
+import { EditableChips } from './EditableChips';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface QuickCaptureModalProps {
@@ -85,8 +86,18 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
       setCaptureType(detection.suggestedType);
     }
 
+    // Only auto-parse if we don't already have a parsed task with edits
     if (captureType === 'task' && input.trim()) {
-      setParsedTask(parseTaskInput(input));
+      // Parse the input but preserve any user edits to chips
+      const newParsed = parseTaskInput(input);
+      setParsedTask(prev => {
+        // If no previous state or text changed significantly, use new parse
+        if (!prev || prev.text !== newParsed.text) {
+          return newParsed;
+        }
+        // Otherwise keep the existing state (user may have edited chips)
+        return prev;
+      });
     } else {
       setParsedTask(null);
     }
@@ -222,16 +233,16 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
         savedId = data?.idea?.id || '';
         queryClient.invalidateQueries({ queryKey: ['ideas'] });
       } else {
-        // Save as task using unified hook
-        const parsed = parseTaskInput(input);
-        savedText = parsed.text;
+        // Save as task using unified hook - use parsedTask (edited chips) as source of truth
+        const taskData = parsedTask || parseTaskInput(input);
+        savedText = taskData.text;
         
         const createdTask = await createTask.mutateAsync({
-          task_text: parsed.text,
-          scheduled_date: parsed.date ? format(parsed.date, 'yyyy-MM-dd') : null,
-          priority: parsed.priority || null,
-          estimated_minutes: parsed.duration || null,
-          context_tags: parsed.tags.length > 0 ? parsed.tags : null,
+          task_text: taskData.text,
+          scheduled_date: taskData.date ? format(taskData.date, 'yyyy-MM-dd') : null,
+          priority: taskData.priority || null,
+          estimated_minutes: taskData.duration || null,
+          context_tags: taskData.tags.length > 0 ? taskData.tags : null,
           status: 'backlog',
         });
         
@@ -432,47 +443,18 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
             </div>
           )}
 
-          {/* Parsed preview for tasks */}
+          {/* Editable chips for tasks */}
           {captureType === 'task' && parsedTask && input.trim() && (
-            <div className="p-3 rounded-lg bg-muted/50 space-y-2">
+            <div className="p-3 rounded-lg bg-muted/50 space-y-3">
               <div className="text-sm font-medium">
                 {parsedTask.text || '(enter task name)'}
               </div>
-              <div className="flex flex-wrap gap-2">
-                {parsedTask.date && (
-                  <Badge variant="secondary" className="text-xs">
-                    📅 {parsedTask.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                  </Badge>
-                )}
-                {parsedTask.time && (
-                  <Badge variant="secondary" className="text-xs">
-                    🕐 {parsedTask.time}
-                  </Badge>
-                )}
-                {parsedTask.duration && (
-                  <Badge variant="secondary" className="text-xs">
-                    ⏱️ {parsedTask.duration >= 60 ? `${parsedTask.duration / 60}h` : `${parsedTask.duration}m`}
-                  </Badge>
-                )}
-                {parsedTask.priority && (
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "text-xs",
-                      parsedTask.priority === 'high' && "border-destructive text-destructive",
-                      parsedTask.priority === 'medium' && "border-yellow-500 text-yellow-600",
-                      parsedTask.priority === 'low' && "border-muted-foreground"
-                    )}
-                  >
-                    !{parsedTask.priority}
-                  </Badge>
-                )}
-                {parsedTask.tags.map(tag => (
-                  <Badge key={tag} variant="outline" className="text-xs">
-                    #{tag}
-                  </Badge>
-                ))}
-              </div>
+              <EditableChips
+                parsedTask={parsedTask}
+                onUpdate={(updates) => {
+                  setParsedTask(prev => prev ? { ...prev, ...updates } : prev);
+                }}
+              />
             </div>
           )}
 
