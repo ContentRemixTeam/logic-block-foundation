@@ -50,6 +50,8 @@ import {
   FilterTab, ViewMode, EnergyLevel, RecurrencePattern, DeleteType,
   DAYS_OF_WEEK, DURATION_OPTIONS, ENERGY_LEVELS, CONTEXT_TAGS
 } from '@/components/tasks/types';
+import { CycleFilter, CycleFilterValue, CycleBadge } from '@/components/tasks/CycleFilter';
+import { useActiveCycle } from '@/hooks/useActiveCycle';
 
 export default function Tasks() {
   const queryClient = useQueryClient();
@@ -79,6 +81,11 @@ export default function Tasks() {
   // Filter state
   const [energyFilter, setEnergyFilter] = useState<EnergyLevel[]>([]);
   const [tagsFilter, setTagsFilter] = useState<string[]>([]);
+  const [cycleFilter, setCycleFilter] = useState<CycleFilterValue>('all');
+  const [systemOnly, setSystemOnly] = useState(false);
+  
+  // Get active cycle for filtering
+  const { data: activeCycle } = useActiveCycle();
   
   // Dialog state
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -184,12 +191,22 @@ export default function Tasks() {
     }).length;
   }, [tasks]);
 
-  // Separate recurring parent tasks
+  // Separate recurring parent tasks and apply cycle filter
   const { regularTasks, recurringParentTasks } = useMemo(() => {
     const regular: Task[] = [];
     const recurring: Task[] = [];
     
     tasks.forEach((task: Task) => {
+      // Apply cycle filter
+      if (cycleFilter === 'active' && activeCycle) {
+        if (task.cycle_id !== activeCycle.cycle_id) return;
+      } else if (cycleFilter !== 'all' && cycleFilter !== 'active') {
+        if (task.cycle_id !== cycleFilter) return;
+      }
+      
+      // Apply system-generated filter
+      if (systemOnly && !task.is_system_generated) return;
+      
       if (task.is_recurring_parent) {
         recurring.push(task);
       } else {
@@ -198,7 +215,7 @@ export default function Tasks() {
     });
     
     return { regularTasks: regular, recurringParentTasks: recurring };
-  }, [tasks]);
+  }, [tasks, cycleFilter, activeCycle, systemOnly]);
 
   // Handlers
   const handleToggleComplete = async (taskId: string) => {
@@ -581,28 +598,44 @@ export default function Tasks() {
         )}
 
         {/* Filters row */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          {viewMode === 'list' && (
-            <Tabs value={activeFilter} onValueChange={(v) => setActiveFilter(v as FilterTab)}>
-              <TabsList>
-                <TabsTrigger value="today" className="text-xs sm:text-sm">Today</TabsTrigger>
-                <TabsTrigger value="week" className="text-xs sm:text-sm">This Week</TabsTrigger>
-                <TabsTrigger value="all" className="text-xs sm:text-sm">All Open</TabsTrigger>
-                <TabsTrigger value="completed" className="text-xs sm:text-sm">Completed</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          )}
+        <div className="flex flex-col gap-4">
+          {/* Cycle filter */}
+          <div className="flex flex-wrap items-center gap-3">
+            <CycleFilter
+              value={cycleFilter}
+              onChange={setCycleFilter}
+              showSystemFilter={true}
+              systemOnly={systemOnly}
+              onSystemOnlyChange={setSystemOnly}
+            />
+            <CycleBadge />
+          </div>
           
-          <TaskFilters
-            selectedEnergy={energyFilter}
-            onEnergyChange={setEnergyFilter}
-            selectedTags={tagsFilter}
-            onTagsChange={setTagsFilter}
-            onClearFilters={() => {
-              setEnergyFilter([]);
-              setTagsFilter([]);
-            }}
-          />
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            {viewMode === 'list' && (
+              <Tabs value={activeFilter} onValueChange={(v) => setActiveFilter(v as FilterTab)}>
+                <TabsList>
+                  <TabsTrigger value="today" className="text-xs sm:text-sm">Today</TabsTrigger>
+                  <TabsTrigger value="week" className="text-xs sm:text-sm">This Week</TabsTrigger>
+                  <TabsTrigger value="all" className="text-xs sm:text-sm">All Open</TabsTrigger>
+                  <TabsTrigger value="completed" className="text-xs sm:text-sm">Completed</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
+            
+            <TaskFilters
+              selectedEnergy={energyFilter}
+              onEnergyChange={setEnergyFilter}
+              selectedTags={tagsFilter}
+              onTagsChange={setTagsFilter}
+              onClearFilters={() => {
+                setEnergyFilter([]);
+                setTagsFilter([]);
+                setCycleFilter('all');
+                setSystemOnly(false);
+              }}
+            />
+          </div>
         </div>
 
         {/* Main content */}

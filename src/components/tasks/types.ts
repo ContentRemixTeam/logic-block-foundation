@@ -71,6 +71,11 @@ export interface Task {
   project_column: 'todo' | 'in_progress' | 'done' | null;
   project?: { id: string; name: string; color: string } | null;
   section_id: string | null;
+  // Cycle automation fields
+  cycle_id: string | null;
+  is_system_generated: boolean | null;
+  system_source: string | null;
+  template_key: string | null;
 }
 
 export type FilterTab = 'today' | 'week' | 'future' | 'all' | 'completed';
