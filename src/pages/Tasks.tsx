@@ -71,7 +71,7 @@ export default function Tasks() {
   }, [handleOAuthReturn]);
   
   // View state
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>('database');
   const [timelineViewType, setTimelineViewType] = useState<TimelineViewType>('day');
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
