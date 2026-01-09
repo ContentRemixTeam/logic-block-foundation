@@ -43,6 +43,7 @@ import CaptureLaunchPage from "./pages/CaptureLaunchPage";
 import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
 import MastermindHub from "./pages/MastermindHub";
+import WorkshopPlanner from "./pages/WorkshopPlanner";
 import NotFound from "./pages/NotFound";
 
 // Configure QueryClient with stability-focused defaults
@@ -120,6 +121,7 @@ const App = () => (
                   <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
                   <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                   <Route path="/capture" element={<CaptureLaunchPage />} />
+                  <Route path="/workshop-planner" element={<WorkshopPlanner />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </QuickCaptureProvider>
