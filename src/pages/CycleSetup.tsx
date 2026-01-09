@@ -11,7 +11,7 @@ import { Layout } from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, X, Target, BarChart3, Brain, CalendarIcon, Users, Megaphone, DollarSign, ChevronLeft, ChevronRight, Check, Sparkles, Heart, TrendingUp, Upload, FileJson, Save } from 'lucide-react';
+import { Plus, X, Target, BarChart3, Brain, CalendarIcon, Users, Megaphone, DollarSign, ChevronLeft, ChevronRight, Check, Sparkles, Heart, TrendingUp, Upload, FileJson, Save, Mail } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -327,6 +327,11 @@ export default function CycleSetup() {
   const [nurtureFrequency, setNurtureFrequency] = useState('');
   const [freeTransformation, setFreeTransformation] = useState('');
   const [proofMethods, setProofMethods] = useState<string[]>([]);
+  
+  // Email commitment settings (for follow-through check-ins)
+  const [emailCheckinEnabled, setEmailCheckinEnabled] = useState(false);
+  const [emailSendDay, setEmailSendDay] = useState<number>(2); // Default Tuesday
+  const [emailTimeBlock, setEmailTimeBlock] = useState<string>('morning');
 
   // Step 6: Offers
   const [offers, setOffers] = useState<Offer[]>([
@@ -734,6 +739,24 @@ export default function CycleSetup() {
           .from('habits')
           .insert(habitsToCreate);
         if (habitsError) console.error('Habits error:', habitsError);
+      }
+
+      // Create nurture commitment for email check-ins if enabled
+      if (emailCheckinEnabled && nurtureMethod === 'email') {
+        try {
+          await supabase.functions.invoke('save-nurture-commitment', {
+            body: {
+              cycle_id: cycleId,
+              commitment_type: 'email',
+              cadence: 'weekly',
+              day_of_week: emailSendDay,
+              preferred_time_block: emailTimeBlock,
+              enabled: true,
+            },
+          });
+        } catch (commitmentError) {
+          console.error('Nurture commitment error:', commitmentError);
+        }
       }
 
       // Create user settings (upsert to avoid conflicts)
@@ -1578,6 +1601,76 @@ export default function CycleSetup() {
                     ))}
                   </div>
                 </div>
+
+                {/* Email Follow-Through Check-ins */}
+                {nurtureMethod === 'email' && (
+                  <Card className="border-dashed">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-pink-500" />
+                        Email Follow-Through Check-ins
+                      </CardTitle>
+                      <CardDescription>
+                        Get a gentle reminder the day after your email send day to stay consistent
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center space-x-3">
+                        <Checkbox
+                          id="emailCheckinEnabled"
+                          checked={emailCheckinEnabled}
+                          onCheckedChange={(checked) => setEmailCheckinEnabled(checked as boolean)}
+                        />
+                        <div>
+                          <Label htmlFor="emailCheckinEnabled" className="text-sm font-medium cursor-pointer">
+                            Enable follow-through check-ins
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            We'll ask "Did you send your email yesterday?" the day after
+                          </p>
+                        </div>
+                      </div>
+
+                      {emailCheckinEnabled && (
+                        <div className="grid grid-cols-2 gap-4 pt-2">
+                          <div>
+                            <Label className="text-sm font-medium">Which day do you send emails?</Label>
+                            <Select 
+                              value={emailSendDay.toString()} 
+                              onValueChange={(v) => setEmailSendDay(parseInt(v))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="0">Sunday</SelectItem>
+                                <SelectItem value="1">Monday</SelectItem>
+                                <SelectItem value="2">Tuesday</SelectItem>
+                                <SelectItem value="3">Wednesday</SelectItem>
+                                <SelectItem value="4">Thursday</SelectItem>
+                                <SelectItem value="5">Friday</SelectItem>
+                                <SelectItem value="6">Saturday</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium">Preferred time block</Label>
+                            <Select value={emailTimeBlock} onValueChange={setEmailTimeBlock}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="morning">Morning</SelectItem>
+                                <SelectItem value="afternoon">Afternoon</SelectItem>
+                                <SelectItem value="evening">Evening</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
               </CardContent>
             </Card>
           )}

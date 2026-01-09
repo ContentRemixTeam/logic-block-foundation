@@ -1497,6 +1497,103 @@ export type Database = {
           },
         ]
       }
+      nurture_checkins: {
+        Row: {
+          checkin_date: string
+          coach_response: string | null
+          commitment_id: string | null
+          created_at: string | null
+          expected_date: string
+          id: string
+          reschedule_date: string | null
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          checkin_date: string
+          coach_response?: string | null
+          commitment_id?: string | null
+          created_at?: string | null
+          expected_date: string
+          id?: string
+          reschedule_date?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          checkin_date?: string
+          coach_response?: string | null
+          commitment_id?: string | null
+          created_at?: string | null
+          expected_date?: string
+          id?: string
+          reschedule_date?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nurture_checkins_commitment_id_fkey"
+            columns: ["commitment_id"]
+            isOneToOne: false
+            referencedRelation: "nurture_commitments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nurture_commitments: {
+        Row: {
+          cadence: string
+          commitment_type: string
+          created_at: string | null
+          cycle_id: string | null
+          day_of_week: number
+          enabled: boolean
+          grace_days: number
+          id: string
+          preferred_time_block: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cadence?: string
+          commitment_type?: string
+          created_at?: string | null
+          cycle_id?: string | null
+          day_of_week: number
+          enabled?: boolean
+          grace_days?: number
+          id?: string
+          preferred_time_block?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cadence?: string
+          commitment_type?: string
+          created_at?: string | null
+          cycle_id?: string | null
+          day_of_week?: number
+          enabled?: boolean
+          grace_days?: number
+          id?: string
+          preferred_time_block?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nurture_commitments_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+        ]
+      }
       project_board_settings: {
         Row: {
           created_at: string

@@ -29,6 +29,7 @@ import { DailyAgendaCard } from '@/components/daily-plan/DailyAgendaCard';
 import { PostingSlotCard } from '@/components/daily-plan/PostingSlotCard';
 import { CategoryProjectLinks } from '@/components/daily-plan/CategoryProjectLinks';
 import { QuickLogCard } from '@/components/content';
+import { NurtureCheckinCard } from '@/components/nurture';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -757,6 +758,9 @@ export default function DailyPlan() {
 
             {/* Posting Slot Card - shows if today is a posting day */}
             <PostingSlotCard />
+
+            {/* Nurture Check-in Card - shows if there's a pending checkin */}
+            <NurtureCheckinCard />
 
             {/* Nurture Log Card */}
             <QuickLogCard />
