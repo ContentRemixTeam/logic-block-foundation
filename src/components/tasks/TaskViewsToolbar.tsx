@@ -51,6 +51,16 @@ export function TaskViewsToolbar({
         </Button>
 
         <Button
+          variant={viewMode === 'board' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => onViewModeChange('board')}
+          className="gap-2"
+        >
+          <LayoutList className="h-4 w-4" />
+          <span className="hidden sm:inline">Table</span>
+        </Button>
+
+        <Button
           variant={viewMode === 'timeline' ? 'default' : 'outline'}
           size="sm"
           onClick={() => onViewModeChange('timeline')}

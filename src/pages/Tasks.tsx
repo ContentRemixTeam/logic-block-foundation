@@ -38,6 +38,7 @@ import { TaskTimelineView } from '@/components/tasks/views/TaskTimelineView';
 import { TaskWeekView } from '@/components/tasks/views/TaskWeekView';
 import { TaskMonthView } from '@/components/tasks/views/TaskMonthView';
 import { TaskThreeDayView } from '@/components/tasks/views/TaskThreeDayView';
+import { TaskMondayBoardView } from '@/components/tasks/views/TaskMondayBoardView';
 import { TimelineDayNavigation } from '@/components/tasks/views/TimelineDayNavigation';
 import { TimelineViewSelector, TimelineViewType } from '@/components/tasks/views/TimelineViewSelector';
 import { TaskPlanningCards } from '@/components/tasks/TaskPlanningCards';
@@ -628,6 +629,15 @@ export default function Tasks() {
             onDeleteTask={initiateDelete}
             onOpenDetail={openTaskDetail}
             onQuickReschedule={handleQuickReschedule}
+          />
+        ) : viewMode === 'board' ? (
+          <TaskMondayBoardView
+            tasks={regularTasks}
+            onToggleComplete={handleToggleComplete}
+            onUpdateTask={handleUpdateTask}
+            onDeleteTask={initiateDelete}
+            onOpenDetail={openTaskDetail}
+            onAddTask={() => setIsAddDialogOpen(true)}
           />
         ) : (
           <div className="space-y-4">

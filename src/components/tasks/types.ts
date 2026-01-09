@@ -76,7 +76,7 @@ export interface Task {
 export type FilterTab = 'today' | 'week' | 'future' | 'all' | 'completed';
 export type RecurrencePattern = 'none' | 'daily' | 'weekly' | 'monthly';
 export type DeleteType = 'single' | 'future' | 'all';
-export type ViewMode = 'list' | 'kanban' | 'timeline' | 'database';
+export type ViewMode = 'list' | 'kanban' | 'timeline' | 'database' | 'board';
 export type EnergyLevel = 'high_focus' | 'medium' | 'low_energy';
 export type TaskStatus = 'focus' | 'scheduled' | 'backlog' | 'waiting' | 'someday';
 
