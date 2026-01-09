@@ -38,6 +38,52 @@ export interface BoardColumn {
 export type ProjectStatus = 'active' | 'completed' | 'archived';
 export type ProjectColumn = 'todo' | 'in_progress' | 'done';
 
+export interface ProjectSection {
+  id: string;
+  project_id: string;
+  user_id: string;
+  name: string;
+  color: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectBoardSettings {
+  id: string;
+  project_id: string;
+  user_id: string;
+  visible_columns: string[];
+  sort_by: string;
+  sort_direction: 'asc' | 'desc';
+  created_at: string;
+  updated_at: string;
+}
+
+export const SECTION_COLORS = [
+  '#6366F1', // Indigo
+  '#8B5CF6', // Purple
+  '#EC4899', // Pink
+  '#EF4444', // Red
+  '#F97316', // Orange
+  '#EAB308', // Yellow
+  '#22C55E', // Green
+  '#14B8A6', // Teal
+  '#06B6D4', // Cyan
+  '#3B82F6', // Blue
+];
+
+export const BOARD_COLUMNS = [
+  { id: 'task', label: 'Task', required: true, width: 300 },
+  { id: 'status', label: 'Status', required: true, width: 120 },
+  { id: 'scheduled_date', label: 'Due Date', required: false, width: 130 },
+  { id: 'tags', label: 'Tags', required: false, width: 150 },
+  { id: 'priority', label: 'Priority', required: false, width: 100 },
+  { id: 'energy_level', label: 'Energy', required: false, width: 100 },
+  { id: 'estimated_minutes', label: 'Estimate', required: false, width: 80 },
+  { id: 'notes', label: 'Notes', required: false, width: 60 },
+];
+
 export const PROJECT_COLORS = [
   '#6366f1', // Indigo
   '#8b5cf6', // Purple

@@ -1,10 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { useProject, useProjectMutations } from '@/hooks/useProjects';
 import { useTasks, useTaskMutations } from '@/hooks/useTasks';
-import { TaskKanbanBoard } from '@/components/projects/TaskKanbanBoard';
-import { UncategorizedTasksPanel } from '@/components/projects/UncategorizedTasksPanel';
+import { MondayBoardView } from '@/components/projects/monday-board';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -15,8 +14,6 @@ import {
   Archive,
   CheckCircle2,
   Trash2,
-  PanelRightOpen,
-  PanelRightClose
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -35,22 +32,14 @@ export default function ProjectDetail() {
   const project = useProject(id);
   const { data: allTasks } = useTasks();
   const { updateProject, deleteProject } = useProjectMutations();
-  const { toggleComplete, updateTask, deleteTask } = useTaskMutations();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [showUncategorizedPanel, setShowUncategorizedPanel] = useState(false);
 
   // Filter tasks for this project
   const projectTasks = useMemo(() => {
     if (!allTasks || !id) return [];
     return allTasks.filter(task => task.project_id === id);
   }, [allTasks, id]);
-
-  // Filter uncategorized tasks (no project)
-  const uncategorizedTasks = useMemo(() => {
-    if (!allTasks) return [];
-    return allTasks.filter(task => !task.project_id && !task.is_completed);
-  }, [allTasks]);
 
   const handleBack = () => {
     navigate('/projects');
@@ -77,14 +66,6 @@ export default function ProjectDetail() {
         onSuccess: () => navigate('/projects'),
       });
     }
-  };
-
-  const handleTaskToggle = (taskId: string) => {
-    toggleComplete.mutate(taskId);
-  };
-
-  const handleUpdateTaskColumn = (taskId: string, column: 'todo' | 'in_progress' | 'done') => {
-    updateTask.mutate({ taskId, updates: { project_column: column } });
   };
 
   if (!project) {
@@ -151,20 +132,6 @@ export default function ProjectDetail() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowUncategorizedPanel(!showUncategorizedPanel)}
-                className="gap-2"
-              >
-                {showUncategorizedPanel ? (
-                  <PanelRightClose className="h-4 w-4" />
-                ) : (
-                  <PanelRightOpen className="h-4 w-4" />
-                )}
-                Add Tasks
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
                 onClick={() => setIsEditModalOpen(true)}
                 className="gap-2"
               >
@@ -207,31 +174,9 @@ export default function ProjectDetail() {
           )}
         </div>
 
-        {/* Content */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Kanban Board */}
-          <div className="flex-1 overflow-auto">
-            <TaskKanbanBoard
-              tasks={projectTasks}
-              projectId={project.id}
-              onTaskToggle={handleTaskToggle}
-              onUpdateColumn={handleUpdateTaskColumn}
-              onDeleteTask={(taskId) => {
-                if (confirm('Are you sure you want to delete this task?')) {
-                  deleteTask.mutate({ taskId });
-                }
-              }}
-            />
-          </div>
-
-          {/* Uncategorized Tasks Panel */}
-          {showUncategorizedPanel && (
-            <UncategorizedTasksPanel
-              tasks={uncategorizedTasks}
-              projectId={project.id}
-              onClose={() => setShowUncategorizedPanel(false)}
-            />
-          )}
+        {/* Monday-style Board */}
+        <div className="flex-1 overflow-hidden">
+          <MondayBoardView projectId={project.id} tasks={projectTasks} />
         </div>
 
         {/* Edit Modal */}

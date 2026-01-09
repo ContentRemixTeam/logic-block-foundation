@@ -70,6 +70,7 @@ export interface Task {
   project_id: string | null;
   project_column: 'todo' | 'in_progress' | 'done' | null;
   project?: { id: string; name: string; color: string } | null;
+  section_id: string | null;
 }
 
 export type FilterTab = 'today' | 'week' | 'future' | 'all' | 'completed';
