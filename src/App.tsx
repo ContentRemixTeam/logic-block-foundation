@@ -41,6 +41,7 @@ import SOPs from "./pages/SOPs";
 import Community from "./pages/Community";
 import Support from "./pages/Support";
 import CaptureLaunchPage from "./pages/CaptureLaunchPage";
+import InstallApp from "./pages/InstallApp";
 import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
 import MastermindHub from "./pages/MastermindHub";
@@ -124,6 +125,7 @@ const App = () => (
                   <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
                   <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                   <Route path="/capture" element={<CaptureLaunchPage />} />
+                  <Route path="/install" element={<InstallApp />} />
                   <Route path="/workshop-planner" element={<WorkshopPlanner />} />
                   <Route path="/workshop-planner/create" element={<WorkshopPlanner />} />
                   <Route path="/trial" element={<TrialSignup />} />

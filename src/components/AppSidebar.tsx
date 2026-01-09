@@ -25,6 +25,7 @@ import {
   Sparkle,
   PanelLeftClose,
   PanelLeft,
+  Smartphone,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
@@ -46,11 +47,14 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
+import { useQuickCapture } from '@/components/quick-capture';
+
 export function AppSidebar() {
   const location = useLocation();
   const { signOut } = useAuth();
   const { open: sidebarOpen, toggleSidebar } = useSidebar();
   const { isQuestMode, getNavLabel, level, currentLevelXP, xpToNextLevel, levelTitle } = useTheme();
+  const { openQuickCapture } = useQuickCapture();
 
   // All navigation items in a single flat list
   const navigationItems = [
@@ -59,6 +63,13 @@ export function AppSidebar() {
       href: '/dashboard', 
       icon: isQuestMode ? Map : LayoutDashboard,
       questIcon: '🗺️',
+    },
+    { 
+      name: 'Quick Capture', 
+      href: '#capture', 
+      icon: Zap,
+      questIcon: '⚡',
+      onClick: () => openQuickCapture(),
     },
     { 
       name: 'Planning', 
@@ -219,16 +230,30 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.href}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <SidebarMenuButton asChild isActive={isActive(item)} className="quest-nav-item">
-                        <Link to={item.href}>
+                      {item.onClick ? (
+                        <SidebarMenuButton 
+                          onClick={item.onClick} 
+                          className="quest-nav-item"
+                        >
                           {isQuestMode ? (
                             <span className="quest-nav-icon text-base">{item.questIcon}</span>
                           ) : (
                             <item.icon className="h-4 w-4" />
                           )}
                           <span>{item.name}</span>
-                        </Link>
-                      </SidebarMenuButton>
+                        </SidebarMenuButton>
+                      ) : (
+                        <SidebarMenuButton asChild isActive={isActive(item)} className="quest-nav-item">
+                          <Link to={item.href}>
+                            {isQuestMode ? (
+                              <span className="quest-nav-icon text-base">{item.questIcon}</span>
+                            ) : (
+                              <item.icon className="h-4 w-4" />
+                            )}
+                            <span>{item.name}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      )}
                     </TooltipTrigger>
                     {!sidebarOpen && (
                       <TooltipContent side="right">
@@ -266,6 +291,29 @@ export function AppSidebar() {
         )}
         
         <SidebarMenu>
+          {/* Install to phone link */}
+          <SidebarMenuItem>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <SidebarMenuButton asChild className="quest-nav-item text-muted-foreground hover:text-foreground">
+                  <Link to="/install">
+                    {isQuestMode ? (
+                      <span className="quest-nav-icon text-base">📲</span>
+                    ) : (
+                      <Smartphone className="h-4 w-4" />
+                    )}
+                    <span>Install to Phone</span>
+                  </Link>
+                </SidebarMenuButton>
+              </TooltipTrigger>
+              {!sidebarOpen && (
+                <TooltipContent side="right">
+                  Install to Phone
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </SidebarMenuItem>
+          
           <SidebarMenuItem>
             <Tooltip>
               <TooltipTrigger asChild>
