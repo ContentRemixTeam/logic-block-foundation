@@ -14,3 +14,9 @@ verify_jwt = false
 
 [functions.create-tasks-from-priorities]
 verify_jwt = false
+
+[functions.ghl-webhook-add-member]
+verify_jwt = false
+
+[functions.ghl-webhook-remove-member]
+verify_jwt = false
