@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react';
-import { addDays, format, isToday, isBefore, startOfDay } from 'date-fns';
+import { addDays, format, isToday, isBefore, startOfDay, parseISO } from 'date-fns';
 import { Task } from '@/components/tasks/types';
+import { CalendarEvent, CalendarEventBlock } from '@/components/tasks/views/CalendarEventBlock';
 import { WeeklyTaskCard } from './WeeklyTaskCard';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 interface WeeklyTimelineBoardProps {
   tasks: Task[];
+  calendarEvents?: CalendarEvent[];
   currentWeekStart: Date;
   officeHoursStart?: string;
   officeHoursEnd?: string;
@@ -22,6 +24,7 @@ const HOUR_SLOTS = Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => H
 
 export function WeeklyTimelineBoard({
   tasks,
+  calendarEvents = [],
   currentWeekStart,
   officeHoursStart = '9:00',
   officeHoursEnd = '17:00',
@@ -85,6 +88,56 @@ export function WeeklyTimelineBoard({
 
     return map;
   }, [tasks, weekDays]);
+
+  // Group calendar events by day and hour
+  const eventsByDayAndHour = useMemo(() => {
+    const map: Record<string, Record<number, CalendarEvent[]>> = {};
+    
+    weekDays.forEach((day) => {
+      const dateStr = format(day, 'yyyy-MM-dd');
+      map[dateStr] = {};
+      HOUR_SLOTS.forEach((hour) => {
+        map[dateStr][hour] = [];
+      });
+    });
+
+    calendarEvents.forEach((event) => {
+      // Skip all-day events for the hourly view
+      if (!event.start.dateTime) return;
+      
+      const startTime = parseISO(event.start.dateTime);
+      const dateStr = format(startTime, 'yyyy-MM-dd');
+      const hour = startTime.getHours();
+      
+      if (map[dateStr] && map[dateStr][hour]) {
+        map[dateStr][hour].push(event);
+      }
+    });
+
+    return map;
+  }, [calendarEvents, weekDays]);
+
+  // All-day calendar events by day
+  const allDayEventsByDay = useMemo(() => {
+    const map: Record<string, CalendarEvent[]> = {};
+    
+    weekDays.forEach((day) => {
+      const dateStr = format(day, 'yyyy-MM-dd');
+      map[dateStr] = [];
+    });
+
+    calendarEvents.forEach((event) => {
+      // Only include all-day events (have date but not dateTime)
+      if (event.start.date && !event.start.dateTime) {
+        const dateStr = event.start.date;
+        if (map[dateStr]) {
+          map[dateStr].push(event);
+        }
+      }
+    });
+
+    return map;
+  }, [calendarEvents, weekDays]);
 
   // Tasks scheduled for a day but without time blocks (show in "All Day" row)
   const untimedTasksByDay = useMemo(() => {
@@ -192,6 +245,7 @@ export function WeeklyTimelineBoard({
               const cellKey = `${dateStr}-allday`;
               const isOver = dragOverCell === cellKey;
               const dayTasks = untimedTasksByDay[dateStr] || [];
+              const dayEvents = allDayEventsByDay[dateStr] || [];
               
               return (
                 <div
@@ -206,6 +260,20 @@ export function WeeklyTimelineBoard({
                   )}
                 >
                   <div className="space-y-1">
+                    {/* All-day calendar events */}
+                    {dayEvents.slice(0, 2).map((event) => (
+                      <CalendarEventBlock
+                        key={event.id}
+                        event={event}
+                        compact
+                      />
+                    ))}
+                    {dayEvents.length > 2 && (
+                      <div className="text-xs text-blue-600 text-center py-0.5">
+                        +{dayEvents.length - 2} events
+                      </div>
+                    )}
+                    {/* Tasks */}
                     {dayTasks.slice(0, 3).map((task) => (
                       <WeeklyTaskCard
                         key={task.task_id}
@@ -219,7 +287,7 @@ export function WeeklyTimelineBoard({
                         +{dayTasks.length - 3} more
                       </div>
                     )}
-                    {dayTasks.length === 0 && isOver && (
+                    {dayTasks.length === 0 && dayEvents.length === 0 && isOver && (
                       <div className="text-xs text-primary text-center py-2">
                         Drop here
                       </div>
@@ -248,6 +316,7 @@ export function WeeklyTimelineBoard({
                 const isOver = dragOverCell === cellKey;
                 const isOfficeHour = isWithinOfficeHours(hour);
                 const cellTasks = tasksByDayAndHour[dateStr]?.[hour] || [];
+                const cellEvents = eventsByDayAndHour[dateStr]?.[hour] || [];
                 
                 return (
                   <div
@@ -262,6 +331,15 @@ export function WeeklyTimelineBoard({
                       isOver && 'bg-primary/10 ring-2 ring-inset ring-primary/30'
                     )}
                   >
+                    {/* Calendar events for this hour */}
+                    {cellEvents.map((event) => (
+                      <CalendarEventBlock
+                        key={event.id}
+                        event={event}
+                        compact
+                      />
+                    ))}
+                    {/* Tasks for this hour */}
                     {cellTasks.map((task) => (
                       <WeeklyTaskCard
                         key={task.task_id}

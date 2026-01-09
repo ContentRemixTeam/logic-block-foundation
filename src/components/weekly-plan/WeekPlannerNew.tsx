@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { startOfWeek, addDays, subDays, format, isThisWeek } from 'date-fns';
+import { startOfWeek, addDays, subDays, format, isThisWeek, endOfWeek } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useTasks, useTaskMutations } from '@/hooks/useTasks';
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { CalendarEvent } from '@/components/tasks/views/CalendarEventBlock';
+import { CalendarSelectionModal } from '@/components/google-calendar/CalendarSelectionModal';
 
 // New UI Components
 import { WeeklyPlannerHeader } from './WeeklyPlannerHeader';
@@ -36,6 +39,24 @@ export function WeekPlannerNew({
   // Use centralized task data
   const { data: tasks = [], isLoading: loading } = useTasks();
   const { createTask, updateTask, toggleComplete, moveToDay } = useTaskMutations();
+
+  // Google Calendar integration
+  const {
+    status: googleStatus,
+    loading: googleLoading,
+    syncing: googleSyncing,
+    calendars,
+    showCalendarModal,
+    setShowCalendarModal,
+    connect: connectGoogle,
+    selectCalendar,
+    syncNow,
+    handleOAuthReturn,
+  } = useGoogleCalendar();
+
+  // Calendar events
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(false);
 
   // Settings
   const [weekStartDay, setWeekStartDay] = useState(1);
@@ -79,6 +100,43 @@ export function WeekPlannerNew({
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
+
+  // Handle OAuth return from Google
+  useEffect(() => {
+    handleOAuthReturn();
+  }, [handleOAuthReturn]);
+
+  // Fetch calendar events for the current week
+  const fetchCalendarEvents = useCallback(async () => {
+    if (!googleStatus.connected || !googleStatus.calendarSelected) {
+      setCalendarEvents([]);
+      return;
+    }
+
+    setLoadingEvents(true);
+    try {
+      const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: weekStartDay as 0 | 1 });
+      const startDate = currentWeekStart.toISOString();
+      const endDate = addDays(weekEnd, 1).toISOString();
+
+      const { data, error } = await supabase.functions.invoke('get-calendar-events', {
+        body: { startDate, endDate },
+      });
+
+      if (error) throw error;
+      setCalendarEvents(data?.events || []);
+    } catch (error) {
+      console.error('Error fetching calendar events:', error);
+      setCalendarEvents([]);
+    } finally {
+      setLoadingEvents(false);
+    }
+  }, [currentWeekStart, weekStartDay, googleStatus.connected, googleStatus.calendarSelected]);
+
+  // Fetch events when week changes or google connects
+  useEffect(() => {
+    fetchCalendarEvents();
+  }, [fetchCalendarEvents]);
 
   const handleTaskDrop = async (taskId: string, fromPlannedDay: string | null, targetDate: string, timeSlot?: string) => {
     // Get max order for the target day and add 1
@@ -246,6 +304,11 @@ export function WeekPlannerNew({
         isCurrentWeek={isCurrentWeek}
         showWeekend={showWeekend}
         onToggleWeekend={() => setShowWeekend(prev => !prev)}
+        googleConnected={googleStatus.connected && googleStatus.calendarSelected}
+        googleCalendarName={googleStatus.calendarName}
+        onConnectGoogle={() => connectGoogle('/weekly-plan')}
+        onSyncGoogle={syncNow}
+        googleSyncing={googleSyncing}
       />
 
       {/* Week Label */}
@@ -278,6 +341,7 @@ export function WeekPlannerNew({
           <div className="flex-1 min-w-0">
             <WeeklyTimelineBoard
               tasks={tasks}
+              calendarEvents={calendarEvents}
               currentWeekStart={currentWeekStart}
               officeHoursStart={officeHoursStart}
               officeHoursEnd={officeHoursEnd}
@@ -309,6 +373,14 @@ export function WeekPlannerNew({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Google Calendar Selection Modal */}
+      <CalendarSelectionModal
+        open={showCalendarModal}
+        onOpenChange={setShowCalendarModal}
+        calendars={calendars}
+        onSelect={selectCalendar}
+      />
     </div>
   );
 }
