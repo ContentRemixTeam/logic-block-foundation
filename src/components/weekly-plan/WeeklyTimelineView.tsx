@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { format, parseISO, startOfWeek, addDays, isToday, isSameDay } from 'date-fns';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { format, parseISO, startOfWeek, addDays, isToday } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,7 @@ import { TimelineTaskBlock } from '@/components/daily-plan/TimelineTaskBlock';
 import { Task } from '@/components/tasks/types';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { useAuth } from '@/hooks/useAuth';
+import { useTasks, useTaskMutations } from '@/hooks/useTasks';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { 
@@ -33,10 +34,12 @@ export function WeeklyTimelineView({ onTaskToggle, onTaskClick }: WeeklyTimeline
   const { user } = useAuth();
   const { status: calendarStatus, syncing, syncNow, connect } = useGoogleCalendar();
   
+  // Use shared task data
+  const { data: allTasks = [], isLoading: loadingTasks } = useTasks();
+  const { toggleComplete } = useTaskMutations();
+  
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
-  const [loadingTasks, setLoadingTasks] = useState(true);
   const [weekStartDay, setWeekStartDay] = useState(1); // Monday
   
   const [currentWeekStart, setCurrentWeekStart] = useState(() => 
@@ -49,6 +52,22 @@ export function WeeklyTimelineView({ onTaskToggle, onTaskClick }: WeeklyTimeline
 
   const weekStartStr = format(currentWeekStart, 'yyyy-MM-dd');
   const weekEndStr = format(addDays(currentWeekStart, 6), 'yyyy-MM-dd');
+
+  // Filter tasks for this week from shared data
+  const tasks = useMemo(() => {
+    return allTasks.filter((task: Task) => {
+      const scheduledDate = task.scheduled_date;
+      const plannedDay = task.planned_day;
+      const timeBlockDate = task.time_block_start?.substring(0, 10);
+      
+      const isInWeek = (date: string | null) => {
+        if (!date) return false;
+        return date >= weekStartStr && date <= weekEndStr;
+      };
+      
+      return (isInWeek(scheduledDate) || isInWeek(plannedDay) || isInWeek(timeBlockDate)) && !task.is_recurring_parent;
+    });
+  }, [allTasks, weekStartStr, weekEndStr]);
 
   // Fetch calendar events for the week
   useEffect(() => {
@@ -77,44 +96,6 @@ export function WeeklyTimelineView({ onTaskToggle, onTaskClick }: WeeklyTimeline
 
     fetchCalendarEvents();
   }, [calendarStatus.connected, calendarStatus.calendarSelected, weekStartStr, weekEndStr]);
-
-  // Fetch tasks for the week
-  useEffect(() => {
-    const fetchTasks = async () => {
-      if (!user) {
-        setLoadingTasks(false);
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase.functions.invoke('get-all-tasks');
-
-        if (error) throw error;
-
-        // Filter tasks for this week
-        const weekTasks = (data?.tasks || data?.data || []).filter((task: Task) => {
-          const scheduledDate = task.scheduled_date;
-          const plannedDay = task.planned_day;
-          const timeBlockDate = task.time_block_start?.substring(0, 10);
-          
-          const isInWeek = (date: string | null) => {
-            if (!date) return false;
-            return date >= weekStartStr && date <= weekEndStr;
-          };
-          
-          return (isInWeek(scheduledDate) || isInWeek(plannedDay) || isInWeek(timeBlockDate)) && !task.is_recurring_parent;
-        });
-
-        setTasks(weekTasks);
-      } catch (error) {
-        console.error('Error fetching tasks:', error);
-      } finally {
-        setLoadingTasks(false);
-      }
-    };
-
-    fetchTasks();
-  }, [user, weekStartStr, weekEndStr]);
 
   // Load settings
   useEffect(() => {
@@ -177,44 +158,23 @@ export function WeeklyTimelineView({ onTaskToggle, onTaskClick }: WeeklyTimeline
   }, [tasks]);
 
   const handleTaskToggle = async (taskId: string, currentStatus: boolean) => {
-    setTasks(prev => prev.map(t => 
-      t.task_id === taskId ? { ...t, is_completed: !currentStatus } : t
-    ));
-
-    try {
-      await supabase.functions.invoke('manage-task', {
-        body: {
-          action: 'update',
-          task_id: taskId,
-          is_completed: !currentStatus,
-        },
-      });
-      
-      onTaskToggle?.(taskId, currentStatus);
-    } catch (error) {
-      setTasks(prev => prev.map(t => 
-        t.task_id === taskId ? { ...t, is_completed: currentStatus } : t
-      ));
-      console.error('Error toggling task:', error);
-    }
+    toggleComplete.mutate(taskId);
+    onTaskToggle?.(taskId, currentStatus);
   };
 
   const goToPreviousWeek = () => {
     setCurrentWeekStart(prev => addDays(prev, -7));
     setLoadingEvents(true);
-    setLoadingTasks(true);
   };
 
   const goToNextWeek = () => {
     setCurrentWeekStart(prev => addDays(prev, 7));
     setLoadingEvents(true);
-    setLoadingTasks(true);
   };
 
   const goToCurrentWeek = () => {
     setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: weekStartDay as 0 | 1 }));
     setLoadingEvents(true);
-    setLoadingTasks(true);
   };
 
   const hours = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i);

@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { format, endOfWeek } from 'date-fns';
 import { Task } from '@/components/tasks/types';
+import { mutationLogger } from '@/components/dev/DevDebugPanel';
 
 // Re-export the Task type for convenience
 export type { Task } from '@/components/tasks/types';
@@ -109,12 +110,29 @@ export function useTaskMutations() {
   const createTask = useMutation({
     mutationFn: async (params: Partial<Task> & { task_text: string }) => {
       const session = await getSession();
-      const response = await supabase.functions.invoke('manage-task', {
-        body: { action: 'create', ...params },
-        headers: { Authorization: `Bearer ${session.access_token}` },
+      
+      // Log mutation start
+      const logId = mutationLogger.log({
+        type: 'create',
+        taskText: params.task_text,
+        updates: params,
+        status: 'pending',
       });
-      if (response.error) throw response.error;
-      return response.data?.data as Task;
+      const startTime = Date.now();
+      
+      try {
+        const response = await supabase.functions.invoke('manage-task', {
+          body: { action: 'create', ...params },
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (response.error) throw response.error;
+        
+        mutationLogger.updateStatus(logId, 'success', undefined, Date.now() - startTime);
+        return response.data?.data as Task;
+      } catch (error: any) {
+        mutationLogger.updateStatus(logId, 'error', error?.message, Date.now() - startTime);
+        throw error;
+      }
     },
     onMutate: async (newTask) => {
       // Cancel outgoing queries
@@ -189,12 +207,34 @@ export function useTaskMutations() {
   const updateTask = useMutation({
     mutationFn: async ({ taskId, updates }: { taskId: string; updates: Partial<Task> }) => {
       const session = await getSession();
-      const response = await supabase.functions.invoke('manage-task', {
-        body: { action: 'update', task_id: taskId, ...updates },
-        headers: { Authorization: `Bearer ${session.access_token}` },
+      
+      // Get task text for logging
+      const currentTasks = queryClient.getQueryData<Task[]>(taskQueryKeys.all);
+      const task = currentTasks?.find(t => t.task_id === taskId);
+      
+      // Log mutation start
+      const logId = mutationLogger.log({
+        type: 'update',
+        taskId,
+        taskText: task?.task_text,
+        updates,
+        status: 'pending',
       });
-      if (response.error) throw response.error;
-      return response.data?.data as Task;
+      const startTime = Date.now();
+      
+      try {
+        const response = await supabase.functions.invoke('manage-task', {
+          body: { action: 'update', task_id: taskId, ...updates },
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (response.error) throw response.error;
+        
+        mutationLogger.updateStatus(logId, 'success', undefined, Date.now() - startTime);
+        return response.data?.data as Task;
+      } catch (error: any) {
+        mutationLogger.updateStatus(logId, 'error', error?.message, Date.now() - startTime);
+        throw error;
+      }
     },
     onMutate: async ({ taskId, updates }) => {
       await queryClient.cancelQueries({ queryKey: taskQueryKeys.all });
