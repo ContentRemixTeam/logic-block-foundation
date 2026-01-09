@@ -1203,9 +1203,77 @@ export type Database = {
           },
         ]
       }
+      project_boards: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      project_columns: {
+        Row: {
+          board_id: string
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          board_id: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          user_id: string
+        }
+        Update: {
+          board_id?: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_columns_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "project_boards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
+          board_id: string | null
+          board_sort_order: number | null
           color: string | null
+          column_id: string | null
           created_at: string | null
           cycle_id: string | null
           description: string | null
@@ -1219,7 +1287,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          board_id?: string | null
+          board_sort_order?: number | null
           color?: string | null
+          column_id?: string | null
           created_at?: string | null
           cycle_id?: string | null
           description?: string | null
@@ -1233,7 +1304,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          board_id?: string | null
+          board_sort_order?: number | null
           color?: string | null
+          column_id?: string | null
           created_at?: string | null
           cycle_id?: string | null
           description?: string | null
@@ -1247,6 +1321,20 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "projects_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "project_boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_column_id_fkey"
+            columns: ["column_id"]
+            isOneToOne: false
+            referencedRelation: "project_columns"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "projects_cycle_id_fkey"
             columns: ["cycle_id"]
@@ -1767,6 +1855,10 @@ export type Database = {
           p_top_3_today: Json
           p_user_id: string
         }
+        Returns: string
+      }
+      create_default_project_board: {
+        Args: { p_user_id: string }
         Returns: string
       }
       evaluate_habit_color: {

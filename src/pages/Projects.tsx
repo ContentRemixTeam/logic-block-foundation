@@ -3,14 +3,18 @@ import { Layout } from '@/components/Layout';
 import { useProjects, useProjectMutations } from '@/hooks/useProjects';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { NewProjectModal } from '@/components/projects/NewProjectModal';
+import { ProjectBoardView } from '@/components/projects/ProjectBoardView';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, FolderKanban, Archive, CheckCircle2, Copy } from 'lucide-react';
+import { Plus, FolderKanban, Archive, CheckCircle2, Copy, LayoutGrid, List } from 'lucide-react';
 import { Project, ProjectStatus } from '@/types/project';
+
+type ViewMode = 'list' | 'board';
 
 export default function Projects() {
   const { data: projects, isLoading } = useProjects();
   const { deleteProject, updateProject } = useProjectMutations();
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [activeTab, setActiveTab] = useState<ProjectStatus | 'templates'>('active');
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
@@ -107,76 +111,101 @@ export default function Projects() {
               Organize your tasks into focused projects
             </p>
           </div>
-          <Button onClick={() => setIsNewProjectModalOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Project
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* View Mode Toggle */}
+            <div className="flex border rounded-lg">
+              <Button
+                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="rounded-r-none"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'board' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('board')}
+                className="rounded-l-none"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+            </div>
+            <Button onClick={() => setIsNewProjectModalOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              New Project
+            </Button>
+          </div>
         </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ProjectStatus | 'templates')}>
-          <TabsList>
-            <TabsTrigger value="active" className="gap-2">
-              {getTabIcon('active')}
-              Active
-            </TabsTrigger>
-            <TabsTrigger value="completed" className="gap-2">
-              {getTabIcon('completed')}
-              Completed
-            </TabsTrigger>
-            <TabsTrigger value="archived" className="gap-2">
-              {getTabIcon('archived')}
-              Archived
-            </TabsTrigger>
-            <TabsTrigger value="templates" className="gap-2">
-              {getTabIcon('templates')}
-              Templates
-            </TabsTrigger>
-          </TabsList>
+        {viewMode === 'board' ? (
+          <ProjectBoardView onSwitchToList={() => setViewMode('list')} />
+        ) : (
+          /* List View with Tabs */
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ProjectStatus | 'templates')}>
+            <TabsList>
+              <TabsTrigger value="active" className="gap-2">
+                {getTabIcon('active')}
+                Active
+              </TabsTrigger>
+              <TabsTrigger value="completed" className="gap-2">
+                {getTabIcon('completed')}
+                Completed
+              </TabsTrigger>
+              <TabsTrigger value="archived" className="gap-2">
+                {getTabIcon('archived')}
+                Archived
+              </TabsTrigger>
+              <TabsTrigger value="templates" className="gap-2">
+                {getTabIcon('templates')}
+                Templates
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value={activeTab} className="mt-6">
-            {isLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-40 bg-muted animate-pulse rounded-lg" />
-                ))}
-              </div>
-            ) : filteredProjects.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="rounded-full bg-muted p-4 mb-4">
-                  <FolderKanban className="h-8 w-8 text-muted-foreground" />
+            <TabsContent value={activeTab} className="mt-6">
+              {isLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-40 bg-muted animate-pulse rounded-lg" />
+                  ))}
                 </div>
-                <h3 className="text-lg font-semibold">{emptyState.title}</h3>
-                <p className="text-muted-foreground max-w-sm mt-1">
-                  {emptyState.description}
-                </p>
-                {emptyState.showCta && (
-                  <Button 
-                    onClick={() => setIsNewProjectModalOpen(true)} 
-                    className="mt-4 gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Create Project
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredProjects.map((project) => (
-                  <ProjectCard
-                    key={project.id}
-                    project={project}
-                    onEdit={handleEditProject}
-                    onArchive={handleArchiveProject}
-                    onComplete={handleCompleteProject}
-                    onReactivate={handleReactivateProject}
-                    onDelete={handleDeleteProject}
-                  />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+              ) : filteredProjects.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="rounded-full bg-muted p-4 mb-4">
+                    <FolderKanban className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold">{emptyState.title}</h3>
+                  <p className="text-muted-foreground max-w-sm mt-1">
+                    {emptyState.description}
+                  </p>
+                  {emptyState.showCta && (
+                    <Button 
+                      onClick={() => setIsNewProjectModalOpen(true)} 
+                      className="mt-4 gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Create Project
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredProjects.map((project) => (
+                    <ProjectCard
+                      key={project.id}
+                      project={project}
+                      onEdit={handleEditProject}
+                      onArchive={handleArchiveProject}
+                      onComplete={handleCompleteProject}
+                      onReactivate={handleReactivateProject}
+                      onDelete={handleDeleteProject}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        )}
 
         {/* New/Edit Project Modal */}
         <NewProjectModal
