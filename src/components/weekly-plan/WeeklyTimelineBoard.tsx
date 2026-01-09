@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { addDays, format, isToday, isBefore, startOfDay, parseISO } from 'date-fns';
 import { Task } from '@/components/tasks/types';
 import { CalendarEvent, CalendarEventBlock } from '@/components/tasks/views/CalendarEventBlock';
@@ -33,6 +33,29 @@ export function WeeklyTimelineBoard({
   onTaskToggle,
 }: WeeklyTimelineBoardProps) {
   const [dragOverCell, setDragOverCell] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Prevent body scroll during drag
+  useEffect(() => {
+    const handleGlobalDragStart = () => {
+      setIsDragging(true);
+    };
+
+    const handleGlobalDragEnd = () => {
+      setIsDragging(false);
+      setDragOverCell(null);
+    };
+
+    document.addEventListener('dragstart', handleGlobalDragStart);
+    document.addEventListener('dragend', handleGlobalDragEnd);
+    document.addEventListener('drop', handleGlobalDragEnd);
+
+    return () => {
+      document.removeEventListener('dragstart', handleGlobalDragStart);
+      document.removeEventListener('dragend', handleGlobalDragEnd);
+      document.removeEventListener('drop', handleGlobalDragEnd);
+    };
+  }, []);
 
   // Generate days (7 or 5 depending on showWeekend)
   const weekDays = useMemo(() => {
@@ -153,29 +176,62 @@ export function WeeklyTimelineBoard({
     return map;
   }, [tasks, weekDays]);
 
-  const handleDragOver = (e: React.DragEvent, dateStr: string, hour?: number) => {
+  const handleDragOver = useCallback((e: React.DragEvent, dateStr: string, hour?: number) => {
     e.preventDefault();
+    e.stopPropagation();
     e.dataTransfer.dropEffect = 'move';
     const cellKey = hour !== undefined ? `${dateStr}-${hour}` : `${dateStr}-allday`;
     setDragOverCell(cellKey);
-  };
+  }, []);
 
-  const handleDragLeave = () => {
-    setDragOverCell(null);
-  };
-
-  const handleDrop = (e: React.DragEvent, dateStr: string, hour?: number) => {
+  const handleDragEnter = useCallback((e: React.DragEvent, dateStr: string, hour?: number) => {
     e.preventDefault();
+    e.stopPropagation();
+    const cellKey = hour !== undefined ? `${dateStr}-${hour}` : `${dateStr}-allday`;
+    setDragOverCell(cellKey);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Only clear if we're actually leaving (not entering a child)
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) {
+      setDragOverCell(null);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent, dateStr: string, hour?: number) => {
+    e.preventDefault();
+    e.stopPropagation();
     setDragOverCell(null);
 
-    const taskId = e.dataTransfer.getData('taskId');
-    const fromPlannedDay = e.dataTransfer.getData('fromPlannedDay') || null;
+    // Try to get data from JSON format first, then fall back to plain text
+    let taskId: string | null = null;
+    let fromPlannedDay: string | null = null;
+
+    try {
+      const jsonData = e.dataTransfer.getData('application/json');
+      if (jsonData) {
+        const parsed = JSON.parse(jsonData);
+        taskId = parsed.taskId;
+        fromPlannedDay = parsed.fromPlannedDay || null;
+      }
+    } catch {
+      // Fall back to plain text format
+      taskId = e.dataTransfer.getData('taskId');
+      fromPlannedDay = e.dataTransfer.getData('fromPlannedDay') || null;
+    }
 
     if (taskId) {
       const timeSlot = hour !== undefined ? `${String(hour).padStart(2, '0')}:00` : undefined;
       onTaskDrop(taskId, fromPlannedDay, dateStr, timeSlot);
     }
-  };
+  }, [onTaskDrop]);
 
   const formatHour = (hour: number): string => {
     if (hour === 0) return '12 AM';
@@ -189,7 +245,10 @@ export function WeeklyTimelineBoard({
   };
 
   return (
-    <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+    <div className={cn(
+      "bg-card rounded-xl border shadow-sm overflow-hidden",
+      isDragging && "select-none"
+    )}>
       <ScrollArea className="w-full">
         <div className="min-w-[900px]">
           {/* Header row with days */}
@@ -251,12 +310,14 @@ export function WeeklyTimelineBoard({
                 <div
                   key={cellKey}
                   onDragOver={(e) => handleDragOver(e, dateStr)}
+                  onDragEnter={(e) => handleDragEnter(e, dateStr)}
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, dateStr)}
                   className={cn(
-                    'flex-1 min-w-[120px] border-r last:border-r-0 p-1.5 min-h-[60px]',
+                    'flex-1 min-w-[120px] border-r last:border-r-0 p-1.5 min-h-[60px] transition-all duration-150',
                     today && 'bg-primary/5',
-                    isOver && 'bg-primary/10 ring-2 ring-inset ring-primary/30'
+                    isOver && 'bg-primary/10 ring-2 ring-inset ring-primary/40 scale-[1.01]',
+                    isDragging && !isOver && 'hover:bg-muted/40'
                   )}
                 >
                   <div className="space-y-1">
@@ -288,7 +349,7 @@ export function WeeklyTimelineBoard({
                       </div>
                     )}
                     {dayTasks.length === 0 && dayEvents.length === 0 && isOver && (
-                      <div className="text-xs text-primary text-center py-2">
+                      <div className="text-xs text-primary text-center py-2 font-medium animate-pulse">
                         Drop here
                       </div>
                     )}
@@ -322,15 +383,23 @@ export function WeeklyTimelineBoard({
                   <div
                     key={cellKey}
                     onDragOver={(e) => handleDragOver(e, dateStr, hour)}
+                    onDragEnter={(e) => handleDragEnter(e, dateStr, hour)}
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, dateStr, hour)}
                     className={cn(
-                      'flex-1 min-w-[120px] border-r last:border-r-0 min-h-[48px] p-0.5 transition-colors',
+                      'flex-1 min-w-[120px] border-r last:border-r-0 min-h-[48px] p-0.5 transition-all duration-150',
                       today && 'bg-primary/5',
                       isOfficeHour && !today && 'bg-muted/20',
-                      isOver && 'bg-primary/10 ring-2 ring-inset ring-primary/30'
+                      isOver && 'bg-primary/10 ring-2 ring-inset ring-primary/40 scale-[1.01]',
+                      isDragging && !isOver && 'hover:bg-muted/30'
                     )}
                   >
+                    {/* Drop indicator when hovering empty cell */}
+                    {isOver && cellTasks.length === 0 && cellEvents.length === 0 && (
+                      <div className="text-xs text-primary text-center py-3 font-medium animate-pulse">
+                        {formatHour(hour)}
+                      </div>
+                    )}
                     {/* Calendar events for this hour */}
                     {cellEvents.map((event) => (
                       <CalendarEventBlock
