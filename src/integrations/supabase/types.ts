@@ -1203,6 +1203,47 @@ export type Database = {
           },
         ]
       }
+      project_board_settings: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          sort_by: string | null
+          sort_direction: string | null
+          updated_at: string
+          user_id: string
+          visible_columns: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          sort_by?: string | null
+          sort_direction?: string | null
+          updated_at?: string
+          user_id: string
+          visible_columns?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          sort_by?: string | null
+          sort_direction?: string | null
+          updated_at?: string
+          user_id?: string
+          visible_columns?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_board_settings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_boards: {
         Row: {
           created_at: string
@@ -1264,6 +1305,47 @@ export type Database = {
             columns: ["board_id"]
             isOneToOne: false
             referencedRelation: "project_boards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_sections: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          project_id: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          project_id: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          project_id?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_sections_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -1486,6 +1568,7 @@ export type Database = {
           recurrence_days: Json | null
           recurrence_pattern: string | null
           scheduled_date: string | null
+          section_id: string | null
           sop_id: string | null
           source: string | null
           status: string | null
@@ -1523,6 +1606,7 @@ export type Database = {
           recurrence_days?: Json | null
           recurrence_pattern?: string | null
           scheduled_date?: string | null
+          section_id?: string | null
           sop_id?: string | null
           source?: string | null
           status?: string | null
@@ -1560,6 +1644,7 @@ export type Database = {
           recurrence_days?: Json | null
           recurrence_pattern?: string | null
           scheduled_date?: string | null
+          section_id?: string | null
           sop_id?: string | null
           source?: string | null
           status?: string | null
@@ -1593,6 +1678,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "project_sections"
             referencedColumns: ["id"]
           },
           {
