@@ -53,7 +53,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <header className="sticky top-0 z-40 border-b bg-background">
             <div className="flex h-16 items-center gap-4 px-6">
               <SidebarTrigger />
-              <h1 className="text-lg font-semibold">90-Day Planner</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-semibold">Becoming Boss Mastermind</h1>
+                <span className="text-amber-500">⚡</span>
+              </div>
             </div>
             {cycleData && (
               <div className="px-6 pb-3">

@@ -38,12 +38,12 @@ const planningCards: PlanningCard[] = [
     iconBgClass: 'bg-rose-100',
   },
   {
-    title: '90-Day Goals',
-    description: 'Define your quarterly goal and milestones.',
+    title: '90-Day Goals ⚡',
+    description: 'Define your quarterly Boss goals and milestones.',
     href: '/cycle-setup',
     icon: Target,
-    iconColorClass: 'text-purple-600',
-    iconBgClass: 'bg-purple-100',
+    iconColorClass: 'text-amber-600',
+    iconBgClass: 'bg-amber-100',
   },
 ];
 

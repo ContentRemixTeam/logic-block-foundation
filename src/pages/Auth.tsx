@@ -192,8 +192,8 @@ export default function Auth() {
               {isForgotPassword
                 ? 'Enter your email to receive a reset link'
                 : isLogin
-                ? 'Welcome back to your 90-day planning journey'
-                : 'Start your 90-day transformation'}
+                ? 'Welcome back to the Becoming Boss Mastermind ⚡'
+                : 'Start your Becoming Boss transformation ⚡'}
             </CardDescription>
           </CardHeader>
         <CardContent>

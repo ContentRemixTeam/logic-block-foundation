@@ -144,7 +144,7 @@ export default function Dashboard() {
             {getNavLabel('dashboard')}
           </h1>
           <p className="text-muted-foreground">
-            {isQuestMode ? 'Your adventure awaits, adventurer' : 'Your 90-day planning overview'}
+            {isQuestMode ? 'Your adventure awaits, Boss ⚡' : 'Your 90-day Becoming Boss journey'}
           </p>
         </div>
 
@@ -168,19 +168,23 @@ export default function Dashboard() {
         <OnboardingChecklist />
 
         {!hasCycle ? (
-          <Card>
+          <Card className="border-amber-200/50">
             <CardHeader>
-              <CardTitle>Welcome! Start Your First 90-Day Cycle</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                Welcome to the Becoming Boss Mastermind! <span className="text-amber-500">⚡</span>
+              </CardTitle>
               <CardDescription>
                 Begin your journey by defining your 90-day goal, identity, and supporting projects
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                A 90-day cycle helps you focus on what matters most and make consistent progress toward your goals.
+                A 90-day cycle helps you focus on what matters most and make consistent progress toward your Boss goals.
               </p>
               <Link to="/cycle-setup">
-                <Button size="lg">Start Your First 90-Day Cycle</Button>
+                <Button size="lg" className="gap-2">
+                  <span>⚡</span> Start Your First 90-Day Cycle
+                </Button>
               </Link>
             </CardContent>
           </Card>
