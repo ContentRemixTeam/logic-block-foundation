@@ -187,36 +187,20 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
     savedType: CaptureType
   ) => {
     const truncated = truncateText(savedText);
+    const title = savedType === 'task' ? '✅ Task saved' : '💡 Idea saved';
     
-    toast.success(
-      <div className="flex flex-col gap-1">
-        <span className="font-medium">
-          {savedType === 'task' ? '✅ Task saved' : '💡 Idea saved'}
-        </span>
-        <span className="text-sm text-muted-foreground">{truncated}</span>
-      </div>,
-      {
-        duration: 5000,
-        action: {
-          label: (
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              Plan this week
-            </span>
-          ),
-          onClick: () => handlePlanForWeek(savedId, savedType),
-        },
-        cancel: {
-          label: (
-            <span className="flex items-center gap-1">
-              <Plus className="h-3 w-3" />
-              Add another
-            </span>
-          ),
-          onClick: handleAddAnother,
-        },
-      }
-    );
+    toast.success(title, {
+      description: truncated,
+      duration: 5000,
+      action: {
+        label: '📅 Plan this week',
+        onClick: () => handlePlanForWeek(savedId, savedType),
+      },
+      cancel: {
+        label: '➕ Add another',
+        onClick: handleAddAnother,
+      },
+    });
   };
 
   const handleAddIdeaTag = () => {

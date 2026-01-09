@@ -186,20 +186,14 @@ export function WeekPlannerNew({
           const timeLabel = timeSlot ? ` at ${timeSlot}` : '';
           
           // Show toast with View and Undo actions
-          toast.success(
-            <div className="flex flex-col gap-0.5">
-              <span className="font-medium">Task scheduled</span>
-              <span className="text-sm text-muted-foreground truncate max-w-[200px]">{task.task_text}</span>
-            </div>,
-            {
-              description: `${format(targetDay, 'EEEE')}${timeLabel}`,
-              duration: 5000,
-              action: {
-                label: 'Undo',
-                onClick: () => handleUndoSchedule(taskId, previousState),
-              },
-            }
-          );
+          toast.success('Task scheduled', {
+            description: `${task.task_text.slice(0, 40)}${task.task_text.length > 40 ? '...' : ''} → ${format(targetDay, 'EEEE')}${timeLabel}`,
+            duration: 5000,
+            action: {
+              label: 'Undo',
+              onClick: () => handleUndoSchedule(taskId, previousState),
+            },
+          });
         },
         onError: (error: any) => {
           toast.error('Failed to schedule task', {
