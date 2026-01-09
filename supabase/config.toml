@@ -20,3 +20,9 @@ verify_jwt = false
 
 [functions.ghl-webhook-remove-member]
 verify_jwt = false
+
+[functions.verify-member-email]
+verify_jwt = false
+
+[functions.add-mastermind-entitlement]
+verify_jwt = false
