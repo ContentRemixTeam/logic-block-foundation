@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { CalendarEvent } from '@/components/tasks/views/CalendarEventBlock';
 import { CalendarSelectionModal } from '@/components/google-calendar/CalendarSelectionModal';
+import { CycleFocusBanner } from '@/components/cycle/CycleFocusBanner';
 
 // New UI Components
 import { WeeklyPlannerHeader } from './WeeklyPlannerHeader';
@@ -377,6 +378,12 @@ export function WeekPlannerNew({
         onConnectGoogle={() => connectGoogle('/weekly-plan')}
         onSyncGoogle={syncNow}
         googleSyncing={googleSyncing}
+      />
+
+      {/* Cycle Focus Banner */}
+      <CycleFocusBanner 
+        showWeeklyGoal={true} 
+        weekStartDate={format(currentWeekStart, 'yyyy-MM-dd')} 
       />
 
       {/* Week Label */}
