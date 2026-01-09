@@ -114,24 +114,40 @@ export default function Auth() {
           title: 'Welcome back!',
           description: 'Successfully signed in.',
         });
-        navigate('/dashboard');
+        
+        // Redirect to stored location or dashboard
+        const redirectTo = sessionStorage.getItem('auth_redirect') || '/dashboard';
+        sessionStorage.removeItem('auth_redirect');
+        navigate(redirectTo);
       } else {
         const redirectUrl = `${window.location.origin}/`;
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email: email.trim().toLowerCase(),
           password,
           options: {
             emailRedirectTo: redirectUrl,
+            data: {
+              user_type: 'guest', // Explicitly set user_type for the trigger
+            },
           },
         });
 
         if (error) throw error;
 
-        toast({
-          title: 'Account created!',
-          description: 'You can now sign in.',
-        });
-        setIsLogin(true);
+        // If auto-confirm is enabled, they're already logged in
+        if (data?.session) {
+          toast({
+            title: 'Welcome!',
+            description: 'Your account has been created.',
+          });
+          navigate('/dashboard');
+        } else {
+          toast({
+            title: 'Account created!',
+            description: 'You can now sign in.',
+          });
+          setIsLogin(true);
+        }
       }
     } catch (error: any) {
       // User-friendly error messages
@@ -141,10 +157,13 @@ export default function Auth() {
         errorMessage = 'Invalid email or password. Please check your credentials.';
       } else if (error.message?.includes('Email not confirmed')) {
         errorMessage = 'Please confirm your email address before signing in.';
-      } else if (error.message?.includes('User already registered')) {
+      } else if (error.message?.includes('User already registered') || error.message?.includes('already registered')) {
         errorMessage = 'This email is already registered. Try signing in instead.';
+        setIsLogin(true); // Switch to login mode
       } else if (error.message?.includes('rate limit')) {
         errorMessage = 'Too many attempts. Please wait a moment and try again.';
+      } else if (error.message?.includes('Database error')) {
+        errorMessage = 'There was an issue creating your account. Please try again or contact support.';
       }
       
       toast({
