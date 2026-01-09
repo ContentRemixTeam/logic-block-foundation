@@ -24,13 +24,15 @@ export default function WeeklyPlan() {
   const [searchParams, setSearchParams] = useSearchParams();
   const highlightTaskId = searchParams.get('highlightTask');
   
-  const [loading, setLoading] = useState(true);
+  // Tab state for the new planner
+  const [activeTab, setActiveTab] = useState<'planner' | 'worksheet'>('planner');
+  
+  // Only load worksheet data when that tab is active
+  const [worksheetLoading, setWorksheetLoading] = useState(false);
+  const [worksheetLoaded, setWorksheetLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
-  // Tab state for the new planner
-  const [activeTab, setActiveTab] = useState<'planner' | 'worksheet'>('planner');
   
   // Clear highlight param after 3 seconds
   useEffect(() => {
@@ -70,14 +72,16 @@ export default function WeeklyPlan() {
   const [metric2Target, setMetric2Target] = useState<number | ''>('');
   const [metric3Target, setMetric3Target] = useState<number | ''>('');
   
+  // Load worksheet data lazily when tab becomes active
   useEffect(() => {
-    loadWeeklyPlan();
-    loadIdentityAnchor();
-  }, [user]);
+    if (activeTab === 'worksheet' && !worksheetLoaded && user) {
+      loadWorksheetData();
+    }
+  }, [activeTab, worksheetLoaded, user]);
 
-  // Auto-save with debounce
+  // Auto-save with debounce (only when worksheet is loaded)
   useEffect(() => {
-    if (!user || !weekId || loading) return;
+    if (!user || !weekId || worksheetLoading || !worksheetLoaded) return;
     
     const timer = setTimeout(() => {
       handleAutoSave();
@@ -86,22 +90,27 @@ export default function WeeklyPlan() {
     return () => clearTimeout(timer);
   }, [priorities, thought, feeling, challenges, adjustments, metric1Target, metric2Target, metric3Target]);
 
-  const loadWeeklyPlan = async () => {
+  const loadWorksheetData = async () => {
     if (!user) return;
 
+    setWorksheetLoading(true);
     try {
       setError(null);
-      const { data, error: fnError } = await supabase.functions.invoke('get-weekly-plan');
+      
+      // Load weekly plan and identity anchor in parallel
+      const [weeklyPlanResult, identityResult] = await Promise.all([
+        supabase.functions.invoke('get-weekly-plan'),
+        supabase.functions.invoke('get-identity-anchors'),
+      ]);
 
-      if (fnError) throw fnError;
-
-      if (data?.error) {
-        setError(data.error);
+      if (weeklyPlanResult.error) throw weeklyPlanResult.error;
+      if (weeklyPlanResult.data?.error) {
+        setError(weeklyPlanResult.data.error);
         return;
       }
 
-      if (data?.data) {
-        const weekData = data.data;
+      if (weeklyPlanResult.data?.data) {
+        const weekData = weeklyPlanResult.data.data;
         setWeekId(weekData.week_id);
         setCycleGoal(normalizeString(weekData.cycle_goal));
         
@@ -130,31 +139,28 @@ export default function WeeklyPlan() {
         setMetric2Target(weekData.metric_2_target ?? '');
         setMetric3Target(weekData.metric_3_target ?? '');
       }
+
+      // Set identity anchor
+      if (!identityResult.error && identityResult.data?.length > 0) {
+        setIdentityAnchor(normalizeObject(identityResult.data[0], null));
+      }
+      
+      setWorksheetLoaded(true);
     } catch (error: any) {
       console.error('Error loading weekly plan:', error);
       setError(error?.message || 'Failed to load weekly plan');
     } finally {
-      setLoading(false);
+      setWorksheetLoading(false);
     }
   };
 
-  const loadIdentityAnchor = async () => {
-    if (!user) return;
-    try {
-      const { data, error } = await supabase.functions.invoke('get-identity-anchors');
-      if (!error && data && data.length > 0) {
-        setIdentityAnchor(normalizeObject(data[0], null));
-      }
-    } catch (error) {
-      console.error('Error loading identity anchor:', error);
-    }
-  };
-
-  const updatePriority = (idx: number, value: string) => {
-    const updated = [...priorities];
-    updated[idx] = value;
-    setPriorities(updated);
-  };
+  const updatePriority = useCallback((idx: number, value: string) => {
+    setPriorities(prev => {
+      const updated = [...prev];
+      updated[idx] = value;
+      return updated;
+    });
+  }, []);
 
   const handleAutoSave = useCallback(async () => {
     if (!user || !weekId || saving) return;
@@ -178,7 +184,7 @@ export default function WeeklyPlan() {
     } catch (error) {
       console.error('Auto-save failed:', error);
     }
-  }, [user, weekId, priorities, thought, feeling, challenges, adjustments, metric1Target, metric2Target, metric3Target, saving]);
+  }, [user, weekId, priorities, thought, feeling, challenges, adjustments, metric1Target, metric2Target, metric3Target, saving, worksheetLoaded]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -219,20 +225,8 @@ export default function WeeklyPlan() {
     }
   };
 
-  if (loading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading weekly plan...</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (error && error.includes('No active cycle')) {
+  // Error state for worksheet (only show if worksheet tab is active and has error)
+  if (activeTab === 'worksheet' && error && error.includes('No active cycle')) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[400px]">
@@ -260,7 +254,7 @@ export default function WeeklyPlan() {
     );
   }
 
-  if (error) {
+  if (activeTab === 'worksheet' && error) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[400px]">
@@ -270,7 +264,7 @@ export default function WeeklyPlan() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">{error}</p>
-              <Button onClick={loadWeeklyPlan}>Retry</Button>
+              <Button onClick={loadWorksheetData}>Retry</Button>
             </CardContent>
           </Card>
         </div>
@@ -289,7 +283,12 @@ export default function WeeklyPlan() {
         />
 
         {/* Planning Worksheet (shown when worksheet tab is active) */}
-        {activeTab === 'worksheet' && (
+        {activeTab === 'worksheet' && worksheetLoading && (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
+        {activeTab === 'worksheet' && worksheetLoaded && (
           <div className="space-y-6 max-w-3xl mx-auto">
             {/* Weekly Summary */}
             <Card>

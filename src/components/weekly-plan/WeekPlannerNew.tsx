@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { startOfWeek, addDays, subDays, format, isThisWeek, endOfWeek } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { useTasks, useTaskMutations } from '@/hooks/useTasks';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { scheduleStore } from '@/lib/taskSchedulingStore';
-import { Loader2, Eye, Undo2, Calendar } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CalendarEvent } from '@/components/tasks/views/CalendarEventBlock';
@@ -252,9 +252,9 @@ export function WeekPlannerNew({
     );
   };
 
-  const handleTaskToggle = async (taskId: string, currentCompleted: boolean) => {
+  const handleTaskToggle = useCallback((taskId: string, currentCompleted: boolean) => {
     toggleComplete.mutate(taskId);
-  };
+  }, [toggleComplete]);
 
   const handlePullUnfinished = async () => {
     setIsPulling(true);
@@ -332,25 +332,26 @@ export function WeekPlannerNew({
     }
   };
 
-  const goToPreviousWeek = () => {
+  const goToPreviousWeek = useCallback(() => {
     setCurrentWeekStart((prev) => subDays(prev, 7));
-  };
+  }, []);
 
-  const goToNextWeek = () => {
+  const goToNextWeek = useCallback(() => {
     setCurrentWeekStart((prev) => addDays(prev, 7));
-  };
+  }, []);
 
-  const goToCurrentWeek = () => {
+  const goToCurrentWeek = useCallback(() => {
     setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: weekStartDay as 0 | 1 }));
-  };
+  }, [weekStartDay]);
 
-  const isCurrentWeek = isThisWeek(currentWeekStart, { weekStartsOn: weekStartDay as 0 | 1 });
+  const isCurrentWeek = useMemo(() => 
+    isThisWeek(currentWeekStart, { weekStartsOn: weekStartDay as 0 | 1 }),
+    [currentWeekStart, weekStartDay]
+  );
 
-  const handleTabChange = (tab: 'planner' | 'worksheet') => {
-    if (onTabChange) {
-      onTabChange(tab);
-    }
-  };
+  const handleTabChange = useCallback((tab: 'planner' | 'worksheet') => {
+    onTabChange?.(tab);
+  }, [onTabChange]);
 
   if (loading) {
     return (
