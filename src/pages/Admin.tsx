@@ -14,7 +14,8 @@ import { ErrorState } from '@/components/system/ErrorState';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { Users, AlertTriangle, MessageSquare, Lightbulb, Shield, Trash2, UserPlus, ShieldCheck, ShieldOff, RefreshCw } from 'lucide-react';
+import { Users, AlertTriangle, MessageSquare, Lightbulb, Shield, Trash2, UserPlus, ShieldCheck, ShieldOff, RefreshCw, Crown } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 
 interface User {
@@ -217,10 +218,18 @@ export default function Admin() {
             </h1>
             <p className="text-muted-foreground">Manage users, view errors, and review reports</p>
           </div>
-          <Button onClick={loadAllData} variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin/mastermind-roster">
+                <Crown className="h-4 w-4 mr-2" />
+                Mastermind Roster
+              </Link>
+            </Button>
+            <Button onClick={loadAllData} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>

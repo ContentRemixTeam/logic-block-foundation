@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { MastermindGate } from '@/components/membership/MastermindGate';
 import { 
   Search, 
   ExternalLink, 
@@ -174,7 +175,8 @@ export default function MastermindHub() {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-5xl space-y-6">
+      <MastermindGate>
+        <div className="mx-auto max-w-5xl space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold">Mastermind Hub</h1>
@@ -248,7 +250,8 @@ export default function MastermindHub() {
             </div>
           )}
         </div>
-      </div>
+        </div>
+      </MastermindGate>
     </Layout>
   );
 }
