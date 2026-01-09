@@ -84,7 +84,10 @@ Deno.serve(async (req) => {
       position_in_column,
       // Weekly planning fields
       planned_day,
-      day_order
+      day_order,
+      // Project fields
+      project_id,
+      project_column
     } = body;
 
     let result;
@@ -143,6 +146,8 @@ Deno.serve(async (req) => {
             position_in_column: position_in_column || null,
             planned_day: planned_day || null,
             day_order: day_order || 0,
+            project_id: project_id || null,
+            project_column: project_column || 'todo',
           })
           .select()
           .single();
@@ -183,6 +188,9 @@ Deno.serve(async (req) => {
         // Weekly planning fields
         if (planned_day !== undefined) updateData.planned_day = planned_day;
         if (day_order !== undefined) updateData.day_order = day_order;
+        // Project fields
+        if (project_id !== undefined) updateData.project_id = project_id;
+        if (project_column !== undefined) updateData.project_column = project_column;
 
         result = await supabase
           .from('tasks')

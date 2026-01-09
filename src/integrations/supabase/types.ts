@@ -917,6 +917,48 @@ export type Database = {
           },
         ]
       }
+      projects: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          is_template: boolean | null
+          name: string
+          start_date: string | null
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_template?: boolean | null
+          name: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_template?: boolean | null
+          name?: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       reminders: {
         Row: {
           active: boolean | null
@@ -1054,6 +1096,8 @@ export type Database = {
           position_in_column: number | null
           priority: string | null
           priority_order: number | null
+          project_column: string | null
+          project_id: string | null
           recurrence_days: Json | null
           recurrence_pattern: string | null
           scheduled_date: string | null
@@ -1089,6 +1133,8 @@ export type Database = {
           position_in_column?: number | null
           priority?: string | null
           priority_order?: number | null
+          project_column?: string | null
+          project_id?: string | null
           recurrence_days?: Json | null
           recurrence_pattern?: string | null
           scheduled_date?: string | null
@@ -1124,6 +1170,8 @@ export type Database = {
           position_in_column?: number | null
           priority?: string | null
           priority_order?: number | null
+          project_column?: string | null
+          project_id?: string | null
           recurrence_days?: Json | null
           recurrence_pattern?: string | null
           scheduled_date?: string | null
@@ -1154,6 +1202,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tasks"
             referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "tasks_sop_id_fkey"
