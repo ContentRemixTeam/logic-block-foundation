@@ -181,6 +181,144 @@ export type Database = {
           },
         ]
       }
+      content_items: {
+        Row: {
+          body: string | null
+          channel: string | null
+          created_at: string
+          cta: string | null
+          cycle_id: string | null
+          hook: string | null
+          id: string
+          link_url: string | null
+          notes: string | null
+          offer: string | null
+          preview_text: string | null
+          project_id: string | null
+          published_at: string | null
+          status: string
+          subject_line: string | null
+          tags: string[] | null
+          title: string
+          topic: string | null
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          channel?: string | null
+          created_at?: string
+          cta?: string | null
+          cycle_id?: string | null
+          hook?: string | null
+          id?: string
+          link_url?: string | null
+          notes?: string | null
+          offer?: string | null
+          preview_text?: string | null
+          project_id?: string | null
+          published_at?: string | null
+          status?: string
+          subject_line?: string | null
+          tags?: string[] | null
+          title: string
+          topic?: string | null
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          channel?: string | null
+          created_at?: string
+          cta?: string | null
+          cycle_id?: string | null
+          hook?: string | null
+          id?: string
+          link_url?: string | null
+          notes?: string | null
+          offer?: string | null
+          preview_text?: string | null
+          project_id?: string | null
+          published_at?: string | null
+          status?: string
+          subject_line?: string | null
+          tags?: string[] | null
+          title?: string
+          topic?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_items_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+          {
+            foreignKeyName: "content_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_send_log: {
+        Row: {
+          channel: string
+          content_item_id: string | null
+          created_at: string
+          cycle_id: string | null
+          id: string
+          sent_at: string
+          topic: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          channel: string
+          content_item_id?: string | null
+          created_at?: string
+          cycle_id?: string | null
+          id?: string
+          sent_at?: string
+          topic?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          content_item_id?: string | null
+          created_at?: string
+          cycle_id?: string | null
+          id?: string
+          sent_at?: string
+          topic?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_send_log_content_item_id_fkey"
+            columns: ["content_item_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_send_log_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+        ]
+      }
       ctfar: {
         Row: {
           action: string | null
