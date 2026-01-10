@@ -401,6 +401,21 @@ export default function CycleSetup() {
   ]);
   const [thingsToRemember, setThingsToRemember] = useState<string[]>(['', '', '']);
 
+  // Check for private browsing mode on mount
+  useEffect(() => {
+    try {
+      localStorage.setItem('_storage_test', 'test');
+      localStorage.removeItem('_storage_test');
+    } catch (e) {
+      toast({
+        title: '⚠️ Private Browsing Detected',
+        description: 'Please use normal mode to save your progress.',
+        duration: 10000,
+        variant: 'destructive'
+      });
+    }
+  }, [toast]);
+
   // Check for existing draft on mount - only show if user hasn't already dismissed it
   useEffect(() => {
     if (hasDraft && !hasUserDismissedDraft.current) {
