@@ -3806,6 +3806,7 @@ export default function CycleSetup() {
           hasOffers={offers.some(o => o.name.trim())}
           postingDaysCount={postingDays.length}
           nurtureFrequency={nurtureFrequency}
+          nurturePostingDaysCount={nurturePostingDays.length}
           offersCount={offers.filter(o => o.name.trim()).length}
           customProjectsCount={projects.filter(p => p.trim()).length}
         />
