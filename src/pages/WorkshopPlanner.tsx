@@ -488,7 +488,7 @@ export default function WorkshopPlanner() {
                     </p>
                     <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
                       <Button asChild size="lg">
-                        <Link to="/cycle-setup">
+                        <Link to="/cycle-setup?from=planner">
                           Set Up Your 90-Day Cycle →
                         </Link>
                       </Button>
