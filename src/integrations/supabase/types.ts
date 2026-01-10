@@ -708,6 +708,9 @@ export type Database = {
           metric_3_name: string | null
           metric_3_start: number | null
           nurture_score: number | null
+          office_hours_days: Json | null
+          office_hours_end: string | null
+          office_hours_start: string | null
           signature_message: string | null
           start_date: string
           supporting_projects: Json | null
@@ -715,6 +718,8 @@ export type Database = {
           things_to_remember: Json | null
           updated_at: string | null
           user_id: string
+          weekly_debrief_day: string | null
+          weekly_planning_day: string | null
           why: string | null
         }
         Insert: {
@@ -736,6 +741,9 @@ export type Database = {
           metric_3_name?: string | null
           metric_3_start?: number | null
           nurture_score?: number | null
+          office_hours_days?: Json | null
+          office_hours_end?: string | null
+          office_hours_start?: string | null
           signature_message?: string | null
           start_date: string
           supporting_projects?: Json | null
@@ -743,6 +751,8 @@ export type Database = {
           things_to_remember?: Json | null
           updated_at?: string | null
           user_id: string
+          weekly_debrief_day?: string | null
+          weekly_planning_day?: string | null
           why?: string | null
         }
         Update: {
@@ -764,6 +774,9 @@ export type Database = {
           metric_3_name?: string | null
           metric_3_start?: number | null
           nurture_score?: number | null
+          office_hours_days?: Json | null
+          office_hours_end?: string | null
+          office_hours_start?: string | null
           signature_message?: string | null
           start_date?: string
           supporting_projects?: Json | null
@@ -771,6 +784,8 @@ export type Database = {
           things_to_remember?: Json | null
           updated_at?: string | null
           user_id?: string
+          weekly_debrief_day?: string | null
+          weekly_planning_day?: string | null
           why?: string | null
         }
         Relationships: []
