@@ -24,8 +24,9 @@ import { toast } from 'sonner';
 import { 
   Plus, CalendarIcon, Clock, RefreshCw, ChevronDown, 
   ClipboardList, ExternalLink, Unlink, LayoutList, Columns, 
-  Clock3, Zap, Battery, BatteryLow, Trash2
+  Clock3, Zap, Battery, BatteryLow, Trash2, CalendarRange
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 // Import new components
@@ -56,6 +57,7 @@ import { useActiveCycle } from '@/hooks/useActiveCycle';
 
 export default function Tasks() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   
   // Google Calendar integration
   const { 
@@ -536,10 +538,21 @@ export default function Tasks() {
 
         {/* Timeline view type selector */}
         {viewMode === 'timeline' && (
-          <TimelineViewSelector
-            viewType={timelineViewType}
-            onViewTypeChange={setTimelineViewType}
-          />
+          <div className="flex items-center gap-3">
+            <TimelineViewSelector
+              viewType={timelineViewType}
+              onViewTypeChange={setTimelineViewType}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/weekly-plan')}
+              className="gap-2"
+            >
+              <CalendarRange className="h-4 w-4" />
+              Weekly Planner
+            </Button>
+          </div>
         )}
 
         {/* Quick Add Bar */}
