@@ -24,6 +24,10 @@ interface Offer {
   frequency: string;
   transformation: string;
   isPrimary: boolean;
+  launchWeek: string;
+  launchDate: string;
+  cartOpenDate: string;
+  cartCloseDate: string;
 }
 
 interface MonthPlan {
@@ -31,6 +35,10 @@ interface MonthPlan {
   projects: string;
   salesPromos: string;
   mainFocus: string;
+  week1Focus: string;
+  week2Focus: string;
+  week3Focus: string;
+  week4Focus: string;
 }
 
 interface SecondaryPlatform {
@@ -62,6 +70,9 @@ interface WorkshopData {
   leadContentType: string;
   leadContentTypeCustom: string;
   leadFrequency: string;
+  leadPostingDays: string;
+  leadPostingTime: string;
+  leadBatchDay: string;
   leadCommitted: boolean;
   secondaryPlatforms: SecondaryPlatform[];
   // Step 5
@@ -125,6 +136,9 @@ const getDefaultData = (): WorkshopData => ({
   leadContentType: '',
   leadContentTypeCustom: '',
   leadFrequency: '',
+  leadPostingDays: '',
+  leadPostingTime: '',
+  leadBatchDay: '',
   leadCommitted: false,
   secondaryPlatforms: [],
   nurtureMethod: '',
@@ -135,15 +149,15 @@ const getDefaultData = (): WorkshopData => ({
   nurturePostingTime: '',
   freeTransformation: '',
   proofMethods: [],
-  offers: [{ name: '', price: '', frequency: '', transformation: '', isPrimary: true }],
+  offers: [{ name: '', price: '', frequency: '', transformation: '', isPrimary: true, launchWeek: '', launchDate: '', cartOpenDate: '', cartCloseDate: '' }],
   revenueGoal: '',
   pricePerSale: '',
   salesNeeded: 0,
   launchSchedule: '',
   monthPlans: [
-    { monthName: 'Month 1', projects: '', salesPromos: '', mainFocus: '' },
-    { monthName: 'Month 2', projects: '', salesPromos: '', mainFocus: '' },
-    { monthName: 'Month 3', projects: '', salesPromos: '', mainFocus: '' },
+    { monthName: 'Month 1', projects: '', salesPromos: '', mainFocus: '', week1Focus: '', week2Focus: '', week3Focus: '', week4Focus: '' },
+    { monthName: 'Month 2', projects: '', salesPromos: '', mainFocus: '', week1Focus: '', week2Focus: '', week3Focus: '', week4Focus: '' },
+    { monthName: 'Month 3', projects: '', salesPromos: '', mainFocus: '', week1Focus: '', week2Focus: '', week3Focus: '', week4Focus: '' },
   ],
 });
 
@@ -212,7 +226,7 @@ export default function WorkshopPlanner() {
 
   const addOffer = () => {
     updateData({ 
-      offers: [...data.offers, { name: '', price: '', frequency: '', transformation: '', isPrimary: false }] 
+      offers: [...data.offers, { name: '', price: '', frequency: '', transformation: '', isPrimary: false, launchWeek: '', launchDate: '', cartOpenDate: '', cartCloseDate: '' }] 
     });
   };
 
@@ -331,6 +345,9 @@ export default function WorkshopPlanner() {
       ${data.leadPlatform ? `<li><strong>Platform:</strong> ${data.leadPlatform === 'other' ? data.leadPlatformCustom : data.leadPlatform}</li>` : ''}
       ${data.leadContentType ? `<li><strong>Content Type:</strong> ${data.leadContentType === 'other' ? data.leadContentTypeCustom : data.leadContentType}</li>` : ''}
       ${data.leadFrequency ? `<li><strong>Frequency:</strong> ${data.leadFrequency}</li>` : ''}
+      ${data.leadPostingDays ? `<li><strong>Posting Days:</strong> ${data.leadPostingDays}</li>` : ''}
+      ${data.leadPostingTime ? `<li><strong>Posting Time:</strong> ${data.leadPostingTime}</li>` : ''}
+      ${data.leadBatchDay ? `<li><strong>Batch Creation Day:</strong> ${data.leadBatchDay}</li>` : ''}
       <li><strong>90-Day Commitment:</strong> ${data.leadCommitted ? '✅ Yes' : '❌ No'}</li>
       ${data.secondaryPlatforms.length > 0 ? `<li><strong>Secondary Platforms:</strong> ${data.secondaryPlatforms.map(s => `${s.platform} (${s.contentType}${s.frequency ? `, ${s.frequency}` : ''})`).join(', ')}</li>` : ''}
     </ul>
@@ -356,6 +373,9 @@ export default function WorkshopPlanner() {
         ${offer.price ? `<p>Price: $${offer.price}</p>` : ''}
         ${offer.frequency ? `<p>Sales Frequency: ${offer.frequency}</p>` : ''}
         ${offer.transformation ? `<p>Transformation: ${offer.transformation}</p>` : ''}
+        ${offer.launchWeek ? `<p>Launch Week: ${offer.launchWeek}</p>` : ''}
+        ${offer.launchDate ? `<p>Launch Date: ${offer.launchDate}</p>` : ''}
+        ${offer.cartOpenDate && offer.cartCloseDate ? `<p>Cart Window: ${offer.cartOpenDate} to ${offer.cartCloseDate}</p>` : ''}
       </div>
     `).join('')}
   </div>
@@ -378,6 +398,15 @@ export default function WorkshopPlanner() {
         ${month.mainFocus ? `<p><strong>Focus:</strong> ${month.mainFocus}</p>` : ''}
         ${month.projects ? `<p><strong>Projects:</strong> ${month.projects}</p>` : ''}
         ${month.salesPromos ? `<p><strong>Sales & Promos:</strong> ${month.salesPromos}</p>` : ''}
+        <div style="margin-top: 10px; padding: 10px; background: #f8fafc; border-radius: 6px;">
+          <p style="font-size: 12px; font-weight: bold; margin-bottom: 8px;">Weekly Breakdown:</p>
+          <ul style="font-size: 12px; margin: 0; padding-left: 20px;">
+            ${month.week1Focus ? `<li><strong>Week ${idx * 4 + 1}:</strong> ${month.week1Focus}</li>` : ''}
+            ${month.week2Focus ? `<li><strong>Week ${idx * 4 + 2}:</strong> ${month.week2Focus}</li>` : ''}
+            ${month.week3Focus ? `<li><strong>Week ${idx * 4 + 3}:</strong> ${month.week3Focus}</li>` : ''}
+            ${month.week4Focus ? `<li><strong>Week ${idx * 4 + 4}:</strong> ${month.week4Focus}</li>` : ''}
+          </ul>
+        </div>
       </div>
     `).join('')}
   </div>
@@ -885,14 +914,43 @@ export default function WorkshopPlanner() {
                   )}
                 </div>
 
-                <div>
-                  <Label>Posting Frequency</Label>
-                  <Input
-                    value={data.leadFrequency}
-                    onChange={(e) => updateData({ leadFrequency: e.target.value })}
-                    placeholder="e.g., Daily, 3x per week, Every other day"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">Type your own frequency</p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label>Posting Frequency</Label>
+                    <Input
+                      value={data.leadFrequency}
+                      onChange={(e) => updateData({ leadFrequency: e.target.value })}
+                      placeholder="e.g., Daily, 3x per week"
+                    />
+                  </div>
+                  <div>
+                    <Label>Posting Days</Label>
+                    <Input
+                      value={data.leadPostingDays}
+                      onChange={(e) => updateData({ leadPostingDays: e.target.value })}
+                      placeholder="e.g., Mon, Wed, Fri"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label>Posting Time</Label>
+                    <Input
+                      value={data.leadPostingTime}
+                      onChange={(e) => updateData({ leadPostingTime: e.target.value })}
+                      placeholder="e.g., 9am EST"
+                    />
+                  </div>
+                  <div>
+                    <Label>Batch Creation Day</Label>
+                    <Input
+                      value={data.leadBatchDay}
+                      onChange={(e) => updateData({ leadBatchDay: e.target.value })}
+                      placeholder="e.g., Sunday afternoon"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">When will you create content?</p>
+                  </div>
                 </div>
 
                 {/* Secondary Platforms Section */}
@@ -1181,6 +1239,63 @@ export default function WorkshopPlanner() {
                         placeholder="e.g., Go from 0 to 5K months in 90 days"
                       />
                     </div>
+                    
+                    {/* Launch Schedule - only show if not "always-open" */}
+                    {offer.frequency && offer.frequency !== 'always-open' && (
+                      <div className="pt-3 border-t space-y-3">
+                        <Label className="text-sm font-medium text-primary">Launch Schedule</Label>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Launch Week</Label>
+                            <Select value={offer.launchWeek} onValueChange={(v) => updateOffer(idx, 'launchWeek', v)}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Which week?" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="week-1">Week 1</SelectItem>
+                                <SelectItem value="week-2">Week 2</SelectItem>
+                                <SelectItem value="week-3">Week 3</SelectItem>
+                                <SelectItem value="week-4">Week 4</SelectItem>
+                                <SelectItem value="week-5">Week 5</SelectItem>
+                                <SelectItem value="week-6">Week 6</SelectItem>
+                                <SelectItem value="week-7">Week 7</SelectItem>
+                                <SelectItem value="week-8">Week 8</SelectItem>
+                                <SelectItem value="week-9">Week 9</SelectItem>
+                                <SelectItem value="week-10">Week 10</SelectItem>
+                                <SelectItem value="week-11">Week 11</SelectItem>
+                                <SelectItem value="week-12">Week 12</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Launch Date</Label>
+                            <Input
+                              type="date"
+                              value={offer.launchDate}
+                              onChange={(e) => updateOffer(idx, 'launchDate', e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Cart Opens</Label>
+                            <Input
+                              type="date"
+                              value={offer.cartOpenDate}
+                              onChange={(e) => updateOffer(idx, 'cartOpenDate', e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Cart Closes</Label>
+                            <Input
+                              type="date"
+                              value={offer.cartCloseDate}
+                              onChange={(e) => updateOffer(idx, 'cartCloseDate', e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
                 <Button type="button" variant="outline" onClick={addOffer} className="w-full">
@@ -1282,6 +1397,45 @@ export default function WorkshopPlanner() {
                           placeholder="What will you sell/promote this month?"
                           rows={2}
                         />
+                      </div>
+                      
+                      {/* Weekly Breakdown */}
+                      <div className="pt-3 border-t">
+                        <Label className="text-sm font-medium text-primary mb-2 block">Weekly Breakdown</Label>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Week {idx * 4 + 1}</Label>
+                            <Input
+                              value={month.week1Focus}
+                              onChange={(e) => updateMonthPlan(idx, 'week1Focus', e.target.value)}
+                              placeholder="Focus for this week..."
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Week {idx * 4 + 2}</Label>
+                            <Input
+                              value={month.week2Focus}
+                              onChange={(e) => updateMonthPlan(idx, 'week2Focus', e.target.value)}
+                              placeholder="Focus for this week..."
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Week {idx * 4 + 3}</Label>
+                            <Input
+                              value={month.week3Focus}
+                              onChange={(e) => updateMonthPlan(idx, 'week3Focus', e.target.value)}
+                              placeholder="Focus for this week..."
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Week {idx * 4 + 4}</Label>
+                            <Input
+                              value={month.week4Focus}
+                              onChange={(e) => updateMonthPlan(idx, 'week4Focus', e.target.value)}
+                              placeholder="Focus for this week..."
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
