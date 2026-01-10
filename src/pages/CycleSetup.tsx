@@ -107,6 +107,7 @@ const PLATFORM_GOALS = [
   { value: 'leads', label: 'Get New Leads' },
   { value: 'nurture', label: 'Nurture Lurkers into Buyers' },
   { value: 'sales', label: 'Sales' },
+  { value: 'other', label: 'Other' },
 ];
 
 const PLATFORM_OPTIONS = [
@@ -132,6 +133,7 @@ const CONTENT_TYPE_OPTIONS = [
   { value: 'written', label: 'Written Posts/Articles' },
   { value: 'podcast', label: 'Podcast Episodes' },
   { value: 'newsletter', label: 'Newsletter' },
+  { value: 'other', label: 'Other' },
 ];
 
 const FREQUENCY_OPTIONS = [
@@ -140,6 +142,7 @@ const FREQUENCY_OPTIONS = [
   { value: '3x-week', label: '3x per week' },
   { value: '2x-week', label: '2x per week' },
   { value: 'weekly', label: 'Weekly' },
+  { value: 'other', label: 'Other' },
 ];
 
 const DAYS_OF_WEEK = [
@@ -359,9 +362,13 @@ export default function CycleSetup() {
 
   // Step 4: Lead Gen Strategy
   const [leadPlatform, setLeadPlatform] = useState('');
+  const [leadPlatformCustom, setLeadPlatformCustom] = useState('');
   const [leadContentType, setLeadContentType] = useState('');
+  const [leadContentTypeCustom, setLeadContentTypeCustom] = useState('');
   const [leadFrequency, setLeadFrequency] = useState('');
+  const [leadFrequencyCustom, setLeadFrequencyCustom] = useState('');
   const [leadPlatformGoal, setLeadPlatformGoal] = useState('leads');
+  const [leadPlatformGoalCustom, setLeadPlatformGoalCustom] = useState('');
   const [leadCommitted, setLeadCommitted] = useState(false);
   const [secondaryPlatforms, setSecondaryPlatforms] = useState<SecondaryPlatform[]>([]);
   const [postingDays, setPostingDays] = useState<string[]>([]);
@@ -374,6 +381,7 @@ export default function CycleSetup() {
   const [secondaryNurtureMethod, setSecondaryNurtureMethod] = useState('');
   const [secondaryNurtureMethodCustom, setSecondaryNurtureMethodCustom] = useState('');
   const [nurtureFrequency, setNurtureFrequency] = useState('');
+  const [nurtureFrequencyCustom, setNurtureFrequencyCustom] = useState('');
   const [freeTransformation, setFreeTransformation] = useState('');
   const [proofMethods, setProofMethods] = useState<string[]>([]);
   
@@ -1766,60 +1774,100 @@ export default function CycleSetup() {
                   <div className="p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
                     <Label className="text-sm font-semibold text-blue-600 mb-3 block">Primary Platform</Label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
+                      <div className="space-y-2">
                         <Label htmlFor="leadPlatform" className="text-xs text-muted-foreground">Platform</Label>
-                        <Select value={leadPlatform} onValueChange={setLeadPlatform}>
+                        <Select value={leadPlatform} onValueChange={(v) => {
+                          setLeadPlatform(v);
+                          if (v !== 'other') setLeadPlatformCustom('');
+                        }}>
                           <SelectTrigger>
                             <SelectValue placeholder="Where will you show up?" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="bg-background border shadow-lg z-50">
                             {PLATFORM_OPTIONS.map(opt => (
                               <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
+                        {leadPlatform === 'other' && (
+                          <Input
+                            value={leadPlatformCustom}
+                            onChange={(e) => setLeadPlatformCustom(e.target.value)}
+                            placeholder="Enter your platform..."
+                          />
+                        )}
                       </div>
 
-                      <div>
+                      <div className="space-y-2">
                         <Label htmlFor="leadContentType" className="text-xs text-muted-foreground">Content Type</Label>
-                        <Select value={leadContentType} onValueChange={setLeadContentType}>
+                        <Select value={leadContentType} onValueChange={(v) => {
+                          setLeadContentType(v);
+                          if (v !== 'other') setLeadContentTypeCustom('');
+                        }}>
                           <SelectTrigger>
                             <SelectValue placeholder="What format?" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="bg-background border shadow-lg z-50">
                             {CONTENT_TYPE_OPTIONS.map(opt => (
                               <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
+                        {leadContentType === 'other' && (
+                          <Input
+                            value={leadContentTypeCustom}
+                            onChange={(e) => setLeadContentTypeCustom(e.target.value)}
+                            placeholder="Enter your content type..."
+                          />
+                        )}
                       </div>
 
-                      <div>
+                      <div className="space-y-2">
                         <Label htmlFor="leadFrequency" className="text-xs text-muted-foreground">Posting Frequency</Label>
-                        <Select value={leadFrequency} onValueChange={setLeadFrequency}>
+                        <Select value={leadFrequency} onValueChange={(v) => {
+                          setLeadFrequency(v);
+                          if (v !== 'other') setLeadFrequencyCustom('');
+                        }}>
                           <SelectTrigger>
                             <SelectValue placeholder="How often?" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="bg-background border shadow-lg z-50">
                             {FREQUENCY_OPTIONS.map(opt => (
                               <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
+                        {leadFrequency === 'other' && (
+                          <Input
+                            value={leadFrequencyCustom}
+                            onChange={(e) => setLeadFrequencyCustom(e.target.value)}
+                            placeholder="Enter your frequency..."
+                          />
+                        )}
                       </div>
 
-                      <div>
+                      <div className="space-y-2">
                         <Label htmlFor="leadPlatformGoal" className="text-xs text-muted-foreground">Goal</Label>
-                        <Select value={leadPlatformGoal} onValueChange={setLeadPlatformGoal}>
+                        <Select value={leadPlatformGoal} onValueChange={(v) => {
+                          setLeadPlatformGoal(v);
+                          if (v !== 'other') setLeadPlatformGoalCustom('');
+                        }}>
                           <SelectTrigger>
                             <SelectValue placeholder="Main goal?" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="bg-background border shadow-lg z-50">
                             {PLATFORM_GOALS.map(opt => (
                               <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
+                        {leadPlatformGoal === 'other' && (
+                          <Input
+                            value={leadPlatformGoalCustom}
+                            onChange={(e) => setLeadPlatformGoalCustom(e.target.value)}
+                            placeholder="Enter your goal..."
+                          />
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1849,7 +1897,7 @@ export default function CycleSetup() {
                                 <SelectTrigger>
                                   <SelectValue placeholder="Platform" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="bg-background border shadow-lg z-50">
                                   {PLATFORM_OPTIONS.filter(opt => opt.value !== leadPlatform).map(opt => (
                                     <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                                   ))}
@@ -1866,7 +1914,7 @@ export default function CycleSetup() {
                                 <SelectTrigger>
                                   <SelectValue placeholder="Content" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="bg-background border shadow-lg z-50">
                                   {CONTENT_TYPE_OPTIONS.map(opt => (
                                     <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                                   ))}
@@ -1883,7 +1931,7 @@ export default function CycleSetup() {
                                 <SelectTrigger>
                                   <SelectValue placeholder="Frequency" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="bg-background border shadow-lg z-50">
                                   {FREQUENCY_OPTIONS.map(opt => (
                                     <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                                   ))}
@@ -1900,7 +1948,7 @@ export default function CycleSetup() {
                                 <SelectTrigger>
                                   <SelectValue placeholder="Goal" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="bg-background border shadow-lg z-50">
                                   {PLATFORM_GOALS.map(opt => (
                                     <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                                   ))}
@@ -1964,7 +2012,7 @@ export default function CycleSetup() {
                             <SelectTrigger>
                               <SelectValue placeholder="Select time" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-background border shadow-lg z-50">
                               {TIME_OPTIONS.map(opt => (
                                 <SelectItem key={opt.value} value={opt.value || 'none'}>{opt.label}</SelectItem>
                               ))}
@@ -1979,7 +2027,7 @@ export default function CycleSetup() {
                             <SelectTrigger>
                               <SelectValue placeholder="No batch day" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-background border shadow-lg z-50">
                               <SelectItem value="none">None</SelectItem>
                               {DAYS_OF_WEEK.map(day => (
                                 <SelectItem key={day.value} value={day.value}>{day.label}</SelectItem>
@@ -2031,7 +2079,7 @@ export default function CycleSetup() {
                     <SelectTrigger>
                       <SelectValue placeholder="How will you nurture your audience?" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-background border shadow-lg z-50">
                       <SelectItem value="email">Email Newsletter</SelectItem>
                       <SelectItem value="community">Free Community (FB Group, Discord, etc.)</SelectItem>
                       <SelectItem value="dm">DM Conversations</SelectItem>
@@ -2060,7 +2108,7 @@ export default function CycleSetup() {
                     <SelectTrigger>
                       <SelectValue placeholder="Add a backup nurture channel..." />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-background border shadow-lg z-50">
                       <SelectItem value="none">None</SelectItem>
                       <SelectItem value="email">Email Newsletter</SelectItem>
                       <SelectItem value="community">Free Community (FB Group, Discord, etc.)</SelectItem>
@@ -2082,20 +2130,31 @@ export default function CycleSetup() {
                   <p className="text-xs text-muted-foreground mt-1">Having a backup nurture channel helps reach people who prefer different formats</p>
                 </div>
 
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="nurtureFrequency">Nurture Frequency</Label>
-                  <Select value={nurtureFrequency} onValueChange={setNurtureFrequency}>
+                  <Select value={nurtureFrequency} onValueChange={(v) => {
+                    setNurtureFrequency(v);
+                    if (v !== 'other') setNurtureFrequencyCustom('');
+                  }}>
                     <SelectTrigger>
                       <SelectValue placeholder="How often will you nurture?" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-background border shadow-lg z-50">
                       <SelectItem value="daily">Daily</SelectItem>
                       <SelectItem value="3x-week">3x per week</SelectItem>
                       <SelectItem value="2x-week">2x per week</SelectItem>
                       <SelectItem value="weekly">Weekly</SelectItem>
                       <SelectItem value="biweekly">Every 2 weeks</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
+                  {nurtureFrequency === 'other' && (
+                    <Input
+                      value={nurtureFrequencyCustom}
+                      onChange={(e) => setNurtureFrequencyCustom(e.target.value)}
+                      placeholder="Enter your nurture frequency..."
+                    />
+                  )}
                 </div>
 
                 <div>
@@ -2169,7 +2228,7 @@ export default function CycleSetup() {
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="bg-background border shadow-lg z-50">
                                 <SelectItem value="0">Sunday</SelectItem>
                                 <SelectItem value="1">Monday</SelectItem>
                                 <SelectItem value="2">Tuesday</SelectItem>
@@ -2186,7 +2245,7 @@ export default function CycleSetup() {
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="bg-background border shadow-lg z-50">
                                 <SelectItem value="morning">Morning</SelectItem>
                                 <SelectItem value="afternoon">Afternoon</SelectItem>
                                 <SelectItem value="evening">Evening</SelectItem>
@@ -2259,12 +2318,13 @@ export default function CycleSetup() {
                         <SelectTrigger>
                           <SelectValue placeholder="Sales frequency" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-background border shadow-lg z-50">
                           <SelectItem value="always-open">Always Open</SelectItem>
                           <SelectItem value="monthly-launch">Monthly Launch</SelectItem>
                           <SelectItem value="quarterly-launch">Quarterly Launch</SelectItem>
                           <SelectItem value="by-application">By Application</SelectItem>
                           <SelectItem value="limited-spots">Limited Spots</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -2392,11 +2452,12 @@ export default function CycleSetup() {
                               <SelectTrigger>
                                 <SelectValue placeholder="Select type" />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="bg-background border shadow-lg z-50">
                                 <SelectItem value="flash_sale">Flash Sale (2-3 days)</SelectItem>
                                 <SelectItem value="week_promo">Week-long Promo</SelectItem>
                                 <SelectItem value="launch_sequence">Launch Sequence (2 weeks)</SelectItem>
                                 <SelectItem value="webinar_cart">Webinar + Open Cart</SelectItem>
+                                <SelectItem value="other">Other</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -2662,7 +2723,7 @@ export default function CycleSetup() {
                         <SelectTrigger id="weeklyPlanningDay">
                           <SelectValue placeholder="Select a day" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-background border shadow-lg z-50">
                           <SelectItem value="Sunday">Sunday</SelectItem>
                           <SelectItem value="Monday">Monday</SelectItem>
                           <SelectItem value="Tuesday">Tuesday</SelectItem>
@@ -2681,7 +2742,7 @@ export default function CycleSetup() {
                         <SelectTrigger id="weeklyDebriefDay">
                           <SelectValue placeholder="Select a day" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-background border shadow-lg z-50">
                           <SelectItem value="Sunday">Sunday</SelectItem>
                           <SelectItem value="Monday">Monday</SelectItem>
                           <SelectItem value="Tuesday">Tuesday</SelectItem>
