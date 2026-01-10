@@ -10,6 +10,7 @@ import { ArrowLeft, Edit, Target, Users, Megaphone, Mail, DollarSign, TrendingUp
 import { format } from 'date-fns';
 import { loadCycleForExport, exportCycleAsJSON, exportCycleAsPDF } from '@/lib/cycleExport';
 import { useToast } from '@/hooks/use-toast';
+import { PDFInstructionsModal } from '@/components/pdf/PDFInstructionsModal';
 
 interface CycleData {
   cycle_id: string;
@@ -77,6 +78,7 @@ export default function CycleView() {
   const [offers, setOffers] = useState<CycleOffer[]>([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [showPDFInstructions, setShowPDFInstructions] = useState(false);
 
   const handleExportJSON = async () => {
     if (!id) return;
@@ -102,6 +104,8 @@ export default function CycleView() {
       if (data) {
         const result = await exportCycleAsPDF(data);
         if (result.success) {
+          // Show instructions modal after successful download
+          setShowPDFInstructions(true);
           toast({ 
             title: '✅ PDF Downloaded!', 
             description: result.message || 'Check your Downloads folder.' 
@@ -522,6 +526,15 @@ export default function CycleView() {
             </CardContent>
           </Card>
         )}
+
+        {/* PDF Instructions Modal */}
+        <PDFInstructionsModal
+          open={showPDFInstructions}
+          onClose={() => setShowPDFInstructions(false)}
+          onDownload={handleExportPDF}
+          cycleTitle={cycle?.goal || '90-Day Business Plan'}
+          isDownloading={exporting}
+        />
       </div>
     </Layout>
   );

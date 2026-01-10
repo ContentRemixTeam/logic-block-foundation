@@ -111,19 +111,27 @@ export async function generatePDFBlob(data: CycleExportData): Promise<PDFGenerat
     // HEADER with save instructions
     // ============================================================
     doc.setFillColor(...COLORS.primary);
-    doc.rect(0, 0, pageWidth, 50, 'F');
+    doc.rect(0, 0, pageWidth, 60, 'F');
 
-    // Save instructions box at very top
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(margin, 5, contentWidth, 16, 2, 2, 'F');
-    doc.setFontSize(8);
-    doc.setTextColor(...COLORS.primary);
+    // Yellow instruction banner at very top
+    doc.setFillColor(255, 251, 235); // Light yellow
+    doc.setDrawColor(251, 191, 36); // Yellow border
+    doc.setLineWidth(0.5);
+    doc.roundedRect(margin, 4, contentWidth, 22, 2, 2, 'FD');
+
+    // Instructions title with icon
+    doc.setFontSize(10);
+    doc.setTextColor(146, 64, 14); // Dark orange
     doc.setFont('helvetica', 'bold');
-    doc.text('HOW TO SAVE THIS PDF:', margin + 3, 10);
+    doc.text('📥 HOW TO SAVE THIS PDF:', margin + 3, 10);
+
+    // Instructions content
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...COLORS.gray);
-    doc.text('Computer: Press Ctrl+S (Windows) or Cmd+S (Mac)  |  Mobile: Tap Share → Save to Files', margin + 3, 15);
-    doc.text('This PDF is also saved to your account and can be re-downloaded anytime from Cycle Management.', margin + 3, 19);
+    doc.setTextColor(120, 53, 15); // Brown
+    doc.text('Desktop: Press Ctrl+S (Win) or Cmd+S (Mac), or click File → Save As / Print → Save as PDF', margin + 3, 15);
+    doc.text('Mobile: Tap Share icon → Save to Files (iOS) or Download (Android)  |  Print: Ctrl+P / Cmd+P', margin + 3, 20);
+    doc.text('✓ Your plan is also saved in your account - re-download anytime from Cycle Management!', margin + 3, 25);
 
     // Main title
     doc.setTextColor(...COLORS.white);
@@ -131,15 +139,15 @@ export async function generatePDFBlob(data: CycleExportData): Promise<PDFGenerat
     doc.setFont('helvetica', 'bold');
     const goalText = data.goal || '90-Day Business Plan';
     const goalLines = doc.splitTextToSize(goalText, contentWidth - 10);
-    doc.text(goalLines, pageWidth / 2, 32, { align: 'center' });
+    doc.text(goalLines, pageWidth / 2, 38, { align: 'center' });
 
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
     const startFormatted = format(new Date(data.startDate), 'MMMM d, yyyy');
     const endFormatted = format(new Date(data.endDate), 'MMMM d, yyyy');
-    doc.text(`${startFormatted} - ${endFormatted}`, pageWidth / 2, 44, { align: 'center' });
+    doc.text(`${startFormatted} - ${endFormatted}`, pageWidth / 2, 52, { align: 'center' });
 
-    y = 58;
+    y = 68;
 
     // ============================================================
     // 1. IDENTITY & MOTIVATION
