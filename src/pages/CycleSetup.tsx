@@ -1760,41 +1760,43 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
 // Helper to show export result with appropriate message
   const handleExportResult = (result: ExportResult, type: 'PDF' | 'JSON') => {
     if (result.success) {
-      if (result.message) {
-        toast({ title: `${type} ready!`, description: result.message });
-      } else if (type === 'PDF') {
-        toast({ title: "PDF ready!", description: "Save from the print dialog. Choose 'Save as PDF' as the destination." });
+      if (type === 'PDF') {
+        toast({ 
+          title: "✅ PDF Downloaded!", 
+          description: result.message || "Check your Downloads folder. Your plan is ready!" 
+        });
       } else {
-        toast({ title: "JSON downloaded!", description: "Your plan has been exported." });
+        toast({ title: "✅ JSON downloaded!", description: "Your plan has been exported." });
       }
     } else {
-      // Handle specific errors with helpful guidance
-      if (result.error === 'popup_blocked') {
-        toast({ 
-          title: "Pop-up Blocked", 
-          description: "Please allow pop-ups for this site. Look for a blocked pop-up icon in your browser's address bar.",
-          variant: "destructive",
-          duration: 8000,
-        });
-      } else {
-        toast({ 
-          title: "Export Issue", 
-          description: result.message || "An error occurred. Don't worry - you can download your plan later from your saved cycle.",
-          variant: "destructive",
-          duration: 6000,
-        });
-      }
+      toast({ 
+        title: "Export Issue", 
+        description: result.message || "An error occurred. Don't worry - you can download your plan later from your saved cycle.",
+        variant: "destructive",
+        duration: 6000,
+      });
     }
   };
 
-  // Export from form state (pre-save)
+  // Export from form state (pre-save) - now uses jsPDF
   const handleExportPDFFromState = async () => {
     setExporting(true);
     try {
       const formData = getFormDataForExport();
       const exportData = generateExportFromFormData(formData);
       const result = await exportCycleAsPDF(exportData);
-      handleExportResult(result, 'PDF');
+      if (result.success) {
+        toast({ 
+          title: "✅ PDF Downloaded!", 
+          description: result.message || "Check your Downloads folder. Your plan is ready to share!" 
+        });
+      } else {
+        toast({ 
+          title: "Download Issue", 
+          description: result.message || "Please try again. You can also download after saving your cycle.",
+          variant: "destructive" 
+        });
+      }
     } catch (error) {
       console.error("PDF export error:", error);
       toast({ 
@@ -3985,7 +3987,7 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
               </Alert>
 
 {/* Export Section - PROMINENT at the end of Step 9 */}
-              <div className="mt-8 p-1 rounded-2xl bg-gradient-to-r from-primary via-purple-500 to-pink-500 animate-pulse">
+              <div className="mt-8 p-1 rounded-2xl bg-gradient-to-r from-primary via-purple-500 to-pink-500">
                 <Card className="border-0 bg-background">
                   <CardHeader className="pb-3 text-center">
                     <div className="mx-auto mb-3 w-16 h-16 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center">
@@ -4007,7 +4009,7 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
                         disabled={exporting}
                       >
                         <FileText className="h-6 w-6" />
-                        {exporting ? "Preparing..." : "Download PDF"}
+                        {exporting ? "Downloading..." : "Download PDF"}
                       </Button>
                       <Button
                         variant="outline"
@@ -4021,18 +4023,21 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
                       </Button>
                     </div>
                     
-                    {/* Troubleshooting tips */}
-                    <div className="bg-muted/50 rounded-lg p-3 text-xs space-y-2">
-                      <p className="font-medium text-foreground">💡 If download doesn't work:</p>
-                      <ul className="text-muted-foreground space-y-1 list-disc list-inside">
-                        <li>Allow pop-ups for this site (check your browser's address bar)</li>
-                        <li>Try using Chrome, Firefox, or Safari</li>
-                        <li>For PDF: In the print dialog, select "Save as PDF" as destination</li>
-                      </ul>
-                      <p className="text-muted-foreground pt-1">
-                        You can also download later from <strong>Cycle Management</strong> after saving.
+                    {/* Success info */}
+                    <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 text-sm">
+                      <p className="font-medium text-green-700 dark:text-green-400 flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4" />
+                        Works on all devices - mobile, tablet & desktop!
+                      </p>
+                      <p className="text-muted-foreground mt-1">
+                        Your PDF will download directly to your device. No popups needed.
                       </p>
                     </div>
+
+                    {/* Backup info */}
+                    <p className="text-xs text-center text-muted-foreground">
+                      You can also download later from <strong>Cycle Management</strong> after saving.
+                    </p>
                   </CardContent>
                 </Card>
               </div>
@@ -4153,7 +4158,7 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
                     disabled={exporting}
                   >
                     <FileText className="h-5 w-5" />
-                    {exporting ? "Preparing..." : "Download PDF"}
+                    {exporting ? "Downloading..." : "Download PDF"}
                   </Button>
                   <Button
                     variant="outline"
@@ -4168,18 +4173,20 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
                 </div>
               </div>
 
-              {/* Troubleshooting tips */}
-              <div className="bg-muted/50 rounded-lg p-3 text-xs space-y-2">
-                <p className="font-medium text-foreground">💡 If download doesn't work:</p>
-                <ul className="text-muted-foreground space-y-1 list-disc list-inside">
-                  <li>Allow pop-ups for this site (check your browser's address bar)</li>
-                  <li>Try using Chrome, Firefox, or Safari</li>
-                  <li>For PDF: In the print dialog, select "Save as PDF" as the destination</li>
-                </ul>
-                <p className="text-muted-foreground pt-1">
-                  <strong>No worries!</strong> You can always download your plan later from the Cycle Management page after saving.
+              {/* Success info */}
+              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 text-sm">
+                <p className="font-medium text-green-700 dark:text-green-400 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  Works on all devices!
+                </p>
+                <p className="text-muted-foreground mt-1">
+                  Downloads directly - no popups needed. Works on mobile, tablet & desktop.
                 </p>
               </div>
+
+              <p className="text-xs text-center text-muted-foreground">
+                <strong>No worries!</strong> You can always download your plan later from the Cycle Management page.
+              </p>
             </div>
 
             <div className="flex justify-end pt-2 border-t">

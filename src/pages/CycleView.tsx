@@ -100,11 +100,22 @@ export default function CycleView() {
     try {
       const data = await loadCycleForExport(id, supabase);
       if (data) {
-        await exportCycleAsPDF(data);
-        toast({ title: 'PDF ready!', description: 'Save from the print dialog.' });
+        const result = await exportCycleAsPDF(data);
+        if (result.success) {
+          toast({ 
+            title: '✅ PDF Downloaded!', 
+            description: result.message || 'Check your Downloads folder.' 
+          });
+        } else {
+          toast({ 
+            title: 'Export Issue', 
+            description: result.message || 'Please try again.',
+            variant: 'destructive' 
+          });
+        }
       }
     } catch (error) {
-      toast({ title: 'Export failed', variant: 'destructive' });
+      toast({ title: 'Export failed', description: 'Please try again.', variant: 'destructive' });
     } finally {
       setExporting(false);
     }
