@@ -16,8 +16,9 @@ import { toast } from 'sonner';
 import { 
   Users, AlertTriangle, MessageSquare, Lightbulb, Shield, Trash2, UserPlus, 
   ShieldCheck, ShieldOff, RefreshCw, Upload, FileSpreadsheet, CheckCircle, 
-  XCircle, AlertCircle, Download, Link2, Copy, Check
+  XCircle, AlertCircle, Download, Link2, Copy, Check, RotateCcw, Loader2
 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 
 interface User {
@@ -119,6 +120,8 @@ export default function Admin() {
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   
   const [activeTab, setActiveTab] = useState('members');
+  
+  const [clearingPlanner, setClearingPlanner] = useState(false);
 
   const webhookUrls = {
     add: `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/ghl-webhook-add-member`,
@@ -451,6 +454,53 @@ export default function Admin() {
     setTimeout(() => setCopiedUrl(null), 2000);
   };
 
+  const handleClearPlanner = async () => {
+    if (!user) return;
+    
+    setClearingPlanner(true);
+    try {
+      // Get current cycle
+      const { data: cycles } = await supabase
+        .from('cycles_90_day')
+        .select('cycle_id')
+        .eq('user_id', user.id);
+      
+      if (cycles && cycles.length > 0) {
+        const cycleIds = cycles.map(c => c.cycle_id);
+        
+        // Delete in order to respect foreign key constraints
+        // Delete related data first
+        await supabase.from('daily_plans').delete().eq('user_id', user.id);
+        await supabase.from('weekly_plans').delete().eq('user_id', user.id);
+        await supabase.from('habit_logs').delete().eq('user_id', user.id);
+        await supabase.from('habits').delete().eq('user_id', user.id);
+        await supabase.from('tasks').delete().eq('user_id', user.id);
+        await supabase.from('projects').delete().eq('user_id', user.id);
+        await supabase.from('cycle_metric_updates').delete().in('cycle_id', cycleIds);
+        await supabase.from('cycle_month_plans').delete().in('cycle_id', cycleIds);
+        await supabase.from('cycle_limited_offers').delete().in('cycle_id', cycleIds);
+        await supabase.from('cycle_offers').delete().in('cycle_id', cycleIds);
+        await supabase.from('cycle_strategy').delete().in('cycle_id', cycleIds);
+        await supabase.from('cycle_revenue_plan').delete().in('cycle_id', cycleIds);
+        await supabase.from('coaching_entries').delete().eq('user_id', user.id);
+        await supabase.from('monthly_reviews').delete().eq('user_id', user.id);
+        
+        // Finally delete the cycles
+        await supabase.from('cycles_90_day').delete().eq('user_id', user.id);
+      }
+      
+      // Also clear the local draft
+      localStorage.removeItem('cycle-setup-draft');
+      
+      toast.success('Planner cleared! You can now start fresh.');
+    } catch (err: any) {
+      console.error('Clear planner error:', err);
+      toast.error(err.message || 'Failed to clear planner');
+    } finally {
+      setClearingPlanner(false);
+    }
+  };
+
   const newCount = parsedRows.filter(r => !existingEmails.has(r.email.toLowerCase())).length;
   const updateCount = parsedRows.filter(r => existingEmails.has(r.email.toLowerCase())).length;
   const activeMembers = members.filter(m => m.status === 'active');
@@ -487,10 +537,54 @@ export default function Admin() {
             </h1>
             <p className="text-muted-foreground">Manage members, users, and view reports</p>
           </div>
-          <Button onClick={loadAllData} variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Clear My Planner
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Clear Your Business Planner?</AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-2">
+                    <p>This will permanently delete:</p>
+                    <ul className="list-disc list-inside text-sm space-y-1">
+                      <li>Your 90-day cycle(s) and all settings</li>
+                      <li>All projects and tasks</li>
+                      <li>All habits and habit logs</li>
+                      <li>All daily and weekly plans</li>
+                      <li>All coaching entries</li>
+                      <li>Your saved draft</li>
+                    </ul>
+                    <p className="font-semibold text-destructive pt-2">This cannot be undone!</p>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleClearPlanner}
+                    disabled={clearingPlanner}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {clearingPlanner ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Clearing...
+                      </>
+                    ) : (
+                      'Yes, Clear Everything'
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <Button onClick={loadAllData} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
