@@ -214,6 +214,7 @@ Deno.serve(async (req) => {
       nurture_frequency,
       free_transformation,
       offers = [],
+      limited_offers = [],
       metrics = {},
       // Audience & messaging context for content tasks
       audience_target,
@@ -890,6 +891,188 @@ Deno.serve(async (req) => {
               console.log(`[AutoSetup] Created ${offerTasks.length} offer tasks for ${offer.name}`);
             }
           }
+        }
+      }
+    }
+
+    // ==================== LIMITED TIME OFFERS (PROMOS) ====================
+    if (limited_offers && limited_offers.length > 0) {
+      console.log(`[AutoSetup] Creating tasks for ${limited_offers.length} limited time offers`);
+      
+      for (const lto of limited_offers) {
+        if (!lto.name || !lto.startDate || !lto.endDate) continue;
+        
+        const ltoStartDate = new Date(lto.startDate);
+        const ltoEndDate = new Date(lto.endDate);
+        const promoDurationDays = Math.ceil((ltoEndDate.getTime() - ltoStartDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        const ltoTasksToCreate: any[] = [];
+        const promoType = lto.promoType || 'flash_sale';
+        
+        // Build promo context
+        const promoContext = [
+          `🎉 Promotion: ${lto.name}`,
+          lto.discount ? `💰 Offer: ${lto.discount}` : null,
+          audience_target ? `🎯 Audience: ${audience_target}` : null,
+          signature_message ? `💬 Message: ${signature_message}` : null,
+          lto.notes ? `📝 Notes: ${lto.notes}` : null,
+        ].filter(Boolean).join('\n');
+        
+        // Generate tasks based on promo type
+        const generateLTOTemplateKey = (taskType: string) => 
+          generateTemplateKey(`lto_${lto.name.replace(/\s+/g, '_')}_${taskType}`, cycle_id);
+        
+        // PRE-LAUNCH PREP TASK (1-7 days before depending on promo type)
+        const prepDaysBefore = promoType === 'launch_sequence' ? 7 : promoType === 'webinar_cart' ? 7 : promoType === 'week_promo' ? 3 : 1;
+        const prepDate = new Date(ltoStartDate);
+        prepDate.setDate(prepDate.getDate() - prepDaysBefore);
+        
+        if (prepDate >= today) {
+          ltoTasksToCreate.push({
+            user_id: userId,
+            cycle_id: cycle_id,
+            task_text: `🎯 Prep for: ${lto.name}`,
+            task_description: `Prepare for your upcoming promotion:\n\n${promoContext}\n\n📋 Prep Checklist:\n• Create/review sales page\n• Write email sequence\n• Prepare social posts\n• Set up any urgency elements (countdown, bonuses)`,
+            scheduled_date: formatDate(prepDate),
+            priority: 'high',
+            status: 'todo',
+            source: 'autopilot',
+            is_system_generated: true,
+            system_source: 'cycle_autopilot',
+            template_key: generateLTOTemplateKey('prep'),
+            context_tags: ['sales', 'lto', 'prep'],
+          });
+        }
+        
+        // LAUNCH DAY TASK
+        if (ltoStartDate >= today) {
+          ltoTasksToCreate.push({
+            user_id: userId,
+            cycle_id: cycle_id,
+            task_text: `🚀 LAUNCH: ${lto.name}`,
+            task_description: `Today your promotion goes live!\n\n${promoContext}\n\n📋 Launch Day Tasks:\n• Send launch email\n• Post on social media\n• Go live/open cart\n• Monitor responses`,
+            scheduled_date: formatDate(ltoStartDate),
+            priority: 'high',
+            status: 'todo',
+            source: 'autopilot',
+            is_system_generated: true,
+            system_source: 'cycle_autopilot',
+            template_key: generateLTOTemplateKey('launch'),
+            context_tags: ['sales', 'lto', 'launch'],
+          });
+        }
+        
+        // MID-PROMO REMINDER (for promos longer than 2 days)
+        if (promoDurationDays > 2) {
+          const midDate = new Date(ltoStartDate);
+          midDate.setDate(midDate.getDate() + Math.floor(promoDurationDays / 2));
+          
+          if (midDate >= today && midDate < ltoEndDate) {
+            ltoTasksToCreate.push({
+              user_id: userId,
+              cycle_id: cycle_id,
+              task_text: `📣 Mid-promo push: ${lto.name}`,
+              task_description: `Keep the momentum going!\n\n${promoContext}\n\n📋 Mid-Promo Tasks:\n• Send reminder email\n• Share testimonials/social proof\n• Address FAQs\n• Re-share the offer`,
+              scheduled_date: formatDate(midDate),
+              priority: 'medium',
+              status: 'todo',
+              source: 'autopilot',
+              is_system_generated: true,
+              system_source: 'cycle_autopilot',
+              template_key: generateLTOTemplateKey('midpromo'),
+              context_tags: ['sales', 'lto', 'reminder'],
+            });
+          }
+        }
+        
+        // LAST 24 HOURS TASK (day before end for promos > 1 day)
+        if (promoDurationDays > 1) {
+          const last24Date = new Date(ltoEndDate);
+          last24Date.setDate(last24Date.getDate() - 1);
+          
+          if (last24Date >= today && last24Date > ltoStartDate) {
+            ltoTasksToCreate.push({
+              user_id: userId,
+              cycle_id: cycle_id,
+              task_text: `⏰ Last 24 hours: ${lto.name}`,
+              task_description: `Final push before cart closes!\n\n${promoContext}\n\n📋 Last Day Tasks:\n• Send "last chance" email\n• Post urgency reminders\n• DM interested leads\n• Share final testimonials`,
+              scheduled_date: formatDate(last24Date),
+              priority: 'high',
+              status: 'todo',
+              source: 'autopilot',
+              is_system_generated: true,
+              system_source: 'cycle_autopilot',
+              template_key: generateLTOTemplateKey('last24'),
+              context_tags: ['sales', 'lto', 'urgency'],
+            });
+          }
+        }
+        
+        // CART CLOSE / END TASK
+        if (ltoEndDate >= today) {
+          ltoTasksToCreate.push({
+            user_id: userId,
+            cycle_id: cycle_id,
+            task_text: `🔒 Cart closes: ${lto.name}`,
+            task_description: `Promotion ends today!\n\n${promoContext}\n\n📋 Close Tasks:\n• Send final "doors closing" email\n• Turn off offer/raise prices\n• Thank everyone who joined\n• Note results for future reference`,
+            scheduled_date: formatDate(ltoEndDate),
+            priority: 'high',
+            status: 'todo',
+            source: 'autopilot',
+            is_system_generated: true,
+            system_source: 'cycle_autopilot',
+            template_key: generateLTOTemplateKey('close'),
+            context_tags: ['sales', 'lto', 'close'],
+          });
+        }
+        
+        // POST-PROMO FOLLOW-UP (day after)
+        const followUpDate = new Date(ltoEndDate);
+        followUpDate.setDate(followUpDate.getDate() + 1);
+        
+        if (followUpDate >= today && followUpDate <= endDateObj) {
+          ltoTasksToCreate.push({
+            user_id: userId,
+            cycle_id: cycle_id,
+            task_text: `📊 Debrief: ${lto.name}`,
+            task_description: `Review your promotion results!\n\n${promoContext}\n\n📋 Debrief Questions:\n• How many sales did you make?\n• What worked well?\n• What would you do differently?\n• Any follow-up needed with prospects?`,
+            scheduled_date: formatDate(followUpDate),
+            priority: 'medium',
+            status: 'todo',
+            source: 'autopilot',
+            is_system_generated: true,
+            system_source: 'cycle_autopilot',
+            template_key: generateLTOTemplateKey('debrief'),
+            context_tags: ['sales', 'lto', 'review'],
+          });
+        }
+        
+        // Filter out duplicates based on template_key
+        const { data: existingLTOTasks } = await supabase
+          .from('tasks')
+          .select('template_key')
+          .eq('cycle_id', cycle_id)
+          .eq('user_id', userId)
+          .not('template_key', 'is', null);
+        
+        const existingLTOKeys = new Set((existingLTOTasks || []).map(t => t.template_key));
+        const newLTOTasks = ltoTasksToCreate.filter(t => !existingLTOKeys.has(t.template_key));
+        
+        if (newLTOTasks.length > 0) {
+          const { data: createdTasks, error: ltoError } = await supabase
+            .from('tasks')
+            .insert(newLTOTasks)
+            .select();
+          
+          if (ltoError) {
+            console.error(`[AutoSetup] Error creating LTO tasks for ${lto.name}:`, ltoError);
+            results.errors.push(`Failed to create LTO tasks for ${lto.name}: ${ltoError.message}`);
+          } else {
+            results.tasks.push(...createdTasks);
+            console.log(`[AutoSetup] Created ${createdTasks.length} LTO tasks for ${lto.name}`);
+          }
+        } else {
+          console.log(`[AutoSetup] All LTO tasks for ${lto.name} already exist, skipping`);
         }
       }
     }

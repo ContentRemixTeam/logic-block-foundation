@@ -11,6 +11,18 @@ export interface SecondaryPlatform {
   goal: 'leads' | 'nurture' | 'sales' | '';
 }
 
+// Limited Time Offer interface for Step 6
+export interface LimitedTimeOffer {
+  id: string;
+  name: string;
+  offerRef?: string;  // Which core offer this promotes (optional)
+  startDate: string;
+  endDate: string;
+  promoType: 'flash_sale' | 'week_promo' | 'launch_sequence' | 'webinar_cart' | '';
+  discount?: string;
+  notes?: string;
+}
+
 export interface CycleSetupDraft {
   // Step 1: Dates & Goal
   startDate: string;
@@ -55,6 +67,7 @@ export interface CycleSetupDraft {
     transformation: string;
     isPrimary: boolean;
   }>;
+  limitedOffers: LimitedTimeOffer[];
 
   // Step 7: 90-Day Breakdown
   revenueGoal: string;
@@ -110,6 +123,7 @@ const DEFAULT_DRAFT: CycleSetupDraft = {
   freeTransformation: '',
   proofMethods: [],
   offers: [{ name: '', price: '', frequency: '', transformation: '', isPrimary: true }],
+  limitedOffers: [],
   revenueGoal: '',
   pricePerSale: '',
   launchSchedule: '',
