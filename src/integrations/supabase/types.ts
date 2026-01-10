@@ -375,6 +375,33 @@ export type Database = {
           },
         ]
       }
+      cycle_drafts: {
+        Row: {
+          created_at: string | null
+          current_step: number | null
+          draft_data: Json
+          id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_step?: number | null
+          draft_data?: Json
+          id?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_step?: number | null
+          draft_data?: Json
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       cycle_limited_offers: {
         Row: {
           created_at: string | null
