@@ -58,6 +58,7 @@ Deno.serve(async (req) => {
       monthly_review_questions,
       cycle_summary_questions,
       theme_preference,
+      works_weekends,
     } = body;
 
     // Use service role client for database operations
@@ -81,6 +82,10 @@ Deno.serve(async (req) => {
 
     if (theme_preference !== undefined) {
       updateData.theme_preference = theme_preference;
+    }
+
+    if (works_weekends !== undefined) {
+      updateData.works_weekends = works_weekends;
     }
 
     const { error } = await supabaseClient

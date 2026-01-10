@@ -108,6 +108,24 @@ export function WeekPlannerNew({
         if (cycle.office_hours_start) setOfficeHoursStart(cycle.office_hours_start);
         if (cycle.office_hours_end) setOfficeHoursEnd(cycle.office_hours_end);
       }
+      
+      // Load works_weekends preference from user settings
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-user-settings`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        });
+        if (res.ok) {
+          const userSettings = await res.json();
+          if (userSettings.works_weekends !== undefined) {
+            setShowWeekend(userSettings.works_weekends);
+          }
+        }
+      }
     } catch (error) {
       console.error('Error loading settings:', error);
     }

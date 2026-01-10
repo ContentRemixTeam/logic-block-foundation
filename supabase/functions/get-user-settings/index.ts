@@ -140,6 +140,7 @@ Deno.serve(async (req) => {
         habit_categories_enabled: settings.habit_categories_enabled ?? true,
         theme_preference: settings.theme_preference ?? 'quest',
         scratch_pad_review_mode: settings.scratch_pad_review_mode ?? 'quick_save',
+        works_weekends: settings.works_weekends ?? false,
         // Quest Mode fields
         xp_points: settings.xp_points ?? 0,
         user_level: settings.user_level ?? 1,
