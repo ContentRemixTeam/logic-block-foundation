@@ -155,10 +155,13 @@ export interface CycleSetupDraft {
   whatWillYouDoWhenFearHits: string;
   commitmentStatement: string;
   whoWillHoldYouAccountable: string;
+  day1Date: string; // ISO date string for Day 1
   day1Top3: string[];
   day1Why: string;
+  day2Date: string; // ISO date string for Day 2
   day2Top3: string[];
   day2Why: string;
+  day3Date: string; // ISO date string for Day 3
   day3Top3: string[];
   day3Why: string;
 
@@ -237,10 +240,13 @@ const DEFAULT_DRAFT: CycleSetupDraft = {
   whatWillYouDoWhenFearHits: '',
   commitmentStatement: '',
   whoWillHoldYouAccountable: '',
+  day1Date: '', // Will be initialized from start date
   day1Top3: ['', '', ''],
   day1Why: '',
+  day2Date: '',
   day2Top3: ['', '', ''],
   day2Why: '',
+  day3Date: '',
   day3Top3: ['', '', ''],
   day3Why: '',
   currentStep: 1,

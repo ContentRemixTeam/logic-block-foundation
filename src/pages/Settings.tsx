@@ -31,6 +31,7 @@ export default function Settings() {
     show_income_tracker: false,
     theme_preference: 'quest' as 'quest' | 'minimal' | 'vibrant' | 'bw',
     scratch_pad_review_mode: 'quick_save' as 'quick_save' | 'organize_now',
+    works_weekends: false,
   });
 
   const [dailyQuestions, setDailyQuestions] = useState<string[]>([""]);
@@ -81,6 +82,7 @@ export default function Settings() {
         show_income_tracker: normalizeBoolean(data.show_income_tracker),
         theme_preference: data.theme_preference || 'vibrant',
         scratch_pad_review_mode: data.scratch_pad_review_mode || 'quick_save',
+        works_weekends: normalizeBoolean(data.works_weekends, false),
       });
 
       // Apply theme to document
@@ -400,6 +402,22 @@ export default function Settings() {
                 checked={settings.scratch_pad_review_mode === 'organize_now'}
                 onCheckedChange={(checked) =>
                   updateSetting('scratch_pad_review_mode', checked ? 'organize_now' : 'quick_save')
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="worksWeekends">Work on Weekends</Label>
+                <div className="text-sm text-muted-foreground">
+                  Include Saturday and Sunday in your work schedule
+                </div>
+              </div>
+              <Switch
+                id="worksWeekends"
+                checked={settings.works_weekends}
+                onCheckedChange={(checked) =>
+                  updateSetting('works_weekends', checked)
                 }
               />
             </div>

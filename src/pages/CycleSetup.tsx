@@ -459,13 +459,40 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
   const [whatWillYouDoWhenFearHits, setWhatWillYouDoWhenFearHits] = useState('');
   const [commitmentStatement, setCommitmentStatement] = useState('');
   const [whoWillHoldYouAccountable, setWhoWillHoldYouAccountable] = useState('');
+  // First 3 Days with user-selectable dates
+  const [day1Date, setDay1Date] = useState<Date | undefined>(undefined);
   const [day1Top3, setDay1Top3] = useState<string[]>(['', '', '']);
   const [day1Why, setDay1Why] = useState('');
+  const [day2Date, setDay2Date] = useState<Date | undefined>(undefined);
   const [day2Top3, setDay2Top3] = useState<string[]>(['', '', '']);
   const [day2Why, setDay2Why] = useState('');
+  const [day3Date, setDay3Date] = useState<Date | undefined>(undefined);
   const [day3Top3, setDay3Top3] = useState<string[]>(['', '', '']);
   const [day3Why, setDay3Why] = useState('');
 
+  // Helper to get first N weekdays from a start date
+  const getFirstWeekdays = useCallback((start: Date, count: number): Date[] => {
+    const weekdays: Date[] = [];
+    const current = new Date(start);
+    while (weekdays.length < count) {
+      const day = current.getDay();
+      if (day !== 0 && day !== 6) { // Skip weekends
+        weekdays.push(new Date(current));
+      }
+      current.setDate(current.getDate() + 1);
+    }
+    return weekdays;
+  }, []);
+
+  // Initialize day dates when start date changes (only if not already set)
+  useEffect(() => {
+    if (startDate && !day1Date && !day2Date && !day3Date) {
+      const weekdays = getFirstWeekdays(startDate, 3);
+      setDay1Date(weekdays[0]);
+      setDay2Date(weekdays[1]);
+      setDay3Date(weekdays[2]);
+    }
+  }, [startDate, day1Date, day2Date, day3Date, getFirstWeekdays]);
   // Check for private browsing mode on mount
   useEffect(() => {
     try {
@@ -1837,46 +1864,102 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
         }
       }
 
-      // Create daily plans for first 3 days (if tasks exist) - SAFE, won't break if skipped
+      // Create daily plans AND actual tasks for first 3 days (if tasks exist)
       if (cycleId) {
         try {
           const dailyPlans: any[] = [];
-          const cycleStart = new Date(startDate);
+          const first3DaysTasks: any[] = [];
           
-          // Day 1 (if tasks exist)
-          if (day1Top3.some(t => t?.trim())) {
+          // Day 1 (if date and tasks exist)
+          if (day1Date && day1Top3.some(t => t?.trim())) {
+            const day1DateStr = format(day1Date, 'yyyy-MM-dd');
             dailyPlans.push({
               user_id: user.id,
               cycle_id: cycleId,
-              date: format(cycleStart, 'yyyy-MM-dd'),
-              top_3: day1Top3.filter(t => t?.trim()),
-              notes: day1Why?.trim() || null,
+              date: day1DateStr,
+              top_3_today: day1Top3.filter(t => t?.trim()),
+              thought: day1Why?.trim() || null,
+            });
+            // Create actual tasks for Day 1
+            day1Top3.filter(t => t?.trim()).forEach((taskText, idx) => {
+              first3DaysTasks.push({
+                user_id: user.id,
+                cycle_id: cycleId,
+                task_text: taskText.trim(),
+                scheduled_date: day1DateStr,
+                planned_day: day1DateStr,
+                priority_order: idx + 1,
+                priority: 'high',
+                status: 'todo',
+                source: 'first_3_days',
+                category: 'first-3-days',
+                context_tags: ['first-3-days', 'day-1'],
+                is_system_generated: true,
+                system_source: 'cycle_first_3_days',
+                template_key: `first3days_d1_${idx}_${cycleId}`,
+              });
             });
           }
           
-          // Day 2 (if tasks exist)
-          if (day2Top3.some(t => t?.trim())) {
-            const day2Date = new Date(cycleStart);
-            day2Date.setDate(day2Date.getDate() + 1);
+          // Day 2 (if date and tasks exist)
+          if (day2Date && day2Top3.some(t => t?.trim())) {
+            const day2DateStr = format(day2Date, 'yyyy-MM-dd');
             dailyPlans.push({
               user_id: user.id,
               cycle_id: cycleId,
-              date: format(day2Date, 'yyyy-MM-dd'),
-              top_3: day2Top3.filter(t => t?.trim()),
-              notes: day2Why?.trim() || null,
+              date: day2DateStr,
+              top_3_today: day2Top3.filter(t => t?.trim()),
+              thought: day2Why?.trim() || null,
+            });
+            // Create actual tasks for Day 2
+            day2Top3.filter(t => t?.trim()).forEach((taskText, idx) => {
+              first3DaysTasks.push({
+                user_id: user.id,
+                cycle_id: cycleId,
+                task_text: taskText.trim(),
+                scheduled_date: day2DateStr,
+                planned_day: day2DateStr,
+                priority_order: idx + 1,
+                priority: 'high',
+                status: 'todo',
+                source: 'first_3_days',
+                category: 'first-3-days',
+                context_tags: ['first-3-days', 'day-2'],
+                is_system_generated: true,
+                system_source: 'cycle_first_3_days',
+                template_key: `first3days_d2_${idx}_${cycleId}`,
+              });
             });
           }
           
-          // Day 3 (if tasks exist)
-          if (day3Top3.some(t => t?.trim())) {
-            const day3Date = new Date(cycleStart);
-            day3Date.setDate(day3Date.getDate() + 2);
+          // Day 3 (if date and tasks exist)
+          if (day3Date && day3Top3.some(t => t?.trim())) {
+            const day3DateStr = format(day3Date, 'yyyy-MM-dd');
             dailyPlans.push({
               user_id: user.id,
               cycle_id: cycleId,
-              date: format(day3Date, 'yyyy-MM-dd'),
-              top_3: day3Top3.filter(t => t?.trim()),
-              notes: day3Why?.trim() || null,
+              date: day3DateStr,
+              top_3_today: day3Top3.filter(t => t?.trim()),
+              thought: day3Why?.trim() || null,
+            });
+            // Create actual tasks for Day 3
+            day3Top3.filter(t => t?.trim()).forEach((taskText, idx) => {
+              first3DaysTasks.push({
+                user_id: user.id,
+                cycle_id: cycleId,
+                task_text: taskText.trim(),
+                scheduled_date: day3DateStr,
+                planned_day: day3DateStr,
+                priority_order: idx + 1,
+                priority: 'high',
+                status: 'todo',
+                source: 'first_3_days',
+                category: 'first-3-days',
+                context_tags: ['first-3-days', 'day-3'],
+                is_system_generated: true,
+                system_source: 'cycle_first_3_days',
+                template_key: `first3days_d3_${idx}_${cycleId}`,
+              });
             });
           }
           
@@ -1888,13 +1971,25 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
             
             if (dailyError) {
               console.error('Daily plan creation error:', dailyError);
-              // DON'T throw - cycle is already saved
             } else {
               console.log(`Created ${dailyPlans.length} daily plans for first 3 days`);
             }
           }
+          
+          // Insert actual tasks (if any exist)
+          if (first3DaysTasks.length > 0) {
+            const { error: tasksError } = await supabase
+              .from('tasks')
+              .insert(first3DaysTasks);
+            
+            if (tasksError) {
+              console.error('First 3 days tasks creation error:', tasksError);
+            } else {
+              console.log(`Created ${first3DaysTasks.length} tasks for first 3 days`);
+            }
+          }
         } catch (planError) {
-          console.error('Error creating daily plans:', planError);
+          console.error('Error creating daily plans/tasks:', planError);
           // DON'T throw - this is optional, cycle is saved
         }
       }
@@ -4276,14 +4371,33 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
 
                 {/* DAY 1 */}
                 <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-6 space-y-4 border border-primary/20">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg">
-                      1
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg">
+                        1
+                      </div>
+                      <div>
+                        <h4 className="text-xl font-semibold">Day 1</h4>
+                        <p className="text-sm text-muted-foreground">Build momentum</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-xl font-semibold">Day 1</h4>
-                      <p className="text-sm text-muted-foreground">Build momentum</p>
-                    </div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-[200px] justify-start text-left font-normal", !day1Date && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {day1Date ? format(day1Date, 'EEE, MMM d') : 'Pick a date'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="end">
+                        <Calendar
+                          mode="single"
+                          selected={day1Date}
+                          onSelect={setDay1Date}
+                          disabled={(date) => date < startDate}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   <div className="space-y-3">
@@ -4328,14 +4442,33 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
 
                 {/* DAY 2 */}
                 <div className="bg-gradient-to-br from-blue-500/5 to-blue-500/10 rounded-xl p-6 space-y-4 border border-blue-500/20">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-lg">
-                      2
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-lg">
+                        2
+                      </div>
+                      <div>
+                        <h4 className="text-xl font-semibold">Day 2</h4>
+                        <p className="text-sm text-muted-foreground">Keep the momentum</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-xl font-semibold">Day 2</h4>
-                      <p className="text-sm text-muted-foreground">Keep the momentum</p>
-                    </div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-[200px] justify-start text-left font-normal", !day2Date && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {day2Date ? format(day2Date, 'EEE, MMM d') : 'Pick a date'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="end">
+                        <Calendar
+                          mode="single"
+                          selected={day2Date}
+                          onSelect={setDay2Date}
+                          disabled={(date) => date < startDate}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   <div className="space-y-3">
@@ -4380,14 +4513,33 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
 
                 {/* DAY 3 */}
                 <div className="bg-gradient-to-br from-green-500/5 to-green-500/10 rounded-xl p-6 space-y-4 border border-green-500/20">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-lg">
-                      3
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-lg">
+                        3
+                      </div>
+                      <div>
+                        <h4 className="text-xl font-semibold">Day 3</h4>
+                        <p className="text-sm text-muted-foreground">Finish strong</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-xl font-semibold">Day 3</h4>
-                      <p className="text-sm text-muted-foreground">Finish strong</p>
-                    </div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-[200px] justify-start text-left font-normal", !day3Date && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {day3Date ? format(day3Date, 'EEE, MMM d') : 'Pick a date'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="end">
+                        <Calendar
+                          mode="single"
+                          selected={day3Date}
+                          onSelect={setDay3Date}
+                          disabled={(date) => date < startDate}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   <div className="space-y-3">

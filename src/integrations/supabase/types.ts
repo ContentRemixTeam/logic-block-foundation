@@ -2585,6 +2585,7 @@ export type Database = {
           user_id: string
           user_level: number | null
           weekly_review_questions: Json | null
+          works_weekends: boolean | null
           xp_points: number | null
         }
         Insert: {
@@ -2610,6 +2611,7 @@ export type Database = {
           user_id: string
           user_level?: number | null
           weekly_review_questions?: Json | null
+          works_weekends?: boolean | null
           xp_points?: number | null
         }
         Update: {
@@ -2635,6 +2637,7 @@ export type Database = {
           user_id?: string
           user_level?: number | null
           weekly_review_questions?: Json | null
+          works_weekends?: boolean | null
           xp_points?: number | null
         }
         Relationships: []
