@@ -7,7 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Target, Plus, Edit, Eye, Calendar, TrendingUp } from 'lucide-react';
+import { Target, Plus, Edit, Eye, Calendar, TrendingUp, Download } from 'lucide-react';
+import { loadCycleForExport, exportCycleAsPDF } from '@/lib/cycleExport';
+import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
 interface Cycle {
@@ -22,8 +24,42 @@ interface Cycle {
 export default function CycleManagement() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [cycles, setCycles] = useState<Cycle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const handleDownloadPDF = async (cycleId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDownloadingId(cycleId);
+    try {
+      const data = await loadCycleForExport(cycleId, supabase);
+      if (data) {
+        const result = await exportCycleAsPDF(data);
+        if (result.success) {
+          toast({ 
+            title: '✅ PDF Downloaded!', 
+            description: 'Check your Downloads folder.' 
+          });
+        } else {
+          toast({ 
+            title: 'Download Issue', 
+            description: result.message || 'Please try again.',
+            variant: 'destructive'
+          });
+        }
+      }
+    } catch (error) {
+      console.error('PDF download error:', error);
+      toast({ 
+        title: 'Download Failed', 
+        description: 'Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   useEffect(() => {
     loadCycles();
@@ -171,6 +207,16 @@ export default function CycleManagement() {
                       </div>
 
                       <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => handleDownloadPDF(cycle.cycle_id, e)}
+                          disabled={downloadingId === cycle.cycle_id}
+                          className="gap-1"
+                        >
+                          <Download className="h-4 w-4" />
+                          {downloadingId === cycle.cycle_id ? 'Downloading...' : 'PDF'}
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"

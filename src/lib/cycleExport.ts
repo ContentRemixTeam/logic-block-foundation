@@ -1,4 +1,5 @@
 import { format, addDays } from 'date-fns';
+import { generateAndDownloadPDF } from './pdfGenerator';
 
 export interface CycleExportData {
   // Step 1: Dates & Goal
@@ -299,65 +300,35 @@ export function exportCycleAsJSON(cycleData: CycleExportData): ExportResult {
   }
 }
 
-// Export as beautifully formatted PDF (using print-to-PDF) - bulletproof version
+// Export as PDF using jsPDF - bulletproof version that works on ALL devices
 export async function exportCycleAsPDF(cycleData: CycleExportData): Promise<ExportResult> {
   try {
-    const htmlContent = generatePDFHTML(cycleData);
+    const result = await generateAndDownloadPDF(cycleData);
     
-    // Try to open popup window
-    const printWindow = window.open('', '_blank');
-    
-    // Detect popup blocker
-    if (!printWindow || printWindow.closed || typeof printWindow.closed === 'undefined') {
-      console.error('Popup blocked');
-      return {
-        success: false,
-        error: 'popup_blocked',
-        message: 'Pop-up was blocked by your browser. Please allow pop-ups for this site and try again.'
+    if (result.success) {
+      return { 
+        success: true,
+        message: 'Your PDF has been downloaded! Check your Downloads folder.'
       };
-    }
-    
-    // Write content to the new window
-    try {
-      printWindow.document.write(htmlContent);
-      printWindow.document.close();
-    } catch (writeError) {
-      console.error('Failed to write to print window:', writeError);
-      printWindow.close();
+    } else {
+      console.error('PDF generation failed:', result.error);
       return {
         success: false,
         error: 'browser_error',
-        message: 'Failed to generate PDF content. Try using Chrome or Firefox.'
+        message: result.error || 'Failed to generate PDF. Please try again.'
       };
     }
-    
-    // Wait for content to load, then trigger print
-    return new Promise((resolve) => {
-      // Give the browser time to render
-      setTimeout(() => {
-        try {
-          printWindow.focus();
-          printWindow.print();
-          resolve({ success: true });
-        } catch (printError) {
-          console.error('Print error:', printError);
-          // The window is still open with content, user can manually print
-          resolve({ 
-            success: true, 
-            message: 'PDF window opened. Use Ctrl+P (or Cmd+P on Mac) to print/save as PDF.'
-          });
-        }
-      }, 800);
-    });
   } catch (error) {
     console.error('PDF export error:', error);
     return {
       success: false,
       error: 'unknown',
-      message: 'An unexpected error occurred. Please try again or use a different browser.'
+      message: 'An unexpected error occurred. Please try again.'
     };
   }
 }
+
+// Legacy function - Generate beautiful HTML for print-to-PDF (fallback)
 
 // Generate beautiful HTML for PDF
 function generatePDFHTML(data: CycleExportData): string {
