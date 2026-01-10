@@ -36,6 +36,7 @@ interface MonthPlan {
 interface SecondaryPlatform {
   platform: string;
   contentType: string;
+  frequency: string;
 }
 
 interface WorkshopData {
@@ -323,7 +324,7 @@ export default function WorkshopPlanner() {
       ${data.leadContentType ? `<li><strong>Content Type:</strong> ${data.leadContentType === 'other' ? data.leadContentTypeCustom : data.leadContentType}</li>` : ''}
       ${data.leadFrequency ? `<li><strong>Frequency:</strong> ${data.leadFrequency}</li>` : ''}
       <li><strong>90-Day Commitment:</strong> ${data.leadCommitted ? '✅ Yes' : '❌ No'}</li>
-      ${data.secondaryPlatforms.length > 0 ? `<li><strong>Secondary Platforms:</strong> ${data.secondaryPlatforms.map(s => `${s.platform} (${s.contentType})`).join(', ')}</li>` : ''}
+      ${data.secondaryPlatforms.length > 0 ? `<li><strong>Secondary Platforms:</strong> ${data.secondaryPlatforms.map(s => `${s.platform} (${s.contentType}${s.frequency ? `, ${s.frequency}` : ''})`).join(', ')}</li>` : ''}
     </ul>
     
     <h3>Nurture</h3>
@@ -874,18 +875,12 @@ export default function WorkshopPlanner() {
 
                 <div>
                   <Label>Posting Frequency</Label>
-                  <Select value={data.leadFrequency} onValueChange={(v) => updateData({ leadFrequency: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="How often will you post?" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="5x-week">5x per week</SelectItem>
-                      <SelectItem value="3x-week">3x per week</SelectItem>
-                      <SelectItem value="2x-week">2x per week</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    value={data.leadFrequency}
+                    onChange={(e) => updateData({ leadFrequency: e.target.value })}
+                    placeholder="e.g., Daily, 3x per week, Every other day"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Type your own frequency</p>
                 </div>
 
                 {/* Secondary Platforms Section */}
@@ -900,7 +895,7 @@ export default function WorkshopPlanner() {
                       variant="outline"
                       size="sm"
                       onClick={() => updateData({ 
-                        secondaryPlatforms: [...data.secondaryPlatforms, { platform: '', contentType: '' }] 
+                        secondaryPlatforms: [...data.secondaryPlatforms, { platform: '', contentType: '', frequency: '' }] 
                       })}
                     >
                       <Plus className="h-4 w-4 mr-1" />
@@ -928,6 +923,15 @@ export default function WorkshopPlanner() {
                             updateData({ secondaryPlatforms: updated });
                           }}
                           placeholder="Content type (e.g., Repurposed reels)"
+                        />
+                        <Input
+                          value={secondary.frequency}
+                          onChange={(e) => {
+                            const updated = [...data.secondaryPlatforms];
+                            updated[idx].frequency = e.target.value;
+                            updateData({ secondaryPlatforms: updated });
+                          }}
+                          placeholder="Posting frequency (e.g., 3x per week, Daily)"
                         />
                       </div>
                       <Button
