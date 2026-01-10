@@ -1028,6 +1028,10 @@ export default function CycleSetup() {
                   metric2: metric2Name,
                   metric3: metric3Name,
                 },
+                // Audience & messaging context for content tasks
+                audience_target: audienceTarget || null,
+                audience_frustration: audienceFrustration || null,
+                signature_message: signatureMessage || null,
               }),
             }
           );

@@ -215,7 +215,18 @@ Deno.serve(async (req) => {
       free_transformation,
       offers = [],
       metrics = {},
+      // Audience & messaging context for content tasks
+      audience_target,
+      audience_frustration,
+      signature_message,
     } = body;
+    
+    // Build audience context string for content tasks
+    const audienceContext = [
+      audience_target ? `🎯 Audience: ${audience_target}` : null,
+      audience_frustration ? `😫 Their Pain Point: ${audience_frustration}` : null,
+      signature_message ? `💬 Your Message: "${signature_message}"` : null,
+    ].filter(Boolean).join('\n');
 
     if (!cycle_id) {
       return new Response(JSON.stringify({ error: 'cycle_id is required' }), {
@@ -338,11 +349,17 @@ Deno.serve(async (req) => {
             
             if (existingKeys.has(templateKey)) return null;
             
+            // Build task description with audience context
+            const taskDescription = audienceContext 
+              ? `Create and post content for ${platformName}.\n\n📋 YOUR AUDIENCE & MESSAGE:\n${audienceContext}`
+              : `Create and post content for ${platformName}.`;
+            
             return {
               user_id: userId,
               cycle_id: cycle_id,
               project_id: projectId,
               task_text: `📣 Post on ${platformName} (${dayName})`,
+              task_description: taskDescription,
               scheduled_date: formatDate(date),
               time_block_start: posting_time || null,
               time_block_end: posting_time ? addMinutes(posting_time, 30) : null,
@@ -394,11 +411,17 @@ Deno.serve(async (req) => {
                 .maybeSingle();
               
               if (!existing) {
+                // Build batch task description with audience context
+                const batchDescription = audienceContext 
+                  ? `Plan and create content for next week's posts.\n\n📋 YOUR AUDIENCE & MESSAGE:\n${audienceContext}\n\n💡 Tips:\n• Batch 3-5 pieces of content\n• Focus on their pain points\n• Lead with your signature message`
+                  : `Plan and create content for next week's posts.\n\n💡 Tips:\n• Batch 3-5 pieces of content`;
+                
                 batchTasksToCreate.push({
                   user_id: userId,
                   cycle_id: cycle_id,
                   project_id: projectId,
                   task_text: `📝 Batch content for next week`,
+                  task_description: batchDescription,
                   scheduled_date: dateStr,
                   time_block_start: '09:00',
                   time_block_end: '10:30',
