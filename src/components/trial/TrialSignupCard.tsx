@@ -62,6 +62,20 @@ export function TrialSignupCard({ workshopDate = '2026-01-10', redirectTo = '/wo
     setLoading(true);
 
     try {
+      // CRITICAL: Check if this email has a mastermind entitlement FIRST
+      const { data: hasEntitlement } = await supabase
+        .rpc('check_mastermind_entitlement', { user_email: email.trim().toLowerCase() });
+
+      // If they're already a mastermind member, redirect them to the member signup page
+      if (hasEntitlement === true) {
+        toast({
+          title: 'You\'re a Mastermind member!',
+          description: 'Redirecting you to the member signup page...',
+        });
+        navigate('/join');
+        return;
+      }
+
       const redirectUrl = `${window.location.origin}/`;
       
       const { data: authData, error: authError } = await supabase.auth.signUp({
