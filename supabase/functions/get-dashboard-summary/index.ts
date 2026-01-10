@@ -92,13 +92,23 @@ Deno.serve(async (req) => {
     let monthlyReviewStatus = { exists: false, score: null as number | null, wins_count: 0 };
     let cycleSummaryStatus = { exists: false, is_complete: false, score: null as number | null, wins_count: 0 };
 
+    // Success metrics data
+    let metricsData = { 
+      metric1_name: null as string | null, 
+      metric1_start: null as number | null,
+      metric2_name: null as string | null, 
+      metric2_start: null as number | null,
+      metric3_name: null as string | null, 
+      metric3_start: null as number | null,
+    };
+
     if (cycleData && cycleData.length > 0) {
       const currentCycle = cycleData[0];
 
-      // Fetch full cycle data including all fields
+      // Fetch full cycle data including all fields + metrics
       const { data: fullCycleData } = await supabaseClient
         .from('cycles_90_day')
-        .select('focus_area, things_to_remember, discover_score, nurture_score, convert_score, identity, why, target_feeling, audience_target, audience_frustration, signature_message, office_hours_start, office_hours_end, office_hours_days, weekly_planning_day, weekly_debrief_day')
+        .select('focus_area, things_to_remember, discover_score, nurture_score, convert_score, identity, why, target_feeling, audience_target, audience_frustration, signature_message, office_hours_start, office_hours_end, office_hours_days, weekly_planning_day, weekly_debrief_day, metric_1_name, metric_1_start, metric_2_name, metric_2_start, metric_3_name, metric_3_start')
         .eq('cycle_id', currentCycle.cycle_id)
         .maybeSingle();
       
@@ -118,6 +128,16 @@ Deno.serve(async (req) => {
         target: fullCycleData?.audience_target || null,
         frustration: fullCycleData?.audience_frustration || null,
         message: fullCycleData?.signature_message || null,
+      };
+      
+      // Set metrics data
+      metricsData = {
+        metric1_name: fullCycleData?.metric_1_name || null,
+        metric1_start: fullCycleData?.metric_1_start || null,
+        metric2_name: fullCycleData?.metric_2_name || null,
+        metric2_start: fullCycleData?.metric_2_start || null,
+        metric3_name: fullCycleData?.metric_3_name || null,
+        metric3_start: fullCycleData?.metric_3_start || null,
       };
 
       // Fetch revenue plan data
@@ -238,6 +258,7 @@ Deno.serve(async (req) => {
       weekly_review_status: weeklyReviewStatus,
       monthly_review_status: monthlyReviewStatus,
       cycle_summary_status: cycleSummaryStatus,
+      metrics: metricsData,
     };
 
     return new Response(JSON.stringify({ 

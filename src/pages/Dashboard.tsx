@@ -37,7 +37,7 @@ import { MastermindCallWidget } from '@/components/mastermind/MastermindCallWidg
 import { PodcastWidget } from '@/components/podcast/PodcastWidget';
 import { HelpButton } from '@/components/ui/help-button';
 import { PremiumCard, PremiumCardContent, PremiumCardHeader, PremiumCardTitle } from '@/components/ui/premium-card';
-import { TodayStrip, PlanMyWeekButton, QuickActionsPanel, ResourcesPanel } from '@/components/dashboard';
+import { TodayStrip, PlanMyWeekButton, QuickActionsPanel, ResourcesPanel, MetricsWidget, WeeklyRoutineReminder } from '@/components/dashboard';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -52,6 +52,8 @@ export default function Dashboard() {
   const [identityData, setIdentityData] = useState<{ identity: string | null; why: string | null; feeling: string | null } | null>(null);
   const [audienceData, setAudienceData] = useState<{ target: string | null; frustration: string | null; message: string | null } | null>(null);
   const [officeHoursData, setOfficeHoursData] = useState<{ start: string | null; end: string | null; days: string[] | null }>({ start: null, end: null, days: null });
+  const [metricsData, setMetricsData] = useState<{ metric1_name: string | null; metric1_start: number | null; metric2_name: string | null; metric2_start: number | null; metric3_name: string | null; metric3_start: number | null } | null>(null);
+  const [weeklyRoutines, setWeeklyRoutines] = useState<{ planning_day: string | null; debrief_day: string | null }>({ planning_day: null, debrief_day: null });
 
   useEffect(() => {
     loadDashboardSummary();
@@ -120,6 +122,17 @@ export default function Dashboard() {
           end: summaryData.cycle.office_hours_end || null,
           days: summaryData.cycle.office_hours_days || null,
         });
+        
+        // Set weekly routines
+        setWeeklyRoutines({
+          planning_day: summaryData.cycle.weekly_planning_day || null,
+          debrief_day: summaryData.cycle.weekly_debrief_day || null,
+        });
+      }
+      
+      // Set metrics data
+      if (summaryData?.metrics) {
+        setMetricsData(summaryData.metrics);
       }
     } catch (error: any) {
       console.error('Error loading dashboard:', error);
@@ -541,8 +554,17 @@ export default function Dashboard() {
 
             {/* Right Rail - Sticky Sidebar */}
             <div className="lg:w-80 space-y-4 lg:sticky lg:top-20 lg:h-fit">
+              {/* Weekly Routine Reminder */}
+              <WeeklyRoutineReminder 
+                weeklyPlanningDay={weeklyRoutines.planning_day}
+                weeklyDebriefDay={weeklyRoutines.debrief_day}
+              />
+              
               {/* Plan My Week Button */}
               <PlanMyWeekButton />
+              
+              {/* Success Metrics Widget */}
+              <MetricsWidget metrics={metricsData} />
 
               {/* Revenue Goal Tracker */}
               {revenueGoal && (
