@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
       // Fetch full cycle data including all fields
       const { data: fullCycleData } = await supabaseClient
         .from('cycles_90_day')
-        .select('focus_area, things_to_remember, discover_score, nurture_score, convert_score, identity, why, target_feeling, audience_target, audience_frustration, signature_message')
+        .select('focus_area, things_to_remember, discover_score, nurture_score, convert_score, identity, why, target_feeling, audience_target, audience_frustration, signature_message, office_hours_start, office_hours_end, office_hours_days, weekly_planning_day, weekly_debrief_day')
         .eq('cycle_id', currentCycle.cycle_id)
         .maybeSingle();
       
@@ -207,6 +207,21 @@ Deno.serve(async (req) => {
     }
     console.log('Dashboard summary fetched successfully');
 
+    // Extract office hours data
+    const officeHoursData = cycleData && cycleData.length > 0 ? {
+      office_hours_start: (await supabaseClient.from('cycles_90_day').select('office_hours_start').eq('cycle_id', cycleData[0].cycle_id).maybeSingle()).data?.office_hours_start || null,
+      office_hours_end: (await supabaseClient.from('cycles_90_day').select('office_hours_end').eq('cycle_id', cycleData[0].cycle_id).maybeSingle()).data?.office_hours_end || null,
+      office_hours_days: (await supabaseClient.from('cycles_90_day').select('office_hours_days').eq('cycle_id', cycleData[0].cycle_id).maybeSingle()).data?.office_hours_days || null,
+      weekly_planning_day: (await supabaseClient.from('cycles_90_day').select('weekly_planning_day').eq('cycle_id', cycleData[0].cycle_id).maybeSingle()).data?.weekly_planning_day || null,
+      weekly_debrief_day: (await supabaseClient.from('cycles_90_day').select('weekly_debrief_day').eq('cycle_id', cycleData[0].cycle_id).maybeSingle()).data?.weekly_debrief_day || null,
+    } : {
+      office_hours_start: null,
+      office_hours_end: null,
+      office_hours_days: null,
+      weekly_planning_day: null,
+      weekly_debrief_day: null,
+    };
+
     // Merge all data into cycle data
     const enhancedData = {
       ...data,
@@ -217,6 +232,7 @@ Deno.serve(async (req) => {
         diagnostic_scores: diagnosticScores,
         identity_data: identityData,
         audience_data: audienceData,
+        ...officeHoursData,
       },
       revenue: revenueData,
       weekly_review_status: weeklyReviewStatus,

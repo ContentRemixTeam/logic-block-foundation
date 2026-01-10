@@ -71,6 +71,12 @@ Deno.serve(async (req) => {
             metric_2_start: fullCycle?.metric_2_start || null,
             metric_3_name: fullCycle?.metric_3_name || null,
             metric_3_start: fullCycle?.metric_3_start || null,
+            // Office hours and weekly routine data
+            office_hours_start: fullCycle?.office_hours_start || null,
+            office_hours_end: fullCycle?.office_hours_end || null,
+            office_hours_days: fullCycle?.office_hours_days || null,
+            weekly_planning_day: fullCycle?.weekly_planning_day || null,
+            weekly_debrief_day: fullCycle?.weekly_debrief_day || null,
           },
           auto_created: false,
         }),

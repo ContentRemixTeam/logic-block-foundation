@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Settings2, CalendarDays, RefreshCw, Loader2, Calendar, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { OfficeHoursDisplay } from '@/components/OfficeHoursDisplay';
 import { cn } from '@/lib/utils';
 
 interface WeeklyPlannerHeaderProps {
@@ -14,6 +15,10 @@ interface WeeklyPlannerHeaderProps {
   onOpenOfficeHours?: () => void;
   showWeekend?: boolean;
   onToggleWeekend?: () => void;
+  // Office hours data
+  officeHoursStart?: string;
+  officeHoursEnd?: string;
+  officeHoursDays?: string[];
   // Google Calendar props
   googleConnected?: boolean;
   googleCalendarName?: string;
@@ -31,6 +36,9 @@ export function WeeklyPlannerHeader({
   onOpenOfficeHours,
   showWeekend = true,
   onToggleWeekend,
+  officeHoursStart,
+  officeHoursEnd,
+  officeHoursDays,
   googleConnected = false,
   googleCalendarName,
   onConnectGoogle,
@@ -45,6 +53,13 @@ export function WeeklyPlannerHeader({
     <div className="flex items-center justify-between pb-4">
       <div className="flex items-center gap-3">
         <h1 className="text-2xl font-bold tracking-tight">Weekly Planner</h1>
+        {/* Office Hours Badge */}
+        <OfficeHoursDisplay
+          officeHoursStart={officeHoursStart}
+          officeHoursEnd={officeHoursEnd}
+          officeHoursDays={officeHoursDays}
+          variant="compact"
+        />
         <Button 
           variant="outline" 
           size="sm" 

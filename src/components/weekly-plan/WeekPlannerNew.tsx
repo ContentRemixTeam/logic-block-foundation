@@ -86,6 +86,7 @@ export function WeekPlannerNew({
     if (!user) return;
 
     try {
+      // Load task settings
       const { data, error } = await supabase
         .from('task_settings')
         .select('weekly_capacity_minutes, week_start_day')
@@ -98,6 +99,14 @@ export function WeekPlannerNew({
           setWeekStartDay(data.week_start_day);
           setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: data.week_start_day as 0 | 1 }));
         }
+      }
+      
+      // Load office hours from cycle data
+      const { data: cycleResult } = await supabase.functions.invoke('get-current-cycle-or-create');
+      if (cycleResult?.data?.cycle) {
+        const cycle = cycleResult.data.cycle;
+        if (cycle.office_hours_start) setOfficeHoursStart(cycle.office_hours_start);
+        if (cycle.office_hours_end) setOfficeHoursEnd(cycle.office_hours_end);
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -373,6 +382,8 @@ export function WeekPlannerNew({
         isCurrentWeek={isCurrentWeek}
         showWeekend={showWeekend}
         onToggleWeekend={() => setShowWeekend(prev => !prev)}
+        officeHoursStart={officeHoursStart}
+        officeHoursEnd={officeHoursEnd}
         googleConnected={googleStatus.connected && googleStatus.calendarSelected}
         googleCalendarName={googleStatus.calendarName}
         onConnectGoogle={() => connectGoogle('/weekly-plan')}

@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Layout } from '@/components/Layout';
 import { LoadingState } from '@/components/system/LoadingState';
 import { ErrorState } from '@/components/system/ErrorState';
+import { OfficeHoursDisplay } from '@/components/OfficeHoursDisplay';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -688,7 +689,18 @@ export default function DailyPlan() {
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold">Daily Plan</h1>
-            <p className="text-muted-foreground">{today}</p>
+            <div className="flex items-center gap-3 mt-1">
+              <p className="text-muted-foreground">{today}</p>
+              {/* Office Hours Display */}
+              {cycleData?.office_hours_start && (
+                <OfficeHoursDisplay
+                  officeHoursStart={cycleData.office_hours_start}
+                  officeHoursEnd={cycleData.office_hours_end}
+                  officeHoursDays={cycleData.office_hours_days}
+                  variant="compact"
+                />
+              )}
+            </div>
           </div>
           <div className="flex gap-2 items-center">
             {/* View Toggle */}
