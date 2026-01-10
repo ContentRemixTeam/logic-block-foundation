@@ -241,8 +241,8 @@ export async function loadCycleForExport(cycleId: string, supabase: SupabaseClie
         description: p.description as string | undefined,
       })),
       generatedTasks: (tasks || []).slice(0, 100).map(t => ({
-        title: t.title as string,
-        due_date: t.due_date as string | undefined,
+        title: (t.task_text || t.title) as string,
+        due_date: (t.scheduled_date || t.due_date) as string | undefined,
         priority: t.priority as string | undefined,
       })),
       generatedHabits: (habits || []).map(h => ({
