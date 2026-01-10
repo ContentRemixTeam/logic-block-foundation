@@ -21,7 +21,7 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useCycleSetupDraft, CycleSetupDraft, SecondaryPlatform } from '@/hooks/useCycleSetupDraft';
+import { useCycleSetupDraft, CycleSetupDraft, SecondaryPlatform, LimitedTimeOffer } from '@/hooks/useCycleSetupDraft';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { AutopilotSetupModal, AutopilotOptions } from '@/components/cycle/AutopilotSetupModal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -382,7 +382,9 @@ export default function CycleSetup() {
   const [offers, setOffers] = useState<Offer[]>([
     { name: '', price: '', frequency: '', transformation: '', isPrimary: true }
   ]);
-
+  
+  // Step 6: Limited Time Offers (flash sales, promos, launches)
+  const [limitedOffers, setLimitedOffers] = useState<LimitedTimeOffer[]>([]);
   // Step 7: 90-Day Breakdown
   const [revenueGoal, setRevenueGoal] = useState<string>('');
   const [pricePerSale, setPricePerSale] = useState<string>('');
@@ -511,6 +513,7 @@ export default function CycleSetup() {
       setFreeTransformation(draft.freeTransformation || '');
       setProofMethods(draft.proofMethods || []);
       if (draft.offers?.length) setOffers(draft.offers);
+      if (draft.limitedOffers?.length) setLimitedOffers(draft.limitedOffers);
       setRevenueGoal(draft.revenueGoal || '');
       setPricePerSale(draft.pricePerSale || '');
       setLaunchSchedule(draft.launchSchedule || '');
@@ -571,6 +574,7 @@ export default function CycleSetup() {
         freeTransformation,
         proofMethods,
         offers,
+        limitedOffers,
         revenueGoal,
         pricePerSale,
         launchSchedule,
@@ -597,7 +601,7 @@ export default function CycleSetup() {
     audienceTarget, audienceFrustration, signatureMessage,
     leadPlatform, leadContentType, leadFrequency, leadPlatformGoal, leadCommitted, secondaryPlatforms, postingDays, postingTime, batchDay,
     nurtureMethod, nurtureFrequency, freeTransformation, proofMethods,
-    offers, revenueGoal, pricePerSale, launchSchedule, monthPlans,
+    offers, limitedOffers, revenueGoal, pricePerSale, launchSchedule, monthPlans,
     metric1Name, metric1Start, metric2Name, metric2Start, metric3Name, metric3Start,
     projects, habits, thingsToRemember, currentStep, saveDraft
   ]);
@@ -669,6 +673,27 @@ export default function CycleSetup() {
       }
       setOffers(updated);
     }
+  };
+
+  // Limited Time Offer helpers
+  const addLimitedOffer = () => {
+    setLimitedOffers([...limitedOffers, { 
+      id: crypto.randomUUID(), 
+      name: '', 
+      startDate: '', 
+      endDate: '', 
+      promoType: '' as const,
+      discount: '',
+      notes: ''
+    }]);
+  };
+  const updateLimitedOffer = (idx: number, field: keyof LimitedTimeOffer, value: string) => {
+    const updated = [...limitedOffers];
+    updated[idx] = { ...updated[idx], [field]: value };
+    setLimitedOffers(updated);
+  };
+  const removeLimitedOffer = (idx: number) => {
+    setLimitedOffers(limitedOffers.filter((_, i) => i !== idx));
   };
 
   // Month plan helpers
@@ -898,6 +923,28 @@ export default function CycleSetup() {
         if (offersError) console.error('Offers error:', offersError);
       }
 
+      // Create limited time offers (flash sales, promos)
+      const ltoToCreate = limitedOffers
+        .filter((lto) => lto.name.trim() && lto.startDate && lto.endDate)
+        .map((lto, idx) => ({
+          cycle_id: cycleId,
+          user_id: user.id,
+          name: lto.name,
+          start_date: lto.startDate,
+          end_date: lto.endDate,
+          promo_type: lto.promoType || 'flash_sale',
+          discount: lto.discount || null,
+          notes: lto.notes || null,
+          sort_order: idx,
+        }));
+
+      if (ltoToCreate.length > 0) {
+        const { error: ltoError } = await supabase
+          .from('cycle_limited_offers')
+          .insert(ltoToCreate);
+        if (ltoError) console.error('Limited offers error:', ltoError);
+      }
+
       // Create revenue plan
       const { error: revenueError } = await supabase
         .from('cycle_revenue_plan')
@@ -1023,6 +1070,17 @@ export default function CycleSetup() {
                 nurture_method: nurtureMethod,
                 nurture_frequency: nurtureFrequency,
                 offers: offers.filter(o => o.name.trim()),
+                // Limited time offers for promo task generation
+                limited_offers: limitedOffers
+                  .filter(lto => lto.name.trim() && lto.startDate && lto.endDate)
+                  .map(lto => ({
+                    name: lto.name,
+                    startDate: lto.startDate,
+                    endDate: lto.endDate,
+                    promoType: lto.promoType,
+                    discount: lto.discount,
+                    notes: lto.notes,
+                  })),
                 metrics: {
                   metric1: metric1Name,
                   metric2: metric2Name,
@@ -1973,6 +2031,7 @@ export default function CycleSetup() {
 
           {/* Step 6: Offers */}
           {currentStep === 6 && (
+            <div className="space-y-6">
             <Card className="border-green-500/20">
               <CardHeader>
                 <div className="flex items-center gap-2">
@@ -2052,6 +2111,159 @@ export default function CycleSetup() {
                 </Button>
               </CardContent>
             </Card>
+
+            {/* Limited Time Offers Section */}
+            <Card className="border-amber-500/20">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-amber-600" />
+                  <CardTitle>Limited Time Offers & Promotions</CardTitle>
+                </div>
+                <CardDescription>
+                  Plan your flash sales, launches, and special promotions for this quarter. We'll auto-create tasks for each one!
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {limitedOffers.length === 0 ? (
+                  <div className="text-center py-6 border border-dashed rounded-lg bg-muted/30">
+                    <Sparkles className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-muted-foreground mb-3">No promotions planned yet</p>
+                    <Button type="button" variant="outline" onClick={addLimitedOffer}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Your First Promotion
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    {limitedOffers.map((lto, idx) => (
+                      <div key={lto.id} className="p-4 rounded-lg border bg-amber-500/5 border-amber-500/20 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Badge variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-500/30">
+                            Promo {idx + 1}
+                          </Badge>
+                          <Button type="button" variant="ghost" size="icon" onClick={() => removeLimitedOffer(idx)}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="sm:col-span-2">
+                            <Label className="text-sm">Promotion Name</Label>
+                            <Input
+                              value={lto.name}
+                              onChange={(e) => updateLimitedOffer(idx, 'name', e.target.value)}
+                              placeholder="e.g., Black Friday Sale, New Year Launch, Flash Sale Week 6"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-sm">Start Date</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !lto.startDate && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {lto.startDate ? format(parseISO(lto.startDate), 'PPP') : 'Pick a date'}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={lto.startDate ? parseISO(lto.startDate) : undefined}
+                                  onSelect={(date) => date && updateLimitedOffer(idx, 'startDate', format(date, 'yyyy-MM-dd'))}
+                                  disabled={(date) => date < startDate || date > endDate}
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                          <div>
+                            <Label className="text-sm">End Date</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !lto.endDate && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {lto.endDate ? format(parseISO(lto.endDate), 'PPP') : 'Pick a date'}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={lto.endDate ? parseISO(lto.endDate) : undefined}
+                                  onSelect={(date) => date && updateLimitedOffer(idx, 'endDate', format(date, 'yyyy-MM-dd'))}
+                                  disabled={(date) => date < (lto.startDate ? parseISO(lto.startDate) : startDate) || date > endDate}
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        </div>
+                        
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <Label className="text-sm">Promotion Type</Label>
+                            <Select 
+                              value={lto.promoType} 
+                              onValueChange={(v) => updateLimitedOffer(idx, 'promoType', v)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="flash_sale">Flash Sale (2-3 days)</SelectItem>
+                                <SelectItem value="week_promo">Week-long Promo</SelectItem>
+                                <SelectItem value="launch_sequence">Launch Sequence (2 weeks)</SelectItem>
+                                <SelectItem value="webinar_cart">Webinar + Open Cart</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-sm">Discount/Offer (optional)</Label>
+                            <Input
+                              value={lto.discount || ''}
+                              onChange={(e) => updateLimitedOffer(idx, 'discount', e.target.value)}
+                              placeholder="e.g., 20% off, $500 bonus, Free coaching call"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <Label className="text-sm">Notes (optional)</Label>
+                          <Input
+                            value={lto.notes || ''}
+                            onChange={(e) => updateLimitedOffer(idx, 'notes', e.target.value)}
+                            placeholder="Any additional details about this promotion..."
+                          />
+                        </div>
+                      </div>
+                    ))}
+                    <Button type="button" variant="outline" onClick={addLimitedOffer} className="w-full">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Another Promotion
+                    </Button>
+                  </>
+                )}
+                
+                {limitedOffers.length > 0 && (
+                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                    <p className="text-sm text-amber-700">
+                      <strong>✨ {limitedOffers.filter(l => l.name.trim() && l.startDate && l.endDate).length} promotion(s)</strong> will be added to your planner with prep, launch, and follow-up tasks.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            </div>
           )}
 
           {/* Step 7: 90-Day Breakdown */}

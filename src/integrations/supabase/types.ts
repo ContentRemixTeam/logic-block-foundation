@@ -375,6 +375,69 @@ export type Database = {
           },
         ]
       }
+      cycle_limited_offers: {
+        Row: {
+          created_at: string | null
+          cycle_id: string
+          discount: string | null
+          end_date: string
+          id: string
+          name: string
+          notes: string | null
+          offer_id: string | null
+          promo_type: string | null
+          sort_order: number | null
+          start_date: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          cycle_id: string
+          discount?: string | null
+          end_date: string
+          id?: string
+          name: string
+          notes?: string | null
+          offer_id?: string | null
+          promo_type?: string | null
+          sort_order?: number | null
+          start_date: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          cycle_id?: string
+          discount?: string | null
+          end_date?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          offer_id?: string | null
+          promo_type?: string | null
+          sort_order?: number | null
+          start_date?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cycle_limited_offers_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+          {
+            foreignKeyName: "cycle_limited_offers_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "cycle_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cycle_metric_updates: {
         Row: {
           created_at: string | null
