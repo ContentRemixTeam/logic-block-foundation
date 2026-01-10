@@ -11,7 +11,7 @@ import { Layout } from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, X, Target, BarChart3, Brain, CalendarIcon, Users, Megaphone, DollarSign, ChevronLeft, ChevronRight, Check, Sparkles, Heart, TrendingUp, Upload, FileJson, Save, Mail, Clock, Lightbulb, Zap, AlertCircle, CheckCircle, Download, FileText } from 'lucide-react';
+import { Plus, X, Target, BarChart3, Brain, CalendarIcon, Users, Megaphone, DollarSign, ChevronLeft, ChevronRight, Check, Sparkles, Heart, TrendingUp, Upload, FileJson, Save, Mail, Clock, Lightbulb, Zap, AlertCircle, CheckCircle, Download, FileText, Cloud, CloudOff, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -211,7 +211,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showPDFInstructions, setShowPDFInstructions] = useState(false);
   
-  const { hasDraft, saveDraft, loadDraft, clearDraft, getDraftAge } = useCycleSetupDraft();
+  const { hasDraft, saveDraft, loadDraft, clearDraft, getDraftAge, isSyncing, lastServerSync, syncError } = useCycleSetupDraft();
   
   // Track if user has dismissed the draft dialog to prevent it from re-appearing
   const hasUserDismissedDraft = useRef(false);
@@ -695,8 +695,8 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
   };
 
   // Restore draft data
-  const handleRestoreDraft = useCallback(() => {
-    const draft = loadDraft();
+  const handleRestoreDraft = useCallback(async () => {
+    const draft = await loadDraft();
     if (draft) {
       try {
         setStartDate(new Date(draft.startDate));
@@ -2309,7 +2309,32 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
               Define your goals and strategy for the next 90 days
             </p>
           </div>
-          <div className="flex gap-2">
+          {/* Save Status Indicator */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              {isSyncing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  <span>Saving...</span>
+                </>
+              ) : syncError ? (
+                <>
+                  <CloudOff className="h-4 w-4 text-destructive" />
+                  <span className="text-destructive">Offline - saved locally</span>
+                </>
+              ) : lastServerSync ? (
+                <>
+                  <Cloud className="h-4 w-4 text-green-500" />
+                  <span>Saved to cloud</span>
+                </>
+              ) : lastSaved ? (
+                <>
+                  <Save className="h-4 w-4 text-muted-foreground" />
+                  <span>Saved locally</span>
+                </>
+              ) : null}
+            </div>
+            <div className="flex gap-2">
             <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
@@ -2386,13 +2411,7 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
               Dashboard
             </Button>
           </div>
-          {/* Auto-save indicator */}
-          {lastSaved && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Save className="h-3 w-3" />
-              <span>Draft saved</span>
-            </div>
-          )}
+          </div>
         </div>
 
         {/* Progress Bar */}
