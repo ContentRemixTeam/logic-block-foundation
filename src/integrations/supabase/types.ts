@@ -638,6 +638,7 @@ export type Database = {
           nurture_content_audit: string | null
           nurture_frequency: string | null
           nurture_method: string | null
+          nurture_platforms: Json | null
           nurture_posting_days: Json | null
           nurture_posting_time: string | null
           posting_days: Json | null
@@ -664,6 +665,7 @@ export type Database = {
           nurture_content_audit?: string | null
           nurture_frequency?: string | null
           nurture_method?: string | null
+          nurture_platforms?: Json | null
           nurture_posting_days?: Json | null
           nurture_posting_time?: string | null
           posting_days?: Json | null
@@ -690,6 +692,7 @@ export type Database = {
           nurture_content_audit?: string | null
           nurture_frequency?: string | null
           nurture_method?: string | null
+          nurture_platforms?: Json | null
           nurture_posting_days?: Json | null
           nurture_posting_time?: string | null
           posting_days?: Json | null

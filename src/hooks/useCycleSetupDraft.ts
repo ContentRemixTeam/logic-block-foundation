@@ -44,6 +44,17 @@ export interface RecurringTaskDefinition {
   description?: string;
 }
 
+// Nurture Platform interface for Step 5
+export interface NurturePlatformDefinition {
+  method: string;           // email, community, youtube, podcast, etc.
+  methodCustom?: string;    // for "other" option
+  postingDays: string[];    // ['Monday', 'Wednesday', 'Friday']
+  postingTime: string;      // '09:00' or ''
+  batchDay?: string;        // 'Sunday' or ''
+  batchFrequency?: string;  // weekly, biweekly, monthly
+  isPrimary: boolean;       // first one is always primary
+}
+
 export interface CycleSetupDraft {
   // Step 1: Dates & Goal
   startDate: string;
@@ -89,6 +100,9 @@ export interface CycleSetupDraft {
   nurtureBatchDay: string; // Day to batch nurture content
   nurtureBatchFrequency: string; // 'weekly' | 'biweekly' | 'monthly' | 'quarterly'
   nurtureContentAudit: string; // Existing nurture content to reuse
+  
+  // NEW: Array of all nurture platforms (replaces primary/secondary)
+  nurturePlatforms: NurturePlatformDefinition[];
 
   // Step 6: Offers
   // Step 6.5: Promotions & Launches
@@ -189,6 +203,7 @@ const DEFAULT_DRAFT: CycleSetupDraft = {
   nurtureBatchDay: '',
   nurtureBatchFrequency: 'weekly',
   nurtureContentAudit: '',
+  nurturePlatforms: [],
   offers: [{ name: '', price: '', frequency: '', transformation: '', isPrimary: true }],
   promotions: [],
   limitedOffers: [],

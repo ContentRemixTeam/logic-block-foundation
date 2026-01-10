@@ -42,10 +42,20 @@ export interface CycleExportData {
   nurtureBatchDay: string | null;
   nurtureBatchFrequency: string | null;
   nurtureContentAudit: string | null;
-  // Secondary Nurture
+  // Secondary Nurture (legacy)
   secondaryNurtureMethod: string | null;
   secondaryNurturePostingDays: string[];
   secondaryNurturePostingTime: string | null;
+  // NEW: All nurture platforms array
+  nurturePlatforms: Array<{
+    method: string;
+    methodCustom?: string;
+    postingDays: string[];
+    postingTime: string | null;
+    batchDay?: string;
+    batchFrequency?: string;
+    isPrimary: boolean;
+  }>;
   
   // Step 6: Offers
   offers: Array<{
@@ -210,10 +220,22 @@ export async function loadCycleForExport(cycleId: string, supabase: SupabaseClie
       nurtureBatchDay: strategy?.nurture_batch_day as string | null,
       nurtureBatchFrequency: strategy?.nurture_batch_frequency as string | null,
       nurtureContentAudit: strategy?.nurture_content_audit as string | null,
-      // Secondary nurture (from strategy)
+      // Secondary nurture (legacy, from strategy)
       secondaryNurtureMethod: strategy?.secondary_nurture_method as string | null ?? null,
       secondaryNurturePostingDays: Array.isArray(strategy?.secondary_nurture_posting_days) ? strategy.secondary_nurture_posting_days as string[] : [],
       secondaryNurturePostingTime: strategy?.secondary_nurture_posting_time as string | null ?? null,
+      // NEW: All nurture platforms array
+      nurturePlatforms: Array.isArray(strategy?.nurture_platforms) 
+        ? (strategy.nurture_platforms as Array<{
+            method: string;
+            methodCustom?: string;
+            postingDays: string[];
+            postingTime: string | null;
+            batchDay?: string;
+            batchFrequency?: string;
+            isPrimary: boolean;
+          }>)
+        : [],
       
       // Step 6 (from offers)
       offers: (offersData || []).map(o => ({
@@ -844,6 +866,7 @@ export function generateExportFromFormData(formData: CycleFormData): CycleExport
     secondaryNurtureMethod: formData.secondaryNurtureMethod || null,
     secondaryNurturePostingDays: formData.secondaryNurturePostingDays,
     secondaryNurturePostingTime: formData.secondaryNurturePostingTime || null,
+    nurturePlatforms: [], // Empty for form export, populated when loading from DB
     offers: formData.offers.filter(o => o.name.trim()).map(o => ({
       name: o.name,
       price: o.price ? parseFloat(o.price) : null,
