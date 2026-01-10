@@ -68,10 +68,25 @@ export function ScratchPadOrganizeModal({
   const [categories, setCategories] = useState<IdeaCategory[]>([]);
   const [thoughtCount, setThoughtCount] = useState(0);
   const [winCount, setWinCount] = useState(0);
+  const [processedKey, setProcessedKey] = useState<string>('');
+
+  // Reset processedKey when modal closes
+  useEffect(() => {
+    if (!open) {
+      setProcessedKey('');
+    }
+  }, [open]);
 
   // Parse items from scratch pad content
   useEffect(() => {
     if (!open || !processedData || !scratchPadContent) return;
+
+    // Create a unique key for this processed data
+    const dataKey = JSON.stringify(processedData.createdIds);
+    
+    // CRITICAL: Only parse if this is NEW data (prevents infinite loop)
+    if (dataKey === processedKey) return;
+    setProcessedKey(dataKey);
 
     // Parse tasks
     const taskMatches = scratchPadContent.match(/#task\s+([^#\n]+)/gi) || [];
@@ -105,7 +120,7 @@ export function ScratchPadOrganizeModal({
 
     // Load idea categories
     loadCategories();
-  }, [open, processedData, scratchPadContent]);
+  }, [open, processedData, scratchPadContent, processedKey]);
 
   const loadCategories = async () => {
     try {
