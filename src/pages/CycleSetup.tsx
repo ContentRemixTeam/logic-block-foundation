@@ -22,7 +22,7 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useCycleSetupDraft, CycleSetupDraft, SecondaryPlatform, LimitedTimeOffer, RecurringTaskDefinition } from '@/hooks/useCycleSetupDraft';
+import { useCycleSetupDraft, CycleSetupDraft, SecondaryPlatform, LimitedTimeOffer, RecurringTaskDefinition, NurturePlatformDefinition } from '@/hooks/useCycleSetupDraft';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { AutopilotSetupModal, AutopilotOptions } from '@/components/cycle/AutopilotSetupModal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -404,6 +404,9 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
   // Secondary nurture scheduling
   const [secondaryNurturePostingDays, setSecondaryNurturePostingDays] = useState<string[]>([]);
   const [secondaryNurturePostingTime, setSecondaryNurturePostingTime] = useState('');
+  
+  // NEW: Array of all nurture platforms (replaces single primary/secondary)
+  const [nurturePlatforms, setNurturePlatforms] = useState<NurturePlatformDefinition[]>([]);
   
   // Email commitment settings (for follow-through check-ins)
   const [emailCheckinEnabled, setEmailCheckinEnabled] = useState(false);
@@ -979,6 +982,42 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
     );
   };
 
+  // Nurture platform helpers
+  const addNurturePlatform = () => {
+    setNurturePlatforms([...nurturePlatforms, {
+      method: '',
+      methodCustom: '',
+      postingDays: [],
+      postingTime: '',
+      batchDay: '',
+      batchFrequency: 'weekly',
+      isPrimary: nurturePlatforms.length === 0  // First one is primary
+    }]);
+  };
+  
+  const updateNurturePlatform = (idx: number, field: keyof NurturePlatformDefinition, value: any) => {
+    const updated = [...nurturePlatforms];
+    updated[idx] = { ...updated[idx], [field]: value };
+    setNurturePlatforms(updated);
+  };
+  
+  const removeNurturePlatform = (idx: number) => {
+    const updated = nurturePlatforms.filter((_, i) => i !== idx);
+    // Make first remaining one primary
+    if (updated.length > 0 && !updated.some(p => p.isPrimary)) {
+      updated[0].isPrimary = true;
+    }
+    setNurturePlatforms(updated);
+  };
+  
+  const toggleNurturePlatformDay = (idx: number, day: string) => {
+    const platform = nurturePlatforms[idx];
+    const newDays = platform.postingDays.includes(day)
+      ? platform.postingDays.filter(d => d !== day)
+      : [...platform.postingDays, day];
+    updateNurturePlatform(idx, 'postingDays', newDays);
+  };
+
   // Preview what projects and tasks would be created
   const handlePreview = () => {
     const preview = {
@@ -1150,12 +1189,13 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
             batch_day: batchDay || null,
             batch_frequency: batchFrequency || 'weekly',
             lead_gen_content_audit: leadGenContentAudit || null,
-            nurture_posting_days: nurturePostingDays,
-            nurture_posting_time: nurturePostingTime || null,
-            nurture_batch_day: nurtureBatchDay || null,
-            nurture_batch_frequency: nurtureBatchFrequency || 'weekly',
+            nurture_posting_days: nurturePlatforms[0]?.postingDays || nurturePostingDays,
+            nurture_posting_time: nurturePlatforms[0]?.postingTime || nurturePostingTime || null,
+            nurture_batch_day: (nurturePlatforms[0]?.batchDay && nurturePlatforms[0]?.batchDay !== 'none' ? nurturePlatforms[0]?.batchDay : nurtureBatchDay) || null,
+            nurture_batch_frequency: nurturePlatforms[0]?.batchFrequency || nurtureBatchFrequency || 'weekly',
             nurture_content_audit: nurtureContentAudit || null,
             secondary_platforms: secondaryPlatforms.filter(sp => sp.platform.trim()),
+            nurture_platforms: nurturePlatforms.filter(p => p.method.trim()),
           } as any, { onConflict: 'cycle_id' });
 
         toast({
@@ -1257,14 +1297,16 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
           batch_day: batchDay && batchDay !== 'none' ? batchDay : null,
           batch_frequency: batchFrequency || 'weekly',
           lead_gen_content_audit: leadGenContentAudit || null,
-          // Nurture posting schedule fields
-          nurture_posting_days: nurturePostingDays,
-          nurture_posting_time: nurturePostingTime || null,
-          nurture_batch_day: nurtureBatchDay && nurtureBatchDay !== 'none' ? nurtureBatchDay : null,
-          nurture_batch_frequency: nurtureBatchFrequency || 'weekly',
+          // Nurture posting schedule fields (legacy, from first nurture platform if exists)
+          nurture_posting_days: nurturePlatforms[0]?.postingDays || nurturePostingDays,
+          nurture_posting_time: nurturePlatforms[0]?.postingTime || nurturePostingTime || null,
+          nurture_batch_day: (nurturePlatforms[0]?.batchDay && nurturePlatforms[0]?.batchDay !== 'none' ? nurturePlatforms[0]?.batchDay : nurtureBatchDay) || null,
+          nurture_batch_frequency: nurturePlatforms[0]?.batchFrequency || nurtureBatchFrequency || 'weekly',
           nurture_content_audit: nurtureContentAudit || null,
           // Secondary platforms
           secondary_platforms: secondaryPlatforms.filter(sp => sp.platform.trim()),
+          // NEW: All nurture platforms as JSONB array
+          nurture_platforms: nurturePlatforms.filter(p => p.method.trim()),
         } as any);
 
       if (strategyError) console.error('Strategy error:', strategyError);
@@ -2940,248 +2982,226 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
                 <CardDescription>How will you build trust and relationships?</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Primary Nurture Method + Schedule */}
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="nurtureMethod">Primary Nurture Method</Label>
-                    <Select value={nurtureMethod} onValueChange={(v) => {
-                      setNurtureMethod(v);
-                      if (v !== 'other') setNurtureMethodCustom('');
-                    }}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="How will you nurture your audience?" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background border shadow-lg z-50">
-                        <SelectItem value="email">Email Newsletter</SelectItem>
-                        <SelectItem value="community">Community (FB Group, Discord, etc.)</SelectItem>
-                        <SelectItem value="youtube">YouTube</SelectItem>
-                        <SelectItem value="podcast">Podcast</SelectItem>
-                        <SelectItem value="webinar">Free Webinars/Workshops</SelectItem>
-                        <SelectItem value="challenge">Free Challenges</SelectItem>
-                        <SelectItem value="other">Other (custom)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {nurtureMethod === 'other' && (
-                      <Input
-                        value={nurtureMethodCustom}
-                        onChange={(e) => setNurtureMethodCustom(e.target.value)}
-                        placeholder="Enter your primary nurture method..."
-                        className="mt-2"
-                      />
-                    )}
-                  </div>
-
-                  {/* Primary Nurture Schedule - shown when method is selected */}
-                  {nurtureMethod && nurtureMethod !== 'none' && (
-                    <Card className="border-pink-500/20 bg-pink-500/5">
+                {/* Nurture Platforms - Dynamic Array */}
+                {nurturePlatforms.map((platform, idx) => {
+                  const methodLabel = platform.method === 'email' ? 'Email Newsletter' :
+                    platform.method === 'community' ? 'Community' :
+                    platform.method === 'youtube' ? 'YouTube' :
+                    platform.method === 'podcast' ? 'Podcast' :
+                    platform.method === 'webinar' ? 'Webinars/Workshops' :
+                    platform.method === 'challenge' ? 'Free Challenges' :
+                    platform.method === 'other' ? (platform.methodCustom || 'Custom') :
+                    'Nurture Platform';
+                    
+                  return (
+                    <Card 
+                      key={idx} 
+                      className={cn(
+                        "relative",
+                        platform.isPrimary 
+                          ? "border-pink-500/30 bg-pink-500/5" 
+                          : "border-purple-500/20 bg-purple-500/5"
+                      )}
+                    >
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-base flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-pink-600" />
-                          {nurtureMethod === 'email' ? 'Email Schedule' : 
-                           nurtureMethod === 'podcast' ? 'Podcast Schedule' :
-                           nurtureMethod === 'youtube' ? 'YouTube Schedule' :
-                           nurtureMethod === 'community' ? 'Community Schedule' :
-                           nurtureMethod === 'webinar' ? 'Webinar Schedule' :
-                           nurtureMethod === 'challenge' ? 'Challenge Schedule' :
-                           'Nurture Schedule'}
-                        </CardTitle>
-                        <CardDescription>When will you deliver this content? This will auto-create tasks in your planner.</CardDescription>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Heart className={cn(
+                              "h-4 w-4",
+                              platform.isPrimary ? "text-pink-600" : "text-purple-600"
+                            )} />
+                            <CardTitle className="text-base">
+                              {platform.method ? methodLabel : `Nurture Platform ${idx + 1}`}
+                            </CardTitle>
+                            <Badge 
+                              variant="outline" 
+                              className={cn(
+                                "text-xs",
+                                platform.isPrimary 
+                                  ? "bg-pink-500/10 text-pink-600 border-pink-500/30" 
+                                  : "bg-purple-500/10 text-purple-600 border-purple-500/30"
+                              )}
+                            >
+                              {platform.isPrimary ? 'PRIMARY' : 'SECONDARY'}
+                            </Badge>
+                          </div>
+                          {nurturePlatforms.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                              onClick={() => removeNurturePlatform(idx)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                        <CardDescription>
+                          {platform.isPrimary 
+                            ? "Your main nurture channel - this will auto-create tasks" 
+                            : "Additional channel to reach people who prefer different formats"}
+                        </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">
+                        {/* Platform Selection */}
                         <div>
-                          <Label className="text-sm font-medium">Which days?</Label>
-                          <p className="text-xs text-muted-foreground mb-2">Select the days you'll publish/send</p>
-                          <div className="flex flex-wrap gap-2">
-                            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
-                              <Badge
-                                key={day}
-                                variant={nurturePostingDays.includes(day) ? "default" : "outline"}
-                                className={cn(
-                                  "cursor-pointer transition-colors",
-                                  nurturePostingDays.includes(day) && "bg-pink-600 hover:bg-pink-700"
-                                )}
-                                onClick={() => {
-                                  if (nurturePostingDays.includes(day)) {
-                                    setNurturePostingDays(nurturePostingDays.filter(d => d !== day));
-                                  } else {
-                                    setNurturePostingDays([...nurturePostingDays, day]);
-                                  }
-                                }}
-                              >
-                                {day.slice(0, 3)}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="nurturePostingTime">Posting/Send Time</Label>
-                            <Select value={nurturePostingTime || 'none'} onValueChange={(v) => setNurturePostingTime(v === 'none' ? '' : v)}>
-                              <SelectTrigger id="nurturePostingTime">
-                                <SelectValue placeholder="Select time" />
-                              </SelectTrigger>
-                              <SelectContent className="bg-background border shadow-lg z-50">
-                                {TIME_OPTIONS.map(opt => (
-                                  <SelectItem key={opt.value || 'none'} value={opt.value || 'none'}>{opt.label}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="nurtureBatchDay">Batch Prep Day (optional)</Label>
-                            <Select value={nurtureBatchDay || 'none'} onValueChange={(v) => setNurtureBatchDay(v === 'none' ? '' : v)}>
-                              <SelectTrigger id="nurtureBatchDay">
-                                <SelectValue placeholder="Select a day" />
-                              </SelectTrigger>
-                              <SelectContent className="bg-background border shadow-lg z-50">
-                                <SelectItem value="none">None</SelectItem>
-                                <SelectItem value="Sunday">Sunday</SelectItem>
-                                <SelectItem value="Monday">Monday</SelectItem>
-                                <SelectItem value="Tuesday">Tuesday</SelectItem>
-                                <SelectItem value="Wednesday">Wednesday</SelectItem>
-                                <SelectItem value="Thursday">Thursday</SelectItem>
-                                <SelectItem value="Friday">Friday</SelectItem>
-                                <SelectItem value="Saturday">Saturday</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        
-                        {nurtureBatchDay && nurtureBatchDay !== 'none' && (
-                          <div className="space-y-2">
-                            <Label htmlFor="nurtureBatchFrequency">Batch Frequency</Label>
-                            <Select value={nurtureBatchFrequency} onValueChange={setNurtureBatchFrequency}>
-                              <SelectTrigger id="nurtureBatchFrequency">
-                                <SelectValue placeholder="How often?" />
-                              </SelectTrigger>
-                              <SelectContent className="bg-background border shadow-lg z-50">
-                                <SelectItem value="weekly">Weekly</SelectItem>
-                                <SelectItem value="biweekly">Bi-weekly</SelectItem>
-                                <SelectItem value="monthly">Monthly</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-
-                        {nurturePostingDays.length > 0 && (
-                          <div className="p-3 rounded-lg bg-pink-500/10 border border-pink-500/20">
-                            <p className="text-sm text-pink-700 dark:text-pink-300">
-                              <strong>✨ {nurturePostingDays.length * 13} tasks</strong> will be created ({nurturePostingDays.length}x/week for 90 days)
-                            </p>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-
-                {/* Secondary Nurture Method + Schedule */}
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="secondaryNurtureMethod">Secondary Nurture Method (optional)</Label>
-                    <Select value={secondaryNurtureMethod} onValueChange={(v) => {
-                      setSecondaryNurtureMethod(v);
-                      if (v !== 'other') setSecondaryNurtureMethodCustom('');
-                      if (v === 'none' || !v) {
-                        setSecondaryNurturePostingDays([]);
-                        setSecondaryNurturePostingTime('');
-                      }
-                    }}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Add a backup nurture channel..." />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background border shadow-lg z-50">
-                        <SelectItem value="none">None</SelectItem>
-                        <SelectItem value="email">Email Newsletter</SelectItem>
-                        <SelectItem value="community">Community (FB Group, Discord, etc.)</SelectItem>
-                        <SelectItem value="youtube">YouTube</SelectItem>
-                        <SelectItem value="podcast">Podcast</SelectItem>
-                        <SelectItem value="webinar">Free Webinars/Workshops</SelectItem>
-                        <SelectItem value="challenge">Free Challenges</SelectItem>
-                        <SelectItem value="other">Other (custom)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {secondaryNurtureMethod === 'other' && (
-                      <Input
-                        value={secondaryNurtureMethodCustom}
-                        onChange={(e) => setSecondaryNurtureMethodCustom(e.target.value)}
-                        placeholder="Enter your secondary nurture method..."
-                        className="mt-2"
-                      />
-                    )}
-                    <p className="text-xs text-muted-foreground mt-1">Having a backup nurture channel helps reach people who prefer different formats</p>
-                  </div>
-
-                  {/* Secondary Nurture Schedule - shown when method is selected */}
-                  {secondaryNurtureMethod && secondaryNurtureMethod !== 'none' && (
-                    <Card className="border-purple-500/20 bg-purple-500/5">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-base flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-purple-600" />
-                          {secondaryNurtureMethod === 'email' ? 'Email Schedule' : 
-                           secondaryNurtureMethod === 'podcast' ? 'Podcast Schedule' :
-                           secondaryNurtureMethod === 'youtube' ? 'YouTube Schedule' :
-                           secondaryNurtureMethod === 'community' ? 'Community Schedule' :
-                           secondaryNurtureMethod === 'webinar' ? 'Webinar Schedule' :
-                           secondaryNurtureMethod === 'challenge' ? 'Challenge Schedule' :
-                           'Secondary Schedule'}
-                        </CardTitle>
-                        <CardDescription>When will you deliver this secondary content?</CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div>
-                          <Label className="text-sm font-medium">Which days?</Label>
-                          <p className="text-xs text-muted-foreground mb-2">Select the days you'll publish/send</p>
-                          <div className="flex flex-wrap gap-2">
-                            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
-                              <Badge
-                                key={day}
-                                variant={secondaryNurturePostingDays.includes(day) ? "default" : "outline"}
-                                className={cn(
-                                  "cursor-pointer transition-colors",
-                                  secondaryNurturePostingDays.includes(day) && "bg-purple-600 hover:bg-purple-700"
-                                )}
-                                onClick={() => {
-                                  if (secondaryNurturePostingDays.includes(day)) {
-                                    setSecondaryNurturePostingDays(secondaryNurturePostingDays.filter(d => d !== day));
-                                  } else {
-                                    setSecondaryNurturePostingDays([...secondaryNurturePostingDays, day]);
-                                  }
-                                }}
-                              >
-                                {day.slice(0, 3)}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="secondaryNurturePostingTime">Posting/Send Time</Label>
-                          <Select value={secondaryNurturePostingTime || 'none'} onValueChange={(v) => setSecondaryNurturePostingTime(v === 'none' ? '' : v)}>
-                            <SelectTrigger id="secondaryNurturePostingTime">
-                              <SelectValue placeholder="Select time" />
+                          <Label className="text-sm font-medium">Nurture Method</Label>
+                          <Select 
+                            value={platform.method} 
+                            onValueChange={(v) => {
+                              updateNurturePlatform(idx, 'method', v);
+                              if (v !== 'other') updateNurturePlatform(idx, 'methodCustom', '');
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="How will you nurture your audience?" />
                             </SelectTrigger>
                             <SelectContent className="bg-background border shadow-lg z-50">
-                              {TIME_OPTIONS.map(opt => (
-                                <SelectItem key={opt.value || 'none'} value={opt.value || 'none'}>{opt.label}</SelectItem>
-                              ))}
+                              <SelectItem value="email">Email Newsletter</SelectItem>
+                              <SelectItem value="community">Community (FB Group, Discord, etc.)</SelectItem>
+                              <SelectItem value="youtube">YouTube</SelectItem>
+                              <SelectItem value="podcast">Podcast</SelectItem>
+                              <SelectItem value="webinar">Free Webinars/Workshops</SelectItem>
+                              <SelectItem value="challenge">Free Challenges</SelectItem>
+                              <SelectItem value="other">Other (custom)</SelectItem>
                             </SelectContent>
                           </Select>
+                          {platform.method === 'other' && (
+                            <Input
+                              value={platform.methodCustom || ''}
+                              onChange={(e) => updateNurturePlatform(idx, 'methodCustom', e.target.value)}
+                              placeholder="Enter your nurture method..."
+                              className="mt-2"
+                            />
+                          )}
                         </div>
 
-                        {secondaryNurturePostingDays.length > 0 && (
-                          <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                            <p className="text-sm text-purple-700 dark:text-purple-300">
-                              <strong>✨ {secondaryNurturePostingDays.length * 13} tasks</strong> will be created ({secondaryNurturePostingDays.length}x/week for 90 days)
-                            </p>
-                          </div>
+                        {/* Schedule - shown when method is selected */}
+                        {platform.method && platform.method !== 'none' && (
+                          <>
+                            <div>
+                              <Label className="text-sm font-medium">Which days?</Label>
+                              <p className="text-xs text-muted-foreground mb-2">Select the days you'll publish/send</p>
+                              <div className="flex flex-wrap gap-2">
+                                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+                                  <Badge
+                                    key={day}
+                                    variant={platform.postingDays.includes(day) ? "default" : "outline"}
+                                    className={cn(
+                                      "cursor-pointer transition-colors",
+                                      platform.postingDays.includes(day) && (platform.isPrimary 
+                                        ? "bg-pink-600 hover:bg-pink-700" 
+                                        : "bg-purple-600 hover:bg-purple-700")
+                                    )}
+                                    onClick={() => toggleNurturePlatformDay(idx, day)}
+                                  >
+                                    {day.slice(0, 3)}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label>Posting/Send Time</Label>
+                                <Select 
+                                  value={platform.postingTime || 'none'} 
+                                  onValueChange={(v) => updateNurturePlatform(idx, 'postingTime', v === 'none' ? '' : v)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select time" />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-background border shadow-lg z-50">
+                                    {TIME_OPTIONS.map(opt => (
+                                      <SelectItem key={opt.value || 'none'} value={opt.value || 'none'}>{opt.label}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label>Batch Prep Day (optional)</Label>
+                                <Select 
+                                  value={platform.batchDay || 'none'} 
+                                  onValueChange={(v) => updateNurturePlatform(idx, 'batchDay', v === 'none' ? '' : v)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select a day" />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-background border shadow-lg z-50">
+                                    <SelectItem value="none">None</SelectItem>
+                                    <SelectItem value="Sunday">Sunday</SelectItem>
+                                    <SelectItem value="Monday">Monday</SelectItem>
+                                    <SelectItem value="Tuesday">Tuesday</SelectItem>
+                                    <SelectItem value="Wednesday">Wednesday</SelectItem>
+                                    <SelectItem value="Thursday">Thursday</SelectItem>
+                                    <SelectItem value="Friday">Friday</SelectItem>
+                                    <SelectItem value="Saturday">Saturday</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                            
+                            {platform.batchDay && platform.batchDay !== 'none' && (
+                              <div className="space-y-2">
+                                <Label>Batch Frequency</Label>
+                                <Select 
+                                  value={platform.batchFrequency || 'weekly'} 
+                                  onValueChange={(v) => updateNurturePlatform(idx, 'batchFrequency', v)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="How often?" />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-background border shadow-lg z-50">
+                                    <SelectItem value="weekly">Weekly</SelectItem>
+                                    <SelectItem value="biweekly">Bi-weekly</SelectItem>
+                                    <SelectItem value="monthly">Monthly</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+
+                            {platform.postingDays.length > 0 && (
+                              <div className={cn(
+                                "p-3 rounded-lg border",
+                                platform.isPrimary 
+                                  ? "bg-pink-500/10 border-pink-500/20" 
+                                  : "bg-purple-500/10 border-purple-500/20"
+                              )}>
+                                <p className={cn(
+                                  "text-sm",
+                                  platform.isPrimary 
+                                    ? "text-pink-700 dark:text-pink-300" 
+                                    : "text-purple-700 dark:text-purple-300"
+                                )}>
+                                  <strong>✨ {platform.postingDays.length * 13} tasks</strong> will be created ({platform.postingDays.length}x/week for 90 days)
+                                </p>
+                              </div>
+                            )}
+                          </>
                         )}
                       </CardContent>
                     </Card>
-                  )}
-                </div>
+                  );
+                })}
+
+                {/* Add Nurture Platform Button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addNurturePlatform}
+                  className="w-full border-dashed"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  {nurturePlatforms.length === 0 ? 'Add Nurture Platform' : 'Add Another Nurture Platform'}
+                </Button>
+
+                {nurturePlatforms.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center">
+                    Add at least one nurture platform to build trust with your audience
+                  </p>
+                )}
 
                 <Separator />
 

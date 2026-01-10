@@ -240,19 +240,42 @@ export async function generatePDFBlob(data: CycleExportData): Promise<PDFGenerat
     // ============================================================
     // 5. NURTURE STRATEGY
     // ============================================================
-    if (data.nurtureMethod) {
+    const hasNurturePlatforms = data.nurturePlatforms && data.nurturePlatforms.length > 0;
+    if (hasNurturePlatforms || data.nurtureMethod) {
       addSectionHeader('5. Nurture Strategy');
-      addField('Method', data.nurtureMethod);
-      addField('Frequency', data.nurtureFrequency);
-      if (data.nurturePostingDays.length > 0) {
-        addField('Posting Days', data.nurturePostingDays.join(', '));
+      
+      // Show all nurture platforms if they exist
+      if (hasNurturePlatforms) {
+        data.nurturePlatforms.forEach((platform, index) => {
+          const label = platform.isPrimary ? 'Primary Platform' : `Secondary Platform ${index}`;
+          const methodName = platform.method === 'other' ? (platform.methodCustom || 'Custom') : platform.method;
+          addField(label, methodName);
+          if (platform.postingDays.length > 0) {
+            addField('  Posting Days', platform.postingDays.join(', '));
+          }
+          if (platform.postingTime) {
+            addField('  Posting Time', platform.postingTime);
+          }
+          if (platform.batchDay) {
+            addField('  Batching', `${platform.batchDay} (${platform.batchFrequency || 'weekly'})`);
+          }
+          y += 2;
+        });
+      } else {
+        // Fallback to legacy fields
+        addField('Method', data.nurtureMethod);
+        addField('Frequency', data.nurtureFrequency);
+        if (data.nurturePostingDays.length > 0) {
+          addField('Posting Days', data.nurturePostingDays.join(', '));
+        }
+        if (data.nurtureBatchDay) {
+          addField('Batching', `${data.nurtureBatchDay} (${data.nurtureBatchFrequency || 'weekly'})`);
+        }
       }
+      
       addField('Free Transformation', data.freeTransformation);
       if (data.proofMethods.length > 0) {
         addField('Proof Methods', data.proofMethods.join(', '));
-      }
-      if (data.nurtureBatchDay) {
-        addField('Batching', `${data.nurtureBatchDay} (${data.nurtureBatchFrequency || 'weekly'})`);
       }
       y += 3;
     }
