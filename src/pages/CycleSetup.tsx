@@ -417,11 +417,25 @@ export default function CycleSetup() {
   }, [toast]);
 
   // Check for existing draft on mount - only show if user hasn't already dismissed it
+  // and NOT coming from business planner (which auto-imports data)
   useEffect(() => {
-    if (hasDraft && !hasUserDismissedDraft.current) {
+    // Only run once on mount
+    if (hasUserDismissedDraft.current) return;
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const fromPlanner = urlParams.get('from') === 'planner';
+    
+    // Don't show draft modal if coming from business planner
+    if (fromPlanner) {
+      hasUserDismissedDraft.current = true;
+      return;
+    }
+    
+    if (hasDraft) {
       setShowDraftDialog(true);
     }
-  }, [hasDraft]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - only run once on mount
 
   // Check for workshop planner data on mount
   useEffect(() => {
