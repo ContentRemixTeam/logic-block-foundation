@@ -31,7 +31,7 @@ export interface CycleExportData {
   batchFrequency: string | null;
   leadGenContentAudit: string | null;
   
-  // Step 5: Nurture Strategy
+// Step 5: Nurture Strategy
   nurtureMethod: string | null;
   nurtureFrequency: string | null;
   freeTransformation: string | null;
@@ -41,6 +41,10 @@ export interface CycleExportData {
   nurtureBatchDay: string | null;
   nurtureBatchFrequency: string | null;
   nurtureContentAudit: string | null;
+  // Secondary Nurture
+  secondaryNurtureMethod: string | null;
+  secondaryNurturePostingDays: string[];
+  secondaryNurturePostingTime: string | null;
   
   // Step 6: Offers
   offers: Array<{
@@ -184,7 +188,7 @@ export async function loadCycleForExport(cycleId: string, supabase: SupabaseClie
       batchFrequency: strategy?.batch_frequency as string | null,
       leadGenContentAudit: strategy?.lead_gen_content_audit as string | null,
       
-      // Step 5 (from strategy)
+// Step 5 (from strategy)
       nurtureMethod: strategy?.nurture_method as string | null,
       nurtureFrequency: strategy?.nurture_frequency as string | null,
       freeTransformation: strategy?.free_transformation as string | null,
@@ -194,6 +198,10 @@ export async function loadCycleForExport(cycleId: string, supabase: SupabaseClie
       nurtureBatchDay: strategy?.nurture_batch_day as string | null,
       nurtureBatchFrequency: strategy?.nurture_batch_frequency as string | null,
       nurtureContentAudit: strategy?.nurture_content_audit as string | null,
+      // Secondary nurture (from strategy)
+      secondaryNurtureMethod: strategy?.secondary_nurture_method as string | null ?? null,
+      secondaryNurturePostingDays: Array.isArray(strategy?.secondary_nurture_posting_days) ? strategy.secondary_nurture_posting_days as string[] : [],
+      secondaryNurturePostingTime: strategy?.secondary_nurture_posting_time as string | null ?? null,
       
       // Step 6 (from offers)
       offers: (offersData || []).map(o => ({
@@ -389,9 +397,9 @@ function generatePDFHTML(data: CycleExportData): string {
     `);
   }
   
-  // Nurture Strategy
+// Nurture Strategy (Primary)
   if (data.nurtureMethod) {
-    sectionsHTML += renderSection('Nurture Strategy', '💌', `
+    sectionsHTML += renderSection('Primary Nurture Strategy', '💌', `
       <div class="grid-2">
         ${renderField('Method', data.nurtureMethod)}
         ${renderField('Frequency', data.nurtureFrequency)}
@@ -402,6 +410,17 @@ function generatePDFHTML(data: CycleExportData): string {
       ${data.proofMethods.length > 0 ? renderField('Proof Methods', data.proofMethods.join(', ')) : ''}
       ${data.nurtureBatchDay ? renderField('Batching', `${data.nurtureBatchDay} (${data.nurtureBatchFrequency || 'weekly'})`) : ''}
       ${renderField('Content to Reuse', data.nurtureContentAudit)}
+    `);
+  }
+  
+  // Secondary Nurture Strategy
+  if (data.secondaryNurtureMethod) {
+    sectionsHTML += renderSection('Secondary Nurture Strategy', '📧', `
+      <div class="grid-2">
+        ${renderField('Method', data.secondaryNurtureMethod)}
+        ${data.secondaryNurturePostingDays.length > 0 ? renderField('Posting Days', data.secondaryNurturePostingDays.join(', ')) : ''}
+        ${data.secondaryNurturePostingTime ? renderField('Posting Time', data.secondaryNurturePostingTime) : ''}
+      </div>
     `);
   }
   
@@ -672,4 +691,141 @@ function generatePDFHTML(data: CycleExportData): string {
 </body>
 </html>
   `;
+}
+
+// Form data interface for generating export from local state
+export interface CycleFormData {
+  startDate: Date;
+  endDate: Date;
+  goal: string;
+  why: string;
+  identity: string;
+  feeling: string;
+  discoverScore: number;
+  nurtureScore: number;
+  convertScore: number;
+  biggestBottleneck: string;
+  audienceTarget: string;
+  audienceFrustration: string;
+  signatureMessage: string;
+  leadPlatform: string;
+  leadContentType: string;
+  leadFrequency: string;
+  postingDays: string[];
+  postingTime: string;
+  batchDay: string;
+  batchFrequency: string;
+  leadGenContentAudit: string;
+  nurtureMethod: string;
+  nurtureFrequency: string;
+  freeTransformation: string;
+  proofMethods: string[];
+  nurturePostingDays: string[];
+  nurturePostingTime: string;
+  nurtureBatchDay: string;
+  nurtureBatchFrequency: string;
+  nurtureContentAudit: string;
+  secondaryNurtureMethod: string;
+  secondaryNurturePostingDays: string[];
+  secondaryNurturePostingTime: string;
+  offers: Array<{ name: string; price: string; frequency: string; transformation: string; isPrimary: boolean }>;
+  revenueGoal: string;
+  pricePerSale: string;
+  launchSchedule: string;
+  metric1Name: string;
+  metric1Start: number | '';
+  metric2Name: string;
+  metric2Start: number | '';
+  metric3Name: string;
+  metric3Start: number | '';
+  thingsToRemember: string[];
+  weeklyPlanningDay: string;
+  weeklyDebriefDay: string;
+  officeHoursStart: string;
+  officeHoursEnd: string;
+  officeHoursDays: string[];
+  biggestFear: string;
+  fearResponse: string;
+  commitmentStatement: string;
+  accountabilityPerson: string;
+  day1Top3: string[];
+  day1Why: string;
+  day2Top3: string[];
+  day2Why: string;
+  day3Top3: string[];
+  day3Why: string;
+}
+
+// Generate export data from form state (for pre-save export)
+export function generateExportFromFormData(formData: CycleFormData): CycleExportData {
+  return {
+    startDate: format(formData.startDate, 'yyyy-MM-dd'),
+    endDate: format(formData.endDate, 'yyyy-MM-dd'),
+    goal: formData.goal,
+    why: formData.why || null,
+    identity: formData.identity || null,
+    feeling: formData.feeling || null,
+    discoverScore: formData.discoverScore,
+    nurtureScore: formData.nurtureScore,
+    convertScore: formData.convertScore,
+    biggestBottleneck: formData.biggestBottleneck || null,
+    audienceTarget: formData.audienceTarget || null,
+    audienceFrustration: formData.audienceFrustration || null,
+    signatureMessage: formData.signatureMessage || null,
+    leadPlatform: formData.leadPlatform || null,
+    leadContentType: formData.leadContentType || null,
+    leadFrequency: formData.leadFrequency || null,
+    secondaryPlatforms: [],
+    postingDays: formData.postingDays,
+    postingTime: formData.postingTime || null,
+    batchDay: formData.batchDay || null,
+    batchFrequency: formData.batchFrequency || null,
+    leadGenContentAudit: formData.leadGenContentAudit || null,
+    nurtureMethod: formData.nurtureMethod || null,
+    nurtureFrequency: formData.nurtureFrequency || null,
+    freeTransformation: formData.freeTransformation || null,
+    proofMethods: formData.proofMethods,
+    nurturePostingDays: formData.nurturePostingDays,
+    nurturePostingTime: formData.nurturePostingTime || null,
+    nurtureBatchDay: formData.nurtureBatchDay || null,
+    nurtureBatchFrequency: formData.nurtureBatchFrequency || null,
+    nurtureContentAudit: formData.nurtureContentAudit || null,
+    secondaryNurtureMethod: formData.secondaryNurtureMethod || null,
+    secondaryNurturePostingDays: formData.secondaryNurturePostingDays,
+    secondaryNurturePostingTime: formData.secondaryNurturePostingTime || null,
+    offers: formData.offers.filter(o => o.name.trim()).map(o => ({
+      name: o.name,
+      price: o.price ? parseFloat(o.price) : null,
+      transformation: o.transformation || null,
+      isPrimary: o.isPrimary,
+      frequency: o.frequency,
+    })),
+    revenueGoal: formData.revenueGoal ? parseFloat(formData.revenueGoal) : null,
+    pricePerSale: formData.pricePerSale ? parseFloat(formData.pricePerSale) : null,
+    launchSchedule: formData.launchSchedule || null,
+    metric1Name: formData.metric1Name || null,
+    metric1Start: formData.metric1Start === '' ? null : formData.metric1Start,
+    metric2Name: formData.metric2Name || null,
+    metric2Start: formData.metric2Start === '' ? null : formData.metric2Start,
+    metric3Name: formData.metric3Name || null,
+    metric3Start: formData.metric3Start === '' ? null : formData.metric3Start,
+    thingsToRemember: formData.thingsToRemember.filter(t => t.trim()),
+    weeklyPlanningDay: formData.weeklyPlanningDay || null,
+    weeklyDebriefDay: formData.weeklyDebriefDay || null,
+    officeHoursStart: formData.officeHoursStart || null,
+    officeHoursEnd: formData.officeHoursEnd || null,
+    officeHoursDays: formData.officeHoursDays,
+    biggestFear: formData.biggestFear || null,
+    fearResponse: formData.fearResponse || null,
+    commitmentStatement: formData.commitmentStatement || null,
+    accountabilityPerson: formData.accountabilityPerson || null,
+    day1Top3: formData.day1Top3.filter(t => t.trim()),
+    day1Why: formData.day1Why || null,
+    day2Top3: formData.day2Top3.filter(t => t.trim()),
+    day2Why: formData.day2Why || null,
+    day3Top3: formData.day3Top3.filter(t => t.trim()),
+    day3Why: formData.day3Why || null,
+    exportedAt: new Date().toISOString(),
+    cycleId: 'draft',
+  };
 }

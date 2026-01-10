@@ -26,7 +26,7 @@ import { useCycleSetupDraft, CycleSetupDraft, SecondaryPlatform, LimitedTimeOffe
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { AutopilotSetupModal, AutopilotOptions } from '@/components/cycle/AutopilotSetupModal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { loadCycleForExport, exportCycleAsJSON, exportCycleAsPDF, CycleExportData } from '@/lib/cycleExport';
+import { loadCycleForExport, exportCycleAsJSON, exportCycleAsPDF, CycleExportData, generateExportFromFormData, CycleFormData } from '@/lib/cycleExport';
 
 const WORKSHOP_STORAGE_KEY = 'workshop-planner-data';
 
@@ -200,13 +200,14 @@ export default function CycleSetup() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showDraftDialog, setShowDraftDialog] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [showAutopilotModal, setShowAutopilotModal] = useState(false);
+const [showAutopilotModal, setShowAutopilotModal] = useState(false);
   const [showWorkshopImportBanner, setShowWorkshopImportBanner] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [previewData, setPreviewData] = useState<{ projects: any[]; tasks: any[] }>({ projects: [], tasks: [] });
   const [isEditMode, setIsEditMode] = useState(false);
   const [existingCycleId, setExistingCycleId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   
   const { hasDraft, saveDraft, loadDraft, clearDraft, getDraftAge } = useCycleSetupDraft();
   
@@ -1671,17 +1672,127 @@ export default function CycleSetup() {
     }
   };
 
-  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
+const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
-  // Export functions for PDF and JSON
+  // Helper to get current form data for export
+  const getFormDataForExport = useCallback((): CycleFormData => {
+    const effectiveNurtureMethod = nurtureMethod === 'other' ? nurtureMethodCustom : nurtureMethod;
+    const effectiveSecondaryNurtureMethod = secondaryNurtureMethod === 'other' 
+      ? secondaryNurtureMethodCustom 
+      : (secondaryNurtureMethod === 'none' ? '' : secondaryNurtureMethod);
+    
+    return {
+      startDate,
+      endDate,
+      goal,
+      why,
+      identity,
+      feeling,
+      discoverScore,
+      nurtureScore,
+      convertScore,
+      biggestBottleneck,
+      audienceTarget,
+      audienceFrustration,
+      signatureMessage,
+      leadPlatform,
+      leadContentType,
+      leadFrequency,
+      postingDays,
+      postingTime,
+      batchDay,
+      batchFrequency,
+      leadGenContentAudit,
+      nurtureMethod: effectiveNurtureMethod,
+      nurtureFrequency,
+      freeTransformation,
+      proofMethods,
+      nurturePostingDays,
+      nurturePostingTime,
+      nurtureBatchDay,
+      nurtureBatchFrequency,
+      nurtureContentAudit,
+      secondaryNurtureMethod: effectiveSecondaryNurtureMethod,
+      secondaryNurturePostingDays,
+      secondaryNurturePostingTime,
+      offers,
+      revenueGoal,
+      pricePerSale,
+      launchSchedule,
+      metric1Name,
+      metric1Start,
+      metric2Name,
+      metric2Start,
+      metric3Name,
+      metric3Start,
+      thingsToRemember,
+      weeklyPlanningDay,
+      weeklyDebriefDay,
+      officeHoursStart,
+      officeHoursEnd,
+      officeHoursDays,
+      biggestFear,
+      fearResponse: whatWillYouDoWhenFearHits,
+      commitmentStatement,
+      accountabilityPerson: whoWillHoldYouAccountable,
+      day1Top3,
+      day1Why,
+      day2Top3,
+      day2Why,
+      day3Top3,
+      day3Why,
+    };
+  }, [
+    startDate, endDate, goal, why, identity, feeling, discoverScore, nurtureScore, convertScore,
+    biggestBottleneck, audienceTarget, audienceFrustration, signatureMessage, leadPlatform,
+    leadContentType, leadFrequency, postingDays, postingTime, batchDay, batchFrequency,
+    leadGenContentAudit, nurtureMethod, nurtureMethodCustom, nurtureFrequency, freeTransformation,
+    proofMethods, nurturePostingDays, nurturePostingTime, nurtureBatchDay, nurtureBatchFrequency,
+    nurtureContentAudit, secondaryNurtureMethod, secondaryNurtureMethodCustom,
+    secondaryNurturePostingDays, secondaryNurturePostingTime, offers, revenueGoal, pricePerSale,
+    launchSchedule, metric1Name, metric1Start, metric2Name, metric2Start, metric3Name, metric3Start,
+    thingsToRemember, weeklyPlanningDay, weeklyDebriefDay, officeHoursStart, officeHoursEnd,
+    officeHoursDays, biggestFear, whatWillYouDoWhenFearHits, commitmentStatement,
+    whoWillHoldYouAccountable, day1Top3, day1Why, day2Top3, day2Why, day3Top3, day3Why
+  ]);
+
+  // Export from form state (pre-save)
+  const handleExportPDFFromState = async () => {
+    setExporting(true);
+    try {
+      const formData = getFormDataForExport();
+      const exportData = generateExportFromFormData(formData);
+      await exportCycleAsPDF(exportData);
+      toast({ title: "PDF ready!", description: "Save from the print dialog that opens." });
+    } catch (error) {
+      console.error("PDF export error:", error);
+      toast({ title: "Export failed", description: "An error occurred.", variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportJSONFromState = () => {
+    setExporting(true);
+    try {
+      const formData = getFormDataForExport();
+      const exportData = generateExportFromFormData(formData);
+      exportCycleAsJSON(exportData);
+      toast({ title: "JSON downloaded!", description: "Your plan has been exported." });
+    } catch (error) {
+      console.error("JSON export error:", error);
+      toast({ title: "Export failed", description: "An error occurred.", variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // Export functions for PDF and JSON (from saved cycle)
   const handleExportPDF = async () => {
     if (!existingCycleId) {
-      toast({
-        title: "Save your plan first",
-        description: "Please create or save your cycle before exporting to PDF.",
-        variant: "destructive",
-      });
+      // Fall back to form state export
+      await handleExportPDFFromState();
       return;
     }
     setExporting(true);
@@ -1703,11 +1814,8 @@ export default function CycleSetup() {
 
   const handleExportJSON = async () => {
     if (!existingCycleId) {
-      toast({
-        title: "Save your plan first",
-        description: "Please create or save your cycle before exporting to JSON.",
-        variant: "destructive",
-      });
+      // Fall back to form state export
+      handleExportJSONFromState();
       return;
     }
     setExporting(true);
@@ -1725,6 +1833,21 @@ export default function CycleSetup() {
     } finally {
       setExporting(false);
     }
+  };
+
+  // Handler when user clicks Create Cycle - show export modal first for new cycles
+  const handleCreateCycleClick = () => {
+    if (!isEditMode) {
+      setShowExportModal(true);
+    } else {
+      setShowAutopilotModal(true);
+    }
+  };
+
+  // Continue after export modal
+  const handleContinueToAutopilot = () => {
+    setShowExportModal(false);
+    setShowAutopilotModal(true);
   };
 
   const progress = (currentStep / STEPS.length) * 100;
@@ -3823,47 +3946,45 @@ export default function CycleSetup() {
                 </AlertDescription>
               </Alert>
 
-              {/* Export Section - Prominent at the end */}
-              {isEditMode && existingCycleId && (
-                <Card className="mt-8 border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Download className="h-5 w-5 text-primary" />
-                      Download Your Complete Plan
-                    </CardTitle>
-                    <CardDescription>
-                      Save a copy of your 90-day business plan to reference anytime, share with your accountability partner, or keep for your records.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <Button
-                        variant="default"
-                        size="lg"
-                        className="flex-1 gap-2"
-                        onClick={handleExportPDF}
-                        disabled={exporting}
-                      >
-                        <FileText className="h-5 w-5" />
-                        {exporting ? "Preparing..." : "Download PDF"}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="lg"
-                        className="flex-1 gap-2"
-                        onClick={handleExportJSON}
-                        disabled={exporting}
-                      >
-                        <FileJson className="h-5 w-5" />
-                        {exporting ? "Preparing..." : "Download JSON"}
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-3 text-center">
-                      The PDF includes your goal, strategy, offers, metrics, weekly routines, and first 3 days action plan.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
+{/* Export Section - Always visible at the end of Step 9 */}
+              <Card className="mt-8 border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Download className="h-5 w-5 text-primary" />
+                    Download Your Complete Plan
+                  </CardTitle>
+                  <CardDescription>
+                    Save a copy of your 90-day business plan to reference anytime, share with your accountability partner, or keep for your records.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button
+                      variant="default"
+                      size="lg"
+                      className="flex-1 gap-2"
+                      onClick={handleExportPDF}
+                      disabled={exporting}
+                    >
+                      <FileText className="h-5 w-5" />
+                      {exporting ? "Preparing..." : "Download PDF"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="flex-1 gap-2"
+                      onClick={handleExportJSON}
+                      disabled={exporting}
+                    >
+                      <FileJson className="h-5 w-5" />
+                      {exporting ? "Preparing..." : "Download JSON"}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3 text-center">
+                    The PDF includes your goal, strategy, offers, metrics, weekly routines, and first 3 days action plan.
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           )}
         </div>
@@ -3887,10 +4008,10 @@ export default function CycleSetup() {
             </Button>
           ) : (
             <div className="flex gap-2">
-              <Button variant="outline" onClick={handlePreview} disabled={loading}>
+<Button variant="outline" onClick={handlePreview} disabled={loading}>
                 Preview Projects & Tasks
               </Button>
-              <Button onClick={() => setShowAutopilotModal(true)} disabled={loading || !goal}>
+              <Button onClick={handleCreateCycleClick} disabled={loading || !goal}>
                 {loading ? 'Saving...' : isEditMode ? 'Update Plan →' : 'Create Cycle →'}
               </Button>
             </div>
@@ -3951,6 +4072,61 @@ export default function CycleSetup() {
               <div className="pt-4 border-t text-sm text-muted-foreground">
                 <p>💡 This is a preview only. Click "Create Cycle" to actually create these items.</p>
               </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+{/* Export Modal - appears before autopilot for new cycles */}
+        <Dialog open={showExportModal} onOpenChange={setShowExportModal}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-xl">
+                <Download className="h-6 w-6 text-primary" />
+                Save Your 90-Day Plan
+              </DialogTitle>
+              <DialogDescription className="text-base pt-2">
+                Before adding to your planner, download a copy of your complete business plan to reference anytime.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-4 border border-primary/20">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Your PDF will include your goal, strategy, offers, metrics, weekly routines, and first 3 days action plan.
+                </p>
+                <div className="flex flex-col gap-3">
+                  <Button
+                    size="lg"
+                    className="w-full gap-2"
+                    onClick={handleExportPDFFromState}
+                    disabled={exporting}
+                  >
+                    <FileText className="h-5 w-5" />
+                    {exporting ? "Preparing..." : "Download PDF"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="w-full gap-2"
+                    onClick={handleExportJSONFromState}
+                    disabled={exporting}
+                  >
+                    <FileJson className="h-5 w-5" />
+                    {exporting ? "Preparing..." : "Download JSON"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t">
+              <Button 
+                variant="ghost" 
+                onClick={handleContinueToAutopilot}
+                className="gap-2"
+              >
+                Skip and Add to Planner
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
