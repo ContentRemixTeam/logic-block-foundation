@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { CountdownTimer } from './CountdownTimer';
 import { format } from 'date-fns';
-import { ExternalLink, Clock } from 'lucide-react';
+import { ExternalLink, Clock, GraduationCap } from 'lucide-react';
 
 interface CalendarEvent {
   id: string;
@@ -127,12 +127,14 @@ export const MastermindCallWidget = () => {
 
   if (callStatus === 'NO_CALLS' || !nextCall) {
     return (
-      <Card>
+      <Card className="rounded-[20px] shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)] border-0">
         <CardContent className="py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🎓</span>
-              <span className="text-sm text-muted-foreground">No upcoming calls</span>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                <GraduationCap className="h-4 w-4 text-foreground-muted" />
+              </div>
+              <span className="text-sm text-foreground-muted">No upcoming calls</span>
             </div>
             <Button variant="ghost" size="sm" onClick={openCircleEvents}>
               <ExternalLink className="h-3 w-3" />
@@ -151,7 +153,7 @@ export const MastermindCallWidget = () => {
   // LIVE NOW State
   if (callStatus === 'LIVE') {
     return (
-      <Card className="border-2 border-red-500 bg-gradient-to-br from-red-50 to-background dark:from-red-950/20">
+      <Card className="rounded-[20px] border-2 border-red-500 bg-gradient-to-br from-red-50 to-background dark:from-red-950/20 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)]">
         <CardContent className="py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -160,9 +162,9 @@ export const MastermindCallWidget = () => {
                 LIVE
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Next Mastermind Call</p>
+                <p className="text-[10px] uppercase tracking-wider text-foreground-muted font-medium">Next Mastermind Call</p>
                 <p className="font-semibold text-sm">{mainTitle}</p>
-                {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+                {subtitle && <p className="text-xs text-foreground-muted">{subtitle}</p>}
               </div>
             </div>
             <Button size="sm" className="bg-red-500 hover:bg-red-600" onClick={openCircleEvents}>
@@ -177,19 +179,21 @@ export const MastermindCallWidget = () => {
   // STARTING SOON State
   if (callStatus === 'STARTING_SOON') {
     return (
-      <Card className="border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-background dark:from-amber-950/20">
+      <Card className="rounded-[20px] border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-background dark:from-amber-950/20 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)]">
         <CardContent className="py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <span className="text-lg">🎓</span>
+              <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                <GraduationCap className="h-4 w-4 text-amber-600" />
+              </div>
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Next Mastermind Call</p>
+                <p className="text-[10px] uppercase tracking-wider text-foreground-muted font-medium">Next Mastermind Call</p>
                 <div className="flex items-center gap-2">
                   <p className="font-semibold text-sm">{mainTitle}</p>
                   <span className="text-xs bg-amber-400 text-amber-900 px-1.5 py-0.5 rounded font-medium">Soon</span>
                 </div>
-                {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                {subtitle && <p className="text-xs text-foreground-muted">{subtitle}</p>}
+                <p className="text-xs text-foreground-muted flex items-center gap-1 mt-0.5">
                   <Clock className="h-3 w-3" />
                   {formattedTime}
                 </p>
@@ -199,7 +203,7 @@ export const MastermindCallWidget = () => {
               <div className="text-right">
                 <CountdownTimer targetDate={startTime} onComplete={fetchMastermindCalls} compact />
               </div>
-              <Button size="sm" className="bg-purple-600 hover:bg-purple-700" onClick={openCircleEvents}>
+              <Button size="sm" className="bg-[hsl(330,81%,54%)] hover:bg-[hsl(330,81%,48%)]" onClick={openCircleEvents}>
                 Join
               </Button>
             </div>
@@ -211,16 +215,18 @@ export const MastermindCallWidget = () => {
 
   // UPCOMING State (default)
   return (
-    <Card>
+    <Card className="rounded-[20px] shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)] border-0">
       <CardContent className="py-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="text-lg">🎓</span>
+            <div className="w-8 h-8 rounded-lg bg-[hsl(330,81%,54%)]/10 flex items-center justify-center">
+              <GraduationCap className="h-4 w-4 text-[hsl(330,81%,54%)]" />
+            </div>
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Next Mastermind Call</p>
+              <p className="text-[10px] uppercase tracking-wider text-foreground-muted font-medium">Next Mastermind Call</p>
               <p className="font-semibold text-sm">{mainTitle}</p>
-              {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+              {subtitle && <p className="text-xs text-foreground-muted">{subtitle}</p>}
+              <p className="text-xs text-foreground-muted flex items-center gap-1 mt-0.5">
                 <Clock className="h-3 w-3" />
                 {formattedDate} at {formattedTime}
               </p>

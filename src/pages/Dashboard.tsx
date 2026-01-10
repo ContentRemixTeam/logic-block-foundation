@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Layout } from '@/components/Layout';
@@ -12,8 +11,19 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { supabase } from '@/integrations/supabase/client';
 import { normalizeArray, normalizeString, normalizeNumber } from '@/lib/normalize';
-import { MASTERMIND_LINKS } from '@/lib/mastermindLinks';
-import { Target, Calendar, CheckSquare, ArrowRight, TrendingUp, Zap, Map, Compass, Swords } from 'lucide-react';
+import { 
+  Target, 
+  Calendar, 
+  CheckSquare, 
+  ArrowRight, 
+  TrendingUp, 
+  Zap, 
+  Map, 
+  Compass,
+  Sparkles,
+  GraduationCap,
+  Check
+} from 'lucide-react';
 import { OnboardingChecklist } from '@/components/tour/OnboardingChecklist';
 import { QuestMapCompact } from '@/components/quest/QuestMap';
 import { XPDisplay } from '@/components/quest/XPDisplay';
@@ -21,6 +31,8 @@ import { StreakDisplay } from '@/components/quest/StreakDisplay';
 import { MastermindCallWidget } from '@/components/mastermind/MastermindCallWidget';
 import { PodcastWidget } from '@/components/podcast/PodcastWidget';
 import { HelpButton } from '@/components/ui/help-button';
+import { PremiumCard, PremiumCardContent, PremiumCardHeader, PremiumCardTitle } from '@/components/ui/premium-card';
+import { TodayStrip, PlanMyWeekButton, QuickActionsPanel, ResourcesPanel } from '@/components/dashboard';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -42,7 +54,6 @@ export default function Dashboard() {
       setError(null);
       console.log('Loading dashboard summary...');
       
-      // Verify we have a valid session before making requests
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         console.error('No active session found');
@@ -56,23 +67,15 @@ export default function Dashboard() {
         supabase.functions.invoke('get-ideas'),
       ]);
 
-      console.log('Dashboard response:', { 
-        hasData: Boolean(dashboardData.data),
-        dataKeys: dashboardData.data ? Object.keys(dashboardData.data) : [],
-        error: dashboardData.error 
-      });
-
       if (dashboardData.error) {
         console.error('Function invocation error:', dashboardData.error);
         throw dashboardData.error;
       }
       
-      console.log('Dashboard data received:', dashboardData.data);
       const summaryData = dashboardData.data?.data || null;
       setSummary(summaryData);
       setIdeasCount(ideasData.data?.ideas?.length || 0);
       
-      // Extract things to remember from the cycle
       if (summaryData?.cycle?.things_to_remember) {
         const reminders = Array.isArray(summaryData.cycle.things_to_remember) 
           ? summaryData.cycle.things_to_remember.filter((r: string) => r && r.trim())
@@ -108,7 +111,7 @@ export default function Dashboard() {
     );
   }
 
-  // Safe normalization using utility functions
+  // Safe normalization
   const cycle = summary?.cycle ?? {};
   const week = summary?.week ?? {};
   const today = summary?.today ?? {};
@@ -125,31 +128,38 @@ export default function Dashboard() {
   const habitStatus = (normalizeString(habits.status, 'grey')) as 'green' | 'yellow' | 'grey';
   
   const hasCycle = Boolean(goal);
-  
-  // Calculate progress percentage
   const cycleProgress = daysRemaining > 0 ? Math.max(0, Math.min(100, ((90 - daysRemaining) / 90) * 100)) : 100;
   const currentDay = 90 - daysRemaining;
   const currentWeek = Math.ceil(currentDay / 7);
+
+  // Get the top priority for TodayStrip
+  const topPriority = weeklyPriorities[0] || todayTop3[0] || null;
 
   return (
     <Layout>
       <ReminderPopup reminders={thingsToRemember} onDismiss={() => {}} />
       <DebriefReminderPopup />
-      <div className="space-y-8">
+      
+      <div className="space-y-6">
+        {/* Page Header */}
         <div>
-          <h1 
-            className="text-3xl font-bold flex items-center gap-2"
-            style={{ fontFamily: isQuestMode ? 'var(--font-heading)' : 'inherit' }}
-          >
-            {isQuestMode ? <Map className="h-8 w-8 text-primary" /> : <span>⚡</span>}
+          <h1 className="bp-h1 flex items-center gap-3">
+            {isQuestMode ? (
+              <Map className="h-8 w-8 text-primary" />
+            ) : (
+              <Zap className="h-8 w-8 text-primary" />
+            )}
             {getNavLabel('dashboard')}
           </h1>
-          <p className="text-muted-foreground">
-            {isQuestMode ? 'Your adventure awaits, Boss ⚡' : 'Your 90-day Becoming Boss journey'}
+          <p className="text-foreground-muted mt-1">
+            {isQuestMode ? 'Your adventure awaits, Boss' : 'Your 90-day Becoming Boss journey'}
           </p>
         </div>
 
-        {/* Quest Mode XP & Streak Display */}
+        {/* Onboarding Checklist - Full Width */}
+        <OnboardingChecklist />
+
+        {/* Quest Mode XP & Streak */}
         {isQuestMode && hasCycle && (
           <div className="grid gap-4 md:grid-cols-2">
             <XPDisplay />
@@ -157,385 +167,352 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Mastermind Call & Podcast Widgets */}
-        {hasCycle && (
-          <div className="grid gap-4 md:grid-cols-2">
-            <MastermindCallWidget />
-            <PodcastWidget />
-          </div>
-        )}
-
-        {/* Onboarding Checklist */}
-        <OnboardingChecklist />
-
+        {/* Welcome Card for New Users */}
         {!hasCycle ? (
-          <Card className="border-amber-200/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                Welcome to the Becoming Boss Mastermind! <span className="text-amber-500">⚡</span>
-              </CardTitle>
-              <CardDescription>
-                Begin your journey by defining your 90-day goal, identity, and supporting projects
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                A 90-day cycle helps you focus on what matters most and make consistent progress toward your Boss goals.
-              </p>
-              <Link to="/cycle-setup">
-                <Button size="lg" className="gap-2">
-                  <span>⚡</span> Start Your First 90-Day Cycle
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+          <PremiumCard category="plan">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Sparkles className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-semibold mb-1">
+                  Welcome to the Becoming Boss Mastermind!
+                </h2>
+                <p className="text-foreground-muted mb-4">
+                  Begin your journey by defining your 90-day goal, identity, and supporting projects.
+                </p>
+                <Link to="/cycle-setup">
+                  <Button variant="premium" size="lg" className="gap-2">
+                    <Zap className="h-5 w-5" />
+                    Start Your First 90-Day Cycle
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </PremiumCard>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {/* Quest Map / 90-Day Goal */}
-            {goal && (
-              <>
-                {isQuestMode ? (
-                  <Card className="md:col-span-2 lg:col-span-3">
-                    <CardContent className="pt-6">
+          /* 2-Column Layout */
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Left Column - Main Content */}
+            <div className="flex-1 space-y-6 max-w-3xl">
+              {/* Today Strip */}
+              <TodayStrip topPriority={topPriority} />
+
+              {/* 90-Day Goal Card */}
+              {goal && (
+                <>
+                  {isQuestMode ? (
+                    <PremiumCard category="plan">
                       <QuestMapCompact
                         cycleGoal={goal}
                         currentDay={currentDay}
                         totalDays={90}
                         currentWeek={currentWeek}
                       />
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-primary/10 to-accent/10">
-                      <CardTitle className="text-sm font-medium flex items-center gap-1">
-                        <span>⚡</span>
-                        90-Day Goal
-                        <HelpButton
-                          title="90-Day Cycle"
-                          description="Your 90-day cycle breaks down into weeks and days, keeping you focused on what matters most."
-                          tips={[
-                            "Set one clear goal for the entire 90 days",
-                            "Weekly priorities support your main goal",
-                            "Daily Top 3 tasks drive weekly progress",
-                            "Reviews help you adjust and stay on track"
-                          ]}
-                          learnMoreHref="/support"
-                          size="sm"
-                        />
-                      </CardTitle>
-                      <Target className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold line-clamp-2 mb-3">{goal}</div>
-                      {focusArea && (
-                        <Badge className="mb-3 bg-primary/10 text-primary hover:bg-primary/20 border-primary/20">
-                          Focus: {focusArea}
-                        </Badge>
-                      )}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Progress</span>
-                          <span className="font-medium">{Math.round(cycleProgress)}%</span>
+                    </PremiumCard>
+                  ) : (
+                    <PremiumCard category="plan">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Target className="h-4 w-4 text-foreground-muted" />
+                            <span className="bp-label">90-DAY GOAL</span>
+                            <HelpButton
+                              title="90-Day Cycle"
+                              description="Your 90-day cycle breaks down into weeks and days."
+                              tips={[
+                                "Set one clear goal for the entire 90 days",
+                                "Weekly priorities support your main goal",
+                                "Daily Top 3 tasks drive weekly progress"
+                              ]}
+                              learnMoreHref="/support"
+                              size="sm"
+                            />
+                          </div>
+                          <h2 className="text-2xl font-bold leading-tight mb-3">{goal}</h2>
+                          {focusArea && (
+                            <Badge className="bp-badge mb-3">
+                              Focus: {focusArea}
+                            </Badge>
+                          )}
                         </div>
-                        <div className="w-full bg-muted rounded-full h-2">
+                      </div>
+                      <div className="mt-4 space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-foreground-muted">Progress</span>
+                          <span className="font-semibold">{Math.round(cycleProgress)}%</span>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-2.5">
                           <div
-                            className="bg-primary rounded-full h-2 transition-all"
+                            className="bg-gradient-to-r from-primary to-[hsl(330,81%,65%)] rounded-full h-2.5 transition-all duration-500"
                             style={{ width: `${cycleProgress}%` }}
                           />
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          {daysRemaining > 0 ? `${daysRemaining} days remaining` : 'Cycle complete! 🎉'}
+                        <p className="text-sm text-foreground-muted">
+                          {daysRemaining > 0 ? `${daysRemaining} days remaining` : (
+                            <span className="flex items-center gap-1 text-success">
+                              <Check className="h-4 w-4" /> Cycle complete!
+                            </span>
+                          )}
                         </p>
                       </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </>
-            )}
+                    </PremiumCard>
+                  )}
+                </>
+              )}
 
-            {/* Weekly Priorities */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">This Week's Top 3</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
+              {/* Weekly Priorities Card */}
+              <PremiumCard category="plan">
+                <PremiumCardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-foreground-muted" />
+                      <PremiumCardTitle>This Week's Top 3</PremiumCardTitle>
+                    </div>
+                    <Link to="/weekly-plan">
+                      <Button variant="ghost" size="sm" className="text-sm">
+                        Edit <ArrowRight className="h-3 w-3 ml-1" />
+                      </Button>
+                    </Link>
+                  </div>
+                </PremiumCardHeader>
+                <PremiumCardContent>
                   {weeklyPriorities.length > 0 ? (
-                    weeklyPriorities.map((priority, idx) => (
-                      <div key={idx} className="flex items-start gap-2">
-                        <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                        <div className="text-sm line-clamp-2">{priority}</div>
-                      </div>
-                    ))
+                    <div className="space-y-3">
+                      {weeklyPriorities.map((priority, idx) => (
+                        <div key={idx} className="flex items-start gap-3 p-3 rounded-xl bg-muted/30">
+                          <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                            {idx + 1}
+                          </div>
+                          <span className="text-sm leading-relaxed">{priority}</span>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">No weekly plan yet</p>
+                    <div className="text-center py-6">
+                      <Calendar className="h-10 w-10 text-foreground-muted/30 mx-auto mb-3" />
+                      <p className="font-medium mb-1">Set your Weekly Top 3</p>
+                      <p className="text-sm text-foreground-muted mb-4">
+                        Focus on 3 priorities this week (2 min)
+                      </p>
                       <Link to="/weekly-plan">
-                        <Button variant="outline" size="sm">Create Weekly Plan</Button>
+                        <Button>Set Weekly Priorities</Button>
                       </Link>
                     </div>
                   )}
-                </div>
-              </CardContent>
-            </Card>
+                </PremiumCardContent>
+              </PremiumCard>
 
-            {/* Today's Top 3 */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Today's Top 3</CardTitle>
-                <CheckSquare className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
+              {/* Today's Top 3 Card */}
+              <PremiumCard category="do">
+                <PremiumCardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckSquare className="h-4 w-4 text-foreground-muted" />
+                      <PremiumCardTitle>Today's Top 3</PremiumCardTitle>
+                    </div>
+                    <Link to="/daily-plan">
+                      <Button variant="ghost" size="sm" className="text-sm">
+                        Edit <ArrowRight className="h-3 w-3 ml-1" />
+                      </Button>
+                    </Link>
+                  </div>
+                </PremiumCardHeader>
+                <PremiumCardContent>
                   {todayTop3.length > 0 ? (
-                    todayTop3.map((task, idx) => (
-                      <div key={idx} className="flex items-start gap-2">
-                        <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                        <div className="text-sm line-clamp-2">{task}</div>
-                      </div>
-                    ))
+                    <div className="space-y-3">
+                      {todayTop3.map((task, idx) => (
+                        <div key={idx} className="flex items-start gap-3 p-3 rounded-xl bg-muted/30">
+                          <div className="w-6 h-6 rounded-full bg-[hsl(173,80%,40%)]/10 text-[hsl(173,80%,40%)] flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                            {idx + 1}
+                          </div>
+                          <span className="text-sm leading-relaxed">{task}</span>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">No daily plan yet</p>
+                    <div className="text-center py-6">
+                      <Target className="h-10 w-10 text-foreground-muted/30 mx-auto mb-3" />
+                      <p className="font-medium mb-1">What are your Big 3 today?</p>
+                      <p className="text-sm text-foreground-muted mb-4">
+                        Choose 3 tasks that will move you forward (1 min)
+                      </p>
                       <Link to="/daily-plan">
-                        <Button variant="outline" size="sm">Start Today's Plan</Button>
+                        <Button>Plan Today</Button>
                       </Link>
                     </div>
                   )}
-                </div>
-              </CardContent>
-            </Card>
+                </PremiumCardContent>
+              </PremiumCard>
 
-            {/* Habits Status */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Today's Habits</CardTitle>
-                <CheckSquare className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-3">
-                   <Badge
-                     variant={habitStatus === 'green' ? 'default' : habitStatus === 'yellow' ? 'secondary' : 'outline'}
-                     className={`${
-                       habitStatus === 'green'
-                         ? 'bg-success/10 text-success hover:bg-success/20 border-success/20'
-                         : habitStatus === 'yellow'
-                         ? 'bg-warning/10 text-warning hover:bg-warning/20 border-warning/20'
-                         : 'bg-muted text-muted-foreground'
-                     }`}
-                   >
-                     {habitStatus === 'green' && '⚡ Great progress'}
-                     {habitStatus === 'yellow' && '~ Needs work'}
-                     {habitStatus === 'grey' && '○ Not started'}
-                   </Badge>
-                </div>
-                <Link to="/habits" className="mt-3 block">
-                  <Button variant="ghost" size="sm" className="h-8 text-xs">
-                    View All Habits →
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            {/* Weekly Review Status */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Weekly Review</CardTitle>
-                <Target className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                {weeklyReviewStatus.exists ? (
-                  <div>
-                    <Badge className="bg-success/10 text-success hover:bg-success/20 border-success/20">
-                      ✓ Completed
-                    </Badge>
-                    {weeklyReviewStatus.score !== null && (
-                      <p className="text-2xl font-bold mt-2">Score: {weeklyReviewStatus.score}/10</p>
-                    )}
-                    <Link to="/weekly-review" className="mt-3 block">
-                      <Button variant="ghost" size="sm" className="h-8 text-xs">
-                        View Review →
+              {/* Habits Status Card */}
+              <PremiumCard category="do">
+                <PremiumCardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-foreground-muted" />
+                      <PremiumCardTitle>Today's Habits</PremiumCardTitle>
+                    </div>
+                    <Link to="/habits">
+                      <Button variant="ghost" size="sm" className="text-sm">
+                        View All <ArrowRight className="h-3 w-3 ml-1" />
                       </Button>
                     </Link>
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">No review yet</p>
-                    <Link to="/weekly-review">
-                      <Button variant="outline" size="sm">Complete Review</Button>
-                    </Link>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Monthly Review */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Monthly Review</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                {monthlyReviewStatus.exists ? (
-                  <div>
-                    <Badge className="bg-success/10 text-success hover:bg-success/20 border-success/20">
-                      ✓ Completed
-                    </Badge>
-                    {monthlyReviewStatus.score !== null && (
-                      <p className="text-2xl font-bold mt-2">Score: {monthlyReviewStatus.score}/10</p>
-                    )}
-                    {monthlyReviewStatus.wins_count > 0 && (
-                      <p className="text-xs text-muted-foreground mt-1">{monthlyReviewStatus.wins_count} wins recorded</p>
-                    )}
-                    <Link to="/monthly-review" className="mt-3 block">
-                      <Button variant="ghost" size="sm" className="h-8 text-xs">
-                        View Review →
-                      </Button>
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">Reflect on the month</p>
-                    <Link to="/monthly-review">
-                      <Button variant="outline" size="sm">Complete Review</Button>
-                    </Link>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Cycle Summary */}
-            {cycleSummaryStatus.is_complete && (
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">90-Day Summary</CardTitle>
-                  <Target className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  {cycleSummaryStatus.exists ? (
-                    <div>
-                      <Badge className="bg-success/10 text-success hover:bg-success/20 border-success/20">
-                        ✓ Completed
+                </PremiumCardHeader>
+                <PremiumCardContent>
+                  <div className="flex items-center gap-3">
+                    {habitStatus === 'green' && (
+                      <Badge className="bp-badge-success gap-1">
+                        <Check className="h-3 w-3" /> Great progress
                       </Badge>
-                      {cycleSummaryStatus.score !== null && (
-                        <p className="text-2xl font-bold mt-2">Score: {cycleSummaryStatus.score}/10</p>
-                      )}
-                      {cycleSummaryStatus.wins_count > 0 && (
-                        <p className="text-xs text-muted-foreground mt-1">{cycleSummaryStatus.wins_count} overall wins</p>
-                      )}
-                      <Link to="/cycle-summary" className="mt-3 block">
-                        <Button variant="ghost" size="sm" className="h-8 text-xs">
-                          View Summary →
-                        </Button>
-                      </Link>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">Cycle complete - time to reflect</p>
-                      <Link to="/cycle-summary">
-                        <Button variant="outline" size="sm">Complete Summary</Button>
-                      </Link>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )}
-
-        {/* Quick Actions */}
-        <div>
-          <h2 className="mb-4 text-xl font-semibold">Quick Actions</h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Link to="/daily-plan">
-              <Card className="cursor-pointer transition-colors hover:bg-secondary">
-                <CardContent className="flex items-center justify-between p-6">
-                  <span className="font-medium">Start Today's Plan</span>
-                  <ArrowRight className="h-4 w-4" />
-                </CardContent>
-              </Card>
-            </Link>
-            <Link to="/habits">
-              <Card className="cursor-pointer transition-colors hover:bg-secondary">
-                <CardContent className="flex items-center justify-between p-6">
-                  <span className="font-medium">Track Habits</span>
-                  <ArrowRight className="h-4 w-4" />
-                </CardContent>
-              </Card>
-            </Link>
-            <Link to="/weekly-plan">
-              <Card className="cursor-pointer transition-colors hover:bg-secondary">
-                <CardContent className="flex items-center justify-between p-6">
-                  <span className="font-medium">Weekly Plan</span>
-                  <ArrowRight className="h-4 w-4" />
-                </CardContent>
-              </Card>
-            </Link>
-            <Link to="/weekly-review">
-              <Card className="cursor-pointer transition-colors hover:bg-secondary">
-                <CardContent className="flex items-center justify-between p-6">
-                  <span className="font-medium">Weekly Review</span>
-                  <ArrowRight className="h-4 w-4" />
-                </CardContent>
-              </Card>
-            </Link>
-            <Link to="/monthly-review">
-              <Card className="cursor-pointer transition-colors hover:bg-secondary">
-                <CardContent className="flex items-center justify-between p-6">
-                  <span className="font-medium">Monthly Review</span>
-                  <ArrowRight className="h-4 w-4" />
-                </CardContent>
-              </Card>
-            </Link>
-            <Link to="/ideas">
-              <Card className="cursor-pointer transition-colors hover:bg-secondary">
-                <CardContent className="flex items-center justify-between p-6">
-                  <div className="flex items-center gap-2">
-                    <Zap className="h-4 w-4 text-accent" />
-                    <span className="font-medium">Captured Ideas ({ideasCount})</span>
+                    )}
+                    {habitStatus === 'yellow' && (
+                      <Badge className="bg-warning/10 text-warning border border-warning/20 rounded-full px-3 py-0.5 text-xs font-medium">
+                        Needs work
+                      </Badge>
+                    )}
+                    {habitStatus === 'grey' && (
+                      <Badge className="bg-muted text-foreground-muted rounded-full px-3 py-0.5 text-xs font-medium">
+                        Not started
+                      </Badge>
+                    )}
                   </div>
-                  <ArrowRight className="h-4 w-4" />
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
-        </div>
+                </PremiumCardContent>
+              </PremiumCard>
 
-        {/* Resources */}
-        {hasCycle && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Resources</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <a
-                href={MASTERMIND_LINKS.MASTERMIND_GROUP}
-                className="block text-sm text-primary hover:underline"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Join Mastermind Group →
-              </a>
-              <a
-                href={MASTERMIND_LINKS.COWORKING_ROOM}
-                className="block text-sm text-primary hover:underline"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Coworking Sessions →
-              </a>
-              <a
-                href={MASTERMIND_LINKS.EVENTS_CALENDAR}
-                className="block text-sm text-primary hover:underline"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Calendar & Events →
-              </a>
-            </CardContent>
-          </Card>
+              {/* Reviews Section */}
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* Weekly Review */}
+                <PremiumCard category="review">
+                  <PremiumCardHeader>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-foreground-muted" />
+                      <PremiumCardTitle className="text-base">Weekly Review</PremiumCardTitle>
+                    </div>
+                  </PremiumCardHeader>
+                  <PremiumCardContent>
+                    {weeklyReviewStatus.exists ? (
+                      <div>
+                        <Badge className="bp-badge-success gap-1">
+                          <Check className="h-3 w-3" /> Completed
+                        </Badge>
+                        {weeklyReviewStatus.score !== null && (
+                          <p className="text-2xl font-bold mt-2">Score: {weeklyReviewStatus.score}/10</p>
+                        )}
+                        <Link to="/weekly-review" className="mt-3 block">
+                          <Button variant="ghost" size="sm" className="text-xs">
+                            View Review <ArrowRight className="h-3 w-3 ml-1" />
+                          </Button>
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-foreground-muted mb-3">Reflect on your week</p>
+                        <Link to="/weekly-review">
+                          <Button variant="outline" size="sm">Complete Review</Button>
+                        </Link>
+                      </div>
+                    )}
+                  </PremiumCardContent>
+                </PremiumCard>
+
+                {/* Monthly Review */}
+                <PremiumCard category="review">
+                  <PremiumCardHeader>
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-foreground-muted" />
+                      <PremiumCardTitle className="text-base">Monthly Review</PremiumCardTitle>
+                    </div>
+                  </PremiumCardHeader>
+                  <PremiumCardContent>
+                    {monthlyReviewStatus.exists ? (
+                      <div>
+                        <Badge className="bp-badge-success gap-1">
+                          <Check className="h-3 w-3" /> Completed
+                        </Badge>
+                        {monthlyReviewStatus.score !== null && (
+                          <p className="text-2xl font-bold mt-2">Score: {monthlyReviewStatus.score}/10</p>
+                        )}
+                        {monthlyReviewStatus.wins_count > 0 && (
+                          <p className="text-xs text-foreground-muted mt-1">{monthlyReviewStatus.wins_count} wins recorded</p>
+                        )}
+                        <Link to="/monthly-review" className="mt-3 block">
+                          <Button variant="ghost" size="sm" className="text-xs">
+                            View Review <ArrowRight className="h-3 w-3 ml-1" />
+                          </Button>
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-foreground-muted mb-3">Reflect on the month</p>
+                        <Link to="/monthly-review">
+                          <Button variant="outline" size="sm">Complete Review</Button>
+                        </Link>
+                      </div>
+                    )}
+                  </PremiumCardContent>
+                </PremiumCard>
+              </div>
+
+              {/* Cycle Summary (if complete) */}
+              {cycleSummaryStatus.is_complete && (
+                <PremiumCard category="review">
+                  <PremiumCardHeader>
+                    <div className="flex items-center gap-2">
+                      <Target className="h-4 w-4 text-foreground-muted" />
+                      <PremiumCardTitle>90-Day Summary</PremiumCardTitle>
+                    </div>
+                  </PremiumCardHeader>
+                  <PremiumCardContent>
+                    {cycleSummaryStatus.exists ? (
+                      <div>
+                        <Badge className="bp-badge-success gap-1">
+                          <Check className="h-3 w-3" /> Completed
+                        </Badge>
+                        {cycleSummaryStatus.score !== null && (
+                          <p className="text-2xl font-bold mt-2">Score: {cycleSummaryStatus.score}/10</p>
+                        )}
+                        {cycleSummaryStatus.wins_count > 0 && (
+                          <p className="text-xs text-foreground-muted mt-1">{cycleSummaryStatus.wins_count} overall wins</p>
+                        )}
+                        <Link to="/cycle-summary" className="mt-3 block">
+                          <Button variant="ghost" size="sm" className="text-xs">
+                            View Summary <ArrowRight className="h-3 w-3 ml-1" />
+                          </Button>
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-foreground-muted mb-3">Cycle complete - time to reflect</p>
+                        <Link to="/cycle-summary">
+                          <Button variant="outline" size="sm">Complete Summary</Button>
+                        </Link>
+                      </div>
+                    )}
+                  </PremiumCardContent>
+                </PremiumCard>
+              )}
+            </div>
+
+            {/* Right Rail - Sticky Sidebar */}
+            <div className="lg:w-80 space-y-4 lg:sticky lg:top-20 lg:h-fit">
+              {/* Plan My Week Button */}
+              <PlanMyWeekButton />
+
+              {/* Mastermind Call Widget */}
+              <MastermindCallWidget />
+
+              {/* Podcast Widget */}
+              <PodcastWidget />
+
+              {/* Quick Actions */}
+              <QuickActionsPanel ideasCount={ideasCount} />
+
+              {/* Resources */}
+              <ResourcesPanel />
+            </div>
+          </div>
         )}
       </div>
     </Layout>
