@@ -160,7 +160,7 @@ export function AppSidebar() {
                     asChild 
                     isActive={isActive(item)}
                     className={cn(
-                      "h-9 gap-3 transition-colors",
+                      "h-9 gap-3 transition-all duration-150",
                       isActive(item) && "bg-primary/10 text-primary font-medium"
                     )}
                   >
@@ -278,7 +278,7 @@ export function AppSidebar() {
                         asChild 
                         isActive={location.pathname === '/admin'}
                         className={cn(
-                          "h-9 gap-3 transition-colors",
+                          "h-9 gap-3 transition-all duration-150",
                           location.pathname === '/admin' && "bg-primary/10 text-primary font-medium"
                         )}
                       >
@@ -331,7 +331,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <Tooltip>
               <TooltipTrigger asChild>
-                <SidebarMenuButton asChild className="h-9 gap-3 text-muted-foreground hover:text-foreground">
+                <SidebarMenuButton asChild className="h-9 gap-3 text-muted-foreground hover:text-primary hover:bg-primary/5">
                   <Link to="/install">
                     {isQuestMode ? (
                       <span className="text-base w-5 text-center">📲</span>
@@ -353,7 +353,7 @@ export function AppSidebar() {
               <TooltipTrigger asChild>
                 <SidebarMenuButton 
                   onClick={signOut} 
-                  className="h-9 gap-3 text-muted-foreground hover:text-foreground"
+                  className="h-9 gap-3 text-muted-foreground hover:text-primary hover:bg-primary/5"
                 >
                   {isQuestMode ? (
                     <span className="text-base w-5 text-center">🚪</span>
