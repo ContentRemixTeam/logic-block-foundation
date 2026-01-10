@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Sparkles, Megaphone, BarChart3, Heart, DollarSign, Calendar, Loader2 } from 'lucide-react';
+import { Sparkles, Megaphone, BarChart3, Heart, DollarSign, Calendar, Loader2, FolderPlus, CheckSquare } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 export interface AutopilotOptions {
   createContentEngine: boolean;
@@ -31,6 +32,11 @@ interface AutopilotSetupModalProps {
   hasMetrics: boolean;
   hasNurtureMethod: boolean;
   hasOffers: boolean;
+  // New: counts for preview
+  postingDaysCount?: number;
+  nurtureFrequency?: string;
+  offersCount?: number;
+  customProjectsCount?: number;
 }
 
 export function AutopilotSetupModal({
@@ -43,6 +49,10 @@ export function AutopilotSetupModal({
   hasMetrics,
   hasNurtureMethod,
   hasOffers,
+  postingDaysCount = 0,
+  nurtureFrequency = '',
+  offersCount = 0,
+  customProjectsCount = 0,
 }: AutopilotSetupModalProps) {
   const [options, setOptions] = useState<AutopilotOptions>({
     createContentEngine: hasPlatform && hasPostingDays,
@@ -60,12 +70,46 @@ export function AutopilotSetupModal({
     onConfirm(options);
   };
 
+  // Calculate estimated project and task counts
+  const estimates = useMemo(() => {
+    let projectCount = customProjectsCount;
+    let taskCount = 0;
+
+    if (options.createContentEngine && hasPlatform && hasPostingDays) {
+      projectCount += 1; // Content Engine project
+      taskCount += postingDaysCount * 13; // 13 weeks of posting tasks
+    }
+
+    if (options.createMetricsCheckin && hasMetrics) {
+      taskCount += 13; // Weekly metrics check-in for 13 weeks
+    }
+
+    if (options.createNurtureTasks && hasNurtureMethod) {
+      projectCount += 1; // Nurture project
+      // Estimate nurture tasks based on frequency
+      let tasksPerWeek = 1;
+      if (nurtureFrequency.includes('daily')) tasksPerWeek = 7;
+      else if (nurtureFrequency.includes('3x') || nurtureFrequency.includes('3')) tasksPerWeek = 3;
+      else if (nurtureFrequency.includes('2x') || nurtureFrequency.includes('2')) tasksPerWeek = 2;
+      taskCount += tasksPerWeek * 13;
+    }
+
+    if (options.createOfferTasks && hasOffers) {
+      projectCount += offersCount; // Offer projects
+      taskCount += offersCount * 6; // Estimated sales tasks per offer
+    }
+
+    return { projectCount, taskCount };
+  }, [options, hasPlatform, hasPostingDays, hasMetrics, hasNurtureMethod, hasOffers, postingDaysCount, nurtureFrequency, offersCount, customProjectsCount]);
+
   const autopilotItems = [
     {
       key: 'createContentEngine' as const,
       icon: Megaphone,
       title: 'Content Engine Project + Posting Tasks',
-      description: 'Auto-create a project with sections and recurring posting tasks based on your schedule',
+      description: postingDaysCount > 0 
+        ? `1 project + ${postingDaysCount * 13} posting tasks (${postingDaysCount}x/week for 90 days)`
+        : 'Auto-create a project with sections and recurring posting tasks based on your schedule',
       enabled: hasPlatform && hasPostingDays,
       disabledReason: !hasPlatform ? 'No platform selected' : !hasPostingDays ? 'No posting days selected' : null,
     },
@@ -73,7 +117,9 @@ export function AutopilotSetupModal({
       key: 'createMetricsCheckin' as const,
       icon: BarChart3,
       title: 'Weekly Metrics Check-in',
-      description: 'Add a recurring Monday task to update your 3 key metrics',
+      description: hasMetrics 
+        ? '13 weekly tasks to update your 3 key metrics'
+        : 'Add a recurring Monday task to update your 3 key metrics',
       enabled: hasMetrics,
       disabledReason: !hasMetrics ? 'No metrics defined' : null,
     },
@@ -81,7 +127,9 @@ export function AutopilotSetupModal({
       key: 'createNurtureTasks' as const,
       icon: Heart,
       title: 'Nurture Tasks',
-      description: 'Create recurring tasks based on your nurture strategy (email, podcast, etc.)',
+      description: hasNurtureMethod 
+        ? `1 project + recurring ${nurtureFrequency || ''} nurture tasks`
+        : 'Create recurring tasks based on your nurture strategy (email, podcast, etc.)',
       enabled: hasNurtureMethod,
       disabledReason: !hasNurtureMethod ? 'No nurture method selected' : null,
     },
@@ -89,7 +137,9 @@ export function AutopilotSetupModal({
       key: 'createOfferTasks' as const,
       icon: DollarSign,
       title: 'Offer & Sales Tasks',
-      description: 'Add recurring offer/follow-up tasks based on your sales frequency',
+      description: hasOffers 
+        ? `${offersCount} offer project(s) + recurring sales tasks`
+        : 'Add recurring offer/follow-up tasks based on your sales frequency',
       enabled: hasOffers,
       disabledReason: !hasOffers ? 'No offers defined' : null,
     },
@@ -118,7 +168,19 @@ export function AutopilotSetupModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        {/* Summary badges */}
+        <div className="flex gap-2 flex-wrap pb-2">
+          <Badge variant="secondary" className="gap-1">
+            <FolderPlus className="h-3 w-3" />
+            {estimates.projectCount} projects
+          </Badge>
+          <Badge variant="secondary" className="gap-1">
+            <CheckSquare className="h-3 w-3" />
+            {estimates.taskCount}+ tasks
+          </Badge>
+        </div>
+
+        <div className="space-y-4 py-2">
           {autopilotItems.map((item) => {
             const Icon = item.icon;
             const isDisabled = !item.enabled;
