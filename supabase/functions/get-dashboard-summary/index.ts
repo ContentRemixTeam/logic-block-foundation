@@ -84,6 +84,10 @@ Deno.serve(async (req) => {
 
     let focusArea = null;
     let thingsToRemember: any[] = [];
+    let diagnosticScores = { discover: null as number | null, nurture: null as number | null, convert: null as number | null };
+    let revenueData = { goal: null as number | null, current: 0 };
+    let identityData = { identity: null as string | null, why: null as string | null, feeling: null as string | null };
+    let audienceData = { target: null as string | null, frustration: null as string | null, message: null as string | null };
     let weeklyReviewStatus = { exists: false, score: null as number | null };
     let monthlyReviewStatus = { exists: false, score: null as number | null, wins_count: 0 };
     let cycleSummaryStatus = { exists: false, is_complete: false, score: null as number | null, wins_count: 0 };
@@ -91,15 +95,41 @@ Deno.serve(async (req) => {
     if (cycleData && cycleData.length > 0) {
       const currentCycle = cycleData[0];
 
-      // Fetch full cycle data including focus_area and things_to_remember
+      // Fetch full cycle data including all fields
       const { data: fullCycleData } = await supabaseClient
         .from('cycles_90_day')
-        .select('focus_area, things_to_remember')
+        .select('focus_area, things_to_remember, discover_score, nurture_score, convert_score, identity, why, target_feeling, audience_target, audience_frustration, signature_message')
         .eq('cycle_id', currentCycle.cycle_id)
         .maybeSingle();
       
       focusArea = fullCycleData?.focus_area || null;
       thingsToRemember = fullCycleData?.things_to_remember || [];
+      diagnosticScores = {
+        discover: fullCycleData?.discover_score || null,
+        nurture: fullCycleData?.nurture_score || null,
+        convert: fullCycleData?.convert_score || null,
+      };
+      identityData = {
+        identity: fullCycleData?.identity || null,
+        why: fullCycleData?.why || null,
+        feeling: fullCycleData?.target_feeling || null,
+      };
+      audienceData = {
+        target: fullCycleData?.audience_target || null,
+        frustration: fullCycleData?.audience_frustration || null,
+        message: fullCycleData?.signature_message || null,
+      };
+
+      // Fetch revenue plan data
+      const { data: revenuePlanData } = await supabaseClient
+        .from('cycle_revenue_plan')
+        .select('revenue_goal')
+        .eq('cycle_id', currentCycle.cycle_id)
+        .maybeSingle();
+
+      if (revenuePlanData?.revenue_goal) {
+        revenueData.goal = revenuePlanData.revenue_goal;
+      }
       
       // Check weekly review
       const { data: weekData } = await supabaseClient.rpc('get_current_week', {
@@ -175,17 +205,20 @@ Deno.serve(async (req) => {
         };
       }
     }
-
     console.log('Dashboard summary fetched successfully');
 
-    // Merge focus_area and things_to_remember into cycle data
+    // Merge all data into cycle data
     const enhancedData = {
       ...data,
       cycle: {
         ...(data?.cycle || {}),
         focus_area: focusArea,
         things_to_remember: thingsToRemember,
+        diagnostic_scores: diagnosticScores,
+        identity_data: identityData,
+        audience_data: audienceData,
       },
+      revenue: revenueData,
       weekly_review_status: weeklyReviewStatus,
       monthly_review_status: monthlyReviewStatus,
       cycle_summary_status: cycleSummaryStatus,

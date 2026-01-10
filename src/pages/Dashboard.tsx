@@ -22,8 +22,12 @@ import {
   Compass,
   Sparkles,
   GraduationCap,
-  Check
+  Check,
+  DollarSign,
+  Brain,
+  Lightbulb
 } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import { OnboardingChecklist } from '@/components/tour/OnboardingChecklist';
 import { QuestMapCompact } from '@/components/quest/QuestMap';
 import { XPDisplay } from '@/components/quest/XPDisplay';
@@ -42,6 +46,9 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [ideasCount, setIdeasCount] = useState(0);
   const [thingsToRemember, setThingsToRemember] = useState<string[]>([]);
+  const [revenueGoal, setRevenueGoal] = useState<number | null>(null);
+  const [diagnosticScores, setDiagnosticScores] = useState<{ discover: number | null; nurture: number | null; convert: number | null } | null>(null);
+  const [identityData, setIdentityData] = useState<{ identity: string | null; why: string | null; feeling: string | null } | null>(null);
 
   useEffect(() => {
     loadDashboardSummary();
@@ -81,6 +88,21 @@ export default function Dashboard() {
           ? summaryData.cycle.things_to_remember.filter((r: string) => r && r.trim())
           : [];
         setThingsToRemember(reminders);
+      }
+      
+      // Set revenue goal
+      if (summaryData?.revenue?.goal) {
+        setRevenueGoal(summaryData.revenue.goal);
+      }
+      
+      // Set diagnostic scores
+      if (summaryData?.cycle?.diagnostic_scores) {
+        setDiagnosticScores(summaryData.cycle.diagnostic_scores);
+      }
+      
+      // Set identity data
+      if (summaryData?.cycle?.identity_data) {
+        setIdentityData(summaryData.cycle.identity_data);
       }
     } catch (error: any) {
       console.error('Error loading dashboard:', error);
@@ -499,6 +521,123 @@ export default function Dashboard() {
             <div className="lg:w-80 space-y-4 lg:sticky lg:top-20 lg:h-fit">
               {/* Plan My Week Button */}
               <PlanMyWeekButton />
+
+              {/* Revenue Goal Tracker */}
+              {revenueGoal && (
+                <PremiumCard category="do">
+                  <PremiumCardHeader>
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-foreground-muted" />
+                      <PremiumCardTitle className="text-base">90-Day Revenue Goal</PremiumCardTitle>
+                    </div>
+                  </PremiumCardHeader>
+                  <PremiumCardContent>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-foreground-muted">Target</span>
+                        <span className="font-bold text-lg">${revenueGoal.toLocaleString()}</span>
+                      </div>
+                      <Progress value={0} className="h-2" />
+                      <p className="text-xs text-foreground-muted">Track progress in your weekly reviews</p>
+                    </div>
+                  </PremiumCardContent>
+                </PremiumCard>
+              )}
+
+              {/* Key Reminders Card */}
+              {thingsToRemember.length > 0 && (
+                <PremiumCard category="mindset">
+                  <PremiumCardHeader>
+                    <div className="flex items-center gap-2">
+                      <Lightbulb className="h-4 w-4 text-foreground-muted" />
+                      <PremiumCardTitle className="text-base">Key Reminders</PremiumCardTitle>
+                    </div>
+                  </PremiumCardHeader>
+                  <PremiumCardContent>
+                    <ul className="space-y-2">
+                      {thingsToRemember.map((reminder, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm">
+                          <span className="text-primary mt-1">•</span>
+                          <span>{reminder}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </PremiumCardContent>
+                </PremiumCard>
+              )}
+
+              {/* Identity & Why Card */}
+              {identityData?.identity && (
+                <PremiumCard category="mindset">
+                  <PremiumCardHeader>
+                    <div className="flex items-center gap-2">
+                      <Brain className="h-4 w-4 text-foreground-muted" />
+                      <PremiumCardTitle className="text-base">Your Identity</PremiumCardTitle>
+                    </div>
+                  </PremiumCardHeader>
+                  <PremiumCardContent className="space-y-3">
+                    <div>
+                      <p className="text-xs text-foreground-muted uppercase tracking-wide mb-1">I am becoming</p>
+                      <p className="text-sm font-medium">{identityData.identity}</p>
+                    </div>
+                    {identityData.why && (
+                      <div>
+                        <p className="text-xs text-foreground-muted uppercase tracking-wide mb-1">Because</p>
+                        <p className="text-sm">{identityData.why}</p>
+                      </div>
+                    )}
+                    {identityData.feeling && (
+                      <div>
+                        <p className="text-xs text-foreground-muted uppercase tracking-wide mb-1">I want to feel</p>
+                        <p className="text-sm italic">{identityData.feeling}</p>
+                      </div>
+                    )}
+                  </PremiumCardContent>
+                </PremiumCard>
+              )}
+
+              {/* Diagnostic Scores */}
+              {diagnosticScores && (diagnosticScores.discover || diagnosticScores.nurture || diagnosticScores.convert) && (
+                <PremiumCard category="plan">
+                  <PremiumCardHeader>
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-foreground-muted" />
+                      <PremiumCardTitle className="text-base">Business Diagnostic</PremiumCardTitle>
+                    </div>
+                  </PremiumCardHeader>
+                  <PremiumCardContent>
+                    <div className="space-y-3">
+                      {diagnosticScores.discover !== null && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">Discover (Lead Gen)</span>
+                          <div className="flex items-center gap-2">
+                            <Progress value={diagnosticScores.discover * 10} className="w-16 h-2" />
+                            <span className="text-sm font-medium w-6">{diagnosticScores.discover}/10</span>
+                          </div>
+                        </div>
+                      )}
+                      {diagnosticScores.nurture !== null && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">Nurture</span>
+                          <div className="flex items-center gap-2">
+                            <Progress value={diagnosticScores.nurture * 10} className="w-16 h-2" />
+                            <span className="text-sm font-medium w-6">{diagnosticScores.nurture}/10</span>
+                          </div>
+                        </div>
+                      )}
+                      {diagnosticScores.convert !== null && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">Convert (Sales)</span>
+                          <div className="flex items-center gap-2">
+                            <Progress value={diagnosticScores.convert * 10} className="w-16 h-2" />
+                            <span className="text-sm font-medium w-6">{diagnosticScores.convert}/10</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </PremiumCardContent>
+                </PremiumCard>
+              )}
 
               {/* Mastermind Call Widget */}
               <MastermindCallWidget />

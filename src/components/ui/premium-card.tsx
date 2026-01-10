@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-type CardCategory = 'plan' | 'do' | 'review' | 'info';
+type CardCategory = 'plan' | 'do' | 'review' | 'info' | 'mindset';
 
 interface PremiumCardProps extends React.HTMLAttributes<HTMLDivElement> {
   category?: CardCategory;
@@ -29,6 +29,11 @@ const categoryConfig: Record<CardCategory, { color: string; label: string; borde
     color: 'bg-[hsl(220,9%,46%)]', 
     label: 'INFO',
     borderColor: 'border-t-[hsl(220,9%,46%)]'
+  },
+  mindset: { 
+    color: 'bg-[hsl(270,70%,60%)]', 
+    label: 'MINDSET',
+    borderColor: 'border-t-[hsl(270,70%,60%)]'
   },
 };
 
