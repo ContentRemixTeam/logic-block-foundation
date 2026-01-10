@@ -623,6 +623,7 @@ export type Database = {
       cycle_strategy: {
         Row: {
           batch_day: string | null
+          batch_frequency: string | null
           created_at: string | null
           cycle_id: string
           free_transformation: string | null
@@ -630,9 +631,15 @@ export type Database = {
           lead_committed_90_days: boolean | null
           lead_content_type: string | null
           lead_frequency: string | null
+          lead_gen_content_audit: string | null
           lead_primary_platform: string | null
+          nurture_batch_day: string | null
+          nurture_batch_frequency: string | null
+          nurture_content_audit: string | null
           nurture_frequency: string | null
           nurture_method: string | null
+          nurture_posting_days: Json | null
+          nurture_posting_time: string | null
           posting_days: Json | null
           posting_time: string | null
           proof_methods: Json | null
@@ -642,6 +649,7 @@ export type Database = {
         }
         Insert: {
           batch_day?: string | null
+          batch_frequency?: string | null
           created_at?: string | null
           cycle_id: string
           free_transformation?: string | null
@@ -649,9 +657,15 @@ export type Database = {
           lead_committed_90_days?: boolean | null
           lead_content_type?: string | null
           lead_frequency?: string | null
+          lead_gen_content_audit?: string | null
           lead_primary_platform?: string | null
+          nurture_batch_day?: string | null
+          nurture_batch_frequency?: string | null
+          nurture_content_audit?: string | null
           nurture_frequency?: string | null
           nurture_method?: string | null
+          nurture_posting_days?: Json | null
+          nurture_posting_time?: string | null
           posting_days?: Json | null
           posting_time?: string | null
           proof_methods?: Json | null
@@ -661,6 +675,7 @@ export type Database = {
         }
         Update: {
           batch_day?: string | null
+          batch_frequency?: string | null
           created_at?: string | null
           cycle_id?: string
           free_transformation?: string | null
@@ -668,9 +683,15 @@ export type Database = {
           lead_committed_90_days?: boolean | null
           lead_content_type?: string | null
           lead_frequency?: string | null
+          lead_gen_content_audit?: string | null
           lead_primary_platform?: string | null
+          nurture_batch_day?: string | null
+          nurture_batch_frequency?: string | null
+          nurture_content_audit?: string | null
           nurture_frequency?: string | null
           nurture_method?: string | null
+          nurture_posting_days?: Json | null
+          nurture_posting_time?: string | null
           posting_days?: Json | null
           posting_time?: string | null
           proof_methods?: Json | null

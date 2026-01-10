@@ -11,7 +11,7 @@ import { Layout } from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, X, Target, BarChart3, Brain, CalendarIcon, Users, Megaphone, DollarSign, ChevronLeft, ChevronRight, Check, Sparkles, Heart, TrendingUp, Upload, FileJson, Save, Mail, Clock } from 'lucide-react';
+import { Plus, X, Target, BarChart3, Brain, CalendarIcon, Users, Megaphone, DollarSign, ChevronLeft, ChevronRight, Check, Sparkles, Heart, TrendingUp, Upload, FileJson, Save, Mail, Clock, Lightbulb } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -374,6 +374,8 @@ export default function CycleSetup() {
   const [postingDays, setPostingDays] = useState<string[]>([]);
   const [postingTime, setPostingTime] = useState('');
   const [batchDay, setBatchDay] = useState('');
+  const [batchFrequency, setBatchFrequency] = useState('weekly');
+  const [leadGenContentAudit, setLeadGenContentAudit] = useState('');
 
   // Step 5: Nurture Strategy
   const [nurtureMethod, setNurtureMethod] = useState('');
@@ -384,6 +386,11 @@ export default function CycleSetup() {
   const [nurtureFrequencyCustom, setNurtureFrequencyCustom] = useState('');
   const [freeTransformation, setFreeTransformation] = useState('');
   const [proofMethods, setProofMethods] = useState<string[]>([]);
+  const [nurturePostingDays, setNurturePostingDays] = useState<string[]>([]);
+  const [nurturePostingTime, setNurturePostingTime] = useState('');
+  const [nurtureBatchDay, setNurtureBatchDay] = useState('');
+  const [nurtureBatchFrequency, setNurtureBatchFrequency] = useState('weekly');
+  const [nurtureContentAudit, setNurtureContentAudit] = useState('');
   
   // Email commitment settings (for follow-through check-ins)
   const [emailCheckinEnabled, setEmailCheckinEnabled] = useState(false);
@@ -531,10 +538,17 @@ export default function CycleSetup() {
       if (draft.postingDays?.length) setPostingDays(draft.postingDays);
       setPostingTime(draft.postingTime || '');
       setBatchDay(draft.batchDay || '');
+      setBatchFrequency(draft.batchFrequency || 'weekly');
+      setLeadGenContentAudit(draft.leadGenContentAudit || '');
       setNurtureMethod(draft.nurtureMethod || '');
       setNurtureFrequency(draft.nurtureFrequency || '');
       setFreeTransformation(draft.freeTransformation || '');
       setProofMethods(draft.proofMethods || []);
+      setNurturePostingDays(draft.nurturePostingDays || []);
+      setNurturePostingTime(draft.nurturePostingTime || '');
+      setNurtureBatchDay(draft.nurtureBatchDay || '');
+      setNurtureBatchFrequency(draft.nurtureBatchFrequency || 'weekly');
+      setNurtureContentAudit(draft.nurtureContentAudit || '');
       if (draft.offers?.length) setOffers(draft.offers);
       if (draft.limitedOffers?.length) setLimitedOffers(draft.limitedOffers);
       setRevenueGoal(draft.revenueGoal || '');
@@ -601,10 +615,17 @@ export default function CycleSetup() {
         postingDays,
         postingTime,
         batchDay,
+        batchFrequency,
+        leadGenContentAudit,
         nurtureMethod,
         nurtureFrequency,
         freeTransformation,
         proofMethods,
+        nurturePostingDays,
+        nurturePostingTime,
+        nurtureBatchDay,
+        nurtureBatchFrequency,
+        nurtureContentAudit,
         offers,
         limitedOffers,
         revenueGoal,
@@ -637,8 +658,8 @@ export default function CycleSetup() {
     startDate, goal, why, identity, feeling,
     discoverScore, nurtureScore, convertScore, biggestBottleneck,
     audienceTarget, audienceFrustration, signatureMessage, keyMessage1, keyMessage2, keyMessage3,
-    leadPlatform, leadContentType, leadFrequency, leadPlatformGoal, leadCommitted, secondaryPlatforms, postingDays, postingTime, batchDay,
-    nurtureMethod, nurtureFrequency, freeTransformation, proofMethods,
+    leadPlatform, leadContentType, leadFrequency, leadPlatformGoal, leadCommitted, secondaryPlatforms, postingDays, postingTime, batchDay, batchFrequency, leadGenContentAudit,
+    nurtureMethod, nurtureFrequency, freeTransformation, proofMethods, nurturePostingDays, nurturePostingTime, nurtureBatchDay, nurtureBatchFrequency, nurtureContentAudit,
     offers, limitedOffers, revenueGoal, pricePerSale, launchSchedule, monthPlans,
     metric1Name, metric1Start, metric2Name, metric2Start, metric3Name, metric3Start,
     projects, habits, thingsToRemember, 
@@ -937,13 +958,20 @@ export default function CycleSetup() {
           nurture_frequency: nurtureFrequency || null,
           free_transformation: freeTransformation || null,
           proof_methods: proofMethods,
-          // New posting schedule fields
+          // Lead gen posting schedule fields
           posting_days: postingDays,
           posting_time: postingTime && postingTime !== 'none' ? postingTime : null,
           batch_day: batchDay && batchDay !== 'none' ? batchDay : null,
-          // Secondary platforms (cast needed until types regenerate)
+          batch_frequency: batchFrequency || 'weekly',
+          lead_gen_content_audit: leadGenContentAudit || null,
+          // Nurture posting schedule fields
+          nurture_posting_days: nurturePostingDays,
+          nurture_posting_time: nurturePostingTime || null,
+          nurture_batch_day: nurtureBatchDay && nurtureBatchDay !== 'none' ? nurtureBatchDay : null,
+          nurture_batch_frequency: nurtureBatchFrequency || 'weekly',
+          nurture_content_audit: nurtureContentAudit || null,
+          // Secondary platforms
           secondary_platforms: secondaryPlatforms.filter(sp => sp.platform.trim()),
-          // Secondary nurture method (stored in secondary_platforms for now as JSON)
         } as any);
 
       if (strategyError) console.error('Strategy error:', strategyError);
@@ -1760,6 +1788,16 @@ export default function CycleSetup() {
           {/* Step 4: Lead Gen Strategy */}
           {currentStep === 4 && (
             <div className="space-y-6">
+              {/* Ideal Buyer Alert */}
+              <Alert className="border-primary/20 bg-primary/5">
+                <Lightbulb className="h-4 w-4 text-primary" />
+                <AlertTitle>Remember: Attract Your Ideal Buyers</AlertTitle>
+                <AlertDescription>
+                  Your content should attract people who will actually BUY your offers, not just consume free content. 
+                  Think about what your ideal paying customers want to learn, see, and engage with.
+                </AlertDescription>
+              </Alert>
+
               {/* Primary Platform Card */}
               <Card className="border-blue-500/20">
                 <CardHeader>
@@ -2022,7 +2060,7 @@ export default function CycleSetup() {
 
                         {/* Batch Day */}
                         <div>
-                          <Label className="text-sm font-medium">Weekly batch day (optional)</Label>
+                          <Label className="text-sm font-medium">Batch day (optional)</Label>
                           <Select value={batchDay} onValueChange={setBatchDay}>
                             <SelectTrigger>
                               <SelectValue placeholder="No batch day" />
@@ -2034,8 +2072,49 @@ export default function CycleSetup() {
                               ))}
                             </SelectContent>
                           </Select>
-                          <p className="text-xs text-muted-foreground mt-1">If selected, we'll add weekly batch + scheduling tasks.</p>
                         </div>
+                        
+                        {/* Batch Frequency */}
+                        <div>
+                          <Label className="text-sm font-medium">Batch frequency</Label>
+                          <Select value={batchFrequency} onValueChange={setBatchFrequency}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="How often?" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background border shadow-lg z-50">
+                              <SelectItem value="weekly">Weekly</SelectItem>
+                              <SelectItem value="biweekly">Bi-weekly (every 2 weeks)</SelectItem>
+                              <SelectItem value="monthly">Monthly</SelectItem>
+                              <SelectItem value="quarterly">Quarterly</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Example: "I batch content every Sunday for the week" = Sun + Weekly
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Content Audit */}
+                  <Card className="border-dashed">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">Content Audit</CardTitle>
+                      <CardDescription>Before creating new content, what existing content can you repurpose?</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <Label htmlFor="leadGenContentAudit">Existing Content to Reuse</Label>
+                        <Textarea
+                          id="leadGenContentAudit"
+                          value={leadGenContentAudit}
+                          onChange={(e) => setLeadGenContentAudit(e.target.value)}
+                          placeholder="Example: I have 20 Instagram Reels from last year I can repurpose, a blog post about X that performed well, email series about Y..."
+                          rows={3}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          List any content, posts, videos, or materials you can refresh instead of starting from scratch
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
@@ -2257,6 +2336,128 @@ export default function CycleSetup() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* Nurture Posting Schedule */}
+                <Card className="border-dashed">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Nurture Content Schedule</CardTitle>
+                    <CardDescription>When will you deliver your nurture content (emails, newsletters, podcasts, etc.)?</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Posting Days */}
+                    <div className="space-y-2">
+                      <Label>Which days do you send/publish?</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+                          <Badge
+                            key={day}
+                            variant={nurturePostingDays.includes(day) ? "default" : "outline"}
+                            className={cn(
+                              "cursor-pointer transition-colors",
+                              nurturePostingDays.includes(day) && "bg-pink-600 hover:bg-pink-700"
+                            )}
+                            onClick={() => {
+                              if (nurturePostingDays.includes(day)) {
+                                setNurturePostingDays(nurturePostingDays.filter(d => d !== day));
+                              } else {
+                                setNurturePostingDays([...nurturePostingDays, day]);
+                              }
+                            }}
+                          >
+                            {day.slice(0, 3)}
+                          </Badge>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Example: Weekly newsletter on Tuesdays, or podcast episodes on Mondays
+                      </p>
+                    </div>
+                    
+                    {/* Posting Time */}
+                    <div className="space-y-2">
+                      <Label htmlFor="nurturePostingTime">What time? (Optional)</Label>
+                      <Input
+                        id="nurturePostingTime"
+                        type="time"
+                        value={nurturePostingTime}
+                        onChange={(e) => setNurturePostingTime(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        When do you typically send/publish? (e.g., 6am for morning emails)
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Nurture Batching Schedule */}
+                <Card className="border-dashed">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Nurture Content Batching</CardTitle>
+                    <CardDescription>When do you prepare your nurture content in advance?</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="nurtureBatchDay">Batch Day</Label>
+                        <Select value={nurtureBatchDay} onValueChange={setNurtureBatchDay}>
+                          <SelectTrigger id="nurtureBatchDay">
+                            <SelectValue placeholder="Select a day" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background border shadow-lg z-50">
+                            <SelectItem value="none">None</SelectItem>
+                            <SelectItem value="Sunday">Sunday</SelectItem>
+                            <SelectItem value="Monday">Monday</SelectItem>
+                            <SelectItem value="Tuesday">Tuesday</SelectItem>
+                            <SelectItem value="Wednesday">Wednesday</SelectItem>
+                            <SelectItem value="Thursday">Thursday</SelectItem>
+                            <SelectItem value="Friday">Friday</SelectItem>
+                            <SelectItem value="Saturday">Saturday</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="nurtureBatchFrequency">Batch Frequency</Label>
+                        <Select value={nurtureBatchFrequency} onValueChange={setNurtureBatchFrequency}>
+                          <SelectTrigger id="nurtureBatchFrequency">
+                            <SelectValue placeholder="How often?" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background border shadow-lg z-50">
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="biweekly">Bi-weekly (every 2 weeks)</SelectItem>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                            <SelectItem value="quarterly">Quarterly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Example: Write all newsletters for the month on the 1st Sunday = Sunday + Monthly
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Nurture Content Audit */}
+                <Card className="border-dashed">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Nurture Content Audit</CardTitle>
+                    <CardDescription>What existing nurture content can you repurpose this quarter?</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <Textarea
+                        id="nurtureContentAudit"
+                        value={nurtureContentAudit}
+                        onChange={(e) => setNurtureContentAudit(e.target.value)}
+                        placeholder="Example: Past email sequences, podcast episodes that can be repurposed, webinar recordings, lead magnets that need updating..."
+                        rows={3}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        List any existing emails, courses, workshops, or resources you can refresh instead of creating from scratch
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
               </CardContent>
             </Card>
           )}
