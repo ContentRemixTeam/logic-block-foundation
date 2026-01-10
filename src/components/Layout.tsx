@@ -1,20 +1,26 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
+import { useAllCycles } from '@/hooks/useActiveCycle';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
 import { QuickCaptureButton } from '@/components/quick-capture';
 import { SmartActionButton } from '@/components/SmartActionButton';
 import { TrialBanner, TrialExpiredScreen } from '@/components/trial';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles, ArrowRight, X } from 'lucide-react';
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const trialStatus = useTrialStatus();
+  const { data: cycles, isLoading: cyclesLoading } = useAllCycles();
   const [forceShow, setForceShow] = useState(false);
+  const [dismissedPlanBanner, setDismissedPlanBanner] = useState(false);
   useTheme();
+
+  const hasNoPlan = !cyclesLoading && user && (!cycles || cycles.length === 0);
 
   // Timeout to prevent infinite loading
   useEffect(() => {
@@ -47,6 +53,28 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0">
+          {/* Create Your 90-Day Plan Hello Bar */}
+          {hasNoPlan && !dismissedPlanBanner && (
+            <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-4 py-2.5 flex items-center justify-center gap-3 relative">
+              <Sparkles className="h-4 w-4 flex-shrink-0" />
+              <span className="text-sm font-medium">Ready to transform your next 90 days?</span>
+              <Link 
+                to="/cycle-setup" 
+                className="inline-flex items-center gap-1.5 bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground px-3 py-1 rounded-full text-sm font-semibold transition-colors"
+              >
+                Create Your 90-Day Plan
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+              <button 
+                onClick={() => setDismissedPlanBanner(true)}
+                className="absolute right-3 p-1 hover:bg-primary-foreground/20 rounded-full transition-colors"
+                aria-label="Dismiss"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
           {/* Trial Banner */}
           {(trialStatus.reason === 'trial' || trialStatus.reason === 'grace_period') && 
            trialStatus.expiresAt && (
