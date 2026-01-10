@@ -3984,45 +3984,58 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
                 </AlertDescription>
               </Alert>
 
-{/* Export Section - Always visible at the end of Step 9 */}
-              <Card className="mt-8 border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Download className="h-5 w-5 text-primary" />
-                    Download Your Complete Plan
-                  </CardTitle>
-                  <CardDescription>
-                    Save a copy of your 90-day business plan to reference anytime, share with your accountability partner, or keep for your records.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <Button
-                      variant="default"
-                      size="lg"
-                      className="flex-1 gap-2"
-                      onClick={handleExportPDF}
-                      disabled={exporting}
-                    >
-                      <FileText className="h-5 w-5" />
-                      {exporting ? "Preparing..." : "Download PDF"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      className="flex-1 gap-2"
-                      onClick={handleExportJSON}
-                      disabled={exporting}
-                    >
-                      <FileJson className="h-5 w-5" />
-                      {exporting ? "Preparing..." : "Download JSON"}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-3 text-center">
-                    The PDF includes your goal, strategy, offers, metrics, weekly routines, and first 3 days action plan.
-                  </p>
-                </CardContent>
-              </Card>
+{/* Export Section - PROMINENT at the end of Step 9 */}
+              <div className="mt-8 p-1 rounded-2xl bg-gradient-to-r from-primary via-purple-500 to-pink-500 animate-pulse">
+                <Card className="border-0 bg-background">
+                  <CardHeader className="pb-3 text-center">
+                    <div className="mx-auto mb-3 w-16 h-16 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center">
+                      <Download className="h-8 w-8 text-white" />
+                    </div>
+                    <CardTitle className="text-2xl">
+                      📥 Download Your 90-Day Plan
+                    </CardTitle>
+                    <CardDescription className="text-base">
+                      Save a copy before continuing! Share with your accountability partner or keep for reference.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Button
+                        size="lg"
+                        className="flex-1 gap-2 h-14 text-lg bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90"
+                        onClick={handleExportPDF}
+                        disabled={exporting}
+                      >
+                        <FileText className="h-6 w-6" />
+                        {exporting ? "Preparing..." : "Download PDF"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        className="flex-1 gap-2 h-14 text-lg border-2"
+                        onClick={handleExportJSON}
+                        disabled={exporting}
+                      >
+                        <FileJson className="h-6 w-6" />
+                        {exporting ? "Preparing..." : "Download JSON"}
+                      </Button>
+                    </div>
+                    
+                    {/* Troubleshooting tips */}
+                    <div className="bg-muted/50 rounded-lg p-3 text-xs space-y-2">
+                      <p className="font-medium text-foreground">💡 If download doesn't work:</p>
+                      <ul className="text-muted-foreground space-y-1 list-disc list-inside">
+                        <li>Allow pop-ups for this site (check your browser's address bar)</li>
+                        <li>Try using Chrome, Firefox, or Safari</li>
+                        <li>For PDF: In the print dialog, select "Save as PDF" as destination</li>
+                      </ul>
+                      <p className="text-muted-foreground pt-1">
+                        You can also download later from <strong>Cycle Management</strong> after saving.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           )}
         </div>
