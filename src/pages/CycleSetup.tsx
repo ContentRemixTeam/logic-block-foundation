@@ -189,6 +189,9 @@ export default function CycleSetup() {
   const [showWorkshopImportBanner, setShowWorkshopImportBanner] = useState(false);
   
   const { hasDraft, saveDraft, loadDraft, clearDraft, getDraftAge } = useCycleSetupDraft();
+  
+  // Track if user has dismissed the draft dialog to prevent it from re-appearing
+  const hasUserDismissedDraft = useRef(false);
 
   // Import from workshop JSON
   const handleImportFromJson = (jsonData: WorkshopImportData) => {
@@ -365,9 +368,9 @@ export default function CycleSetup() {
   ]);
   const [thingsToRemember, setThingsToRemember] = useState<string[]>(['', '', '']);
 
-  // Check for existing draft on mount
+  // Check for existing draft on mount - only show if user hasn't already dismissed it
   useEffect(() => {
-    if (hasDraft) {
+    if (hasDraft && !hasUserDismissedDraft.current) {
       setShowDraftDialog(true);
     }
   }, [hasDraft]);
@@ -922,6 +925,7 @@ export default function CycleSetup() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => {
+              hasUserDismissedDraft.current = true; // Prevent dialog from re-appearing
               clearDraft();
               setShowDraftDialog(false);
             }}>
