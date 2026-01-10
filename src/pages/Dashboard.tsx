@@ -49,6 +49,7 @@ export default function Dashboard() {
   const [revenueGoal, setRevenueGoal] = useState<number | null>(null);
   const [diagnosticScores, setDiagnosticScores] = useState<{ discover: number | null; nurture: number | null; convert: number | null } | null>(null);
   const [identityData, setIdentityData] = useState<{ identity: string | null; why: string | null; feeling: string | null } | null>(null);
+  const [audienceData, setAudienceData] = useState<{ target: string | null; frustration: string | null; message: string | null } | null>(null);
 
   useEffect(() => {
     loadDashboardSummary();
@@ -103,6 +104,11 @@ export default function Dashboard() {
       // Set identity data
       if (summaryData?.cycle?.identity_data) {
         setIdentityData(summaryData.cycle.identity_data);
+      }
+      
+      // Set audience data
+      if (summaryData?.cycle?.audience_data) {
+        setAudienceData(summaryData.cycle.audience_data);
       }
     } catch (error: any) {
       console.error('Error loading dashboard:', error);
@@ -635,6 +641,38 @@ export default function Dashboard() {
                         </div>
                       )}
                     </div>
+                  </PremiumCardContent>
+                </PremiumCard>
+              )}
+
+              {/* Audience & Message Card */}
+              {audienceData && (audienceData.target || audienceData.message) && (
+                <PremiumCard category="plan">
+                  <PremiumCardHeader>
+                    <div className="flex items-center gap-2">
+                      <Target className="h-4 w-4 text-foreground-muted" />
+                      <PremiumCardTitle className="text-base">Your Audience</PremiumCardTitle>
+                    </div>
+                  </PremiumCardHeader>
+                  <PremiumCardContent className="space-y-3">
+                    {audienceData.target && (
+                      <div>
+                        <p className="text-xs text-foreground-muted uppercase tracking-wide mb-1">Who I Serve</p>
+                        <p className="text-sm">{audienceData.target}</p>
+                      </div>
+                    )}
+                    {audienceData.frustration && (
+                      <div>
+                        <p className="text-xs text-foreground-muted uppercase tracking-wide mb-1">Their Pain Point</p>
+                        <p className="text-sm">{audienceData.frustration}</p>
+                      </div>
+                    )}
+                    {audienceData.message && (
+                      <div>
+                        <p className="text-xs text-foreground-muted uppercase tracking-wide mb-1">My Signature Message</p>
+                        <p className="text-sm italic">"{audienceData.message}"</p>
+                      </div>
+                    )}
                   </PremiumCardContent>
                 </PremiumCard>
               )}
