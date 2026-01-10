@@ -87,6 +87,17 @@ export interface CycleExportData {
   day3Top3: string[];
   day3Why: string | null;
   
+  // Promotions/Launches
+  promotions?: Array<{
+    name: string;
+    offer: string;
+    startDate: string;
+    endDate: string;
+    goal: string;
+    launchType: string;
+    notes?: string;
+  }>;
+  
   // Auto-generated data
   generatedProjects?: Array<{ name: string; description?: string }>;
   generatedTasks?: Array<{ title: string; due_date?: string; priority?: string }>;
@@ -243,6 +254,17 @@ export async function loadCycleForExport(cycleId: string, supabase: SupabaseClie
       day2Why: cycle.day2_why as string | null,
       day3Top3: Array.isArray(cycle.day3_top3) ? cycle.day3_top3 as string[] : [],
       day3Why: cycle.day3_why as string | null,
+      
+      // Promotions
+      promotions: Array.isArray(cycle.promotions) ? (cycle.promotions as unknown as Array<{
+        name: string;
+        offer: string;
+        startDate: string;
+        endDate: string;
+        goal: string;
+        launchType: string;
+        notes?: string;
+      }>) : [],
       
       // Generated data
       generatedProjects: (projects || []).map(p => ({

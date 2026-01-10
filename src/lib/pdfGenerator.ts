@@ -287,6 +287,56 @@ export async function generatePDFBlob(data: CycleExportData): Promise<PDFGenerat
     }
 
     // ============================================================
+    // 6.5 PLANNED PROMOTIONS / LAUNCHES
+    // ============================================================
+    const validPromotions = data.promotions?.filter(p => p.name && p.startDate);
+    if (validPromotions && validPromotions.length > 0) {
+      addSectionHeader('Planned Promotions & Launches');
+      
+      validPromotions.forEach((promo, i) => {
+        checkPageBreak(25);
+        
+        // Promo card
+        doc.setFillColor(...COLORS.lightGray);
+        doc.roundedRect(margin, y, contentWidth, 20, 2, 2, 'F');
+        
+        // Name
+        doc.setFontSize(11);
+        doc.setTextColor(...COLORS.black);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${i + 1}. ${promo.name}`, margin + 3, y + 6);
+        
+        // Type badge
+        if (promo.launchType) {
+          doc.setFontSize(8);
+          doc.setTextColor(...COLORS.muted);
+          doc.text(promo.launchType.toUpperCase(), pageWidth - margin - 3, y + 6, { align: 'right' });
+        }
+        
+        // Dates
+        doc.setFontSize(9);
+        doc.setTextColor(...COLORS.gray);
+        doc.setFont('helvetica', 'normal');
+        const startFormatted = format(new Date(promo.startDate), 'MMM d');
+        const endFormatted = promo.endDate ? format(new Date(promo.endDate), 'MMM d') : '';
+        doc.text(`${startFormatted}${endFormatted ? ` - ${endFormatted}` : ''}`, margin + 3, y + 12);
+        
+        // Offer
+        if (promo.offer) {
+          doc.text(`Offer: ${promo.offer}`, margin + 50, y + 12);
+        }
+        
+        // Goal
+        if (promo.goal) {
+          doc.setTextColor(...COLORS.primary);
+          doc.text(`Goal: ${promo.goal}`, margin + 3, y + 17);
+        }
+        
+        y += 23;
+      });
+      y += 3;
+    }
+    // ============================================================
     // 7. REVENUE GOAL
     // ============================================================
     if (data.revenueGoal) {
