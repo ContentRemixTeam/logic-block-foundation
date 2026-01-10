@@ -66,6 +66,8 @@ interface WorkshopData {
   secondaryPlatforms: SecondaryPlatform[];
   // Step 5
   nurtureMethod: string;
+  nurtureMethod2: string;
+  nurtureMethod3: string;
   nurtureFrequency: string;
   freeTransformation: string;
   proofMethods: string[];
@@ -124,6 +126,8 @@ const getDefaultData = (): WorkshopData => ({
   leadCommitted: false,
   secondaryPlatforms: [],
   nurtureMethod: '',
+  nurtureMethod2: '',
+  nurtureMethod3: '',
   nurtureFrequency: '',
   freeTransformation: '',
   proofMethods: [],
@@ -329,7 +333,9 @@ export default function WorkshopPlanner() {
     
     <h3>Nurture</h3>
     <ul>
-      ${data.nurtureMethod ? `<li><strong>Method:</strong> ${data.nurtureMethod}</li>` : ''}
+      ${data.nurtureMethod ? `<li><strong>Primary Method:</strong> ${data.nurtureMethod}</li>` : ''}
+      ${data.nurtureMethod2 ? `<li><strong>Secondary Method:</strong> ${data.nurtureMethod2}</li>` : ''}
+      ${data.nurtureMethod3 ? `<li><strong>Tertiary Method:</strong> ${data.nurtureMethod3}</li>` : ''}
       ${data.nurtureFrequency ? `<li><strong>Frequency:</strong> ${data.nurtureFrequency}</li>` : ''}
       ${data.freeTransformation ? `<li><strong>Free Transformation:</strong> ${data.freeTransformation}</li>` : ''}
       ${data.proofMethods.length > 0 ? `<li><strong>Proof Methods:</strong> ${data.proofMethods.join(', ')}</li>` : ''}
@@ -991,6 +997,45 @@ export default function WorkshopPlanner() {
                       <SelectItem value="podcast">Podcast</SelectItem>
                       <SelectItem value="webinar">Free Webinars/Workshops</SelectItem>
                       <SelectItem value="challenge">Free Challenges</SelectItem>
+                      <SelectItem value="live">Live Sessions (IG Live, YouTube Live, etc.)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Second Nurture Method (Optional)</Label>
+                  <Select value={data.nurtureMethod2} onValueChange={(v) => updateData({ nurtureMethod2: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Add a secondary method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="email">Email Newsletter</SelectItem>
+                      <SelectItem value="community">Free Community (FB Group, Discord, etc.)</SelectItem>
+                      <SelectItem value="dm">DM Conversations</SelectItem>
+                      <SelectItem value="podcast">Podcast</SelectItem>
+                      <SelectItem value="webinar">Free Webinars/Workshops</SelectItem>
+                      <SelectItem value="challenge">Free Challenges</SelectItem>
+                      <SelectItem value="live">Live Sessions (IG Live, YouTube Live, etc.)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Third Nurture Method (Optional)</Label>
+                  <Select value={data.nurtureMethod3} onValueChange={(v) => updateData({ nurtureMethod3: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Add a third method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="email">Email Newsletter</SelectItem>
+                      <SelectItem value="community">Free Community (FB Group, Discord, etc.)</SelectItem>
+                      <SelectItem value="dm">DM Conversations</SelectItem>
+                      <SelectItem value="podcast">Podcast</SelectItem>
+                      <SelectItem value="webinar">Free Webinars/Workshops</SelectItem>
+                      <SelectItem value="challenge">Free Challenges</SelectItem>
+                      <SelectItem value="live">Live Sessions (IG Live, YouTube Live, etc.)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
