@@ -69,6 +69,8 @@ interface WorkshopData {
   nurtureMethod2: string;
   nurtureMethod3: string;
   nurtureFrequency: string;
+  nurturePostingDays: string;
+  nurturePostingTime: string;
   freeTransformation: string;
   proofMethods: string[];
   // Step 6
@@ -129,6 +131,8 @@ const getDefaultData = (): WorkshopData => ({
   nurtureMethod2: '',
   nurtureMethod3: '',
   nurtureFrequency: '',
+  nurturePostingDays: '',
+  nurturePostingTime: '',
   freeTransformation: '',
   proofMethods: [],
   offers: [{ name: '', price: '', frequency: '', transformation: '', isPrimary: true }],
@@ -337,6 +341,8 @@ export default function WorkshopPlanner() {
       ${data.nurtureMethod2 ? `<li><strong>Secondary Method:</strong> ${data.nurtureMethod2}</li>` : ''}
       ${data.nurtureMethod3 ? `<li><strong>Tertiary Method:</strong> ${data.nurtureMethod3}</li>` : ''}
       ${data.nurtureFrequency ? `<li><strong>Frequency:</strong> ${data.nurtureFrequency}</li>` : ''}
+      ${data.nurturePostingDays ? `<li><strong>Posting Days:</strong> ${data.nurturePostingDays}</li>` : ''}
+      ${data.nurturePostingTime ? `<li><strong>Posting Time:</strong> ${data.nurturePostingTime}</li>` : ''}
       ${data.freeTransformation ? `<li><strong>Free Transformation:</strong> ${data.freeTransformation}</li>` : ''}
       ${data.proofMethods.length > 0 ? `<li><strong>Proof Methods:</strong> ${data.proofMethods.join(', ')}</li>` : ''}
     </ul>
@@ -1042,18 +1048,32 @@ export default function WorkshopPlanner() {
 
                 <div>
                   <Label>Nurture Frequency</Label>
-                  <Select value={data.nurtureFrequency} onValueChange={(v) => updateData({ nurtureFrequency: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="How often will you nurture?" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="3x-week">3x per week</SelectItem>
-                      <SelectItem value="2x-week">2x per week</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                      <SelectItem value="biweekly">Every 2 weeks</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    value={data.nurtureFrequency}
+                    onChange={(e) => updateData({ nurtureFrequency: e.target.value })}
+                    placeholder="e.g., Daily, 2x per week, Every Monday"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Type your own frequency</p>
+                </div>
+
+                <div>
+                  <Label>Posting Days</Label>
+                  <Input
+                    value={data.nurturePostingDays}
+                    onChange={(e) => updateData({ nurturePostingDays: e.target.value })}
+                    placeholder="e.g., Monday, Wednesday, Friday"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Which days will you nurture your audience?</p>
+                </div>
+
+                <div>
+                  <Label>Posting Time</Label>
+                  <Input
+                    value={data.nurturePostingTime}
+                    onChange={(e) => updateData({ nurturePostingTime: e.target.value })}
+                    placeholder="e.g., 9am EST, Lunch time, Evening"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Best time to reach your audience</p>
                 </div>
 
                 <div>
