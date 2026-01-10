@@ -6,8 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Edit, Target, Users, Megaphone, Mail, DollarSign, TrendingUp, Calendar, Brain, Lightbulb, BarChart3 } from 'lucide-react';
+import { ArrowLeft, Edit, Target, Users, Megaphone, Mail, DollarSign, TrendingUp, Calendar, Brain, Lightbulb, BarChart3, Download, FileJson } from 'lucide-react';
 import { format } from 'date-fns';
+import { loadCycleForExport, exportCycleAsJSON, exportCycleAsPDF } from '@/lib/cycleExport';
+import { useToast } from '@/hooks/use-toast';
 
 interface CycleData {
   cycle_id: string;
@@ -68,11 +70,45 @@ export default function CycleView() {
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [cycle, setCycle] = useState<CycleData | null>(null);
   const [strategy, setStrategy] = useState<CycleStrategy | null>(null);
   const [revenue, setRevenue] = useState<CycleRevenue | null>(null);
   const [offers, setOffers] = useState<CycleOffer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportJSON = async () => {
+    if (!id) return;
+    setExporting(true);
+    try {
+      const data = await loadCycleForExport(id, supabase);
+      if (data) {
+        exportCycleAsJSON(data);
+        toast({ title: 'JSON exported!', description: 'Your plan has been downloaded.' });
+      }
+    } catch (error) {
+      toast({ title: 'Export failed', variant: 'destructive' });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    if (!id) return;
+    setExporting(true);
+    try {
+      const data = await loadCycleForExport(id, supabase);
+      if (data) {
+        await exportCycleAsPDF(data);
+        toast({ title: 'PDF ready!', description: 'Save from the print dialog.' });
+      }
+    } catch (error) {
+      toast({ title: 'Export failed', variant: 'destructive' });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   useEffect(() => {
     loadCycle();
@@ -178,10 +214,20 @@ export default function CycleView() {
             </div>
           </div>
 
-          <Button onClick={() => navigate(`/cycle-setup?edit=${cycle.cycle_id}`)} className="gap-2">
-            <Edit className="h-4 w-4" />
-            Edit Plan
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportJSON} disabled={exporting} className="gap-2">
+              <FileJson className="h-4 w-4" />
+              Export JSON
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting} className="gap-2">
+              <Download className="h-4 w-4" />
+              Export PDF
+            </Button>
+            <Button onClick={() => navigate(`/cycle-setup?edit=${cycle.cycle_id}`)} className="gap-2">
+              <Edit className="h-4 w-4" />
+              Edit Plan
+            </Button>
+          </div>
         </div>
 
         {/* Identity & Why */}
