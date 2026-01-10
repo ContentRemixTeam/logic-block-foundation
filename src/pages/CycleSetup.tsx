@@ -11,7 +11,8 @@ import { Layout } from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, X, Target, BarChart3, Brain, CalendarIcon, Users, Megaphone, DollarSign, ChevronLeft, ChevronRight, Check, Sparkles, Heart, TrendingUp, Upload, FileJson, Save, Mail } from 'lucide-react';
+import { Plus, X, Target, BarChart3, Brain, CalendarIcon, Users, Megaphone, DollarSign, ChevronLeft, ChevronRight, Check, Sparkles, Heart, TrendingUp, Upload, FileJson, Save, Mail, Clock } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -395,7 +396,7 @@ export default function CycleSetup() {
     { monthName: 'Month 3', projects: '', salesPromos: '', mainFocus: '' },
   ]);
 
-  // Step 8: Success Metrics, Projects, Habits, Reminders
+  // Step 8: Success Metrics, Projects, Habits, Reminders, Weekly Routines
   const [metric1Name, setMetric1Name] = useState('');
   const [metric1Start, setMetric1Start] = useState<number | ''>('');
   const [metric2Name, setMetric2Name] = useState('');
@@ -407,6 +408,14 @@ export default function CycleSetup() {
     { name: '', category: '' },
   ]);
   const [thingsToRemember, setThingsToRemember] = useState<string[]>(['', '', '']);
+  
+  // Weekly Routines
+  const [weeklyPlanningDay, setWeeklyPlanningDay] = useState('');
+  const [weeklyDebriefDay, setWeeklyDebriefDay] = useState('');
+  const [officeHoursStart, setOfficeHoursStart] = useState('09:00');
+  const [officeHoursEnd, setOfficeHoursEnd] = useState('17:00');
+  const [officeHoursDays, setOfficeHoursDays] = useState<string[]>(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']);
+  const [autoCreateWeeklyTasks, setAutoCreateWeeklyTasks] = useState(true);
 
   // Check for private browsing mode on mount
   useEffect(() => {
@@ -527,6 +536,12 @@ export default function CycleSetup() {
       if (draft.projects?.length) setProjects(draft.projects);
       if (draft.habits?.length) setHabits(draft.habits);
       if (draft.thingsToRemember?.length) setThingsToRemember(draft.thingsToRemember);
+      setWeeklyPlanningDay(draft.weeklyPlanningDay || '');
+      setWeeklyDebriefDay(draft.weeklyDebriefDay || '');
+      setOfficeHoursStart(draft.officeHoursStart || '09:00');
+      setOfficeHoursEnd(draft.officeHoursEnd || '17:00');
+      if (draft.officeHoursDays?.length) setOfficeHoursDays(draft.officeHoursDays);
+      setAutoCreateWeeklyTasks(draft.autoCreateWeeklyTasks ?? true);
       setCurrentStep(draft.currentStep || 1);
       
       toast({
@@ -588,6 +603,12 @@ export default function CycleSetup() {
         projects,
         habits,
         thingsToRemember,
+        weeklyPlanningDay,
+        weeklyDebriefDay,
+        officeHoursStart,
+        officeHoursEnd,
+        officeHoursDays,
+        autoCreateWeeklyTasks,
         currentStep,
       };
       saveDraft(draftData);
@@ -603,7 +624,9 @@ export default function CycleSetup() {
     nurtureMethod, nurtureFrequency, freeTransformation, proofMethods,
     offers, limitedOffers, revenueGoal, pricePerSale, launchSchedule, monthPlans,
     metric1Name, metric1Start, metric2Name, metric2Start, metric3Name, metric3Start,
-    projects, habits, thingsToRemember, currentStep, saveDraft
+    projects, habits, thingsToRemember, 
+    weeklyPlanningDay, weeklyDebriefDay, officeHoursStart, officeHoursEnd, officeHoursDays, autoCreateWeeklyTasks,
+    currentStep, saveDraft
   ]);
 
   // Calculate focus area based on lowest score
@@ -864,7 +887,13 @@ export default function CycleSetup() {
           audience_target: audienceTarget || null,
           audience_frustration: audienceFrustration || null,
           signature_message: signatureMessage || null,
-        })
+          // Weekly routines
+          weekly_planning_day: weeklyPlanningDay || null,
+          weekly_debrief_day: weeklyDebriefDay || null,
+          office_hours_start: officeHoursStart || null,
+          office_hours_end: officeHoursEnd || null,
+          office_hours_days: officeHoursDays,
+        } as any)
         .select()
         .single();
 
@@ -1009,6 +1038,98 @@ export default function CycleSetup() {
           .from('habits')
           .insert(habitsToCreate);
         if (habitsError) console.error('Habits error:', habitsError);
+      }
+
+      // Create weekly planning and review tasks (if user opted in)
+      if (autoCreateWeeklyTasks && (weeklyPlanningDay || weeklyDebriefDay)) {
+        const dayMap: Record<string, number> = {
+          'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3,
+          'Thursday': 4, 'Friday': 5, 'Saturday': 6
+        };
+        
+        const weeklyTasksToCreate: any[] = [];
+        const cycleStartDate = new Date(startDate);
+        const cycleEndDate = new Date(endDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Create Weekly Planning Tasks
+        if (weeklyPlanningDay && dayMap[weeklyPlanningDay] !== undefined) {
+          const planningDayNum = dayMap[weeklyPlanningDay];
+          let planningDate = new Date(cycleStartDate > today ? cycleStartDate : today);
+          
+          // Find next planning day
+          while (planningDate.getDay() !== planningDayNum) {
+            planningDate.setDate(planningDate.getDate() + 1);
+          }
+          
+          // Create task for each week in the cycle
+          let weekNum = 1;
+          while (planningDate <= cycleEndDate) {
+            weeklyTasksToCreate.push({
+              user_id: user.id,
+              cycle_id: cycleId,
+              task_text: `📅 Plan My Week (Week ${weekNum})`,
+              task_description: 'Set your Top 3 priorities for the week. Review your 90-day goal and decide what moves the needle most this week.',
+              scheduled_date: format(planningDate, 'yyyy-MM-dd'),
+              status: 'todo',
+              priority: 'high',
+              source: 'autopilot',
+              is_system_generated: true,
+              system_source: 'cycle_autopilot',
+              template_key: `weekly_planning_${format(planningDate, 'yyyy-MM-dd')}_${cycleId}`,
+              context_tags: ['planning', 'weekly'],
+            });
+            planningDate.setDate(planningDate.getDate() + 7);
+            weekNum++;
+          }
+        }
+        
+        // Create Weekly Debrief Tasks
+        if (weeklyDebriefDay && dayMap[weeklyDebriefDay] !== undefined) {
+          const debriefDayNum = dayMap[weeklyDebriefDay];
+          let debriefDate = new Date(cycleStartDate > today ? cycleStartDate : today);
+          
+          // Find next debrief day
+          while (debriefDate.getDay() !== debriefDayNum) {
+            debriefDate.setDate(debriefDate.getDate() + 1);
+          }
+          
+          // Create task for each week in the cycle
+          let weekNum = 1;
+          while (debriefDate <= cycleEndDate) {
+            weeklyTasksToCreate.push({
+              user_id: user.id,
+              cycle_id: cycleId,
+              task_text: `📊 Weekly Review (Week ${weekNum})`,
+              task_description: 'Reflect on your wins, challenges, and learnings. What worked? What didn\'t? What will you do differently next week?',
+              scheduled_date: format(debriefDate, 'yyyy-MM-dd'),
+              status: 'todo',
+              priority: 'high',
+              source: 'autopilot',
+              is_system_generated: true,
+              system_source: 'cycle_autopilot',
+              template_key: `weekly_review_${format(debriefDate, 'yyyy-MM-dd')}_${cycleId}`,
+              context_tags: ['review', 'weekly'],
+            });
+            debriefDate.setDate(debriefDate.getDate() + 7);
+            weekNum++;
+          }
+        }
+        
+        // Insert all weekly tasks
+        if (weeklyTasksToCreate.length > 0) {
+          const { error: weeklyTaskError } = await supabase
+            .from('tasks')
+            .insert(weeklyTasksToCreate);
+          
+          if (weeklyTaskError) {
+            console.error('Weekly task creation error:', weeklyTaskError);
+            // Don't throw - this is optional, cycle should still save
+          } else {
+            console.log(`Created ${weeklyTasksToCreate.length} weekly planning/review tasks`);
+          }
+        }
       }
 
       // Create nurture commitment for email check-ins if enabled
@@ -2469,6 +2590,136 @@ export default function CycleSetup() {
                     <Plus className="mr-2 h-4 w-4" />
                     Add Habit
                   </Button>
+                </CardContent>
+              </Card>
+
+              {/* Weekly Routines */}
+              <Card className="border-blue-500/20">
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <CalendarIcon className="h-5 w-5 text-blue-600" />
+                    <CardTitle>Weekly Routines</CardTitle>
+                  </div>
+                  <CardDescription>Set up your weekly planning and review schedule</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="weeklyPlanningDay">When do you plan your week?</Label>
+                      <Select value={weeklyPlanningDay} onValueChange={setWeeklyPlanningDay}>
+                        <SelectTrigger id="weeklyPlanningDay">
+                          <SelectValue placeholder="Select a day" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Sunday">Sunday</SelectItem>
+                          <SelectItem value="Monday">Monday</SelectItem>
+                          <SelectItem value="Tuesday">Tuesday</SelectItem>
+                          <SelectItem value="Wednesday">Wednesday</SelectItem>
+                          <SelectItem value="Thursday">Thursday</SelectItem>
+                          <SelectItem value="Friday">Friday</SelectItem>
+                          <SelectItem value="Saturday">Saturday</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">Recommended: Sunday evening or Monday morning</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="weeklyDebriefDay">When do you review your week?</Label>
+                      <Select value={weeklyDebriefDay} onValueChange={setWeeklyDebriefDay}>
+                        <SelectTrigger id="weeklyDebriefDay">
+                          <SelectValue placeholder="Select a day" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Sunday">Sunday</SelectItem>
+                          <SelectItem value="Monday">Monday</SelectItem>
+                          <SelectItem value="Tuesday">Tuesday</SelectItem>
+                          <SelectItem value="Wednesday">Wednesday</SelectItem>
+                          <SelectItem value="Thursday">Thursday</SelectItem>
+                          <SelectItem value="Friday">Friday</SelectItem>
+                          <SelectItem value="Saturday">Saturday</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">Recommended: Friday afternoon or Sunday evening</p>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <h4 className="font-medium">Office Hours (Optional)</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">When are you typically working? This will help organize your schedule.</p>
+                    
+                    <div className="space-y-3">
+                      <Label>Which days do you work?</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+                          <Badge
+                            key={day}
+                            variant={officeHoursDays.includes(day) ? "default" : "outline"}
+                            className={cn(
+                              "cursor-pointer transition-colors",
+                              officeHoursDays.includes(day) && "bg-blue-600 hover:bg-blue-700"
+                            )}
+                            onClick={() => {
+                              if (officeHoursDays.includes(day)) {
+                                setOfficeHoursDays(officeHoursDays.filter(d => d !== day));
+                              } else {
+                                setOfficeHoursDays([...officeHoursDays, day]);
+                              }
+                            }}
+                          >
+                            {day.slice(0, 3)}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="officeHoursStart">Start Time</Label>
+                        <Input
+                          id="officeHoursStart"
+                          type="time"
+                          value={officeHoursStart}
+                          onChange={(e) => setOfficeHoursStart(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="officeHoursEnd">End Time</Label>
+                        <Input
+                          id="officeHoursEnd"
+                          type="time"
+                          value={officeHoursEnd}
+                          onChange={(e) => setOfficeHoursEnd(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground">
+                      Office hours will be saved but not yet highlighted in the planner. This feature is coming soon!
+                    </p>
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-start gap-3 p-4 rounded-lg border bg-blue-500/5 border-blue-500/20">
+                    <Checkbox
+                      id="autoCreateWeeklyTasks"
+                      checked={autoCreateWeeklyTasks}
+                      onCheckedChange={(checked) => setAutoCreateWeeklyTasks(!!checked)}
+                    />
+                    <div className="flex-1">
+                      <Label htmlFor="autoCreateWeeklyTasks" className="text-sm font-medium cursor-pointer">
+                        Automatically create weekly planning and review tasks
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        We'll create recurring tasks for your weekly planning and debrief on the days you selected above. You can always edit or delete these later.
+                      </p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 

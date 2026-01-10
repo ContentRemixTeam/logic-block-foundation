@@ -80,7 +80,7 @@ export interface CycleSetupDraft {
     mainFocus: string;
   }>;
 
-  // Step 8: Success Metrics, Projects, Habits, Reminders
+  // Step 8: Success Metrics, Projects, Habits, Reminders, Weekly Routines
   metric1Name: string;
   metric1Start: number | '';
   metric2Name: string;
@@ -90,6 +90,14 @@ export interface CycleSetupDraft {
   projects: string[];
   habits: Array<{ name: string; category: string }>;
   thingsToRemember: string[];
+  
+  // Weekly Routines
+  weeklyPlanningDay: string;
+  weeklyDebriefDay: string;
+  officeHoursStart: string;
+  officeHoursEnd: string;
+  officeHoursDays: string[];
+  autoCreateWeeklyTasks: boolean;
 
   // Metadata
   currentStep: number;
@@ -141,6 +149,12 @@ const DEFAULT_DRAFT: CycleSetupDraft = {
   projects: [''],
   habits: [{ name: '', category: '' }],
   thingsToRemember: ['', '', ''],
+  weeklyPlanningDay: '',
+  weeklyDebriefDay: '',
+  officeHoursStart: '09:00',
+  officeHoursEnd: '17:00',
+  officeHoursDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+  autoCreateWeeklyTasks: true,
   currentStep: 1,
   lastSaved: new Date().toISOString(),
 };
