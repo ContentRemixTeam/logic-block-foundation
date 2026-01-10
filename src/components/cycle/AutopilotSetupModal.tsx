@@ -35,6 +35,7 @@ interface AutopilotSetupModalProps {
   // New: counts for preview
   postingDaysCount?: number;
   nurtureFrequency?: string;
+  nurturePostingDaysCount?: number;
   offersCount?: number;
   customProjectsCount?: number;
 }
@@ -51,6 +52,7 @@ export function AutopilotSetupModal({
   hasOffers,
   postingDaysCount = 0,
   nurtureFrequency = '',
+  nurturePostingDaysCount = 0,
   offersCount = 0,
   customProjectsCount = 0,
 }: AutopilotSetupModalProps) {
@@ -86,12 +88,16 @@ export function AutopilotSetupModal({
 
     if (options.createNurtureTasks && hasNurtureMethod) {
       projectCount += 1; // Nurture project
-      // Estimate nurture tasks based on frequency
-      let tasksPerWeek = 1;
-      if (nurtureFrequency.includes('daily')) tasksPerWeek = 7;
-      else if (nurtureFrequency.includes('3x') || nurtureFrequency.includes('3')) tasksPerWeek = 3;
-      else if (nurtureFrequency.includes('2x') || nurtureFrequency.includes('2')) tasksPerWeek = 2;
-      taskCount += tasksPerWeek * 13;
+      // Use nurture posting days if set, otherwise estimate from frequency
+      if (nurturePostingDaysCount > 0) {
+        taskCount += nurturePostingDaysCount * 13;
+      } else {
+        let tasksPerWeek = 1;
+        if (nurtureFrequency.includes('daily')) tasksPerWeek = 7;
+        else if (nurtureFrequency.includes('3x') || nurtureFrequency.includes('3')) tasksPerWeek = 3;
+        else if (nurtureFrequency.includes('2x') || nurtureFrequency.includes('2')) tasksPerWeek = 2;
+        taskCount += tasksPerWeek * 13;
+      }
     }
 
     if (options.createOfferTasks && hasOffers) {
@@ -100,7 +106,7 @@ export function AutopilotSetupModal({
     }
 
     return { projectCount, taskCount };
-  }, [options, hasPlatform, hasPostingDays, hasMetrics, hasNurtureMethod, hasOffers, postingDaysCount, nurtureFrequency, offersCount, customProjectsCount]);
+  }, [options, hasPlatform, hasPostingDays, hasMetrics, hasNurtureMethod, hasOffers, postingDaysCount, nurtureFrequency, nurturePostingDaysCount, offersCount, customProjectsCount]);
 
   const autopilotItems = [
     {
@@ -128,7 +134,9 @@ export function AutopilotSetupModal({
       icon: Heart,
       title: 'Nurture Tasks',
       description: hasNurtureMethod 
-        ? `1 project + recurring ${nurtureFrequency || ''} nurture tasks`
+        ? nurturePostingDaysCount > 0
+          ? `1 project + ${nurturePostingDaysCount * 13} nurture tasks (${nurturePostingDaysCount}x/week for 90 days)`
+          : `1 project + recurring ${nurtureFrequency || 'weekly'} nurture tasks`
         : 'Create recurring tasks based on your nurture strategy (email, podcast, etc.)',
       enabled: hasNurtureMethod,
       disabledReason: !hasNurtureMethod ? 'No nurture method selected' : null,
