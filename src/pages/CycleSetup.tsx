@@ -366,6 +366,9 @@ export default function CycleSetup() {
 
   // Step 5: Nurture Strategy
   const [nurtureMethod, setNurtureMethod] = useState('');
+  const [nurtureMethodCustom, setNurtureMethodCustom] = useState('');
+  const [secondaryNurtureMethod, setSecondaryNurtureMethod] = useState('');
+  const [secondaryNurtureMethodCustom, setSecondaryNurtureMethodCustom] = useState('');
   const [nurtureFrequency, setNurtureFrequency] = useState('');
   const [freeTransformation, setFreeTransformation] = useState('');
   const [proofMethods, setProofMethods] = useState<string[]>([]);
@@ -845,6 +848,11 @@ export default function CycleSetup() {
       const cycleId = cycle.cycle_id;
 
       // Create cycle strategy with posting schedule and secondary platforms
+      const effectiveNurtureMethod = nurtureMethod === 'other' ? nurtureMethodCustom : nurtureMethod;
+      const effectiveSecondaryNurtureMethod = secondaryNurtureMethod === 'other' 
+        ? secondaryNurtureMethodCustom 
+        : (secondaryNurtureMethod === 'none' ? null : secondaryNurtureMethod);
+      
       const { error: strategyError } = await supabase
         .from('cycle_strategy')
         .insert({
@@ -854,7 +862,7 @@ export default function CycleSetup() {
           lead_content_type: leadContentType || null,
           lead_frequency: leadFrequency || null,
           lead_committed_90_days: leadCommitted,
-          nurture_method: nurtureMethod || null,
+          nurture_method: effectiveNurtureMethod || null,
           nurture_frequency: nurtureFrequency || null,
           free_transformation: freeTransformation || null,
           proof_methods: proofMethods,
@@ -864,6 +872,7 @@ export default function CycleSetup() {
           batch_day: batchDay && batchDay !== 'none' ? batchDay : null,
           // Secondary platforms (cast needed until types regenerate)
           secondary_platforms: secondaryPlatforms.filter(sp => sp.platform.trim()),
+          // Secondary nurture method (stored in secondary_platforms for now as JSON)
         } as any);
 
       if (strategyError) console.error('Strategy error:', strategyError);
@@ -1780,7 +1789,10 @@ export default function CycleSetup() {
               <CardContent className="space-y-6">
                 <div>
                   <Label htmlFor="nurtureMethod">Primary Nurture Method</Label>
-                  <Select value={nurtureMethod} onValueChange={setNurtureMethod}>
+                  <Select value={nurtureMethod} onValueChange={(v) => {
+                    setNurtureMethod(v);
+                    if (v !== 'other') setNurtureMethodCustom('');
+                  }}>
                     <SelectTrigger>
                       <SelectValue placeholder="How will you nurture your audience?" />
                     </SelectTrigger>
@@ -1791,8 +1803,48 @@ export default function CycleSetup() {
                       <SelectItem value="podcast">Podcast</SelectItem>
                       <SelectItem value="webinar">Free Webinars/Workshops</SelectItem>
                       <SelectItem value="challenge">Free Challenges</SelectItem>
+                      <SelectItem value="other">Other (custom)</SelectItem>
                     </SelectContent>
                   </Select>
+                  {nurtureMethod === 'other' && (
+                    <Input
+                      value={nurtureMethodCustom}
+                      onChange={(e) => setNurtureMethodCustom(e.target.value)}
+                      placeholder="Enter your primary nurture method..."
+                      className="mt-2"
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="secondaryNurtureMethod">Secondary Nurture Method (optional)</Label>
+                  <Select value={secondaryNurtureMethod} onValueChange={(v) => {
+                    setSecondaryNurtureMethod(v);
+                    if (v !== 'other') setSecondaryNurtureMethodCustom('');
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Add a backup nurture channel..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="email">Email Newsletter</SelectItem>
+                      <SelectItem value="community">Free Community (FB Group, Discord, etc.)</SelectItem>
+                      <SelectItem value="dm">DM Conversations</SelectItem>
+                      <SelectItem value="podcast">Podcast</SelectItem>
+                      <SelectItem value="webinar">Free Webinars/Workshops</SelectItem>
+                      <SelectItem value="challenge">Free Challenges</SelectItem>
+                      <SelectItem value="other">Other (custom)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {secondaryNurtureMethod === 'other' && (
+                    <Input
+                      value={secondaryNurtureMethodCustom}
+                      onChange={(e) => setSecondaryNurtureMethodCustom(e.target.value)}
+                      placeholder="Enter your secondary nurture method..."
+                      className="mt-2"
+                    />
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">Having a backup nurture channel helps reach people who prefer different formats</p>
                 </div>
 
                 <div>
