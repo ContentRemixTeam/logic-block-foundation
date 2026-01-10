@@ -109,6 +109,18 @@ export interface CycleSetupDraft {
   officeHoursDays: string[];
   autoCreateWeeklyTasks: boolean;
 
+  // Step 9: Mindset & First 3 Days
+  biggestFear: string;
+  whatWillYouDoWhenFearHits: string;
+  commitmentStatement: string;
+  whoWillHoldYouAccountable: string;
+  day1Top3: string[];
+  day1Why: string;
+  day2Top3: string[];
+  day2Why: string;
+  day3Top3: string[];
+  day3Why: string;
+
   // Metadata
   currentStep: number;
   lastSaved: string;
@@ -175,6 +187,17 @@ const DEFAULT_DRAFT: CycleSetupDraft = {
   officeHoursEnd: '17:00',
   officeHoursDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
   autoCreateWeeklyTasks: true,
+  // Step 9: Mindset & First 3 Days
+  biggestFear: '',
+  whatWillYouDoWhenFearHits: '',
+  commitmentStatement: '',
+  whoWillHoldYouAccountable: '',
+  day1Top3: ['', '', ''],
+  day1Why: '',
+  day2Top3: ['', '', ''],
+  day2Why: '',
+  day3Top3: ['', '', ''],
+  day3Why: '',
   currentStep: 1,
   lastSaved: new Date().toISOString(),
 };

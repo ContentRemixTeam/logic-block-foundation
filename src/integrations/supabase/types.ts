@@ -711,14 +711,24 @@ export type Database = {
       }
       cycles_90_day: {
         Row: {
+          accountability_person: string | null
           audience_frustration: string | null
           audience_target: string | null
           biggest_bottleneck: string | null
+          biggest_fear: string | null
+          commitment_statement: string | null
           convert_score: number | null
           created_at: string | null
           cycle_id: string
+          day1_top3: Json | null
+          day1_why: string | null
+          day2_top3: Json | null
+          day2_why: string | null
+          day3_top3: Json | null
+          day3_why: string | null
           discover_score: number | null
           end_date: string
+          fear_response: string | null
           focus_area: string | null
           goal: string
           identity: string | null
@@ -744,14 +754,24 @@ export type Database = {
           why: string | null
         }
         Insert: {
+          accountability_person?: string | null
           audience_frustration?: string | null
           audience_target?: string | null
           biggest_bottleneck?: string | null
+          biggest_fear?: string | null
+          commitment_statement?: string | null
           convert_score?: number | null
           created_at?: string | null
           cycle_id?: string
+          day1_top3?: Json | null
+          day1_why?: string | null
+          day2_top3?: Json | null
+          day2_why?: string | null
+          day3_top3?: Json | null
+          day3_why?: string | null
           discover_score?: number | null
           end_date: string
+          fear_response?: string | null
           focus_area?: string | null
           goal: string
           identity?: string | null
@@ -777,14 +797,24 @@ export type Database = {
           why?: string | null
         }
         Update: {
+          accountability_person?: string | null
           audience_frustration?: string | null
           audience_target?: string | null
           biggest_bottleneck?: string | null
+          biggest_fear?: string | null
+          commitment_statement?: string | null
           convert_score?: number | null
           created_at?: string | null
           cycle_id?: string
+          day1_top3?: Json | null
+          day1_why?: string | null
+          day2_top3?: Json | null
+          day2_why?: string | null
+          day3_top3?: Json | null
+          day3_why?: string | null
           discover_score?: number | null
           end_date?: string
+          fear_response?: string | null
           focus_area?: string | null
           goal?: string
           identity?: string | null

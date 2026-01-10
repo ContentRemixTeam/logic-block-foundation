@@ -11,7 +11,7 @@ import { Layout } from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, X, Target, BarChart3, Brain, CalendarIcon, Users, Megaphone, DollarSign, ChevronLeft, ChevronRight, Check, Sparkles, Heart, TrendingUp, Upload, FileJson, Save, Mail, Clock, Lightbulb } from 'lucide-react';
+import { Plus, X, Target, BarChart3, Brain, CalendarIcon, Users, Megaphone, DollarSign, ChevronLeft, ChevronRight, Check, Sparkles, Heart, TrendingUp, Upload, FileJson, Save, Mail, Clock, Lightbulb, Zap, AlertCircle, CheckCircle } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -183,6 +183,7 @@ const STEPS = [
   { id: 6, name: 'Your Offers', icon: DollarSign },
   { id: 7, name: '90-Day Breakdown', icon: TrendingUp },
   { id: 8, name: 'Habits & Reminders', icon: Brain },
+  { id: 9, name: 'First 3 Days', icon: Zap },
 ];
 
 export default function CycleSetup() {
@@ -438,6 +439,18 @@ export default function CycleSetup() {
   const [officeHoursEnd, setOfficeHoursEnd] = useState('17:00');
   const [officeHoursDays, setOfficeHoursDays] = useState<string[]>(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']);
   const [autoCreateWeeklyTasks, setAutoCreateWeeklyTasks] = useState(true);
+
+  // Step 9: Mindset & First 3 Days
+  const [biggestFear, setBiggestFear] = useState('');
+  const [whatWillYouDoWhenFearHits, setWhatWillYouDoWhenFearHits] = useState('');
+  const [commitmentStatement, setCommitmentStatement] = useState('');
+  const [whoWillHoldYouAccountable, setWhoWillHoldYouAccountable] = useState('');
+  const [day1Top3, setDay1Top3] = useState<string[]>(['', '', '']);
+  const [day1Why, setDay1Why] = useState('');
+  const [day2Top3, setDay2Top3] = useState<string[]>(['', '', '']);
+  const [day2Why, setDay2Why] = useState('');
+  const [day3Top3, setDay3Top3] = useState<string[]>(['', '', '']);
+  const [day3Why, setDay3Why] = useState('');
 
   // Check for private browsing mode on mount
   useEffect(() => {
@@ -704,6 +717,17 @@ export default function CycleSetup() {
       setOfficeHoursEnd(draft.officeHoursEnd || '17:00');
       if (draft.officeHoursDays?.length) setOfficeHoursDays(draft.officeHoursDays);
       setAutoCreateWeeklyTasks(draft.autoCreateWeeklyTasks ?? true);
+      // Step 9: Mindset & First 3 Days
+      setBiggestFear(draft.biggestFear || '');
+      setWhatWillYouDoWhenFearHits(draft.whatWillYouDoWhenFearHits || '');
+      setCommitmentStatement(draft.commitmentStatement || '');
+      setWhoWillHoldYouAccountable(draft.whoWillHoldYouAccountable || '');
+      if (draft.day1Top3?.length) setDay1Top3(draft.day1Top3);
+      setDay1Why(draft.day1Why || '');
+      if (draft.day2Top3?.length) setDay2Top3(draft.day2Top3);
+      setDay2Why(draft.day2Why || '');
+      if (draft.day3Top3?.length) setDay3Top3(draft.day3Top3);
+      setDay3Why(draft.day3Why || '');
       setCurrentStep(draft.currentStep || 1);
       
       toast({
@@ -781,6 +805,17 @@ export default function CycleSetup() {
         officeHoursEnd,
         officeHoursDays,
         autoCreateWeeklyTasks,
+        // Step 9: Mindset & First 3 Days
+        biggestFear,
+        whatWillYouDoWhenFearHits,
+        commitmentStatement,
+        whoWillHoldYouAccountable,
+        day1Top3,
+        day1Why,
+        day2Top3,
+        day2Why,
+        day3Top3,
+        day3Why,
         currentStep,
       };
       saveDraft(draftData);
@@ -798,6 +833,8 @@ export default function CycleSetup() {
     metric1Name, metric1Start, metric2Name, metric2Start, metric3Name, metric3Start,
     projects, habits, thingsToRemember, 
     weeklyPlanningDay, weeklyDebriefDay, officeHoursStart, officeHoursEnd, officeHoursDays, autoCreateWeeklyTasks,
+    biggestFear, whatWillYouDoWhenFearHits, commitmentStatement, whoWillHoldYouAccountable,
+    day1Top3, day1Why, day2Top3, day2Why, day3Top3, day3Why,
     currentStep, saveDraft
   ]);
 
@@ -1062,6 +1099,17 @@ export default function CycleSetup() {
             office_hours_start: officeHoursStart || null,
             office_hours_end: officeHoursEnd || null,
             office_hours_days: officeHoursDays,
+            // Step 9: Mindset & First 3 Days
+            biggest_fear: biggestFear?.trim() || null,
+            fear_response: whatWillYouDoWhenFearHits?.trim() || null,
+            commitment_statement: commitmentStatement?.trim() || null,
+            accountability_person: whoWillHoldYouAccountable?.trim() || null,
+            day1_top3: day1Top3.filter(t => t?.trim()),
+            day1_why: day1Why?.trim() || null,
+            day2_top3: day2Top3.filter(t => t?.trim()),
+            day2_why: day2Why?.trim() || null,
+            day3_top3: day3Top3.filter(t => t?.trim()),
+            day3_why: day3Why?.trim() || null,
           } as any)
           .eq('cycle_id', existingCycleId);
 
@@ -1138,6 +1186,17 @@ export default function CycleSetup() {
           office_hours_start: officeHoursStart || null,
           office_hours_end: officeHoursEnd || null,
           office_hours_days: officeHoursDays,
+          // Step 9: Mindset & First 3 Days (all optional)
+          biggest_fear: biggestFear?.trim() || null,
+          fear_response: whatWillYouDoWhenFearHits?.trim() || null,
+          commitment_statement: commitmentStatement?.trim() || null,
+          accountability_person: whoWillHoldYouAccountable?.trim() || null,
+          day1_top3: day1Top3.filter(t => t?.trim()),
+          day1_why: day1Why?.trim() || null,
+          day2_top3: day2Top3.filter(t => t?.trim()),
+          day2_why: day2Why?.trim() || null,
+          day3_top3: day3Top3.filter(t => t?.trim()),
+          day3_why: day3Why?.trim() || null,
         } as any)
         .select()
         .single();
@@ -1502,13 +1561,87 @@ export default function CycleSetup() {
         }
       }
 
+      // Create daily plans for first 3 days (if tasks exist) - SAFE, won't break if skipped
+      if (cycleId) {
+        try {
+          const dailyPlans: any[] = [];
+          const cycleStart = new Date(startDate);
+          
+          // Day 1 (if tasks exist)
+          if (day1Top3.some(t => t?.trim())) {
+            dailyPlans.push({
+              user_id: user.id,
+              cycle_id: cycleId,
+              date: format(cycleStart, 'yyyy-MM-dd'),
+              top_3: day1Top3.filter(t => t?.trim()),
+              notes: day1Why?.trim() || null,
+            });
+          }
+          
+          // Day 2 (if tasks exist)
+          if (day2Top3.some(t => t?.trim())) {
+            const day2Date = new Date(cycleStart);
+            day2Date.setDate(day2Date.getDate() + 1);
+            dailyPlans.push({
+              user_id: user.id,
+              cycle_id: cycleId,
+              date: format(day2Date, 'yyyy-MM-dd'),
+              top_3: day2Top3.filter(t => t?.trim()),
+              notes: day2Why?.trim() || null,
+            });
+          }
+          
+          // Day 3 (if tasks exist)
+          if (day3Top3.some(t => t?.trim())) {
+            const day3Date = new Date(cycleStart);
+            day3Date.setDate(day3Date.getDate() + 2);
+            dailyPlans.push({
+              user_id: user.id,
+              cycle_id: cycleId,
+              date: format(day3Date, 'yyyy-MM-dd'),
+              top_3: day3Top3.filter(t => t?.trim()),
+              notes: day3Why?.trim() || null,
+            });
+          }
+          
+          // Insert daily plans (if any exist)
+          if (dailyPlans.length > 0) {
+            const { error: dailyError } = await supabase
+              .from('daily_plans')
+              .insert(dailyPlans);
+            
+            if (dailyError) {
+              console.error('Daily plan creation error:', dailyError);
+              // DON'T throw - cycle is already saved
+            } else {
+              console.log(`Created ${dailyPlans.length} daily plans for first 3 days`);
+            }
+          }
+        } catch (planError) {
+          console.error('Error creating daily plans:', planError);
+          // DON'T throw - this is optional, cycle is saved
+        }
+      }
+
       // Clear draft on successful save
       clearDraft();
 
       toast({
-        title: 'Cycle created!',
-        description: 'Your 90-day journey has begun.',
+        title: '🎉 You\'re Ready to Execute!',
+        description: 'Your 90-day plan is complete and your first 3 days are loaded.',
+        duration: 6000,
       });
+
+      // Optional: Remind about accountability (only if they filled it in)
+      if (whoWillHoldYouAccountable?.trim()) {
+        setTimeout(() => {
+          toast({
+            title: '💪 Remember',
+            description: `Text ${whoWillHoldYouAccountable} right now and tell them you'll check in on Day 3!`,
+            duration: 8000,
+          });
+        }, 2000);
+      }
 
       navigate('/dashboard');
     } catch (error: any) {
@@ -3273,6 +3406,295 @@ export default function CycleSetup() {
                   ))}
                 </CardContent>
               </Card>
+            </div>
+          )}
+
+          {/* Step 9: Mindset & First 3 Days */}
+          {currentStep === 9 && (
+            <div className="space-y-8">
+              {/* Header */}
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold mb-2">Your First 3 Days</h2>
+                <p className="text-muted-foreground text-lg">
+                  The plan is done. Now it's time to execute. Let's get you started strong.
+                </p>
+              </div>
+
+              <Alert className="border-primary/20 bg-primary/5">
+                <Zap className="h-4 w-4 text-primary" />
+                <AlertTitle>Why the first 3 days matter</AlertTitle>
+                <AlertDescription>
+                  Most people quit in the first week—not because the plan is wrong, but because their brain offers reasons to stop. 
+                  Planning your first 3 days AND your response to resistance sets you up to push through.
+                </AlertDescription>
+              </Alert>
+
+              <Separator />
+
+              {/* MINDSET SECTION */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Brain className="h-6 w-6 text-primary" />
+                  <h3 className="text-2xl font-semibold">Mindset Check</h3>
+                </div>
+
+                {/* Biggest Fear */}
+                <div className="space-y-3">
+                  <Label htmlFor="biggestFear" className="text-base font-semibold">
+                    What's your biggest fear about starting this plan?
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Be honest. Is it fear of failure? Fear of looking stupid? Fear it won't work? Name it.
+                  </p>
+                  <Textarea
+                    id="biggestFear"
+                    value={biggestFear}
+                    onChange={(e) => setBiggestFear(e.target.value)}
+                    placeholder="Example: I'm afraid I'll start strong and then quit like I always do..."
+                    rows={3}
+                    className="resize-none"
+                  />
+                </div>
+
+                {/* Response to Fear */}
+                <div className="space-y-3">
+                  <Label htmlFor="whatWillYouDoWhenFearHits" className="text-base font-semibold">
+                    What will you do when that fear shows up?
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    It WILL show up. Probably Day 2 or 3. What's your plan? How will you talk back to it?
+                  </p>
+                  <Textarea
+                    id="whatWillYouDoWhenFearHits"
+                    value={whatWillYouDoWhenFearHits}
+                    onChange={(e) => setWhatWillYouDoWhenFearHits(e.target.value)}
+                    placeholder="Example: I'll remind myself that I've committed to 3 days, not 90. I can do anything for 3 days. I'll text my accountability partner and tell them I'm struggling but I'm not quitting..."
+                    rows={4}
+                    className="resize-none"
+                  />
+                </div>
+
+                {/* Commitment Statement */}
+                <div className="space-y-3">
+                  <Label htmlFor="commitmentStatement" className="text-base font-semibold">
+                    Complete this sentence: "I commit to showing up for the next 3 days by..."
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    What does "showing up" look like for you? Be specific.
+                  </p>
+                  <Textarea
+                    id="commitmentStatement"
+                    value={commitmentStatement}
+                    onChange={(e) => setCommitmentStatement(e.target.value)}
+                    placeholder="Example: ...posting on Instagram even if it's not perfect, sending my newsletter even if I think it's not good enough, and doing my Top 3 before I check email..."
+                    rows={3}
+                    className="resize-none"
+                  />
+                </div>
+
+                {/* Accountability */}
+                <div className="space-y-3">
+                  <Label htmlFor="whoWillHoldYouAccountable" className="text-base font-semibold">
+                    Who will check in with you after these 3 days?
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Name a real person. Not "myself" or "the universe." Who will you text on Day 3 to say "I did it"?
+                  </p>
+                  <Input
+                    id="whoWillHoldYouAccountable"
+                    value={whoWillHoldYouAccountable}
+                    onChange={(e) => setWhoWillHoldYouAccountable(e.target.value)}
+                    placeholder="Example: My mastermind buddy Sarah, My business coach, My partner..."
+                  />
+                  <p className="text-xs text-muted-foreground italic">
+                    Pro tip: Text them RIGHT NOW and tell them you're planning your first 3 days and you'll check in with them on Day 3.
+                  </p>
+                </div>
+              </div>
+
+              <Separator className="my-8" />
+
+              {/* TASKS SECTION */}
+              <div className="space-y-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <Target className="h-6 w-6 text-primary" />
+                  <h3 className="text-2xl font-semibold">Your First 3 Days of Action</h3>
+                </div>
+
+                <Alert className="border-amber-500/20 bg-amber-500/5">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  <AlertTitle>Keep it simple</AlertTitle>
+                  <AlertDescription>
+                    Don't overthink this. Pick 3 things per day that move you forward. They don't have to be perfect. They just have to be done.
+                  </AlertDescription>
+                </Alert>
+
+                {/* DAY 1 */}
+                <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-6 space-y-4 border border-primary/20">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg">
+                      1
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-semibold">Day 1</h4>
+                      <p className="text-sm text-muted-foreground">Build momentum</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="font-semibold">Your Top 3 Tasks</Label>
+                    {[0, 1, 2].map((index) => (
+                      <div key={index} className="flex items-center gap-3">
+                        <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                          {index + 1}
+                        </div>
+                        <Input
+                          value={day1Top3[index] || ''}
+                          onChange={(e) => {
+                            const updated = [...day1Top3];
+                            updated[index] = e.target.value;
+                            setDay1Top3(updated);
+                          }}
+                          placeholder={
+                            index === 0 ? "The most important thing..." :
+                            index === 1 ? "The second priority..." :
+                            "One more task to build momentum..."
+                          }
+                          className="bg-background"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-2 pt-3">
+                    <Label htmlFor="day1Why" className="font-semibold">
+                      Why are these 3 tasks important for Day 1?
+                    </Label>
+                    <Textarea
+                      id="day1Why"
+                      value={day1Why}
+                      onChange={(e) => setDay1Why(e.target.value)}
+                      placeholder="Example: These 3 tasks get me started without overwhelming me. They prove I can follow through..."
+                      rows={2}
+                      className="bg-background resize-none"
+                    />
+                  </div>
+                </div>
+
+                {/* DAY 2 */}
+                <div className="bg-gradient-to-br from-blue-500/5 to-blue-500/10 rounded-xl p-6 space-y-4 border border-blue-500/20">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-lg">
+                      2
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-semibold">Day 2</h4>
+                      <p className="text-sm text-muted-foreground">Keep the momentum</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="font-semibold">Your Top 3 Tasks</Label>
+                    {[0, 1, 2].map((index) => (
+                      <div key={index} className="flex items-center gap-3">
+                        <div className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-600 flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                          {index + 1}
+                        </div>
+                        <Input
+                          value={day2Top3[index] || ''}
+                          onChange={(e) => {
+                            const updated = [...day2Top3];
+                            updated[index] = e.target.value;
+                            setDay2Top3(updated);
+                          }}
+                          placeholder={
+                            index === 0 ? "Build on Day 1..." :
+                            index === 1 ? "Keep moving forward..." :
+                            "One more win for the day..."
+                          }
+                          className="bg-background"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-2 pt-3">
+                    <Label htmlFor="day2Why" className="font-semibold">
+                      Why are these 3 tasks important for Day 2?
+                    </Label>
+                    <Textarea
+                      id="day2Why"
+                      value={day2Why}
+                      onChange={(e) => setDay2Why(e.target.value)}
+                      placeholder="Example: Day 2 is when doubt creeps in. These tasks keep me focused and prove I'm serious..."
+                      rows={2}
+                      className="bg-background resize-none"
+                    />
+                  </div>
+                </div>
+
+                {/* DAY 3 */}
+                <div className="bg-gradient-to-br from-green-500/5 to-green-500/10 rounded-xl p-6 space-y-4 border border-green-500/20">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-lg">
+                      3
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-semibold">Day 3</h4>
+                      <p className="text-sm text-muted-foreground">Finish strong</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="font-semibold">Your Top 3 Tasks</Label>
+                    {[0, 1, 2].map((index) => (
+                      <div key={index} className="flex items-center gap-3">
+                        <div className="w-6 h-6 rounded-full bg-green-500/20 text-green-600 flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                          {index + 1}
+                        </div>
+                        <Input
+                          value={day3Top3[index] || ''}
+                          onChange={(e) => {
+                            const updated = [...day3Top3];
+                            updated[index] = e.target.value;
+                            setDay3Top3(updated);
+                          }}
+                          placeholder={
+                            index === 0 ? "Complete the first 3 days strong..." :
+                            index === 1 ? "Set yourself up for Week 2..." :
+                            "End with a win..."
+                          }
+                          className="bg-background"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-2 pt-3">
+                    <Label htmlFor="day3Why" className="font-semibold">
+                      Why are these 3 tasks important for Day 3?
+                    </Label>
+                    <Textarea
+                      id="day3Why"
+                      value={day3Why}
+                      onChange={(e) => setDay3Why(e.target.value)}
+                      placeholder="Example: Finishing 3 days proves I can do this. It gives me momentum for the rest of the week..."
+                      rows={2}
+                      className="bg-background resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Alert className="border-green-500/20 bg-green-500/5 mt-8">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertTitle>You're Ready</AlertTitle>
+                <AlertDescription>
+                  Once you complete this, your first 3 days will be loaded into your Daily Plan. 
+                  All you have to do is show up. Remember: You're not committing to 90 days right now. 
+                  You're committing to 3 days. You can do anything for 3 days.
+                </AlertDescription>
+              </Alert>
             </div>
           )}
         </div>
