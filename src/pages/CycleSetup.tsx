@@ -22,7 +22,7 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useCycleSetupDraft, CycleSetupDraft, SecondaryPlatform, LimitedTimeOffer } from '@/hooks/useCycleSetupDraft';
+import { useCycleSetupDraft, CycleSetupDraft, SecondaryPlatform, LimitedTimeOffer, RecurringTaskDefinition } from '@/hooks/useCycleSetupDraft';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { AutopilotSetupModal, AutopilotOptions } from '@/components/cycle/AutopilotSetupModal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -447,6 +447,9 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
   const [officeHoursEnd, setOfficeHoursEnd] = useState('17:00');
   const [officeHoursDays, setOfficeHoursDays] = useState<string[]>(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']);
   const [autoCreateWeeklyTasks, setAutoCreateWeeklyTasks] = useState(true);
+  
+  // Step 8.5: Recurring Tasks
+  const [recurringTasks, setRecurringTasks] = useState<RecurringTaskDefinition[]>([]);
 
   // Step 9: Mindset & First 3 Days
   const [biggestFear, setBiggestFear] = useState('');
@@ -725,6 +728,8 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
       setOfficeHoursEnd(draft.officeHoursEnd || '17:00');
       if (draft.officeHoursDays?.length) setOfficeHoursDays(draft.officeHoursDays);
       setAutoCreateWeeklyTasks(draft.autoCreateWeeklyTasks ?? true);
+      // Step 8.5: Recurring Tasks
+      if (draft.recurringTasks?.length) setRecurringTasks(draft.recurringTasks);
       // Step 9: Mindset & First 3 Days
       setBiggestFear(draft.biggestFear || '');
       setWhatWillYouDoWhenFearHits(draft.whatWillYouDoWhenFearHits || '');
@@ -813,6 +818,8 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
         officeHoursEnd,
         officeHoursDays,
         autoCreateWeeklyTasks,
+        // Step 8.5: Recurring Tasks
+        recurringTasks,
         // Step 9: Mindset & First 3 Days
         biggestFear,
         whatWillYouDoWhenFearHits,
@@ -840,7 +847,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
     offers, limitedOffers, revenueGoal, pricePerSale, launchSchedule, monthPlans,
     metric1Name, metric1Start, metric2Name, metric2Start, metric3Name, metric3Start,
     projects, habits, thingsToRemember, 
-    weeklyPlanningDay, weeklyDebriefDay, officeHoursStart, officeHoursEnd, officeHoursDays, autoCreateWeeklyTasks,
+    weeklyPlanningDay, weeklyDebriefDay, officeHoursStart, officeHoursEnd, officeHoursDays, autoCreateWeeklyTasks, recurringTasks,
     biggestFear, whatWillYouDoWhenFearHits, commitmentStatement, whoWillHoldYouAccountable,
     day1Top3, day1Why, day2Top3, day2Why, day3Top3, day3Why,
     currentStep, saveDraft
@@ -1449,6 +1456,203 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
             console.log(`Created ${weeklyTasksToCreate.length} weekly planning/review tasks`);
           }
         }
+      }
+
+      // Create Recurring Tasks Project and Tasks (Step 8.5)
+      try {
+        const validRecurringTasks = recurringTasks.filter(t => t.title?.trim());
+        if (validRecurringTasks.length > 0) {
+          console.log('Creating recurring tasks project...');
+          
+          // Create "Recurring Tasks" project
+          const { data: recurringProject, error: recurringProjectError } = await supabase
+            .from('projects')
+            .insert({
+              user_id: user.id,
+              cycle_id: cycleId,
+              name: '🔁 Recurring Tasks',
+              description: 'Automatically generated recurring tasks for your 90-day cycle',
+              status: 'active'
+            })
+            .select()
+            .single();
+          
+          if (recurringProjectError) {
+            console.error('Recurring project creation error:', recurringProjectError);
+          } else if (recurringProject) {
+            console.log('Recurring project created:', recurringProject.id);
+            
+            // Generate tasks for each recurring task definition
+            const recurringTasksToCreate: any[] = [];
+            
+            const cycleStart = new Date(startDate);
+            const cycleEnd = new Date(endDate);
+            
+            const dayMap: Record<string, number> = {
+              'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3,
+              'Thursday': 4, 'Friday': 5, 'Saturday': 6
+            };
+            
+            for (const recurringTask of validRecurringTasks) {
+              const taskTitle = recurringTask.title.trim();
+              const taskDescription = recurringTask.description?.trim() || null;
+              
+              // Generate tasks based on frequency
+              if (recurringTask.category === 'daily') {
+                // Create a task for every day in the cycle
+                let currentDate = new Date(cycleStart);
+                while (currentDate <= cycleEnd) {
+                  recurringTasksToCreate.push({
+                    user_id: user.id,
+                    project_id: recurringProject.id,
+                    cycle_id: cycleId,
+                    task_text: taskTitle,
+                    task_description: taskDescription,
+                    scheduled_date: format(currentDate, 'yyyy-MM-dd'),
+                    status: 'todo',
+                    priority: 'medium',
+                    category: 'recurring-daily',
+                    context_tags: ['recurring', 'daily'],
+                    is_system_generated: true,
+                    system_source: 'cycle_recurring',
+                  });
+                  currentDate.setDate(currentDate.getDate() + 1);
+                }
+              }
+              
+              else if (recurringTask.category === 'weekly' && recurringTask.dayOfWeek) {
+                const targetDay = dayMap[recurringTask.dayOfWeek];
+                let currentDate = new Date(cycleStart);
+                
+                // Find first occurrence of target day
+                while (currentDate.getDay() !== targetDay && currentDate <= cycleEnd) {
+                  currentDate.setDate(currentDate.getDate() + 1);
+                }
+                
+                // Create tasks every 7 days
+                while (currentDate <= cycleEnd) {
+                  recurringTasksToCreate.push({
+                    user_id: user.id,
+                    project_id: recurringProject.id,
+                    cycle_id: cycleId,
+                    task_text: taskTitle,
+                    task_description: taskDescription,
+                    scheduled_date: format(currentDate, 'yyyy-MM-dd'),
+                    status: 'todo',
+                    priority: 'medium',
+                    category: 'recurring-weekly',
+                    context_tags: ['recurring', 'weekly'],
+                    is_system_generated: true,
+                    system_source: 'cycle_recurring',
+                  });
+                  currentDate.setDate(currentDate.getDate() + 7);
+                }
+              }
+              
+              else if (recurringTask.category === 'biweekly' && recurringTask.dayOfWeek) {
+                const targetDay = dayMap[recurringTask.dayOfWeek];
+                let currentDate = new Date(cycleStart);
+                
+                // Find first occurrence
+                while (currentDate.getDay() !== targetDay && currentDate <= cycleEnd) {
+                  currentDate.setDate(currentDate.getDate() + 1);
+                }
+                
+                // Create tasks every 14 days
+                while (currentDate <= cycleEnd) {
+                  recurringTasksToCreate.push({
+                    user_id: user.id,
+                    project_id: recurringProject.id,
+                    cycle_id: cycleId,
+                    task_text: taskTitle,
+                    task_description: taskDescription,
+                    scheduled_date: format(currentDate, 'yyyy-MM-dd'),
+                    status: 'todo',
+                    priority: 'medium',
+                    category: 'recurring-biweekly',
+                    context_tags: ['recurring', 'biweekly'],
+                    is_system_generated: true,
+                    system_source: 'cycle_recurring',
+                  });
+                  currentDate.setDate(currentDate.getDate() + 14);
+                }
+              }
+              
+              else if (recurringTask.category === 'monthly' && recurringTask.dayOfMonth) {
+                let currentDate = new Date(cycleStart);
+                currentDate.setDate(recurringTask.dayOfMonth);
+                
+                // If we're past that day in the start month, move to next month
+                if (currentDate < cycleStart) {
+                  currentDate.setMonth(currentDate.getMonth() + 1);
+                }
+                
+                // Create tasks each month
+                while (currentDate <= cycleEnd) {
+                  recurringTasksToCreate.push({
+                    user_id: user.id,
+                    project_id: recurringProject.id,
+                    cycle_id: cycleId,
+                    task_text: taskTitle,
+                    task_description: taskDescription,
+                    scheduled_date: format(currentDate, 'yyyy-MM-dd'),
+                    status: 'todo',
+                    priority: 'high',
+                    category: 'recurring-monthly',
+                    context_tags: ['recurring', 'monthly'],
+                    is_system_generated: true,
+                    system_source: 'cycle_recurring',
+                  });
+                  currentDate.setMonth(currentDate.getMonth() + 1);
+                }
+              }
+              
+              else if (recurringTask.category === 'quarterly') {
+                // Create 3 tasks: start, middle, and end of cycle
+                const quarterlyDates = [
+                  new Date(cycleStart),
+                  new Date(cycleStart.getTime() + (cycleEnd.getTime() - cycleStart.getTime()) / 2),
+                  new Date(cycleEnd.getTime() - 7 * 24 * 60 * 60 * 1000), // 1 week before end
+                ];
+                
+                quarterlyDates.forEach((date, idx) => {
+                  if (date <= cycleEnd) {
+                    recurringTasksToCreate.push({
+                      user_id: user.id,
+                      project_id: recurringProject.id,
+                      cycle_id: cycleId,
+                      task_text: `${taskTitle} (${idx === 0 ? 'Start' : idx === 1 ? 'Mid-Cycle' : 'End'})`,
+                      task_description: taskDescription,
+                      scheduled_date: format(date, 'yyyy-MM-dd'),
+                      status: 'todo',
+                      priority: 'high',
+                      category: 'recurring-quarterly',
+                      context_tags: ['recurring', 'quarterly'],
+                      is_system_generated: true,
+                      system_source: 'cycle_recurring',
+                    });
+                  }
+                });
+              }
+            }
+            
+            // Insert all recurring tasks
+            if (recurringTasksToCreate.length > 0) {
+              const { error: recurringTasksError } = await supabase
+                .from('tasks')
+                .insert(recurringTasksToCreate);
+              
+              if (recurringTasksError) {
+                console.error('Recurring tasks creation error:', recurringTasksError);
+              } else {
+                console.log(`Created ${recurringTasksToCreate.length} recurring tasks`);
+              }
+            }
+          }
+        }
+      } catch (recurringError) {
+        console.error('Recurring tasks error:', recurringError);
+        // Don't throw - this is optional, rest of cycle is fine
       }
 
       // Create nurture commitment for email check-ins if enabled
@@ -3668,6 +3872,221 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
                       </p>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Step 8.5: Recurring Tasks */}
+              <Card className="border-blue-500/20">
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-blue-600" />
+                    <CardTitle>Recurring Tasks</CardTitle>
+                    <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">OPTIONAL</Badge>
+                  </div>
+                  <CardDescription>
+                    Set up tasks that repeat automatically (daily check-ins, weekly reports, monthly reviews, etc.)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Alert className="border-blue-500/20 bg-blue-500/5">
+                    <Lightbulb className="h-4 w-4 text-blue-600" />
+                    <AlertTitle>How Recurring Tasks Work</AlertTitle>
+                    <AlertDescription>
+                      These tasks will be automatically created in a "🔁 Recurring Tasks" project for your 90-day cycle. Perfect for regular check-ins, reports, reviews, or any task that repeats on a schedule.
+                    </AlertDescription>
+                  </Alert>
+
+                  {/* Recurring Tasks List */}
+                  <div className="space-y-4">
+                    {recurringTasks.map((task, index) => (
+                      <div key={index} className="border rounded-lg p-4 space-y-4 bg-muted/30">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-1 space-y-4">
+                            {/* Task Title */}
+                            <div className="space-y-2">
+                              <Label htmlFor={`recurring-title-${index}`}>Task Name</Label>
+                              <Input
+                                id={`recurring-title-${index}`}
+                                value={task.title || ''}
+                                onChange={(e) => {
+                                  const updated = [...recurringTasks];
+                                  updated[index] = { ...updated[index], title: e.target.value };
+                                  setRecurringTasks(updated);
+                                }}
+                                placeholder="e.g., Weekly team check-in, Monthly revenue review"
+                              />
+                            </div>
+
+                            {/* Frequency */}
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor={`recurring-freq-${index}`}>Frequency</Label>
+                                <Select
+                                  value={task.category || 'weekly'}
+                                  onValueChange={(value) => {
+                                    const updated = [...recurringTasks];
+                                    updated[index] = { ...updated[index], category: value as RecurringTaskDefinition['category'] };
+                                    setRecurringTasks(updated);
+                                  }}
+                                >
+                                  <SelectTrigger id={`recurring-freq-${index}`}>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-background border shadow-lg z-50">
+                                    <SelectItem value="daily">Daily</SelectItem>
+                                    <SelectItem value="weekly">Weekly</SelectItem>
+                                    <SelectItem value="biweekly">Bi-weekly (every 2 weeks)</SelectItem>
+                                    <SelectItem value="monthly">Monthly</SelectItem>
+                                    <SelectItem value="quarterly">Quarterly (3x in 90 days)</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              {/* Time (optional) */}
+                              <div className="space-y-2">
+                                <Label htmlFor={`recurring-time-${index}`}>Time (Optional)</Label>
+                                <Input
+                                  id={`recurring-time-${index}`}
+                                  type="time"
+                                  value={task.time || ''}
+                                  onChange={(e) => {
+                                    const updated = [...recurringTasks];
+                                    updated[index] = { ...updated[index], time: e.target.value };
+                                    setRecurringTasks(updated);
+                                  }}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Day Selection (for weekly/biweekly) */}
+                            {(task.category === 'weekly' || task.category === 'biweekly') && (
+                              <div className="space-y-2">
+                                <Label>Which day?</Label>
+                                <Select
+                                  value={task.dayOfWeek || ''}
+                                  onValueChange={(value) => {
+                                    const updated = [...recurringTasks];
+                                    updated[index] = { ...updated[index], dayOfWeek: value };
+                                    setRecurringTasks(updated);
+                                  }}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select a day" />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-background border shadow-lg z-50">
+                                    <SelectItem value="Monday">Monday</SelectItem>
+                                    <SelectItem value="Tuesday">Tuesday</SelectItem>
+                                    <SelectItem value="Wednesday">Wednesday</SelectItem>
+                                    <SelectItem value="Thursday">Thursday</SelectItem>
+                                    <SelectItem value="Friday">Friday</SelectItem>
+                                    <SelectItem value="Saturday">Saturday</SelectItem>
+                                    <SelectItem value="Sunday">Sunday</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+
+                            {/* Day of Month Selection (for monthly) */}
+                            {task.category === 'monthly' && (
+                              <div className="space-y-2">
+                                <Label>Which day of the month?</Label>
+                                <Select
+                                  value={task.dayOfMonth?.toString() || ''}
+                                  onValueChange={(value) => {
+                                    const updated = [...recurringTasks];
+                                    updated[index] = { ...updated[index], dayOfMonth: parseInt(value) };
+                                    setRecurringTasks(updated);
+                                  }}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select a day" />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-background border shadow-lg z-50 max-h-60">
+                                    {Array.from({ length: 28 }, (_, i) => i + 1).map(day => (
+                                      <SelectItem key={day} value={day.toString()}>
+                                        {day}{day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+
+                            {/* Description (optional) */}
+                            <div className="space-y-2">
+                              <Label htmlFor={`recurring-desc-${index}`}>Description (Optional)</Label>
+                              <Textarea
+                                id={`recurring-desc-${index}`}
+                                value={task.description || ''}
+                                onChange={(e) => {
+                                  const updated = [...recurringTasks];
+                                  updated[index] = { ...updated[index], description: e.target.value };
+                                  setRecurringTasks(updated);
+                                }}
+                                placeholder="Add any notes or details about this task"
+                                rows={2}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Remove Button */}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setRecurringTasks(recurringTasks.filter((_, i) => i !== index));
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        {/* Preview */}
+                        <div className="bg-muted rounded p-3 text-xs text-muted-foreground">
+                          <strong>Preview:</strong> "{task.title || 'Untitled task'}" will repeat{' '}
+                          {task.category === 'daily' && 'every day (90 tasks)'}
+                          {task.category === 'weekly' && `every ${task.dayOfWeek || 'week'} (~13 tasks)`}
+                          {task.category === 'biweekly' && `every 2 weeks on ${task.dayOfWeek || 'selected day'} (~6 tasks)`}
+                          {task.category === 'monthly' && `on the ${task.dayOfMonth || 'selected'} of each month (~3 tasks)`}
+                          {task.category === 'quarterly' && 'at start, middle, and end of cycle (3 tasks)'}
+                          {task.time && ` at ${task.time}`}
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Add New Recurring Task Button */}
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setRecurringTasks([...recurringTasks, {
+                          title: '',
+                          category: 'weekly',
+                          dayOfWeek: 'Monday',
+                          time: '',
+                          description: ''
+                        }]);
+                      }}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Recurring Task
+                    </Button>
+                  </div>
+
+                  {/* Examples Box */}
+                  <Alert>
+                    <Lightbulb className="h-4 w-4" />
+                    <AlertTitle>Examples of Recurring Tasks</AlertTitle>
+                    <AlertDescription>
+                      <ul className="text-sm space-y-1 mt-2 ml-4">
+                        <li>• <strong>Daily:</strong> Morning planning session, End of day review</li>
+                        <li>• <strong>Weekly:</strong> Team check-in, Content batch day, Analytics review</li>
+                        <li>• <strong>Bi-weekly:</strong> 1-on-1 meetings, Progress review</li>
+                        <li>• <strong>Monthly:</strong> Financial review, Strategy session, Metrics analysis</li>
+                        <li>• <strong>Quarterly:</strong> Major milestone review, Quarterly planning</li>
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
                 </CardContent>
               </Card>
 

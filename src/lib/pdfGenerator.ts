@@ -375,6 +375,29 @@ export async function generatePDFBlob(data: CycleExportData): Promise<PDFGenerat
     }
 
     // ============================================================
+    // 10.5. RECURRING TASKS (if any exist in the data)
+    // ============================================================
+    // Note: This section will be populated when recurring tasks are passed via CycleExportData
+    // The recurring tasks are generated as actual tasks, so we show a summary if there are any
+    // recurring-category tasks in the generatedTasks array
+    const recurringTasks = data.generatedTasks?.filter(t => 
+      t.title?.toLowerCase().includes('recurring') || 
+      t.priority === 'recurring' ||
+      (t as any).category?.startsWith('recurring-')
+    ) || [];
+    
+    if (recurringTasks.length > 0) {
+      addSectionHeader('Recurring Tasks Summary');
+      checkPageBreak(15);
+      doc.setFontSize(10);
+      doc.setTextColor(...COLORS.muted);
+      doc.text(`${recurringTasks.length} recurring tasks have been created for your 90-day cycle.`, margin, y);
+      y += 6;
+      doc.text('View them in your "🔁 Recurring Tasks" project in the Tasks page.', margin, y);
+      y += 10;
+    }
+
+    // ============================================================
     // 11. FIRST 3 DAYS ACTION PLAN
     // ============================================================
     const hasDays = data.day1Top3.some(t => t) || data.day2Top3.some(t => t) || data.day3Top3.some(t => t);

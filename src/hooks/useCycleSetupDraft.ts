@@ -23,6 +23,16 @@ export interface LimitedTimeOffer {
   notes?: string;
 }
 
+// Recurring Task interface for Step 8.5
+export interface RecurringTaskDefinition {
+  title: string;
+  category: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly';
+  dayOfWeek?: string; // For weekly/biweekly (Monday, Tuesday, etc)
+  dayOfMonth?: number; // For monthly (1-31)
+  time?: string; // Optional time (HH:MM format)
+  description?: string;
+}
+
 export interface CycleSetupDraft {
   // Step 1: Dates & Goal
   startDate: string;
@@ -108,6 +118,9 @@ export interface CycleSetupDraft {
   officeHoursEnd: string;
   officeHoursDays: string[];
   autoCreateWeeklyTasks: boolean;
+  
+  // Step 8.5: Recurring Tasks
+  recurringTasks: RecurringTaskDefinition[];
 
   // Step 9: Mindset & First 3 Days
   biggestFear: string;
@@ -187,6 +200,8 @@ const DEFAULT_DRAFT: CycleSetupDraft = {
   officeHoursEnd: '17:00',
   officeHoursDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
   autoCreateWeeklyTasks: true,
+  // Step 8.5: Recurring Tasks
+  recurringTasks: [],
   // Step 9: Mindset & First 3 Days
   biggestFear: '',
   whatWillYouDoWhenFearHits: '',
