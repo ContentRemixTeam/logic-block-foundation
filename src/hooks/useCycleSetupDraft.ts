@@ -23,6 +23,17 @@ export interface LimitedTimeOffer {
   notes?: string;
 }
 
+// Promotion interface for Step 6.5
+export interface PromotionDefinition {
+  name: string;
+  offer: string; // Which offer they're promoting
+  startDate: string;
+  endDate: string;
+  goal: string; // Sales goal or number of sales
+  launchType: 'open-close' | 'evergreen' | 'flash-sale' | 'webinar' | 'challenge' | '';
+  notes?: string;
+}
+
 // Recurring Task interface for Step 8.5
 export interface RecurringTaskDefinition {
   title: string;
@@ -80,6 +91,9 @@ export interface CycleSetupDraft {
   nurtureContentAudit: string; // Existing nurture content to reuse
 
   // Step 6: Offers
+  // Step 6.5: Promotions & Launches
+  promotions: PromotionDefinition[];
+
   offers: Array<{
     name: string;
     price: string;
@@ -176,6 +190,7 @@ const DEFAULT_DRAFT: CycleSetupDraft = {
   nurtureBatchFrequency: 'weekly',
   nurtureContentAudit: '',
   offers: [{ name: '', price: '', frequency: '', transformation: '', isPrimary: true }],
+  promotions: [],
   limitedOffers: [],
   revenueGoal: '',
   pricePerSale: '',

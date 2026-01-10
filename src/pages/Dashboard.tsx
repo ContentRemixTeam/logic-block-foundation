@@ -37,7 +37,7 @@ import { MastermindCallWidget } from '@/components/mastermind/MastermindCallWidg
 import { PodcastWidget } from '@/components/podcast/PodcastWidget';
 import { HelpButton } from '@/components/ui/help-button';
 import { PremiumCard, PremiumCardContent, PremiumCardHeader, PremiumCardTitle } from '@/components/ui/premium-card';
-import { TodayStrip, PlanMyWeekButton, QuickActionsPanel, ResourcesPanel, MetricsWidget, WeeklyRoutineReminder } from '@/components/dashboard';
+import { TodayStrip, PlanMyWeekButton, QuickActionsPanel, ResourcesPanel, MetricsWidget, WeeklyRoutineReminder, PromotionCountdown, SalesCalendar } from '@/components/dashboard';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -559,6 +559,12 @@ export default function Dashboard() {
                 weeklyPlanningDay={weeklyRoutines.planning_day}
                 weeklyDebriefDay={weeklyRoutines.debrief_day}
               />
+              
+              {/* Promotion Countdown - Priority placement */}
+              <PromotionCountdown />
+              
+              {/* Sales Calendar */}
+              <SalesCalendar />
               
               {/* Plan My Week Button */}
               <PlanMyWeekButton />

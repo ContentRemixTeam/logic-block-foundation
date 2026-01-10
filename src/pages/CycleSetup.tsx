@@ -1212,6 +1212,18 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
           day2_why: day2Why?.trim() || null,
           day3_top3: day3Top3.filter(t => t?.trim()),
           day3_why: day3Why?.trim() || null,
+          // Promotions for dashboard widgets
+          promotions: limitedOffers
+            .filter(lto => lto.name.trim() && lto.startDate && lto.endDate)
+            .map(lto => ({
+              name: lto.name,
+              offer: lto.offerRef || '',
+              startDate: lto.startDate,
+              endDate: lto.endDate,
+              goal: lto.discount || '',
+              launchType: lto.promoType || 'open-close',
+              notes: lto.notes || ''
+            })),
         } as any)
         .select()
         .single();

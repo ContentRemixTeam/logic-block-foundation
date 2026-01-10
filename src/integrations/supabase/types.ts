@@ -742,6 +742,7 @@ export type Database = {
           office_hours_days: Json | null
           office_hours_end: string | null
           office_hours_start: string | null
+          promotions: Json | null
           signature_message: string | null
           start_date: string
           supporting_projects: Json | null
@@ -785,6 +786,7 @@ export type Database = {
           office_hours_days?: Json | null
           office_hours_end?: string | null
           office_hours_start?: string | null
+          promotions?: Json | null
           signature_message?: string | null
           start_date: string
           supporting_projects?: Json | null
@@ -828,6 +830,7 @@ export type Database = {
           office_hours_days?: Json | null
           office_hours_end?: string | null
           office_hours_start?: string | null
+          promotions?: Json | null
           signature_message?: string | null
           start_date?: string
           supporting_projects?: Json | null
