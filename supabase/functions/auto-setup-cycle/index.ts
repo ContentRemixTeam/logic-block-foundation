@@ -213,6 +213,11 @@ Deno.serve(async (req) => {
       nurture_method,
       nurture_frequency,
       free_transformation,
+      // Nurture posting schedule (like lead gen)
+      nurture_posting_days,
+      nurture_posting_time,
+      nurture_batch_day,
+      nurture_batch_frequency,
       offers = [],
       limited_offers = [],
       metrics = {},
@@ -581,7 +586,34 @@ Deno.serve(async (req) => {
 
       // Create nurture tasks based on method and frequency
       if (nurtureProjectId) {
-        const nurtureDates = getOccurrencesByFrequency(effectiveStart, endDateObj, nurture_frequency || 'weekly');
+        // Build audience context for nurture tasks
+        const nurtureAudienceContext = [
+          audience_target ? `🎯 Audience: ${audience_target}` : null,
+          audience_frustration ? `😫 Their Pain Point: ${audience_frustration}` : null,
+          signature_message ? `💬 Your Message: "${signature_message}"` : null,
+          free_transformation ? `🎁 Free Transformation: ${free_transformation}` : null,
+        ].filter(Boolean).join('\n');
+        
+        // Use nurture_posting_days if specified, otherwise fall back to frequency-based dates
+        let nurtureDates: Date[];
+        
+        if (nurture_posting_days && nurture_posting_days.length > 0) {
+          // Map day names to day numbers
+          const dayNumbers = nurture_posting_days
+            .map((d: string) => {
+              const dayMap: Record<string, number> = {
+                'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3,
+                'Thursday': 4, 'Friday': 5, 'Saturday': 6,
+                'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6,
+              };
+              return dayMap[d];
+            })
+            .filter((n: number | undefined) => n !== undefined);
+          
+          nurtureDates = getNextOccurrences(effectiveStart, endDateObj, dayNumbers);
+        } else {
+          nurtureDates = getOccurrencesByFrequency(effectiveStart, endDateObj, nurture_frequency || 'weekly');
+        }
         
         const nurtureTaskTemplates: { text: string; minutes: number }[] = [];
         
@@ -629,23 +661,31 @@ Deno.serve(async (req) => {
               .eq('template_key', templateKey)
               .maybeSingle();
             
-              if (!existing) {
-                nurtureTasksToCreate.push({
-                  user_id: userId,
-                  cycle_id: cycle_id,
-                  project_id: nurtureProjectId,
-                  task_text: template.text,
-                  scheduled_date: formatDate(date),
-                  estimated_minutes: template.minutes,
-                  status: 'todo',
-                  category: 'nurture',
-                  source: 'auto-nurture',
-                  is_system_generated: true,
-                  system_source: 'cycle_autopilot',
-                  template_key: templateKey,
-                  context_tags: ['nurture', nurture_method],
-                });
-              }
+            if (!existing) {
+              // Build task description with audience context
+              const taskDescription = nurtureAudienceContext 
+                ? `${template.text}\n\n📋 YOUR AUDIENCE & MESSAGE:\n${nurtureAudienceContext}`
+                : template.text;
+              
+              nurtureTasksToCreate.push({
+                user_id: userId,
+                cycle_id: cycle_id,
+                project_id: nurtureProjectId,
+                task_text: template.text,
+                task_description: taskDescription,
+                scheduled_date: formatDate(date),
+                time_block_start: nurture_posting_time || null,
+                time_block_end: nurture_posting_time ? addMinutes(nurture_posting_time, template.minutes) : null,
+                estimated_minutes: template.minutes,
+                status: 'todo',
+                category: 'nurture',
+                source: 'auto-nurture',
+                is_system_generated: true,
+                system_source: 'cycle_autopilot',
+                template_key: templateKey,
+                context_tags: ['nurture', nurture_method],
+              });
+            }
           }
         }
 
@@ -661,6 +701,94 @@ Deno.serve(async (req) => {
           } else {
             results.tasks.push(...nurtureTasks);
             console.log(`[AutoSetup] Created ${nurtureTasks.length} nurture tasks`);
+          }
+        }
+        
+        // Create nurture batch tasks (if specified)
+        if (nurture_batch_day && nurture_batch_day !== 'none') {
+          const batchDayMap: Record<string, number> = {
+            'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3,
+            'Thursday': 4, 'Friday': 5, 'Saturday': 6,
+          };
+          
+          const batchDayNum = batchDayMap[nurture_batch_day];
+          if (batchDayNum !== undefined) {
+            const batchDates = getNextOccurrences(effectiveStart, endDateObj, [batchDayNum]);
+            
+            // Filter based on batch frequency
+            let filteredBatchDates = batchDates;
+            if (nurture_batch_frequency === 'biweekly') {
+              filteredBatchDates = batchDates.filter((_, i) => i % 2 === 0);
+            } else if (nurture_batch_frequency === 'monthly') {
+              // First occurrence each month
+              const seenMonths = new Set<string>();
+              filteredBatchDates = batchDates.filter(d => {
+                const monthKey = `${d.getFullYear()}-${d.getMonth()}`;
+                if (seenMonths.has(monthKey)) return false;
+                seenMonths.add(monthKey);
+                return true;
+              });
+            } else if (nurture_batch_frequency === 'quarterly') {
+              filteredBatchDates = batchDates.slice(0, 1); // Just first occurrence
+            }
+            
+            const nurtureBatchTasksToCreate: any[] = [];
+            
+            for (const date of filteredBatchDates) {
+              const dateStr = formatDate(date);
+              const batchTemplateKey = generateTemplateKey('nurture_batch', cycle_id, dateStr);
+              
+              // Check if already exists
+              const { data: existing } = await supabase
+                .from('tasks')
+                .select('task_id')
+                .eq('template_key', batchTemplateKey)
+                .maybeSingle();
+              
+              if (!existing) {
+                const periodLabel = nurture_batch_frequency === 'weekly' ? 'week' : 
+                                   nurture_batch_frequency === 'biweekly' ? '2 weeks' :
+                                   nurture_batch_frequency === 'monthly' ? 'month' : 'quarter';
+                
+                // Build batch task description with audience context
+                const batchDescription = nurtureAudienceContext 
+                  ? `Batch and prepare nurture content for the ${periodLabel}.\n\n📋 YOUR AUDIENCE & MESSAGE:\n${nurtureAudienceContext}\n\n💡 Tips:\n• Focus on their pain points\n• Lead with your signature message\n• Provide your free transformation`
+                  : `Batch and prepare nurture content for the ${periodLabel}.`;
+                
+                nurtureBatchTasksToCreate.push({
+                  user_id: userId,
+                  cycle_id: cycle_id,
+                  project_id: nurtureProjectId,
+                  task_text: `📝 Batch nurture content for the ${periodLabel}`,
+                  task_description: batchDescription,
+                  scheduled_date: dateStr,
+                  time_block_start: '09:00',
+                  time_block_end: '10:30',
+                  estimated_minutes: 90,
+                  status: 'todo',
+                  source: 'auto-nurture-batch',
+                  is_system_generated: true,
+                  system_source: 'cycle_autopilot',
+                  template_key: batchTemplateKey,
+                  context_tags: ['nurture', 'batch'],
+                });
+              }
+            }
+            
+            if (nurtureBatchTasksToCreate.length > 0) {
+              const { data: batchTasks, error: batchError } = await supabase
+                .from('tasks')
+                .insert(nurtureBatchTasksToCreate)
+                .select();
+              
+              if (batchError) {
+                console.error('[AutoSetup] Error creating nurture batch tasks:', batchError);
+                results.errors.push(`Failed to create nurture batch tasks: ${batchError.message}`);
+              } else {
+                results.tasks.push(...batchTasks);
+                console.log(`[AutoSetup] Created ${batchTasks.length} nurture batch tasks`);
+              }
+            }
           }
         }
       }
