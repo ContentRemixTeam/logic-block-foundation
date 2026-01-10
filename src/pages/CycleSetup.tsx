@@ -26,7 +26,7 @@ import { useCycleSetupDraft, CycleSetupDraft, SecondaryPlatform, LimitedTimeOffe
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { AutopilotSetupModal, AutopilotOptions } from '@/components/cycle/AutopilotSetupModal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { loadCycleForExport, exportCycleAsJSON, exportCycleAsPDF, CycleExportData, generateExportFromFormData, CycleFormData } from '@/lib/cycleExport';
+import { loadCycleForExport, exportCycleAsJSON, exportCycleAsPDF, CycleExportData, generateExportFromFormData, CycleFormData, ExportResult } from '@/lib/cycleExport';
 
 const WORKSHOP_STORAGE_KEY = 'workshop-planner-data';
 
@@ -1757,17 +1757,51 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
     whoWillHoldYouAccountable, day1Top3, day1Why, day2Top3, day2Why, day3Top3, day3Why
   ]);
 
+// Helper to show export result with appropriate message
+  const handleExportResult = (result: ExportResult, type: 'PDF' | 'JSON') => {
+    if (result.success) {
+      if (result.message) {
+        toast({ title: `${type} ready!`, description: result.message });
+      } else if (type === 'PDF') {
+        toast({ title: "PDF ready!", description: "Save from the print dialog. Choose 'Save as PDF' as the destination." });
+      } else {
+        toast({ title: "JSON downloaded!", description: "Your plan has been exported." });
+      }
+    } else {
+      // Handle specific errors with helpful guidance
+      if (result.error === 'popup_blocked') {
+        toast({ 
+          title: "Pop-up Blocked", 
+          description: "Please allow pop-ups for this site. Look for a blocked pop-up icon in your browser's address bar.",
+          variant: "destructive",
+          duration: 8000,
+        });
+      } else {
+        toast({ 
+          title: "Export Issue", 
+          description: result.message || "An error occurred. Don't worry - you can download your plan later from your saved cycle.",
+          variant: "destructive",
+          duration: 6000,
+        });
+      }
+    }
+  };
+
   // Export from form state (pre-save)
   const handleExportPDFFromState = async () => {
     setExporting(true);
     try {
       const formData = getFormDataForExport();
       const exportData = generateExportFromFormData(formData);
-      await exportCycleAsPDF(exportData);
-      toast({ title: "PDF ready!", description: "Save from the print dialog that opens." });
+      const result = await exportCycleAsPDF(exportData);
+      handleExportResult(result, 'PDF');
     } catch (error) {
       console.error("PDF export error:", error);
-      toast({ title: "Export failed", description: "An error occurred.", variant: "destructive" });
+      toast({ 
+        title: "Export failed", 
+        description: "Don't worry - complete your setup and you can download from your saved cycle anytime.",
+        variant: "destructive" 
+      });
     } finally {
       setExporting(false);
     }
@@ -1778,11 +1812,15 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
     try {
       const formData = getFormDataForExport();
       const exportData = generateExportFromFormData(formData);
-      exportCycleAsJSON(exportData);
-      toast({ title: "JSON downloaded!", description: "Your plan has been exported." });
+      const result = exportCycleAsJSON(exportData);
+      handleExportResult(result, 'JSON');
     } catch (error) {
       console.error("JSON export error:", error);
-      toast({ title: "Export failed", description: "An error occurred.", variant: "destructive" });
+      toast({ 
+        title: "Export failed", 
+        description: "Don't worry - complete your setup and you can download from your saved cycle anytime.",
+        variant: "destructive" 
+      });
     } finally {
       setExporting(false);
     }
@@ -1799,14 +1837,14 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
     try {
       const data = await loadCycleForExport(existingCycleId, supabase);
       if (data) {
-        await exportCycleAsPDF(data);
-        toast({ title: "PDF ready!", description: "Save from the print dialog that opens." });
+        const result = await exportCycleAsPDF(data);
+        handleExportResult(result, 'PDF');
       } else {
-        toast({ title: "Export failed", description: "Could not load cycle data.", variant: "destructive" });
+        toast({ title: "Export failed", description: "Could not load cycle data. Please refresh and try again.", variant: "destructive" });
       }
     } catch (error) {
       console.error("PDF export error:", error);
-      toast({ title: "Export failed", description: "An error occurred.", variant: "destructive" });
+      toast({ title: "Export failed", description: "An error occurred. Please try again.", variant: "destructive" });
     } finally {
       setExporting(false);
     }
@@ -1822,14 +1860,14 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
     try {
       const data = await loadCycleForExport(existingCycleId, supabase);
       if (data) {
-        exportCycleAsJSON(data);
-        toast({ title: "JSON downloaded!", description: "Your plan has been exported." });
+        const result = exportCycleAsJSON(data);
+        handleExportResult(result, 'JSON');
       } else {
-        toast({ title: "Export failed", description: "Could not load cycle data.", variant: "destructive" });
+        toast({ title: "Export failed", description: "Could not load cycle data. Please refresh and try again.", variant: "destructive" });
       }
     } catch (error) {
       console.error("JSON export error:", error);
-      toast({ title: "Export failed", description: "An error occurred.", variant: "destructive" });
+      toast({ title: "Export failed", description: "An error occurred. Please try again.", variant: "destructive" });
     } finally {
       setExporting(false);
     }
@@ -4089,7 +4127,7 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
               </DialogDescription>
             </DialogHeader>
             
-            <div className="space-y-4 py-4">
+<div className="space-y-4 py-4">
               <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-4 border border-primary/20">
                 <p className="text-sm text-muted-foreground mb-4">
                   Your PDF will include your goal, strategy, offers, metrics, weekly routines, and first 3 days action plan.
@@ -4115,6 +4153,19 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
                     {exporting ? "Preparing..." : "Download JSON"}
                   </Button>
                 </div>
+              </div>
+
+              {/* Troubleshooting tips */}
+              <div className="bg-muted/50 rounded-lg p-3 text-xs space-y-2">
+                <p className="font-medium text-foreground">💡 If download doesn't work:</p>
+                <ul className="text-muted-foreground space-y-1 list-disc list-inside">
+                  <li>Allow pop-ups for this site (check your browser's address bar)</li>
+                  <li>Try using Chrome, Firefox, or Safari</li>
+                  <li>For PDF: In the print dialog, select "Save as PDF" as the destination</li>
+                </ul>
+                <p className="text-muted-foreground pt-1">
+                  <strong>No worries!</strong> You can always download your plan later from the Cycle Management page after saving.
+                </p>
               </div>
             </div>
 

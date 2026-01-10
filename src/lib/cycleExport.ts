@@ -268,37 +268,95 @@ export async function loadCycleForExport(cycleId: string, supabase: SupabaseClie
   }
 }
 
-// Export as JSON
-export function exportCycleAsJSON(cycleData: CycleExportData): void {
-  const jsonString = JSON.stringify(cycleData, null, 2);
-  const blob = new Blob([jsonString], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `90-day-plan-${format(new Date(cycleData.startDate), 'yyyy-MM-dd')}.json`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+// Export result type for better error handling
+export interface ExportResult {
+  success: boolean;
+  error?: 'popup_blocked' | 'browser_error' | 'unknown';
+  message?: string;
 }
 
-// Export as beautifully formatted PDF (using print-to-PDF)
-export async function exportCycleAsPDF(cycleData: CycleExportData): Promise<void> {
-  const htmlContent = generatePDFHTML(cycleData);
-  
-  const printWindow = window.open('', '_blank');
-  if (!printWindow) {
-    console.error('Could not open print window. Please allow popups.');
-    return;
+// Export as JSON - bulletproof version
+export function exportCycleAsJSON(cycleData: CycleExportData): ExportResult {
+  try {
+    const jsonString = JSON.stringify(cycleData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `90-day-plan-${format(new Date(cycleData.startDate), 'yyyy-MM-dd')}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    return { success: true };
+  } catch (error) {
+    console.error('JSON export error:', error);
+    return { 
+      success: false, 
+      error: 'browser_error',
+      message: 'Failed to create download. Try using a different browser.'
+    };
   }
-  
-  printWindow.document.write(htmlContent);
-  printWindow.document.close();
-  
-  // Trigger print dialog (user can save as PDF)
-  setTimeout(() => {
-    printWindow.print();
-  }, 500);
+}
+
+// Export as beautifully formatted PDF (using print-to-PDF) - bulletproof version
+export async function exportCycleAsPDF(cycleData: CycleExportData): Promise<ExportResult> {
+  try {
+    const htmlContent = generatePDFHTML(cycleData);
+    
+    // Try to open popup window
+    const printWindow = window.open('', '_blank');
+    
+    // Detect popup blocker
+    if (!printWindow || printWindow.closed || typeof printWindow.closed === 'undefined') {
+      console.error('Popup blocked');
+      return {
+        success: false,
+        error: 'popup_blocked',
+        message: 'Pop-up was blocked by your browser. Please allow pop-ups for this site and try again.'
+      };
+    }
+    
+    // Write content to the new window
+    try {
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+    } catch (writeError) {
+      console.error('Failed to write to print window:', writeError);
+      printWindow.close();
+      return {
+        success: false,
+        error: 'browser_error',
+        message: 'Failed to generate PDF content. Try using Chrome or Firefox.'
+      };
+    }
+    
+    // Wait for content to load, then trigger print
+    return new Promise((resolve) => {
+      // Give the browser time to render
+      setTimeout(() => {
+        try {
+          printWindow.focus();
+          printWindow.print();
+          resolve({ success: true });
+        } catch (printError) {
+          console.error('Print error:', printError);
+          // The window is still open with content, user can manually print
+          resolve({ 
+            success: true, 
+            message: 'PDF window opened. Use Ctrl+P (or Cmd+P on Mac) to print/save as PDF.'
+          });
+        }
+      }, 800);
+    });
+  } catch (error) {
+    console.error('PDF export error:', error);
+    return {
+      success: false,
+      error: 'unknown',
+      message: 'An unexpected error occurred. Please try again or use a different browser.'
+    };
+  }
 }
 
 // Generate beautiful HTML for PDF
