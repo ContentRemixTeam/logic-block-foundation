@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -188,6 +188,8 @@ const STEPS = [
 export default function CycleSetup() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editCycleId = searchParams.get('edit');
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
@@ -200,6 +202,8 @@ export default function CycleSetup() {
   const [showWorkshopImportBanner, setShowWorkshopImportBanner] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [previewData, setPreviewData] = useState<{ projects: any[]; tasks: any[] }>({ projects: [], tasks: [] });
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [existingCycleId, setExistingCycleId] = useState<string | null>(null);
   
   const { hasDraft, saveDraft, loadDraft, clearDraft, getDraftAge } = useCycleSetupDraft();
   
@@ -482,6 +486,136 @@ export default function CycleSetup() {
       console.error('Failed to check workshop data:', e);
     }
   }, [hasDraft]);
+
+  // Load existing cycle for editing
+  useEffect(() => {
+    const loadExistingCycle = async () => {
+      if (!editCycleId || !user) return;
+
+      try {
+        // Load main cycle data
+        const { data: cycleData, error: cycleError } = await supabase
+          .from('cycles_90_day')
+          .select('*')
+          .eq('cycle_id', editCycleId)
+          .eq('user_id', user.id)
+          .single();
+
+        if (cycleError) throw cycleError;
+        
+        if (cycleData) {
+          setIsEditMode(true);
+          setExistingCycleId(cycleData.cycle_id);
+          hasUserDismissedDraft.current = true; // Don't show draft dialog in edit mode
+          
+          // Load data into form
+          try {
+            setStartDate(parseISO(cycleData.start_date));
+          } catch {
+            setStartDate(new Date());
+          }
+          setGoal(cycleData.goal || '');
+          setWhy(cycleData.why || '');
+          setIdentity(cycleData.identity || '');
+          setFeeling(cycleData.target_feeling || '');
+          setDiscoverScore(cycleData.discover_score || 5);
+          setNurtureScore(cycleData.nurture_score || 5);
+          setConvertScore(cycleData.convert_score || 5);
+          setBiggestBottleneck(cycleData.biggest_bottleneck || '');
+          setAudienceTarget(cycleData.audience_target || '');
+          setAudienceFrustration(cycleData.audience_frustration || '');
+          setSignatureMessage(cycleData.signature_message || '');
+          setMetric1Name(cycleData.metric_1_name || '');
+          setMetric1Start(cycleData.metric_1_start ?? '');
+          setMetric2Name(cycleData.metric_2_name || '');
+          setMetric2Start(cycleData.metric_2_start ?? '');
+          setMetric3Name(cycleData.metric_3_name || '');
+          setMetric3Start(cycleData.metric_3_start ?? '');
+          setThingsToRemember(Array.isArray(cycleData.things_to_remember) ? (cycleData.things_to_remember as string[]) : ['', '', '']);
+          setWeeklyPlanningDay(cycleData.weekly_planning_day || '');
+          setWeeklyDebriefDay(cycleData.weekly_debrief_day || '');
+          setOfficeHoursStart(cycleData.office_hours_start || '09:00');
+          setOfficeHoursEnd(cycleData.office_hours_end || '17:00');
+          setOfficeHoursDays(Array.isArray(cycleData.office_hours_days) ? (cycleData.office_hours_days as string[]) : []);
+
+          // Load strategy
+          const { data: strategyData } = await supabase
+            .from('cycle_strategy')
+            .select('*')
+            .eq('cycle_id', editCycleId)
+            .single();
+          
+          if (strategyData) {
+            setLeadPlatform(strategyData.lead_primary_platform || '');
+            setLeadContentType(strategyData.lead_content_type || '');
+            setLeadFrequency(strategyData.lead_frequency || '');
+            setLeadCommitted(strategyData.lead_committed_90_days || false);
+            setNurtureMethod(strategyData.nurture_method || '');
+            setNurtureFrequency(strategyData.nurture_frequency || '');
+            setFreeTransformation(strategyData.free_transformation || '');
+            setProofMethods(Array.isArray(strategyData.proof_methods) ? (strategyData.proof_methods as string[]) : []);
+            setPostingDays(Array.isArray(strategyData.posting_days) ? (strategyData.posting_days as string[]) : []);
+            setPostingTime(strategyData.posting_time || '');
+            setBatchDay(strategyData.batch_day || '');
+            setBatchFrequency(strategyData.batch_frequency || 'weekly');
+            setLeadGenContentAudit(strategyData.lead_gen_content_audit || '');
+            setNurturePostingDays(Array.isArray(strategyData.nurture_posting_days) ? (strategyData.nurture_posting_days as string[]) : []);
+            setNurturePostingTime(strategyData.nurture_posting_time || '');
+            setNurtureBatchDay(strategyData.nurture_batch_day || '');
+            setNurtureBatchFrequency(strategyData.nurture_batch_frequency || 'weekly');
+            setNurtureContentAudit(strategyData.nurture_content_audit || '');
+            if (Array.isArray(strategyData.secondary_platforms)) {
+              setSecondaryPlatforms(strategyData.secondary_platforms as unknown as SecondaryPlatform[]);
+            }
+          }
+
+          // Load revenue plan
+          const { data: revenueData } = await supabase
+            .from('cycle_revenue_plan')
+            .select('*')
+            .eq('cycle_id', editCycleId)
+            .single();
+          
+          if (revenueData) {
+            setRevenueGoal(revenueData.revenue_goal?.toString() || '');
+            setPricePerSale(revenueData.price_per_sale?.toString() || '');
+            setLaunchSchedule(revenueData.launch_schedule || '');
+          }
+
+          // Load offers
+          const { data: offersData } = await supabase
+            .from('cycle_offers')
+            .select('*')
+            .eq('cycle_id', editCycleId)
+            .order('sort_order');
+          
+          if (offersData && offersData.length > 0) {
+            setOffers(offersData.map(o => ({
+              name: o.offer_name,
+              price: o.price?.toString() || '',
+              frequency: o.sales_frequency || '',
+              transformation: o.transformation || '',
+              isPrimary: o.is_primary || false,
+            })));
+          }
+
+          toast({
+            title: 'Editing cycle',
+            description: 'Make your changes and save when ready.',
+          });
+        }
+      } catch (error) {
+        console.error('Error loading existing cycle:', error);
+        toast({
+          title: 'Error loading cycle',
+          description: 'Could not load the cycle for editing.',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    loadExistingCycle();
+  }, [editCycleId, user, toast]);
 
   // Import from workshop localStorage
   const handleImportFromWorkshop = () => {
@@ -898,7 +1032,80 @@ export default function CycleSetup() {
     setShowAutopilotModal(false);
 
     try {
-      // Create cycle with all new fields
+      // Handle UPDATE mode
+      if (isEditMode && existingCycleId) {
+        const { error: updateError } = await supabase
+          .from('cycles_90_day')
+          .update({
+            goal,
+            why,
+            identity,
+            target_feeling: feeling,
+            supporting_projects: projects.filter((p) => p.trim()),
+            discover_score: discoverScore,
+            nurture_score: nurtureScore,
+            convert_score: convertScore,
+            focus_area: focusArea,
+            metric_1_name: metric1Name || null,
+            metric_1_start: metric1Start === '' ? null : metric1Start,
+            metric_2_name: metric2Name || null,
+            metric_2_start: metric2Start === '' ? null : metric2Start,
+            metric_3_name: metric3Name || null,
+            metric_3_start: metric3Start === '' ? null : metric3Start,
+            things_to_remember: thingsToRemember.filter((t) => t.trim()),
+            biggest_bottleneck: biggestBottleneck || null,
+            audience_target: audienceTarget || null,
+            audience_frustration: audienceFrustration || null,
+            signature_message: signatureMessage || null,
+            weekly_planning_day: weeklyPlanningDay || null,
+            weekly_debrief_day: weeklyDebriefDay || null,
+            office_hours_start: officeHoursStart || null,
+            office_hours_end: officeHoursEnd || null,
+            office_hours_days: officeHoursDays,
+          } as any)
+          .eq('cycle_id', existingCycleId);
+
+        if (updateError) throw updateError;
+
+        // Update strategy
+        const effectiveNurtureMethod = nurtureMethod === 'other' ? nurtureMethodCustom : nurtureMethod;
+        await supabase
+          .from('cycle_strategy')
+          .upsert({
+            cycle_id: existingCycleId,
+            user_id: user.id,
+            lead_primary_platform: leadPlatform || null,
+            lead_content_type: leadContentType || null,
+            lead_frequency: leadFrequency || null,
+            lead_committed_90_days: leadCommitted,
+            nurture_method: effectiveNurtureMethod || null,
+            nurture_frequency: nurtureFrequency || null,
+            free_transformation: freeTransformation || null,
+            proof_methods: proofMethods,
+            posting_days: postingDays,
+            posting_time: postingTime || null,
+            batch_day: batchDay || null,
+            batch_frequency: batchFrequency || 'weekly',
+            lead_gen_content_audit: leadGenContentAudit || null,
+            nurture_posting_days: nurturePostingDays,
+            nurture_posting_time: nurturePostingTime || null,
+            nurture_batch_day: nurtureBatchDay || null,
+            nurture_batch_frequency: nurtureBatchFrequency || 'weekly',
+            nurture_content_audit: nurtureContentAudit || null,
+            secondary_platforms: secondaryPlatforms.filter(sp => sp.platform.trim()),
+          } as any, { onConflict: 'cycle_id' });
+
+        toast({
+          title: '✅ Plan Updated!',
+          description: 'Your changes have been saved.',
+        });
+
+        clearDraft();
+        navigate('/cycles');
+        return;
+      }
+
+      // CREATE new cycle
       const { data: cycle, error: cycleError } = await supabase
         .from('cycles_90_day')
         .insert({
@@ -3093,7 +3300,7 @@ export default function CycleSetup() {
                 Preview Projects & Tasks
               </Button>
               <Button onClick={() => setShowAutopilotModal(true)} disabled={loading || !goal}>
-                {loading ? 'Creating...' : 'Create Cycle →'}
+                {loading ? 'Saving...' : isEditMode ? 'Update Plan →' : 'Create Cycle →'}
               </Button>
             </div>
           )}
