@@ -2506,8 +2506,8 @@ export default function CycleSetup() {
                     </SelectTrigger>
                     <SelectContent className="bg-background border shadow-lg z-50">
                       <SelectItem value="email">Email Newsletter</SelectItem>
-                      <SelectItem value="community">Free Community (FB Group, Discord, etc.)</SelectItem>
-                      <SelectItem value="dm">DM Conversations</SelectItem>
+                      <SelectItem value="community">Community (FB Group, Discord, etc.)</SelectItem>
+                      <SelectItem value="youtube">YouTube</SelectItem>
                       <SelectItem value="podcast">Podcast</SelectItem>
                       <SelectItem value="webinar">Free Webinars/Workshops</SelectItem>
                       <SelectItem value="challenge">Free Challenges</SelectItem>
@@ -2536,8 +2536,8 @@ export default function CycleSetup() {
                     <SelectContent className="bg-background border shadow-lg z-50">
                       <SelectItem value="none">None</SelectItem>
                       <SelectItem value="email">Email Newsletter</SelectItem>
-                      <SelectItem value="community">Free Community (FB Group, Discord, etc.)</SelectItem>
-                      <SelectItem value="dm">DM Conversations</SelectItem>
+                      <SelectItem value="community">Community (FB Group, Discord, etc.)</SelectItem>
+                      <SelectItem value="youtube">YouTube</SelectItem>
                       <SelectItem value="podcast">Podcast</SelectItem>
                       <SelectItem value="webinar">Free Webinars/Workshops</SelectItem>
                       <SelectItem value="challenge">Free Challenges</SelectItem>
