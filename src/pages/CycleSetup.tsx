@@ -27,6 +27,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { AutopilotSetupModal, AutopilotOptions } from '@/components/cycle/AutopilotSetupModal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { loadCycleForExport, exportCycleAsJSON, exportCycleAsPDF, CycleExportData, generateExportFromFormData, CycleFormData, ExportResult } from '@/lib/cycleExport';
+import { PDFInstructionsModal } from '@/components/pdf/PDFInstructionsModal';
 
 const WORKSHOP_STORAGE_KEY = 'workshop-planner-data';
 
@@ -208,6 +209,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
   const [existingCycleId, setExistingCycleId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showPDFInstructions, setShowPDFInstructions] = useState(false);
   
   const { hasDraft, saveDraft, loadDraft, clearDraft, getDraftAge } = useCycleSetupDraft();
   
@@ -1786,9 +1788,11 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
       const exportData = generateExportFromFormData(formData);
       const result = await exportCycleAsPDF(exportData);
       if (result.success) {
+        // Show instructions modal after successful download
+        setShowPDFInstructions(true);
         toast({ 
           title: "✅ PDF Downloaded!", 
-          description: result.message || "Check your Downloads folder. Your plan is ready to share!" 
+          description: result.message || "Check your Downloads folder. Your plan is ready!" 
         });
       } else {
         toast({ 
@@ -4218,6 +4222,17 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
           nurturePostingDaysCount={nurturePostingDays.length}
           offersCount={offers.filter(o => o.name.trim()).length}
           customProjectsCount={projects.filter(p => p.trim()).length}
+        />
+
+        {/* PDF Instructions Modal */}
+        <PDFInstructionsModal
+          open={showPDFInstructions}
+          onClose={() => setShowPDFInstructions(false)}
+          onDownload={async () => {
+            await handleExportPDFFromState();
+          }}
+          cycleTitle={goal || '90-Day Business Plan'}
+          isDownloading={exporting}
         />
       </div>
     </Layout>
