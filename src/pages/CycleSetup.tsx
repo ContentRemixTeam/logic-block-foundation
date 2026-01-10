@@ -194,6 +194,8 @@ export default function CycleSetup() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [showAutopilotModal, setShowAutopilotModal] = useState(false);
   const [showWorkshopImportBanner, setShowWorkshopImportBanner] = useState(false);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+  const [previewData, setPreviewData] = useState<{ projects: any[]; tasks: any[] }>({ projects: [], tasks: [] });
   
   const { hasDraft, saveDraft, loadDraft, clearDraft, getDraftAge } = useCycleSetupDraft();
   
@@ -700,6 +702,105 @@ export default function CycleSetup() {
         ? prev.filter(m => m !== method)
         : [...prev, method]
     );
+  };
+
+  // Preview what projects and tasks would be created
+  const handlePreview = () => {
+    const preview = {
+      projects: [] as { name: string; description: string }[],
+      tasks: [] as { count: number; description: string }[]
+    };
+    
+    // Preview lead platform project
+    if (leadPlatform) {
+      const platformName = leadPlatform === 'other' ? 'Custom Platform' : leadPlatform;
+      preview.projects.push({
+        name: `${platformName} Content`,
+        description: `Post ${leadContentType || 'content'} ${leadFrequency || ''}`
+      });
+      
+      // Count posting tasks that would be created
+      if (postingDays.length > 0) {
+        const tasksPerWeek = postingDays.length;
+        const totalTasks = tasksPerWeek * 13; // 13 weeks in 90 days
+        preview.tasks.push({
+          count: totalTasks,
+          description: `Post on ${platformName} - ${tasksPerWeek}x per week for 90 days`
+        });
+      }
+    }
+    
+    // Preview secondary platforms
+    secondaryPlatforms.forEach(platform => {
+      if (platform.platform) {
+        preview.projects.push({
+          name: `${platform.platform} Content`,
+          description: `Repurpose ${platform.contentType || 'content'} ${platform.frequency || ''}`
+        });
+      }
+    });
+    
+    // Preview nurture project
+    if (nurtureMethod) {
+      preview.projects.push({
+        name: `${nurtureMethod} Nurture`,
+        description: `${nurtureFrequency || 'Regular'} nurture content`
+      });
+      
+      // Estimate nurture tasks
+      if (nurtureFrequency) {
+        let tasksPerWeek = 1;
+        if (nurtureFrequency.includes('daily')) tasksPerWeek = 7;
+        else if (nurtureFrequency.includes('3x')) tasksPerWeek = 3;
+        else if (nurtureFrequency.includes('2x')) tasksPerWeek = 2;
+        
+        preview.tasks.push({
+          count: tasksPerWeek * 13,
+          description: `${nurtureMethod} nurture - ${tasksPerWeek}x per week`
+        });
+      }
+    }
+    
+    // Preview offers as projects
+    offers.forEach(offer => {
+      if (offer.name.trim()) {
+        preview.projects.push({
+          name: offer.name,
+          description: `$${offer.price || '0'} - ${offer.transformation || 'No transformation set'}`
+        });
+        
+        // If it's a launch, add launch tasks
+        if (offer.frequency !== 'always-open' && offer.frequency) {
+          preview.tasks.push({
+            count: 10,
+            description: `Launch tasks for ${offer.name} (pre-launch, launch, cart close)`
+          });
+        }
+      }
+    });
+    
+    // Preview custom projects
+    projects.forEach(projectName => {
+      if (projectName.trim()) {
+        preview.projects.push({
+          name: projectName,
+          description: 'Custom project'
+        });
+      }
+    });
+    
+    // Preview habits as recurring tasks
+    const activeHabits = habits.filter(h => h.name.trim());
+    if (activeHabits.length > 0) {
+      preview.tasks.push({
+        count: activeHabits.length * 90,
+        description: `${activeHabits.length} habits tracked daily for 90 days`
+      });
+    }
+    
+    setPreviewData(preview);
+    setShowPreviewDialog(true);
+    console.log('PREVIEW - Would create:', preview);
   };
 
   const handleSubmit = async (autopilotOptions?: AutopilotOptions) => {
@@ -2154,11 +2255,74 @@ export default function CycleSetup() {
               <ChevronRight className="ml-2 h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={() => setShowAutopilotModal(true)} disabled={loading || !goal}>
-              {loading ? 'Creating...' : 'Create Cycle →'}
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handlePreview} disabled={loading}>
+                Preview Projects & Tasks
+              </Button>
+              <Button onClick={() => setShowAutopilotModal(true)} disabled={loading || !goal}>
+                {loading ? 'Creating...' : 'Create Cycle →'}
+              </Button>
+            </div>
           )}
         </div>
+
+        {/* Preview Dialog */}
+        <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Preview: What Would Be Created
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+              {/* Projects Preview */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3">
+                  📁 Projects ({previewData.projects.length})
+                </h3>
+                {previewData.projects.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">No projects would be created</p>
+                ) : (
+                  <div className="space-y-2">
+                    {previewData.projects.map((project, idx) => (
+                      <div key={idx} className="p-3 rounded-lg border bg-muted/30">
+                        <p className="font-medium">{project.name}</p>
+                        {project.description && (
+                          <p className="text-sm text-muted-foreground">{project.description}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Tasks Preview */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3">
+                  ✅ Tasks ({previewData.tasks.reduce((sum, t) => sum + t.count, 0)} total)
+                </h3>
+                {previewData.tasks.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">No recurring tasks would be created</p>
+                ) : (
+                  <div className="space-y-2">
+                    {previewData.tasks.map((task, idx) => (
+                      <div key={idx} className="p-3 rounded-lg border bg-primary/5">
+                        <p className="font-medium">{task.count} tasks</p>
+                        <p className="text-sm text-muted-foreground">{task.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-4 border-t text-sm text-muted-foreground">
+                <p>💡 This is a preview only. Click "Create Cycle" to actually create these items.</p>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Autopilot Setup Modal */}
         <AutopilotSetupModal
