@@ -11,7 +11,7 @@ import { Layout } from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, X, Target, BarChart3, Brain, CalendarIcon, Users, Megaphone, DollarSign, ChevronLeft, ChevronRight, Check, Sparkles, Heart, TrendingUp, Upload, FileJson, Save, Mail, Clock, Lightbulb, Zap, AlertCircle, CheckCircle } from 'lucide-react';
+import { Plus, X, Target, BarChart3, Brain, CalendarIcon, Users, Megaphone, DollarSign, ChevronLeft, ChevronRight, Check, Sparkles, Heart, TrendingUp, Upload, FileJson, Save, Mail, Clock, Lightbulb, Zap, AlertCircle, CheckCircle, Download, FileText } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -26,6 +26,7 @@ import { useCycleSetupDraft, CycleSetupDraft, SecondaryPlatform, LimitedTimeOffe
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { AutopilotSetupModal, AutopilotOptions } from '@/components/cycle/AutopilotSetupModal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { loadCycleForExport, exportCycleAsJSON, exportCycleAsPDF, CycleExportData } from '@/lib/cycleExport';
 
 const WORKSHOP_STORAGE_KEY = 'workshop-planner-data';
 
@@ -205,6 +206,7 @@ export default function CycleSetup() {
   const [previewData, setPreviewData] = useState<{ projects: any[]; tasks: any[] }>({ projects: [], tasks: [] });
   const [isEditMode, setIsEditMode] = useState(false);
   const [existingCycleId, setExistingCycleId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
   
   const { hasDraft, saveDraft, loadDraft, clearDraft, getDraftAge } = useCycleSetupDraft();
   
@@ -1664,6 +1666,59 @@ export default function CycleSetup() {
 
   const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
+
+  // Export functions for PDF and JSON
+  const handleExportPDF = async () => {
+    if (!existingCycleId) {
+      toast({
+        title: "Save your plan first",
+        description: "Please create or save your cycle before exporting to PDF.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setExporting(true);
+    try {
+      const data = await loadCycleForExport(existingCycleId, supabase);
+      if (data) {
+        await exportCycleAsPDF(data);
+        toast({ title: "PDF ready!", description: "Save from the print dialog that opens." });
+      } else {
+        toast({ title: "Export failed", description: "Could not load cycle data.", variant: "destructive" });
+      }
+    } catch (error) {
+      console.error("PDF export error:", error);
+      toast({ title: "Export failed", description: "An error occurred.", variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportJSON = async () => {
+    if (!existingCycleId) {
+      toast({
+        title: "Save your plan first",
+        description: "Please create or save your cycle before exporting to JSON.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setExporting(true);
+    try {
+      const data = await loadCycleForExport(existingCycleId, supabase);
+      if (data) {
+        exportCycleAsJSON(data);
+        toast({ title: "JSON downloaded!", description: "Your plan has been exported." });
+      } else {
+        toast({ title: "Export failed", description: "Could not load cycle data.", variant: "destructive" });
+      }
+    } catch (error) {
+      console.error("JSON export error:", error);
+      toast({ title: "Export failed", description: "An error occurred.", variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const progress = (currentStep / STEPS.length) * 100;
 
@@ -3695,13 +3750,55 @@ export default function CycleSetup() {
 
               <Alert className="border-green-500/20 bg-green-500/5 mt-8">
                 <CheckCircle className="h-4 w-4 text-green-600" />
-                <AlertTitle>You're Ready</AlertTitle>
+                <AlertTitle>You are Ready</AlertTitle>
                 <AlertDescription>
                   Once you complete this, your first 3 days will be loaded into your Daily Plan. 
-                  All you have to do is show up. Remember: You're not committing to 90 days right now. 
-                  You're committing to 3 days. You can do anything for 3 days.
+                  All you have to do is show up. Remember: You are not committing to 90 days right now. 
+                  You are committing to 3 days. You can do anything for 3 days.
                 </AlertDescription>
               </Alert>
+
+              {/* Export Section - Prominent at the end */}
+              {isEditMode && existingCycleId && (
+                <Card className="mt-8 border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Download className="h-5 w-5 text-primary" />
+                      Download Your Complete Plan
+                    </CardTitle>
+                    <CardDescription>
+                      Save a copy of your 90-day business plan to reference anytime, share with your accountability partner, or keep for your records.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Button
+                        variant="default"
+                        size="lg"
+                        className="flex-1 gap-2"
+                        onClick={handleExportPDF}
+                        disabled={exporting}
+                      >
+                        <FileText className="h-5 w-5" />
+                        {exporting ? "Preparing..." : "Download PDF"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        className="flex-1 gap-2"
+                        onClick={handleExportJSON}
+                        disabled={exporting}
+                      >
+                        <FileJson className="h-5 w-5" />
+                        {exporting ? "Preparing..." : "Download JSON"}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-3 text-center">
+                      The PDF includes your goal, strategy, offers, metrics, weekly routines, and first 3 days action plan.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
         </div>

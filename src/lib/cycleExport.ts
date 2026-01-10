@@ -395,9 +395,13 @@ function generatePDFHTML(data: CycleExportData): string {
       <div class="grid-2">
         ${renderField('Method', data.nurtureMethod)}
         ${renderField('Frequency', data.nurtureFrequency)}
+        ${data.nurturePostingDays.length > 0 ? renderField('Posting Days', data.nurturePostingDays.join(', ')) : ''}
+        ${data.nurturePostingTime ? renderField('Posting Time', data.nurturePostingTime) : ''}
       </div>
       ${renderField('Free Transformation', data.freeTransformation)}
       ${data.proofMethods.length > 0 ? renderField('Proof Methods', data.proofMethods.join(', ')) : ''}
+      ${data.nurtureBatchDay ? renderField('Batching', `${data.nurtureBatchDay} (${data.nurtureBatchFrequency || 'weekly'})`) : ''}
+      ${renderField('Content to Reuse', data.nurtureContentAudit)}
     `);
   }
   
@@ -448,6 +452,37 @@ function generatePDFHTML(data: CycleExportData): string {
         ` : ''}
       </div>
     `);
+  }
+  
+  // Weekly Routines & Office Hours
+  if (data.weeklyPlanningDay || data.weeklyDebriefDay || data.officeHoursStart) {
+    let routinesContent = '<div class="grid-2">';
+    if (data.weeklyPlanningDay) {
+      routinesContent += `
+        <div class="score-card">
+          <div class="metric-name">📅 Weekly Planning</div>
+          <div class="score-value" style="font-size: 16pt;">${data.weeklyPlanningDay}</div>
+        </div>
+      `;
+    }
+    if (data.weeklyDebriefDay) {
+      routinesContent += `
+        <div class="score-card">
+          <div class="metric-name">📝 Weekly Debrief</div>
+          <div class="score-value" style="font-size: 16pt;">${data.weeklyDebriefDay}</div>
+        </div>
+      `;
+    }
+    routinesContent += '</div>';
+    
+    if (data.officeHoursStart && data.officeHoursEnd) {
+      routinesContent += renderField('Office Hours', `${data.officeHoursStart} - ${data.officeHoursEnd}`);
+    }
+    if (data.officeHoursDays.length > 0) {
+      routinesContent += renderField('Working Days', data.officeHoursDays.join(', '));
+    }
+    
+    sectionsHTML += renderSection('Weekly Routines', '🗓️', routinesContent);
   }
   
   // Things to Remember
