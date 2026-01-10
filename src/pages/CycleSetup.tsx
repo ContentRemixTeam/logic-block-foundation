@@ -1501,6 +1501,12 @@ export default function CycleSetup() {
                 focus_area: focusArea,
                 nurture_method: nurtureMethod,
                 nurture_frequency: nurtureFrequency,
+                free_transformation: freeTransformation || null,
+                // Nurture posting schedule (like lead gen)
+                nurture_posting_days: nurturePostingDays.length > 0 ? nurturePostingDays : null,
+                nurture_posting_time: nurturePostingTime || null,
+                nurture_batch_day: nurtureBatchDay && nurtureBatchDay !== 'none' ? nurtureBatchDay : null,
+                nurture_batch_frequency: nurtureBatchFrequency || 'weekly',
                 offers: offers.filter(o => o.name.trim()),
                 // Limited time offers for promo task generation
                 limited_offers: limitedOffers
