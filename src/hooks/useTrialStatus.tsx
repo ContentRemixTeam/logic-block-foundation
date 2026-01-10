@@ -35,6 +35,22 @@ export function useTrialStatus(): TrialStatus {
     }
 
     try {
+      // CRITICAL FIX: Check mastermind entitlement FIRST
+      const { data: hasEntitlement } = await supabase
+        .rpc('check_mastermind_entitlement', { user_email: user.email });
+
+      // If they have mastermind entitlement, they're a member - period.
+      if (hasEntitlement === true) {
+        setStatus({
+          hasAccess: true,
+          reason: 'member',
+          userType: 'member',
+          loading: false,
+          // CRITICAL: Don't set expiresAt for members
+        });
+        return;
+      }
+
       const { data: profile, error } = await supabase
         .from('user_profiles')
         .select('user_type, trial_expires_at, membership_status, membership_tier')
