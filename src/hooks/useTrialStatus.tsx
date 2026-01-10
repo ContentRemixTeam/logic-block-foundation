@@ -52,11 +52,12 @@ export function useTrialStatus(): TrialStatus {
       }
 
       // Members and admins always have access - no trial logic needed
-      // Also check membership_status for users who signed up via regular auth but were added to mastermind
+      // Check multiple indicators: user_type, membership_status, or membership_tier
       const isActiveMember = 
         profile.user_type === 'member' || 
         profile.user_type === 'admin' ||
-        profile.membership_status === 'active';
+        profile.membership_status === 'active' ||
+        profile.membership_tier === 'mastermind';
         
       if (isActiveMember) {
         setStatus({
