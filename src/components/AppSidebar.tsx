@@ -56,6 +56,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 const MAIN_NAV = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, questIcon: '🗺️' },
+  { name: 'My Cycles', href: '/cycles', icon: Target, questIcon: '🎯' },
   { name: 'Planning', href: '/planning', icon: CalendarDays, questIcon: '🧭' },
   { name: 'Tasks', href: '/tasks', icon: ListTodo, questIcon: '📜' },
   { name: 'Projects', href: '/projects', icon: FolderKanban, questIcon: '📁' },
