@@ -526,6 +526,7 @@ export default function CycleSetup() {
         description: 'Your previous work has been loaded.',
       });
     }
+    hasUserDismissedDraft.current = true; // Prevent dialog from re-appearing
     setShowDraftDialog(false);
   }, [loadDraft, toast]);
 
@@ -985,7 +986,12 @@ export default function CycleSetup() {
   return (
     <Layout>
       {/* Draft Restore Dialog */}
-      <AlertDialog open={showDraftDialog} onOpenChange={setShowDraftDialog}>
+      <AlertDialog open={showDraftDialog} onOpenChange={(open) => {
+        if (!open) {
+          hasUserDismissedDraft.current = true;
+        }
+        setShowDraftDialog(open);
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Resume your draft?</AlertDialogTitle>
