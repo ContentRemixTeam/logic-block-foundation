@@ -353,6 +353,9 @@ export default function CycleSetup() {
   const [audienceTarget, setAudienceTarget] = useState('');
   const [audienceFrustration, setAudienceFrustration] = useState('');
   const [signatureMessage, setSignatureMessage] = useState('');
+  const [keyMessage1, setKeyMessage1] = useState('');
+  const [keyMessage2, setKeyMessage2] = useState('');
+  const [keyMessage3, setKeyMessage3] = useState('');
 
   // Step 4: Lead Gen Strategy
   const [leadPlatform, setLeadPlatform] = useState('');
@@ -508,6 +511,9 @@ export default function CycleSetup() {
       setAudienceTarget(draft.audienceTarget || '');
       setAudienceFrustration(draft.audienceFrustration || '');
       setSignatureMessage(draft.signatureMessage || '');
+      setKeyMessage1(draft.keyMessage1 || '');
+      setKeyMessage2(draft.keyMessage2 || '');
+      setKeyMessage3(draft.keyMessage3 || '');
       setLeadPlatform(draft.leadPlatform || '');
       setLeadContentType(draft.leadContentType || '');
       setLeadFrequency(draft.leadFrequency || '');
@@ -575,6 +581,9 @@ export default function CycleSetup() {
         audienceTarget,
         audienceFrustration,
         signatureMessage,
+        keyMessage1,
+        keyMessage2,
+        keyMessage3,
         leadPlatform,
         leadContentType,
         leadFrequency,
@@ -619,7 +628,7 @@ export default function CycleSetup() {
   }, [
     startDate, goal, why, identity, feeling,
     discoverScore, nurtureScore, convertScore, biggestBottleneck,
-    audienceTarget, audienceFrustration, signatureMessage,
+    audienceTarget, audienceFrustration, signatureMessage, keyMessage1, keyMessage2, keyMessage3,
     leadPlatform, leadContentType, leadFrequency, leadPlatformGoal, leadCommitted, secondaryPlatforms, postingDays, postingTime, batchDay,
     nurtureMethod, nurtureFrequency, freeTransformation, proofMethods,
     offers, limitedOffers, revenueGoal, pricePerSale, launchSchedule, monthPlans,
@@ -1692,6 +1701,49 @@ export default function CycleSetup() {
                     rows={3}
                   />
                   <p className="text-xs text-muted-foreground mt-1">The one thing you want everyone to know about you</p>
+                </div>
+
+                <Separator className="my-4" />
+
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-base font-semibold">3 Things Your Buyers Need to Hear Over and Over</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      What are the key messages you'll repeat in your content, emails, and sales conversations?
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="keyMessage1" className="text-sm">Message #1</Label>
+                      <Input
+                        id="keyMessage1"
+                        value={keyMessage1}
+                        onChange={(e) => setKeyMessage1(e.target.value)}
+                        placeholder="e.g., You don't need more followers—you need better conversations"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="keyMessage2" className="text-sm">Message #2</Label>
+                      <Input
+                        id="keyMessage2"
+                        value={keyMessage2}
+                        onChange={(e) => setKeyMessage2(e.target.value)}
+                        placeholder="e.g., Simple systems beat complicated funnels every time"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="keyMessage3" className="text-sm">Message #3</Label>
+                      <Input
+                        id="keyMessage3"
+                        value={keyMessage3}
+                        onChange={(e) => setKeyMessage3(e.target.value)}
+                        placeholder="e.g., Consistency beats perfection—show up messy if you have to"
+                      />
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

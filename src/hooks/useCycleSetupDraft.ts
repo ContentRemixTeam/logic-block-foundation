@@ -41,6 +41,9 @@ export interface CycleSetupDraft {
   audienceTarget: string;
   audienceFrustration: string;
   signatureMessage: string;
+  keyMessage1: string;
+  keyMessage2: string;
+  keyMessage3: string;
 
   // Step 4: Lead Gen Strategy
   leadPlatform: string;
@@ -117,6 +120,9 @@ const DEFAULT_DRAFT: CycleSetupDraft = {
   audienceTarget: '',
   audienceFrustration: '',
   signatureMessage: '',
+  keyMessage1: '',
+  keyMessage2: '',
+  keyMessage3: '',
   leadPlatform: '',
   leadContentType: '',
   leadFrequency: '',
