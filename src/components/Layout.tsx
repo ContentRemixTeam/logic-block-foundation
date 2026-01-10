@@ -13,10 +13,17 @@ import { Loader2 } from 'lucide-react';
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const trialStatus = useTrialStatus();
+  const [forceShow, setForceShow] = useState(false);
   useTheme();
 
-  // Show loading while checking trial status
-  if (trialStatus.loading) {
+  // Timeout to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => setForceShow(true), 5000);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  // Show loading while checking trial status (with timeout fallback)
+  if (trialStatus.loading && !forceShow) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
