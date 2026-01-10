@@ -573,6 +573,7 @@ export type Database = {
           posting_days: Json | null
           posting_time: string | null
           proof_methods: Json | null
+          secondary_platforms: Json | null
           updated_at: string | null
           user_id: string
         }
@@ -591,6 +592,7 @@ export type Database = {
           posting_days?: Json | null
           posting_time?: string | null
           proof_methods?: Json | null
+          secondary_platforms?: Json | null
           updated_at?: string | null
           user_id: string
         }
@@ -609,6 +611,7 @@ export type Database = {
           posting_days?: Json | null
           posting_time?: string | null
           proof_methods?: Json | null
+          secondary_platforms?: Json | null
           updated_at?: string | null
           user_id?: string
         }

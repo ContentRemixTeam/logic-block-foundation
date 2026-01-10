@@ -43,9 +43,16 @@ interface WorkshopImportData {
   audienceFrustration?: string;
   signatureMessage?: string;
   leadPlatform?: string;
+  leadPlatformCustom?: string;
   leadContentType?: string;
+  leadContentTypeCustom?: string;
   leadFrequency?: string;
   leadCommitted?: boolean;
+  leadPlatformGoal?: string;
+  secondaryPlatforms?: Array<{
+    platform: string;
+    contentType: string;
+  }>;
   nurtureMethod?: string;
   nurtureFrequency?: string;
   freeTransformation?: string;
@@ -192,6 +199,9 @@ export default function CycleSetup() {
   
   // Track if user has dismissed the draft dialog to prevent it from re-appearing
   const hasUserDismissedDraft = useRef(false);
+  
+  // Track if we should skip the next auto-save (to prevent race condition after clearing draft)
+  const skipNextAutoSave = useRef(false);
 
   // Import from workshop JSON
   const handleImportFromJson = (jsonData: WorkshopImportData) => {
@@ -221,12 +231,35 @@ export default function CycleSetup() {
       if (jsonData.signatureMessage) setSignatureMessage(jsonData.signatureMessage);
 
       // Step 4: Lead Gen Strategy
-      if (jsonData.leadPlatform) setLeadPlatform(jsonData.leadPlatform);
-      if (jsonData.leadContentType) setLeadContentType(jsonData.leadContentType);
+      // Handle custom platform - if "other" was selected, use the custom value
+      if (jsonData.leadPlatform) {
+        if (jsonData.leadPlatform === 'other' && jsonData.leadPlatformCustom) {
+          setLeadPlatform(jsonData.leadPlatformCustom);
+        } else {
+          setLeadPlatform(jsonData.leadPlatform);
+        }
+      }
+      // Handle custom content type - if "other" was selected, use the custom value
+      if (jsonData.leadContentType) {
+        if (jsonData.leadContentType === 'other' && jsonData.leadContentTypeCustom) {
+          setLeadContentType(jsonData.leadContentTypeCustom);
+        } else {
+          setLeadContentType(jsonData.leadContentType);
+        }
+      }
       if (jsonData.leadFrequency) setLeadFrequency(jsonData.leadFrequency);
-      if ((jsonData as any).leadPlatformGoal) setLeadPlatformGoal((jsonData as any).leadPlatformGoal);
+      if (jsonData.leadPlatformGoal) setLeadPlatformGoal(jsonData.leadPlatformGoal);
       if (jsonData.leadCommitted !== undefined) setLeadCommitted(jsonData.leadCommitted);
-      if ((jsonData as any).secondaryPlatforms?.length) setSecondaryPlatforms((jsonData as any).secondaryPlatforms);
+      // Import secondary platforms with normalization
+      if (jsonData.secondaryPlatforms?.length) {
+        const normalized: SecondaryPlatform[] = jsonData.secondaryPlatforms.map(sp => ({
+          platform: sp.platform,
+          contentType: sp.contentType,
+          frequency: '',
+          goal: '' as const,
+        }));
+        setSecondaryPlatforms(normalized);
+      }
 
       // Step 5: Nurture Strategy
       if (jsonData.nurtureMethod) setNurtureMethod(jsonData.nurtureMethod);
@@ -469,6 +502,12 @@ export default function CycleSetup() {
 
   // Auto-save draft on state changes (debounced)
   useEffect(() => {
+    // Skip auto-save if we just cleared the draft to prevent race condition
+    if (skipNextAutoSave.current) {
+      skipNextAutoSave.current = false;
+      return;
+    }
+    
     const timeoutId = setTimeout(() => {
       const draftData: Partial<CycleSetupDraft> = {
         startDate: startDate.toISOString(),
@@ -674,7 +713,7 @@ export default function CycleSetup() {
 
       const cycleId = cycle.cycle_id;
 
-      // Create cycle strategy with posting schedule
+      // Create cycle strategy with posting schedule and secondary platforms
       const { error: strategyError } = await supabase
         .from('cycle_strategy')
         .insert({
@@ -692,7 +731,9 @@ export default function CycleSetup() {
           posting_days: postingDays,
           posting_time: postingTime && postingTime !== 'none' ? postingTime : null,
           batch_day: batchDay && batchDay !== 'none' ? batchDay : null,
-        });
+          // Secondary platforms (cast needed until types regenerate)
+          secondary_platforms: secondaryPlatforms.filter(sp => sp.platform.trim()),
+        } as any);
 
       if (strategyError) console.error('Strategy error:', strategyError);
 
@@ -926,6 +967,7 @@ export default function CycleSetup() {
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => {
               hasUserDismissedDraft.current = true; // Prevent dialog from re-appearing
+              skipNextAutoSave.current = true; // Prevent immediate re-save
               clearDraft();
               setShowDraftDialog(false);
             }}>
