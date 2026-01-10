@@ -2724,9 +2724,10 @@ export default function CycleSetup() {
                       <Label htmlFor="nurturePostingTime">What time? (Optional)</Label>
                       <Input
                         id="nurturePostingTime"
-                        type="time"
+                        type="text"
                         value={nurturePostingTime}
                         onChange={(e) => setNurturePostingTime(e.target.value)}
+                        placeholder="e.g., 9:00 AM or 6am"
                       />
                       <p className="text-xs text-muted-foreground">
                         When do you typically send/publish? (e.g., 6am for morning emails)
