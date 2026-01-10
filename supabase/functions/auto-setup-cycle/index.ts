@@ -218,6 +218,10 @@ Deno.serve(async (req) => {
       nurture_posting_time,
       nurture_batch_day,
       nurture_batch_frequency,
+      // Secondary nurture
+      secondary_nurture_method,
+      secondary_nurture_posting_days,
+      secondary_nurture_posting_time,
       offers = [],
       limited_offers = [],
       metrics = {},
@@ -790,6 +794,60 @@ Deno.serve(async (req) => {
               }
             }
           }
+        }
+      }
+    }
+
+    // ==================== SECONDARY NURTURE TASKS ====================
+    if (create_nurture_tasks && secondary_nurture_method && secondary_nurture_posting_days && secondary_nurture_posting_days.length > 0) {
+      const secondaryMethodLabel = secondary_nurture_method === 'email' ? 'Email' : 
+        secondary_nurture_method === 'podcast' ? 'Podcast' :
+        secondary_nurture_method === 'youtube' ? 'YouTube' : secondary_nurture_method;
+
+      const { data: newSecondaryProject, error: secondaryProjectError } = await supabase
+        .from('projects')
+        .insert({
+          user_id: userId,
+          cycle_id: cycle_id,
+          name: `💜 Nurture: ${secondaryMethodLabel} (${cycleQuarter})`,
+          description: `Secondary nurture channel`,
+          status: 'active',
+          color: '#8B5CF6',
+          start_date: start_date,
+          end_date: end_date,
+        })
+        .select()
+        .single();
+
+      if (!secondaryProjectError && newSecondaryProject) {
+        results.projects.push(newSecondaryProject);
+        const dayNumbers = secondary_nurture_posting_days.map((d: string) => {
+          const dayMap: Record<string, number> = { 'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6 };
+          return dayMap[d];
+        }).filter((n: number | undefined) => n !== undefined);
+
+        const dates = getNextOccurrences(effectiveStart, endDateObj, dayNumbers);
+        const tasksToCreate = dates.map(date => ({
+          user_id: userId,
+          cycle_id: cycle_id,
+          project_id: newSecondaryProject.id,
+          task_text: `💜 ${secondaryMethodLabel} nurture`,
+          scheduled_date: formatDate(date),
+          time_block_start: secondary_nurture_posting_time || null,
+          estimated_minutes: 30,
+          status: 'todo',
+          category: 'nurture',
+          source: 'auto-secondary-nurture',
+          is_system_generated: true,
+          system_source: 'cycle_autopilot',
+          template_key: generateTemplateKey('secondary_nurture', cycle_id, formatDate(date)),
+          context_tags: ['nurture', 'secondary'],
+        }));
+
+        const { data: createdTasks, error: tasksError } = await supabase.from('tasks').insert(tasksToCreate).select();
+        if (!tasksError && createdTasks) {
+          results.tasks.push(...createdTasks);
+          console.log(`[AutoSetup] Created ${createdTasks.length} secondary nurture tasks`);
         }
       }
     }

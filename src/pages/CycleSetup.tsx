@@ -398,6 +398,9 @@ export default function CycleSetup() {
   const [nurtureBatchDay, setNurtureBatchDay] = useState('');
   const [nurtureBatchFrequency, setNurtureBatchFrequency] = useState('weekly');
   const [nurtureContentAudit, setNurtureContentAudit] = useState('');
+  // Secondary nurture scheduling
+  const [secondaryNurturePostingDays, setSecondaryNurturePostingDays] = useState<string[]>([]);
+  const [secondaryNurturePostingTime, setSecondaryNurturePostingTime] = useState('');
   
   // Email commitment settings (for follow-through check-ins)
   const [emailCheckinEnabled, setEmailCheckinEnabled] = useState(false);
@@ -1509,6 +1512,10 @@ export default function CycleSetup() {
                 nurture_posting_time: nurturePostingTime || null,
                 nurture_batch_day: nurtureBatchDay && nurtureBatchDay !== 'none' ? nurtureBatchDay : null,
                 nurture_batch_frequency: nurtureBatchFrequency || 'weekly',
+                // Secondary nurture method and schedule
+                secondary_nurture_method: secondaryNurtureMethod && secondaryNurtureMethod !== 'none' ? secondaryNurtureMethod : null,
+                secondary_nurture_posting_days: secondaryNurturePostingDays.length > 0 ? secondaryNurturePostingDays : null,
+                secondary_nurture_posting_time: secondaryNurturePostingTime || null,
                 offers: offers.filter(o => o.name.trim()),
                 // Limited time offers for promo task generation
                 limited_offers: limitedOffers
@@ -2550,92 +2557,250 @@ export default function CycleSetup() {
                 <CardDescription>How will you build trust and relationships?</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div>
-                  <Label htmlFor="nurtureMethod">Primary Nurture Method</Label>
-                  <Select value={nurtureMethod} onValueChange={(v) => {
-                    setNurtureMethod(v);
-                    if (v !== 'other') setNurtureMethodCustom('');
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="How will you nurture your audience?" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background border shadow-lg z-50">
-                      <SelectItem value="email">Email Newsletter</SelectItem>
-                      <SelectItem value="community">Community (FB Group, Discord, etc.)</SelectItem>
-                      <SelectItem value="youtube">YouTube</SelectItem>
-                      <SelectItem value="podcast">Podcast</SelectItem>
-                      <SelectItem value="webinar">Free Webinars/Workshops</SelectItem>
-                      <SelectItem value="challenge">Free Challenges</SelectItem>
-                      <SelectItem value="other">Other (custom)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {nurtureMethod === 'other' && (
-                    <Input
-                      value={nurtureMethodCustom}
-                      onChange={(e) => setNurtureMethodCustom(e.target.value)}
-                      placeholder="Enter your primary nurture method..."
-                      className="mt-2"
-                    />
+                {/* Primary Nurture Method + Schedule */}
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="nurtureMethod">Primary Nurture Method</Label>
+                    <Select value={nurtureMethod} onValueChange={(v) => {
+                      setNurtureMethod(v);
+                      if (v !== 'other') setNurtureMethodCustom('');
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="How will you nurture your audience?" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border shadow-lg z-50">
+                        <SelectItem value="email">Email Newsletter</SelectItem>
+                        <SelectItem value="community">Community (FB Group, Discord, etc.)</SelectItem>
+                        <SelectItem value="youtube">YouTube</SelectItem>
+                        <SelectItem value="podcast">Podcast</SelectItem>
+                        <SelectItem value="webinar">Free Webinars/Workshops</SelectItem>
+                        <SelectItem value="challenge">Free Challenges</SelectItem>
+                        <SelectItem value="other">Other (custom)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {nurtureMethod === 'other' && (
+                      <Input
+                        value={nurtureMethodCustom}
+                        onChange={(e) => setNurtureMethodCustom(e.target.value)}
+                        placeholder="Enter your primary nurture method..."
+                        className="mt-2"
+                      />
+                    )}
+                  </div>
+
+                  {/* Primary Nurture Schedule - shown when method is selected */}
+                  {nurtureMethod && nurtureMethod !== 'none' && (
+                    <Card className="border-pink-500/20 bg-pink-500/5">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-pink-600" />
+                          {nurtureMethod === 'email' ? 'Email Schedule' : 
+                           nurtureMethod === 'podcast' ? 'Podcast Schedule' :
+                           nurtureMethod === 'youtube' ? 'YouTube Schedule' :
+                           nurtureMethod === 'community' ? 'Community Schedule' :
+                           nurtureMethod === 'webinar' ? 'Webinar Schedule' :
+                           nurtureMethod === 'challenge' ? 'Challenge Schedule' :
+                           'Nurture Schedule'}
+                        </CardTitle>
+                        <CardDescription>When will you deliver this content? This will auto-create tasks in your planner.</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div>
+                          <Label className="text-sm font-medium">Which days?</Label>
+                          <p className="text-xs text-muted-foreground mb-2">Select the days you'll publish/send</p>
+                          <div className="flex flex-wrap gap-2">
+                            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+                              <Badge
+                                key={day}
+                                variant={nurturePostingDays.includes(day) ? "default" : "outline"}
+                                className={cn(
+                                  "cursor-pointer transition-colors",
+                                  nurturePostingDays.includes(day) && "bg-pink-600 hover:bg-pink-700"
+                                )}
+                                onClick={() => {
+                                  if (nurturePostingDays.includes(day)) {
+                                    setNurturePostingDays(nurturePostingDays.filter(d => d !== day));
+                                  } else {
+                                    setNurturePostingDays([...nurturePostingDays, day]);
+                                  }
+                                }}
+                              >
+                                {day.slice(0, 3)}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="nurturePostingTime">Posting/Send Time</Label>
+                            <Select value={nurturePostingTime || 'none'} onValueChange={(v) => setNurturePostingTime(v === 'none' ? '' : v)}>
+                              <SelectTrigger id="nurturePostingTime">
+                                <SelectValue placeholder="Select time" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background border shadow-lg z-50">
+                                {TIME_OPTIONS.map(opt => (
+                                  <SelectItem key={opt.value || 'none'} value={opt.value || 'none'}>{opt.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="nurtureBatchDay">Batch Prep Day (optional)</Label>
+                            <Select value={nurtureBatchDay || 'none'} onValueChange={(v) => setNurtureBatchDay(v === 'none' ? '' : v)}>
+                              <SelectTrigger id="nurtureBatchDay">
+                                <SelectValue placeholder="Select a day" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background border shadow-lg z-50">
+                                <SelectItem value="none">None</SelectItem>
+                                <SelectItem value="Sunday">Sunday</SelectItem>
+                                <SelectItem value="Monday">Monday</SelectItem>
+                                <SelectItem value="Tuesday">Tuesday</SelectItem>
+                                <SelectItem value="Wednesday">Wednesday</SelectItem>
+                                <SelectItem value="Thursday">Thursday</SelectItem>
+                                <SelectItem value="Friday">Friday</SelectItem>
+                                <SelectItem value="Saturday">Saturday</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        
+                        {nurtureBatchDay && nurtureBatchDay !== 'none' && (
+                          <div className="space-y-2">
+                            <Label htmlFor="nurtureBatchFrequency">Batch Frequency</Label>
+                            <Select value={nurtureBatchFrequency} onValueChange={setNurtureBatchFrequency}>
+                              <SelectTrigger id="nurtureBatchFrequency">
+                                <SelectValue placeholder="How often?" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background border shadow-lg z-50">
+                                <SelectItem value="weekly">Weekly</SelectItem>
+                                <SelectItem value="biweekly">Bi-weekly</SelectItem>
+                                <SelectItem value="monthly">Monthly</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        {nurturePostingDays.length > 0 && (
+                          <div className="p-3 rounded-lg bg-pink-500/10 border border-pink-500/20">
+                            <p className="text-sm text-pink-700 dark:text-pink-300">
+                              <strong>✨ {nurturePostingDays.length * 13} tasks</strong> will be created ({nurturePostingDays.length}x/week for 90 days)
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
                   )}
                 </div>
 
-                <div>
-                  <Label htmlFor="secondaryNurtureMethod">Secondary Nurture Method (optional)</Label>
-                  <Select value={secondaryNurtureMethod} onValueChange={(v) => {
-                    setSecondaryNurtureMethod(v);
-                    if (v !== 'other') setSecondaryNurtureMethodCustom('');
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Add a backup nurture channel..." />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background border shadow-lg z-50">
-                      <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="email">Email Newsletter</SelectItem>
-                      <SelectItem value="community">Community (FB Group, Discord, etc.)</SelectItem>
-                      <SelectItem value="youtube">YouTube</SelectItem>
-                      <SelectItem value="podcast">Podcast</SelectItem>
-                      <SelectItem value="webinar">Free Webinars/Workshops</SelectItem>
-                      <SelectItem value="challenge">Free Challenges</SelectItem>
-                      <SelectItem value="other">Other (custom)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {secondaryNurtureMethod === 'other' && (
-                    <Input
-                      value={secondaryNurtureMethodCustom}
-                      onChange={(e) => setSecondaryNurtureMethodCustom(e.target.value)}
-                      placeholder="Enter your secondary nurture method..."
-                      className="mt-2"
-                    />
+                {/* Secondary Nurture Method + Schedule */}
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="secondaryNurtureMethod">Secondary Nurture Method (optional)</Label>
+                    <Select value={secondaryNurtureMethod} onValueChange={(v) => {
+                      setSecondaryNurtureMethod(v);
+                      if (v !== 'other') setSecondaryNurtureMethodCustom('');
+                      if (v === 'none' || !v) {
+                        setSecondaryNurturePostingDays([]);
+                        setSecondaryNurturePostingTime('');
+                      }
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Add a backup nurture channel..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border shadow-lg z-50">
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="email">Email Newsletter</SelectItem>
+                        <SelectItem value="community">Community (FB Group, Discord, etc.)</SelectItem>
+                        <SelectItem value="youtube">YouTube</SelectItem>
+                        <SelectItem value="podcast">Podcast</SelectItem>
+                        <SelectItem value="webinar">Free Webinars/Workshops</SelectItem>
+                        <SelectItem value="challenge">Free Challenges</SelectItem>
+                        <SelectItem value="other">Other (custom)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {secondaryNurtureMethod === 'other' && (
+                      <Input
+                        value={secondaryNurtureMethodCustom}
+                        onChange={(e) => setSecondaryNurtureMethodCustom(e.target.value)}
+                        placeholder="Enter your secondary nurture method..."
+                        className="mt-2"
+                      />
+                    )}
+                    <p className="text-xs text-muted-foreground mt-1">Having a backup nurture channel helps reach people who prefer different formats</p>
+                  </div>
+
+                  {/* Secondary Nurture Schedule - shown when method is selected */}
+                  {secondaryNurtureMethod && secondaryNurtureMethod !== 'none' && (
+                    <Card className="border-purple-500/20 bg-purple-500/5">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-purple-600" />
+                          {secondaryNurtureMethod === 'email' ? 'Email Schedule' : 
+                           secondaryNurtureMethod === 'podcast' ? 'Podcast Schedule' :
+                           secondaryNurtureMethod === 'youtube' ? 'YouTube Schedule' :
+                           secondaryNurtureMethod === 'community' ? 'Community Schedule' :
+                           secondaryNurtureMethod === 'webinar' ? 'Webinar Schedule' :
+                           secondaryNurtureMethod === 'challenge' ? 'Challenge Schedule' :
+                           'Secondary Schedule'}
+                        </CardTitle>
+                        <CardDescription>When will you deliver this secondary content?</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div>
+                          <Label className="text-sm font-medium">Which days?</Label>
+                          <p className="text-xs text-muted-foreground mb-2">Select the days you'll publish/send</p>
+                          <div className="flex flex-wrap gap-2">
+                            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+                              <Badge
+                                key={day}
+                                variant={secondaryNurturePostingDays.includes(day) ? "default" : "outline"}
+                                className={cn(
+                                  "cursor-pointer transition-colors",
+                                  secondaryNurturePostingDays.includes(day) && "bg-purple-600 hover:bg-purple-700"
+                                )}
+                                onClick={() => {
+                                  if (secondaryNurturePostingDays.includes(day)) {
+                                    setSecondaryNurturePostingDays(secondaryNurturePostingDays.filter(d => d !== day));
+                                  } else {
+                                    setSecondaryNurturePostingDays([...secondaryNurturePostingDays, day]);
+                                  }
+                                }}
+                              >
+                                {day.slice(0, 3)}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="secondaryNurturePostingTime">Posting/Send Time</Label>
+                          <Select value={secondaryNurturePostingTime || 'none'} onValueChange={(v) => setSecondaryNurturePostingTime(v === 'none' ? '' : v)}>
+                            <SelectTrigger id="secondaryNurturePostingTime">
+                              <SelectValue placeholder="Select time" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background border shadow-lg z-50">
+                              {TIME_OPTIONS.map(opt => (
+                                <SelectItem key={opt.value || 'none'} value={opt.value || 'none'}>{opt.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {secondaryNurturePostingDays.length > 0 && (
+                          <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                            <p className="text-sm text-purple-700 dark:text-purple-300">
+                              <strong>✨ {secondaryNurturePostingDays.length * 13} tasks</strong> will be created ({secondaryNurturePostingDays.length}x/week for 90 days)
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
                   )}
-                  <p className="text-xs text-muted-foreground mt-1">Having a backup nurture channel helps reach people who prefer different formats</p>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="nurtureFrequency">Nurture Frequency</Label>
-                  <Select value={nurtureFrequency} onValueChange={(v) => {
-                    setNurtureFrequency(v);
-                    if (v !== 'other') setNurtureFrequencyCustom('');
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="How often will you nurture?" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background border shadow-lg z-50">
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="3x-week">3x per week</SelectItem>
-                      <SelectItem value="2x-week">2x per week</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                      <SelectItem value="biweekly">Every 2 weeks</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {nurtureFrequency === 'other' && (
-                    <Input
-                      value={nurtureFrequencyCustom}
-                      onChange={(e) => setNurtureFrequencyCustom(e.target.value)}
-                      placeholder="Enter your nurture frequency..."
-                    />
-                  )}
-                </div>
+                <Separator />
 
                 <div>
                   <Label htmlFor="freeTransformation">What free transformation do you provide?</Label>
@@ -2738,106 +2903,6 @@ export default function CycleSetup() {
                   </Card>
                 )}
 
-                {/* Nurture Posting Schedule */}
-                <Card className="border-dashed">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Nurture Content Schedule</CardTitle>
-                    <CardDescription>When will you deliver your nurture content (emails, newsletters, podcasts, etc.)?</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Posting Days */}
-                    <div className="space-y-2">
-                      <Label>Which days do you send/publish?</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
-                          <Badge
-                            key={day}
-                            variant={nurturePostingDays.includes(day) ? "default" : "outline"}
-                            className={cn(
-                              "cursor-pointer transition-colors",
-                              nurturePostingDays.includes(day) && "bg-pink-600 hover:bg-pink-700"
-                            )}
-                            onClick={() => {
-                              if (nurturePostingDays.includes(day)) {
-                                setNurturePostingDays(nurturePostingDays.filter(d => d !== day));
-                              } else {
-                                setNurturePostingDays([...nurturePostingDays, day]);
-                              }
-                            }}
-                          >
-                            {day.slice(0, 3)}
-                          </Badge>
-                        ))}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Example: Weekly newsletter on Tuesdays, or podcast episodes on Mondays
-                      </p>
-                    </div>
-                    
-                    {/* Posting Time */}
-                    <div className="space-y-2">
-                      <Label htmlFor="nurturePostingTime">What time? (Optional)</Label>
-                      <Input
-                        id="nurturePostingTime"
-                        type="text"
-                        value={nurturePostingTime}
-                        onChange={(e) => setNurturePostingTime(e.target.value)}
-                        placeholder="e.g., 9:00 AM or 6am"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        When do you typically send/publish? (e.g., 6am for morning emails)
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Nurture Batching Schedule */}
-                <Card className="border-dashed">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Nurture Content Batching</CardTitle>
-                    <CardDescription>When do you prepare your nurture content in advance?</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="nurtureBatchDay">Batch Day</Label>
-                        <Select value={nurtureBatchDay} onValueChange={setNurtureBatchDay}>
-                          <SelectTrigger id="nurtureBatchDay">
-                            <SelectValue placeholder="Select a day" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-background border shadow-lg z-50">
-                            <SelectItem value="none">None</SelectItem>
-                            <SelectItem value="Sunday">Sunday</SelectItem>
-                            <SelectItem value="Monday">Monday</SelectItem>
-                            <SelectItem value="Tuesday">Tuesday</SelectItem>
-                            <SelectItem value="Wednesday">Wednesday</SelectItem>
-                            <SelectItem value="Thursday">Thursday</SelectItem>
-                            <SelectItem value="Friday">Friday</SelectItem>
-                            <SelectItem value="Saturday">Saturday</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="nurtureBatchFrequency">Batch Frequency</Label>
-                        <Select value={nurtureBatchFrequency} onValueChange={setNurtureBatchFrequency}>
-                          <SelectTrigger id="nurtureBatchFrequency">
-                            <SelectValue placeholder="How often?" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-background border shadow-lg z-50">
-                            <SelectItem value="weekly">Weekly</SelectItem>
-                            <SelectItem value="biweekly">Bi-weekly (every 2 weeks)</SelectItem>
-                            <SelectItem value="monthly">Monthly</SelectItem>
-                            <SelectItem value="quarterly">Quarterly</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Example: Write all newsletters for the month on the 1st Sunday = Sunday + Monthly
-                    </p>
-                  </CardContent>
-                </Card>
 
                 {/* Nurture Content Audit */}
                 <Card className="border-dashed">
