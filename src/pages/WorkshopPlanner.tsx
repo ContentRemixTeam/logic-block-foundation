@@ -33,6 +33,11 @@ interface MonthPlan {
   mainFocus: string;
 }
 
+interface SecondaryPlatform {
+  platform: string;
+  contentType: string;
+}
+
 interface WorkshopData {
   // Step 1
   startDate: string;
@@ -52,9 +57,12 @@ interface WorkshopData {
   signatureMessage: string;
   // Step 4
   leadPlatform: string;
+  leadPlatformCustom: string;
   leadContentType: string;
+  leadContentTypeCustom: string;
   leadFrequency: string;
   leadCommitted: boolean;
+  secondaryPlatforms: SecondaryPlatform[];
   // Step 5
   nurtureMethod: string;
   nurtureFrequency: string;
@@ -108,9 +116,12 @@ const getDefaultData = (): WorkshopData => ({
   audienceFrustration: '',
   signatureMessage: '',
   leadPlatform: '',
+  leadPlatformCustom: '',
   leadContentType: '',
+  leadContentTypeCustom: '',
   leadFrequency: '',
   leadCommitted: false,
+  secondaryPlatforms: [],
   nurtureMethod: '',
   nurtureFrequency: '',
   freeTransformation: '',
@@ -308,10 +319,11 @@ export default function WorkshopPlanner() {
     <h2>Strategy</h2>
     <h3>Lead Generation</h3>
     <ul>
-      ${data.leadPlatform ? `<li><strong>Platform:</strong> ${data.leadPlatform}</li>` : ''}
-      ${data.leadContentType ? `<li><strong>Content Type:</strong> ${data.leadContentType}</li>` : ''}
+      ${data.leadPlatform ? `<li><strong>Platform:</strong> ${data.leadPlatform === 'other' ? data.leadPlatformCustom : data.leadPlatform}</li>` : ''}
+      ${data.leadContentType ? `<li><strong>Content Type:</strong> ${data.leadContentType === 'other' ? data.leadContentTypeCustom : data.leadContentType}</li>` : ''}
       ${data.leadFrequency ? `<li><strong>Frequency:</strong> ${data.leadFrequency}</li>` : ''}
       <li><strong>90-Day Commitment:</strong> ${data.leadCommitted ? '✅ Yes' : '❌ No'}</li>
+      ${data.secondaryPlatforms.length > 0 ? `<li><strong>Secondary Platforms:</strong> ${data.secondaryPlatforms.map(s => `${s.platform} (${s.contentType})`).join(', ')}</li>` : ''}
     </ul>
     
     <h3>Nurture</h3>
@@ -800,9 +812,9 @@ export default function WorkshopPlanner() {
                 <CardDescription>How will you attract new potential clients?</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div>
+                <div className="space-y-3">
                   <Label>Primary Platform</Label>
-                  <Select value={data.leadPlatform} onValueChange={(v) => updateData({ leadPlatform: v })}>
+                  <Select value={data.leadPlatform} onValueChange={(v) => updateData({ leadPlatform: v, leadPlatformCustom: v === 'other' ? data.leadPlatformCustom : '' })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Where will you show up?" />
                     </SelectTrigger>
@@ -815,14 +827,24 @@ export default function WorkshopPlanner() {
                       <SelectItem value="podcast">Podcast</SelectItem>
                       <SelectItem value="blog">Blog/SEO</SelectItem>
                       <SelectItem value="pinterest">Pinterest</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="twitter">Twitter/X</SelectItem>
+                      <SelectItem value="threads">Threads</SelectItem>
+                      <SelectItem value="other">Other (type your own)</SelectItem>
                     </SelectContent>
                   </Select>
+                  {data.leadPlatform === 'other' && (
+                    <Input
+                      value={data.leadPlatformCustom}
+                      onChange={(e) => updateData({ leadPlatformCustom: e.target.value })}
+                      placeholder="Enter your platform..."
+                      className="mt-2"
+                    />
+                  )}
                 </div>
 
-                <div>
+                <div className="space-y-3">
                   <Label>Content Type</Label>
-                  <Select value={data.leadContentType} onValueChange={(v) => updateData({ leadContentType: v })}>
+                  <Select value={data.leadContentType} onValueChange={(v) => updateData({ leadContentType: v, leadContentTypeCustom: v === 'other' ? data.leadContentTypeCustom : '' })}>
                     <SelectTrigger>
                       <SelectValue placeholder="What format will you create?" />
                     </SelectTrigger>
@@ -834,8 +856,20 @@ export default function WorkshopPlanner() {
                       <SelectItem value="live">Live Streams</SelectItem>
                       <SelectItem value="written">Written Posts/Articles</SelectItem>
                       <SelectItem value="podcast">Podcast Episodes</SelectItem>
+                      <SelectItem value="newsletter">Newsletter</SelectItem>
+                      <SelectItem value="threads">Thread Posts</SelectItem>
+                      <SelectItem value="infographic">Infographics</SelectItem>
+                      <SelectItem value="other">Other (type your own)</SelectItem>
                     </SelectContent>
                   </Select>
+                  {data.leadContentType === 'other' && (
+                    <Input
+                      value={data.leadContentTypeCustom}
+                      onChange={(e) => updateData({ leadContentTypeCustom: e.target.value })}
+                      placeholder="Enter your content type..."
+                      className="mt-2"
+                    />
+                  )}
                 </div>
 
                 <div>
@@ -852,6 +886,63 @@ export default function WorkshopPlanner() {
                       <SelectItem value="weekly">Weekly</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                {/* Secondary Platforms Section */}
+                <div className="space-y-3 pt-4 border-t">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-base">Secondary Platforms</Label>
+                      <p className="text-sm text-muted-foreground">Optional: repurpose content to other platforms</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => updateData({ 
+                        secondaryPlatforms: [...data.secondaryPlatforms, { platform: '', contentType: '' }] 
+                      })}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add
+                    </Button>
+                  </div>
+                  
+                  {data.secondaryPlatforms.map((secondary, idx) => (
+                    <div key={idx} className="flex gap-2 items-start p-3 rounded-lg bg-muted/50">
+                      <div className="flex-1 space-y-2">
+                        <Input
+                          value={secondary.platform}
+                          onChange={(e) => {
+                            const updated = [...data.secondaryPlatforms];
+                            updated[idx].platform = e.target.value;
+                            updateData({ secondaryPlatforms: updated });
+                          }}
+                          placeholder="Platform (e.g., LinkedIn, Pinterest)"
+                        />
+                        <Input
+                          value={secondary.contentType}
+                          onChange={(e) => {
+                            const updated = [...data.secondaryPlatforms];
+                            updated[idx].contentType = e.target.value;
+                            updateData({ secondaryPlatforms: updated });
+                          }}
+                          placeholder="Content type (e.g., Repurposed reels)"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          const updated = data.secondaryPlatforms.filter((_, i) => i !== idx);
+                          updateData({ secondaryPlatforms: updated });
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
 
                 <div className="flex items-center space-x-3 p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
