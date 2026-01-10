@@ -7,6 +7,7 @@ import { LoadingState } from '@/components/system/LoadingState';
 import { ErrorState } from '@/components/system/ErrorState';
 import { ReminderPopup } from '@/components/ReminderPopup';
 import { DebriefReminderPopup } from '@/components/DebriefReminderPopup';
+import { OfficeHoursDisplay } from '@/components/OfficeHoursDisplay';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { supabase } from '@/integrations/supabase/client';
@@ -50,6 +51,7 @@ export default function Dashboard() {
   const [diagnosticScores, setDiagnosticScores] = useState<{ discover: number | null; nurture: number | null; convert: number | null } | null>(null);
   const [identityData, setIdentityData] = useState<{ identity: string | null; why: string | null; feeling: string | null } | null>(null);
   const [audienceData, setAudienceData] = useState<{ target: string | null; frustration: string | null; message: string | null } | null>(null);
+  const [officeHoursData, setOfficeHoursData] = useState<{ start: string | null; end: string | null; days: string[] | null }>({ start: null, end: null, days: null });
 
   useEffect(() => {
     loadDashboardSummary();
@@ -109,6 +111,15 @@ export default function Dashboard() {
       // Set audience data
       if (summaryData?.cycle?.audience_data) {
         setAudienceData(summaryData.cycle.audience_data);
+      }
+      
+      // Set office hours data
+      if (summaryData?.cycle) {
+        setOfficeHoursData({
+          start: summaryData.cycle.office_hours_start || null,
+          end: summaryData.cycle.office_hours_end || null,
+          days: summaryData.cycle.office_hours_days || null,
+        });
       }
     } catch (error: any) {
       console.error('Error loading dashboard:', error);
@@ -224,7 +235,12 @@ export default function Dashboard() {
             {/* Left Column - Main Content */}
             <div className="flex-1 space-y-6 max-w-3xl">
               {/* Today Strip */}
-              <TodayStrip topPriority={topPriority} />
+              <TodayStrip 
+                topPriority={topPriority} 
+                officeHoursStart={officeHoursData.start}
+                officeHoursEnd={officeHoursData.end}
+                officeHoursDays={officeHoursData.days}
+              />
 
               {/* 90-Day Goal Card */}
               {goal && (
