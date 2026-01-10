@@ -55,12 +55,19 @@ export interface CycleSetupDraft {
   postingDays: string[];
   postingTime: string;
   batchDay: string;
+  batchFrequency: string; // 'weekly' | 'biweekly' | 'monthly' | 'quarterly'
+  leadGenContentAudit: string; // Existing content that can be reused
 
   // Step 5: Nurture Strategy
   nurtureMethod: string;
   nurtureFrequency: string;
   freeTransformation: string;
   proofMethods: string[];
+  nurturePostingDays: string[]; // Days for nurture content
+  nurturePostingTime: string; // Time for nurture posts
+  nurtureBatchDay: string; // Day to batch nurture content
+  nurtureBatchFrequency: string; // 'weekly' | 'biweekly' | 'monthly' | 'quarterly'
+  nurtureContentAudit: string; // Existing nurture content to reuse
 
   // Step 6: Offers
   offers: Array<{
@@ -132,10 +139,17 @@ const DEFAULT_DRAFT: CycleSetupDraft = {
   postingDays: [],
   postingTime: '',
   batchDay: '',
+  batchFrequency: 'weekly',
+  leadGenContentAudit: '',
   nurtureMethod: '',
   nurtureFrequency: '',
   freeTransformation: '',
   proofMethods: [],
+  nurturePostingDays: [],
+  nurturePostingTime: '',
+  nurtureBatchDay: '',
+  nurtureBatchFrequency: 'weekly',
+  nurtureContentAudit: '',
   offers: [{ name: '', price: '', frequency: '', transformation: '', isPrimary: true }],
   limitedOffers: [],
   revenueGoal: '',
