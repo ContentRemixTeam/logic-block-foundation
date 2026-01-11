@@ -2843,6 +2843,7 @@ export type Database = {
           daily_anchor_enabled: boolean | null
           daily_review_questions: Json | null
           habit_categories_enabled: boolean | null
+          has_seen_tour: boolean | null
           last_debrief_date: string | null
           longest_debrief_streak: number | null
           minimal_mode: boolean | null
@@ -2879,6 +2880,7 @@ export type Database = {
           daily_anchor_enabled?: boolean | null
           daily_review_questions?: Json | null
           habit_categories_enabled?: boolean | null
+          has_seen_tour?: boolean | null
           last_debrief_date?: string | null
           longest_debrief_streak?: number | null
           minimal_mode?: boolean | null
@@ -2915,6 +2917,7 @@ export type Database = {
           daily_anchor_enabled?: boolean | null
           daily_review_questions?: Json | null
           habit_categories_enabled?: boolean | null
+          has_seen_tour?: boolean | null
           last_debrief_date?: string | null
           longest_debrief_streak?: number | null
           minimal_mode?: boolean | null
