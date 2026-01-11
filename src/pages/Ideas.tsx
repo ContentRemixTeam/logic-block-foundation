@@ -15,7 +15,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Zap, Edit, Trash2, Plus, ArrowUpDown, FolderKanban, Clock, Hash, X } from 'lucide-react';
+import { Zap, Edit, Trash2, Plus, ArrowUpDown, FolderKanban, Clock, Hash, X, Loader2 } from 'lucide-react';
+import { PaginationInfo } from '@/components/ui/pagination-info';
 import { normalizeString } from '@/lib/normalize';
 import { cn } from '@/lib/utils';
 
@@ -44,6 +45,8 @@ const PRIORITY_OPTIONS = [
   { value: 'someday', label: 'Someday', color: 'bg-gray-500' },
 ];
 
+const PAGE_SIZE = 50;
+
 export default function Ideas() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -54,7 +57,10 @@ export default function Ideas() {
   
   const [categories, setCategories] = useState<Category[]>([]);
   const [ideas, setIdeas] = useState<Idea[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedPriority, setSelectedPriority] = useState<string>('all');
@@ -172,16 +178,24 @@ export default function Ideas() {
     }
   };
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (loadMore = false) => {
     if (!user) return;
 
-    setLoading(true);
+    if (loadMore) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
+    
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('No session');
 
-      const { data, error: fetchError } = await supabase.functions.invoke('get-ideas');
+      const offset = loadMore ? ideas.length : 0;
+      const { data, error: fetchError } = await supabase.functions.invoke('get-ideas', {
+        body: { limit: PAGE_SIZE, offset },
+      });
 
       if (fetchError) throw fetchError;
 
@@ -196,7 +210,7 @@ export default function Ideas() {
         })));
 
       const safeIdeas = Array.isArray(data?.ideas) ? data.ideas : [];
-      setIdeas(safeIdeas
+      const parsedIdeas = safeIdeas
         .filter((idea: any) => idea && idea.id)
         .map((idea: any) => ({
           id: String(idea.id),
@@ -208,18 +222,32 @@ export default function Ideas() {
           created_at: normalizeString(idea.created_at),
           updated_at: normalizeString(idea.updated_at),
         }))
-        .filter((idea: Idea) => idea.content.trim() !== ''));
+        .filter((idea: Idea) => idea.content.trim() !== '');
+
+      if (loadMore) {
+        setIdeas(prev => [...prev, ...parsedIdeas]);
+      } else {
+        setIdeas(parsedIdeas);
+      }
+      
+      setTotalCount(data?.totalCount || parsedIdeas.length);
+      setHasMore(data?.hasMore || false);
     } catch (err: any) {
       console.error('Error loading ideas:', err);
       setError(err.message);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [user]);
+  }, [user, ideas.length]);
+
+  const handleLoadMore = useCallback(() => {
+    loadData(true);
+  }, [loadData]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    loadData(false);
+  }, [user]); // Only reload on user change, not loadData to prevent infinite loop
 
   const handleEditIdea = (idea: Idea) => {
     setEditingIdea(idea);
@@ -837,6 +865,16 @@ export default function Ideas() {
             })
           )}
         </div>
+        
+        {/* Pagination Info */}
+        <PaginationInfo
+          shownCount={filteredIdeas.length}
+          totalCount={totalCount}
+          hasMore={hasMore}
+          isLoadingMore={loadingMore}
+          onLoadMore={handleLoadMore}
+          itemLabel="ideas"
+        />
       </div>
 
       {/* Add Idea Modal */}

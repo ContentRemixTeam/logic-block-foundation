@@ -52,8 +52,43 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Fetch all tasks for the user with SOP and Project data
-    const { data: tasks, error } = await supabase
+    // Parse pagination params from URL or body
+    const url = new URL(req.url);
+    let limit = parseInt(url.searchParams.get('limit') || '0', 10);
+    let offset = parseInt(url.searchParams.get('offset') || '0', 10);
+
+    // Also check request body for POST requests
+    if (req.method === 'POST') {
+      try {
+        const body = await req.json();
+        if (body.limit) limit = parseInt(body.limit, 10);
+        if (body.offset) offset = parseInt(body.offset, 10);
+      } catch {
+        // No body or invalid JSON, use URL params
+      }
+    }
+
+    // If no limit specified, return all (backwards compatible)
+    const isPaginated = limit > 0;
+
+    // First, get total count
+    const { count, error: countError } = await supabase
+      .from('tasks')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    if (countError) {
+      console.error('Error counting tasks:', countError);
+      return new Response(JSON.stringify({ error: countError.message }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const totalCount = count || 0;
+
+    // Build query with pagination
+    let query = supabase
       .from('tasks')
       .select(`
         *,
@@ -63,6 +98,12 @@ Deno.serve(async (req) => {
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
+    if (isPaginated) {
+      query = query.range(offset, offset + limit - 1);
+    }
+
+    const { data: tasks, error } = await query;
+
     if (error) {
       console.error('Error fetching tasks:', error);
       return new Response(JSON.stringify({ error: error.message }), {
@@ -71,7 +112,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ data: tasks || [] }), {
+    const fetchedCount = tasks?.length || 0;
+    const hasMore = isPaginated ? (offset + fetchedCount) < totalCount : false;
+
+    return new Response(JSON.stringify({ 
+      data: tasks || [],
+      totalCount,
+      hasMore,
+      offset,
+      limit: isPaginated ? limit : totalCount,
+    }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

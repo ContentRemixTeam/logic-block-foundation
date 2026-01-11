@@ -39,6 +39,9 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useProjects } from '@/hooks/useProjects';
+import { PaginationInfo } from '@/components/ui/pagination-info';
+
+const PAGE_SIZE = 50;
 
 interface JournalEntry {
   day_id: string;
@@ -192,6 +195,8 @@ export default function Notes() {
   const datesWithEntries: string[] = data?.datesWithEntries || [];
   const pages: JournalPage[] = pagesData?.pages || [];
   const allTags: string[] = pagesData?.allTags || [];
+  const pagesTotalCount: number = pagesData?.totalCount || pages.length;
+  const pagesHasMore: boolean = pagesData?.hasMore || false;
 
   // Filter entries based on search, date range, and hashtag
   const filteredEntries = useMemo(() => {
@@ -868,6 +873,18 @@ export default function Notes() {
                   </Card>
                 ))}
               </div>
+            )}
+            
+            {/* Pagination Info */}
+            {!pagesLoading && filteredPages.length > 0 && (
+              <PaginationInfo
+                shownCount={filteredPages.length}
+                totalCount={pagesTotalCount}
+                hasMore={pagesHasMore}
+                isLoadingMore={false}
+                onLoadMore={() => {}}
+                itemLabel="pages"
+              />
             )}
           </TabsContent>
         </Tabs>
