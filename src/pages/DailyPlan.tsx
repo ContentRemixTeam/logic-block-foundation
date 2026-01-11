@@ -25,7 +25,7 @@ import { GoalRewritePrompt } from '@/components/cycle/GoalRewritePrompt';
 import { DailyTimelineView } from '@/components/daily-plan/DailyTimelineView';
 import { DailyScheduleView } from '@/components/daily-plan/DailyScheduleView';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, LayoutList, CalendarDays, CloudOff, Cloud } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, LayoutList, CalendarDays } from 'lucide-react';
 import { DailyAgendaCard } from '@/components/daily-plan/DailyAgendaCard';
 import { PostingSlotCard } from '@/components/daily-plan/PostingSlotCard';
 import { CategoryProjectLinks } from '@/components/daily-plan/CategoryProjectLinks';
@@ -43,15 +43,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ToastAction } from '@/components/ui/toast';
+import { useDataProtection } from '@/hooks/useDataProtection';
+import { SaveStatusIndicator, SaveStatusBanner } from '@/components/SaveStatusIndicator';
 
 export default function DailyPlan() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [lastLocalSave, setLastLocalSave] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [deepMode, setDeepMode] = useState(false);
   
@@ -108,6 +106,57 @@ export default function DailyPlan() {
   
   // View mode toggle
   const [viewMode, setViewMode] = useState<'planning' | 'schedule'>('planning');
+
+  // Build the data object for protection
+  const dailyPlanData = useMemo(() => ({
+    day_id: dayId,
+    top_3_today: newTop3Text.filter((t) => t.trim()),
+    selected_weekly_priorities: selectedPriorities,
+    thought,
+    feeling,
+    deep_mode_notes: deepModeNotes,
+    scratch_pad_content: scratchPadContent,
+    scratch_pad_title: scratchPadTitle,
+    one_thing: oneThing,
+    goal_rewrite: goalRewrite,
+  }), [dayId, newTop3Text, selectedPriorities, thought, feeling, deepModeNotes, scratchPadContent, scratchPadTitle, oneThing, goalRewrite]);
+
+  // Data protection hook for auto-save, localStorage backup, and offline handling
+  const {
+    register: registerData,
+    saveNow,
+    saveStatus,
+    hasUnsavedChanges,
+    isOnline,
+    lastSaved,
+  } = useDataProtection({
+    saveFn: async (data) => {
+      if (!user || !data.day_id) return;
+      
+      const { error: fnError } = await supabase.functions.invoke('save-daily-plan', {
+        body: {
+          day_id: data.day_id,
+          user_id: user.id,
+          ...data,
+        },
+      });
+
+      if (fnError) throw fnError;
+    },
+    autoSaveDelay: 1000,
+    localStorageKey: `daily_plan_backup_${dayId}`,
+    enableLocalBackup: true,
+    enableBeforeUnload: true,
+    maxRetries: 3,
+    retryDelay: 5000,
+  });
+
+  // Register data changes with the protection hook
+  useEffect(() => {
+    if (!loading && dayId) {
+      registerData(dailyPlanData);
+    }
+  }, [dailyPlanData, loading, dayId, registerData]);
 
   useEffect(() => {
     loadDailyPlan();
@@ -444,11 +493,13 @@ export default function DailyPlan() {
     }
   };
 
+  const [manualSaving, setManualSaving] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !dayId) return;
     
-    setSaving(true);
+    setManualSaving(true);
     setSavingTop3(true);
 
     try {
@@ -461,30 +512,11 @@ export default function DailyPlan() {
         }
       }
 
-      const { data, error: fnError } = await supabase.functions.invoke('save-daily-plan', {
-        body: {
-          day_id: dayId,
-          user_id: user.id,
-          top_3_today: newTop3Text.filter((t) => t.trim()),
-          selected_weekly_priorities: selectedPriorities,
-          thought,
-          feeling,
-          deep_mode_notes: deepModeNotes,
-          scratch_pad_content: scratchPadContent,
-          scratch_pad_title: scratchPadTitle,
-          one_thing: oneThing,
-          goal_rewrite: goalRewrite,
-        },
-      });
-
-      if (fnError) throw fnError;
-
-      console.log('Save response:', data);
+      // Use the data protection's saveNow
+      await saveNow();
       
       // Reload to get fresh tasks
       await loadDailyPlan();
-      
-      setLastSaved(new Date());
 
       toast({
         title: '⚡ Daily plan saved!',
@@ -498,163 +530,12 @@ export default function DailyPlan() {
         variant: 'destructive',
       });
     } finally {
-      setSaving(false);
+      setManualSaving(false);
+      setSavingTop3(false);
     }
   };
 
-  // localStorage key for backup
-  const LOCAL_STORAGE_KEY = useMemo(() => `daily_plan_backup_${dayId}`, [dayId]);
-
-  // Save to localStorage immediately on any change (crash protection)
-  useEffect(() => {
-    if (!dayId || loading) return;
-    
-    const backupData = {
-      top3: newTop3Text,
-      thought,
-      feeling,
-      selectedPriorities,
-      deepModeNotes,
-      scratchPadContent,
-      scratchPadTitle,
-      oneThing,
-      goalRewrite,
-      savedAt: new Date().toISOString(),
-    };
-    
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(backupData));
-      setLastLocalSave(new Date());
-      setHasUnsavedChanges(true);
-    } catch (e) {
-      console.error('localStorage backup failed:', e);
-    }
-  }, [newTop3Text, thought, feeling, selectedPriorities, deepModeNotes, scratchPadContent, scratchPadTitle, oneThing, goalRewrite, dayId, loading, LOCAL_STORAGE_KEY]);
-
-  // Load from localStorage backup on mount (if exists and newer)
-  useEffect(() => {
-    if (!dayId || loading) return;
-    
-    try {
-      const backup = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (backup) {
-        const parsed = JSON.parse(backup);
-        // Only restore if there's actual content and it was saved recently (within 24 hours)
-        const savedAt = new Date(parsed.savedAt);
-        const hoursSinceSave = (Date.now() - savedAt.getTime()) / (1000 * 60 * 60);
-        
-        if (hoursSinceSave < 24) {
-          // Check if localStorage has newer content than what was loaded
-          // We compare by checking if scratchpad has content that wasn't loaded
-          if (parsed.scratchPadContent && !scratchPadContent && parsed.scratchPadContent.length > 0) {
-            setScratchPadContent(parsed.scratchPadContent);
-            setScratchPadTitle(parsed.scratchPadTitle || '');
-          }
-        }
-      }
-    } catch (e) {
-      console.error('Failed to restore from localStorage:', e);
-    }
-  }, [dayId]); // Only run once when dayId is set
-
-  // Clear localStorage backup after successful server save
-  const clearLocalBackup = useCallback(() => {
-    try {
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
-      setHasUnsavedChanges(false);
-    } catch (e) {
-      console.error('Failed to clear localStorage backup:', e);
-    }
-  }, [LOCAL_STORAGE_KEY]);
-
-  // Browser close/refresh warning
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault();
-        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
-        return e.returnValue;
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [hasUnsavedChanges]);
-
-  // Auto-save with debounce (reduced to 1 second)
-  useEffect(() => {
-    if (!user || !dayId || loading) return;
-    
-    const timer = setTimeout(() => {
-      handleAutoSave();
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, [newTop3Text, thought, feeling, selectedPriorities, deepModeNotes, scratchPadContent, scratchPadTitle]);
-
-  // Scratch pad auto-save (30 seconds)
-  useEffect(() => {
-    if (!user || !dayId || loading) return;
-    
-    const timer = setTimeout(() => {
-      handleScratchPadSave();
-    }, 30000);
-    
-    return () => clearTimeout(timer);
-  }, [scratchPadContent]);
-
-  const handleScratchPadSave = useCallback(async () => {
-    if (!user || !dayId) return;
-    
-    try {
-      await supabase.functions.invoke('save-daily-plan', {
-        body: {
-          day_id: dayId,
-          user_id: user.id,
-          top_3_today: top3.filter((t) => t.trim()),
-          selected_weekly_priorities: selectedPriorities,
-          thought,
-          feeling,
-          deep_mode_notes: deepModeNotes,
-          scratch_pad_content: scratchPadContent,
-          scratch_pad_title: scratchPadTitle,
-        },
-      });
-      setLastSaved(new Date());
-    } catch (error) {
-      console.error('Scratch pad auto-save failed:', error);
-    }
-  }, [user, dayId, top3, thought, feeling, selectedPriorities, deepModeNotes, scratchPadContent, scratchPadTitle]);
-
-  const handleAutoSave = useCallback(async () => {
-    if (!user || !dayId || saving) return;
-    
-    setSaving(true);
-    try {
-      await supabase.functions.invoke('save-daily-plan', {
-        body: {
-          day_id: dayId,
-          user_id: user.id,
-          top_3_today: newTop3Text.filter((t) => t.trim()),
-          selected_weekly_priorities: selectedPriorities,
-          thought,
-          feeling,
-          deep_mode_notes: deepModeNotes,
-          scratch_pad_content: scratchPadContent,
-          scratch_pad_title: scratchPadTitle,
-          one_thing: oneThing,
-          goal_rewrite: goalRewrite,
-        },
-      });
-      setLastSaved(new Date());
-      clearLocalBackup();
-    } catch (error) {
-      // Silent fail for auto-save - data is still in localStorage
-      console.error('Auto-save failed:', error);
-    } finally {
-      setSaving(false);
-    }
-  }, [user, dayId, newTop3Text, thought, feeling, selectedPriorities, deepModeNotes, scratchPadContent, scratchPadTitle, oneThing, goalRewrite, saving, clearLocalBackup]);
+  // All localStorage, auto-save, and beforeUnload logic is now handled by useDataProtection hook
 
   const handleProcessTags = async () => {
     if (!user || !dayId || !scratchPadContent.trim()) return;
@@ -808,22 +689,7 @@ export default function DailyPlan() {
             </ToggleGroup>
             
             {/* Save Status Indicator */}
-            {saving ? (
-              <Badge variant="secondary" className="text-xs animate-pulse">
-                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                Saving...
-              </Badge>
-            ) : lastSaved ? (
-              <Badge variant="outline" className="text-xs text-green-600 border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800">
-                <CheckCircle2 className="mr-1 h-3 w-3" />
-                ✅ Saved
-              </Badge>
-            ) : hasUnsavedChanges ? (
-              <Badge variant="outline" className="text-xs text-amber-600 border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800">
-                <Cloud className="mr-1 h-3 w-3" />
-                Backed up locally
-              </Badge>
-            ) : null}
+            <SaveStatusIndicator status={saveStatus} lastSaved={lastSaved} />
             <Button variant="outline" size="sm" onClick={() => window.location.href = '/dashboard'}>
               Dashboard
             </Button>
@@ -832,6 +698,9 @@ export default function DailyPlan() {
             </Button>
           </div>
         </div>
+
+        {/* Save Status Banner for offline/error states */}
+        <SaveStatusBanner status={saveStatus} onRetry={saveNow} />
 
         {/* Schedule View */}
         {viewMode === 'schedule' && (
@@ -1122,7 +991,7 @@ export default function DailyPlan() {
                 onChange={(e) => setScratchPadContent(e.target.value)}
                 placeholder="Write freely... Use #task, #idea, #thought, #offer, #win to organize"
                 className="min-h-[300px] font-mono text-sm bg-background/80 border-muted resize-y"
-                onBlur={handleScratchPadSave}
+                onBlur={() => saveNow()}
               />
               <p className="text-xs text-muted-foreground">
                 Quick tags: <span className="font-medium">#task</span> (add to tasks) • <span className="font-medium">#idea</span> (save idea) • <span className="font-medium">#thought</span> (save insight) • <span className="font-medium">#offer</span> (mark offer) • <span className="font-medium">#win</span> (celebrate)
@@ -1383,8 +1252,8 @@ export default function DailyPlan() {
             </Card>
           )}
 
-          <Button type="submit" size="lg" className="w-full" disabled={saving}>
-            {saving ? (
+          <Button type="submit" size="lg" className="w-full" disabled={manualSaving || saveStatus === 'saving'}>
+            {manualSaving || saveStatus === 'saving' ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Saving...
