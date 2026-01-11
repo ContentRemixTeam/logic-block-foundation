@@ -12,12 +12,13 @@ import { useTheme } from '@/hooks/useTheme';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeArray, normalizeBoolean } from '@/lib/normalize';
-import { Loader2, Save, ArrowLeft, Bug, Trash2, RotateCcw } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, Bug, Trash2, RotateCcw, Crown, Sparkles, Palette, Circle } from 'lucide-react';
 import { ReflectionList } from '@/components/ReflectionList';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTour } from '@/hooks/useTour';
 import { GoogleCalendarPanel } from '@/components/google-calendar/GoogleCalendarPanel';
+import { THEMES, THEME_IDS, ThemeId } from '@/lib/themes';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -295,38 +296,42 @@ export default function Settings() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => updateSetting('theme_preference', 'quest')}
-                className={`p-4 rounded-lg border-2 transition-all text-left ${
-                  settings.theme_preference === 'quest'
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-primary/50'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-2xl">⚔️</span>
-                  <span className="font-semibold">Quest Mode</span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Adventure theme with XP, levels, and streaks. Transform your goals into epic quests.
-                </p>
-              </button>
-              <button
-                onClick={() => updateSetting('theme_preference', 'minimal')}
-                className={`p-4 rounded-lg border-2 transition-all text-left ${
-                  settings.theme_preference === 'minimal'
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-primary/50'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-2xl">◯</span>
-                  <span className="font-semibold">Minimal Mode</span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Clean and simple. Focus on your tasks without gamification.
-                </p>
-              </button>
+              {THEME_IDS.map((themeId) => {
+                const themeConfig = THEMES[themeId];
+                const isSelected = settings.theme_preference === themeId;
+                
+                const IconComponent = {
+                  crown: Crown,
+                  sparkles: Sparkles,
+                  palette: Palette,
+                  circle: Circle,
+                }[themeConfig.icon];
+                
+                return (
+                  <button
+                    key={themeId}
+                    onClick={() => updateSetting('theme_preference', themeId)}
+                    className={`p-4 rounded-lg border-2 transition-all text-left ${
+                      isSelected
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <div 
+                        className="w-6 h-6 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: `hsl(${themeConfig.previewColor})` }}
+                      >
+                        <IconComponent className="w-3.5 h-3.5 text-white" />
+                      </div>
+                      <span className="font-semibold">{themeConfig.name}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {themeConfig.description}
+                    </p>
+                  </button>
+                );
+              })}
             </div>
             
             {settings.theme_preference === 'quest' && (
