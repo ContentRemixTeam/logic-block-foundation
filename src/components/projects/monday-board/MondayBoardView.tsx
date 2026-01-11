@@ -193,11 +193,30 @@ export function MondayBoardView({ projectId, tasks }: MondayBoardViewProps) {
           {/* Empty state */}
           {sections.length === 0 && tasksBySection.unsectioned.length === 0 && (
             <div className="text-center py-16 text-muted-foreground">
-              <p className="text-lg mb-4">No tasks yet</p>
-              <Button onClick={() => setIsAddingGroup(true)} variant="outline">
-                <Plus className="h-4 w-4 mr-2" />
-                Add your first group
-              </Button>
+              {isAddingGroup ? (
+                <div className="flex items-center justify-center gap-2 max-w-xs mx-auto">
+                  <Input
+                    value={newGroupName}
+                    onChange={(e) => setNewGroupName(e.target.value)}
+                    placeholder="Group name..."
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleAddGroup();
+                      if (e.key === 'Escape') setIsAddingGroup(false);
+                    }}
+                    autoFocus
+                  />
+                  <Button size="sm" onClick={handleAddGroup}>Add</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setIsAddingGroup(false)}>Cancel</Button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-lg mb-4">No tasks yet</p>
+                  <Button onClick={() => setIsAddingGroup(true)} variant="outline">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add your first group
+                  </Button>
+                </>
+              )}
             </div>
           )}
 
