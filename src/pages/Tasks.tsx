@@ -54,6 +54,7 @@ import {
 } from '@/components/tasks/types';
 import { CycleFilter, CycleFilterValue, CycleBadge } from '@/components/tasks/CycleFilter';
 import { useActiveCycle } from '@/hooks/useActiveCycle';
+import { CycleTimeline } from '@/components/CycleTimeline';
 
 export default function Tasks() {
   const queryClient = useQueryClient();
@@ -514,6 +515,14 @@ export default function Tasks() {
             <p className="text-muted-foreground">Your workflow command center</p>
           </div>
         </div>
+
+        {/* Cycle Progress */}
+        {activeCycle && (
+          <CycleTimeline 
+            startDate={activeCycle.start_date} 
+            endDate={activeCycle.end_date} 
+          />
+        )}
 
         {/* Task Planning Cards */}
         <TaskPlanningCards />
