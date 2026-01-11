@@ -18,7 +18,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const trialStatus = useTrialStatus();
   const { data: cycles, isLoading: cyclesLoading } = useAllCycles();
-  const { settings, pet } = useArcade();
+  const { settings, isLoading: arcadeLoading } = useArcade();
   const [forceShow, setForceShow] = useState(false);
   const [dismissedPlanBanner, setDismissedPlanBanner] = useState(false);
   const [arcadeOpen, setArcadeOpen] = useState(false);
@@ -94,8 +94,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-3">
               <SidebarTrigger className="h-8 w-8" />
             </div>
-            {/* Arcade widgets */}
-            {settings.arcade_enabled && (
+            {/* Arcade widgets - show after loading */}
+            {!arcadeLoading && settings.arcade_enabled && (
               <div className="flex items-center gap-2 ml-auto">
                 {settings.show_pomodoro_widget && (
                   <PomodoroMiniWidget onClick={() => { setArcadeDefaultTab('focus'); setArcadeOpen(true); }} />
