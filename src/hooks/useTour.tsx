@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { getStorageItem, setStorageItem, removeStorageItem } from '@/lib/storage';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TourStep {
   id: string;
@@ -15,7 +16,7 @@ interface TourContextType {
   steps: TourStep[];
   hasSeenTour: boolean;
   showChecklist: boolean;
-  isFirstLoginComplete: boolean;
+  isLoading: boolean;
   startTour: () => void;
   endTour: (completed?: boolean) => void;
   nextStep: () => void;
@@ -23,14 +24,13 @@ interface TourContextType {
   skipTour: () => void;
   dismissChecklist: () => void;
   restartTour: () => void;
-  markFirstLoginComplete: () => void;
+  markTourComplete: () => Promise<void>;
 }
 
 const TourContext = createContext<TourContextType | undefined>(undefined);
 
 const TOUR_STORAGE_KEY = 'ninety-day-planner-tour-seen';
 const CHECKLIST_STORAGE_KEY = 'ninety-day-planner-checklist-dismissed';
-const FIRST_LOGIN_KEY = 'ninety-day-planner-first-login-complete';
 
 const tourSteps: TourStep[] = [
   {
@@ -89,18 +89,109 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [hasSeenTour, setHasSeenTour] = useState(true); // Default to true to prevent flash
   const [showChecklist, setShowChecklist] = useState(false);
-  const [isFirstLoginComplete, setIsFirstLoginComplete] = useState(true); // Default to true to prevent flash
+  const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
 
+  // Load tour state from database when user authenticates
   useEffect(() => {
-    // Check storage on mount using safe storage utilities
-    const seen = getStorageItem(TOUR_STORAGE_KEY);
-    const checklistDismissed = getStorageItem(CHECKLIST_STORAGE_KEY);
-    const firstLoginComplete = getStorageItem(FIRST_LOGIN_KEY);
-    
-    setHasSeenTour(seen === 'true');
-    setShowChecklist(seen === 'true' && checklistDismissed !== 'true');
-    setIsFirstLoginComplete(firstLoginComplete === 'true');
+    const loadTourState = async () => {
+      setIsLoading(true);
+      
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        // Not logged in - use localStorage as fallback
+        const seen = getStorageItem(TOUR_STORAGE_KEY);
+        const checklistDismissed = getStorageItem(CHECKLIST_STORAGE_KEY);
+        setHasSeenTour(seen === 'true');
+        setShowChecklist(seen === 'true' && checklistDismissed !== 'true');
+        setIsLoading(false);
+        return;
+      }
+
+      setUserId(user.id);
+
+      try {
+        // Check database for tour state
+        const { data, error } = await supabase
+          .from('user_settings')
+          .select('has_seen_tour')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error loading tour state:', error);
+          // Fall back to localStorage
+          const seen = getStorageItem(TOUR_STORAGE_KEY);
+          setHasSeenTour(seen === 'true');
+        } else if (data) {
+          // Use database state
+          setHasSeenTour(data.has_seen_tour === true);
+          // Sync to localStorage for faster subsequent checks
+          if (data.has_seen_tour) {
+            setStorageItem(TOUR_STORAGE_KEY, 'true');
+          }
+        } else {
+          // No settings record yet - user hasn't seen tour
+          setHasSeenTour(false);
+        }
+
+        // Checklist is still localStorage-based (less critical)
+        const checklistDismissed = getStorageItem(CHECKLIST_STORAGE_KEY);
+        setShowChecklist(hasSeenTour && checklistDismissed !== 'true');
+      } catch (error) {
+        console.error('Error loading tour state:', error);
+        const seen = getStorageItem(TOUR_STORAGE_KEY);
+        setHasSeenTour(seen === 'true');
+      }
+      
+      setIsLoading(false);
+    };
+
+    loadTourState();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        loadTourState();
+      } else if (event === 'SIGNED_OUT') {
+        setUserId(null);
+        setHasSeenTour(true); // Hide tour when logged out
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  // Update showChecklist when hasSeenTour changes
+  useEffect(() => {
+    const checklistDismissed = getStorageItem(CHECKLIST_STORAGE_KEY);
+    setShowChecklist(hasSeenTour && checklistDismissed !== 'true');
+  }, [hasSeenTour]);
+
+  const markTourComplete = useCallback(async () => {
+    // Update local state immediately
+    setHasSeenTour(true);
+    setStorageItem(TOUR_STORAGE_KEY, 'true');
+    setShowChecklist(true);
+
+    // Save to database if user is logged in
+    if (userId) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          await supabase.functions.invoke('save-user-settings', {
+            body: { has_seen_tour: true }
+          });
+        }
+      } catch (error) {
+        console.error('Error saving tour state to database:', error);
+        // State is already saved locally, so user won't see popup again this session
+      }
+    }
+  }, [userId]);
 
   const startTour = useCallback(() => {
     setCurrentStep(0);
@@ -111,18 +202,15 @@ export function TourProvider({ children }: { children: ReactNode }) {
     setIsActive(false);
     setCurrentStep(0);
     if (completed) {
-      setStorageItem(TOUR_STORAGE_KEY, 'true');
-      setHasSeenTour(true);
-      setShowChecklist(true);
+      markTourComplete();
     }
-  }, []);
+  }, [markTourComplete]);
 
   const skipTour = useCallback(() => {
-    setStorageItem(TOUR_STORAGE_KEY, 'true');
-    setHasSeenTour(true);
     setIsActive(false);
     setCurrentStep(0);
-  }, []);
+    markTourComplete();
+  }, [markTourComplete]);
 
   const nextStep = useCallback(() => {
     if (currentStep < tourSteps.length - 1) {
@@ -143,18 +231,29 @@ export function TourProvider({ children }: { children: ReactNode }) {
     setShowChecklist(false);
   }, []);
 
-  const restartTour = useCallback(() => {
+  const restartTour = useCallback(async () => {
+    // Clear local state
     removeStorageItem(TOUR_STORAGE_KEY);
     removeStorageItem(CHECKLIST_STORAGE_KEY);
     setHasSeenTour(false);
     setShowChecklist(false);
-    startTour();
-  }, [startTour]);
 
-  const markFirstLoginComplete = useCallback(() => {
-    setStorageItem(FIRST_LOGIN_KEY, 'true');
-    setIsFirstLoginComplete(true);
-  }, []);
+    // Clear database state if logged in
+    if (userId) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          await supabase.functions.invoke('save-user-settings', {
+            body: { has_seen_tour: false }
+          });
+        }
+      } catch (error) {
+        console.error('Error clearing tour state in database:', error);
+      }
+    }
+
+    startTour();
+  }, [userId, startTour]);
 
   return (
     <TourContext.Provider
@@ -164,7 +263,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
         steps: tourSteps,
         hasSeenTour,
         showChecklist,
-        isFirstLoginComplete,
+        isLoading,
         startTour,
         endTour,
         nextStep,
@@ -172,7 +271,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
         skipTour,
         dismissChecklist,
         restartTour,
-        markFirstLoginComplete,
+        markTourComplete,
       }}
     >
       {children}

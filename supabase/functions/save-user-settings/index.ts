@@ -59,26 +59,38 @@ Deno.serve(async (req) => {
       cycle_summary_questions,
       theme_preference,
       works_weekends,
+      has_seen_tour,
     } = body;
 
     // Use service role client for database operations
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Normalize arrays
-    const normalizedDaily = (daily_review_questions ?? []).map(String).filter(Boolean);
-    const normalizedWeekly = (weekly_review_questions ?? []).map(String).filter(Boolean);
-    const normalizedMonthly = (monthly_review_questions ?? []).map(String).filter(Boolean);
-    const normalizedCycleSummary = (cycle_summary_questions ?? []).map(String).filter(Boolean);
-
-    // Upsert settings
+    // Build update data object - only include fields that are provided
     const updateData: Record<string, unknown> = {
       user_id: userId,
-      daily_review_questions: JSON.stringify(normalizedDaily),
-      weekly_review_questions: JSON.stringify(normalizedWeekly),
-      monthly_review_questions: JSON.stringify(normalizedMonthly),
-      cycle_summary_questions: JSON.stringify(normalizedCycleSummary),
       updated_at: new Date().toISOString(),
     };
+
+    // Handle review questions arrays if provided
+    if (daily_review_questions !== undefined) {
+      const normalizedDaily = (daily_review_questions ?? []).map(String).filter(Boolean);
+      updateData.daily_review_questions = JSON.stringify(normalizedDaily);
+    }
+    
+    if (weekly_review_questions !== undefined) {
+      const normalizedWeekly = (weekly_review_questions ?? []).map(String).filter(Boolean);
+      updateData.weekly_review_questions = JSON.stringify(normalizedWeekly);
+    }
+    
+    if (monthly_review_questions !== undefined) {
+      const normalizedMonthly = (monthly_review_questions ?? []).map(String).filter(Boolean);
+      updateData.monthly_review_questions = JSON.stringify(normalizedMonthly);
+    }
+    
+    if (cycle_summary_questions !== undefined) {
+      const normalizedCycleSummary = (cycle_summary_questions ?? []).map(String).filter(Boolean);
+      updateData.cycle_summary_questions = JSON.stringify(normalizedCycleSummary);
+    }
 
     if (theme_preference !== undefined) {
       updateData.theme_preference = theme_preference;
@@ -86,6 +98,12 @@ Deno.serve(async (req) => {
 
     if (works_weekends !== undefined) {
       updateData.works_weekends = works_weekends;
+    }
+
+    // Handle tour state
+    if (has_seen_tour !== undefined) {
+      updateData.has_seen_tour = has_seen_tour === true;
+      console.log('Saving has_seen_tour:', has_seen_tour);
     }
 
     const { error } = await supabaseClient

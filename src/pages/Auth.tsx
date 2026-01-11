@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { useTour } from '@/hooks/useTour';
 import { AuthLogo } from '@/components/auth/AuthLogo';
 import { Loader2, HelpCircle } from 'lucide-react';
 
@@ -26,7 +25,6 @@ export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { markFirstLoginComplete } = useTour();
 
   useEffect(() => {
     if (user) {
@@ -107,8 +105,8 @@ export default function Auth() {
 
         if (error) throw error;
 
-        // Mark first login complete - this allows the tour to show
-        markFirstLoginComplete();
+        // Tour state is now handled automatically by useTour hook
+        // which reads from database on auth state change
 
         toast({
           title: 'Welcome back!',

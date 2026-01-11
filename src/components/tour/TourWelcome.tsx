@@ -5,20 +5,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Sparkles, Rocket, X } from 'lucide-react';
 
 export function TourWelcome() {
-  const { hasSeenTour, startTour, skipTour, isActive, isFirstLoginComplete, markFirstLoginComplete } = useTour();
+  const { hasSeenTour, startTour, markTourComplete, isActive, isLoading } = useTour();
 
   const handleStartTour = () => {
-    markFirstLoginComplete();
     startTour();
   };
 
   const handleSkipTour = () => {
-    markFirstLoginComplete();
-    skipTour();
+    markTourComplete();
   };
 
-  // Don't show if tour has been seen, tour is already active, or first login is not complete yet
-  if (hasSeenTour || isActive || !isFirstLoginComplete) return null;
+  // Don't show if:
+  // - Still loading tour state from database
+  // - Tour has been seen (persisted in database)
+  // - Tour is already active
+  if (isLoading || hasSeenTour || isActive) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 animate-in fade-in-0 duration-300">
