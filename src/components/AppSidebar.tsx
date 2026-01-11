@@ -99,7 +99,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { open: sidebarOpen, toggleSidebar } = useSidebar();
-  const { isQuestMode, level, currentLevelXP, xpToNextLevel, levelTitle } = useTheme();
+  const { isQuestMode, themeLoaded, level, currentLevelXP, xpToNextLevel, levelTitle } = useTheme();
   const { openQuickCapture } = useQuickCapture();
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -110,8 +110,15 @@ export function AppSidebar() {
         return;
       }
       
+      // Check cache first to avoid redundant RPC calls
+      const cacheKey = `admin_${user.id}`;
+      const cachedAdmin = sessionStorage.getItem(cacheKey);
+      if (cachedAdmin !== null) {
+        setIsAdmin(cachedAdmin === 'true');
+        return;
+      }
+      
       // Use the is_admin function which has SECURITY DEFINER
-      // This bypasses RLS and properly checks admin status
       const { data, error } = await supabase
         .rpc('is_admin', { check_user_id: user.id });
       
@@ -121,11 +128,13 @@ export function AppSidebar() {
         return;
       }
       
-      setIsAdmin(data === true);
+      const isAdminResult = data === true;
+      sessionStorage.setItem(cacheKey, String(isAdminResult));
+      setIsAdmin(isAdminResult);
     };
     
     checkAdmin();
-  }, [user]);
+  }, [user?.id]);
 
   const isActive = (item: { href: string; isActiveCheck?: (path: string) => boolean }) => {
     if (item.isActiveCheck) {
@@ -255,8 +264,8 @@ export function AppSidebar() {
           </div>
         )}
 
-        {/* Quest Mode Stats */}
-        {sidebarOpen && isQuestMode && (
+        {/* Quest Mode Stats - Only render after theme is loaded */}
+        {sidebarOpen && themeLoaded && isQuestMode && (
           <div className="px-3 pb-3 space-y-2">
             <XPDisplay compact />
             <StreakDisplay compact />
@@ -319,8 +328,8 @@ export function AppSidebar() {
 
       {/* Footer */}
       <SidebarFooter className="border-t border-sidebar-border">
-        {/* Quest Level Card */}
-        {sidebarOpen && isQuestMode && (
+        {/* Quest Level Card - Only render after theme is loaded */}
+        {sidebarOpen && themeLoaded && isQuestMode && (
           <div className="px-3 py-3">
             <div className="rounded-lg p-3 border border-quest-gold/20 bg-gradient-to-br from-quest-gold/10 to-quest-gold/5">
               <div className="flex items-center gap-3">

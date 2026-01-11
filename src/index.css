@@ -572,50 +572,33 @@
   background-attachment: fixed;
 }
 
-/* Magical Ambient Overlay */
+/* Simplified Magical Ambient Overlay - GPU Accelerated */
 [data-theme="quest"] body::before {
   content: '';
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: 
-    radial-gradient(circle at 15% 20%, hsl(45 93% 47% / 0.12) 0%, transparent 40%),
-    radial-gradient(circle at 85% 75%, hsl(262 83% 58% / 0.08) 0%, transparent 45%),
-    radial-gradient(circle at 50% 50%, hsl(160 84% 39% / 0.05) 0%, transparent 60%);
+  inset: 0;
+  background: radial-gradient(ellipse at 20% 20%, hsl(45 80% 70% / 0.08) 0%, transparent 50%);
   pointer-events: none;
   z-index: 0;
-  animation: quest-ambient 20s ease-in-out infinite;
+  will-change: opacity;
+  transform: translateZ(0);
+  animation: quest-ambient 15s ease-in-out infinite;
 }
 
-/* Parchment Texture Pattern */
-[data-theme="quest"] body::after {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.5;
-}
+/* REMOVED: Parchment Texture Pattern - Was causing performance issues */
+/* Using solid gradient instead for better performance */
 
 [data-theme="quest"] #root {
   position: relative;
   z-index: 1;
 }
 
-/* Quest Mode Sidebar - Enchanted Scroll Look */
+/* Quest Mode Sidebar - Optimized (No backdrop-filter) */
 [data-theme="quest"] [data-sidebar] {
-  background: linear-gradient(180deg, hsl(40 25% 98%) 0%, hsl(38 22% 95%) 50%, hsl(40 20% 97%) 100%) !important;
-  backdrop-filter: blur(10px);
+  background: linear-gradient(180deg, hsl(40 25% 98%) 0%, hsl(38 22% 95%) 100%) !important;
   border-right: 2px solid hsl(45 50% 75%) !important;
-  box-shadow: 
-    inset -4px 0 12px -4px hsl(45 40% 50% / 0.08),
-    2px 0 8px -2px hsl(45 40% 30% / 0.1) !important;
+  box-shadow: 2px 0 8px hsl(45 40% 30% / 0.08) !important;
+  contain: layout style paint;
 }
 
 /* Quest Mode Active Menu Item - Gold Highlight */
@@ -760,10 +743,11 @@
   justify-content: center;
 }
 
-/* Quest Flame Effect for Streak */
+/* Quest Flame Effect for Streak - Optimized */
 [data-theme="quest"] .quest-flame {
-  filter: drop-shadow(0 0 4px hsl(25 100% 50% / 0.6));
-  animation: flame-flicker 0.8s ease-in-out infinite;
+  filter: drop-shadow(0 0 4px hsl(25 100% 50% / 0.5));
+  animation: flame-flicker 1.5s ease-in-out infinite;
+  will-change: transform;
 }
 
 /* Quest Potion Bottle */
@@ -841,22 +825,13 @@
   }
 }
 
+/* Optimized flame animation - Only uses transform (GPU accelerated) */
 @keyframes flame-flicker {
   0%, 100% { 
     transform: scaleY(1) rotate(0deg);
-    filter: drop-shadow(0 0 4px hsl(25 100% 50% / 0.6));
-  }
-  25% { 
-    transform: scaleY(1.05) rotate(-2deg);
-    filter: drop-shadow(0 0 6px hsl(25 100% 55% / 0.7));
   }
   50% { 
-    transform: scaleY(1.1) rotate(1deg);
-    filter: drop-shadow(0 0 8px hsl(25 100% 50% / 0.8));
-  }
-  75% { 
-    transform: scaleY(1.02) rotate(-1deg);
-    filter: drop-shadow(0 0 5px hsl(25 100% 52% / 0.65));
+    transform: scaleY(1.08) rotate(1deg);
   }
 }
 
