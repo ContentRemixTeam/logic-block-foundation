@@ -156,15 +156,30 @@
     --spacing: 0.25rem;
   }
 
-  /* ===== PINK PREMIUM THEME ===== */
-  [data-theme="pink"], [data-theme="vibrant"] {
-    --primary: 330 81% 60%;
-    --primary-hover: 330 81% 55%;
-    --accent: 330 81% 60%;
-    --accent-hover: 330 81% 55%;
-    --ring: 330 81% 60%;
-    --sidebar-primary: 330 81% 60%;
-    --sidebar-ring: 330 81% 60%;
+  /* ===== VIBRANT THEME - Bold Coral/Orange Energy ===== */
+  [data-theme="vibrant"] {
+    --primary: 16 90% 55%;               /* Vibrant coral-orange */
+    --primary-hover: 16 90% 50%;
+    --accent: 16 90% 95%;
+    --accent-hover: 16 90% 55%;
+    --accent-foreground: 16 90% 45%;
+    --ring: 16 90% 55%;
+    --sidebar-primary: 16 90% 55%;
+    --sidebar-accent: 16 90% 95%;
+    --sidebar-accent-foreground: 16 90% 45%;
+    --sidebar-ring: 16 90% 55%;
+    
+    /* Warmer background tones */
+    --background: 30 30% 99%;
+    --surface: 30 20% 100%;
+    --card: 30 20% 100%;
+    
+    /* Complementary chart colors */
+    --chart-1: 16 90% 55%;
+    --chart-2: 173 70% 45%;
+    --chart-3: 45 90% 55%;
+    --chart-4: 280 70% 60%;
+    --chart-5: 200 80% 50%;
   }
 
   /* ===== QUEST MODE THEME ===== */

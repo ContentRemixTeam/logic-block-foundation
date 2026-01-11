@@ -39,9 +39,9 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
   vibrant: {
     id: 'vibrant',
     name: 'Vibrant',
-    description: 'Bold pink theme with energetic styling',
+    description: 'Bold coral-orange theme with warm, energetic styling',
     isQuestTheme: false,
-    previewColor: '330 81% 60%',
+    previewColor: '16 90% 55%',
     icon: 'palette',
   },
   quest: {
