@@ -2,8 +2,9 @@ import { useEffect, useState, useCallback, createContext, useContext } from 'rea
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { questLabels, defaultLabels, getLevelTitle, calculateLevel } from '@/lib/questLabels';
+import { ThemeId, DEFAULT_THEME, isValidTheme, isQuestTheme } from '@/lib/themes';
 
-export type ThemeMode = 'quest' | 'minimal' | 'vibrant' | 'bw';
+export type ThemeMode = ThemeId;
 
 interface ThemeContextType {
   theme: ThemeMode;
@@ -42,14 +43,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [longestStreak, setLongestStreak] = useState(0);
   const [potions, setPotions] = useState(2);
 
-  // Only compute these once theme is loaded to prevent flash
-  const isQuestMode = themeLoaded && theme === 'quest';
+  // Use centralized theme config for mode detection - prevents glitches
+  const isQuestMode = themeLoaded && theme ? isQuestTheme(theme) : false;
   const isMinimalMode = themeLoaded && theme === 'minimal';
 
   const loadTheme = useCallback(async () => {
     if (!user) {
       // No user - set default theme and mark as loaded
-      setThemeState('minimal');
+      setThemeState(DEFAULT_THEME);
+      document.documentElement.setAttribute('data-theme', DEFAULT_THEME);
       setThemeLoaded(true);
       return;
     }
@@ -57,7 +59,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        setThemeState('minimal');
+        setThemeState(DEFAULT_THEME);
         setThemeLoaded(true);
         return;
       }
@@ -72,7 +74,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
       if (res.ok) {
         const data = await res.json();
-        const userTheme = (data.theme_preference || 'minimal') as ThemeMode;
+        const rawTheme = data.theme_preference || DEFAULT_THEME;
+        const userTheme = isValidTheme(rawTheme) ? rawTheme : DEFAULT_THEME;
         setThemeState(userTheme);
         document.documentElement.setAttribute('data-theme', userTheme);
         
@@ -90,11 +93,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         setLongestStreak(data.longest_debrief_streak || 0);
         setPotions(data.streak_potions_remaining ?? 2);
       } else {
-        setThemeState('minimal');
+        setThemeState(DEFAULT_THEME);
+        document.documentElement.setAttribute('data-theme', DEFAULT_THEME);
       }
     } catch (error) {
       console.error('Failed to load theme:', error);
-      setThemeState('minimal');
+      setThemeState(DEFAULT_THEME);
+      document.documentElement.setAttribute('data-theme', DEFAULT_THEME);
     } finally {
       setThemeLoaded(true);
     }
@@ -107,23 +112,30 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setTheme = useCallback(async (newTheme: ThemeMode) => {
     if (!user) return;
     
-    // Briefly set themeLoaded to false for clean transition
-    setThemeLoaded(false);
-    setThemeState(newTheme);
-    document.documentElement.setAttribute('data-theme', newTheme);
+    // Validate theme before applying
+    const validTheme = isValidTheme(newTheme) ? newTheme : DEFAULT_THEME;
+    
+    // Add transitioning class for smooth CSS transitions
+    document.documentElement.classList.add('theme-transitioning');
+    
+    // Apply theme immediately for responsive feel
+    setThemeState(validTheme);
+    document.documentElement.setAttribute('data-theme', validTheme);
 
     try {
       await supabase
         .from('user_settings')
         .upsert({
           user_id: user.id,
-          theme_preference: newTheme,
+          theme_preference: validTheme,
         });
     } catch (error) {
       console.error('Failed to save theme:', error);
     } finally {
-      // Re-enable after a brief delay to allow CSS transitions
-      setTimeout(() => setThemeLoaded(true), 50);
+      // Remove transitioning class after CSS transitions complete
+      setTimeout(() => {
+        document.documentElement.classList.remove('theme-transitioning');
+      }, 200);
     }
   }, [user]);
 
@@ -145,7 +157,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   return (
     <ThemeContext.Provider
       value={{
-        theme: theme || 'minimal',
+        theme: theme || DEFAULT_THEME,
         isQuestMode,
         isMinimalMode,
         setTheme,

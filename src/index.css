@@ -295,67 +295,66 @@
 }
 
 /* =====================================================
-   NON-QUEST THEME RESETS - Override Quest Mode Styles
+   THEME TRANSITION SYSTEM - Prevents Glitches
    ===================================================== */
 
-/* Reset quest background for non-quest themes */
-[data-theme="minimal"] body,
-[data-theme="vibrant"] body,
-[data-theme="bw"] body {
+/* Smooth transitions when switching themes */
+html.theme-transitioning,
+html.theme-transitioning * {
+  transition: 
+    background-color 150ms ease-out,
+    border-color 150ms ease-out,
+    color 100ms ease-out !important;
+}
+
+/* Base theme styles - all non-quest themes inherit this */
+:root:not([data-theme="quest"]) {
+  --font-heading: 'Inter', system-ui, sans-serif;
+}
+
+/* Ensure non-quest themes have clean backgrounds */
+:root:not([data-theme="quest"]) body {
   background: hsl(var(--background));
+  background-image: none;
   background-attachment: scroll;
 }
 
-/* Remove quest ambient overlay for non-quest themes */
-[data-theme="minimal"] body::before,
-[data-theme="vibrant"] body::before,
-[data-theme="bw"] body::before {
+/* Remove all pseudo-element overlays for non-quest themes */
+:root:not([data-theme="quest"]) body::before,
+:root:not([data-theme="quest"]) body::after {
   content: none !important;
   display: none !important;
 }
 
-/* Reset Quest typography for non-quest themes */
-[data-theme="minimal"] h1,
-[data-theme="minimal"] h2,
-[data-theme="minimal"] h3,
-[data-theme="vibrant"] h1,
-[data-theme="vibrant"] h2,
-[data-theme="vibrant"] h3,
-[data-theme="bw"] h1,
-[data-theme="bw"] h2,
-[data-theme="bw"] h3 {
-  font-family: var(--font-heading, Inter, sans-serif);
-  color: hsl(var(--foreground));
+/* Reset typography for non-quest themes */
+:root:not([data-theme="quest"]) h1,
+:root:not([data-theme="quest"]) h2,
+:root:not([data-theme="quest"]) h3,
+:root:not([data-theme="quest"]) h4,
+:root:not([data-theme="quest"]) h5,
+:root:not([data-theme="quest"]) h6 {
+  font-family: var(--font-heading, 'Inter', sans-serif);
+  color: inherit;
   text-shadow: none;
 }
 
-/* Reset quest input styles for non-quest themes */
-[data-theme="minimal"] input,
-[data-theme="minimal"] textarea,
-[data-theme="vibrant"] input,
-[data-theme="vibrant"] textarea,
-[data-theme="bw"] input,
-[data-theme="bw"] textarea {
+/* Reset form elements for non-quest themes */
+:root:not([data-theme="quest"]) input,
+:root:not([data-theme="quest"]) textarea,
+:root:not([data-theme="quest"]) select {
   border: 1px solid hsl(var(--border));
   background: hsl(var(--background));
 }
 
 /* Reset sidebar for non-quest themes */
-[data-theme="minimal"] [data-sidebar],
-[data-theme="vibrant"] [data-sidebar],
-[data-theme="bw"] [data-sidebar] {
+:root:not([data-theme="quest"]) [data-sidebar] {
   background: hsl(var(--sidebar-background)) !important;
   border-right: 1px solid hsl(var(--border)) !important;
   box-shadow: none !important;
 }
 
-/* Reset card styles for non-quest themes */
-[data-theme="minimal"] .card,
-[data-theme="minimal"] [class*="rounded-lg"][class*="border"][class*="bg-card"],
-[data-theme="vibrant"] .card,
-[data-theme="vibrant"] [class*="rounded-lg"][class*="border"][class*="bg-card"],
-[data-theme="bw"] .card,
-[data-theme="bw"] [class*="rounded-lg"][class*="border"][class*="bg-card"] {
+/* Reset cards for non-quest themes */
+:root:not([data-theme="quest"]) .card {
   border: 1px solid hsl(var(--border));
   background: hsl(var(--card));
   box-shadow: var(--shadow-sm);
