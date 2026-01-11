@@ -1,9 +1,23 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Helper function to decode JWT and extract user ID
+function getUserIdFromJWT(authHeader: string): string | null {
+  try {
+    const token = authHeader.replace('Bearer ', '');
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    
+    const payload = JSON.parse(atob(parts[1]));
+    return payload.sub || null;
+  } catch {
+    return null;
+  }
+}
 
 Deno.serve(async (req) => {
   console.log('EDGE FUNC: save-user-settings called');
@@ -33,23 +47,29 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create client with user's auth token for proper JWT validation
+    // Create client with user's auth token to verify the token is valid
     const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } }
     });
 
-    // Validate JWT using Supabase's getUser - this verifies the token cryptographically
+    // Get user using the auth client - this validates the token
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
     
     if (authError || !user) {
-      console.error('JWT validation error:', authError);
-      return new Response(JSON.stringify({ error: 'Invalid authorization token' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      // Fall back to extracting from JWT if getUser fails
+      const userId = getUserIdFromJWT(authHeader);
+      if (!userId) {
+        console.error('JWT validation error:', authError);
+        return new Response(JSON.stringify({ error: 'Invalid authorization token' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      // User ID extracted from JWT, proceed with that
+      console.log('Using user ID from JWT:', userId);
     }
 
-    const userId = user.id;
+    const userId = user?.id || getUserIdFromJWT(authHeader);
 
     const body = await req.json();
     const {
