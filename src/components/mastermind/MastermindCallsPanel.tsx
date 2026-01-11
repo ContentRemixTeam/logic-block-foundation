@@ -177,54 +177,51 @@ export function MastermindCallsPanel({
       <div 
         key={event.id}
         className={cn(
-          'p-3 rounded-lg border transition-all',
+          'p-4 rounded-lg border transition-all',
           isRsvpd 
             ? 'bg-primary/5 border-primary/30' 
             : 'bg-card hover:bg-muted/50'
         )}
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <GraduationCap className="h-4 w-4 text-pink-500 shrink-0" />
-              <span className="font-medium truncate">{title}</span>
-            </div>
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                {format(startTime, 'EEE, MMM d')}
-              </span>
-              <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {format(startTime, 'h:mm a')}
-              </span>
-            </div>
-          </div>
-          <Button
-            size="sm"
-            variant={isRsvpd ? 'outline' : 'default'}
-            disabled={isAdding}
-            onClick={() => isRsvpd ? handleRemoveFromSchedule(event.id) : handleAddToSchedule(event)}
-            className={cn(
-              'shrink-0',
-              !isRsvpd && 'bg-[hsl(330,81%,54%)] hover:bg-[hsl(330,81%,48%)]'
-            )}
-          >
-            {isAdding ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : isRsvpd ? (
-              <>
-                <Check className="h-4 w-4 mr-1" />
-                Added
-              </>
-            ) : (
-              <>
-                <Plus className="h-4 w-4 mr-1" />
-                Add
-              </>
-            )}
-          </Button>
+        <div className="flex items-center gap-2 mb-2">
+          <GraduationCap className="h-4 w-4 text-pink-500 shrink-0" />
+          <span className="font-medium">{title}</span>
         </div>
+        <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
+          <span className="flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            {format(startTime, 'EEE, MMM d')}
+          </span>
+          <span className="flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {format(startTime, 'h:mm a')}
+          </span>
+        </div>
+        <Button
+          className={cn(
+            'w-full',
+            isRsvpd 
+              ? 'border-green-500/50 text-green-600 hover:bg-green-50 hover:text-red-600 hover:border-red-500/50' 
+              : 'bg-primary hover:bg-primary/90'
+          )}
+          variant={isRsvpd ? 'outline' : 'default'}
+          disabled={isAdding}
+          onClick={() => isRsvpd ? handleRemoveFromSchedule(event.id) : handleAddToSchedule(event)}
+        >
+          {isAdding ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : isRsvpd ? (
+            <>
+              <Check className="h-4 w-4 mr-2" />
+              <span className="group-hover:hidden">Added to Schedule</span>
+            </>
+          ) : (
+            <>
+              <Plus className="h-4 w-4 mr-2" />
+              Add to Schedule
+            </>
+          )}
+        </Button>
       </div>
     );
   };
@@ -237,6 +234,9 @@ export function MastermindCallsPanel({
             <GraduationCap className="h-5 w-5 text-pink-500" />
             Mastermind Calls
           </SheetTitle>
+          <p className="text-sm text-muted-foreground flex items-center gap-1">
+            Click <Plus className="h-3 w-3 inline" /> <span className="font-medium">Add to Schedule</span> to plan your calls
+          </p>
         </SheetHeader>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'upcoming' | 'my-schedule')} className="mt-4">
@@ -327,40 +327,36 @@ export function MastermindCallsPanel({
                     // Fallback for RSVPs where the event might not be in the list anymore
                     const startTime = parseISO(rsvp.event_start);
                     return (
-                      <div key={rsvp.id} className="p-3 rounded-lg border bg-primary/5 border-primary/30">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <GraduationCap className="h-4 w-4 text-pink-500 shrink-0" />
-                              <span className="font-medium truncate">{parseEventTitle(rsvp.event_summary)}</span>
-                            </div>
-                            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {format(startTime, 'EEE, MMM d')}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {format(startTime, 'h:mm a')}
-                              </span>
-                            </div>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={addingEvent === rsvp.event_id}
-                            onClick={() => handleRemoveFromSchedule(rsvp.event_id)}
-                          >
-                            {addingEvent === rsvp.event_id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <>
-                                <Check className="h-4 w-4 mr-1" />
-                                Added
-                              </>
-                            )}
-                          </Button>
+                      <div key={rsvp.id} className="p-4 rounded-lg border bg-primary/5 border-primary/30">
+                        <div className="flex items-center gap-2 mb-2">
+                          <GraduationCap className="h-4 w-4 text-pink-500 shrink-0" />
+                          <span className="font-medium">{parseEventTitle(rsvp.event_summary)}</span>
                         </div>
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {format(startTime, 'EEE, MMM d')}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {format(startTime, 'h:mm a')}
+                          </span>
+                        </div>
+                        <Button
+                          className="w-full border-green-500/50 text-green-600 hover:bg-green-50 hover:text-red-600 hover:border-red-500/50"
+                          variant="outline"
+                          disabled={addingEvent === rsvp.event_id}
+                          onClick={() => handleRemoveFromSchedule(rsvp.event_id)}
+                        >
+                          {addingEvent === rsvp.event_id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Check className="h-4 w-4 mr-2" />
+                              Added to Schedule
+                            </>
+                          )}
+                        </Button>
                       </div>
                     );
                   })}
