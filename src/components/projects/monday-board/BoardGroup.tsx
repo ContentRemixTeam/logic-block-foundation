@@ -87,7 +87,7 @@ export function BoardGroup({
     <div className="border-b">
       {/* Group Header */}
       <div 
-        className="flex items-center gap-2 px-3 py-2 bg-muted/30 hover:bg-muted/50 cursor-pointer"
+        className="group flex items-center gap-2 px-3 py-2 bg-muted/30 hover:bg-muted/50 cursor-pointer"
         style={{ borderLeft: `4px solid ${section.color}` }}
       >
         <Button
