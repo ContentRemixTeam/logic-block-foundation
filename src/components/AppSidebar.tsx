@@ -86,7 +86,7 @@ const MINDSET_NAV = [
 ];
 
 const COMMUNITY_NAV = [
-  { name: 'Community', href: '/community', icon: Users, questIcon: '🏆' },
+  { name: 'Community', href: 'https://portal.faithmariah.com/communities/groups/mastermind/home', icon: Users, questIcon: '🏆', isExternal: true },
   { name: 'Mastermind', href: '/mastermind', icon: Sparkle, questIcon: '🎓' },
 ];
 
@@ -142,7 +142,7 @@ export function AppSidebar() {
     showLabel = true,
   }: { 
     label?: string; 
-    items: typeof MAIN_NAV;
+    items: Array<{ name: string; href: string; icon: any; questIcon: string; isExternal?: boolean; isActiveCheck?: (path: string) => boolean }>;
     showLabel?: boolean;
   }) => (
     <SidebarGroup>
@@ -159,20 +159,31 @@ export function AppSidebar() {
                 <TooltipTrigger asChild>
                   <SidebarMenuButton 
                     asChild 
-                    isActive={isActive(item)}
+                    isActive={!item.isExternal && isActive(item)}
                     className={cn(
                       "h-9 gap-3 transition-all duration-150",
-                      isActive(item) && "bg-primary/10 text-primary font-medium"
+                      !item.isExternal && isActive(item) && "bg-primary/10 text-primary font-medium"
                     )}
                   >
-                    <Link to={item.href}>
-                      {isQuestMode ? (
-                        <span className="text-base w-5 text-center">{item.questIcon}</span>
-                      ) : (
-                        <item.icon className="h-4 w-4" />
-                      )}
-                      <span className="truncate">{item.name}</span>
-                    </Link>
+                    {item.isExternal ? (
+                      <a href={item.href} target="_blank" rel="noopener noreferrer">
+                        {isQuestMode ? (
+                          <span className="text-base w-5 text-center">{item.questIcon}</span>
+                        ) : (
+                          <item.icon className="h-4 w-4" />
+                        )}
+                        <span className="truncate">{item.name}</span>
+                      </a>
+                    ) : (
+                      <Link to={item.href}>
+                        {isQuestMode ? (
+                          <span className="text-base w-5 text-center">{item.questIcon}</span>
+                        ) : (
+                          <item.icon className="h-4 w-4" />
+                        )}
+                        <span className="truncate">{item.name}</span>
+                      </Link>
+                    )}
                   </SidebarMenuButton>
                 </TooltipTrigger>
                 {!sidebarOpen && (

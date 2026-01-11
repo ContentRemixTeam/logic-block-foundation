@@ -42,7 +42,7 @@ import Progress from "./pages/Progress";
 import Tasks from "./pages/Tasks";
 import Notes from "./pages/Notes";
 import SOPs from "./pages/SOPs";
-import Community from "./pages/Community";
+
 import Support from "./pages/Support";
 import CaptureLaunchPage from "./pages/CaptureLaunchPage";
 import InstallApp from "./pages/InstallApp";
@@ -132,7 +132,7 @@ const App = () => (
                     <Route path="/belief-builder" element={<ProtectedRoute><BeliefBuilder /></ProtectedRoute>} />
                     <Route path="/identity-anchors" element={<ProtectedRoute><IdentityAnchors /></ProtectedRoute>} />
                     <Route path="/self-coaching" element={<ProtectedRoute><SelfCoaching /></ProtectedRoute>} />
-                    <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
+                    
                     <Route path="/mastermind" element={<ProtectedRoute><MastermindHub /></ProtectedRoute>} />
                     <Route path="/admin/mastermind-roster" element={<ProtectedRoute><MastermindRosterImport /></ProtectedRoute>} />
                     <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
