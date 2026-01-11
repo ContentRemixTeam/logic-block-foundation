@@ -23,6 +23,10 @@ interface ArcadeSettings {
   pomodoro_focus_minutes: number;
   pomodoro_break_minutes: number;
   pomodoro_auto_start_break: boolean;
+  // Header widget visibility
+  show_coin_counter: boolean;
+  show_pet_widget: boolean;
+  show_pomodoro_widget: boolean;
 }
 
 interface ArcadeContextValue {
@@ -50,6 +54,9 @@ const defaultSettings: ArcadeSettings = {
   pomodoro_focus_minutes: 25,
   pomodoro_break_minutes: 5,
   pomodoro_auto_start_break: false,
+  show_coin_counter: true,
+  show_pet_widget: true,
+  show_pomodoro_widget: true,
 };
 
 const ArcadeContext = createContext<ArcadeContextValue | null>(null);
@@ -122,7 +129,7 @@ export function ArcadeProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await supabase
         .from('user_settings')
-        .select('arcade_enabled, arcade_reduce_motion, arcade_sounds_off, pomodoro_focus_minutes, pomodoro_break_minutes, pomodoro_auto_start_break')
+        .select('arcade_enabled, arcade_reduce_motion, arcade_sounds_off, pomodoro_focus_minutes, pomodoro_break_minutes, pomodoro_auto_start_break, show_coin_counter, show_pet_widget, show_pomodoro_widget')
         .eq('user_id', user.id)
         .maybeSingle();
       
@@ -136,6 +143,9 @@ export function ArcadeProvider({ children }: { children: ReactNode }) {
           pomodoro_focus_minutes: data.pomodoro_focus_minutes ?? 25,
           pomodoro_break_minutes: data.pomodoro_break_minutes ?? 5,
           pomodoro_auto_start_break: data.pomodoro_auto_start_break ?? false,
+          show_coin_counter: data.show_coin_counter ?? true,
+          show_pet_widget: data.show_pet_widget ?? true,
+          show_pomodoro_widget: data.show_pomodoro_widget ?? true,
         });
       }
     } catch (err) {
