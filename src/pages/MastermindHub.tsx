@@ -35,15 +35,6 @@ interface MastermindResource {
 
 const MASTERMIND_RESOURCES: MastermindResource[] = [
   {
-    id: 'celebration-wall',
-    title: 'Celebration Wall',
-    description: 'Share your wins and celebrate with the community',
-    icon: <Trophy className="h-6 w-6" />,
-    questIcon: '🏆',
-    url: '/community',
-    isExternal: false,
-  },
-  {
     id: 'ask-faith',
     title: 'Ask Faith',
     description: 'Submit your questions to get personalized guidance',
