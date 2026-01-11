@@ -19,6 +19,79 @@ function getUserIdFromJWT(authHeader: string): string | null {
   }
 }
 
+// Rate limiting configuration
+const RATE_LIMITS = {
+  mutation: { requests: 60, windowMs: 60000 },
+  read: { requests: 120, windowMs: 60000 }
+};
+
+async function checkRateLimit(
+  supabase: any, 
+  userId: string, 
+  endpoint: string, 
+  type: 'mutation' | 'read'
+): Promise<{ allowed: boolean; retryAfter?: number }> {
+  try {
+    const limit = RATE_LIMITS[type];
+    const now = new Date();
+    const windowStart = new Date(now.getTime() - limit.windowMs);
+    
+    const { data: existing } = await supabase
+      .from('rate_limits')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('endpoint', endpoint)
+      .single();
+    
+    if (!existing || new Date(existing.window_start) < windowStart) {
+      await supabase
+        .from('rate_limits')
+        .upsert({
+          user_id: userId,
+          endpoint: endpoint,
+          request_count: 1,
+          window_start: now.toISOString()
+        }, { onConflict: 'user_id,endpoint' });
+      return { allowed: true };
+    }
+    
+    if (existing.request_count >= limit.requests) {
+      const windowEnd = new Date(existing.window_start).getTime() + limit.windowMs;
+      const retryAfter = Math.ceil((windowEnd - now.getTime()) / 1000);
+      return { allowed: false, retryAfter: Math.max(1, retryAfter) };
+    }
+    
+    await supabase
+      .from('rate_limits')
+      .update({ request_count: existing.request_count + 1 })
+      .eq('user_id', userId)
+      .eq('endpoint', endpoint);
+    
+    return { allowed: true };
+  } catch (error) {
+    console.error('Rate limit check error (allowing request):', error);
+    return { allowed: true };
+  }
+}
+
+function rateLimitResponse(retryAfter: number) {
+  return new Response(
+    JSON.stringify({ 
+      error: 'Too many requests. Please wait before trying again.',
+      code: 'RATE_LIMIT_EXCEEDED',
+      retry_after: retryAfter
+    }),
+    {
+      status: 429,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'Retry-After': String(retryAfter)
+      }
+    }
+  );
+}
+
 Deno.serve(async (req) => {
   console.log('EDGE FUNC: save-user-settings called');
 
@@ -47,29 +120,27 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create client with user's auth token to verify the token is valid
-    const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    // Get user using the auth client - this validates the token
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
-    
-    if (authError || !user) {
-      // Fall back to extracting from JWT if getUser fails
-      const userId = getUserIdFromJWT(authHeader);
-      if (!userId) {
-        console.error('JWT validation error:', authError);
-        return new Response(JSON.stringify({ error: 'Invalid authorization token' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      // User ID extracted from JWT, proceed with that
-      console.log('Using user ID from JWT:', userId);
+    // Extract user ID from JWT first
+    const userId = getUserIdFromJWT(authHeader);
+    if (!userId) {
+      console.error('Failed to extract user ID from JWT');
+      return new Response(JSON.stringify({ error: 'Invalid authorization token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const userId = user?.id || getUserIdFromJWT(authHeader);
+    console.log('User ID from JWT:', userId);
+
+    // Use service role client for database operations
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Rate limit check
+    const rateCheck = await checkRateLimit(supabaseClient, userId, 'save-user-settings', 'mutation');
+    if (!rateCheck.allowed) {
+      console.log('Rate limit exceeded for user:', userId);
+      return rateLimitResponse(rateCheck.retryAfter!);
+    }
 
     const body = await req.json();
     const {
@@ -81,9 +152,6 @@ Deno.serve(async (req) => {
       works_weekends,
       has_seen_tour,
     } = body;
-
-    // Use service role client for database operations
-    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Build update data object - only include fields that are provided
     const updateData: Record<string, unknown> = {
