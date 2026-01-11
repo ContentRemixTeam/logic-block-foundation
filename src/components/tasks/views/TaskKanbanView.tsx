@@ -136,7 +136,7 @@ export function TaskKanbanView({
     e.preventDefault();
     const taskId = e.dataTransfer.getData('taskId');
     if (taskId) {
-      onUpdateTask(taskId, { status: columnId });
+      onUpdateTask(taskId, { status: columnId as Task['status'] });
     }
   };
 

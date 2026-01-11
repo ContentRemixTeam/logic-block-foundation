@@ -294,19 +294,14 @@ export function TaskMondayBoardView({
           return (
             <TaskBoardGroup
               key={group.id}
-              groupId={group.id}
-              groupName={group.name}
-              groupColor={group.color}
+              group={{ id: group.id, name: group.name, color: group.color }}
               tasks={groupTasks}
               visibleColumns={visibleColumns}
               onTaskClick={handleTaskClick}
               onToggleComplete={onToggleComplete}
               onUpdateTask={onUpdateTask}
-              onDeleteTask={(taskId) => {
-                const task = tasks.find(t => t.task_id === taskId);
-                if (task) onDeleteTask(task);
-              }}
-              onCreateTask={(text) => handleCreateTask(text, group.id)}
+              onDeleteTask={onDeleteTask}
+              onCreateTask={(groupId, text) => handleCreateTask(text, groupId)}
             />
           );
         })}

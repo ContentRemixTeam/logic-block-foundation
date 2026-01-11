@@ -154,7 +154,7 @@ export function TaskBoardRow({
         return (
           <Select
             value={task.status || 'backlog'}
-            onValueChange={(value) => onUpdateTask(task.task_id, { status: value })}
+            onValueChange={(value) => onUpdateTask(task.task_id, { status: value as Task['status'] })}
           >
             <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/50">
               <Badge className={cn("text-xs font-medium", statusOption?.className)}>
@@ -236,7 +236,7 @@ export function TaskBoardRow({
         return (
           <Select
             value={task.energy_level || ''}
-            onValueChange={(value) => onUpdateTask(task.task_id, { energy_level: value || null })}
+            onValueChange={(value) => onUpdateTask(task.task_id, { energy_level: (value || null) as Task['energy_level'] })}
           >
             <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/50">
               {energyOption ? (
@@ -330,8 +330,9 @@ export function TaskBoardRow({
       case 'sop':
         return (
           <SOPSelector
-            selectedSOPId={task.sop_id}
-            onSelect={(sopId) => onUpdateTask(task.task_id, { sop_id: sopId })}
+            value={task.sop_id}
+            onChange={(sopId) => onUpdateTask(task.task_id, { sop_id: sopId })}
+            size="sm"
           />
         );
 

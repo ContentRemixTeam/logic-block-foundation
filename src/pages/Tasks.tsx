@@ -686,6 +686,7 @@ export default function Tasks() {
             onDeleteTask={initiateDelete}
             onOpenDetail={openTaskDetail}
             onQuickReschedule={handleQuickReschedule}
+            onAddTask={() => setIsAddDialogOpen(true)}
           />
         ) : viewMode === 'board' ? (
           <TaskMondayBoardView
