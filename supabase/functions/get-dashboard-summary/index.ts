@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
       // Fetch full cycle data including all fields + metrics
       const { data: fullCycleData } = await supabaseClient
         .from('cycles_90_day')
-        .select('focus_area, things_to_remember, discover_score, nurture_score, convert_score, identity, why, target_feeling, audience_target, audience_frustration, signature_message, office_hours_start, office_hours_end, office_hours_days, weekly_planning_day, weekly_debrief_day, metric_1_name, metric_1_start, metric_2_name, metric_2_start, metric_3_name, metric_3_start')
+        .select('focus_area, things_to_remember, discover_score, nurture_score, convert_score, identity, why, target_feeling, audience_target, audience_frustration, signature_message, office_hours_start, office_hours_end, office_hours_days, weekly_planning_day, weekly_debrief_day, metric_1_name, metric_1_start, metric_2_name, metric_2_start, metric_3_name, metric_3_start, start_date, day1_top3, day2_top3, day3_top3')
         .eq('cycle_id', currentCycle.cycle_id)
         .maybeSingle();
       
@@ -242,6 +242,19 @@ Deno.serve(async (req) => {
       weekly_debrief_day: null,
     };
 
+    // First 3 days data for new cycle checklist
+    const first3DaysData = cycleData && cycleData.length > 0 ? {
+      start_date: (await supabaseClient.from('cycles_90_day').select('start_date').eq('cycle_id', cycleData[0].cycle_id).maybeSingle()).data?.start_date || null,
+      day1_top3: (await supabaseClient.from('cycles_90_day').select('day1_top3').eq('cycle_id', cycleData[0].cycle_id).maybeSingle()).data?.day1_top3 || [],
+      day2_top3: (await supabaseClient.from('cycles_90_day').select('day2_top3').eq('cycle_id', cycleData[0].cycle_id).maybeSingle()).data?.day2_top3 || [],
+      day3_top3: (await supabaseClient.from('cycles_90_day').select('day3_top3').eq('cycle_id', cycleData[0].cycle_id).maybeSingle()).data?.day3_top3 || [],
+    } : {
+      start_date: null,
+      day1_top3: [],
+      day2_top3: [],
+      day3_top3: [],
+    };
+
     // Merge all data into cycle data
     const enhancedData = {
       ...data,
@@ -259,6 +272,7 @@ Deno.serve(async (req) => {
       monthly_review_status: monthlyReviewStatus,
       cycle_summary_status: cycleSummaryStatus,
       metrics: metricsData,
+      first_3_days: first3DaysData,
     };
 
     return new Response(JSON.stringify({ 

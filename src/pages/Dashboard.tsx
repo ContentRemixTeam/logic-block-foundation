@@ -37,7 +37,7 @@ import { MastermindCallWidget } from '@/components/mastermind/MastermindCallWidg
 import { PodcastWidget } from '@/components/podcast/PodcastWidget';
 import { HelpButton } from '@/components/ui/help-button';
 import { PremiumCard, PremiumCardContent, PremiumCardHeader, PremiumCardTitle } from '@/components/ui/premium-card';
-import { TodayStrip, PlanMyWeekButton, QuickActionsPanel, ResourcesPanel, MetricsWidget, WeeklyRoutineReminder, PromotionCountdown, SalesCalendar } from '@/components/dashboard';
+import { TodayStrip, PlanMyWeekButton, QuickActionsPanel, ResourcesPanel, MetricsWidget, WeeklyRoutineReminder, PromotionCountdown, SalesCalendar, First3DaysChecklist, getFirst3DaysCheckedState, saveFirst3DaysCheckedState } from '@/components/dashboard';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -54,6 +54,8 @@ export default function Dashboard() {
   const [officeHoursData, setOfficeHoursData] = useState<{ start: string | null; end: string | null; days: string[] | null }>({ start: null, end: null, days: null });
   const [metricsData, setMetricsData] = useState<{ metric1_name: string | null; metric1_start: number | null; metric2_name: string | null; metric2_start: number | null; metric3_name: string | null; metric3_start: number | null } | null>(null);
   const [weeklyRoutines, setWeeklyRoutines] = useState<{ planning_day: string | null; debrief_day: string | null }>({ planning_day: null, debrief_day: null });
+  const [first3DaysData, setFirst3DaysData] = useState<{ startDate: string | null; day1Top3: string[]; day2Top3: string[]; day3Top3: string[] } | null>(null);
+  const [first3DaysChecked, setFirst3DaysChecked] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     loadDashboardSummary();
@@ -134,6 +136,18 @@ export default function Dashboard() {
       if (summaryData?.metrics) {
         setMetricsData(summaryData.metrics);
       }
+      
+      // Set first 3 days data for new cycle checklist
+      if (summaryData?.first_3_days) {
+        setFirst3DaysData({
+          startDate: summaryData.first_3_days.start_date || null,
+          day1Top3: Array.isArray(summaryData.first_3_days.day1_top3) ? summaryData.first_3_days.day1_top3 : [],
+          day2Top3: Array.isArray(summaryData.first_3_days.day2_top3) ? summaryData.first_3_days.day2_top3 : [],
+          day3Top3: Array.isArray(summaryData.first_3_days.day3_top3) ? summaryData.first_3_days.day3_top3 : [],
+        });
+        // Load checked state from localStorage
+        setFirst3DaysChecked(getFirst3DaysCheckedState());
+      }
     } catch (error: any) {
       console.error('Error loading dashboard:', error);
       setError(error?.message || 'Failed to load dashboard');
@@ -186,6 +200,13 @@ export default function Dashboard() {
 
   // Get the top priority for TodayStrip
   const topPriority = weeklyPriorities[0] || todayTop3[0] || null;
+
+  // Handler for First 3 Days checklist
+  const handleFirst3DaysCheck = (key: string, checked: boolean) => {
+    const newChecked = { ...first3DaysChecked, [key]: checked };
+    setFirst3DaysChecked(newChecked);
+    saveFirst3DaysCheckedState(newChecked);
+  };
 
   return (
     <Layout>
@@ -316,6 +337,16 @@ export default function Dashboard() {
                     </PremiumCard>
                   )}
                 </>
+              )}
+
+              {/* Your First 3 Days Checklist - Only shows in first 5 days */}
+              {first3DaysData && (
+                <First3DaysChecklist
+                  data={first3DaysData}
+                  daysRemaining={daysRemaining}
+                  checkedState={first3DaysChecked}
+                  onCheckChange={handleFirst3DaysCheck}
+                />
               )}
 
               {/* Weekly Priorities Card */}
