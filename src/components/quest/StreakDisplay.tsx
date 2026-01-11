@@ -1,6 +1,7 @@
 import { useTheme } from '@/hooks/useTheme';
-import { Flame, FlaskConical } from 'lucide-react';
+import { Flame, FlaskConical, Sparkles } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 interface StreakDisplayProps {
   compact?: boolean;
@@ -15,48 +16,108 @@ export function StreakDisplay({ compact = false }: StreakDisplayProps) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex items-center gap-1.5 text-sm">
-            <Flame className="h-4 w-4 text-orange-500" />
-            <span className="font-medium">{streak}</span>
+          <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-gradient-to-r from-orange-500/10 to-orange-400/5 border border-orange-400/20">
+            {/* Animated Flame */}
+            <div className="relative">
+              <Flame className="h-5 w-5 text-orange-500 quest-flame animate-flame-flicker" />
+              {streak >= 7 && (
+                <Sparkles className="absolute -top-1 -right-1 h-3 w-3 text-quest-gold animate-sparkle" />
+              )}
+            </div>
+            
+            <span className="font-cinzel font-bold text-orange-600">{streak}</span>
+            
+            {/* Potion indicator */}
             {potions > 0 && (
-              <div className="flex items-center gap-0.5 text-muted-foreground">
-                <FlaskConical className="h-3 w-3" />
-                <span className="text-xs">{potions}</span>
+              <div className="flex items-center gap-0.5 pl-1 border-l border-orange-300/30">
+                <FlaskConical className="h-3.5 w-3.5 text-quest-emerald quest-potion" />
+                <span className="text-xs font-medium text-quest-emerald">{potions}</span>
               </div>
             )}
           </div>
         </TooltipTrigger>
-        <TooltipContent>
-          <p>Debrief Streak: {streak} days</p>
-          <p className="text-xs text-muted-foreground">Potions: {potions} left this month</p>
+        <TooltipContent side="bottom">
+          <p className="font-semibold">🔥 Debrief Streak: {streak} days</p>
+          <p className="text-xs text-muted-foreground">Best: {longestStreak} days</p>
+          <p className="text-xs text-muted-foreground">Potions: {potions} remaining</p>
         </TooltipContent>
       </Tooltip>
     );
   }
 
   return (
-    <div className="rounded-lg border bg-card p-3 space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Flame className="h-5 w-5 text-orange-500" />
-          <span className="font-semibold">Daily Debrief Streak</span>
+    <div className="relative rounded-xl border-2 border-orange-400/30 bg-gradient-to-br from-orange-50 to-amber-50/50 p-4 overflow-hidden">
+      {/* Background flame effect */}
+      <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-gradient-to-t from-orange-400/10 to-transparent rounded-full blur-xl" />
+      
+      <div className="relative flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {/* Animated Flame Icon */}
+          <div className="relative">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shadow-lg">
+              <Flame className="h-7 w-7 text-white animate-flame-flicker" />
+            </div>
+            {streak >= 7 && (
+              <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-quest-gold flex items-center justify-center">
+                <Sparkles className="h-3 w-3 text-white" />
+              </div>
+            )}
+          </div>
+          
+          <div>
+            <h3 className="font-cinzel font-semibold text-[hsl(30,50%,25%)]">Daily Debrief Streak</h3>
+            <p className="text-xs text-muted-foreground">Keep the fire burning!</p>
+          </div>
         </div>
-        <span className="text-2xl font-bold">{streak}</span>
+        
+        {/* Streak Number */}
+        <div className="text-right">
+          <span className="font-cinzel text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-orange-500 to-red-600">
+            {streak}
+          </span>
+          <p className="text-xs text-muted-foreground">days</p>
+        </div>
       </div>
       
-      <div className="flex items-center justify-between text-sm">
-        <div className="flex items-center gap-1.5 text-muted-foreground">
-          <FlaskConical className="h-4 w-4" />
-          <span>Streak Potions: {potions} left</span>
+      {/* Stats Row */}
+      <div className="mt-4 pt-3 border-t border-orange-200/50 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {/* Potions */}
+          <div className="flex items-center gap-1.5">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div 
+                key={i}
+                className={cn(
+                  "relative transition-all",
+                  i < potions ? "opacity-100" : "opacity-30"
+                )}
+              >
+                <FlaskConical 
+                  className={cn(
+                    "h-5 w-5",
+                    i < potions ? "text-quest-emerald quest-potion" : "text-gray-400"
+                  )} 
+                />
+                {i < potions && (
+                  <div className="absolute inset-0 bg-quest-emerald/20 rounded-full blur-sm" />
+                )}
+              </div>
+            ))}
+            <span className="text-xs text-muted-foreground ml-1">Potions</span>
+          </div>
         </div>
-        <span className="text-xs text-muted-foreground">
-          Longest: {longestStreak} days
-        </span>
+        
+        {/* Longest Streak */}
+        <div className="text-right">
+          <span className="text-xs text-muted-foreground">Longest: </span>
+          <span className="text-sm font-semibold text-orange-600">{longestStreak} days</span>
+        </div>
       </div>
       
+      {/* Potion Info */}
       {potions > 0 && (
-        <p className="text-xs text-muted-foreground">
-          Potions protect your streak for 1 day. Reset monthly.
+        <p className="mt-2 text-[10px] text-muted-foreground text-center">
+          ✨ Potions protect your streak for 1 day when you miss a debrief. Resets monthly.
         </p>
       )}
     </div>
