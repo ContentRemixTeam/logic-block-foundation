@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { format, endOfWeek } from 'date-fns';
+import { checkAndHandleRateLimit } from '@/lib/rateLimitHandler';
 import { Task } from '@/components/tasks/types';
 import { mutationLogger } from '@/components/dev/DevDebugPanel';
 
@@ -126,6 +127,12 @@ export function useTaskMutations() {
           body: { action: 'create', ...params },
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
+        
+        // Check for rate limiting
+        if (checkAndHandleRateLimit(response)) {
+          throw new Error('Rate limit exceeded');
+        }
+        
         if (response.error) throw response.error;
         
         mutationLogger.updateStatus(logId, 'success', undefined, Date.now() - startTime);

@@ -25,6 +25,83 @@ function getUserIdFromJWT(authHeader: string): string | null {
   }
 }
 
+// Rate limiting configuration
+const RATE_LIMITS = {
+  mutation: { requests: 60, windowMs: 60000 },  // 60/minute
+  read: { requests: 120, windowMs: 60000 }      // 120/minute
+};
+
+async function checkRateLimit(
+  supabase: any, 
+  userId: string, 
+  endpoint: string, 
+  type: 'mutation' | 'read'
+): Promise<{ allowed: boolean; retryAfter?: number }> {
+  try {
+    const limit = RATE_LIMITS[type];
+    const now = new Date();
+    const windowStart = new Date(now.getTime() - limit.windowMs);
+    
+    // Get current rate limit record
+    const { data: existing } = await supabase
+      .from('rate_limits')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('endpoint', endpoint)
+      .single();
+    
+    if (!existing || new Date(existing.window_start) < windowStart) {
+      // Reset or create new window
+      await supabase
+        .from('rate_limits')
+        .upsert({
+          user_id: userId,
+          endpoint: endpoint,
+          request_count: 1,
+          window_start: now.toISOString()
+        }, { onConflict: 'user_id,endpoint' });
+      return { allowed: true };
+    }
+    
+    if (existing.request_count >= limit.requests) {
+      // Calculate retry-after
+      const windowEnd = new Date(existing.window_start).getTime() + limit.windowMs;
+      const retryAfter = Math.ceil((windowEnd - now.getTime()) / 1000);
+      return { allowed: false, retryAfter: Math.max(1, retryAfter) };
+    }
+    
+    // Increment counter
+    await supabase
+      .from('rate_limits')
+      .update({ request_count: existing.request_count + 1 })
+      .eq('user_id', userId)
+      .eq('endpoint', endpoint);
+    
+    return { allowed: true };
+  } catch (error) {
+    console.error('Rate limit check error (allowing request):', error);
+    return { allowed: true }; // Fail open
+  }
+}
+
+function rateLimitResponse(retryAfter: number) {
+  return new Response(
+    JSON.stringify({ 
+      error: 'Too many requests. Please wait before trying again.',
+      code: 'RATE_LIMIT_EXCEEDED',
+      retry_after: retryAfter
+    }),
+    {
+      status: 429,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'Retry-After': String(retryAfter)
+      }
+    }
+  );
+}
+
 // Helper to check if a value is a valid time value (accepts both simple time strings and ISO timestamps)
 function isValidTimeValue(value: any): boolean {
   if (!value || typeof value !== 'string') return false;
@@ -61,6 +138,13 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+
+    // Rate limit check
+    const rateCheck = await checkRateLimit(supabase, userId, 'manage-task', 'mutation');
+    if (!rateCheck.allowed) {
+      console.log('Rate limit exceeded for user:', userId);
+      return rateLimitResponse(rateCheck.retryAfter!);
+    }
 
     const body = await req.json();
     
@@ -455,31 +539,27 @@ Deno.serve(async (req) => {
           .select()
           .single();
         break;
-
-      default:
-        return new Response(JSON.stringify({ error: 'Invalid action' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
     }
 
-    if (result.error) {
+    if (result?.error) {
       console.error('Database error:', result.error);
-      return new Response(JSON.stringify({ error: result.error.message }), {
+      throw result.error;
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, data: result?.data }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  } catch (error: any) {
+    console.error('Error in manage-task:', error);
+    return new Response(
+      JSON.stringify({ error: error?.message || 'Unknown error' }),
+      {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    return new Response(JSON.stringify({ data: result.data, success: true }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  } catch (error) {
-    console.error('Unexpected error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      }
+    );
   }
 });

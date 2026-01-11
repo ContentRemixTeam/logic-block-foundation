@@ -2295,6 +2295,33 @@ export type Database = {
           },
         ]
       }
+      rate_limits: {
+        Row: {
+          created_at: string | null
+          endpoint: string
+          id: string
+          request_count: number | null
+          user_id: string
+          window_start: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          request_count?: number | null
+          user_id: string
+          window_start?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          request_count?: number | null
+          user_id?: string
+          window_start?: string | null
+        }
+        Relationships: []
+      }
       reminders: {
         Row: {
           active: boolean | null
@@ -3167,6 +3194,7 @@ export type Database = {
         Args: { user_email: string }
         Returns: boolean
       }
+      cleanup_rate_limits: { Args: never; Returns: undefined }
       create_daily_plan: {
         Args: {
           p_date: string
