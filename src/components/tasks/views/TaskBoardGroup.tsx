@@ -1,29 +1,29 @@
 import { useState } from 'react';
-import { Task } from '@/components/tasks/types';
-import { BOARD_COLUMNS } from '@/types/project';
-import { TaskBoardRow } from './TaskBoardRow';
-import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { Task } from '@/components/tasks/types';
+import { TaskBoardRow } from './TaskBoardRow';
+import { cn } from '@/lib/utils';
 
 interface TaskBoardGroupProps {
-  groupId: string;
-  groupName: string;
-  groupColor: string;
+  group: {
+    id: string;
+    name: string;
+    color?: string;
+  };
   tasks: Task[];
   visibleColumns: string[];
   onTaskClick: (task: Task) => void;
   onToggleComplete: (taskId: string) => void;
   onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
-  onDeleteTask: (taskId: string) => void;
-  onCreateTask: (text: string) => void;
+  onDeleteTask: (task: Task) => void;
+  onCreateTask?: (groupId: string, taskText: string) => void;
 }
 
 export function TaskBoardGroup({
-  groupId,
-  groupName,
-  groupColor,
+  group,
   tasks,
   visibleColumns,
   onTaskClick,
@@ -40,90 +40,116 @@ export function TaskBoardGroup({
   const progress = tasks.length > 0 ? (completedCount / tasks.length) * 100 : 0;
 
   const handleAddTask = () => {
-    if (newTaskText.trim()) {
-      onCreateTask(newTaskText.trim());
+    if (newTaskText.trim() && onCreateTask) {
+      onCreateTask(group.id, newTaskText.trim());
       setNewTaskText('');
       setIsAddingTask(false);
     }
   };
 
+  const groupColor = group.color || '#6366f1';
+
   return (
-    <div className="border-b last:border-b-0">
+    <div className="mb-4">
       {/* Group Header */}
       <div 
-        className="flex items-center gap-2 px-3 py-2 bg-muted/30 hover:bg-muted/50 cursor-pointer group"
-        style={{ borderLeft: `4px solid ${groupColor}` }}
+        className={cn(
+          "flex items-center gap-3 px-4 py-2.5 rounded-lg",
+          "bg-muted/30 hover:bg-muted/50 transition-colors",
+          "border border-border/40",
+          "group cursor-pointer"
+        )}
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6"
+        {/* Color indicator */}
+        <div 
+          className="w-1 h-6 rounded-full shadow-sm"
+          style={{ backgroundColor: groupColor }}
+        />
+        
+        {/* Expand/collapse */}
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-6 w-6 p-0 hover:bg-transparent"
           onClick={(e) => {
             e.stopPropagation();
             setIsCollapsed(!isCollapsed);
           }}
         >
           {isCollapsed ? (
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
           ) : (
-            <ChevronDown className="h-4 w-4" />
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
           )}
         </Button>
 
-        <span className="font-medium text-sm">{groupName}</span>
+        {/* Group name */}
+        <span className="font-medium text-sm flex-1">{group.name}</span>
 
-        <span className="text-xs text-muted-foreground ml-2">
-          {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
+        {/* Task count */}
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {completedCount}/{tasks.length}
         </span>
 
-        {tasks.length > 0 && (
-          <div className="flex items-center gap-2 ml-4">
-            <Progress value={progress} className="w-24 h-1.5" />
-            <span className="text-xs text-muted-foreground">{Math.round(progress)}%</span>
-          </div>
+        {/* Progress bar */}
+        <div className="w-20">
+          <Progress 
+            value={progress} 
+            className="h-1.5"
+          />
+        </div>
+
+        {/* Add button */}
+        {onCreateTask && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "h-7 px-2 gap-1 text-xs",
+              "opacity-0 group-hover:opacity-100 transition-opacity"
+            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsAddingTask(true);
+            }}
+          >
+            <Plus className="h-3 w-3" />
+            Add
+          </Button>
         )}
-
-        <div className="flex-1" />
-
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 text-xs opacity-0 group-hover:opacity-100"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsAddingTask(true);
-          }}
-        >
-          <Plus className="h-3 w-3 mr-1" />
-          Add task
-        </Button>
       </div>
 
       {/* Tasks */}
       {!isCollapsed && (
-        <div>
-          {tasks.map(task => (
-            <TaskBoardRow
+        <div className="mt-1 space-y-px">
+          {tasks.map((task, index) => (
+            <div
               key={task.task_id}
-              task={task}
-              visibleColumns={visibleColumns}
-              onClick={() => onTaskClick(task)}
-              onToggleComplete={onToggleComplete}
-              onUpdate={onUpdateTask}
-              onDelete={onDeleteTask}
-            />
+              className={cn(
+                index % 2 === 0 ? 'bg-background' : 'bg-muted/20'
+              )}
+            >
+              <TaskBoardRow
+                task={task}
+                visibleColumns={visibleColumns}
+                onTaskClick={onTaskClick}
+                onToggleComplete={onToggleComplete}
+                onUpdateTask={onUpdateTask}
+                onDeleteTask={onDeleteTask}
+              />
+            </div>
           ))}
 
-          {/* Quick add row */}
-          {isAddingTask ? (
-            <div className="flex items-center px-3 py-2 border-t bg-muted/10">
-              <div className="w-6" />
+          {/* Add task inline */}
+          {isAddingTask && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-muted/30 rounded-lg border border-dashed border-border">
               <Input
                 value={newTaskText}
                 onChange={(e) => setNewTaskText(e.target.value)}
-                placeholder="Task name..."
-                className="flex-1 h-8 border-0 bg-transparent focus-visible:ring-0 shadow-none"
+                placeholder="Enter task name..."
+                className="h-8 text-sm flex-1 bg-background"
+                autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleAddTask();
                   if (e.key === 'Escape') {
@@ -131,33 +157,39 @@ export function TaskBoardGroup({
                     setNewTaskText('');
                   }
                 }}
-                autoFocus
               />
-              <Button size="sm" className="h-7" onClick={handleAddTask}>Add</Button>
-              <Button size="sm" variant="ghost" className="h-7" onClick={() => { setIsAddingTask(false); setNewTaskText(''); }}>
-                Cancel
+              <Button size="sm" className="h-8" onClick={handleAddTask}>
+                Add
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0"
+                onClick={() => {
+                  setIsAddingTask(false);
+                  setNewTaskText('');
+                }}
+              >
+                <X className="h-4 w-4" />
               </Button>
             </div>
-          ) : tasks.length > 0 ? (
-            <button
-              className="w-full px-3 py-2 text-left text-sm text-muted-foreground hover:bg-muted/30 flex items-center gap-2 border-t"
-              onClick={() => setIsAddingTask(true)}
-            >
-              <Plus className="h-4 w-4" />
-              Add item
-            </button>
-          ) : null}
+          )}
 
           {/* Empty state */}
           {tasks.length === 0 && !isAddingTask && (
-            <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-              <button
-                className="hover:text-foreground flex items-center gap-2 mx-auto"
-                onClick={() => setIsAddingTask(true)}
-              >
-                <Plus className="h-4 w-4" />
-                Add your first task
-              </button>
+            <div className="py-6 text-center">
+              <p className="text-sm text-muted-foreground mb-2">No tasks in this group</p>
+              {onCreateTask && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1"
+                  onClick={() => setIsAddingTask(true)}
+                >
+                  <Plus className="h-3 w-3" />
+                  Add task
+                </Button>
+              )}
             </div>
           )}
         </div>

@@ -154,9 +154,11 @@ export function TaskCard({
   return (
     <div 
       className={cn(
-        "group relative flex items-start gap-3 p-4 rounded-lg border bg-card hover:shadow-md transition-all duration-200 border-l-4",
-        task.is_completed && "opacity-60",
-        isDragging && "shadow-lg ring-2 ring-primary/20",
+        "group relative flex items-start gap-3 p-4 rounded-lg border bg-card",
+        "shadow-sm hover:shadow-md transition-all duration-200",
+        "hover:border-primary/30 border-l-4",
+        task.is_completed && "opacity-60 bg-muted/30",
+        isDragging && "shadow-lg ring-2 ring-primary/20 scale-[1.02]",
         priorityStyles.border,
         priorityStyles.bg || ""
       )}
