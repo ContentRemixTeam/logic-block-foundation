@@ -2759,6 +2759,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_mastermind_rsvps: {
+        Row: {
+          added_at: string | null
+          event_end: string
+          event_id: string
+          event_start: string
+          event_summary: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string | null
+          event_end: string
+          event_id: string
+          event_start: string
+          event_summary: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string | null
+          event_end?: string
+          event_id?: string
+          event_start?: string
+          event_summary?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_profiles: {
         Row: {
           created_at: string
@@ -2826,6 +2856,7 @@ export type Database = {
           scratch_pad_review_mode: string | null
           show_coin_counter: boolean | null
           show_income_tracker: boolean | null
+          show_mastermind_calls: boolean | null
           show_pet_widget: boolean | null
           show_pomodoro_widget: boolean | null
           streak_potions_remaining: number | null
@@ -2861,6 +2892,7 @@ export type Database = {
           scratch_pad_review_mode?: string | null
           show_coin_counter?: boolean | null
           show_income_tracker?: boolean | null
+          show_mastermind_calls?: boolean | null
           show_pet_widget?: boolean | null
           show_pomodoro_widget?: boolean | null
           streak_potions_remaining?: number | null
@@ -2896,6 +2928,7 @@ export type Database = {
           scratch_pad_review_mode?: string | null
           show_coin_counter?: boolean | null
           show_income_tracker?: boolean | null
+          show_mastermind_calls?: boolean | null
           show_pet_widget?: boolean | null
           show_pomodoro_widget?: boolean | null
           streak_potions_remaining?: number | null

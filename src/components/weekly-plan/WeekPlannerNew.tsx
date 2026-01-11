@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { CalendarEvent } from '@/components/tasks/views/CalendarEventBlock';
 import { CalendarSelectionModal } from '@/components/google-calendar/CalendarSelectionModal';
 import { CycleFocusBanner } from '@/components/cycle/CycleFocusBanner';
+import { MastermindCallsPanel } from '@/components/mastermind/MastermindCallsPanel';
 
 // New UI Components
 import { WeeklyPlannerHeader } from './WeeklyPlannerHeader';
@@ -81,6 +82,10 @@ export function WeekPlannerNew({
   
   // Weekend toggle
   const [showWeekend, setShowWeekend] = useState(true);
+  
+  // Mastermind calls
+  const [mastermindPanelOpen, setMastermindPanelOpen] = useState(false);
+  const [showMastermindCalls, setShowMastermindCalls] = useState(true);
 
   const loadSettings = useCallback(async () => {
     if (!user) return;
@@ -109,7 +114,7 @@ export function WeekPlannerNew({
         if (cycle.office_hours_end) setOfficeHoursEnd(cycle.office_hours_end);
       }
       
-      // Load works_weekends preference from user settings
+      // Load works_weekends preference and show_mastermind_calls from user settings
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-user-settings`, {
@@ -123,6 +128,9 @@ export function WeekPlannerNew({
           const userSettings = await res.json();
           if (userSettings.works_weekends !== undefined) {
             setShowWeekend(userSettings.works_weekends);
+          }
+          if (userSettings.show_mastermind_calls !== undefined) {
+            setShowMastermindCalls(userSettings.show_mastermind_calls);
           }
         }
       }
@@ -407,6 +415,8 @@ export function WeekPlannerNew({
         onConnectGoogle={() => connectGoogle('/weekly-plan')}
         onSyncGoogle={syncNow}
         googleSyncing={googleSyncing}
+        onOpenMastermindCalls={() => setMastermindPanelOpen(true)}
+        showMastermindCalls={showMastermindCalls}
       />
 
       {/* Cycle Focus Banner */}
@@ -484,6 +494,13 @@ export function WeekPlannerNew({
         onOpenChange={setShowCalendarModal}
         calendars={calendars}
         onSelect={selectCalendar}
+      />
+
+      {/* Mastermind Calls Panel */}
+      <MastermindCallsPanel
+        open={mastermindPanelOpen}
+        onOpenChange={setMastermindPanelOpen}
+        currentWeekStart={currentWeekStart}
       />
     </div>
   );
