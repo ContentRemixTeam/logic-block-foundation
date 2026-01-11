@@ -12,7 +12,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeArray, normalizeBoolean } from '@/lib/normalize';
-import { Loader2, Save, ArrowLeft, Bug, Trash2, RotateCcw, Crown, Sparkles, Palette, Circle, Gamepad2, Coins, Dog, Timer } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, Bug, Trash2, RotateCcw, Crown, Sparkles, Palette, Circle, Gamepad2, Coins, Dog, Timer, GraduationCap } from 'lucide-react';
 import { useArcade } from '@/hooks/useArcade';
 import { ReflectionList } from '@/components/ReflectionList';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -37,6 +37,7 @@ export default function Settings() {
     theme_preference: 'quest' as 'quest' | 'minimal' | 'vibrant' | 'bw',
     scratch_pad_review_mode: 'quick_save' as 'quick_save' | 'organize_now',
     works_weekends: false,
+    show_mastermind_calls: true,
   });
 
   const [dailyQuestions, setDailyQuestions] = useState<string[]>([""]);
@@ -88,6 +89,7 @@ export default function Settings() {
         theme_preference: data.theme_preference || 'vibrant',
         scratch_pad_review_mode: data.scratch_pad_review_mode || 'quick_save',
         works_weekends: normalizeBoolean(data.works_weekends, false),
+        show_mastermind_calls: normalizeBoolean(data.show_mastermind_calls, true),
       });
 
       // Apply theme to document
@@ -431,6 +433,25 @@ export default function Settings() {
                 checked={settings.works_weekends}
                 onCheckedChange={(checked) =>
                   updateSetting('works_weekends', checked)
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                <div className="space-y-0.5">
+                  <Label htmlFor="showMastermind">Show Mastermind Calls</Label>
+                  <div className="text-sm text-muted-foreground">
+                    Display mastermind calls button in weekly planner
+                  </div>
+                </div>
+              </div>
+              <Switch
+                id="showMastermind"
+                checked={settings.show_mastermind_calls}
+                onCheckedChange={(checked) =>
+                  updateSetting('show_mastermind_calls', checked)
                 }
               />
             </div>

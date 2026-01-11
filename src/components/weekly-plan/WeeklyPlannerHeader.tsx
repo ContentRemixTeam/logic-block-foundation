@@ -1,11 +1,10 @@
 import { format, addDays } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Settings2, CalendarDays, RefreshCw, Loader2, Calendar, Eye } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Settings2, CalendarDays, RefreshCw, Loader2, Calendar, Eye, GraduationCap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { OfficeHoursDisplay } from '@/components/OfficeHoursDisplay';
 import { cn } from '@/lib/utils';
-
 interface WeeklyPlannerHeaderProps {
   currentWeekStart: Date;
   onPreviousWeek: () => void;
@@ -25,6 +24,9 @@ interface WeeklyPlannerHeaderProps {
   onConnectGoogle?: () => void;
   onSyncGoogle?: () => void;
   googleSyncing?: boolean;
+  // Mastermind calls
+  onOpenMastermindCalls?: () => void;
+  showMastermindCalls?: boolean;
 }
 
 export function WeeklyPlannerHeader({
@@ -44,6 +46,8 @@ export function WeeklyPlannerHeader({
   onConnectGoogle,
   onSyncGoogle,
   googleSyncing = false,
+  onOpenMastermindCalls,
+  showMastermindCalls = true,
 }: WeeklyPlannerHeaderProps) {
   const navigate = useNavigate();
   const weekEnd = addDays(currentWeekStart, 6);
@@ -104,6 +108,18 @@ export function WeeklyPlannerHeader({
           >
             <Calendar className="h-4 w-4" />
             Connect Calendar
+          </Button>
+        )}
+
+        {showMastermindCalls && onOpenMastermindCalls && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onOpenMastermindCalls}
+            className="gap-2 text-pink-600 border-pink-200 hover:bg-pink-50 hover:text-pink-700"
+          >
+            <GraduationCap className="h-4 w-4" />
+            Mastermind Calls
           </Button>
         )}
 
