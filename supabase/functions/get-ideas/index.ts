@@ -41,9 +41,15 @@ Deno.serve(async (req) => {
     const userId = user.id;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log('[get-ideas] Fetching ideas for user:', userId);
+    // Parse pagination params
+    const url = new URL(req.url);
+    let limit = parseInt(url.searchParams.get('limit') || '0', 10);
+    let offset = parseInt(url.searchParams.get('offset') || '0', 10);
+    const isPaginated = limit > 0;
 
-    // Fetch categories
+    console.log('[get-ideas] Fetching ideas for user:', userId, { limit, offset, isPaginated });
+
+    // Fetch categories (always return all)
     const { data: categories, error: categoriesError } = await supabase
       .from('ideas_categories')
       .select('*')
@@ -55,27 +61,53 @@ Deno.serve(async (req) => {
       throw categoriesError;
     }
 
-    // Fetch ideas
-    const { data: ideas, error: ideasError } = await supabase
+    // Get total count of ideas
+    const { count: totalCount, error: countError } = await supabase
+      .from('ideas')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    if (countError) {
+      console.error('[get-ideas] Error counting ideas:', countError);
+      throw countError;
+    }
+
+    // Fetch ideas with optional pagination
+    let ideasQuery = supabase
       .from('ideas')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
+
+    if (isPaginated) {
+      ideasQuery = ideasQuery.range(offset, offset + limit - 1);
+    }
+
+    const { data: ideas, error: ideasError } = await ideasQuery;
 
     if (ideasError) {
       console.error('[get-ideas] Error fetching ideas:', ideasError);
       throw ideasError;
     }
 
+    const fetchedCount = ideas?.length || 0;
+    const hasMore = isPaginated ? (offset + fetchedCount) < (totalCount || 0) : false;
+
     console.log('[get-ideas] Successfully fetched:', {
       categoriesCount: categories?.length || 0,
-      ideasCount: ideas?.length || 0,
+      ideasCount: fetchedCount,
+      totalCount,
+      hasMore,
     });
 
     return new Response(
       JSON.stringify({
         categories: categories || [],
         ideas: ideas || [],
+        totalCount: totalCount || 0,
+        hasMore,
+        offset,
+        limit: isPaginated ? limit : (totalCount || 0),
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

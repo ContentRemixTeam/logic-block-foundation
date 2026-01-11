@@ -48,7 +48,41 @@ Deno.serve(async (req) => {
     const includeArchived = url.searchParams.get('includeArchived') === 'true';
     const projectId = url.searchParams.get('project_id');
     const tag = url.searchParams.get('tag');
+    
+    // Pagination params
+    let limit = parseInt(url.searchParams.get('limit') || '0', 10);
+    let offset = parseInt(url.searchParams.get('offset') || '0', 10);
+    const isPaginated = limit > 0;
 
+    // Build count query
+    let countQuery = supabase
+      .from('journal_pages')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    if (!includeArchived) {
+      countQuery = countQuery.eq('is_archived', false);
+    }
+
+    if (projectId) {
+      countQuery = countQuery.eq('project_id', projectId);
+    }
+
+    if (search) {
+      countQuery = countQuery.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
+    }
+
+    const { count: totalCount, error: countError } = await countQuery;
+
+    if (countError) {
+      console.error('Error counting journal pages:', countError);
+      return new Response(JSON.stringify({ error: countError.message }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Build main query
     let query = supabase
       .from('journal_pages')
       .select(`
@@ -70,6 +104,10 @@ Deno.serve(async (req) => {
       query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
     }
 
+    if (isPaginated) {
+      query = query.range(offset, offset + limit - 1);
+    }
+
     const { data, error } = await query;
 
     if (error) {
@@ -89,9 +127,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get all unique tags across pages for the filter UI
+    // Get all unique tags across ALL pages for the filter UI (not just current page)
+    const { data: allPagesForTags } = await supabase
+      .from('journal_pages')
+      .select('tags')
+      .eq('user_id', userId)
+      .eq('is_archived', false);
+
     const allTags: string[] = [];
-    (data || []).forEach(page => {
+    (allPagesForTags || []).forEach(page => {
       const pageTags = Array.isArray(page.tags) ? page.tags : [];
       pageTags.forEach((t: string) => {
         if (!allTags.includes(t)) {
@@ -100,9 +144,16 @@ Deno.serve(async (req) => {
       });
     });
 
+    const fetchedCount = filteredData.length;
+    const hasMore = isPaginated ? (offset + fetchedCount) < (totalCount || 0) : false;
+
     return new Response(JSON.stringify({ 
       pages: filteredData,
       allTags: allTags.sort(),
+      totalCount: totalCount || 0,
+      hasMore,
+      offset,
+      limit: isPaginated ? limit : (totalCount || 0),
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
