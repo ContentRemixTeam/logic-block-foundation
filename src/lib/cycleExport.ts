@@ -781,6 +781,9 @@ export interface CycleFormData {
   audienceTarget: string;
   audienceFrustration: string;
   signatureMessage: string;
+  keyMessage1?: string;
+  keyMessage2?: string;
+  keyMessage3?: string;
   leadPlatform: string;
   leadContentType: string;
   leadFrequency: string;
@@ -789,6 +792,12 @@ export interface CycleFormData {
   batchDay: string;
   batchFrequency: string;
   leadGenContentAudit: string;
+  secondaryPlatforms?: Array<{
+    platform: string;
+    contentType: string;
+    frequency?: string;
+    goal?: string;
+  }>;
   nurtureMethod: string;
   nurtureFrequency: string;
   freeTransformation: string;
@@ -801,10 +810,44 @@ export interface CycleFormData {
   secondaryNurtureMethod: string;
   secondaryNurturePostingDays: string[];
   secondaryNurturePostingTime: string;
+  nurturePlatforms?: Array<{
+    method: string;
+    methodCustom?: string;
+    postingDays: string[];
+    postingTime: string | null;
+    batchDay?: string;
+    batchFrequency?: string;
+    isPrimary: boolean;
+  }>;
   offers: Array<{ name: string; price: string; frequency: string; transformation: string; isPrimary: boolean }>;
+  limitedOffers?: Array<{
+    id: string;
+    name: string;
+    promoType: string;
+    startDate: string;
+    endDate: string;
+    offerRef?: string;
+    discount?: string;
+    notes?: string;
+  }>;
+  promotions?: Array<{
+    name: string;
+    offer: string;
+    startDate: string;
+    endDate: string;
+    goal: string;
+    launchType: string;
+    notes?: string;
+  }>;
   revenueGoal: string;
   pricePerSale: string;
   launchSchedule: string;
+  monthPlans?: Array<{
+    monthName: string;
+    projects: string;
+    salesPromos: string;
+    mainFocus: string;
+  }>;
   metric1Name: string;
   metric1Start: number | '';
   metric2Name: string;
@@ -827,11 +870,60 @@ export interface CycleFormData {
   day2Why: string;
   day3Top3: string[];
   day3Why: string;
+  recurringTasks?: Array<{
+    title: string;
+    category: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly';
+    dayOfWeek?: string;
+    dayOfMonth?: number;
+    time?: string;
+    description?: string;
+  }>;
 }
 
 // Generate export data from form state (for pre-save export)
 export function generateExportFromFormData(formData: CycleFormData): CycleExportData {
-  return {
+  console.log('[PDF Export] Generating export data from form state...');
+  console.log('[PDF Export] Form data fields present:', Object.keys(formData).filter(k => formData[k as keyof CycleFormData]));
+  
+  // Map secondary platforms for export
+  const mappedSecondaryPlatforms = (formData.secondaryPlatforms || []).map(sp => ({
+    platform: sp.platform,
+    contentType: sp.contentType,
+    frequency: sp.frequency || '',
+    goal: sp.goal || '',
+  }));
+  
+  // Map nurture platforms for export
+  const mappedNurturePlatforms = (formData.nurturePlatforms || []).map(np => ({
+    method: np.method,
+    methodCustom: np.methodCustom || '',
+    postingDays: np.postingDays || [],
+    postingTime: np.postingTime || null,
+    batchDay: np.batchDay || '',
+    batchFrequency: np.batchFrequency || '',
+    isPrimary: np.isPrimary,
+  }));
+  
+  // Map promotions from limitedOffers if present
+  const mappedPromotions = (formData.limitedOffers || formData.promotions || []).map(p => {
+    // Handle both limitedOffers and promotions format
+    if ('promoType' in p) {
+      // limitedOffers format
+      return {
+        name: p.name,
+        offer: p.offerId || '',
+        startDate: p.startDate,
+        endDate: p.endDate,
+        goal: p.notes || '',
+        launchType: p.promoType,
+        notes: p.discount ? `Discount: ${p.discount}` : '',
+      };
+    }
+    // promotions format (already correct)
+    return p as { name: string; offer: string; startDate: string; endDate: string; goal: string; launchType: string; notes?: string };
+  });
+
+  const exportData: CycleExportData = {
     startDate: format(formData.startDate, 'yyyy-MM-dd'),
     endDate: format(formData.endDate, 'yyyy-MM-dd'),
     goal: formData.goal,
@@ -848,7 +940,7 @@ export function generateExportFromFormData(formData: CycleFormData): CycleExport
     leadPlatform: formData.leadPlatform || null,
     leadContentType: formData.leadContentType || null,
     leadFrequency: formData.leadFrequency || null,
-    secondaryPlatforms: [],
+    secondaryPlatforms: mappedSecondaryPlatforms,
     postingDays: formData.postingDays,
     postingTime: formData.postingTime || null,
     batchDay: formData.batchDay || null,
@@ -866,7 +958,7 @@ export function generateExportFromFormData(formData: CycleFormData): CycleExport
     secondaryNurtureMethod: formData.secondaryNurtureMethod || null,
     secondaryNurturePostingDays: formData.secondaryNurturePostingDays,
     secondaryNurturePostingTime: formData.secondaryNurturePostingTime || null,
-    nurturePlatforms: [], // Empty for form export, populated when loading from DB
+    nurturePlatforms: mappedNurturePlatforms,
     offers: formData.offers.filter(o => o.name.trim()).map(o => ({
       name: o.name,
       price: o.price ? parseFloat(o.price) : null,
@@ -874,6 +966,7 @@ export function generateExportFromFormData(formData: CycleFormData): CycleExport
       isPrimary: o.isPrimary,
       frequency: o.frequency,
     })),
+    promotions: mappedPromotions.length > 0 ? mappedPromotions : undefined,
     revenueGoal: formData.revenueGoal ? parseFloat(formData.revenueGoal) : null,
     pricePerSale: formData.pricePerSale ? parseFloat(formData.pricePerSale) : null,
     launchSchedule: formData.launchSchedule || null,
@@ -902,4 +995,12 @@ export function generateExportFromFormData(formData: CycleFormData): CycleExport
     exportedAt: new Date().toISOString(),
     cycleId: 'draft',
   };
+  
+  console.log('[PDF Export] Export data generated successfully');
+  console.log('[PDF Export] Offers:', exportData.offers.length);
+  console.log('[PDF Export] Promotions:', exportData.promotions?.length || 0);
+  console.log('[PDF Export] Nurture Platforms:', exportData.nurturePlatforms?.length || 0);
+  console.log('[PDF Export] Secondary Platforms:', exportData.secondaryPlatforms?.length || 0);
+  
+  return exportData;
 }
