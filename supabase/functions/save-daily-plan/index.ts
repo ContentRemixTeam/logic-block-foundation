@@ -1,11 +1,45 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from 'https://esm.sh/zod@3.23.8';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Decode JWT to get user ID
+// ==================== ZOD SCHEMA ====================
+
+const DailyPlanSchema = z.object({
+  day_id: z.string().uuid('Invalid day ID'),
+  top_3_today: z.array(z.string().max(500, 'Top 3 item too long')).max(3, 'Maximum 3 items allowed').optional(),
+  selected_weekly_priorities: z.array(z.string().max(500)).optional(),
+  thought: z.string().max(500, 'Thought must be under 500 characters').optional(),
+  feeling: z.string().max(200, 'Feeling must be under 200 characters').optional(),
+  deep_mode_notes: z.record(z.any()).optional(),
+  scratch_pad_content: z.string().optional(),
+  scratch_pad_title: z.string().max(200, 'Scratch pad title must be under 200 characters').nullable().optional(),
+  one_thing: z.string().max(500, 'One thing must be under 500 characters').nullable().optional(),
+  goal_rewrite: z.string().max(1000, 'Goal rewrite must be under 1000 characters').nullable().optional(),
+});
+
+// ==================== VALIDATION ERROR HELPER ====================
+
+function validationErrorResponse(error: z.ZodError) {
+  return new Response(
+    JSON.stringify({
+      error: 'Validation failed',
+      code: 'VALIDATION_ERROR',
+      details: error.errors.map(e => ({
+        field: e.path.join('.'),
+        message: e.message,
+        code: e.code,
+      })),
+    }),
+    { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+// ==================== AUTH HELPERS ====================
+
 function getUserIdFromJWT(authHeader: string): string | null {
   try {
     const token = authHeader.replace('Bearer ', '');
@@ -25,7 +59,8 @@ function getUserIdFromJWT(authHeader: string): string | null {
   }
 }
 
-// Rate limiting configuration
+// ==================== RATE LIMITING ====================
+
 const RATE_LIMITS = {
   mutation: { requests: 60, windowMs: 60000 },
   read: { requests: 120, windowMs: 60000 }
@@ -98,6 +133,8 @@ function rateLimitResponse(retryAfter: number) {
   );
 }
 
+// ==================== MAIN HANDLER ====================
+
 Deno.serve(async (req) => {
   console.log('EDGE FUNC: save-daily-plan called');
 
@@ -142,33 +179,31 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { day_id, top_3_today, selected_weekly_priorities, thought, feeling, deep_mode_notes, scratch_pad_content, scratch_pad_title, one_thing, goal_rewrite } = body;
+
+    // ==================== ZOD VALIDATION ====================
+    const parseResult = DailyPlanSchema.safeParse(body);
+    if (!parseResult.success) {
+      console.log('Validation failed:', parseResult.error.errors);
+      return validationErrorResponse(parseResult.error);
+    }
+
+    const validatedData = parseResult.data;
+    const { 
+      day_id, top_3_today, selected_weekly_priorities, thought, 
+      feeling, deep_mode_notes, scratch_pad_content, scratch_pad_title, 
+      one_thing, goal_rewrite 
+    } = validatedData;
 
     console.log('Saving daily plan:', { userId, day_id });
 
-    // Validate and normalize arrays
+    // Normalize validated arrays (filter empty strings)
     const normalizedTop3 = Array.isArray(top_3_today)
-      ? top_3_today.filter((item) => typeof item === 'string' && item.trim()).slice(0, 3)
+      ? top_3_today.filter((item) => item.trim()).slice(0, 3)
       : [];
 
     const normalizedWeeklyPriorities = Array.isArray(selected_weekly_priorities)
-      ? selected_weekly_priorities.filter((item) => typeof item === 'string' && item.trim())
+      ? selected_weekly_priorities.filter((item) => item.trim())
       : [];
-
-    // Validate deep mode notes
-    const normalizedDeepNotes = typeof deep_mode_notes === 'object' && deep_mode_notes !== null
-      ? deep_mode_notes
-      : {};
-
-    // Normalize scratch pad content and title
-    const normalizedScratchPad = typeof scratch_pad_content === 'string' ? scratch_pad_content : '';
-    const normalizedScratchPadTitle = typeof scratch_pad_title === 'string' ? scratch_pad_title.substring(0, 200) : null;
-    
-    // Normalize one_thing
-    const normalizedOneThing = typeof one_thing === 'string' ? one_thing.substring(0, 500) : null;
-    
-    // Normalize goal_rewrite
-    const normalizedGoalRewrite = typeof goal_rewrite === 'string' ? goal_rewrite.substring(0, 1000) : null;
 
     // Update daily plan
     const { data, error: updateError } = await supabaseClient
@@ -178,11 +213,11 @@ Deno.serve(async (req) => {
         selected_weekly_priorities: normalizedWeeklyPriorities,
         thought: (thought || '').substring(0, 500),
         feeling: (feeling || '').substring(0, 200),
-        deep_mode_notes: normalizedDeepNotes,
-        scratch_pad_content: normalizedScratchPad,
-        scratch_pad_title: normalizedScratchPadTitle,
-        one_thing: normalizedOneThing,
-        goal_rewrite: normalizedGoalRewrite,
+        deep_mode_notes: deep_mode_notes || {},
+        scratch_pad_content: scratch_pad_content || '',
+        scratch_pad_title: scratch_pad_title ? scratch_pad_title.substring(0, 200) : null,
+        one_thing: one_thing ? one_thing.substring(0, 500) : null,
+        goal_rewrite: goal_rewrite ? goal_rewrite.substring(0, 1000) : null,
         updated_at: new Date().toISOString(),
       })
       .eq('day_id', day_id)
