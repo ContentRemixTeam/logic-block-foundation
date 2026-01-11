@@ -8,9 +8,7 @@ interface CoinCounterProps {
 }
 
 export function CoinCounter({ onClick }: CoinCounterProps) {
-  const { wallet, settings } = useArcade();
-  
-  if (!settings.arcade_enabled) return null;
+  const { wallet } = useArcade();
   
   return (
     <Tooltip>
