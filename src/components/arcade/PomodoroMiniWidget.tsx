@@ -10,11 +10,26 @@ interface PomodoroMiniWidgetProps {
 
 export function PomodoroMiniWidget({ onClick }: PomodoroMiniWidgetProps) {
   const { mode, formattedTime, isRunning } = usePomodoro();
-  const { settings } = useArcade();
   
-  // Only show when arcade is enabled and timer is active
-  if (!settings.arcade_enabled || mode === 'idle') {
-    return null;
+  // Show idle state indicator when no timer is running
+  if (mode === 'idle') {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClick}
+            className="flex items-center gap-1.5 px-2 h-8 text-muted-foreground hover:text-foreground"
+          >
+            <Timer className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Start a focus session</p>
+        </TooltipContent>
+      </Tooltip>
+    );
   }
   
   const modeLabel = mode === 'focus' ? 'Focus' : 'Break';

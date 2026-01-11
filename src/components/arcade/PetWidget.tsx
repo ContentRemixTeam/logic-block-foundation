@@ -28,11 +28,36 @@ const PET_NAMES: Record<string, string> = {
 };
 
 export function PetWidget() {
-  const { pet, settings } = useArcade();
+  const { pet } = useArcade();
   
-  // Only show when arcade is enabled and pet has hatched
-  if (!settings.arcade_enabled || !pet || pet.stage !== 'hatched') {
-    return null;
+  // Show egg when no pet is selected yet
+  if (!pet) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="text-lg cursor-default opacity-60">🥚</span>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Select a pet to start growing!</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+  
+  // Show growing egg if pet is selected but not hatched
+  if (pet.stage !== 'hatched') {
+    const progress = pet.tasks_completed_today || 0;
+    const petName = PET_NAMES[pet.pet_type] || pet.pet_type;
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="text-lg cursor-default animate-pulse">🥚</span>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{petName} is growing! ({progress}/5 tasks)</p>
+        </TooltipContent>
+      </Tooltip>
+    );
   }
   
   const emoji = PET_EMOJIS[pet.pet_type] || '🐾';
