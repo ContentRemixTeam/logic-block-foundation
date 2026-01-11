@@ -36,7 +36,10 @@ export function GamesTab({ onPlayGame }: GamesTabProps) {
       if (error) {
         console.error('Failed to load games:', error);
       } else {
-        setGames(data || []);
+        setGames((data || []).map(g => ({
+          ...g,
+          unlock_rule_json: g.unlock_rule_json as Record<string, unknown> | null,
+        })));
       }
       setIsLoading(false);
     };
