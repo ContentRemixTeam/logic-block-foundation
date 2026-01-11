@@ -25,7 +25,7 @@ import { GoalRewritePrompt } from '@/components/cycle/GoalRewritePrompt';
 import { DailyTimelineView } from '@/components/daily-plan/DailyTimelineView';
 import { DailyScheduleView } from '@/components/daily-plan/DailyScheduleView';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, LayoutList, CalendarDays } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, LayoutList, CalendarDays, Calendar } from 'lucide-react';
 import { DailyAgendaCard } from '@/components/daily-plan/DailyAgendaCard';
 import { PostingSlotCard } from '@/components/daily-plan/PostingSlotCard';
 import { CategoryProjectLinks } from '@/components/daily-plan/CategoryProjectLinks';
@@ -103,6 +103,9 @@ export default function DailyPlan() {
   const [goalRewrite, setGoalRewrite] = useState('');
   const [previousGoalRewrite, setPreviousGoalRewrite] = useState('');
   const [savingGoalRewrite, setSavingGoalRewrite] = useState(false);
+  
+  // Monthly focus
+  const [monthlyFocus, setMonthlyFocus] = useState<string | null>(null);
   
   // View mode toggle
   const [viewMode, setViewMode] = useState<'planning' | 'schedule'>('planning');
@@ -298,6 +301,11 @@ export default function DailyPlan() {
         setGoalRewrite(plan.goal_rewrite || '');
         setPreviousGoalRewrite(plan.previous_goal_rewrite || '');
         setCycleData(plan.cycle || null);
+        
+        // Load monthly focus if we have a cycle
+        if (plan.cycle?.cycle_id) {
+          loadMonthlyFocus(plan.cycle.cycle_id);
+        }
       }
 
       // Load habits separately
@@ -342,6 +350,26 @@ export default function DailyPlan() {
       setHabitLogs(logsMap);
     } catch (error) {
       console.error('Error loading habits:', error);
+    }
+  };
+
+  const loadMonthlyFocus = async (cycleId: string) => {
+    if (!user) return;
+    try {
+      const currentMonth = new Date().getMonth() + 1; // 1-12
+      const { data, error } = await supabase
+        .from('cycle_month_plans')
+        .select('main_focus')
+        .eq('user_id', user.id)
+        .eq('cycle_id', cycleId)
+        .eq('month_number', currentMonth <= 3 ? currentMonth : ((currentMonth - 1) % 3) + 1)
+        .maybeSingle();
+      
+      if (!error && data?.main_focus) {
+        setMonthlyFocus(data.main_focus);
+      }
+    } catch (error) {
+      console.error('Error loading monthly focus:', error);
     }
   };
 
@@ -733,6 +761,18 @@ export default function DailyPlan() {
                 }}
                 saving={savingGoalRewrite}
               />
+            )}
+
+            {/* Monthly Focus Reminder */}
+            {monthlyFocus && (
+              <Card className="border-accent/20 bg-accent/5">
+                <CardContent className="py-3 flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-accent" />
+                  <span className="text-sm font-medium">
+                    📅 This Month: <span className="text-accent font-bold">{monthlyFocus}</span>
+                  </span>
+                </CardContent>
+              </Card>
             )}
 
             {/* Posting Slot Card - shows if today is a posting day */}
