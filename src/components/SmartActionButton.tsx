@@ -102,7 +102,7 @@ export function SmartActionButton() {
   if (location.pathname === to) return null;
 
   return (
-    <Link to={to} className="fixed top-20 right-4 z-40 md:top-4 md:right-6">
+    <Link to={to} className="fixed top-20 right-4 z-30 md:top-4 md:right-6">
       <Button 
         size="lg" 
         className="shadow-lg gap-2 font-semibold"
