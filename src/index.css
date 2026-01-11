@@ -206,12 +206,19 @@
   }
 
   /* ===== MINIMAL THEME ===== */
+  /* Keeps premium pink branding with cleaner, simpler visual styling */
   [data-theme="minimal"] {
-    --primary: 221 83% 53%;
-    --primary-hover: 221 83% 48%;
-    --accent: 221 83% 53%;
-    --ring: 221 83% 53%;
-    --sidebar-primary: 221 83% 53%;
+    /* Keep the premium pink palette - same as root */
+    --primary: 330 81% 54%;
+    --primary-hover: 330 81% 48%;
+    --accent: 330 81% 97%;
+    --accent-hover: 330 81% 55%;
+    --accent-foreground: 330 81% 54%;
+    --ring: 330 81% 54%;
+    --sidebar-primary: 330 81% 54%;
+    --sidebar-accent: 330 81% 97%;
+    --sidebar-accent-foreground: 330 81% 54%;
+    --sidebar-ring: 330 81% 54%;
   }
 
   /* ===== B&W THEME ===== */
