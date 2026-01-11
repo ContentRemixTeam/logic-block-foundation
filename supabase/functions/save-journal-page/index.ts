@@ -1,9 +1,40 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from 'https://esm.sh/zod@3.23.8';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// ==================== ZOD SCHEMA ====================
+
+const JournalPageSchema = z.object({
+  id: z.string().uuid('Invalid page ID').optional(),
+  title: z.string().max(200, 'Title must be under 200 characters').optional().default('Untitled Page'),
+  content: z.string().max(50000, 'Content must be under 50000 characters').optional().default(''),
+  tags: z.array(z.string().max(50, 'Tag must be under 50 characters')).optional(),
+  is_archived: z.boolean().optional().default(false),
+  project_id: z.string().uuid('Invalid project ID').nullable().optional(),
+});
+
+// ==================== VALIDATION ERROR HELPER ====================
+
+function validationErrorResponse(error: z.ZodError) {
+  return new Response(
+    JSON.stringify({
+      error: 'Validation failed',
+      code: 'VALIDATION_ERROR',
+      details: error.errors.map(e => ({
+        field: e.path.join('.'),
+        message: e.message,
+        code: e.code,
+      })),
+    }),
+    { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+// ==================== AUTH HELPERS ====================
 
 function getUserIdFromJWT(authHeader: string): string | null {
   try {
@@ -17,6 +48,8 @@ function getUserIdFromJWT(authHeader: string): string | null {
   }
 }
 
+// ==================== UTILITY FUNCTIONS ====================
+
 // Extract hashtags from content
 function extractHashtags(content: string): string[] {
   if (!content) return [];
@@ -25,6 +58,8 @@ function extractHashtags(content: string): string[] {
   // Return unique hashtags, lowercased
   return [...new Set(matches.map(tag => tag.toLowerCase()))];
 }
+
+// ==================== MAIN HANDLER ====================
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -53,11 +88,20 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const body = await req.json();
-    const { id, title, content, tags, is_archived, project_id } = body;
+
+    // ==================== ZOD VALIDATION ====================
+    const parseResult = JournalPageSchema.safeParse(body);
+    if (!parseResult.success) {
+      console.log('[save-journal-page] Validation failed:', parseResult.error.errors);
+      return validationErrorResponse(parseResult.error);
+    }
+
+    const validatedData = parseResult.data;
+    const { id, title, content, tags, is_archived, project_id } = validatedData;
 
     // Auto-extract hashtags from content and merge with provided tags
     const extractedTags = extractHashtags(content || '');
-    const providedTags = Array.isArray(tags) ? tags : [];
+    const providedTags = Array.isArray(tags) ? tags.map(t => t.substring(0, 50)) : [];
     const allTags = [...new Set([...providedTags, ...extractedTags])];
 
     if (id) {
