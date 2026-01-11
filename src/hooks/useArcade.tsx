@@ -72,13 +72,30 @@ export function ArcadeProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('arcade_wallet')
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle();
       
       if (error) throw error;
+      
+      // Create wallet if it doesn't exist
+      if (!data) {
+        const { data: newWallet, error: insertError } = await supabase
+          .from('arcade_wallet')
+          .insert({
+            user_id: user.id,
+            coins_balance: 0,
+            tokens_balance: 0,
+            total_coins_earned: 0,
+          })
+          .select()
+          .single();
+        
+        if (insertError) throw insertError;
+        data = newWallet;
+      }
       
       if (data) {
         setWallet({

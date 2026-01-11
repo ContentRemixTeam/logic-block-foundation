@@ -11,7 +11,7 @@ import { QuickCaptureButton } from '@/components/quick-capture';
 import { SmartActionButton } from '@/components/SmartActionButton';
 import { TrialBanner, TrialExpiredScreen } from '@/components/trial';
 import { CoinCounter, PetWidget, PomodoroMiniWidget, ArcadeDrawer } from '@/components/arcade';
-import { ArcadeProvider, useArcade } from '@/hooks/useArcade';
+import { useArcade } from '@/hooks/useArcade';
 import { Loader2, Sparkles, ArrowRight, X } from 'lucide-react';
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
@@ -132,9 +132,5 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  return (
-    <ArcadeProvider>
-      <LayoutContent>{children}</LayoutContent>
-    </ArcadeProvider>
-  );
+  return <LayoutContent>{children}</LayoutContent>;
 }
