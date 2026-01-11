@@ -10,14 +10,19 @@ import { AppSidebar } from '@/components/AppSidebar';
 import { QuickCaptureButton } from '@/components/quick-capture';
 import { SmartActionButton } from '@/components/SmartActionButton';
 import { TrialBanner, TrialExpiredScreen } from '@/components/trial';
+import { CoinCounter, PetWidget, PomodoroMiniWidget, ArcadeDrawer } from '@/components/arcade';
+import { ArcadeProvider, useArcade } from '@/hooks/useArcade';
 import { Loader2, Sparkles, ArrowRight, X } from 'lucide-react';
 
-export function Layout({ children }: { children: React.ReactNode }) {
+function LayoutContent({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const trialStatus = useTrialStatus();
   const { data: cycles, isLoading: cyclesLoading } = useAllCycles();
+  const { settings, pet } = useArcade();
   const [forceShow, setForceShow] = useState(false);
   const [dismissedPlanBanner, setDismissedPlanBanner] = useState(false);
+  const [arcadeOpen, setArcadeOpen] = useState(false);
+  const [arcadeDefaultTab, setArcadeDefaultTab] = useState('games');
   useTheme();
 
   const hasNoPlan = !cyclesLoading && user && (!cycles || cycles.length === 0);
@@ -89,6 +94,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-3">
               <SidebarTrigger className="h-8 w-8" />
             </div>
+            {/* Arcade widgets */}
+            {settings.arcade_enabled && (
+              <div className="flex items-center gap-2 ml-auto">
+                <PomodoroMiniWidget onClick={() => { setArcadeDefaultTab('focus'); setArcadeOpen(true); }} />
+                <CoinCounter onClick={() => { setArcadeDefaultTab('games'); setArcadeOpen(true); }} />
+                <PetWidget />
+              </div>
+            )}
           </header>
 
           {/* Page Content */}
@@ -102,7 +115,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {/* Floating Actions */}
         <SmartActionButton />
         <QuickCaptureButton />
+        
+        {/* Arcade Drawer */}
+        <ArcadeDrawer 
+          open={arcadeOpen} 
+          onOpenChange={setArcadeOpen} 
+          defaultTab={arcadeDefaultTab}
+        />
       </div>
     </SidebarProvider>
+  );
+}
+
+export function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <ArcadeProvider>
+      <LayoutContent>{children}</LayoutContent>
+    </ArcadeProvider>
   );
 }
