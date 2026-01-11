@@ -38,6 +38,219 @@ export type Database = {
         }
         Relationships: []
       }
+      arcade_daily_pet: {
+        Row: {
+          created_at: string | null
+          date: string
+          hatched_at: string | null
+          id: string
+          pet_type: string
+          stage: string | null
+          tasks_completed_today: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          hatched_at?: string | null
+          id?: string
+          pet_type: string
+          stage?: string | null
+          tasks_completed_today?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          hatched_at?: string | null
+          id?: string
+          pet_type?: string
+          stage?: string | null
+          tasks_completed_today?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      arcade_events: {
+        Row: {
+          coins_delta: number | null
+          created_at: string | null
+          dedupe_key: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          task_id: string | null
+          tokens_delta: number | null
+          user_id: string
+        }
+        Insert: {
+          coins_delta?: number | null
+          created_at?: string | null
+          dedupe_key: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          task_id?: string | null
+          tokens_delta?: number | null
+          user_id: string
+        }
+        Update: {
+          coins_delta?: number | null
+          created_at?: string | null
+          dedupe_key?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          task_id?: string | null
+          tokens_delta?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arcade_events_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
+          },
+        ]
+      }
+      arcade_game_sessions: {
+        Row: {
+          ended_at: string | null
+          game_id: string
+          id: string
+          score: number | null
+          started_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ended_at?: string | null
+          game_id: string
+          id?: string
+          score?: number | null
+          started_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ended_at?: string | null
+          game_id?: string
+          id?: string
+          score?: number | null
+          started_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arcade_game_sessions_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "arcade_games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      arcade_games: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          difficulty: string | null
+          id: string
+          is_active: boolean | null
+          title: string
+          token_cost: number | null
+          unlock_rule_json: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          difficulty?: string | null
+          id?: string
+          is_active?: boolean | null
+          title: string
+          token_cost?: number | null
+          unlock_rule_json?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          difficulty?: string | null
+          id?: string
+          is_active?: boolean | null
+          title?: string
+          token_cost?: number | null
+          unlock_rule_json?: Json | null
+        }
+        Relationships: []
+      }
+      arcade_pomodoro_sessions: {
+        Row: {
+          break_minutes: number
+          completed_at: string | null
+          focus_minutes: number
+          id: string
+          started_at: string | null
+          status: string | null
+          task_id: string | null
+          user_id: string
+        }
+        Insert: {
+          break_minutes?: number
+          completed_at?: string | null
+          focus_minutes?: number
+          id?: string
+          started_at?: string | null
+          status?: string | null
+          task_id?: string | null
+          user_id: string
+        }
+        Update: {
+          break_minutes?: number
+          completed_at?: string | null
+          focus_minutes?: number
+          id?: string
+          started_at?: string | null
+          status?: string | null
+          task_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arcade_pomodoro_sessions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
+          },
+        ]
+      }
+      arcade_wallet: {
+        Row: {
+          coins_balance: number | null
+          tokens_balance: number | null
+          total_coins_earned: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          coins_balance?: number | null
+          tokens_balance?: number | null
+          total_coins_earned?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          coins_balance?: number | null
+          tokens_balance?: number | null
+          total_coins_earned?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       belief_evidence_logs: {
         Row: {
           belief_id: string
@@ -2591,6 +2804,9 @@ export type Database = {
       user_settings: {
         Row: {
           ai_api_key: string | null
+          arcade_enabled: boolean | null
+          arcade_reduce_motion: boolean | null
+          arcade_sounds_off: boolean | null
           created_at: string | null
           current_debrief_streak: number | null
           cycle_summary_questions: Json | null
@@ -2601,6 +2817,9 @@ export type Database = {
           longest_debrief_streak: number | null
           minimal_mode: boolean | null
           monthly_review_questions: Json | null
+          pomodoro_auto_start_break: boolean | null
+          pomodoro_break_minutes: number | null
+          pomodoro_focus_minutes: number | null
           potions_last_reset: string | null
           quick_mode_default: boolean | null
           reminder_preferences: Json | null
@@ -2617,6 +2836,9 @@ export type Database = {
         }
         Insert: {
           ai_api_key?: string | null
+          arcade_enabled?: boolean | null
+          arcade_reduce_motion?: boolean | null
+          arcade_sounds_off?: boolean | null
           created_at?: string | null
           current_debrief_streak?: number | null
           cycle_summary_questions?: Json | null
@@ -2627,6 +2849,9 @@ export type Database = {
           longest_debrief_streak?: number | null
           minimal_mode?: boolean | null
           monthly_review_questions?: Json | null
+          pomodoro_auto_start_break?: boolean | null
+          pomodoro_break_minutes?: number | null
+          pomodoro_focus_minutes?: number | null
           potions_last_reset?: string | null
           quick_mode_default?: boolean | null
           reminder_preferences?: Json | null
@@ -2643,6 +2868,9 @@ export type Database = {
         }
         Update: {
           ai_api_key?: string | null
+          arcade_enabled?: boolean | null
+          arcade_reduce_motion?: boolean | null
+          arcade_sounds_off?: boolean | null
           created_at?: string | null
           current_debrief_streak?: number | null
           cycle_summary_questions?: Json | null
@@ -2653,6 +2881,9 @@ export type Database = {
           longest_debrief_streak?: number | null
           minimal_mode?: boolean | null
           monthly_review_questions?: Json | null
+          pomodoro_auto_start_break?: boolean | null
+          pomodoro_break_minutes?: number | null
+          pomodoro_focus_minutes?: number | null
           potions_last_reset?: string | null
           quick_mode_default?: boolean | null
           reminder_preferences?: Json | null
