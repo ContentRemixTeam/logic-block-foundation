@@ -117,12 +117,13 @@ const PLATFORM_OPTIONS = [
   { value: 'linkedin', label: 'LinkedIn' },
   { value: 'youtube', label: 'YouTube' },
   { value: 'tiktok', label: 'TikTok' },
-  { value: 'facebook', label: 'Facebook' },
   { value: 'podcast', label: 'Podcast' },
   { value: 'blog', label: 'Blog/SEO' },
   { value: 'pinterest', label: 'Pinterest' },
   { value: 'email', label: 'Email' },
-  { value: 'twitter', label: 'Twitter/X' },
+  { value: 'bundles', label: 'Bundles' },
+  { value: 'summits', label: 'Summits' },
+  { value: 'threads', label: 'Threads' },
   { value: 'other', label: 'Other' },
 ];
 
