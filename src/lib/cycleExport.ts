@@ -379,13 +379,24 @@ function generatePDFHTML(data: CycleExportData): string {
   const startDateFormatted = format(new Date(data.startDate), 'MMMM d, yyyy');
   const endDateFormatted = format(new Date(data.endDate), 'MMMM d, yyyy');
   
+  // HTML escape function to prevent XSS
+  const escapeHtml = (text: string | number | null | undefined): string => {
+    if (text === null || text === undefined) return '';
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
+
   const renderSection = (title: string, icon: string, content: string): string => {
     if (!content.trim()) return '';
     return `
       <div class="section">
         <div class="section-header">
-          <span class="section-icon">${icon}</span>
-          <span>${title}</span>
+          <span class="section-icon">${escapeHtml(icon)}</span>
+          <span>${escapeHtml(title)}</span>
         </div>
         ${content}
       </div>
@@ -396,8 +407,8 @@ function generatePDFHTML(data: CycleExportData): string {
     if (!value && value !== 0) return '';
     return `
       <div class="field">
-        <div class="field-label">${label}</div>
-        <div class="field-value">${value}</div>
+        <div class="field-label">${escapeHtml(label)}</div>
+        <div class="field-value">${escapeHtml(value)}</div>
       </div>
     `;
   };
@@ -405,7 +416,7 @@ function generatePDFHTML(data: CycleExportData): string {
   const renderList = (items: string[]): string => {
     const filtered = items.filter(i => i && i.trim());
     if (filtered.length === 0) return '';
-    return `<ul class="list">${filtered.map(item => `<li>${item}</li>`).join('')}</ul>`;
+    return `<ul class="list">${filtered.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`;
   };
 
   // Build sections
@@ -414,7 +425,7 @@ function generatePDFHTML(data: CycleExportData): string {
   // Identity & Motivation
   if (data.identity || data.why || data.feeling) {
     sectionsHTML += renderSection('Identity & Motivation', '🧠', `
-      ${data.identity ? `<div class="quote">"I am becoming ${data.identity}"</div>` : ''}
+      ${data.identity ? `<div class="quote">"I am becoming ${escapeHtml(data.identity)}"</div>` : ''}
       ${renderField('Because', data.why)}
       ${renderField('I want to feel', data.feeling)}
     `);
@@ -452,7 +463,7 @@ function generatePDFHTML(data: CycleExportData): string {
     sectionsHTML += renderSection('Audience & Message', '👥', `
       ${renderField('Target Audience', data.audienceTarget)}
       ${renderField('Their Frustration', data.audienceFrustration)}
-      ${data.signatureMessage ? `<div class="quote">"${data.signatureMessage}"</div>` : ''}
+      ${data.signatureMessage ? `<div class="quote">"${escapeHtml(data.signatureMessage)}"</div>` : ''}
     `);
   }
   
@@ -501,9 +512,9 @@ function generatePDFHTML(data: CycleExportData): string {
   if (data.offers.length > 0 && data.offers.some(o => o.name)) {
     const offersContent = data.offers.filter(o => o.name).map(offer => `
       <div class="offer-card">
-        <div class="offer-name">${offer.name}${offer.isPrimary ? ' ⭐' : ''}</div>
+        <div class="offer-name">${escapeHtml(offer.name)}${offer.isPrimary ? ' ⭐' : ''}</div>
         ${offer.price ? `<div class="offer-price">$${offer.price.toLocaleString()}</div>` : ''}
-        ${offer.transformation ? `<div class="offer-transform">${offer.transformation}</div>` : ''}
+        ${offer.transformation ? `<div class="offer-transform">${escapeHtml(offer.transformation)}</div>` : ''}
       </div>
     `).join('');
     sectionsHTML += renderSection('Your Offers', '💰', `<div class="offers-grid">${offersContent}</div>`);
@@ -523,21 +534,21 @@ function generatePDFHTML(data: CycleExportData): string {
       <div class="grid-3">
         ${data.metric1Name ? `
           <div class="metric-card">
-            <div class="metric-name">${data.metric1Name}</div>
+            <div class="metric-name">${escapeHtml(data.metric1Name)}</div>
             <div class="metric-value">${data.metric1Start ?? 0}</div>
             <div class="metric-label">Starting</div>
           </div>
         ` : ''}
         ${data.metric2Name ? `
           <div class="metric-card">
-            <div class="metric-name">${data.metric2Name}</div>
+            <div class="metric-name">${escapeHtml(data.metric2Name)}</div>
             <div class="metric-value">${data.metric2Start ?? 0}</div>
             <div class="metric-label">Starting</div>
           </div>
         ` : ''}
         ${data.metric3Name ? `
           <div class="metric-card">
-            <div class="metric-name">${data.metric3Name}</div>
+            <div class="metric-name">${escapeHtml(data.metric3Name)}</div>
             <div class="metric-value">${data.metric3Start ?? 0}</div>
             <div class="metric-label">Starting</div>
           </div>
@@ -593,7 +604,7 @@ function generatePDFHTML(data: CycleExportData): string {
       first3DaysContent += renderField('When Fear Shows Up, I Will...', data.fearResponse);
     }
     if (data.commitmentStatement) {
-      first3DaysContent += `<div class="quote">"I commit to showing up for the next 3 days by ${data.commitmentStatement}"</div>`;
+      first3DaysContent += `<div class="quote">"I commit to showing up for the next 3 days by ${escapeHtml(data.commitmentStatement)}"</div>`;
     }
     if (data.accountabilityPerson) {
       first3DaysContent += renderField('Accountability Partner', data.accountabilityPerson);
@@ -612,9 +623,9 @@ function generatePDFHTML(data: CycleExportData): string {
           <div class="day-card" style="border-color: ${d.color}">
             <div class="day-number" style="background: ${d.color}">Day ${d.day}</div>
             <ul class="task-list">
-              ${d.tasks.filter(t => t).map(t => `<li>${t}</li>`).join('')}
+              ${d.tasks.filter(t => t).map(t => `<li>${escapeHtml(t)}</li>`).join('')}
             </ul>
-            ${d.why ? `<div class="day-why">${d.why}</div>` : ''}
+            ${d.why ? `<div class="day-why">${escapeHtml(d.why)}</div>` : ''}
           </div>
         `).join('')}
       </div>`;
@@ -652,9 +663,9 @@ function generatePDFHTML(data: CycleExportData): string {
     if (data.generatedTasks && data.generatedTasks.length > 0) {
       const taskRows = data.generatedTasks.slice(0, 20).map(t => `
         <tr>
-          <td>${t.title}</td>
+          <td>${escapeHtml(t.title)}</td>
           <td>${t.due_date ? format(new Date(t.due_date), 'MMM d, yyyy') : '-'}</td>
-          <td>${t.priority || 'Medium'}</td>
+          <td>${escapeHtml(t.priority || 'Medium')}</td>
         </tr>
       `).join('');
       
@@ -750,9 +761,9 @@ function generatePDFHTML(data: CycleExportData): string {
 </head>
 <body>
   <div class="header">
-    <h1>${data.goal || 'My 90-Day Business Plan'}</h1>
+    <h1>${escapeHtml(data.goal || 'My 90-Day Business Plan')}</h1>
     <div class="subtitle">Becoming Boss Mastermind</div>
-    <div class="dates">${startDateFormatted} - ${endDateFormatted}</div>
+    <div class="dates">${escapeHtml(startDateFormatted)} - ${escapeHtml(endDateFormatted)}</div>
   </div>
   
   ${sectionsHTML}
