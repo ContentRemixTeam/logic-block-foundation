@@ -8,6 +8,7 @@ import { Layout } from '@/components/Layout';
 import { LoadingState } from '@/components/system/LoadingState';
 import { ErrorState } from '@/components/system/ErrorState';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/hooks/useTheme';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeArray, normalizeBoolean } from '@/lib/normalize';
@@ -20,6 +21,7 @@ import { GoogleCalendarPanel } from '@/components/google-calendar/GoogleCalendar
 
 export default function Settings() {
   const { user } = useAuth();
+  const { setTheme: setContextTheme } = useTheme();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -111,9 +113,13 @@ export default function Settings() {
     try {
       setSettings((prev) => ({ ...prev, [key]: value }));
 
-      // Apply theme immediately if theme_preference is being updated
+      // Use context's setTheme for theme_preference to update all components
       if (key === 'theme_preference') {
-        document.documentElement.setAttribute('data-theme', value as string);
+        await setContextTheme(value as 'quest' | 'minimal' | 'vibrant' | 'bw');
+        toast({
+          title: '⚡ Theme updated!',
+        });
+        return;
       }
 
       const { error } = await supabase

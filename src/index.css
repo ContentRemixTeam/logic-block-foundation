@@ -288,6 +288,73 @@
 }
 
 /* =====================================================
+   NON-QUEST THEME RESETS - Override Quest Mode Styles
+   ===================================================== */
+
+/* Reset quest background for non-quest themes */
+[data-theme="minimal"] body,
+[data-theme="vibrant"] body,
+[data-theme="bw"] body {
+  background: hsl(var(--background));
+  background-attachment: scroll;
+}
+
+/* Remove quest ambient overlay for non-quest themes */
+[data-theme="minimal"] body::before,
+[data-theme="vibrant"] body::before,
+[data-theme="bw"] body::before {
+  content: none !important;
+  display: none !important;
+}
+
+/* Reset Quest typography for non-quest themes */
+[data-theme="minimal"] h1,
+[data-theme="minimal"] h2,
+[data-theme="minimal"] h3,
+[data-theme="vibrant"] h1,
+[data-theme="vibrant"] h2,
+[data-theme="vibrant"] h3,
+[data-theme="bw"] h1,
+[data-theme="bw"] h2,
+[data-theme="bw"] h3 {
+  font-family: var(--font-heading, Inter, sans-serif);
+  color: hsl(var(--foreground));
+  text-shadow: none;
+}
+
+/* Reset quest input styles for non-quest themes */
+[data-theme="minimal"] input,
+[data-theme="minimal"] textarea,
+[data-theme="vibrant"] input,
+[data-theme="vibrant"] textarea,
+[data-theme="bw"] input,
+[data-theme="bw"] textarea {
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+}
+
+/* Reset sidebar for non-quest themes */
+[data-theme="minimal"] [data-sidebar],
+[data-theme="vibrant"] [data-sidebar],
+[data-theme="bw"] [data-sidebar] {
+  background: hsl(var(--sidebar-background)) !important;
+  border-right: 1px solid hsl(var(--border)) !important;
+  box-shadow: none !important;
+}
+
+/* Reset card styles for non-quest themes */
+[data-theme="minimal"] .card,
+[data-theme="minimal"] [class*="rounded-lg"][class*="border"][class*="bg-card"],
+[data-theme="vibrant"] .card,
+[data-theme="vibrant"] [class*="rounded-lg"][class*="border"][class*="bg-card"],
+[data-theme="bw"] .card,
+[data-theme="bw"] [class*="rounded-lg"][class*="border"][class*="bg-card"] {
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  box-shadow: var(--shadow-sm);
+}
+
+/* =====================================================
    BASE STYLES
    ===================================================== */
 
