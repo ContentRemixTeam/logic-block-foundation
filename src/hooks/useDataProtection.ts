@@ -39,10 +39,12 @@ export function useDataProtection<T extends Record<string, any>>({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   const dataRef = useRef<T | null>(null);
+  const lastDataHashRef = useRef<string | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef(0);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isSavingRef = useRef(false);
+  const rateLimitedUntilRef = useRef<number>(0);
 
   const saveToLocalStorage = useCallback((data: T) => {
     if (!enableLocalBackup) return;
@@ -120,6 +122,29 @@ export function useDataProtection<T extends Record<string, any>>({
         saveToLocalStorage(dataRef.current);
       }
 
+      // Check for rate limit error (429)
+      const errorMessage = error?.message || '';
+      const isRateLimit = errorMessage.includes('429') || 
+                          errorMessage.includes('RATE_LIMIT') ||
+                          errorMessage.includes('Too many requests');
+      
+      if (isRateLimit) {
+        // Extract retry_after from error message if available
+        const retryMatch = errorMessage.match(/retry_after[":]*\s*(\d+)/);
+        const retryAfter = retryMatch ? parseInt(retryMatch[1], 10) : 20;
+        
+        rateLimitedUntilRef.current = Date.now() + (retryAfter * 1000);
+        setSaveStatus('pending');
+        
+        // Silent retry after rate limit expires - no toast spam
+        retryTimeoutRef.current = setTimeout(() => {
+          rateLimitedUntilRef.current = 0;
+          performSave();
+        }, (retryAfter + 2) * 1000);
+        
+        return;
+      }
+
       if (retryCountRef.current < maxRetries) {
         retryCountRef.current++;
         setSaveStatus('error');
@@ -184,6 +209,13 @@ export function useDataProtection<T extends Record<string, any>>({
   }, [hasUnsavedChanges, performSave, toast]);
 
   const register = useCallback((data: T) => {
+    // Skip if data hasn't actually changed (prevents excessive saves)
+    const dataHash = JSON.stringify(data);
+    if (lastDataHashRef.current === dataHash) {
+      return; // No actual change, skip registration
+    }
+    lastDataHashRef.current = dataHash;
+    
     dataRef.current = data;
     setHasUnsavedChanges(true);
     setSaveStatus('pending');
@@ -191,6 +223,17 @@ export function useDataProtection<T extends Record<string, any>>({
 
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Check if we're rate limited
+    const now = Date.now();
+    if (rateLimitedUntilRef.current > now) {
+      // We're rate limited, schedule save after limit expires
+      const waitTime = rateLimitedUntilRef.current - now + 1000;
+      saveTimeoutRef.current = setTimeout(() => {
+        performSave();
+      }, waitTime);
+      return;
     }
 
     saveTimeoutRef.current = setTimeout(() => {

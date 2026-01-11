@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, MutableRefObject } from 'react';
 import { Link } from 'react-router-dom';
 import { format, subDays } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -107,6 +107,9 @@ export default function DailyPlan() {
   // Monthly focus
   const [monthlyFocus, setMonthlyFocus] = useState<string | null>(null);
   
+  // Track initial load to prevent auto-save during data population
+  const isInitialLoadRef = useRef(true);
+  
   // View mode toggle
   const [viewMode, setViewMode] = useState<'planning' | 'schedule'>('planning');
 
@@ -146,7 +149,7 @@ export default function DailyPlan() {
 
       if (fnError) throw fnError;
     },
-    autoSaveDelay: 1000,
+    autoSaveDelay: 2500,
     localStorageKey: `daily_plan_backup_${dayId}`,
     enableLocalBackup: true,
     enableBeforeUnload: true,
@@ -154,9 +157,9 @@ export default function DailyPlan() {
     retryDelay: 5000,
   });
 
-  // Register data changes with the protection hook
+  // Register data changes with the protection hook (skip during initial load)
   useEffect(() => {
-    if (!loading && dayId) {
+    if (!loading && dayId && !isInitialLoadRef.current) {
       registerData(dailyPlanData);
     }
   }, [dailyPlanData, loading, dayId, registerData]);
@@ -315,6 +318,10 @@ export default function DailyPlan() {
       setError(error?.message || 'Failed to load daily plan');
     } finally {
       setLoading(false);
+      // Mark initial load complete after a short delay to let React batch state updates
+      setTimeout(() => {
+        isInitialLoadRef.current = false;
+      }, 500);
     }
   };
 
