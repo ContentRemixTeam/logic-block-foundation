@@ -12,7 +12,8 @@ import { useTheme } from '@/hooks/useTheme';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeArray, normalizeBoolean } from '@/lib/normalize';
-import { Loader2, Save, ArrowLeft, Bug, Trash2, RotateCcw, Crown, Sparkles, Palette, Circle } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, Bug, Trash2, RotateCcw, Crown, Sparkles, Palette, Circle, Gamepad2, Coins, Dog, Timer } from 'lucide-react';
+import { useArcade } from '@/hooks/useArcade';
 import { ReflectionList } from '@/components/ReflectionList';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -23,6 +24,7 @@ import { THEMES, THEME_IDS, ThemeId } from '@/lib/themes';
 export default function Settings() {
   const { user } = useAuth();
   const { setTheme: setContextTheme } = useTheme();
+  const { settings: arcadeSettings, updateSettings: updateArcadeSettings } = useArcade();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -432,6 +434,130 @@ export default function Settings() {
                 }
               />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Gamification Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Gamepad2 className="h-5 w-5" />
+              Gamification
+            </CardTitle>
+            <CardDescription>
+              Task Arcade, Pet Store, and Focus Timer features
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="arcade">Enable Gamification</Label>
+                <div className="text-sm text-muted-foreground">
+                  Earn coins for tasks, grow pets, play games
+                </div>
+              </div>
+              <Switch
+                id="arcade"
+                checked={arcadeSettings.arcade_enabled}
+                onCheckedChange={(checked) => {
+                  updateArcadeSettings({ arcade_enabled: checked });
+                  toast({ title: checked ? '🎮 Gamification enabled!' : 'Gamification disabled' });
+                }}
+              />
+            </div>
+
+            {arcadeSettings.arcade_enabled && (
+              <>
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-medium mb-3">Header Display</h4>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Coins className="h-4 w-4 text-muted-foreground" />
+                        <div className="space-y-0.5">
+                          <Label htmlFor="showCoins">Show Coin Counter</Label>
+                          <div className="text-sm text-muted-foreground">
+                            Display coin balance in header
+                          </div>
+                        </div>
+                      </div>
+                      <Switch
+                        id="showCoins"
+                        checked={arcadeSettings.show_coin_counter}
+                        onCheckedChange={(checked) => updateArcadeSettings({ show_coin_counter: checked })}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Dog className="h-4 w-4 text-muted-foreground" />
+                        <div className="space-y-0.5">
+                          <Label htmlFor="showPet">Show Pet Widget</Label>
+                          <div className="text-sm text-muted-foreground">
+                            Display your daily pet in header
+                          </div>
+                        </div>
+                      </div>
+                      <Switch
+                        id="showPet"
+                        checked={arcadeSettings.show_pet_widget}
+                        onCheckedChange={(checked) => updateArcadeSettings({ show_pet_widget: checked })}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Timer className="h-4 w-4 text-muted-foreground" />
+                        <div className="space-y-0.5">
+                          <Label htmlFor="showTimer">Show Focus Timer</Label>
+                          <div className="text-sm text-muted-foreground">
+                            Display pomodoro timer in header
+                          </div>
+                        </div>
+                      </div>
+                      <Switch
+                        id="showTimer"
+                        checked={arcadeSettings.show_pomodoro_widget}
+                        onCheckedChange={(checked) => updateArcadeSettings({ show_pomodoro_widget: checked })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-medium mb-3">Other Settings</h4>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="reduceMotion">Reduce Motion</Label>
+                        <div className="text-sm text-muted-foreground">
+                          Minimize animations
+                        </div>
+                      </div>
+                      <Switch
+                        id="reduceMotion"
+                        checked={arcadeSettings.arcade_reduce_motion}
+                        onCheckedChange={(checked) => updateArcadeSettings({ arcade_reduce_motion: checked })}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="sounds">Sound Effects</Label>
+                        <div className="text-sm text-muted-foreground">
+                          Play sounds for actions
+                        </div>
+                      </div>
+                      <Switch
+                        id="sounds"
+                        checked={!arcadeSettings.arcade_sounds_off}
+                        onCheckedChange={(checked) => updateArcadeSettings({ arcade_sounds_off: !checked })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
         {/* Custom Review Questions */}

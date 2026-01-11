@@ -2824,7 +2824,10 @@ export type Database = {
           quick_mode_default: boolean | null
           reminder_preferences: Json | null
           scratch_pad_review_mode: string | null
+          show_coin_counter: boolean | null
           show_income_tracker: boolean | null
+          show_pet_widget: boolean | null
+          show_pomodoro_widget: boolean | null
           streak_potions_remaining: number | null
           theme_preference: string | null
           updated_at: string | null
@@ -2856,7 +2859,10 @@ export type Database = {
           quick_mode_default?: boolean | null
           reminder_preferences?: Json | null
           scratch_pad_review_mode?: string | null
+          show_coin_counter?: boolean | null
           show_income_tracker?: boolean | null
+          show_pet_widget?: boolean | null
+          show_pomodoro_widget?: boolean | null
           streak_potions_remaining?: number | null
           theme_preference?: string | null
           updated_at?: string | null
@@ -2888,7 +2894,10 @@ export type Database = {
           quick_mode_default?: boolean | null
           reminder_preferences?: Json | null
           scratch_pad_review_mode?: string | null
+          show_coin_counter?: boolean | null
           show_income_tracker?: boolean | null
+          show_pet_widget?: boolean | null
+          show_pomodoro_widget?: boolean | null
           streak_potions_remaining?: number | null
           theme_preference?: string | null
           updated_at?: string | null

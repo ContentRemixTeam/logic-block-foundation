@@ -97,9 +97,13 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             {/* Arcade widgets */}
             {settings.arcade_enabled && (
               <div className="flex items-center gap-2 ml-auto">
-                <PomodoroMiniWidget onClick={() => { setArcadeDefaultTab('focus'); setArcadeOpen(true); }} />
-                <CoinCounter onClick={() => { setArcadeDefaultTab('games'); setArcadeOpen(true); }} />
-                <PetWidget />
+                {settings.show_pomodoro_widget && (
+                  <PomodoroMiniWidget onClick={() => { setArcadeDefaultTab('focus'); setArcadeOpen(true); }} />
+                )}
+                {settings.show_coin_counter && (
+                  <CoinCounter onClick={() => { setArcadeDefaultTab('games'); setArcadeOpen(true); }} />
+                )}
+                {settings.show_pet_widget && <PetWidget />}
               </div>
             )}
           </header>
