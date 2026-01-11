@@ -557,27 +557,70 @@ export async function generatePDFBlob(data: CycleExportData): Promise<PDFGenerat
 
 /**
  * Download PDF directly (works on all devices)
+ * Enhanced with multiple fallbacks for Safari/iOS compatibility
  */
 export function downloadPDF(blob: Blob, filename: string): boolean {
+  console.log('[PDF Download] Starting download...', { filename, blobSize: blob.size });
+  
   try {
+    // Method 1: Standard download link (works on most browsers)
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = filename;
     link.style.display = 'none';
+    
+    // Add link to DOM
     document.body.appendChild(link);
+    
+    // Trigger click
     link.click();
     
-    // Cleanup
+    console.log('[PDF Download] Download triggered successfully');
+    
+    // Cleanup with longer timeout for slower devices
     setTimeout(() => {
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    }, 100);
+      try {
+        if (link.parentNode) {
+          document.body.removeChild(link);
+        }
+        URL.revokeObjectURL(url);
+        console.log('[PDF Download] Cleanup completed');
+      } catch (cleanupError) {
+        console.warn('[PDF Download] Cleanup warning:', cleanupError);
+      }
+    }, 1000); // Increased from 100ms to 1000ms
 
     return true;
-  } catch (error) {
-    console.error('Download error:', error);
-    return false;
+  } catch (primaryError) {
+    console.warn('[PDF Download] Primary method failed, trying fallback...', primaryError);
+    
+    try {
+      // Method 2: Fallback using window.open for Safari/iOS
+      const url = URL.createObjectURL(blob);
+      const newWindow = window.open(url, '_blank');
+      
+      if (newWindow) {
+        console.log('[PDF Download] Fallback window.open succeeded');
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        return true;
+      }
+      
+      // Method 3: Navigator save (for some mobile browsers)
+      if ('msSaveOrOpenBlob' in navigator) {
+        // @ts-ignore - IE/Edge specific
+        navigator.msSaveOrOpenBlob(blob, filename);
+        console.log('[PDF Download] msSaveOrOpenBlob succeeded');
+        return true;
+      }
+      
+      URL.revokeObjectURL(url);
+      console.error('[PDF Download] All download methods failed');
+      return false;
+    } catch (fallbackError) {
+      console.error('[PDF Download] Fallback failed:', fallbackError);
+      return false;
+    }
   }
 }
 
@@ -585,18 +628,33 @@ export function downloadPDF(blob: Blob, filename: string): boolean {
  * Generate and download PDF in one step
  */
 export async function generateAndDownloadPDF(data: CycleExportData): Promise<{ success: boolean; error?: string }> {
+  console.log('[PDF Generate] Starting PDF generation...');
+  console.log('[PDF Generate] Data received:', {
+    goal: data.goal?.substring(0, 50),
+    hasOffers: data.offers?.length || 0,
+    hasPromotions: data.promotions?.length || 0,
+    hasNurturePlatforms: data.nurturePlatforms?.length || 0,
+    hasSecondaryPlatforms: data.secondaryPlatforms?.length || 0,
+    hasMetrics: !!(data.metric1Name || data.metric2Name || data.metric3Name),
+  });
+  
   const result = await generatePDFBlob(data);
 
   if (!result.success || !result.blob) {
+    console.error('[PDF Generate] Blob generation failed:', result.error);
     return { success: false, error: result.error || 'Failed to generate PDF' };
   }
 
+  console.log('[PDF Generate] Blob created successfully, size:', result.blob.size);
+  
   const filename = `90-Day-Plan-${format(new Date(data.startDate), 'yyyy-MM-dd')}.pdf`;
   const downloaded = downloadPDF(result.blob, filename);
 
   if (!downloaded) {
-    return { success: false, error: 'Failed to download PDF. Please try again.' };
+    console.error('[PDF Generate] Download failed');
+    return { success: false, error: 'Failed to download PDF. Please try again or use a different browser.' };
   }
 
+  console.log('[PDF Generate] Download completed successfully');
   return { success: true };
 }
