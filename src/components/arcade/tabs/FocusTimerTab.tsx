@@ -1,12 +1,24 @@
+import { useState } from 'react';
 import { usePomodoro } from '@/hooks/usePomodoro';
 import { useArcade } from '@/hooks/useArcade';
+import { useTasks } from '@/hooks/useTasks';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Play, Pause, RotateCcw, Coins } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Play, Pause, RotateCcw, Coins, Target, CheckCircle2 } from 'lucide-react';
 
 export function FocusTimerTab() {
-  const { mode, formattedTime, isRunning, startFocus, pause, resume, reset } = usePomodoro();
+  const { mode, formattedTime, isRunning, linkedTaskId, startFocus, pause, resume, reset } = usePomodoro();
   const { settings } = useArcade();
+  const { data: tasks = [] } = useTasks();
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+
+  // Filter to only show incomplete tasks
+  const incompleteTasks = tasks.filter(t => !t.is_completed);
+  
+  // Get the linked task name
+  const linkedTask = tasks.find(t => t.task_id === linkedTaskId);
+  const selectedTask = tasks.find(t => t.task_id === selectedTaskId);
 
   const getModeDisplay = () => {
     switch (mode) {
@@ -21,8 +33,60 @@ export function FocusTimerTab() {
 
   const modeDisplay = getModeDisplay();
 
+  const handleStartFocus = () => {
+    startFocus(selectedTaskId || undefined);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Task Selection (only when idle) */}
+      {mode === 'idle' && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Target className="h-4 w-4" />
+              What will you focus on?
+            </CardTitle>
+            <CardDescription>
+              Select a task or start a free focus session
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Select value={selectedTaskId || ''} onValueChange={(val) => setSelectedTaskId(val || null)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a task (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No task - free focus</SelectItem>
+                {incompleteTasks.slice(0, 20).map((task) => (
+                  <SelectItem key={task.task_id} value={task.task_id}>
+                    <span className="truncate max-w-[250px] block">{task.task_text}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedTask && (
+              <p className="text-xs text-muted-foreground mt-2 truncate">
+                {selectedTask.task_text}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Show linked task during focus */}
+      {mode === 'focus' && linkedTask && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="py-3">
+            <div className="flex items-center gap-2 text-sm">
+              <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />
+              <span className="font-medium truncate">Focusing on:</span>
+              <span className="text-muted-foreground truncate">{linkedTask.task_text}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Timer display */}
       <Card className={modeDisplay.bg}>
         <CardHeader className="text-center pb-2">
@@ -42,7 +106,7 @@ export function FocusTimerTab() {
           {/* Controls */}
           <div className="flex justify-center gap-3">
             {mode === 'idle' ? (
-              <Button size="lg" onClick={() => startFocus()} className="gap-2">
+              <Button size="lg" onClick={handleStartFocus} className="gap-2">
                 <Play className="h-5 w-5" />
                 Start Focus
               </Button>
