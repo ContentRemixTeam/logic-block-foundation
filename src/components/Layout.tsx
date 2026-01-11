@@ -101,7 +101,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                   <PomodoroMiniWidget onClick={() => { setArcadeDefaultTab('focus'); setArcadeOpen(true); }} />
                 )}
                 {settings.show_coin_counter && (
-                  <CoinCounter onClick={() => { setArcadeDefaultTab('games'); setArcadeOpen(true); }} />
+                  <CoinCounter onClick={() => { setArcadeDefaultTab('stats'); setArcadeOpen(true); }} />
                 )}
                 {settings.show_pet_widget && <PetWidget />}
               </div>
