@@ -1,4 +1,5 @@
 export { TodayStrip } from './TodayStrip';
+export { First3DaysChecklist, getFirst3DaysCheckedState, saveFirst3DaysCheckedState } from './First3DaysChecklist';
 export { PlanMyWeekButton } from './PlanMyWeekButton';
 export { QuickActionsPanel } from './QuickActionsPanel';
 export { ResourcesPanel } from './ResourcesPanel';
