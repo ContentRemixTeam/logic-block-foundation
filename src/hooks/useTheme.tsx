@@ -107,6 +107,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setTheme = useCallback(async (newTheme: ThemeMode) => {
     if (!user) return;
     
+    // Briefly set themeLoaded to false for clean transition
+    setThemeLoaded(false);
     setThemeState(newTheme);
     document.documentElement.setAttribute('data-theme', newTheme);
 
@@ -119,6 +121,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         });
     } catch (error) {
       console.error('Failed to save theme:', error);
+    } finally {
+      // Re-enable after a brief delay to allow CSS transitions
+      setTimeout(() => setThemeLoaded(true), 50);
     }
   }, [user]);
 

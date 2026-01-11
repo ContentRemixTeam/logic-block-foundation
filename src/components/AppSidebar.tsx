@@ -227,7 +227,7 @@ export function AppSidebar() {
               <div className="flex flex-col min-w-0">
                 <span 
                   className="text-sm font-semibold truncate leading-tight"
-                  style={{ fontFamily: isQuestMode ? 'Cinzel, serif' : 'inherit' }}
+                  style={{ fontFamily: isQuestMode ? 'Cinzel, serif' : 'Inter, system-ui, sans-serif' }}
                 >
                   {isQuestMode ? 'Boss Quest' : 'Boss Planner'}
                 </span>
