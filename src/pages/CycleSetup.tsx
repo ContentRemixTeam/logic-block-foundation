@@ -1147,6 +1147,25 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
 
   const handleSubmit = async (autopilotOptions?: AutopilotOptions) => {
     if (!user) return;
+    
+    console.log('🚀 Starting cycle save for user:', user.id);
+    
+    // CRITICAL: Validate session before any database operations
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (!session || sessionError) {
+      console.error('❌ Session validation failed:', sessionError);
+      toast({
+        title: "Session Expired",
+        description: "Your session has expired. Please refresh the page and log in again before saving.",
+        variant: "destructive",
+        duration: 10000,
+      });
+      return;
+    }
+    
+    console.log('✅ Session validated, proceeding with save');
+    
     setLoading(true);
     setShowAutopilotModal(false);
 
@@ -1296,9 +1315,34 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
         .select()
         .single();
 
-      if (cycleError) throw cycleError;
+      if (cycleError) {
+        console.error('❌ Cycle creation failed:', cycleError);
+        throw cycleError;
+      }
 
       const cycleId = cycle.cycle_id;
+      console.log('✅ Cycle created with ID:', cycleId);
+
+      // VERIFICATION: Confirm the cycle was actually saved
+      const { data: verifyData, error: verifyError } = await supabase
+        .from('cycles_90_day')
+        .select('cycle_id, goal')
+        .eq('cycle_id', cycleId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (verifyError || !verifyData) {
+        console.error('❌ Cycle verification failed:', verifyError);
+        toast({
+          title: "Save may have failed",
+          description: "Your data might not have saved correctly. Please check your dashboard and try again if needed.",
+          variant: "destructive",
+          duration: 10000,
+        });
+        // Don't return - continue with related data to salvage what we can
+      } else {
+        console.log('✅ Cycle verified successfully:', verifyData.goal?.substring(0, 50));
+      }
 
       // Create cycle strategy with posting schedule and secondary platforms
       const effectiveNurtureMethod = nurtureMethod === 'other' ? nurtureMethodCustom : nurtureMethod;
@@ -2017,11 +2061,32 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
 
       navigate('/dashboard');
     } catch (error: any) {
-      console.error('CYCLE ERROR:', error);
+      console.error('❌ CYCLE SAVE ERROR:', {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+      });
+      
+      let userMessage = 'Unable to save your 90-day plan. ';
+      
+      if (error?.message?.includes('duplicate')) {
+        userMessage += 'You may already have a cycle for these dates. Please check your Cycles page.';
+      } else if (error?.message?.includes('network') || error?.message?.includes('fetch')) {
+        userMessage += 'Please check your internet connection and try again.';
+      } else if (error?.code === 'PGRST116') {
+        userMessage += 'There was a data conflict. Please refresh and try again.';
+      } else if (error?.message?.includes('JWT') || error?.message?.includes('token')) {
+        userMessage += 'Your session has expired. Please refresh the page and log in again.';
+      } else {
+        userMessage += 'Please try again. If this persists, contact support.';
+      }
+      
       toast({
-        title: 'Error creating cycle',
-        description: error?.message || JSON.stringify(error),
+        title: 'Save Failed',
+        description: userMessage,
         variant: 'destructive',
+        duration: 10000,
       });
     } finally {
       setLoading(false);
