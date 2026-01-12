@@ -26,8 +26,11 @@ import {
   Check,
   DollarSign,
   Brain,
-  Lightbulb
+  Lightbulb,
+  Search,
+  RefreshCw
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { OnboardingChecklist } from '@/components/tour/OnboardingChecklist';
 import { QuestMapCompact } from '@/components/quest/QuestMap';
@@ -42,9 +45,11 @@ import { TodayStrip, PlanMyWeekButton, QuickActionsPanel, ResourcesPanel, Metric
 export default function Dashboard() {
   const { user } = useAuth();
   const { isQuestMode, getNavLabel } = useTheme();
+  const { toast } = useToast();
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [checkingForData, setCheckingForData] = useState(false);
   const [ideasCount, setIdeasCount] = useState(0);
   const [thingsToRemember, setThingsToRemember] = useState<string[]>([]);
   const [revenueGoal, setRevenueGoal] = useState<number | null>(null);
@@ -66,27 +71,63 @@ export default function Dashboard() {
 
     try {
       setError(null);
-      console.log('Loading dashboard summary...');
+      console.log('✅ Starting dashboard load for user:', user.id);
       
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.error('No active session found');
-        setError('Please log in to view your dashboard');
+      // Step 1: Verify session is valid
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (!session || sessionError) {
+        console.error('❌ Session validation failed:', sessionError);
+        setError('Your session has expired. Please refresh the page to log in again.');
         setLoading(false);
         return;
       }
+      console.log('✅ Session validated');
       
+      // Step 2: Call edge functions
       const [dashboardData, ideasData] = await Promise.all([
         supabase.functions.invoke('get-dashboard-summary'),
         supabase.functions.invoke('get-ideas'),
       ]);
 
+      console.log('✅ Edge function response:', { 
+        hasData: !!dashboardData.data, 
+        hasError: !!dashboardData.error,
+        cycleGoal: dashboardData.data?.data?.cycle?.goal 
+      });
+
       if (dashboardData.error) {
-        console.error('Function invocation error:', dashboardData.error);
-        throw dashboardData.error;
+        console.error('❌ Dashboard edge function error:', dashboardData.error);
+        throw new Error('Unable to load your dashboard. Please try refreshing the page.');
       }
       
       const summaryData = dashboardData.data?.data || null;
+      
+      // Step 3: FALLBACK - If no cycle data from edge function, query directly
+      if (!summaryData?.cycle?.goal) {
+        console.log('⚠️ No cycle from edge function, trying direct query...');
+        
+        const { data: directCycle, error: directError } = await supabase
+          .from('cycles_90_day')
+          .select('cycle_id, goal, start_date, end_date')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        console.log('🔍 Direct cycle query result:', { directCycle, directError });
+        
+        if (directCycle && directCycle.goal) {
+          console.log('✅ Found cycle via direct query, reloading...');
+          toast({
+            title: "Data sync issue detected",
+            description: "Refreshing to load your data correctly...",
+            duration: 2000,
+          });
+          setTimeout(() => window.location.reload(), 1000);
+          return;
+        }
+      }
+      
       setSummary(summaryData);
       setIdeasCount(ideasData.data?.ideas?.length || 0);
       
@@ -149,12 +190,84 @@ export default function Dashboard() {
         setFirst3DaysChecked(getFirst3DaysCheckedState());
       }
     } catch (error: any) {
-      console.error('Error loading dashboard:', error);
-      setError(error?.message || 'Failed to load dashboard');
+      console.error('❌ Dashboard load error:', error);
+      setError(error?.message || 'Unable to load your dashboard. Please refresh the page or contact support if this persists.');
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, toast]);
+
+  // Handler for "Check for Lost Data" button
+  const handleCheckForLostData = async () => {
+    if (!user) return;
+    
+    setCheckingForData(true);
+    console.log('🔍 Checking for lost cycle data...');
+    
+    try {
+      // Verify session first
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (!session || sessionError) {
+        console.error('❌ Session validation failed:', sessionError);
+        toast({
+          title: "Session Expired",
+          description: "Please refresh the page and log in again.",
+          variant: "destructive",
+          duration: 10000,
+        });
+        return;
+      }
+      
+      // Direct query to cycles_90_day, bypassing edge function
+      const { data: cycles, error } = await supabase
+        .from('cycles_90_day')
+        .select('cycle_id, goal, start_date, end_date, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      console.log('🔍 Direct cycle query result:', { cycles, error });
+      
+      if (error) {
+        console.error('❌ Direct query failed:', error);
+        toast({
+          title: "Unable to check for data",
+          description: "Please try refreshing the page. If this persists, contact support.",
+          variant: "destructive",
+          duration: 10000,
+        });
+        return;
+      }
+      
+      if (cycles && cycles.length > 0) {
+        console.log('✅ Found cycle data:', cycles[0]);
+        toast({
+          title: "✅ Data found!",
+          description: `Found your cycle: "${cycles[0].goal?.substring(0, 50)}..." - Refreshing page...`,
+          duration: 3000,
+        });
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        console.log('ℹ️ No cycle data found');
+        toast({
+          title: "No cycle data found",
+          description: "It looks like no 90-day cycle has been saved yet. Please create one using the button above.",
+          variant: "destructive",
+          duration: 10000,
+        });
+      }
+    } catch (error: any) {
+      console.error('❌ Check for data failed:', error);
+      toast({
+        title: "Check failed",
+        description: "An unexpected error occurred. Please try refreshing the page.",
+        variant: "destructive",
+        duration: 10000,
+      });
+    } finally {
+      setCheckingForData(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -254,12 +367,32 @@ export default function Dashboard() {
                 <p className="text-foreground-muted mb-4">
                   Begin your journey by defining your 90-day goal, identity, and supporting projects.
                 </p>
-                <Link to="/cycle-setup">
-                  <Button variant="premium" size="lg" className="gap-2">
-                    <Zap className="h-5 w-5" />
-                    Start Your First 90-Day Cycle
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Link to="/cycle-setup">
+                    <Button variant="premium" size="lg" className="gap-2">
+                      <Zap className="h-5 w-5" />
+                      Start Your First 90-Day Cycle
+                    </Button>
+                  </Link>
+                </div>
+                
+                {/* Data Recovery Button */}
+                <div className="mt-4 pt-4 border-t border-border/50">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-muted-foreground hover:text-foreground gap-2"
+                    onClick={handleCheckForLostData}
+                    disabled={checkingForData}
+                  >
+                    {checkingForData ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                    {checkingForData ? 'Checking...' : "Can't see your data? Click here to check"}
                   </Button>
-                </Link>
+                </div>
               </div>
             </div>
           </PremiumCard>
