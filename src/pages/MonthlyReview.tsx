@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,7 +31,6 @@ export default function MonthlyReview() {
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [creatingTasks, setCreatingTasks] = useState(false);
   const [reviewId, setReviewId] = useState<string | null>(null);
   const [cycleId, setCycleId] = useState<string | null>(null);
@@ -51,6 +50,71 @@ export default function MonthlyReview() {
   const [habitConsistency, setHabitConsistency] = useState(0);
   const [cycleProgress, setCycleProgress] = useState(0);
 
+  // Track initial load to prevent auto-save on first load
+  const isInitialLoadRef = useRef(true);
+
+  // Memoize review data for data protection
+  const reviewData = useMemo(() => ({
+    reviewId,
+    cycleId,
+    month,
+    monthInCycle,
+    wins: wins.filter(Boolean),
+    challenges: challenges.filter(Boolean),
+    lessons: lessons.filter(Boolean),
+    priorities: priorities.filter(Boolean),
+    monthScore,
+  }), [reviewId, cycleId, month, monthInCycle, wins, challenges, lessons, priorities, monthScore]);
+
+  // Save function for data protection
+  const handleAutoSave = useCallback(async (data: typeof reviewData) => {
+    if (!data.reviewId || !data.cycleId) return;
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('Not authenticated');
+
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-monthly-review`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        review_id: data.reviewId,
+        cycle_id: data.cycleId,
+        month: data.month,
+        month_in_cycle: data.monthInCycle,
+        wins: data.wins,
+        challenges: data.challenges,
+        lessons: data.lessons,
+        priorities: data.priorities,
+        month_score: data.monthScore,
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to save review: ${res.status}`);
+    }
+  }, []);
+
+  // Data protection hook
+  const { register, saveNow, saveStatus, lastSaved } = useDataProtection({
+    saveFn: handleAutoSave,
+    autoSaveDelay: 2500,
+    localStorageKey: `monthly_review_backup_${monthInCycle}`,
+    enableLocalBackup: true,
+    enableBeforeUnload: true,
+    maxRetries: 3,
+    retryDelay: 5000,
+  });
+
+  // Register changes after initial load
+  useEffect(() => {
+    if (!loading && !isInitialLoadRef.current && reviewId && cycleId) {
+      register(reviewData);
+    }
+  }, [reviewData, loading, register, reviewId, cycleId]);
+
   useEffect(() => {
     if (user) {
       loadMonthlyReview();
@@ -60,6 +124,7 @@ export default function MonthlyReview() {
   const loadMonthlyReview = async () => {
     try {
       setLoading(true);
+      isInitialLoadRef.current = true;
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -103,54 +168,10 @@ export default function MonthlyReview() {
       toast({ title: "Failed to load monthly review", variant: "destructive" });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!reviewId || !cycleId) {
-      toast({ title: "No active review to save", variant: "destructive" });
-      return;
-    }
-
-    try {
-      setSaving(true);
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({ title: "Please log in", variant: "destructive" });
-        return;
-      }
-
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-monthly-review`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          review_id: reviewId,
-          cycle_id: cycleId,
-          month,
-          month_in_cycle: monthInCycle,
-          wins: wins.filter(Boolean),
-          challenges: challenges.filter(Boolean),
-          lessons: lessons.filter(Boolean),
-          priorities: priorities.filter(Boolean),
-          month_score: monthScore,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error(`Failed to save review: ${res.status}`);
-      }
-
-      toast({ title: "Monthly Review Saved!", description: "Your reflection has been saved." });
-
-    } catch (error) {
-      console.error("Error saving monthly review:", error);
-      toast({ title: "Failed to save review", variant: "destructive" });
-    } finally {
-      setSaving(false);
+      // Allow auto-save after a short delay to prevent immediate trigger
+      setTimeout(() => {
+        isInitialLoadRef.current = false;
+      }, 500);
     }
   };
 
@@ -242,13 +263,17 @@ export default function MonthlyReview() {
   return (
     <Layout>
       <div className="space-y-6 max-w-4xl mx-auto">
+        {/* Save Status Banner */}
+        <SaveStatusBanner status={saveStatus} onRetry={saveNow} />
+
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold">Monthly Review</h1>
             <p className="text-muted-foreground">Month {monthInCycle} of your 90-Day Cycle</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <SaveStatusIndicator status={saveStatus} lastSaved={lastSaved} />
             <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
               Dashboard
             </Button>
@@ -500,8 +525,8 @@ export default function MonthlyReview() {
           <Button variant="outline" onClick={() => navigate("/dashboard")}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? (
+          <Button onClick={saveNow} disabled={saveStatus === 'saving'}>
+            {saveStatus === 'saving' ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Saving...

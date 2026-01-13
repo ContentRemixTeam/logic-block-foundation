@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,17 +6,22 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Layout } from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Edit2, Archive, Loader2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+
+// Local storage key for form backup
+const FORM_BACKUP_KEY = 'habits_form_backup';
 
 export default function Habits() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [habits, setHabits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -30,6 +35,66 @@ export default function Habits() {
   const [habitType, setHabitType] = useState('daily');
   const [habitDescription, setHabitDescription] = useState('');
   const [habitSuccessDefinition, setHabitSuccessDefinition] = useState('');
+
+  // Save form to local storage
+  const saveFormBackup = useCallback(() => {
+    if (!isDialogOpen) return;
+    try {
+      localStorage.setItem(FORM_BACKUP_KEY, JSON.stringify({
+        habitName,
+        habitCategory,
+        habitType,
+        habitDescription,
+        habitSuccessDefinition,
+        editingId: editingHabit?.habit_id || null,
+        timestamp: new Date().toISOString(),
+      }));
+    } catch (error) {
+      console.error('Failed to save backup:', error);
+    }
+  }, [habitName, habitCategory, habitType, habitDescription, habitSuccessDefinition, editingHabit, isDialogOpen]);
+
+  // Backup form on changes when dialog is open
+  useEffect(() => {
+    if (isDialogOpen && habitName) {
+      saveFormBackup();
+    }
+  }, [habitName, habitCategory, habitType, habitDescription, habitSuccessDefinition, isDialogOpen, saveFormBackup]);
+
+  // Clear form backup
+  const clearFormBackup = () => {
+    try {
+      localStorage.removeItem(FORM_BACKUP_KEY);
+    } catch (error) {
+      console.error('Failed to clear backup:', error);
+    }
+  };
+
+  // Load backup when dialog opens for new habit
+  useEffect(() => {
+    if (isDialogOpen && !editingHabit) {
+      try {
+        const stored = localStorage.getItem(FORM_BACKUP_KEY);
+        if (stored) {
+          const backup = JSON.parse(stored);
+          // Only restore if there's actual content and it's not for a specific habit
+          if (backup.habitName && !backup.editingId) {
+            setHabitName(backup.habitName || '');
+            setHabitCategory(backup.habitCategory || '');
+            setHabitType(backup.habitType || 'daily');
+            setHabitDescription(backup.habitDescription || '');
+            setHabitSuccessDefinition(backup.habitSuccessDefinition || '');
+            toast({
+              title: '📋 Draft restored',
+              description: 'Your previous habit draft has been restored.',
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load backup:', error);
+      }
+    }
+  }, [isDialogOpen, editingHabit]);
 
   useEffect(() => {
     if (user) {
@@ -114,6 +179,14 @@ export default function Habits() {
     setIsDialogOpen(true);
   };
 
+  const handleDialogClose = (open: boolean) => {
+    if (!open) {
+      // Clear backup when closing without saving
+      clearFormBackup();
+    }
+    setIsDialogOpen(open);
+  };
+
   const handleSaveHabit = async () => {
     try {
       setSaving(true);
@@ -143,7 +216,9 @@ export default function Habits() {
 
       toast({ title: editingHabit ? "Habit Updated!" : "Habit Created!" });
       setIsDialogOpen(false);
+      clearFormBackup();
       loadHabits();
+      queryClient.invalidateQueries({ queryKey: ['habits'] });
     } catch (error) {
       console.error('Error saving habit:', error);
       toast({ title: "Failed to save habit", variant: "destructive" });
@@ -172,6 +247,7 @@ export default function Habits() {
 
       toast({ title: "Habit Archived!" });
       loadHabits();
+      queryClient.invalidateQueries({ queryKey: ['habits'] });
     } catch (error) {
       console.error('Error archiving habit:', error);
       toast({ title: "Failed to archive habit", variant: "destructive" });
@@ -358,7 +434,7 @@ export default function Habits() {
         </Card>
 
         {/* Edit/Create Habit Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>{editingHabit ? 'Edit Habit' : 'Create New Habit'}</DialogTitle>
@@ -425,7 +501,7 @@ export default function Habits() {
               </div>
 
               <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                <Button variant="outline" onClick={() => handleDialogClose(false)}>
                   Cancel
                 </Button>
                 <Button onClick={handleSaveHabit} disabled={saving || !habitName}>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
@@ -9,9 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LoadingState } from '@/components/system/LoadingState';
-import { ErrorState } from '@/components/system/ErrorState';
 import { toast } from '@/hooks/use-toast';
 import { Star, Trash2, Edit, Plus, Zap } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface Category {
   id: string;
@@ -28,8 +28,12 @@ interface Thought {
   mindset_categories: Category | null;
 }
 
+// Local storage key for form backup
+const FORM_BACKUP_KEY = 'useful_thoughts_form_backup';
+
 export default function UsefulThoughts() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [thoughts, setThoughts] = useState<Thought[]>([]);
@@ -41,6 +45,57 @@ export default function UsefulThoughts() {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryColor, setNewCategoryColor] = useState('#10B8C7');
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+
+  // Load form backup on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(FORM_BACKUP_KEY);
+      if (stored) {
+        const backup = JSON.parse(stored);
+        if (backup.newThought || backup.newThoughtCategory) {
+          setNewThought(backup.newThought || '');
+          setNewThoughtCategory(backup.newThoughtCategory || null);
+          toast({
+            title: '📋 Draft restored',
+            description: 'Your previous thought draft has been restored.',
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load backup:', error);
+    }
+  }, []);
+
+  // Save form to local storage on changes
+  const saveFormBackup = useCallback(() => {
+    try {
+      if (newThought || newThoughtCategory) {
+        localStorage.setItem(FORM_BACKUP_KEY, JSON.stringify({
+          newThought,
+          newThoughtCategory,
+          timestamp: new Date().toISOString(),
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to save backup:', error);
+    }
+  }, [newThought, newThoughtCategory]);
+
+  // Backup form on changes
+  useEffect(() => {
+    if (newThought || newThoughtCategory) {
+      saveFormBackup();
+    }
+  }, [newThought, newThoughtCategory, saveFormBackup]);
+
+  // Clear form backup
+  const clearFormBackup = () => {
+    try {
+      localStorage.removeItem(FORM_BACKUP_KEY);
+    } catch (error) {
+      console.error('Failed to clear backup:', error);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -109,7 +164,9 @@ export default function UsefulThoughts() {
       setNewThought('');
       setNewThoughtCategory(null);
       setEditingThought(null);
+      clearFormBackup();
       loadThoughts();
+      queryClient.invalidateQueries({ queryKey: ['thoughts'] });
     } catch (error) {
       console.error('Error saving thought:', error);
       toast({
@@ -162,6 +219,7 @@ export default function UsefulThoughts() {
       });
 
       loadThoughts();
+      queryClient.invalidateQueries({ queryKey: ['thoughts'] });
     } catch (error) {
       console.error('Error deleting thought:', error);
       toast({
@@ -217,6 +275,13 @@ export default function UsefulThoughts() {
     setEditingThought(thought);
     setNewThought(thought.text);
     setNewThoughtCategory(thought.category_id || null);
+  };
+
+  const cancelEdit = () => {
+    setEditingThought(null);
+    setNewThought('');
+    setNewThoughtCategory(null);
+    clearFormBackup();
   };
 
   const filteredThoughts = thoughts.filter(t => 
@@ -327,11 +392,7 @@ export default function UsefulThoughts() {
               {editingThought && (
                 <Button 
                   variant="outline" 
-                  onClick={() => {
-                    setEditingThought(null);
-                    setNewThought('');
-                    setNewThoughtCategory(null);
-                  }}
+                  onClick={cancelEdit}
                 >
                   Cancel
                 </Button>

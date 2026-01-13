@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { format, subDays } from 'date-fns';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -14,13 +14,14 @@ import { toast } from 'sonner';
 import { CalendarIcon, CheckCircle2, Loader2, ChevronLeft, ChevronRight, Sparkles, Swords, Shield, Skull, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CycleSnapshotCard } from '@/components/cycle/CycleSnapshotCard';
+import { useDataProtection } from '@/hooks/useDataProtection';
+import { SaveStatusIndicator, SaveStatusBanner } from '@/components/SaveStatusIndicator';
 
 export default function DailyReview() {
   const { user } = useAuth();
   const { isQuestMode, getNavLabel, refreshXP, refreshStreak } = useTheme();
   const [selectedDate, setSelectedDate] = useState<Date>(subDays(new Date(), 1));
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [hasPlan, setHasPlan] = useState(false);
   const [showXPAnimation, setShowXPAnimation] = useState(false);
   
@@ -33,6 +34,80 @@ export default function DailyReview() {
   // Quest mode quick rating
   const [quickRating, setQuickRating] = useState<'crushed' | 'survived' | 'struggled' | null>(null);
 
+  // Track initial load to prevent auto-save on first load
+  const isInitialLoadRef = useRef(true);
+  const selectedDateRef = useRef(selectedDate);
+
+  // Update ref when date changes
+  useEffect(() => {
+    selectedDateRef.current = selectedDate;
+  }, [selectedDate]);
+
+  // Memoize review data for data protection
+  const reviewData = useMemo(() => ({
+    whatWorked,
+    whatDidnt,
+    wins,
+    goalSupport,
+    quickRating,
+    date: format(selectedDate, 'yyyy-MM-dd'),
+  }), [whatWorked, whatDidnt, wins, goalSupport, quickRating, selectedDate]);
+
+  // Save function for data protection
+  const handleAutoSave = useCallback(async (data: typeof reviewData) => {
+    if (!user) return;
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-daily-review`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        date: data.date,
+        what_worked: data.whatWorked,
+        what_didnt: data.whatDidnt,
+        wins: data.wins,
+        goal_support: data.goalSupport,
+      }),
+    });
+
+    const result = await res.json();
+    if (result.error) {
+      throw new Error(result.error);
+    }
+  }, [user]);
+
+  // Data protection hook
+  const { register, saveNow, saveStatus, lastSaved } = useDataProtection({
+    saveFn: handleAutoSave,
+    autoSaveDelay: 2500,
+    localStorageKey: `daily_review_backup_${format(selectedDate, 'yyyy-MM-dd')}`,
+    enableLocalBackup: true,
+    enableBeforeUnload: true,
+    maxRetries: 3,
+    retryDelay: 5000,
+    onSaveSuccess: () => {
+      // Quest mode XP animation and messaging on successful save
+      if (isQuestMode) {
+        setShowXPAnimation(true);
+        setTimeout(() => setShowXPAnimation(false), 2000);
+        // Refresh XP and streak data
+        Promise.all([refreshXP(), refreshStreak()]);
+      }
+    },
+  });
+
+  // Register changes after initial load
+  useEffect(() => {
+    if (!loading && !isInitialLoadRef.current) {
+      register(reviewData);
+    }
+  }, [reviewData, loading, register]);
+
   useEffect(() => {
     if (user) {
       loadReview();
@@ -42,6 +117,7 @@ export default function DailyReview() {
   const loadReview = async () => {
     if (!user) return;
     setLoading(true);
+    isInitialLoadRef.current = true;
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -81,58 +157,16 @@ export default function DailyReview() {
       console.error('Error loading review:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const saveReview = async () => {
-    if (!user) return;
-    setSaving(true);
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-daily-review`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          date: format(selectedDate, 'yyyy-MM-dd'),
-          what_worked: whatWorked,
-          what_didnt: whatDidnt,
-          wins,
-          goal_support: goalSupport,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.error) {
-        toast.error('Failed to save review');
-        return;
-      }
-
-      // Quest mode XP animation and messaging
-      if (isQuestMode) {
-        setShowXPAnimation(true);
-        setTimeout(() => setShowXPAnimation(false), 2000);
-        toast.success('Mission logged. Rest, adventurer. +5 XP');
-        // Refresh XP and streak data
-        await Promise.all([refreshXP(), refreshStreak()]);
-      } else {
-        toast.success('Review saved!');
-      }
-    } catch (error) {
-      console.error('Error saving review:', error);
-      toast.error('Failed to save review');
-    } finally {
-      setSaving(false);
+      // Allow auto-save after a short delay to prevent immediate trigger
+      setTimeout(() => {
+        isInitialLoadRef.current = false;
+      }, 500);
     }
   };
 
   const navigateDate = (direction: 'prev' | 'next') => {
+    // Mark as initial load when changing dates to prevent auto-save during load
+    isInitialLoadRef.current = true;
     setSelectedDate(prev => 
       direction === 'prev' ? subDays(prev, 1) : subDays(prev, -1)
     );
@@ -153,6 +187,9 @@ export default function DailyReview() {
           </div>
         )}
 
+        {/* Save Status Banner */}
+        <SaveStatusBanner status={saveStatus} onRetry={saveNow} />
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -167,6 +204,7 @@ export default function DailyReview() {
               {isQuestMode ? 'Debrief your mission and log your victories' : 'Reflect on your day and celebrate your wins'}
             </p>
           </div>
+          <SaveStatusIndicator status={saveStatus} lastSaved={lastSaved} />
         </div>
 
         {/* Date Navigation */}
@@ -191,7 +229,12 @@ export default function DailyReview() {
                     <Calendar
                       mode="single"
                       selected={selectedDate}
-                      onSelect={(date) => date && setSelectedDate(date)}
+                      onSelect={(date) => {
+                        if (date) {
+                          isInitialLoadRef.current = true;
+                          setSelectedDate(date);
+                        }
+                      }}
                       disabled={(date) => date > new Date()}
                     />
                   </PopoverContent>
@@ -336,10 +379,10 @@ export default function DailyReview() {
                 />
               </div>
 
-              {/* Save Button */}
+              {/* Manual Save Button (optional, since auto-save is enabled) */}
               <div className="flex justify-end pt-4">
-                <Button onClick={saveReview} disabled={saving}>
-                  {saving ? (
+                <Button onClick={saveNow} disabled={saveStatus === 'saving'}>
+                  {saveStatus === 'saving' ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Saving...
