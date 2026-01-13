@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +41,7 @@ interface SOP {
 export default function SOPs() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [sops, setSOPs] = useState<SOP[]>([]);
@@ -156,6 +158,7 @@ export default function SOPs() {
 
       setIsDialogOpen(false);
       loadSOPs();
+      queryClient.invalidateQueries({ queryKey: ['sops'] });
     } catch (error: any) {
       console.error('Error saving SOP:', error);
       toast({
@@ -186,6 +189,7 @@ export default function SOPs() {
       setIsDeleteDialogOpen(false);
       setSOPToDelete(null);
       loadSOPs();
+      queryClient.invalidateQueries({ queryKey: ['sops'] });
     } catch (error: any) {
       console.error('Error deleting SOP:', error);
       toast({
