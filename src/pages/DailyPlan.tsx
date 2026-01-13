@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, MutableRefObject } from 'react';
 import { Link } from 'react-router-dom';
 import { format, subDays } from 'date-fns';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,6 +50,7 @@ import { SaveStatusIndicator, SaveStatusBanner } from '@/components/SaveStatusIn
 export default function DailyPlan() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deepMode, setDeepMode] = useState(false);
@@ -596,6 +598,12 @@ export default function DailyPlan() {
         if (processed.thoughts > 0) parts.push(`${processed.thoughts} thought${processed.thoughts > 1 ? 's' : ''}`);
         if (processed.offers > 0) parts.push(`${processed.offers} offer${processed.offers > 1 ? 's' : ''}`);
         if (processed.wins > 0) parts.push(`${processed.wins} win${processed.wins > 1 ? 's' : ''}`);
+
+        // Invalidate caches so items appear immediately in their destinations
+        queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
+        queryClient.invalidateQueries({ queryKey: ['ideas'] });
+        queryClient.invalidateQueries({ queryKey: ['useful-thoughts'] });
+        queryClient.invalidateQueries({ queryKey: ['daily-plan'] });
 
         // Store processed data for organize modal
         setProcessedData(data);
