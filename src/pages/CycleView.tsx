@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Edit, Target, Users, Megaphone, Mail, DollarSign, TrendingUp, Calendar, Brain, Lightbulb, BarChart3, Download, FileJson } from 'lucide-react';
+import { ArrowLeft, Edit, Target, Users, Megaphone, Mail, DollarSign, TrendingUp, Calendar, Brain, Lightbulb, BarChart3, Download, FileJson, Heart, Clock, Shield, Layers } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { loadCycleForExport, exportCycleAsJSON, exportCycleAsPDF } from '@/lib/cycleExport';
 import { useToast } from '@/hooks/use-toast';
@@ -39,6 +40,18 @@ interface CycleData {
   office_hours_start: string | null;
   office_hours_end: string | null;
   office_hours_days: unknown;
+  // Mindset fields
+  biggest_fear: string | null;
+  fear_response: string | null;
+  commitment_statement: string | null;
+  accountability_person: string | null;
+  // First 3 days
+  day1_top3: unknown;
+  day1_why: string | null;
+  day2_top3: unknown;
+  day2_why: string | null;
+  day3_top3: unknown;
+  day3_why: string | null;
 }
 
 interface CycleStrategy {
@@ -50,8 +63,25 @@ interface CycleStrategy {
   free_transformation: string | null;
   proof_methods: unknown;
   posting_days: unknown;
+  posting_time: string | null;
   batch_day: string | null;
   batch_frequency: string | null;
+  secondary_platforms: unknown;
+  nurture_platforms: unknown;
+  nurture_posting_days: unknown;
+  nurture_posting_time: string | null;
+  nurture_batch_day: string | null;
+  nurture_batch_frequency: string | null;
+  lead_gen_content_audit: string | null;
+  nurture_content_audit: string | null;
+}
+
+interface CycleMonthPlan {
+  month_number: number;
+  month_name: string | null;
+  projects_text: string | null;
+  sales_promos_text: string | null;
+  main_focus: string | null;
 }
 
 interface CycleRevenue {
@@ -76,6 +106,7 @@ export default function CycleView() {
   const [strategy, setStrategy] = useState<CycleStrategy | null>(null);
   const [revenue, setRevenue] = useState<CycleRevenue | null>(null);
   const [offers, setOffers] = useState<CycleOffer[]>([]);
+  const [monthPlans, setMonthPlans] = useState<CycleMonthPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [showPDFInstructions, setShowPDFInstructions] = useState(false);
@@ -170,6 +201,15 @@ export default function CycleView() {
         .order('sort_order');
       
       if (offersData) setOffers(offersData);
+
+      // Load month plans
+      const { data: monthPlansData } = await supabase
+        .from('cycle_month_plans')
+        .select('*')
+        .eq('cycle_id', id)
+        .order('month_number');
+      
+      if (monthPlansData) setMonthPlans(monthPlansData);
 
     } catch (error) {
       console.error('Error loading cycle:', error);
@@ -277,6 +317,41 @@ export default function CycleView() {
           </Card>
         )}
 
+        {/* Mindset & Commitment */}
+        {(cycle.biggest_fear || cycle.commitment_statement || cycle.accountability_person) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Heart className="h-5 w-5 text-rose-500" />
+                Mindset & Commitment
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {cycle.biggest_fear && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Biggest Fear</p>
+                  <p className="font-medium">{cycle.biggest_fear}</p>
+                  {cycle.fear_response && (
+                    <p className="text-sm text-primary mt-1 italic">→ {cycle.fear_response}</p>
+                  )}
+                </div>
+              )}
+              {cycle.commitment_statement && (
+                <div className="p-3 rounded-lg bg-primary/5 border-l-4 border-primary">
+                  <p className="text-sm text-muted-foreground mb-1">My Commitment</p>
+                  <p className="font-medium italic">"{cycle.commitment_statement}"</p>
+                </div>
+              )}
+              {cycle.accountability_person && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Accountability Partner</p>
+                  <p className="font-medium">{cycle.accountability_person}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Business Diagnostic */}
         {(cycle.discover_score || cycle.nurture_score || cycle.convert_score) && (
           <Card>
@@ -349,6 +424,45 @@ export default function CycleView() {
           </Card>
         )}
 
+        {/* 90-Day Breakdown (Month Plans) */}
+        {monthPlans.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Layers className="h-5 w-5 text-indigo-600" />
+                90-Day Breakdown
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3">
+                {monthPlans.map((month) => (
+                  <div key={month.month_number} className="p-4 rounded-lg border bg-muted/30">
+                    <h4 className="font-semibold mb-3 text-primary">{month.month_name || `Month ${month.month_number}`}</h4>
+                    {month.main_focus && (
+                      <div className="mb-3">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Focus</p>
+                        <p className="text-sm font-medium">{month.main_focus}</p>
+                      </div>
+                    )}
+                    {month.projects_text && (
+                      <div className="mb-3">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Projects</p>
+                        <p className="text-sm">{month.projects_text}</p>
+                      </div>
+                    )}
+                    {month.sales_promos_text && (
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Sales/Promos</p>
+                        <p className="text-sm">{month.sales_promos_text}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Lead Gen Strategy */}
         {strategy?.lead_primary_platform && (
           <Card>
@@ -376,6 +490,12 @@ export default function CycleView() {
                     <p className="font-medium">{(strategy.posting_days as string[]).join(', ')}</p>
                   </div>
                 )}
+                {strategy.posting_time && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Posting Time</p>
+                    <p className="font-medium">{strategy.posting_time}</p>
+                  </div>
+                )}
                 {strategy.batch_day && (
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">Batch Day</p>
@@ -383,6 +503,26 @@ export default function CycleView() {
                   </div>
                 )}
               </div>
+              {/* Secondary Platforms */}
+              {Array.isArray(strategy.secondary_platforms) && strategy.secondary_platforms.length > 0 && (
+                <div className="pt-4 border-t">
+                  <p className="text-sm text-muted-foreground mb-2">Secondary Platforms</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(strategy.secondary_platforms as any[]).map((platform: any, idx: number) => (
+                      <Badge key={idx} variant="secondary" className="capitalize">
+                        {typeof platform === 'string' ? platform : platform.platform || platform.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Content Audit Notes */}
+              {strategy.lead_gen_content_audit && (
+                <div className="pt-4 border-t">
+                  <p className="text-sm text-muted-foreground mb-1">Content Audit Notes</p>
+                  <p className="text-sm">{strategy.lead_gen_content_audit}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -408,11 +548,62 @@ export default function CycleView() {
                     <p className="font-medium capitalize">{strategy.nurture_frequency}</p>
                   </div>
                 )}
+                {Array.isArray(strategy.nurture_posting_days) && strategy.nurture_posting_days.length > 0 && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Posting Days</p>
+                    <p className="font-medium">{(strategy.nurture_posting_days as string[]).join(', ')}</p>
+                  </div>
+                )}
+                {strategy.nurture_posting_time && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Posting Time</p>
+                    <p className="font-medium">{strategy.nurture_posting_time}</p>
+                  </div>
+                )}
+                {strategy.nurture_batch_day && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Batch Day</p>
+                    <p className="font-medium">{strategy.nurture_batch_day} ({strategy.nurture_batch_frequency || 'weekly'})</p>
+                  </div>
+                )}
               </div>
               {strategy.free_transformation && (
                 <div className="pt-4 border-t">
                   <p className="text-sm text-muted-foreground mb-1">Free Transformation</p>
                   <p>{strategy.free_transformation}</p>
+                </div>
+              )}
+              {/* Proof Methods */}
+              {Array.isArray(strategy.proof_methods) && strategy.proof_methods.length > 0 && (
+                <div className="pt-4 border-t">
+                  <p className="text-sm text-muted-foreground mb-2">Proof Methods</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(strategy.proof_methods as string[]).map((method: string, idx: number) => (
+                      <Badge key={idx} variant="outline" className="capitalize">
+                        {method.replace(/-/g, ' ')}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Nurture Platforms */}
+              {Array.isArray(strategy.nurture_platforms) && strategy.nurture_platforms.length > 0 && (
+                <div className="pt-4 border-t">
+                  <p className="text-sm text-muted-foreground mb-2">Nurture Platforms</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(strategy.nurture_platforms as any[]).map((platform: any, idx: number) => (
+                      <Badge key={idx} variant="secondary" className="capitalize">
+                        {typeof platform === 'string' ? platform : platform.platform || platform.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Content Audit Notes */}
+              {strategy.nurture_content_audit && (
+                <div className="pt-4 border-t">
+                  <p className="text-sm text-muted-foreground mb-1">Content Audit Notes</p>
+                  <p className="text-sm">{strategy.nurture_content_audit}</p>
                 </div>
               )}
             </CardContent>
