@@ -12,6 +12,7 @@ import { SmartActionButton } from '@/components/SmartActionButton';
 import { TrialBanner, TrialExpiredScreen } from '@/components/trial';
 import { CoinCounter, PetWidget, PomodoroMiniWidget, ArcadeDrawer } from '@/components/arcade';
 import { useArcade } from '@/hooks/useArcade';
+import { OfflineDetector } from '@/components/OfflineDetector';
 import { Loader2, Sparkles, ArrowRight, X } from 'lucide-react';
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
@@ -51,8 +52,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full">
+    <>
+      <OfflineDetector />
+      <SidebarProvider>
+        <div className="flex min-h-screen w-full">
         {/* Premium Sidebar */}
         <AppSidebar />
 
@@ -128,8 +131,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           onOpenChange={setArcadeOpen} 
           defaultTab={arcadeDefaultTab}
         />
-      </div>
-    </SidebarProvider>
+        </div>
+      </SidebarProvider>
+    </>
   );
 }
 
