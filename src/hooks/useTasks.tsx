@@ -182,6 +182,8 @@ export function useTaskMutations() {
         position_in_column: null,
         day_order: newTask.day_order || null,
         source: newTask.source || null,
+        project_id: newTask.project_id || null,
+        section_id: newTask.section_id || null,
       };
 
       queryClient.setQueryData<Task[]>(taskQueryKeys.all, (old) => 
