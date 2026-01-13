@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,8 @@ import { WeekPlannerNew } from '@/components/weekly-plan/WeekPlannerNew';
 import { WeeklyTimelineView } from '@/components/weekly-plan/WeeklyTimelineView';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { ArrowLeft, Calendar, Loader2, Save, CheckCircle2, TrendingUp, Brain, Zap, Target, BarChart3, Clock, LayoutList } from 'lucide-react';
+import { useDataProtection } from '@/hooks/useDataProtection';
+import { SaveStatusIndicator, SaveStatusBanner } from '@/components/SaveStatusIndicator';
 
 export default function WeeklyPlan() {
   const { user } = useAuth();
@@ -31,8 +33,10 @@ export default function WeeklyPlan() {
   const [worksheetLoading, setWorksheetLoading] = useState(false);
   const [worksheetLoaded, setWorksheetLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>();
+  
+  // Track if initial load is complete to prevent auto-save during data population
+  const isInitialLoadRef = useRef(true);
   
   // Clear highlight param after 3 seconds
   useEffect(() => {
@@ -71,6 +75,60 @@ export default function WeeklyPlan() {
   const [metric1Target, setMetric1Target] = useState<number | ''>('');
   const [metric2Target, setMetric2Target] = useState<number | ''>('');
   const [metric3Target, setMetric3Target] = useState<number | ''>('');
+  // Memoize worksheet data for data protection
+  const worksheetData = useMemo(() => ({
+    week_id: weekId,
+    priorities,
+    thought,
+    feeling,
+    challenges,
+    adjustments,
+    metric1Target,
+    metric2Target,
+    metric3Target,
+  }), [weekId, priorities, thought, feeling, challenges, adjustments, metric1Target, metric2Target, metric3Target]);
+
+  // Data protection hook for auto-save, localStorage backup, and offline handling
+  const {
+    register: registerData,
+    saveNow,
+    saveStatus,
+    hasUnsavedChanges,
+    isOnline,
+    lastSaved,
+  } = useDataProtection({
+    saveFn: async (data) => {
+      if (!user || !data.week_id) return;
+      
+      const { error: fnError } = await supabase.functions.invoke('save-weekly-plan', {
+        body: {
+          week_id: data.week_id,
+          user_id: user.id,
+          top_3_priorities: data.priorities.filter((p: string) => p.trim()),
+          weekly_thought: data.thought,
+          weekly_feeling: data.feeling,
+          challenges: data.challenges,
+          adjustments: data.adjustments,
+          metric_1_target: data.metric1Target === '' ? null : data.metric1Target,
+          metric_2_target: data.metric2Target === '' ? null : data.metric2Target,
+          metric_3_target: data.metric3Target === '' ? null : data.metric3Target,
+        },
+      });
+      if (fnError) throw fnError;
+    },
+    autoSaveDelay: 2500,
+    localStorageKey: `weekly_plan_backup_${weekId}`,
+    enableLocalBackup: true,
+    enableBeforeUnload: true,
+    maxRetries: 3,
+    retryDelay: 5000,
+  });
+
+  // Register data changes (only after initial load)
+  useEffect(() => {
+    if (!worksheetLoaded || isInitialLoadRef.current || !weekId) return;
+    registerData(worksheetData);
+  }, [worksheetData, worksheetLoaded, weekId, registerData]);
   
   // Load worksheet data lazily when tab becomes active
   useEffect(() => {
@@ -79,21 +137,11 @@ export default function WeeklyPlan() {
     }
   }, [activeTab, worksheetLoaded, user]);
 
-  // Auto-save with debounce (only when worksheet is loaded)
-  useEffect(() => {
-    if (!user || !weekId || worksheetLoading || !worksheetLoaded) return;
-    
-    const timer = setTimeout(() => {
-      handleAutoSave();
-    }, 2000);
-    
-    return () => clearTimeout(timer);
-  }, [priorities, thought, feeling, challenges, adjustments, metric1Target, metric2Target, metric3Target]);
-
   const loadWorksheetData = async () => {
     if (!user) return;
 
     setWorksheetLoading(true);
+    isInitialLoadRef.current = true;
     try {
       setError(null);
       
@@ -146,6 +194,11 @@ export default function WeeklyPlan() {
       }
       
       setWorksheetLoaded(true);
+      
+      // Allow auto-save after initial load completes
+      setTimeout(() => {
+        isInitialLoadRef.current = false;
+      }, 500);
     } catch (error: any) {
       console.error('Error loading weekly plan:', error);
       setError(error?.message || 'Failed to load weekly plan');
@@ -161,30 +214,6 @@ export default function WeeklyPlan() {
       return updated;
     });
   }, []);
-
-  const handleAutoSave = useCallback(async () => {
-    if (!user || !weekId || saving) return;
-    
-    try {
-      await supabase.functions.invoke('save-weekly-plan', {
-        body: {
-          week_id: weekId,
-          user_id: user.id,
-          top_3_priorities: priorities.filter((p) => p.trim()),
-          weekly_thought: thought,
-          weekly_feeling: feeling,
-          challenges,
-          adjustments,
-          metric_1_target: metric1Target === '' ? null : metric1Target,
-          metric_2_target: metric2Target === '' ? null : metric2Target,
-          metric_3_target: metric3Target === '' ? null : metric3Target,
-        },
-      });
-      setLastSaved(new Date());
-    } catch (error) {
-      console.error('Auto-save failed:', error);
-    }
-  }, [user, weekId, priorities, thought, feeling, challenges, adjustments, metric1Target, metric2Target, metric3Target, saving, worksheetLoaded]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -290,6 +319,14 @@ export default function WeeklyPlan() {
         )}
         {activeTab === 'worksheet' && worksheetLoaded && (
           <div className="space-y-6 max-w-3xl mx-auto">
+            {/* Save Status Banner */}
+            <SaveStatusBanner status={saveStatus} onRetry={saveNow} />
+            
+            {/* Save Status Indicator */}
+            <div className="flex justify-end">
+              <SaveStatusIndicator status={saveStatus} lastSaved={lastSaved} />
+            </div>
+            
             {/* Weekly Summary */}
             <Card>
               <CardHeader>

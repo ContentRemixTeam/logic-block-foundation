@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,8 @@ import { Loader2, Target, TrendingUp, CheckCircle2, AlertTriangle, Heart, Dollar
 import { Layout } from "@/components/Layout";
 import { ReflectionList } from "@/components/ReflectionList";
 import { ToastAction } from "@/components/ui/toast";
+import { useDataProtection } from "@/hooks/useDataProtection";
+import { SaveStatusIndicator, SaveStatusBanner } from "@/components/SaveStatusIndicator";
 
 interface ExecutionSummary {
   tasks_scheduled: number;

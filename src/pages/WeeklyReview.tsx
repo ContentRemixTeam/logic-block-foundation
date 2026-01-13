@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,8 @@ import { Loader2, Zap, Target, BarChart3, TrendingUp, TrendingDown, Users, Share
 import { Layout } from "@/components/Layout";
 import { ReflectionList } from "@/components/ReflectionList";
 import { getNurtureStats } from "@/lib/contentService";
+import { useDataProtection } from "@/hooks/useDataProtection";
+import { SaveStatusIndicator, SaveStatusBanner } from "@/components/SaveStatusIndicator";
 
 interface Belief {
   belief_id: string;
@@ -86,6 +88,9 @@ export default function WeeklyReview() {
   const [saving, setSaving] = useState(false);
   const [weekId, setWeekId] = useState<string | null>(null);
   const [focusArea, setFocusArea] = useState<string | null>(null);
+  
+  // Track if initial load is complete to prevent auto-save during data population
+  const isInitialLoadRef = useRef(true);
 
   // Cycle metrics from cycle setup
   const [cycleMetrics, setCycleMetrics] = useState<{
@@ -118,6 +123,73 @@ export default function WeeklyReview() {
   const [cycleProgress, setCycleProgress] = useState({ total_days: 90, completed_days: 0, percent: 0 });
   const [nurtureStats, setNurtureStats] = useState({ thisWeekEmails: 0, thisWeekTotal: 0, streak: 0 });
 
+  // Memoize review data for data protection
+  const reviewData = useMemo(() => ({
+    week_id: weekId,
+    wins,
+    challenges,
+    lessons,
+    intentions,
+    weeklyScore,
+    focusReflection,
+    shareToCommunity,
+    metric1Actual,
+    metric2Actual,
+    metric3Actual,
+  }), [weekId, wins, challenges, lessons, intentions, weeklyScore, focusReflection, shareToCommunity, metric1Actual, metric2Actual, metric3Actual]);
+
+  // Data protection hook for auto-save, localStorage backup, and offline handling
+  const {
+    register: registerData,
+    saveNow,
+    saveStatus,
+    hasUnsavedChanges,
+    isOnline,
+    lastSaved,
+  } = useDataProtection({
+    saveFn: async (data) => {
+      if (!data.week_id) return;
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-weekly-review`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          week_id: data.week_id,
+          wins: data.wins.filter(Boolean),
+          challenges: data.challenges.filter(Boolean),
+          lessons: data.lessons.filter(Boolean),
+          intentions: data.intentions.filter(Boolean),
+          weekly_score: data.weeklyScore,
+          focus_reflection: data.focusReflection,
+          share_to_community: data.shareToCommunity,
+          metric_1_actual: data.metric1Actual === '' ? null : data.metric1Actual,
+          metric_2_actual: data.metric2Actual === '' ? null : data.metric2Actual,
+          metric_3_actual: data.metric3Actual === '' ? null : data.metric3Actual,
+        }),
+      });
+
+      if (!res.ok) throw new Error(`Failed to save review: ${res.status}`);
+    },
+    autoSaveDelay: 2500,
+    localStorageKey: `weekly_review_backup_${weekId}`,
+    enableLocalBackup: true,
+    enableBeforeUnload: true,
+    maxRetries: 3,
+    retryDelay: 5000,
+  });
+
+  // Register data changes (only after initial load)
+  useEffect(() => {
+    if (loading || isInitialLoadRef.current || !weekId) return;
+    registerData(reviewData);
+  }, [reviewData, loading, weekId, registerData]);
+
   // Fetch beliefs
   const { data: beliefs = [] } = useQuery<Belief[]>({
     queryKey: ['beliefs'],
@@ -143,6 +215,7 @@ export default function WeeklyReview() {
   const loadWeeklyReview = async () => {
     try {
       setLoading(true);
+      isInitialLoadRef.current = true;
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -204,6 +277,10 @@ export default function WeeklyReview() {
       toast({ title: "Failed to load weekly review", variant: "destructive" });
     } finally {
       setLoading(false);
+      // Allow auto-save after initial load completes
+      setTimeout(() => {
+        isInitialLoadRef.current = false;
+      }, 500);
     }
   };
 
@@ -287,13 +364,17 @@ export default function WeeklyReview() {
   return (
     <Layout>
       <div className="space-y-6 max-w-4xl mx-auto">
+        {/* Save Status Banner */}
+        <SaveStatusBanner status={saveStatus} onRetry={saveNow} />
+        
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Weekly Review</h1>
             <p className="text-muted-foreground">Reflect on your week and plan ahead</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <SaveStatusIndicator status={saveStatus} lastSaved={lastSaved} />
             <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
               Dashboard
             </Button>
