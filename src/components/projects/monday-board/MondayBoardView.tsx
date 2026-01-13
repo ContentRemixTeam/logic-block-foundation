@@ -143,7 +143,7 @@ export function MondayBoardView({ projectId, tasks }: MondayBoardViewProps) {
             {BOARD_COLUMNS.filter(col => visibleColumns.includes(col.id)).map((column, index) => (
               <div
                 key={column.id}
-                className={`px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider border-r ${
+                className={`px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap border-r ${
                   index === 0 ? 'sticky left-0 z-20 bg-background' : ''
                 }`}
                 style={{ width: column.width, minWidth: column.width }}
