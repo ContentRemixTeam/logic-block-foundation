@@ -51,6 +51,8 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [checkingForData, setCheckingForData] = useState(false);
   const [ideasCount, setIdeasCount] = useState(0);
+  const [hasDraft, setHasDraft] = useState(false);
+  const [draftStep, setDraftStep] = useState(0);
   const [thingsToRemember, setThingsToRemember] = useState<string[]>([]);
   const [revenueGoal, setRevenueGoal] = useState<number | null>(null);
   const [diagnosticScores, setDiagnosticScores] = useState<{ discover: number | null; nurture: number | null; convert: number | null } | null>(null);
@@ -125,6 +127,20 @@ export default function Dashboard() {
           });
           setTimeout(() => window.location.reload(), 1000);
           return;
+        }
+        
+        // No cycle found - check for drafts
+        console.log('🔍 No cycle found, checking for drafts...');
+        const { data: draftData } = await supabase
+          .from('cycle_drafts')
+          .select('current_step, updated_at')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        if (draftData && draftData.current_step && draftData.current_step > 1) {
+          console.log('✅ Found draft at step:', draftData.current_step);
+          setHasDraft(true);
+          setDraftStep(draftData.current_step);
         }
       }
       
@@ -248,13 +264,33 @@ export default function Dashboard() {
         });
         setTimeout(() => window.location.reload(), 1500);
       } else {
-        console.log('ℹ️ No cycle data found');
-        toast({
-          title: "No cycle data found",
-          description: "It looks like no 90-day cycle has been saved yet. Please create one using the button above.",
-          variant: "destructive",
-          duration: 10000,
-        });
+        // No cycle found - check for drafts
+        console.log('ℹ️ No cycle data found, checking for drafts...');
+        
+        const { data: draftData, error: draftError } = await supabase
+          .from('cycle_drafts')
+          .select('current_step, updated_at, draft_data')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        if (draftData && draftData.current_step && draftData.current_step > 1) {
+          console.log('✅ Found draft at step:', draftData.current_step);
+          setHasDraft(true);
+          setDraftStep(draftData.current_step);
+          toast({
+            title: "📝 Found your saved progress!",
+            description: `You have a cycle setup draft at step ${draftData.current_step}. Click "Resume" to continue where you left off.`,
+            duration: 8000,
+          });
+        } else {
+          console.log('ℹ️ No draft data found either');
+          toast({
+            title: "No saved data found",
+            description: "It looks like no 90-day cycle has been saved yet. Please create one using the button above.",
+            variant: "destructive",
+            duration: 10000,
+          });
+        }
       }
     } catch (error: any) {
       console.error('❌ Check for data failed:', error);
@@ -365,13 +401,16 @@ export default function Dashboard() {
                   Welcome to the Becoming Boss Mastermind!
                 </h2>
                 <p className="text-foreground-muted mb-4">
-                  Begin your journey by defining your 90-day goal, identity, and supporting projects.
+                  {hasDraft 
+                    ? `You have a saved draft at step ${draftStep}. Continue where you left off!`
+                    : 'Begin your journey by defining your 90-day goal, identity, and supporting projects.'
+                  }
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Link to="/cycle-setup">
                     <Button variant="premium" size="lg" className="gap-2">
                       <Zap className="h-5 w-5" />
-                      Start Your First 90-Day Cycle
+                      {hasDraft ? `Resume Your Cycle Setup (Step ${draftStep})` : 'Start Your First 90-Day Cycle'}
                     </Button>
                   </Link>
                 </div>
