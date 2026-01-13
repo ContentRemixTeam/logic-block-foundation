@@ -34,6 +34,7 @@ const OptionalTaskFields = z.object({
   day_order: z.number().optional(),
   project_id: z.string().uuid().nullable().optional(),
   project_column: z.string().nullable().optional(),
+  section_id: z.string().uuid().nullable().optional(),
   cycle_id: z.string().uuid().nullable().optional(),
   recurrence_pattern: z.string().nullable().optional(),
   recurrence_days: z.array(z.number().min(0).max(6)).optional(),
@@ -67,6 +68,7 @@ const CreateTaskSchema = z.object({
   day_order: z.number().optional(),
   project_id: z.string().uuid().nullable().optional(),
   project_column: z.string().nullable().optional(),
+  section_id: z.string().uuid().nullable().optional(),
   cycle_id: z.string().uuid().nullable().optional(),
   recurrence_pattern: z.string().nullable().optional(),
   recurrence_days: z.array(z.number().min(0).max(6)).optional(),
@@ -294,7 +296,7 @@ Deno.serve(async (req) => {
           actual_minutes, time_block_start, time_block_end, energy_level,
           context_tags, goal_id, status, waiting_on, subtasks, notes,
           position_in_column, planned_day, day_order, project_id,
-          project_column, cycle_id
+          project_column, section_id, cycle_id
         } = validatedData;
         
         const isRecurringParent = recurrence_pattern && recurrence_pattern !== 'none';
@@ -349,6 +351,7 @@ Deno.serve(async (req) => {
             day_order: day_order || 0,
             project_id: project_id || null,
             project_column: project_column || 'todo',
+            section_id: section_id || null,
             cycle_id: cycle_id || null,
           })
           .select()
@@ -402,6 +405,7 @@ Deno.serve(async (req) => {
         if (updateFields.day_order !== undefined) updateData.day_order = updateFields.day_order;
         if (updateFields.project_id !== undefined) updateData.project_id = updateFields.project_id;
         if (updateFields.project_column !== undefined) updateData.project_column = updateFields.project_column;
+        if (updateFields.section_id !== undefined) updateData.section_id = updateFields.section_id;
         if (updateFields.cycle_id !== undefined) updateData.cycle_id = updateFields.cycle_id;
 
         // Reschedule tracking
