@@ -105,6 +105,10 @@ function WeeklyTimelineBoardInner({
     const handleGlobalDragEnd = () => {
       setIsDragging(false);
       setDragOverCell(null);
+      
+      // CRITICAL: Reset body scroll that WeeklyTaskCard may have set
+      document.body.style.overflow = '';
+      document.body.style.userSelect = '';
     };
 
     document.addEventListener('dragstart', handleGlobalDragStart);
@@ -115,6 +119,10 @@ function WeeklyTimelineBoardInner({
       document.removeEventListener('dragstart', handleGlobalDragStart);
       document.removeEventListener('dragend', handleGlobalDragEnd);
       document.removeEventListener('drop', handleGlobalDragEnd);
+      
+      // Cleanup on unmount
+      document.body.style.overflow = '';
+      document.body.style.userSelect = '';
     };
   }, []);
 
