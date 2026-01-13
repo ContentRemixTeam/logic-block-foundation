@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.import-tasks]
 verify_jwt = false
+
+[functions.admin-student-lookup]
+verify_jwt = false
