@@ -1278,69 +1278,92 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
         return;
       }
 
-      // CREATE new cycle
-      const { data: cycle, error: cycleError } = await supabase
-        .from('cycles_90_day')
-        .insert({
-          user_id: user.id,
-          start_date: format(startDate, 'yyyy-MM-dd'),
-          end_date: format(endDate, 'yyyy-MM-dd'),
-          goal,
-          why,
-          identity,
-          target_feeling: feeling,
-          supporting_projects: projects.filter((p) => p.trim()),
-          discover_score: discoverScore,
-          nurture_score: nurtureScore,
-          convert_score: convertScore,
-          focus_area: focusArea,
-          metric_1_name: metric1Name || null,
-          metric_1_start: metric1Start === '' ? null : metric1Start,
-          metric_2_name: metric2Name || null,
-          metric_2_start: metric2Start === '' ? null : metric2Start,
-          metric_3_name: metric3Name || null,
-          metric_3_start: metric3Start === '' ? null : metric3Start,
-          things_to_remember: thingsToRemember.filter((t) => t.trim()),
-          biggest_bottleneck: biggestBottleneck || null,
-          audience_target: audienceTarget || null,
-          audience_frustration: audienceFrustration || null,
-          signature_message: signatureMessage || null,
-          // Weekly routines
-          weekly_planning_day: weeklyPlanningDay || null,
-          weekly_debrief_day: weeklyDebriefDay || null,
-          office_hours_start: officeHoursStart || null,
-          office_hours_end: officeHoursEnd || null,
-          office_hours_days: officeHoursDays,
-          // Step 9: Mindset & First 3 Days (all optional)
-          biggest_fear: biggestFear?.trim() || null,
-          fear_response: whatWillYouDoWhenFearHits?.trim() || null,
-          commitment_statement: commitmentStatement?.trim() || null,
-          accountability_person: whoWillHoldYouAccountable?.trim() || null,
-          day1_top3: day1Top3.filter(t => t?.trim()),
-          day1_why: day1Why?.trim() || null,
-          day2_top3: day2Top3.filter(t => t?.trim()),
-          day2_why: day2Why?.trim() || null,
-          day3_top3: day3Top3.filter(t => t?.trim()),
-          day3_why: day3Why?.trim() || null,
-          // Promotions for dashboard widgets
-          promotions: limitedOffers
-            .filter(lto => lto.name.trim() && lto.startDate && lto.endDate)
-            .map(lto => ({
-              name: lto.name,
-              offer: lto.offerRef || '',
-              startDate: lto.startDate,
-              endDate: lto.endDate,
-              goal: lto.discount || '',
-              launchType: lto.promoType || 'open-close',
-              notes: lto.notes || ''
-            })),
-        } as any)
-        .select()
-        .single();
+      // CREATE new cycle with RETRY LOGIC
+      const cycleInsertData = {
+        user_id: user.id,
+        start_date: format(startDate, 'yyyy-MM-dd'),
+        end_date: format(endDate, 'yyyy-MM-dd'),
+        goal,
+        why,
+        identity,
+        target_feeling: feeling,
+        supporting_projects: projects.filter((p) => p.trim()),
+        discover_score: discoverScore,
+        nurture_score: nurtureScore,
+        convert_score: convertScore,
+        focus_area: focusArea,
+        metric_1_name: metric1Name || null,
+        metric_1_start: metric1Start === '' ? null : metric1Start,
+        metric_2_name: metric2Name || null,
+        metric_2_start: metric2Start === '' ? null : metric2Start,
+        metric_3_name: metric3Name || null,
+        metric_3_start: metric3Start === '' ? null : metric3Start,
+        things_to_remember: thingsToRemember.filter((t) => t.trim()),
+        biggest_bottleneck: biggestBottleneck || null,
+        audience_target: audienceTarget || null,
+        audience_frustration: audienceFrustration || null,
+        signature_message: signatureMessage || null,
+        // Weekly routines
+        weekly_planning_day: weeklyPlanningDay || null,
+        weekly_debrief_day: weeklyDebriefDay || null,
+        office_hours_start: officeHoursStart || null,
+        office_hours_end: officeHoursEnd || null,
+        office_hours_days: officeHoursDays,
+        // Step 9: Mindset & First 3 Days (all optional)
+        biggest_fear: biggestFear?.trim() || null,
+        fear_response: whatWillYouDoWhenFearHits?.trim() || null,
+        commitment_statement: commitmentStatement?.trim() || null,
+        accountability_person: whoWillHoldYouAccountable?.trim() || null,
+        day1_top3: day1Top3.filter(t => t?.trim()),
+        day1_why: day1Why?.trim() || null,
+        day2_top3: day2Top3.filter(t => t?.trim()),
+        day2_why: day2Why?.trim() || null,
+        day3_top3: day3Top3.filter(t => t?.trim()),
+        day3_why: day3Why?.trim() || null,
+        // Promotions for dashboard widgets
+        promotions: limitedOffers
+          .filter(lto => lto.name.trim() && lto.startDate && lto.endDate)
+          .map(lto => ({
+            name: lto.name,
+            offer: lto.offerRef || '',
+            startDate: lto.startDate,
+            endDate: lto.endDate,
+            goal: lto.discount || '',
+            launchType: lto.promoType || 'open-close',
+            notes: lto.notes || ''
+          })),
+      };
 
-      if (cycleError) {
-        console.error('❌ Cycle creation failed:', cycleError);
-        throw cycleError;
+      // Retry logic for cycle creation (up to 2 attempts)
+      let cycle = null;
+      let cycleError = null;
+      const maxAttempts = 2;
+
+      for (let attempt = 1; attempt <= maxAttempts && !cycle; attempt++) {
+        console.log(`🔄 Cycle creation attempt ${attempt}/${maxAttempts}`);
+        
+        const result = await supabase
+          .from('cycles_90_day')
+          .insert(cycleInsertData as any)
+          .select()
+          .single();
+        
+        if (result.error) {
+          console.error(`❌ Attempt ${attempt} failed:`, result.error);
+          cycleError = result.error;
+          if (attempt < maxAttempts) {
+            console.log('⏳ Waiting 1s before retry...');
+            await new Promise(r => setTimeout(r, 1000));
+          }
+        } else {
+          cycle = result.data;
+          console.log(`✅ Cycle created on attempt ${attempt}`);
+        }
+      }
+
+      if (!cycle) {
+        console.error('❌ Cycle creation failed after all attempts:', cycleError);
+        throw cycleError || new Error('Failed to create cycle after retries');
       }
 
       const cycleId = cycle.cycle_id;
