@@ -351,7 +351,13 @@ Deno.serve(async (req) => {
       errors.push('Failed to update daily plan');
     }
 
-    console.log('[process-scratch-pad-tags] Processing complete:', processed, 'createdIds:', createdIds);
+    console.log('[process-scratch-pad-tags] Processing complete:', {
+      processed,
+      createdIds,
+      taskIds: createdIds.taskIds,
+      ideaIds: createdIds.ideaIds,
+      thoughtIds: createdIds.thoughtIds,
+    });
 
     // Return partial success if some items processed but others failed
     const totalProcessed = processed.tasks + processed.ideas + processed.thoughts + processed.offers + processed.wins;

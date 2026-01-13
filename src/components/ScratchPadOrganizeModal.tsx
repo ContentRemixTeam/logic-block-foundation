@@ -79,50 +79,73 @@ export function ScratchPadOrganizeModal({
     }
   }, [open]);
 
-  // Parse items from scratch pad content
+  // Fetch actual items from database using the IDs returned by the backend
   useEffect(() => {
-    if (!open || !processedData || !scratchPadContent) return;
+    if (!open || !processedData) return;
 
     // Create a unique key for this processed data
     const dataKey = JSON.stringify(processedData.createdIds);
     
-    // CRITICAL: Only parse if this is NEW data (prevents infinite loop)
+    // CRITICAL: Only fetch if this is NEW data (prevents infinite loop)
     if (dataKey === processedKey) return;
     setProcessedKey(dataKey);
 
-    // Parse tasks
-    const taskMatches = scratchPadContent.match(/#task\s+([^#\n]+)/gi) || [];
-    const parsedTasks: TaskItem[] = taskMatches.map((match, idx) => {
-      const text = match.replace(/#task\s+/i, '').trim();
-      return {
-        type: 'task' as const,
-        text,
-        id: processedData.createdIds?.taskIds?.[idx],
-        schedule: 'today' as const,
-        priority: 'medium' as const,
-      };
-    });
-    setTasks(parsedTasks);
+    const fetchCreatedItems = async () => {
+      const taskIds = processedData.createdIds?.taskIds || [];
+      const ideaIds = processedData.createdIds?.ideaIds || [];
 
-    // Parse ideas
-    const ideaMatches = scratchPadContent.match(/#idea\s+([^#\n]+)/gi) || [];
-    const parsedIdeas: IdeaItem[] = ideaMatches.map((match, idx) => {
-      const text = match.replace(/#idea\s+/i, '').trim();
-      return {
-        type: 'idea' as const,
-        text,
-        id: processedData.createdIds?.ideaIds?.[idx],
-        categoryId: '',
-      };
-    });
-    setIdeas(parsedIdeas);
+      // Fetch actual task records from the database
+      if (taskIds.length > 0) {
+        const { data: taskData, error: taskError } = await supabase
+          .from('tasks')
+          .select('task_id, task_text, priority, scheduled_date')
+          .in('task_id', taskIds);
 
-    setThoughtCount(processedData.processed?.thoughts || 0);
-    setWinCount(processedData.processed?.wins || 0);
+        if (taskError) {
+          console.error('Error fetching tasks:', taskError);
+        } else if (taskData) {
+          setTasks(taskData.map(t => ({
+            type: 'task' as const,
+            id: t.task_id,
+            text: t.task_text || '',
+            schedule: t.scheduled_date ? 'today' : 'later',
+            priority: (t.priority as 'high' | 'medium' | 'low') || 'medium',
+          })));
+        }
+      } else {
+        setTasks([]);
+      }
 
-    // Load idea categories
-    loadCategories();
-  }, [open, processedData, scratchPadContent, processedKey]);
+      // Fetch actual idea records from the database
+      if (ideaIds.length > 0) {
+        const { data: ideaData, error: ideaError } = await supabase
+          .from('ideas')
+          .select('id, content, category_id')
+          .in('id', ideaIds);
+
+        if (ideaError) {
+          console.error('Error fetching ideas:', ideaError);
+        } else if (ideaData) {
+          setIdeas(ideaData.map(i => ({
+            type: 'idea' as const,
+            id: i.id,
+            text: i.content || '',
+            categoryId: i.category_id || '',
+          })));
+        }
+      } else {
+        setIdeas([]);
+      }
+
+      setThoughtCount(processedData.processed?.thoughts || 0);
+      setWinCount(processedData.processed?.wins || 0);
+
+      // Load idea categories
+      loadCategories();
+    };
+
+    fetchCreatedItems();
+  }, [open, processedData, processedKey]);
 
   const loadCategories = async () => {
     try {
