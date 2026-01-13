@@ -100,6 +100,30 @@ export default function Dashboard() {
     }
   }, [loading, summary, hasDraft]);
 
+  // Helper function to load related cycle data (strategy, revenue, offers)
+  const loadRelatedCycleData = async (cycleId: string) => {
+    try {
+      console.log('📦 Loading related data for cycle:', cycleId);
+      
+      // Load revenue plan
+      const { data: revenue, error: revenueError } = await supabase
+        .from('cycle_revenue_plan')
+        .select('revenue_goal')
+        .eq('cycle_id', cycleId)
+        .maybeSingle();
+      
+      if (revenue && revenue.revenue_goal) {
+        setRevenueGoal(revenue.revenue_goal);
+        console.log('✅ Loaded revenue goal:', revenue.revenue_goal);
+      }
+      
+      console.log('✅ Related data loaded successfully');
+    } catch (error) {
+      console.error('⚠️ Error loading related data (non-critical):', error);
+      // Don't throw - main cycle is already loaded
+    }
+  };
+
   const loadDashboardSummary = useCallback(async () => {
     if (!user) return;
 
@@ -136,33 +160,192 @@ export default function Dashboard() {
       
       const summaryData = dashboardData.data?.data || null;
       
-      // Step 3: FALLBACK - If no cycle data from edge function, query directly
+      // Step 3: AGGRESSIVE RECOVERY - If no cycle data from edge function, FIX IT IMMEDIATELY
       if (!summaryData?.cycle?.goal) {
-        console.log('⚠️ No cycle from edge function, trying direct query...');
+        console.log('⚠️ No cycle from edge function - initiating automatic recovery...');
         
-        const { data: directCycle, error: directError } = await supabase
+        // Query full cycle data directly
+        const { data: directCycles, error: directError } = await supabase
           .from('cycles_90_day')
-          .select('cycle_id, goal, start_date, end_date')
+          .select(`
+            cycle_id,
+            goal,
+            start_date,
+            end_date,
+            focus_area,
+            identity,
+            why,
+            target_feeling,
+            things_to_remember,
+            discover_score,
+            nurture_score,
+            convert_score,
+            biggest_bottleneck,
+            audience_target,
+            audience_frustration,
+            signature_message,
+            office_hours_start,
+            office_hours_end,
+            office_hours_days,
+            weekly_planning_day,
+            weekly_debrief_day,
+            metric_1_name,
+            metric_1_start,
+            metric_2_name,
+            metric_2_start,
+            metric_3_name,
+            metric_3_start,
+            day1_top3,
+            day2_top3,
+            day3_top3
+          `)
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .limit(1);
         
-        console.log('🔍 Direct cycle query result:', { directCycle, directError });
+        console.log('🔍 Direct recovery query result:', { 
+          found: !!directCycles?.length, 
+          error: directError,
+          cycleGoal: directCycles?.[0]?.goal?.substring(0, 50)
+        });
         
-        if (directCycle && directCycle.goal) {
-          console.log('✅ Found cycle via direct query, reloading...');
-          toast({
-            title: "Data sync issue detected",
-            description: "Refreshing to load your data correctly...",
-            duration: 2000,
+        if (directCycles && directCycles.length > 0) {
+          const recoveredCycle = directCycles[0];
+          console.log('✅ RECOVERED CYCLE:', recoveredCycle.cycle_id);
+          
+          // Calculate days remaining
+          const endDate = new Date(recoveredCycle.end_date);
+          const today = new Date();
+          const daysRemaining = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          
+          // Build complete summary object from recovered cycle
+          const recoveredSummary = {
+            cycle: {
+              cycle_id: recoveredCycle.cycle_id,
+              goal: recoveredCycle.goal,
+              start_date: recoveredCycle.start_date,
+              end_date: recoveredCycle.end_date,
+              days_remaining: daysRemaining,
+              focus_area: recoveredCycle.focus_area,
+              identity: recoveredCycle.identity,
+              things_to_remember: recoveredCycle.things_to_remember || [],
+              office_hours_start: recoveredCycle.office_hours_start,
+              office_hours_end: recoveredCycle.office_hours_end,
+              office_hours_days: recoveredCycle.office_hours_days,
+              weekly_planning_day: recoveredCycle.weekly_planning_day,
+              weekly_debrief_day: recoveredCycle.weekly_debrief_day,
+              diagnostic_scores: {
+                discover: recoveredCycle.discover_score,
+                nurture: recoveredCycle.nurture_score,
+                convert: recoveredCycle.convert_score
+              },
+              identity_data: {
+                identity: recoveredCycle.identity,
+                why: recoveredCycle.why,
+                feeling: recoveredCycle.target_feeling
+              },
+              audience_data: {
+                target: recoveredCycle.audience_target,
+                frustration: recoveredCycle.audience_frustration,
+                message: recoveredCycle.signature_message
+              }
+            },
+            week: { priorities: [] },
+            today: { top_3: [] },
+            habits: { status: 'grey' },
+            weekly_review_status: { exists: false, score: null },
+            monthly_review_status: { exists: false, score: null, wins_count: 0 },
+            cycle_summary_status: { exists: false, is_complete: false, score: null, wins_count: 0 },
+            first_3_days: {
+              start_date: recoveredCycle.start_date,
+              day1_top3: recoveredCycle.day1_top3 || [],
+              day2_top3: recoveredCycle.day2_top3 || [],
+              day3_top3: recoveredCycle.day3_top3 || []
+            },
+            metrics: {
+              metric1_name: recoveredCycle.metric_1_name,
+              metric1_start: recoveredCycle.metric_1_start,
+              metric2_name: recoveredCycle.metric_2_name,
+              metric2_start: recoveredCycle.metric_2_start,
+              metric3_name: recoveredCycle.metric_3_name,
+              metric3_start: recoveredCycle.metric_3_start
+            }
+          };
+          
+          // Set all state from recovered data
+          setSummary(recoveredSummary);
+          
+          // Safely parse things_to_remember as string array
+          const reminders = Array.isArray(recoveredCycle.things_to_remember) 
+            ? (recoveredCycle.things_to_remember as unknown as string[]).filter((r: string) => r && r.trim()) 
+            : [];
+          setThingsToRemember(reminders);
+          
+          setDiagnosticScores({
+            discover: recoveredCycle.discover_score,
+            nurture: recoveredCycle.nurture_score,
+            convert: recoveredCycle.convert_score
           });
-          setTimeout(() => window.location.reload(), 1000);
-          return;
+          setIdentityData({
+            identity: recoveredCycle.identity,
+            why: recoveredCycle.why,
+            feeling: recoveredCycle.target_feeling
+          });
+          setAudienceData({
+            target: recoveredCycle.audience_target,
+            frustration: recoveredCycle.audience_frustration,
+            message: recoveredCycle.signature_message
+          });
+          setOfficeHoursData({
+            start: recoveredCycle.office_hours_start,
+            end: recoveredCycle.office_hours_end,
+            days: Array.isArray(recoveredCycle.office_hours_days) 
+              ? (recoveredCycle.office_hours_days as unknown as string[]) 
+              : null
+          });
+          setWeeklyRoutines({
+            planning_day: recoveredCycle.weekly_planning_day,
+            debrief_day: recoveredCycle.weekly_debrief_day
+          });
+          setMetricsData({
+            metric1_name: recoveredCycle.metric_1_name,
+            metric1_start: recoveredCycle.metric_1_start,
+            metric2_name: recoveredCycle.metric_2_name,
+            metric2_start: recoveredCycle.metric_2_start,
+            metric3_name: recoveredCycle.metric_3_name,
+            metric3_start: recoveredCycle.metric_3_start
+          });
+          if (recoveredCycle.start_date) {
+            setFirst3DaysData({
+              startDate: recoveredCycle.start_date,
+              day1Top3: Array.isArray(recoveredCycle.day1_top3) ? (recoveredCycle.day1_top3 as unknown as string[]) : [],
+              day2Top3: Array.isArray(recoveredCycle.day2_top3) ? (recoveredCycle.day2_top3 as unknown as string[]) : [],
+              day3Top3: Array.isArray(recoveredCycle.day3_top3) ? (recoveredCycle.day3_top3 as unknown as string[]) : []
+            });
+            setFirst3DaysChecked(getFirst3DaysCheckedState());
+          }
+          
+          // Load related data (strategy, revenue, offers) in background
+          loadRelatedCycleData(recoveredCycle.cycle_id);
+          
+          // Show success message
+          toast({
+            title: "✅ Your Data Has Been Recovered!",
+            description: `Found your cycle: "${recoveredCycle.goal.substring(0, 60)}..."`,
+            duration: 5000,
+          });
+          
+          // Clear recovery markers
+          localStorage.removeItem('last_cycle_setup_visit');
+          setShowRecoveryBanner(false);
+          
+          setIdeasCount(ideasData.data?.ideas?.length || 0);
+          setLoading(false);
+          return; // Don't continue to show "no cycle" state
         }
         
-        // No cycle found - check for drafts
-        console.log('🔍 No cycle found, checking for drafts...');
+        // If STILL no data, check for drafts
+        console.log('🔍 No cycle found anywhere, checking for drafts...');
         const { data: draftData } = await supabase
           .from('cycle_drafts')
           .select('current_step, updated_at')
