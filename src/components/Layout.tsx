@@ -94,7 +94,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-3">
               <SidebarTrigger className="h-8 w-8" />
             </div>
-            {/* Arcade widgets - show after loading */}
+            {/* Arcade widgets - temporarily hidden for public release */}
+            {/* TODO: Re-enable when arcade features are ready
             {!arcadeLoading && settings.arcade_enabled && (
               <div className="flex items-center gap-2 ml-auto">
                 {settings.show_pomodoro_widget && (
@@ -106,6 +107,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                 {settings.show_pet_widget && <PetWidget />}
               </div>
             )}
+            */}
           </header>
 
           {/* Page Content */}
