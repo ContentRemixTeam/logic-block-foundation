@@ -219,6 +219,15 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
   
   // Track if we should skip the next auto-save (to prevent race condition after clearing draft)
   const skipNextAutoSave = useRef(false);
+  
+  // Cloud save status indicator
+  const [cloudSaveStatus, setCloudSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  
+  // Mark when user enters CycleSetup for recovery detection
+  useEffect(() => {
+    localStorage.setItem('last_cycle_setup_visit', Date.now().toString());
+    console.log('✅ CycleSetup: Marked entry timestamp for recovery detection');
+  }, []);
 
   // Import from workshop JSON
   const handleImportFromJson = (jsonData: WorkshopImportData) => {
@@ -864,9 +873,23 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
         day3Why,
         currentStep,
       };
-      saveDraft(draftData);
-      setLastSaved(new Date());
-    }, 2000); // Debounce 2 seconds
+      
+      // Update cloud save status and save draft
+      setCloudSaveStatus('saving');
+      
+      // Use async IIFE to handle the promise
+      (async () => {
+        try {
+          await saveDraft(draftData);
+          setCloudSaveStatus('saved');
+          setLastSaved(new Date());
+          console.log('✅ Draft auto-saved successfully');
+        } catch (error) {
+          console.error('❌ Draft auto-save failed:', error);
+          setCloudSaveStatus('error');
+        }
+      })();
+    }, 2500); // Debounce 2.5 seconds
 
     return () => clearTimeout(timeoutId);
   }, [
@@ -1335,13 +1358,19 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
         console.error('❌ Cycle verification failed:', verifyError);
         toast({
           title: "Save may have failed",
-          description: "Your data might not have saved correctly. Please check your dashboard and try again if needed.",
+          description: "Your draft is safely saved. Please check your dashboard. If your cycle doesn't appear, return here to try again.",
           variant: "destructive",
-          duration: 10000,
+          duration: 15000,
         });
-        // Don't return - continue with related data to salvage what we can
+        // DON'T clear draft - keep it for recovery
+        // DON'T return - still try to save related data
       } else {
         console.log('✅ Cycle verified successfully:', verifyData.goal?.substring(0, 50));
+        // NOW it's safe to clear the draft since cycle is verified
+        clearDraft();
+        // Clear the setup visit marker since save succeeded
+        localStorage.removeItem('last_cycle_setup_visit');
+        console.log('✅ Draft cleared after successful verification');
       }
 
       // Create cycle strategy with posting schedule and secondary platforms
@@ -2039,8 +2068,8 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
         }
       }
 
-      // Clear draft on successful save
-      clearDraft();
+      // Draft is already cleared in verification block above (line ~1346)
+      // Only show success toast here
 
       toast({
         title: '🎉 You\'re Ready to Execute!',
@@ -2396,20 +2425,20 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
           {/* Save Status Indicator */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              {isSyncing ? (
+              {cloudSaveStatus === 'saving' || isSyncing ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                   <span>Saving...</span>
                 </>
-              ) : syncError ? (
+              ) : cloudSaveStatus === 'error' || syncError ? (
                 <>
-                  <CloudOff className="h-4 w-4 text-destructive" />
-                  <span className="text-destructive">Offline - saved locally</span>
+                  <CloudOff className="h-4 w-4 text-amber-500" />
+                  <span className="text-amber-600">Saved locally - will sync when online</span>
                 </>
-              ) : lastServerSync ? (
+              ) : cloudSaveStatus === 'saved' || lastServerSync ? (
                 <>
                   <Cloud className="h-4 w-4 text-green-500" />
-                  <span>Saved to cloud</span>
+                  <span className="text-green-600">Draft saved to cloud</span>
                 </>
               ) : lastSaved ? (
                 <>
