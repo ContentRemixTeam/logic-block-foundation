@@ -12,7 +12,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTaskMutations } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
-import { Zap, ListTodo, Lightbulb, LogIn, Calendar, Plus, Mic, MicOff, FolderKanban, Clock, Hash, X, FileText } from 'lucide-react';
+import { Zap, ListTodo, Lightbulb, LogIn, Calendar, Plus, Mic, MicOff, FolderKanban, Clock, Hash, X, FileText, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import {
@@ -37,9 +37,16 @@ interface QuickCaptureModalProps {
 }
 
 interface IdeaData {
+  categoryId: string | null;
   priority: string | null;
   tags: string[];
   projectId: string | null;
+}
+
+interface IdeaCategory {
+  id: string;
+  name: string;
+  color: string;
 }
 
 const PRIORITY_OPTIONS = [
@@ -61,8 +68,9 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
   const [input, setInput] = useState('');
   const [captureType, setCaptureType] = useState<CaptureType>('task');
   const [parsedTask, setParsedTask] = useState<ParsedTask | null>(null);
-  const [ideaData, setIdeaData] = useState<IdeaData>({ priority: null, tags: [], projectId: null });
+  const [ideaData, setIdeaData] = useState<IdeaData>({ categoryId: null, priority: null, tags: [], projectId: null });
   const [saving, setSaving] = useState(false);
+  const [ideaCategories, setIdeaCategories] = useState<IdeaCategory[]>([]);
   const [lastCaptureType, setLastCaptureType] = useState<CaptureType>('task');
   const [showConvertChips, setShowConvertChips] = useState(false);
   const [userOverrodeType, setUserOverrodeType] = useState(false);
@@ -124,6 +132,24 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
     }
   }, [input, userOverrodeType, captureType]);
 
+  // Fetch idea categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      if (!user) return;
+      try {
+        const { data, error } = await supabase.functions.invoke('get-ideas', {});
+        if (!error && data?.categories) {
+          setIdeaCategories(data.categories);
+        }
+      } catch (err) {
+        console.error('Failed to fetch idea categories:', err);
+      }
+    };
+    if (open && user) {
+      fetchCategories();
+    }
+  }, [open, user]);
+
   // Focus input when modal opens
   useEffect(() => {
     if (open) {
@@ -139,7 +165,7 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
       // Reset input but preserve mode
       setInput('');
       setParsedTask(null);
-      setIdeaData({ priority: null, tags: [], projectId: null });
+      setIdeaData({ categoryId: null, priority: null, tags: [], projectId: null });
       setNewIdeaTag('');
       setShowConvertChips(false);
       setUserOverrodeType(false);
@@ -246,6 +272,7 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
         const { data, error } = await supabase.functions.invoke('save-idea', {
           body: { 
             content: ideaContent,
+            category_id: ideaData.categoryId,
             priority: ideaData.priority,
             tags: ideaData.tags,
             project_id: ideaData.projectId,
@@ -278,7 +305,7 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
         // Stay open: clear input, keep mode, refocus
         setInput('');
         setParsedTask(null);
-        setIdeaData({ priority: null, tags: [], projectId: null });
+        setIdeaData({ categoryId: null, priority: null, tags: [], projectId: null });
         setNewIdeaTag('');
         setShowConvertChips(false);
         setUserOverrodeType(false);
@@ -509,6 +536,58 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
               
               {/* Idea chips */}
               <div className="flex flex-wrap gap-2 items-center">
+                {/* Category */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    {ideaData.categoryId ? (
+                      <Badge 
+                        variant="secondary" 
+                        className="text-xs cursor-pointer hover:opacity-80 gap-1 pr-1"
+                        style={{ 
+                          backgroundColor: ideaCategories.find(c => c.id === ideaData.categoryId)?.color || 'hsl(var(--secondary))',
+                          color: 'white'
+                        }}
+                      >
+                        <Tag className="h-3 w-3" />
+                        {ideaCategories.find(c => c.id === ideaData.categoryId)?.name || 'Category'}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setIdeaData(prev => ({ ...prev, categoryId: null })); }}
+                          className="ml-1 hover:bg-white/20 rounded-full p-0.5"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ) : (
+                      <Button variant="outline" size="sm" className="h-6 text-xs gap-1 text-muted-foreground">
+                        <Tag className="h-3 w-3" />
+                        Category
+                      </Button>
+                    )}
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48 p-2" align="start">
+                    <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
+                      {ideaCategories.map(cat => (
+                        <Button
+                          key={cat.id}
+                          variant={ideaData.categoryId === cat.id ? 'default' : 'ghost'}
+                          size="sm"
+                          className="h-7 text-xs justify-start gap-2"
+                          onClick={() => setIdeaData(prev => ({ ...prev, categoryId: cat.id }))}
+                        >
+                          <div 
+                            className="w-2 h-2 rounded-full" 
+                            style={{ backgroundColor: cat.color }}
+                          />
+                          {cat.name}
+                        </Button>
+                      ))}
+                      {ideaCategories.length === 0 && (
+                        <p className="text-xs text-muted-foreground p-2">No categories yet</p>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
                 {/* Priority */}
                 <Popover>
                   <PopoverTrigger asChild>
