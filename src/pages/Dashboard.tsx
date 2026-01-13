@@ -28,8 +28,10 @@ import {
   Brain,
   Lightbulb,
   Search,
-  RefreshCw
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { OnboardingChecklist } from '@/components/tour/OnboardingChecklist';
@@ -63,10 +65,30 @@ export default function Dashboard() {
   const [weeklyRoutines, setWeeklyRoutines] = useState<{ planning_day: string | null; debrief_day: string | null }>({ planning_day: null, debrief_day: null });
   const [first3DaysData, setFirst3DaysData] = useState<{ startDate: string | null; day1Top3: string[]; day2Top3: string[]; day3Top3: string[] } | null>(null);
   const [first3DaysChecked, setFirst3DaysChecked] = useState<Record<string, boolean>>({});
+  const [showRecoveryBanner, setShowRecoveryBanner] = useState(false);
 
   useEffect(() => {
     loadDashboardSummary();
   }, [user]);
+  
+  // Check if user recently visited CycleSetup but dashboard is empty - show recovery banner
+  useEffect(() => {
+    const lastSetupVisit = localStorage.getItem('last_cycle_setup_visit');
+    if (lastSetupVisit && !loading) {
+      const timeSince = Date.now() - parseInt(lastSetupVisit);
+      const fiveMinutes = 5 * 60 * 1000;
+      const hasCycleGoal = Boolean(summary?.cycle?.goal);
+      
+      if (timeSince < fiveMinutes && !hasCycleGoal) {
+        console.log('⚠️ User recently visited CycleSetup but no cycle found - showing recovery banner');
+        setShowRecoveryBanner(true);
+      } else if (hasCycleGoal) {
+        // Clear the marker if cycle exists
+        localStorage.removeItem('last_cycle_setup_visit');
+        setShowRecoveryBanner(false);
+      }
+    }
+  }, [loading, summary]);
 
   const loadDashboardSummary = useCallback(async () => {
     if (!user) return;
@@ -387,6 +409,36 @@ export default function Dashboard() {
             <XPDisplay />
             <StreakDisplay />
           </div>
+        )}
+
+        {/* Recovery Banner - Show if user just came from CycleSetup but no cycle exists */}
+        {showRecoveryBanner && !hasCycle && (
+          <Alert className="border-amber-500 bg-amber-50 dark:bg-amber-950/30">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="text-amber-800 dark:text-amber-200">Did you just complete your cycle setup?</AlertTitle>
+            <AlertDescription className="text-amber-700 dark:text-amber-300">
+              If your data isn't showing, we can check the database directly for your saved cycle.
+              <Button 
+                onClick={handleCheckForLostData} 
+                variant="outline"
+                size="sm"
+                className="mt-2 ml-0 block border-amber-500 text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900"
+                disabled={checkingForData}
+              >
+                {checkingForData ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                    Checking...
+                  </>
+                ) : (
+                  <>
+                    <Search className="h-4 w-4 mr-2" />
+                    Check for My Data
+                  </>
+                )}
+              </Button>
+            </AlertDescription>
+          </Alert>
         )}
 
         {/* Welcome Card for New Users */}
