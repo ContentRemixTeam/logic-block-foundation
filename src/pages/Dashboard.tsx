@@ -29,7 +29,9 @@ import {
   Lightbulb,
   Search,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  Edit
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
@@ -793,6 +795,23 @@ export default function Dashboard() {
                           )}
                         </p>
                       </div>
+                      {/* View Full Plan & Edit Buttons */}
+                      {summary?.cycle?.cycle_id && (
+                        <div className="flex gap-2 mt-4 pt-4 border-t border-border/50">
+                          <Link to={`/cycle-view/${summary.cycle.cycle_id}`}>
+                            <Button variant="outline" size="sm" className="gap-2">
+                              <Eye className="h-4 w-4" />
+                              View Full Plan
+                            </Button>
+                          </Link>
+                          <Link to={`/cycle-setup?edit=${summary.cycle.cycle_id}`}>
+                            <Button variant="ghost" size="sm" className="gap-2">
+                              <Edit className="h-4 w-4" />
+                              Edit
+                            </Button>
+                          </Link>
+                        </div>
+                      )}
                     </PremiumCard>
                   )}
                 </>
