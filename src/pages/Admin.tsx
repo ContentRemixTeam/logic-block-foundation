@@ -16,9 +16,11 @@ import { toast } from 'sonner';
 import { 
   Users, AlertTriangle, MessageSquare, Lightbulb, Shield, Trash2, UserPlus, 
   ShieldCheck, ShieldOff, RefreshCw, Upload, FileSpreadsheet, CheckCircle, 
-  XCircle, AlertCircle, Download, Link2, Copy, Check, RotateCcw, Loader2
+  XCircle, AlertCircle, Download, Link2, Copy, Check, RotateCcw, Loader2,
+  Search, ChevronDown, ChevronRight, User, Calendar, Target, Database
 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { format } from 'date-fns';
 
 interface User {
@@ -89,6 +91,55 @@ interface ImportResult {
   errors: Array<{ email: string; error: string }>;
 }
 
+// Student Lookup Types
+interface StudentLookupResult {
+  found: boolean;
+  user: {
+    id: string;
+    email: string;
+    created_at: string;
+    last_sign_in_at: string | null;
+  } | null;
+  profile: {
+    user_type: string;
+    trial_started_at: string | null;
+    trial_expires_at: string | null;
+  } | null;
+  entitlement: {
+    tier: string;
+    status: string;
+    starts_at: string | null;
+    ends_at: string | null;
+  } | null;
+  cycle: {
+    exists: boolean;
+    cycle_id: string | null;
+    created_at: string | null;
+    goal: string | null;
+    fields_filled: number;
+    total_fields: number;
+    data: object | null;
+  };
+  draft: {
+    exists: boolean;
+    current_step: number | null;
+    updated_at: string | null;
+    fields_filled: number;
+    total_fields: number;
+    data: object | null;
+  };
+  strategy: { exists: boolean; count: number };
+  offers: { exists: boolean; count: number };
+  revenue_plan: { exists: boolean };
+  month_plans: { exists: boolean; count: number };
+  projects: { count: number };
+  tasks: { count: number };
+  habits: { count: number };
+  daily_plans: { count: number };
+  weekly_plans: { count: number };
+  coaching_entries: { count: number };
+}
+
 const SUPABASE_PROJECT_ID = 'wdxelomsouudmidakxiz';
 
 export default function Admin() {
@@ -122,6 +173,13 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState('members');
   
   const [clearingPlanner, setClearingPlanner] = useState(false);
+  
+  // Student Lookup State
+  const [searchEmail, setSearchEmail] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [studentData, setStudentData] = useState<StudentLookupResult | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [clearingUserPlanner, setClearingUserPlanner] = useState(false);
 
   const webhookUrls = {
     add: `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/ghl-webhook-add-member`,
@@ -501,6 +559,83 @@ export default function Admin() {
     }
   };
 
+  // Student Lookup Functions
+  const handleStudentSearch = async () => {
+    if (!searchEmail.trim()) {
+      toast.error('Please enter an email to search');
+      return;
+    }
+    
+    setSearchLoading(true);
+    setStudentData(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-student-lookup', {
+        body: { email: searchEmail.trim() }
+      });
+      
+      if (error) throw error;
+      setStudentData(data);
+      
+      if (!data.found && !data.entitlement) {
+        toast.info('No user found with that email');
+      }
+    } catch (err: any) {
+      console.error('Student lookup error:', err);
+      toast.error(err.message || 'Failed to lookup student');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleClearUserPlanner = async () => {
+    if (!studentData?.user?.id) return;
+    
+    setClearingUserPlanner(true);
+    try {
+      const { error } = await supabase.functions.invoke('admin-get-data', {
+        body: { action: 'clear_user_planner', target_user_id: studentData.user.id }
+      });
+      
+      if (error) throw error;
+      toast.success('User planner cleared successfully');
+      
+      // Refresh the student data
+      await handleStudentSearch();
+    } catch (err: any) {
+      console.error('Clear user planner error:', err);
+      toast.error(err.message || 'Failed to clear user planner');
+    } finally {
+      setClearingUserPlanner(false);
+    }
+  };
+
+  const toggleSection = (section: string) => {
+    const newSections = new Set(expandedSections);
+    if (newSections.has(section)) {
+      newSections.delete(section);
+    } else {
+      newSections.add(section);
+    }
+    setExpandedSections(newSections);
+  };
+
+  const getStatusBadge = (exists: boolean, filled?: number, total?: number) => {
+    if (!exists) {
+      return <Badge variant="outline" className="text-muted-foreground">❌ None</Badge>;
+    }
+    if (filled !== undefined && total !== undefined) {
+      const pct = Math.round((filled / total) * 100);
+      if (pct >= 80) {
+        return <Badge className="bg-green-500/10 text-green-600">✅ {filled}/{total} fields</Badge>;
+      } else if (pct >= 30) {
+        return <Badge className="bg-amber-500/10 text-amber-600">⚠️ {filled}/{total} fields</Badge>;
+      } else {
+        return <Badge variant="outline" className="text-destructive">❌ {filled}/{total} fields</Badge>;
+      }
+    }
+    return <Badge className="bg-green-500/10 text-green-600">✅ Yes</Badge>;
+  };
+
   const newCount = parsedRows.filter(r => !existingEmails.has(r.email.toLowerCase())).length;
   const updateCount = parsedRows.filter(r => existingEmails.has(r.email.toLowerCase())).length;
   const activeMembers = members.filter(m => m.status === 'active');
@@ -588,26 +723,30 @@ export default function Admin() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="members" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              Members ({activeMembers.length})
+              <span className="hidden sm:inline">Members</span> ({activeMembers.length})
+            </TabsTrigger>
+            <TabsTrigger value="lookup" className="flex items-center gap-2">
+              <Search className="h-4 w-4" />
+              <span className="hidden sm:inline">Student Lookup</span>
             </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4" />
-              App Users ({users.length})
+              <span className="hidden sm:inline">App Users</span> ({users.length})
             </TabsTrigger>
             <TabsTrigger value="errors" className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4" />
-              Errors ({errorLogs.length})
+              <span className="hidden sm:inline">Errors</span> ({errorLogs.length})
             </TabsTrigger>
             <TabsTrigger value="issues" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
-              Issues ({issueReports.length})
+              <span className="hidden sm:inline">Issues</span> ({issueReports.length})
             </TabsTrigger>
             <TabsTrigger value="features" className="flex items-center gap-2">
               <Lightbulb className="h-4 w-4" />
-              Features ({featureRequests.length})
+              <span className="hidden sm:inline">Features</span> ({featureRequests.length})
             </TabsTrigger>
           </TabsList>
 
@@ -865,6 +1004,283 @@ export default function Admin() {
                 </ScrollArea>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* STUDENT LOOKUP TAB */}
+          <TabsContent value="lookup" className="space-y-6">
+            {/* Search Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="h-5 w-5" />
+                  Student Lookup
+                </CardTitle>
+                <CardDescription>
+                  Search by email to view a student's complete data summary
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter student email..."
+                    value={searchEmail}
+                    onChange={(e) => setSearchEmail(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleStudentSearch()}
+                    className="flex-1"
+                  />
+                  <Button onClick={handleStudentSearch} disabled={searchLoading}>
+                    {searchLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                    <span className="ml-2">Search</span>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Results */}
+            {studentData && (
+              <>
+                {/* User Info Card */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <User className="h-5 w-5" />
+                      {studentData.found ? 'Student Information' : 'No Account Found'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {studentData.found && studentData.user ? (
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label className="text-muted-foreground text-xs">Email</Label>
+                          <p className="font-medium">{studentData.user.email}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-muted-foreground text-xs">User ID</Label>
+                          <p className="font-mono text-xs">{studentData.user.id}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-muted-foreground text-xs">Account Created</Label>
+                          <p>{format(new Date(studentData.user.created_at), 'MMM d, yyyy HH:mm')}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-muted-foreground text-xs">Last Sign In</Label>
+                          <p>{studentData.user.last_sign_in_at 
+                            ? format(new Date(studentData.user.last_sign_in_at), 'MMM d, yyyy HH:mm')
+                            : 'Never'}</p>
+                        </div>
+                        {studentData.profile && (
+                          <>
+                            <div className="space-y-2">
+                              <Label className="text-muted-foreground text-xs">User Type</Label>
+                              <Badge variant={studentData.profile.user_type === 'member' ? 'default' : 'secondary'}>
+                                {studentData.profile.user_type}
+                              </Badge>
+                            </div>
+                            {studentData.profile.trial_expires_at && (
+                              <div className="space-y-2">
+                                <Label className="text-muted-foreground text-xs">Trial Expires</Label>
+                                <p>{format(new Date(studentData.profile.trial_expires_at), 'MMM d, yyyy')}</p>
+                              </div>
+                            )}
+                          </>
+                        )}
+                        {studentData.entitlement && (
+                          <div className="space-y-2">
+                            <Label className="text-muted-foreground text-xs">Mastermind Status</Label>
+                            <Badge className={studentData.entitlement.status === 'active' 
+                              ? 'bg-green-500/10 text-green-600' 
+                              : 'bg-muted text-muted-foreground'}>
+                              {studentData.entitlement.tier} - {studentData.entitlement.status}
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-muted-foreground">
+                        <p>No user account found with this email.</p>
+                        {studentData.entitlement && (
+                          <p className="mt-2 text-sm">
+                            However, they have a <Badge variant="outline">{studentData.entitlement.tier}</Badge> entitlement 
+                            ({studentData.entitlement.status})
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Data Summary Card */}
+                {studentData.found && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Database className="h-5 w-5" />
+                        Data Summary
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid gap-3">
+                        {/* Cycle Status */}
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                          <div className="flex items-center gap-3">
+                            <Target className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">90-Day Cycle</span>
+                          </div>
+                          {getStatusBadge(studentData.cycle.exists, studentData.cycle.fields_filled, studentData.cycle.total_fields)}
+                        </div>
+
+                        {/* Draft Status */}
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                          <div className="flex items-center gap-3">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">Setup Draft</span>
+                            {studentData.draft.exists && (
+                              <span className="text-xs text-muted-foreground">
+                                (Step {studentData.draft.current_step})
+                              </span>
+                            )}
+                          </div>
+                          {getStatusBadge(studentData.draft.exists, studentData.draft.fields_filled, studentData.draft.total_fields)}
+                        </div>
+
+                        {/* Quick Stats */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-2">
+                          <div className="p-3 rounded-lg bg-muted/50 text-center">
+                            <p className="text-2xl font-bold">{studentData.projects.count}</p>
+                            <p className="text-xs text-muted-foreground">Projects</p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-muted/50 text-center">
+                            <p className="text-2xl font-bold">{studentData.tasks.count}</p>
+                            <p className="text-xs text-muted-foreground">Tasks</p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-muted/50 text-center">
+                            <p className="text-2xl font-bold">{studentData.habits.count}</p>
+                            <p className="text-xs text-muted-foreground">Habits</p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-muted/50 text-center">
+                            <p className="text-2xl font-bold">{studentData.daily_plans.count}</p>
+                            <p className="text-xs text-muted-foreground">Daily Plans</p>
+                          </div>
+                        </div>
+
+                        {/* Additional Counts */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          <div className="p-2 rounded bg-muted/30 text-center text-sm">
+                            <span className="text-muted-foreground">Weekly Plans:</span> {studentData.weekly_plans.count}
+                          </div>
+                          <div className="p-2 rounded bg-muted/30 text-center text-sm">
+                            <span className="text-muted-foreground">Coaching:</span> {studentData.coaching_entries.count}
+                          </div>
+                          <div className="p-2 rounded bg-muted/30 text-center text-sm">
+                            <span className="text-muted-foreground">Offers:</span> {studentData.offers.count}
+                          </div>
+                          <div className="p-2 rounded bg-muted/30 text-center text-sm">
+                            <span className="text-muted-foreground">Strategy:</span> {studentData.strategy.exists ? 'Yes' : 'No'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Expandable Sections */}
+                      {studentData.cycle.data && (
+                        <Collapsible open={expandedSections.has('cycle')}>
+                          <CollapsibleTrigger 
+                            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                            onClick={() => toggleSection('cycle')}
+                          >
+                            {expandedSections.has('cycle') ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                            View Full Cycle Data
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <ScrollArea className="h-64 mt-2">
+                              <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto">
+                                {JSON.stringify(studentData.cycle.data, null, 2)}
+                              </pre>
+                            </ScrollArea>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      )}
+
+                      {studentData.draft.data && (
+                        <Collapsible open={expandedSections.has('draft')}>
+                          <CollapsibleTrigger 
+                            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                            onClick={() => toggleSection('draft')}
+                          >
+                            {expandedSections.has('draft') ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                            View Full Draft Data
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <ScrollArea className="h-64 mt-2">
+                              <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto">
+                                {JSON.stringify(studentData.draft.data, null, 2)}
+                              </pre>
+                            </ScrollArea>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex gap-2 pt-4 border-t">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm">
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Clear User's Planner
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Clear Planner for {studentData.user?.email}?</AlertDialogTitle>
+                              <AlertDialogDescription className="space-y-2">
+                                <p>This will permanently delete all of their planner data:</p>
+                                <ul className="list-disc list-inside text-sm space-y-1">
+                                  <li>All 90-day cycles and settings</li>
+                                  <li>All projects and tasks</li>
+                                  <li>All habits and habit logs</li>
+                                  <li>All daily and weekly plans</li>
+                                  <li>All coaching entries</li>
+                                  <li>Their saved draft</li>
+                                </ul>
+                                <p className="font-semibold text-destructive pt-2">This cannot be undone!</p>
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={handleClearUserPlanner}
+                                disabled={clearingUserPlanner}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                {clearingUserPlanner ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Clearing...
+                                  </>
+                                ) : (
+                                  'Yes, Clear Their Planner'
+                                )}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            )}
           </TabsContent>
 
           {/* USERS TAB */}

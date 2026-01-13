@@ -215,6 +215,71 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case 'clear_user_planner': {
+        const { target_user_id } = body;
+        if (!target_user_id) {
+          return new Response(JSON.stringify({ error: 'target_user_id required' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        console.log('Clearing planner for user:', target_user_id);
+
+        // Get all cycles for the user
+        const { data: cycles } = await supabaseClient
+          .from('cycles_90_day')
+          .select('cycle_id')
+          .eq('user_id', target_user_id);
+
+        const cycleIds = cycles?.map(c => c.cycle_id) || [];
+        console.log('Found cycles:', cycleIds.length);
+
+        // Delete in order to respect foreign key constraints
+        // Delete daily reviews first (references daily_plans)
+        await supabaseClient.from('daily_reviews').delete().eq('user_id', target_user_id);
+        
+        // Delete habit logs (references habits, daily_plans, weekly_plans)
+        await supabaseClient.from('habit_logs').delete().eq('user_id', target_user_id);
+        
+        // Delete daily and weekly plans
+        await supabaseClient.from('daily_plans').delete().eq('user_id', target_user_id);
+        await supabaseClient.from('weekly_plans').delete().eq('user_id', target_user_id);
+        
+        // Delete habits
+        await supabaseClient.from('habits').delete().eq('user_id', target_user_id);
+        
+        // Delete tasks
+        await supabaseClient.from('tasks').delete().eq('user_id', target_user_id);
+        
+        // Delete projects
+        await supabaseClient.from('projects').delete().eq('user_id', target_user_id);
+        
+        // Delete coaching entries
+        await supabaseClient.from('coaching_entries').delete().eq('user_id', target_user_id);
+        
+        // Delete monthly reviews
+        await supabaseClient.from('monthly_reviews').delete().eq('user_id', target_user_id);
+
+        // Delete cycle-related data
+        if (cycleIds.length > 0) {
+          await supabaseClient.from('cycle_metric_updates').delete().in('cycle_id', cycleIds);
+          await supabaseClient.from('cycle_limited_offers').delete().in('cycle_id', cycleIds);
+          await supabaseClient.from('cycle_offers').delete().in('cycle_id', cycleIds);
+          await supabaseClient.from('cycle_month_plans').delete().in('cycle_id', cycleIds);
+          await supabaseClient.from('cycle_strategy').delete().in('cycle_id', cycleIds);
+          await supabaseClient.from('cycle_revenue_plan').delete().in('cycle_id', cycleIds);
+        }
+        
+        // Finally delete cycles and drafts
+        await supabaseClient.from('cycles_90_day').delete().eq('user_id', target_user_id);
+        await supabaseClient.from('cycle_drafts').delete().eq('user_id', target_user_id);
+
+        console.log('Planner cleared for user:', target_user_id);
+        result = { success: true, message: 'User planner cleared' };
+        break;
+      }
+
       default:
         return new Response(JSON.stringify({ error: 'Invalid action' }), {
           status: 400,
