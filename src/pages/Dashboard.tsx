@@ -45,6 +45,7 @@ import { PodcastWidget } from '@/components/podcast/PodcastWidget';
 import { HelpButton } from '@/components/ui/help-button';
 import { PremiumCard, PremiumCardContent, PremiumCardHeader, PremiumCardTitle } from '@/components/ui/premium-card';
 import { TodayStrip, PlanMyWeekButton, QuickActionsPanel, ResourcesPanel, MetricsWidget, WeeklyRoutineReminder, PromotionCountdown, SalesCalendar, First3DaysChecklist, getFirst3DaysCheckedState, saveFirst3DaysCheckedState } from '@/components/dashboard';
+import { DataRecoveredPopup } from '@/components/DataRecoveredPopup';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -68,6 +69,8 @@ export default function Dashboard() {
   const [first3DaysData, setFirst3DaysData] = useState<{ startDate: string | null; day1Top3: string[]; day2Top3: string[]; day3Top3: string[] } | null>(null);
   const [first3DaysChecked, setFirst3DaysChecked] = useState<Record<string, boolean>>({});
   const [showRecoveryBanner, setShowRecoveryBanner] = useState(false);
+  const [showRecoveryPopup, setShowRecoveryPopup] = useState(false);
+  const [recoveredCycleInfo, setRecoveredCycleInfo] = useState<{ id: string; goal: string } | null>(null);
 
   useEffect(() => {
     loadDashboardSummary();
@@ -330,12 +333,12 @@ export default function Dashboard() {
           // Load related data (strategy, revenue, offers) in background
           loadRelatedCycleData(recoveredCycle.cycle_id);
           
-          // Show success message
-          toast({
-            title: "✅ Your Data Has Been Recovered!",
-            description: `Found your cycle: "${recoveredCycle.goal.substring(0, 60)}..."`,
-            duration: 5000,
+          // Show recovery popup instead of toast
+          setRecoveredCycleInfo({
+            id: recoveredCycle.cycle_id,
+            goal: recoveredCycle.goal
           });
+          setShowRecoveryPopup(true);
           
           // Clear recovery markers
           localStorage.removeItem('last_cycle_setup_visit');
@@ -578,6 +581,16 @@ export default function Dashboard() {
     <Layout>
       <ReminderPopup reminders={thingsToRemember} onDismiss={() => {}} />
       <DebriefReminderPopup />
+      
+      {/* Data Recovery Success Popup */}
+      {recoveredCycleInfo && (
+        <DataRecoveredPopup
+          cycleId={recoveredCycleInfo.id}
+          goal={recoveredCycleInfo.goal}
+          open={showRecoveryPopup}
+          onDismiss={() => setShowRecoveryPopup(false)}
+        />
+      )}
       
       <div className="space-y-6">
         {/* Page Header */}
