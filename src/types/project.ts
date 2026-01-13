@@ -75,7 +75,7 @@ export const SECTION_COLORS = [
 
 export const BOARD_COLUMNS = [
   { id: 'task', label: 'Task', required: true, width: 300 },
-  { id: 'status', label: 'Status', required: true, width: 120 },
+  { id: 'status', label: 'Status', required: true, width: 130 },
   { id: 'scheduled_date', label: 'Due Date', required: false, width: 130 },
   { id: 'tags', label: 'Tags', required: false, width: 150 },
   { id: 'priority', label: 'Priority', required: false, width: 100 },
