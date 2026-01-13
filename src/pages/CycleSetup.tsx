@@ -220,14 +220,26 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
   // Track if we should skip the next auto-save (to prevent race condition after clearing draft)
   const skipNextAutoSave = useRef(false);
   
+  // Double-click protection ref
+  const saveInProgressRef = useRef(false);
+  
   // Cloud save status indicator
   const [cloudSaveStatus, setCloudSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  
+  // Save progress indicator for multi-step save
+  const [saveProgress, setSaveProgress] = useState<{
+    show: boolean;
+    currentStep: string;
+    completedSteps: number;
+    totalSteps: number;
+  }>({ show: false, currentStep: '', completedSteps: 0, totalSteps: 7 });
   
   // Mark when user enters CycleSetup for recovery detection
   useEffect(() => {
     localStorage.setItem('last_cycle_setup_visit', Date.now().toString());
     console.log('✅ CycleSetup: Marked entry timestamp for recovery detection');
   }, []);
+  
 
   // Import from workshop JSON
   const handleImportFromJson = (jsonData: WorkshopImportData) => {
@@ -479,6 +491,48 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
   const [day3Date, setDay3Date] = useState<Date | undefined>(undefined);
   const [day3Top3, setDay3Top3] = useState<string[]>(['', '', '']);
   const [day3Why, setDay3Why] = useState('');
+
+  // Form validation function
+  const validateFormData = useCallback((): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+    
+    // Step 1: Dates & Goal (REQUIRED)
+    if (!goal || goal.trim().length < 10) {
+      errors.push('Goal must be at least 10 characters');
+    }
+    if (!startDate) {
+      errors.push('Start date is required');
+    }
+    
+    // Step 2: Business Diagnostic (scores should be 1-10)
+    if (discoverScore < 1 || discoverScore > 10) {
+      errors.push('Discover score must be between 1-10');
+    }
+    if (nurtureScore < 1 || nurtureScore > 10) {
+      errors.push('Nurture score must be between 1-10');
+    }
+    if (convertScore < 1 || convertScore > 10) {
+      errors.push('Convert score must be between 1-10');
+    }
+    
+    return { isValid: errors.length === 0, errors };
+  }, [goal, startDate, discoverScore, nurtureScore, convertScore]);
+  
+  // Browser navigation warning - warn if user has significant data entered
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Only warn if form has unsaved changes (not in edit mode with existing data)
+      const hasSignificantData = goal.trim().length > 5 || why.trim() || identity.trim() || offers.some(o => o.name.trim());
+      if (hasSignificantData && !loading && !isEditMode) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Your draft is saved, but are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [goal, why, identity, offers, loading, isEditMode]);
 
   // Helper to get first N weekdays from a start date
   const getFirstWeekdays = useCallback((start: Date, count: number): Date[] => {
@@ -1171,7 +1225,37 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
   const handleSubmit = async (autopilotOptions?: AutopilotOptions) => {
     if (!user) return;
     
+    // Prevent double submission
+    if (saveInProgressRef.current || loading) {
+      console.log('⚠️ Save already in progress, ignoring duplicate click');
+      return;
+    }
+    
     console.log('🚀 Starting cycle save for user:', user.id);
+    
+    // VALIDATE FORM DATA FIRST
+    const validation = validateFormData();
+    if (!validation.isValid) {
+      console.error('❌ Form validation failed:', validation.errors);
+      toast({
+        title: "Please Complete Required Fields",
+        description: validation.errors[0],
+        variant: "destructive",
+        duration: 8000,
+      });
+      return;
+    }
+    
+    // Check online status
+    if (!navigator.onLine) {
+      toast({
+        title: "You're Offline",
+        description: "Please connect to the internet to save your cycle. Your draft is safe.",
+        variant: "destructive",
+        duration: 10000,
+      });
+      return;
+    }
     
     // CRITICAL: Validate session before any database operations
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -1189,8 +1273,10 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
     
     console.log('✅ Session validated, proceeding with save');
     
+    saveInProgressRef.current = true;
     setLoading(true);
     setShowAutopilotModal(false);
+    setSaveProgress({ show: true, currentStep: 'Creating your 90-day cycle...', completedSteps: 0, totalSteps: 7 });
 
     try {
       // Handle UPDATE mode
@@ -1396,12 +1482,14 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
         console.log('✅ Draft cleared after successful verification');
       }
 
+      // Update progress
+      setSaveProgress(prev => ({ ...prev, currentStep: 'Saving strategy...', completedSteps: 1 }));
+      
       // Create cycle strategy with posting schedule and secondary platforms
       const effectiveNurtureMethod = nurtureMethod === 'other' ? nurtureMethodCustom : nurtureMethod;
       const effectiveSecondaryNurtureMethod = secondaryNurtureMethod === 'other' 
         ? secondaryNurtureMethodCustom 
         : (secondaryNurtureMethod === 'none' ? null : secondaryNurtureMethod);
-      
       const { error: strategyError } = await supabase
         .from('cycle_strategy')
         .insert({
@@ -1434,6 +1522,9 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
         } as any);
 
       if (strategyError) console.error('Strategy error:', strategyError);
+      
+      // Update progress
+      setSaveProgress(prev => ({ ...prev, currentStep: 'Creating offers...', completedSteps: 2 }));
 
       // Create offers
       const offersToCreate = offers
@@ -1508,6 +1599,9 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
         .insert(monthPlansToCreate);
 
       if (monthError) console.error('Month plans error:', monthError);
+      
+      // Update progress
+      setSaveProgress(prev => ({ ...prev, currentStep: 'Creating projects...', completedSteps: 3 }));
 
       // Create projects (integrated with existing projects system)
       const projectsToCreate = projects
@@ -1543,6 +1637,9 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
           .insert(habitsToCreate);
         if (habitsError) console.error('Habits error:', habitsError);
       }
+      
+      // Update progress  
+      setSaveProgress(prev => ({ ...prev, currentStep: 'Setting up tasks...', completedSteps: 4 }));
 
       // Create weekly planning and review tasks (if user opted in)
       if (autoCreateWeeklyTasks && (weeklyPlanningDay || weeklyDebriefDay)) {
@@ -1857,6 +1954,9 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
         .upsert({ user_id: user.id }, { onConflict: 'user_id' });
 
       if (settingsError) console.error('Settings error:', settingsError);
+      
+      // Update progress
+      setSaveProgress(prev => ({ ...prev, currentStep: 'Setting up automations...', completedSteps: 5 }));
 
       // Auto-setup: Create Content Engine project + posting tasks (if enabled)
       if (autopilotOptions?.createContentEngine && leadPlatform && postingDays.length > 0) {
@@ -1960,6 +2060,9 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
           });
         }
       }
+      
+      // Update progress
+      setSaveProgress(prev => ({ ...prev, currentStep: 'Finalizing your plan...', completedSteps: 6 }));
 
       // Create daily plans AND actual tasks for first 3 days (if tasks exist)
       if (cycleId) {
@@ -2142,6 +2245,8 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
       });
     } finally {
       setLoading(false);
+      saveInProgressRef.current = false;
+      setSaveProgress({ show: false, currentStep: '', completedSteps: 0, totalSteps: 7 });
     }
   };
 
@@ -2387,6 +2492,31 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
 
   return (
     <Layout>
+      {/* Save Progress Overlay */}
+      {saveProgress.show && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <Card className="max-w-md w-full mx-4">
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <div>
+                    <p className="font-medium">{saveProgress.currentStep}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Step {saveProgress.completedSteps + 1} of {saveProgress.totalSteps}
+                    </p>
+                  </div>
+                </div>
+                <Progress value={(saveProgress.completedSteps / saveProgress.totalSteps) * 100} />
+                <p className="text-xs text-muted-foreground text-center">
+                  Your draft is safely saved. Please don't close this page.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+      
       {/* Draft Restore Dialog */}
       <AlertDialog open={showDraftDialog} onOpenChange={(open) => {
         if (!open) {
