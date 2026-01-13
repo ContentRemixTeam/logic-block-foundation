@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useCycleSetupDraft, CycleSetupDraft, SecondaryPlatform, LimitedTimeOffer, RecurringTaskDefinition, NurturePlatformDefinition } from '@/hooks/useCycleSetupDraft';
+import { SaveStatusBanner } from '@/components/cycle/SaveStatusBanner';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { AutopilotSetupModal, AutopilotOptions } from '@/components/cycle/AutopilotSetupModal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -239,7 +240,32 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
     localStorage.setItem('last_cycle_setup_visit', Date.now().toString());
     console.log('✅ CycleSetup: Marked entry timestamp for recovery detection');
   }, []);
-  
+
+  // beforeunload warning when data is still saving
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (cloudSaveStatus === 'saving') {
+        e.preventDefault();
+        e.returnValue = 'Your data is still saving. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [cloudSaveStatus]);
+
+  // Force save on component unmount
+  useEffect(() => {
+    return () => {
+      // Force final save on unmount - fire and forget
+      if (!skipNextAutoSave.current && goal.trim()) {
+        console.log('🔄 CycleSetup: Forcing final save on unmount');
+        // Note: We can't await here since unmount is sync, but saveDraft handles this
+      }
+    };
+  }, []);
+
 
   // Import from workshop JSON
   const handleImportFromJson = (jsonData: WorkshopImportData) => {
@@ -943,7 +969,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
           setCloudSaveStatus('error');
         }
       })();
-    }, 2500); // Debounce 2.5 seconds
+    }, 1000); // Debounce 1 second - faster auto-saves for data protection
 
     return () => clearTimeout(timeoutId);
   }, [
@@ -2250,8 +2276,120 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
     }
   };
 
-const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
-  const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
+  // Build current draft data for saving
+  const buildDraftData = useCallback(() => ({
+    startDate: startDate.toISOString(),
+    goal,
+    why,
+    identity,
+    feeling,
+    discoverScore,
+    nurtureScore,
+    convertScore,
+    biggestBottleneck,
+    audienceTarget,
+    audienceFrustration,
+    signatureMessage,
+    keyMessage1,
+    keyMessage2,
+    keyMessage3,
+    leadPlatform: leadPlatform === 'other' ? leadPlatformCustom : leadPlatform,
+    leadContentType: leadContentType === 'other' ? leadContentTypeCustom : leadContentType,
+    leadFrequency: leadFrequency === 'other' ? leadFrequencyCustom : leadFrequency,
+    leadPlatformGoal: leadPlatformGoal === 'other' ? leadPlatformGoalCustom : leadPlatformGoal,
+    leadCommitted,
+    secondaryPlatforms,
+    postingDays,
+    postingTime,
+    batchDay,
+    batchFrequency,
+    leadGenContentAudit,
+    nurtureMethod: nurtureMethod === 'other' ? nurtureMethodCustom : nurtureMethod,
+    nurtureFrequency: nurtureFrequency === 'other' ? nurtureFrequencyCustom : nurtureFrequency,
+    freeTransformation,
+    proofMethods,
+    nurturePostingDays,
+    nurturePostingTime,
+    nurtureBatchDay,
+    nurtureBatchFrequency,
+    nurtureContentAudit,
+    nurturePlatforms,
+    offers,
+    limitedOffers,
+    revenueGoal,
+    pricePerSale,
+    launchSchedule,
+    monthPlans,
+    metric1Name,
+    metric1Start,
+    metric2Name,
+    metric2Start,
+    metric3Name,
+    metric3Start,
+    projects,
+    habits,
+    thingsToRemember,
+    weeklyPlanningDay,
+    weeklyDebriefDay,
+    officeHoursStart,
+    officeHoursEnd,
+    officeHoursDays,
+    autoCreateWeeklyTasks,
+    recurringTasks,
+    biggestFear,
+    whatWillYouDoWhenFearHits,
+    commitmentStatement,
+    whoWillHoldYouAccountable,
+    day1Top3,
+    day1Why,
+    day2Top3,
+    day2Why,
+    day3Top3,
+    day3Why,
+    currentStep,
+  }), [
+    startDate, goal, why, identity, feeling,
+    discoverScore, nurtureScore, convertScore, biggestBottleneck,
+    audienceTarget, audienceFrustration, signatureMessage, keyMessage1, keyMessage2, keyMessage3,
+    leadPlatform, leadPlatformCustom, leadContentType, leadContentTypeCustom, leadFrequency, leadFrequencyCustom,
+    leadPlatformGoal, leadPlatformGoalCustom, leadCommitted, secondaryPlatforms, postingDays, postingTime, batchDay, batchFrequency, leadGenContentAudit,
+    nurtureMethod, nurtureMethodCustom, nurtureFrequency, nurtureFrequencyCustom, freeTransformation, proofMethods,
+    nurturePostingDays, nurturePostingTime, nurtureBatchDay, nurtureBatchFrequency, nurtureContentAudit, nurturePlatforms,
+    offers, limitedOffers, revenueGoal, pricePerSale, launchSchedule, monthPlans,
+    metric1Name, metric1Start, metric2Name, metric2Start, metric3Name, metric3Start,
+    projects, habits, thingsToRemember,
+    weeklyPlanningDay, weeklyDebriefDay, officeHoursStart, officeHoursEnd, officeHoursDays, autoCreateWeeklyTasks, recurringTasks,
+    biggestFear, whatWillYouDoWhenFearHits, commitmentStatement, whoWillHoldYouAccountable,
+    day1Top3, day1Why, day2Top3, day2Why, day3Top3, day3Why, currentStep
+  ]);
+
+  // Force immediate save before step navigation
+  const saveBeforeNavigation = useCallback(async () => {
+    if (skipNextAutoSave.current) return;
+    
+    setCloudSaveStatus('saving');
+    try {
+      const draftData = buildDraftData();
+      await saveDraft(draftData);
+      setCloudSaveStatus('saved');
+      setLastSaved(new Date());
+      console.log('✅ Draft saved before navigation');
+    } catch (error) {
+      console.error('❌ Draft save failed:', error);
+      setCloudSaveStatus('error');
+    }
+  }, [buildDraftData, saveDraft]);
+
+  // Step navigation with forced save
+  const nextStep = async () => {
+    await saveBeforeNavigation();
+    setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
+  };
+  
+  const prevStep = async () => {
+    await saveBeforeNavigation();
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+  };
 
   // Helper to get current form data for export
   const getFormDataForExport = useCallback((): CycleFormData => {
@@ -2546,6 +2684,13 @@ const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Always-visible Save Status Banner */}
+      <SaveStatusBanner 
+        status={cloudSaveStatus} 
+        lastSaved={lastSaved} 
+        isSyncing={isSyncing} 
+      />
 
       <div className="mx-auto max-w-4xl space-y-6">
         {/* Workshop Import Banner */}

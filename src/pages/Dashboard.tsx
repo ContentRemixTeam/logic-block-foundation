@@ -46,6 +46,8 @@ import { HelpButton } from '@/components/ui/help-button';
 import { PremiumCard, PremiumCardContent, PremiumCardHeader, PremiumCardTitle } from '@/components/ui/premium-card';
 import { TodayStrip, PlanMyWeekButton, QuickActionsPanel, ResourcesPanel, MetricsWidget, WeeklyRoutineReminder, PromotionCountdown, SalesCalendar, First3DaysChecklist, getFirst3DaysCheckedState, saveFirst3DaysCheckedState } from '@/components/dashboard';
 import { DataRecoveredPopup } from '@/components/DataRecoveredPopup';
+import { ContinueSetupBanner } from '@/components/cycle/ContinueSetupBanner';
+import { supabase as supabaseClient } from '@/integrations/supabase/client';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -577,6 +579,33 @@ export default function Dashboard() {
     saveFirst3DaysCheckedState(newChecked);
   };
 
+  // Handler to discard draft and start fresh
+  const handleDiscardDraft = async () => {
+    try {
+      // Clear localStorage draft
+      localStorage.removeItem('boss-planner-cycle-setup-draft');
+      
+      // Clear server draft
+      await supabaseClient.functions.invoke('delete-cycle-draft');
+      
+      setHasDraft(false);
+      setDraftStep(0);
+      setShowRecoveryBanner(false);
+      
+      toast({
+        title: "Draft cleared",
+        description: "You can start fresh with a new 90-day cycle.",
+      });
+    } catch (error) {
+      console.error('Error clearing draft:', error);
+      toast({
+        title: "Error",
+        description: "Could not clear draft. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Layout>
       <ReminderPopup reminders={thingsToRemember} onDismiss={() => {}} />
@@ -610,6 +639,14 @@ export default function Dashboard() {
 
         {/* Onboarding Checklist - Full Width */}
         <OnboardingChecklist />
+
+        {/* Continue Setup Banner - Prominent banner for users with incomplete drafts */}
+        {hasDraft && !hasCycle && (
+          <ContinueSetupBanner 
+            draftStep={draftStep} 
+            onDiscard={handleDiscardDraft}
+          />
+        )}
 
         {/* Quest Mode XP & Streak */}
         {isQuestMode && hasCycle && (
