@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -62,6 +63,7 @@ export function ScratchPadOrganizeModal({
   onComplete,
 }: OrganizeModalProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [ideas, setIdeas] = useState<IdeaItem[]>([]);
@@ -208,6 +210,10 @@ export function ScratchPadOrganizeModal({
         title: '✨ Items organized!',
         description: `Updated ${tasks.length} tasks and ${ideas.filter(i => i.categoryId).length} ideas`,
       });
+
+      // Invalidate caches so data is immediately visible elsewhere
+      queryClient.invalidateQueries({ queryKey: ['ideas'] });
+      queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
 
       onComplete();
       onOpenChange(false);

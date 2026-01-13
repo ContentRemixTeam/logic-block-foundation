@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -50,6 +51,7 @@ const PAGE_SIZE = 50;
 export default function Ideas() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: projects = [] } = useProjects();
   const [searchParams, setSearchParams] = useSearchParams();
   const highlightIdeaId = searchParams.get('highlightIdea');
@@ -166,6 +168,7 @@ export default function Ideas() {
       }
 
       toast({ title: 'Category created!' });
+      queryClient.invalidateQueries({ queryKey: ['ideas'] });
     } catch (error: any) {
       console.error('Error creating category:', error);
       toast({
@@ -313,6 +316,7 @@ export default function Ideas() {
       setAddModalOpen(false);
       resetAddForm();
       loadData();
+      queryClient.invalidateQueries({ queryKey: ['ideas'] });
     } catch (error: any) {
       console.error('Error adding idea:', error);
       toast({
@@ -349,6 +353,7 @@ export default function Ideas() {
       toast({ title: 'Idea updated! ⚡' });
       setEditModalOpen(false);
       loadData();
+      queryClient.invalidateQueries({ queryKey: ['ideas'] });
     } catch (error: any) {
       console.error('Error updating idea:', error);
       toast({
@@ -377,6 +382,7 @@ export default function Ideas() {
 
       toast({ title: 'Idea deleted' });
       loadData();
+      queryClient.invalidateQueries({ queryKey: ['ideas'] });
     } catch (error: any) {
       console.error('Error deleting idea:', error);
       toast({
@@ -412,6 +418,7 @@ export default function Ideas() {
       setCategoryName('');
       setCategoryColor('#FF3370');
       loadData();
+      queryClient.invalidateQueries({ queryKey: ['ideas'] });
     } catch (error: any) {
       console.error('Error saving category:', error);
       toast({
@@ -440,6 +447,7 @@ export default function Ideas() {
 
       toast({ title: 'Category deleted' });
       loadData();
+      queryClient.invalidateQueries({ queryKey: ['ideas'] });
     } catch (error: any) {
       console.error('Error deleting category:', error);
       toast({

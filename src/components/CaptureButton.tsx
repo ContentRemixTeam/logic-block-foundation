@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -30,6 +31,7 @@ export function CaptureButton({ categories, onIdeaSaved }: CaptureButtonProps) {
   const [newCategoryColor, setNewCategoryColor] = useState('#FF3370');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleSaveIdea = async () => {
     if (!content.trim()) {
@@ -63,6 +65,7 @@ export function CaptureButton({ categories, onIdeaSaved }: CaptureButtonProps) {
       setCategoryId('');
       setOpen(false);
       onIdeaSaved();
+      queryClient.invalidateQueries({ queryKey: ['ideas'] });
     } catch (error: any) {
       console.error('Error saving idea:', error);
       toast({
@@ -108,6 +111,7 @@ export function CaptureButton({ categories, onIdeaSaved }: CaptureButtonProps) {
       setShowNewCategory(false);
       setCategoryId(data.category.id);
       onIdeaSaved();
+      queryClient.invalidateQueries({ queryKey: ['ideas'] });
     } catch (error: any) {
       console.error('Error saving category:', error);
       toast({
