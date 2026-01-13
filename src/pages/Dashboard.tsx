@@ -72,23 +72,33 @@ export default function Dashboard() {
   }, [user]);
   
   // Check if user recently visited CycleSetup but dashboard is empty - show recovery banner
+  // Also show if user has a draft but no cycle (indicating potential save failure)
   useEffect(() => {
     const lastSetupVisit = localStorage.getItem('last_cycle_setup_visit');
-    if (lastSetupVisit && !loading) {
-      const timeSince = Date.now() - parseInt(lastSetupVisit);
-      const fiveMinutes = 5 * 60 * 1000;
-      const hasCycleGoal = Boolean(summary?.cycle?.goal);
-      
-      if (timeSince < fiveMinutes && !hasCycleGoal) {
-        console.log('⚠️ User recently visited CycleSetup but no cycle found - showing recovery banner');
+    const hasCycleGoal = Boolean(summary?.cycle?.goal);
+    
+    if (!loading) {
+      // Show banner if user has draft but no cycle
+      if (hasDraft && !hasCycleGoal) {
+        console.log('⚠️ User has draft but no cycle - showing recovery banner');
         setShowRecoveryBanner(true);
+      } else if (lastSetupVisit) {
+        const timeSince = Date.now() - parseInt(lastSetupVisit);
+        const fiveMinutes = 5 * 60 * 1000;
+        
+        if (timeSince < fiveMinutes && !hasCycleGoal) {
+          console.log('⚠️ User recently visited CycleSetup but no cycle found - showing recovery banner');
+          setShowRecoveryBanner(true);
+        } else if (hasCycleGoal) {
+          // Clear the marker if cycle exists
+          localStorage.removeItem('last_cycle_setup_visit');
+          setShowRecoveryBanner(false);
+        }
       } else if (hasCycleGoal) {
-        // Clear the marker if cycle exists
-        localStorage.removeItem('last_cycle_setup_visit');
         setShowRecoveryBanner(false);
       }
     }
-  }, [loading, summary]);
+  }, [loading, summary, hasDraft]);
 
   const loadDashboardSummary = useCallback(async () => {
     if (!user) return;
@@ -411,32 +421,74 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Recovery Banner - Show if user just came from CycleSetup but no cycle exists */}
+        {/* Recovery Banner - Show if user just came from CycleSetup but no cycle exists, or has draft */}
         {showRecoveryBanner && !hasCycle && (
           <Alert className="border-amber-500 bg-amber-50 dark:bg-amber-950/30">
             <AlertCircle className="h-4 w-4 text-amber-600" />
-            <AlertTitle className="text-amber-800 dark:text-amber-200">Did you just complete your cycle setup?</AlertTitle>
+            <AlertTitle className="text-amber-800 dark:text-amber-200">
+              {hasDraft 
+                ? `📝 You have a saved draft at Step ${draftStep}` 
+                : "Did you just complete your cycle setup?"}
+            </AlertTitle>
             <AlertDescription className="text-amber-700 dark:text-amber-300">
-              If your data isn't showing, we can check the database directly for your saved cycle.
-              <Button 
-                onClick={handleCheckForLostData} 
-                variant="outline"
-                size="sm"
-                className="mt-2 ml-0 block border-amber-500 text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900"
-                disabled={checkingForData}
-              >
-                {checkingForData ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                    Checking...
-                  </>
-                ) : (
-                  <>
-                    <Search className="h-4 w-4 mr-2" />
-                    Check for My Data
-                  </>
-                )}
-              </Button>
+              {hasDraft ? (
+                <>
+                  Your progress was saved as a draft. You can resume where you left off, or check if your cycle was actually saved.
+                  <div className="flex gap-2 mt-2">
+                    <Link to="/cycle-setup">
+                      <Button 
+                        variant="default"
+                        size="sm"
+                        className="bg-amber-600 hover:bg-amber-700"
+                      >
+                        Resume Draft (Step {draftStep})
+                      </Button>
+                    </Link>
+                    <Button 
+                      onClick={handleCheckForLostData} 
+                      variant="outline"
+                      size="sm"
+                      className="border-amber-500 text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900"
+                      disabled={checkingForData}
+                    >
+                      {checkingForData ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                          Checking...
+                        </>
+                      ) : (
+                        <>
+                          <Search className="h-4 w-4 mr-2" />
+                          Check for Saved Cycle
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  If your data isn't showing, we can check the database directly for your saved cycle.
+                  <Button 
+                    onClick={handleCheckForLostData} 
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 ml-0 block border-amber-500 text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900"
+                    disabled={checkingForData}
+                  >
+                    {checkingForData ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                        Checking...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="h-4 w-4 mr-2" />
+                        Check for My Data
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
             </AlertDescription>
           </Alert>
         )}

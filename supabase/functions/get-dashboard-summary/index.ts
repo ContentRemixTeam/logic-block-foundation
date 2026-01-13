@@ -78,9 +78,49 @@ Deno.serve(async (req) => {
     }
 
     // Get current cycle and week to check review status
-    const { data: cycleData } = await supabaseClient.rpc('get_current_cycle', {
+    let { data: cycleData } = await supabaseClient.rpc('get_current_cycle', {
       p_user_id: userId,
     });
+
+    console.log('CYCLE RPC RESULT:', {
+      hasCycleData: Boolean(cycleData),
+      cycleDataLength: cycleData?.length,
+      firstCycleId: cycleData?.[0]?.cycle_id,
+    });
+
+    // FALLBACK: If RPC returned no current cycle, try direct query to find any cycle
+    if (!cycleData || cycleData.length === 0) {
+      console.warn('⚠️ get_current_cycle RPC returned no data, trying direct query...');
+      
+      const { data: directCycles, error: directError } = await supabaseClient
+        .from('cycles_90_day')
+        .select('cycle_id, goal, start_date, end_date, why, identity, target_feeling')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (directError) {
+        console.error('Direct cycle query failed:', directError);
+      } else if (directCycles && directCycles.length > 0) {
+        console.log('✅ Found cycle via direct query that RPC missed!', {
+          cycleId: directCycles[0].cycle_id,
+          goal: directCycles[0].goal?.substring(0, 30)
+        });
+        // Transform to match RPC output format and use as current cycle
+        cycleData = directCycles.map(c => ({
+          cycle_id: c.cycle_id,
+          goal: c.goal,
+          start_date: c.start_date,
+          end_date: c.end_date,
+          why: c.why,
+          identity: c.identity,
+          target_feeling: c.target_feeling,
+          days_remaining: Math.max(0, Math.ceil((new Date(c.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+        }));
+      } else {
+        console.log('ℹ️ No cycles found for user via direct query either');
+      }
+    }
 
     let focusArea = null;
     let thingsToRemember: any[] = [];
