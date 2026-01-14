@@ -283,8 +283,19 @@ export default function BeliefBuilder() {
                 </div>
               </div>
 
-              <Button onClick={handleSave} className="w-full">
-                {editingBelief ? 'Update Belief' : 'Create Belief'}
+              <Button 
+                onClick={handleSave} 
+                disabled={createMutation.isPending || updateMutation.isPending}
+                className="w-full"
+              >
+                {(createMutation.isPending || updateMutation.isPending) ? (
+                  <>
+                    <span className="animate-spin mr-2">⏳</span>
+                    Saving...
+                  </>
+                ) : (
+                  editingBelief ? 'Update Belief' : 'Create Belief'
+                )}
               </Button>
             </div>
           </DialogContent>
