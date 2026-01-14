@@ -11,8 +11,9 @@ import { Layout } from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit2, Archive, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Archive, Loader2, Sparkles } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import { BUSINESS_HABIT_TEMPLATES, HabitTemplate } from '@/constants/habitTemplates';
 
 // Local storage key for form backup
 const FORM_BACKUP_KEY = 'habits_form_backup';
@@ -28,6 +29,7 @@ export default function Habits() {
   const [weekLogs, setWeekLogs] = useState<any[]>([]);
   const [editingHabit, setEditingHabit] = useState<any | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
 
   // Form state for new/editing habit
   const [habitName, setHabitName] = useState('');
@@ -35,6 +37,16 @@ export default function Habits() {
   const [habitType, setHabitType] = useState('daily');
   const [habitDescription, setHabitDescription] = useState('');
   const [habitSuccessDefinition, setHabitSuccessDefinition] = useState('');
+
+  // Use a template to pre-fill the form
+  const useTemplate = (template: HabitTemplate) => {
+    setHabitName(template.name);
+    setHabitCategory(template.category);
+    setHabitType(template.type);
+    setHabitDescription(template.description);
+    setHabitSuccessDefinition(template.successDefinition);
+    setShowTemplates(false);
+  };
 
   // Save form to local storage
   const saveFormBackup = useCallback(() => {
@@ -176,6 +188,7 @@ export default function Habits() {
     setHabitType('daily');
     setHabitDescription('');
     setHabitSuccessDefinition('');
+    setShowTemplates(true); // Show templates by default for new habits
     setIsDialogOpen(true);
   };
 
@@ -439,10 +452,52 @@ export default function Habits() {
             <DialogHeader>
               <DialogTitle>{editingHabit ? 'Edit Habit' : 'Create New Habit'}</DialogTitle>
               <DialogDescription>
-                Configure your habit details and tracking preferences
+                {editingHabit ? 'Configure your habit details and tracking preferences' : 'Choose a template or create your own habit'}
               </DialogDescription>
             </DialogHeader>
+            
+            {/* Templates Section - Only show for new habits */}
+            {!editingHabit && showTemplates && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  Business Habit Templates
+                </div>
+                <div className="grid gap-2 max-h-[200px] overflow-y-auto">
+                  {BUSINESS_HABIT_TEMPLATES.map((template, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => useTemplate(template)}
+                      className="flex items-start gap-3 p-3 text-left border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{template.name}</div>
+                        <div className="text-xs text-muted-foreground">{template.successDefinition}</div>
+                      </div>
+                      <span className="text-xs px-2 py-0.5 bg-muted rounded">{template.type}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 border-t" />
+                  <span className="text-xs text-muted-foreground">or create custom</span>
+                  <div className="flex-1 border-t" />
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setShowTemplates(false)} className="w-full">
+                  Create Custom Habit
+                </Button>
+              </div>
+            )}
+
+            {/* Custom Habit Form - Show when templates hidden or editing */}
+            {(!showTemplates || editingHabit) && (
             <div className="space-y-4">
+              {!editingHabit && (
+                <Button variant="ghost" size="sm" onClick={() => setShowTemplates(true)} className="text-xs">
+                  ← Back to Templates
+                </Button>
+              )}
               <div>
                 <Label htmlFor="habit-name">Habit Name *</Label>
                 <Input
@@ -516,6 +571,7 @@ export default function Habits() {
                 </Button>
               </div>
             </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>

@@ -43,6 +43,7 @@ import Progress from "./pages/Progress";
 import Tasks from "./pages/Tasks";
 import Notes from "./pages/Notes";
 import SOPs from "./pages/SOPs";
+import Wins from "./pages/Wins";
 
 import Support from "./pages/Support";
 import CaptureLaunchPage from "./pages/CaptureLaunchPage";
@@ -130,6 +131,7 @@ const App = () => (
                       <Route path="/sops" element={<ProtectedRoute><SOPs /></ProtectedRoute>} />
                       <Route path="/habits" element={<ProtectedRoute><Habits /></ProtectedRoute>} />
                       <Route path="/ideas" element={<ProtectedRoute><Ideas /></ProtectedRoute>} />
+                      <Route path="/wins" element={<ProtectedRoute><Wins /></ProtectedRoute>} />
                       <Route path="/mindset" element={<ProtectedRoute><Mindset /></ProtectedRoute>} />
                       <Route path="/useful-thoughts" element={<ProtectedRoute><UsefulThoughts /></ProtectedRoute>} />
                       <Route path="/belief-builder" element={<ProtectedRoute><BeliefBuilder /></ProtectedRoute>} />

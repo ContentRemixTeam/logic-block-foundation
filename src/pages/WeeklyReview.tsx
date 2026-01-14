@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Zap, Target, BarChart3, TrendingUp, TrendingDown, Users, Share2, Send, Mail } from "lucide-react";
+import { Loader2, Zap, Target, BarChart3, TrendingUp, TrendingDown, Users, Share2, Send, Mail, Download, Trophy } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { ReflectionList } from "@/components/ReflectionList";
 import { getNurtureStats } from "@/lib/contentService";
@@ -128,6 +128,10 @@ export default function WeeklyReview() {
   const [habitStats, setHabitStats] = useState({ total: 0, completed: 0, percent: 0 });
   const [cycleProgress, setCycleProgress] = useState({ total_days: 90, completed_days: 0, percent: 0 });
   const [nurtureStats, setNurtureStats] = useState({ thisWeekEmails: 0, thisWeekTotal: 0, streak: 0 });
+  const [loadingWins, setLoadingWins] = useState(false);
+
+  // Store weekStartDate for loading wins from scratch pad
+  const [weekStartDate, setWeekStartDate] = useState<string | null>(null);
 
   // Memoize review data for data protection
   const reviewData = useMemo(() => ({
@@ -260,6 +264,11 @@ export default function WeeklyReview() {
       setShareToCommunity(data.share_to_community || false);
       setHabitStats(data.habit_stats || { total: 0, completed: 0, percent: 0 });
       setCycleProgress(data.cycle_progress || { total_days: 90, completed_days: 0, percent: 0 });
+      
+      // Store week start date for loading wins
+      if (data.week_start) {
+        setWeekStartDate(data.week_start);
+      }
 
       // Set cycle metrics and actuals
       if (data.cycle_metrics) {
@@ -293,6 +302,62 @@ export default function WeeklyReview() {
       setTimeout(() => {
         isInitialLoadRef.current = false;
       }, 500);
+    }
+  };
+
+  // Load wins from scratch pad for the current week
+  const loadWinsFromScratchPad = async () => {
+    if (!user || !weekStartDate) return;
+    
+    try {
+      setLoadingWins(true);
+      
+      // Get daily plans for this week with wins
+      const weekEnd = new Date(weekStartDate);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      
+      const { data, error } = await supabase
+        .from('daily_plans')
+        .select('date, daily_wins')
+        .eq('user_id', user.id)
+        .gte('date', weekStartDate)
+        .lte('date', weekEnd.toISOString().split('T')[0])
+        .not('daily_wins', 'is', null);
+      
+      if (error) throw error;
+      
+      // Extract win texts
+      const scratchPadWins: string[] = [];
+      data?.forEach((plan) => {
+        const planWins = plan.daily_wins as unknown as Array<{ text: string }>;
+        if (Array.isArray(planWins)) {
+          planWins.forEach((win) => {
+            if (win.text && !scratchPadWins.includes(win.text)) {
+              scratchPadWins.push(win.text);
+            }
+          });
+        }
+      });
+      
+      if (scratchPadWins.length === 0) {
+        toast({ title: "No wins found", description: "Use #win in your daily scratch pad to capture wins" });
+        return;
+      }
+      
+      // Merge with existing wins (avoid duplicates)
+      const existingWins = wins.filter(w => w.trim());
+      const newWins = scratchPadWins.filter(w => !existingWins.includes(w));
+      const mergedWins = [...existingWins, ...newWins];
+      
+      if (mergedWins.length === 0) mergedWins.push('');
+      setWins(mergedWins);
+      
+      toast({ title: `Loaded ${newWins.length} wins from scratch pad!` });
+    } catch (error) {
+      console.error('Error loading wins:', error);
+      toast({ title: "Failed to load wins", variant: "destructive" });
+    } finally {
+      setLoadingWins(false);
     }
   };
 
@@ -538,8 +603,26 @@ export default function WeeklyReview() {
         {/* Wins */}
         <Card>
           <CardHeader>
-            <CardTitle>Weekly Wins</CardTitle>
-            <CardDescription>List moments you're proud of, big or small</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Weekly Wins</CardTitle>
+                <CardDescription>List moments you're proud of, big or small</CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadWinsFromScratchPad}
+                disabled={loadingWins}
+                className="text-xs"
+              >
+                {loadingWins ? (
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <Trophy className="h-3 w-3 mr-1 text-yellow-500" />
+                )}
+                Load from Scratch Pad
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <ReflectionList
