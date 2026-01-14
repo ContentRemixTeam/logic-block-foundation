@@ -37,7 +37,10 @@ const OptionalTaskFields = z.object({
   section_id: z.string().uuid().nullable().optional(),
   cycle_id: z.string().uuid().nullable().optional(),
   recurrence_pattern: z.string().nullable().optional(),
-  recurrence_days: z.array(z.number().min(0).max(6)).optional(),
+  recurrence_days: z.array(z.any()).optional(),
+  recurrence_interval: z.number().min(1).max(365).nullable().optional(),
+  recurrence_unit: z.enum(['days', 'weeks', 'months']).nullable().optional(),
+  recurrence_end_date: z.string().nullable().optional(),
   sop_id: z.string().uuid().nullable().optional(),
   checklist_progress: z.array(z.any()).optional(),
   priority_order: z.number().min(1).max(3).nullable().optional(),
@@ -71,7 +74,10 @@ const CreateTaskSchema = z.object({
   section_id: z.string().uuid().nullable().optional(),
   cycle_id: z.string().uuid().nullable().optional(),
   recurrence_pattern: z.string().nullable().optional(),
-  recurrence_days: z.array(z.number().min(0).max(6)).optional(),
+  recurrence_days: z.array(z.any()).optional(),
+  recurrence_interval: z.number().min(1).max(365).nullable().optional(),
+  recurrence_unit: z.enum(['days', 'weeks', 'months']).nullable().optional(),
+  recurrence_end_date: z.string().nullable().optional(),
   sop_id: z.string().uuid().nullable().optional(),
   checklist_progress: z.array(z.any()).optional(),
   priority_order: z.number().min(1).max(3).nullable().optional(),
@@ -291,7 +297,8 @@ Deno.serve(async (req) => {
       case 'create': {
         const { 
           task_text, task_description, scheduled_date, priority, 
-          recurrence_pattern, recurrence_days, sop_id, checklist_progress,
+          recurrence_pattern, recurrence_days, recurrence_interval, 
+          recurrence_unit, recurrence_end_date, sop_id, checklist_progress,
           priority_order, source, daily_plan_id, estimated_minutes,
           actual_minutes, time_block_start, time_block_end, energy_level,
           context_tags, goal_id, status, waiting_on, subtasks, notes,
@@ -330,6 +337,9 @@ Deno.serve(async (req) => {
             is_completed: false,
             recurrence_pattern: recurrence_pattern || null,
             recurrence_days: recurrence_days || [],
+            recurrence_interval: recurrence_interval || null,
+            recurrence_unit: recurrence_unit || null,
+            recurrence_end_date: recurrence_end_date || null,
             is_recurring_parent: isRecurringParent,
             sop_id: sop_id || null,
             checklist_progress: checklist_progress || [],
@@ -381,6 +391,9 @@ Deno.serve(async (req) => {
           updateData.is_recurring_parent = updateFields.recurrence_pattern && updateFields.recurrence_pattern !== 'none';
         }
         if (updateFields.recurrence_days !== undefined) updateData.recurrence_days = updateFields.recurrence_days;
+        if (updateFields.recurrence_interval !== undefined) updateData.recurrence_interval = updateFields.recurrence_interval;
+        if (updateFields.recurrence_unit !== undefined) updateData.recurrence_unit = updateFields.recurrence_unit;
+        if (updateFields.recurrence_end_date !== undefined) updateData.recurrence_end_date = updateFields.recurrence_end_date;
         if (updateFields.is_completed !== undefined) {
           updateData.is_completed = updateFields.is_completed;
           updateData.completed_at = updateFields.is_completed ? new Date().toISOString() : null;
