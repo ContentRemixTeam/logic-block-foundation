@@ -31,7 +31,7 @@ interface ContentEditorModalProps {
 
 const defaultItem: Partial<ContentItem> = {
   title: '',
-  type: 'Email',
+  type: 'Newsletter',
   status: 'Draft',
   channel: null,
   topic: '',
@@ -102,7 +102,7 @@ export function ContentEditorModal({ open, onOpenChange, item, cycleId, onSaved 
     }
   };
 
-  const isEmail = formData.type === 'Email';
+  const isEmail = formData.type === 'Newsletter';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

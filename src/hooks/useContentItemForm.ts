@@ -31,7 +31,7 @@ export interface ContentFormData {
 
 const defaultFormData: ContentFormData = {
   title: '',
-  type: 'Email',
+  type: 'Newsletter',
   status: 'Draft',
   channel: null,
   topic: '',
@@ -80,7 +80,7 @@ export function useContentItemForm({
     if (item) {
       setFormData({
         title: item.title || '',
-        type: item.type || 'Email',
+        type: item.type || 'Newsletter',
         status: item.status || 'Draft',
         channel: item.channel || null,
         topic: item.topic || '',
@@ -182,7 +182,7 @@ export function useContentItemForm({
     }
     
     // Email requires subject line
-    if (formData.type === 'Email' && !formData.subject_line.trim()) {
+    if (formData.type === 'Newsletter' && !formData.subject_line.trim()) {
       toast.error('Subject line is required for emails');
       return false;
     }

@@ -370,7 +370,7 @@ export function NurtureCheckinCard() {
       <ContentSaveModal
         open={showContentModal}
         onOpenChange={setShowContentModal}
-        defaultType="Email"
+        defaultType="Newsletter"
         onSaved={() => {
           handleContentSaved();
           setShowContentModal(false);

@@ -34,15 +34,18 @@ interface ContentSaveModalProps {
 }
 
 const TYPE_ICONS: Record<ContentType, typeof Mail> = {
-  'Email': Mail,
-  'IG Post': FileText,
-  'Reel': Video,
+  'Newsletter': Mail,
+  'Post': FileText,
+  'Reel/Short': Video,
+  'Video': Video,
   'Carousel': FileText,
   'Story': FileText,
-  'YouTube': Video,
-  'Podcast': Mic,
-  'Blog': PenTool,
-  'Live': Video,
+  'Live Session': Video,
+  'Podcast Episode': Mic,
+  'Blog Article': PenTool,
+  'Webinar': Video,
+  'Challenge': FileText,
+  'DM/Message': Mail,
   'Ad': Megaphone,
   'Landing Page': FileText,
   'Other': FileText,
@@ -82,11 +85,11 @@ export function ContentSaveModal({
     if (open && defaultType && !item) {
       updateField('type', defaultType);
       // Auto-set channel based on type
-      if (defaultType === 'Email') updateField('channel', 'Email');
-      if (['IG Post', 'Reel', 'Carousel', 'Story'].includes(defaultType)) updateField('channel', 'Instagram');
-      if (defaultType === 'YouTube') updateField('channel', 'YouTube');
-      if (defaultType === 'Podcast') updateField('channel', 'Podcast');
-      if (defaultType === 'Blog') updateField('channel', 'Blog');
+      if (defaultType === 'Newsletter') updateField('channel', 'Email');
+      if (['Post', 'Reel/Short', 'Carousel', 'Story'].includes(defaultType)) updateField('channel', 'Instagram');
+      if (defaultType === 'Video') updateField('channel', 'YouTube');
+      if (defaultType === 'Podcast Episode') updateField('channel', 'Podcast Platform');
+      if (defaultType === 'Blog Article') updateField('channel', 'Website/Blog');
     }
   }, [open, defaultType, item, updateField]);
 
@@ -110,10 +113,10 @@ export function ContentSaveModal({
   };
 
   const TypeIcon = TYPE_ICONS[formData.type] || FileText;
-  const isEmail = formData.type === 'Email';
-  const isPodcast = formData.type === 'Podcast';
-  const isInstagram = ['IG Post', 'Reel', 'Carousel', 'Story'].includes(formData.type);
-  const isYouTube = formData.type === 'YouTube';
+  const isEmail = formData.type === 'Newsletter';
+  const isPodcast = formData.type === 'Podcast Episode';
+  const isInstagram = ['Post', 'Reel/Short', 'Carousel', 'Story'].includes(formData.type);
+  const isYouTube = formData.type === 'Video';
   const isAd = formData.type === 'Ad';
 
   return (

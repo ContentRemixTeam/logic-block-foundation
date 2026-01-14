@@ -20,7 +20,7 @@ export function SubjectLineLibrary({ onDuplicate }: SubjectLineLibraryProps) {
   const loadItems = async () => {
     setLoading(true);
     try {
-      const data = await getContentItems({ types: ['Email'] });
+      const data = await getContentItems({ types: ['Newsletter'] });
       // Filter to only show emails with subject lines
       setItems(data.filter(item => item.subject_line?.trim()));
     } catch (error) {
