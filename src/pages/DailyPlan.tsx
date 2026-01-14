@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { CharacterCounter } from '@/components/ui/character-counter';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -1047,10 +1048,14 @@ export default function DailyPlan() {
                 placeholder="Write freely... Use #task, #idea, #thought, #offer, #win to organize"
                 className="min-h-[300px] font-mono text-sm bg-background/80 border-muted resize-y"
                 onBlur={() => saveNow()}
+                maxLength={5000}
               />
-              <p className="text-xs text-muted-foreground">
-                Quick tags: <span className="font-medium">#task</span> (add to tasks) • <span className="font-medium">#idea</span> (save idea) • <span className="font-medium">#thought</span> (save insight) • <span className="font-medium">#offer</span> (mark offer) • <span className="font-medium">#win</span> (celebrate)
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Quick tags: <span className="font-medium">#task</span> (add to tasks) • <span className="font-medium">#idea</span> (save idea) • <span className="font-medium">#thought</span> (save insight) • <span className="font-medium">#offer</span> (mark offer) • <span className="font-medium">#win</span> (celebrate)
+                </p>
+                <CharacterCounter current={scratchPadContent.length} max={5000} />
+              </div>
               <div className="flex gap-2">
                 <Button
                   type="button"
@@ -1148,8 +1153,9 @@ export default function DailyPlan() {
                   value={thought}
                   onChange={(e) => setThought(e.target.value)}
                   placeholder="What's your focus today?"
-                  maxLength={500}
+                  maxLength={300}
                 />
+                <CharacterCounter current={thought.length} max={300} className="mt-1" />
               </div>
               <div>
                 <Label htmlFor="feeling">How I Want to Feel</Label>
@@ -1158,8 +1164,9 @@ export default function DailyPlan() {
                   value={feeling}
                   onChange={(e) => setFeeling(e.target.value)}
                   placeholder="e.g., Energized, Calm, Productive"
-                  maxLength={200}
+                  maxLength={300}
                 />
+                <CharacterCounter current={feeling.length} max={300} className="mt-1" />
               </div>
             </CardContent>
           </Card>

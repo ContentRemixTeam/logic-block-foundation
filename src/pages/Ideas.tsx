@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { CharacterCounter } from '@/components/ui/character-counter';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -516,7 +517,9 @@ export default function Ideas() {
             rows={4}
             placeholder="What's your idea?"
             className="resize-none"
+            maxLength={1000}
           />
+          <CharacterCounter current={content.length} max={1000} className="mt-1" />
         </div>
         
         <div className="grid grid-cols-2 gap-4">
