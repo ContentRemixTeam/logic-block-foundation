@@ -6,9 +6,9 @@ export function PlanMyWeekButton() {
   return (
     <Link to="/weekly-plan" className="block">
       <Button 
-        className="w-full bg-gradient-to-r from-[hsl(330,81%,54%)] to-[hsl(330,81%,60%)] 
-          hover:from-[hsl(330,81%,48%)] hover:to-[hsl(330,81%,54%)] 
-          text-white rounded-full py-6 text-base font-semibold 
+        className="w-full bg-gradient-to-r from-primary to-primary/85 
+          hover:from-primary/90 hover:to-primary/75 
+          text-primary-foreground rounded-full py-6 text-base font-semibold 
           shadow-lg hover:shadow-xl transition-all duration-200
           hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]
           flex items-center justify-center gap-2"

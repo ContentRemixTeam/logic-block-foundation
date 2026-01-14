@@ -29,8 +29,8 @@ export function QuickActionsPanel({ ideasCount = 0 }: QuickActionsPanelProps) {
       label: 'Track Habits',
       href: '/habits',
       icon: Target,
-      color: 'text-[hsl(330,81%,54%)]',
-      bgColor: 'bg-[hsl(330,81%,54%)]/10',
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
     },
     {
       label: 'Weekly Review',
@@ -51,7 +51,7 @@ export function QuickActionsPanel({ ideasCount = 0 }: QuickActionsPanelProps) {
   return (
     <PremiumCard showAccent={false}>
       <div className="flex items-center gap-2 mb-4">
-        <Zap className="h-4 w-4 text-[hsl(330,81%,54%)]" />
+        <Zap className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold">Quick Actions</h3>
       </div>
       <div className="space-y-2">

@@ -116,7 +116,7 @@ export function WeeklyPlannerHeader({
             variant="outline" 
             size="sm" 
             onClick={onOpenMastermindCalls}
-            className="gap-2 text-pink-600 border-pink-200 hover:bg-pink-50 hover:text-pink-700"
+            className="gap-2 text-primary border-primary/30 hover:bg-primary/10 hover:text-primary"
           >
             <GraduationCap className="h-4 w-4" />
             Mastermind Calls
