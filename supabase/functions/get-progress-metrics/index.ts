@@ -75,10 +75,15 @@ Deno.serve(async (req) => {
 
     const cycle = cycleData[0];
 
-    // Fetch full cycle details for metric names and start values
+    // Fetch full cycle details for metric names, start values, and goals
     const { data: cycleDetails, error: cycleDetailsError } = await supabase
       .from("cycles_90_day")
-      .select("metric_1_name, metric_2_name, metric_3_name, metric_1_start, metric_2_start, metric_3_start, start_date")
+      .select(`
+        metric_1_name, metric_2_name, metric_3_name, metric_4_name, metric_5_name,
+        metric_1_start, metric_2_start, metric_3_start, metric_4_start, metric_5_start,
+        metric_1_goal, metric_2_goal, metric_3_goal, metric_4_goal, metric_5_goal,
+        start_date
+      `)
       .eq("cycle_id", cycle.cycle_id)
       .single();
 
@@ -113,7 +118,7 @@ Deno.serve(async (req) => {
     if (weekIds.length > 0) {
       const { data: reviews, error: reviewsError } = await supabase
         .from("weekly_reviews")
-        .select("week_id, metric_1_actual, metric_2_actual, metric_3_actual")
+        .select("week_id, metric_1_actual, metric_2_actual, metric_3_actual, metric_4_actual, metric_5_actual")
         .in("week_id", weekIds);
 
       if (reviewsError) {
@@ -131,6 +136,8 @@ Deno.serve(async (req) => {
           metric_1_actual: review?.metric_1_actual ?? null,
           metric_2_actual: review?.metric_2_actual ?? null,
           metric_3_actual: review?.metric_3_actual ?? null,
+          metric_4_actual: review?.metric_4_actual ?? null,
+          metric_5_actual: review?.metric_5_actual ?? null,
         };
       }) || [];
     }
@@ -140,6 +147,8 @@ Deno.serve(async (req) => {
       metric_1_actual: null as number | null,
       metric_2_actual: null as number | null,
       metric_3_actual: null as number | null,
+      metric_4_actual: null as number | null,
+      metric_5_actual: null as number | null,
     };
 
     for (let i = weeklyData.length - 1; i >= 0; i--) {
@@ -152,6 +161,12 @@ Deno.serve(async (req) => {
       }
       if (latestMetrics.metric_3_actual === null && week.metric_3_actual !== null) {
         latestMetrics.metric_3_actual = week.metric_3_actual;
+      }
+      if (latestMetrics.metric_4_actual === null && week.metric_4_actual !== null) {
+        latestMetrics.metric_4_actual = week.metric_4_actual;
+      }
+      if (latestMetrics.metric_5_actual === null && week.metric_5_actual !== null) {
+        latestMetrics.metric_5_actual = week.metric_5_actual;
       }
     }
 
@@ -168,21 +183,34 @@ Deno.serve(async (req) => {
         metric_1_name: cycleDetails.metric_1_name,
         metric_2_name: cycleDetails.metric_2_name,
         metric_3_name: cycleDetails.metric_3_name,
+        metric_4_name: cycleDetails.metric_4_name,
+        metric_5_name: cycleDetails.metric_5_name,
         metric_1_start: cycleDetails.metric_1_start,
         metric_2_start: cycleDetails.metric_2_start,
         metric_3_start: cycleDetails.metric_3_start,
+        metric_4_start: cycleDetails.metric_4_start,
+        metric_5_start: cycleDetails.metric_5_start,
+        metric_1_goal: cycleDetails.metric_1_goal,
+        metric_2_goal: cycleDetails.metric_2_goal,
+        metric_3_goal: cycleDetails.metric_3_goal,
+        metric_4_goal: cycleDetails.metric_4_goal,
+        metric_5_goal: cycleDetails.metric_5_goal,
         metric_1_current: latestMetrics.metric_1_actual,
         metric_2_current: latestMetrics.metric_2_actual,
         metric_3_current: latestMetrics.metric_3_actual,
+        metric_4_current: latestMetrics.metric_4_actual,
+        metric_5_current: latestMetrics.metric_5_actual,
         metric_1_change: calculatePercentChange(cycleDetails.metric_1_start, latestMetrics.metric_1_actual),
         metric_2_change: calculatePercentChange(cycleDetails.metric_2_start, latestMetrics.metric_2_actual),
         metric_3_change: calculatePercentChange(cycleDetails.metric_3_start, latestMetrics.metric_3_actual),
+        metric_4_change: calculatePercentChange(cycleDetails.metric_4_start, latestMetrics.metric_4_actual),
+        metric_5_change: calculatePercentChange(cycleDetails.metric_5_start, latestMetrics.metric_5_actual),
       },
       weekly_data: weeklyData,
       cycle_start_date: cycleDetails.start_date,
     };
 
-    console.log("Returning progress data:", JSON.stringify(response, null, 2));
+    console.log("Returning progress data with metrics 1-5");
 
     return new Response(JSON.stringify(response), {
       status: 200,

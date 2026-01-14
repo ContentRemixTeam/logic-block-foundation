@@ -92,23 +92,29 @@ export default function WeeklyReview() {
   // Track if initial load is complete to prevent auto-save during data population
   const isInitialLoadRef = useRef(true);
 
-  // Cycle metrics from cycle setup
+  // Cycle metrics from cycle setup (now 5 metrics)
   const [cycleMetrics, setCycleMetrics] = useState<{
     metric_1_name: string | null;
     metric_2_name: string | null;
     metric_3_name: string | null;
+    metric_4_name: string | null;
+    metric_5_name: string | null;
   } | null>(null);
 
-  // Actual metrics for this week
+  // Actual metrics for this week (5 metrics)
   const [metric1Actual, setMetric1Actual] = useState<number | ''>('');
   const [metric2Actual, setMetric2Actual] = useState<number | ''>('');
   const [metric3Actual, setMetric3Actual] = useState<number | ''>('');
+  const [metric4Actual, setMetric4Actual] = useState<number | ''>('');
+  const [metric5Actual, setMetric5Actual] = useState<number | ''>('');
 
   // Previous week's actuals for trend comparison
   const [previousMetrics, setPreviousMetrics] = useState<{
     metric_1_actual: number | null;
     metric_2_actual: number | null;
     metric_3_actual: number | null;
+    metric_4_actual: number | null;
+    metric_5_actual: number | null;
   } | null>(null);
 
   const [wins, setWins] = useState<string[]>([""]);
@@ -136,7 +142,9 @@ export default function WeeklyReview() {
     metric1Actual,
     metric2Actual,
     metric3Actual,
-  }), [weekId, wins, challenges, lessons, intentions, weeklyScore, focusReflection, shareToCommunity, metric1Actual, metric2Actual, metric3Actual]);
+    metric4Actual,
+    metric5Actual,
+  }), [weekId, wins, challenges, lessons, intentions, weeklyScore, focusReflection, shareToCommunity, metric1Actual, metric2Actual, metric3Actual, metric4Actual, metric5Actual]);
 
   // Data protection hook for auto-save, localStorage backup, and offline handling
   const {
@@ -171,6 +179,8 @@ export default function WeeklyReview() {
           metric_1_actual: data.metric1Actual === '' ? null : data.metric1Actual,
           metric_2_actual: data.metric2Actual === '' ? null : data.metric2Actual,
           metric_3_actual: data.metric3Actual === '' ? null : data.metric3Actual,
+          metric_4_actual: data.metric4Actual === '' ? null : data.metric4Actual,
+          metric_5_actual: data.metric5Actual === '' ? null : data.metric5Actual,
         }),
       });
 
@@ -258,6 +268,8 @@ export default function WeeklyReview() {
       setMetric1Actual(data.metric_1_actual ?? '');
       setMetric2Actual(data.metric_2_actual ?? '');
       setMetric3Actual(data.metric_3_actual ?? '');
+      setMetric4Actual(data.metric_4_actual ?? '');
+      setMetric5Actual(data.metric_5_actual ?? '');
       
       // Set previous week's metrics for trend comparison
       if (data.previous_metrics) {
@@ -317,6 +329,8 @@ export default function WeeklyReview() {
           metric_1_actual: metric1Actual === '' ? null : metric1Actual,
           metric_2_actual: metric2Actual === '' ? null : metric2Actual,
           metric_3_actual: metric3Actual === '' ? null : metric3Actual,
+          metric_4_actual: metric4Actual === '' ? null : metric4Actual,
+          metric_5_actual: metric5Actual === '' ? null : metric5Actual,
         }),
       });
 
@@ -467,7 +481,7 @@ export default function WeeklyReview() {
         )}
 
         {/* Actual Metrics This Week */}
-        {cycleMetrics && (cycleMetrics.metric_1_name || cycleMetrics.metric_2_name || cycleMetrics.metric_3_name) && (
+        {cycleMetrics && (cycleMetrics.metric_1_name || cycleMetrics.metric_2_name || cycleMetrics.metric_3_name || cycleMetrics.metric_4_name || cycleMetrics.metric_5_name) && (
           <Card className="border-primary/20">
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -499,6 +513,22 @@ export default function WeeklyReview() {
                   value={metric3Actual}
                   onChange={setMetric3Actual}
                   previousValue={previousMetrics?.metric_3_actual}
+                />
+              )}
+              {cycleMetrics.metric_4_name && (
+                <MetricInput
+                  name={cycleMetrics.metric_4_name}
+                  value={metric4Actual}
+                  onChange={setMetric4Actual}
+                  previousValue={previousMetrics?.metric_4_actual}
+                />
+              )}
+              {cycleMetrics.metric_5_name && (
+                <MetricInput
+                  name={cycleMetrics.metric_5_name}
+                  value={metric5Actual}
+                  onChange={setMetric5Actual}
+                  previousValue={previousMetrics?.metric_5_actual}
                 />
               )}
             </CardContent>

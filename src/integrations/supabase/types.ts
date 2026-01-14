@@ -975,12 +975,21 @@ export type Database = {
           focus_area: string | null
           goal: string
           identity: string | null
+          metric_1_goal: number | null
           metric_1_name: string | null
           metric_1_start: number | null
+          metric_2_goal: number | null
           metric_2_name: string | null
           metric_2_start: number | null
+          metric_3_goal: number | null
           metric_3_name: string | null
           metric_3_start: number | null
+          metric_4_goal: number | null
+          metric_4_name: string | null
+          metric_4_start: number | null
+          metric_5_goal: number | null
+          metric_5_name: string | null
+          metric_5_start: number | null
           nurture_score: number | null
           office_hours_days: Json | null
           office_hours_end: string | null
@@ -1019,12 +1028,21 @@ export type Database = {
           focus_area?: string | null
           goal: string
           identity?: string | null
+          metric_1_goal?: number | null
           metric_1_name?: string | null
           metric_1_start?: number | null
+          metric_2_goal?: number | null
           metric_2_name?: string | null
           metric_2_start?: number | null
+          metric_3_goal?: number | null
           metric_3_name?: string | null
           metric_3_start?: number | null
+          metric_4_goal?: number | null
+          metric_4_name?: string | null
+          metric_4_start?: number | null
+          metric_5_goal?: number | null
+          metric_5_name?: string | null
+          metric_5_start?: number | null
           nurture_score?: number | null
           office_hours_days?: Json | null
           office_hours_end?: string | null
@@ -1063,12 +1081,21 @@ export type Database = {
           focus_area?: string | null
           goal?: string
           identity?: string | null
+          metric_1_goal?: number | null
           metric_1_name?: string | null
           metric_1_start?: number | null
+          metric_2_goal?: number | null
           metric_2_name?: string | null
           metric_2_start?: number | null
+          metric_3_goal?: number | null
           metric_3_name?: string | null
           metric_3_start?: number | null
+          metric_4_goal?: number | null
+          metric_4_name?: string | null
+          metric_4_start?: number | null
+          metric_5_goal?: number | null
+          metric_5_name?: string | null
+          metric_5_start?: number | null
           nurture_score?: number | null
           office_hours_days?: Json | null
           office_hours_end?: string | null
@@ -3143,6 +3170,8 @@ export type Database = {
           metric_1_actual: number | null
           metric_2_actual: number | null
           metric_3_actual: number | null
+          metric_4_actual: number | null
+          metric_5_actual: number | null
           review_id: string
           share_to_community: boolean | null
           updated_at: string | null
@@ -3160,6 +3189,8 @@ export type Database = {
           metric_1_actual?: number | null
           metric_2_actual?: number | null
           metric_3_actual?: number | null
+          metric_4_actual?: number | null
+          metric_5_actual?: number | null
           review_id?: string
           share_to_community?: boolean | null
           updated_at?: string | null
@@ -3177,6 +3208,8 @@ export type Database = {
           metric_1_actual?: number | null
           metric_2_actual?: number | null
           metric_3_actual?: number | null
+          metric_4_actual?: number | null
+          metric_5_actual?: number | null
           review_id?: string
           share_to_community?: boolean | null
           updated_at?: string | null
