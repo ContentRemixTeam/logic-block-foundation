@@ -58,6 +58,7 @@ import {
 import { CycleFilter, CycleFilterValue, CycleBadge } from '@/components/tasks/CycleFilter';
 import { useActiveCycle } from '@/hooks/useActiveCycle';
 import { CycleTimeline } from '@/components/CycleTimeline';
+import { SOPSelector } from '@/components/tasks/SOPSelector';
 
 export default function Tasks() {
   const queryClient = useQueryClient();
@@ -1221,13 +1222,43 @@ export default function Tasks() {
                   </div>
                 </div>
 
+                {/* SOP Selector */}
+                <div>
+                  <Label>Standard Operating Procedure</Label>
+                  <SOPSelector
+                    value={selectedTask.sop_id}
+                    onChange={(sopId) => {
+                      if (sopId) {
+                        const sop = sops.find((s: SOP) => s.sop_id === sopId);
+                        setSelectedTask({ 
+                          ...selectedTask, 
+                          sop_id: sopId,
+                          sop: sop || null,
+                          checklist_progress: sop?.checklist_items?.map((item: ChecklistItem) => ({
+                            item_id: item.id,
+                            completed: false
+                          })) || []
+                        });
+                      } else {
+                        setSelectedTask({ 
+                          ...selectedTask, 
+                          sop_id: null, 
+                          sop: null,
+                          checklist_progress: []
+                        });
+                      }
+                    }}
+                    className="mt-1"
+                  />
+                </div>
+
                 {/* SOP Info */}
                 {selectedTask.sop && (
                   <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <ClipboardList className="h-5 w-5 text-primary" />
-                        <span className="font-medium text-primary">Using SOP: {selectedTask.sop.sop_name}</span>
+                        <span className="font-medium text-primary">{selectedTask.sop.sop_name}</span>
                       </div>
                       <Button variant="ghost" size="sm" onClick={() => handleDetachSop(selectedTask.task_id)}>
                         <Unlink className="h-4 w-4 mr-1" />
