@@ -481,10 +481,19 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
   // Step 8: Success Metrics, Projects, Habits, Reminders, Weekly Routines
   const [metric1Name, setMetric1Name] = useState('');
   const [metric1Start, setMetric1Start] = useState<number | ''>('');
+  const [metric1Goal, setMetric1Goal] = useState<number | ''>('');
   const [metric2Name, setMetric2Name] = useState('');
   const [metric2Start, setMetric2Start] = useState<number | ''>('');
+  const [metric2Goal, setMetric2Goal] = useState<number | ''>('');
   const [metric3Name, setMetric3Name] = useState('');
   const [metric3Start, setMetric3Start] = useState<number | ''>('');
+  const [metric3Goal, setMetric3Goal] = useState<number | ''>('');
+  const [metric4Name, setMetric4Name] = useState('');
+  const [metric4Start, setMetric4Start] = useState<number | ''>('');
+  const [metric4Goal, setMetric4Goal] = useState<number | ''>('');
+  const [metric5Name, setMetric5Name] = useState('');
+  const [metric5Start, setMetric5Start] = useState<number | ''>('');
+  const [metric5Goal, setMetric5Goal] = useState<number | ''>('');
   const [projects, setProjects] = useState<string[]>(['']);
   const [habits, setHabits] = useState<Array<{ name: string; category: string }>>([
     { name: '', category: '' },
@@ -671,10 +680,19 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
           setSignatureMessage(cycleData.signature_message || '');
           setMetric1Name(cycleData.metric_1_name || '');
           setMetric1Start(cycleData.metric_1_start ?? '');
+          setMetric1Goal(cycleData.metric_1_goal ?? '');
           setMetric2Name(cycleData.metric_2_name || '');
           setMetric2Start(cycleData.metric_2_start ?? '');
+          setMetric2Goal(cycleData.metric_2_goal ?? '');
           setMetric3Name(cycleData.metric_3_name || '');
           setMetric3Start(cycleData.metric_3_start ?? '');
+          setMetric3Goal(cycleData.metric_3_goal ?? '');
+          setMetric4Name(cycleData.metric_4_name || '');
+          setMetric4Start(cycleData.metric_4_start ?? '');
+          setMetric4Goal(cycleData.metric_4_goal ?? '');
+          setMetric5Name(cycleData.metric_5_name || '');
+          setMetric5Start(cycleData.metric_5_start ?? '');
+          setMetric5Goal(cycleData.metric_5_goal ?? '');
           setThingsToRemember(Array.isArray(cycleData.things_to_remember) ? (cycleData.things_to_remember as string[]) : ['', '', '']);
           setWeeklyPlanningDay(cycleData.weekly_planning_day || '');
           setWeeklyDebriefDay(cycleData.weekly_debrief_day || '');
@@ -1321,10 +1339,19 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
             focus_area: focusArea,
             metric_1_name: metric1Name || null,
             metric_1_start: metric1Start === '' ? null : metric1Start,
+            metric_1_goal: metric1Goal === '' ? null : metric1Goal,
             metric_2_name: metric2Name || null,
             metric_2_start: metric2Start === '' ? null : metric2Start,
+            metric_2_goal: metric2Goal === '' ? null : metric2Goal,
             metric_3_name: metric3Name || null,
             metric_3_start: metric3Start === '' ? null : metric3Start,
+            metric_3_goal: metric3Goal === '' ? null : metric3Goal,
+            metric_4_name: metric4Name || null,
+            metric_4_start: metric4Start === '' ? null : metric4Start,
+            metric_4_goal: metric4Goal === '' ? null : metric4Goal,
+            metric_5_name: metric5Name || null,
+            metric_5_start: metric5Start === '' ? null : metric5Start,
+            metric_5_goal: metric5Goal === '' ? null : metric5Goal,
             things_to_remember: thingsToRemember.filter((t) => t.trim()),
             biggest_bottleneck: biggestBottleneck || null,
             audience_target: audienceTarget || null,
@@ -1406,10 +1433,19 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
         focus_area: focusArea,
         metric_1_name: metric1Name || null,
         metric_1_start: metric1Start === '' ? null : metric1Start,
+        metric_1_goal: metric1Goal === '' ? null : metric1Goal,
         metric_2_name: metric2Name || null,
         metric_2_start: metric2Start === '' ? null : metric2Start,
+        metric_2_goal: metric2Goal === '' ? null : metric2Goal,
         metric_3_name: metric3Name || null,
         metric_3_start: metric3Start === '' ? null : metric3Start,
+        metric_3_goal: metric3Goal === '' ? null : metric3Goal,
+        metric_4_name: metric4Name || null,
+        metric_4_start: metric4Start === '' ? null : metric4Start,
+        metric_4_goal: metric4Goal === '' ? null : metric4Goal,
+        metric_5_name: metric5Name || null,
+        metric_5_start: metric5Start === '' ? null : metric5Start,
+        metric_5_goal: metric5Goal === '' ? null : metric5Goal,
         things_to_remember: thingsToRemember.filter((t) => t.trim()),
         biggest_bottleneck: biggestBottleneck || null,
         audience_target: audienceTarget || null,
@@ -4205,15 +4241,17 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
                     <BarChart3 className="h-5 w-5 text-primary" />
                     <CardTitle>Success Metrics</CardTitle>
                   </div>
-                  <CardDescription>What 3 numbers will you track weekly?</CardDescription>
+                  <CardDescription>Track up to 5 key numbers throughout your 90-day cycle</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {[
-                    { name: metric1Name, setName: setMetric1Name, value: metric1Start, setValue: setMetric1Start },
-                    { name: metric2Name, setName: setMetric2Name, value: metric2Start, setValue: setMetric2Start },
-                    { name: metric3Name, setName: setMetric3Name, value: metric3Start, setValue: setMetric3Start },
+                    { name: metric1Name, setName: setMetric1Name, start: metric1Start, setStart: setMetric1Start, goal: metric1Goal, setGoal: setMetric1Goal },
+                    { name: metric2Name, setName: setMetric2Name, start: metric2Start, setStart: setMetric2Start, goal: metric2Goal, setGoal: setMetric2Goal },
+                    { name: metric3Name, setName: setMetric3Name, start: metric3Start, setStart: setMetric3Start, goal: metric3Goal, setGoal: setMetric3Goal },
+                    { name: metric4Name, setName: setMetric4Name, start: metric4Start, setStart: setMetric4Start, goal: metric4Goal, setGoal: setMetric4Goal },
+                    { name: metric5Name, setName: setMetric5Name, start: metric5Start, setStart: setMetric5Start, goal: metric5Goal, setGoal: setMetric5Goal },
                   ].map((metric, idx) => (
-                    <div key={idx} className="grid gap-3 sm:grid-cols-2 p-3 rounded-lg border">
+                    <div key={idx} className="grid gap-3 sm:grid-cols-3 p-3 rounded-lg border">
                       <div>
                         <Label className="text-sm text-muted-foreground">Metric {idx + 1} Name</Label>
                         <Input
@@ -4222,7 +4260,9 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
                           placeholder={
                             idx === 0 ? "e.g., Email subscribers" :
                             idx === 1 ? "e.g., Sales calls booked" :
-                            "e.g., Monthly revenue"
+                            idx === 2 ? "e.g., Monthly revenue" :
+                            idx === 3 ? "e.g., Social followers" :
+                            "e.g., Product sales"
                           }
                         />
                       </div>
@@ -4230,13 +4270,25 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
                         <Label className="text-sm text-muted-foreground">Starting Value</Label>
                         <Input
                           type="number"
-                          value={metric.value}
-                          onChange={(e) => metric.setValue(e.target.value === '' ? '' : Number(e.target.value))}
+                          value={metric.start}
+                          onChange={(e) => metric.setStart(e.target.value === '' ? '' : Number(e.target.value))}
                           placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm text-muted-foreground">90-Day Goal</Label>
+                        <Input
+                          type="number"
+                          value={metric.goal}
+                          onChange={(e) => metric.setGoal(e.target.value === '' ? '' : Number(e.target.value))}
+                          placeholder="Target"
                         />
                       </div>
                     </div>
                   ))}
+                  <p className="text-xs text-muted-foreground">
+                    💡 Tip: Update your current values in Weekly Reviews to track progress on the Progress page
+                  </p>
                 </CardContent>
               </Card>
 
