@@ -17,7 +17,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Zap, Edit, Trash2, Plus, ArrowUpDown, FolderKanban, Clock, Hash, X, Loader2 } from 'lucide-react';
+import { Zap, Edit, Trash2, Plus, ArrowUpDown, FolderKanban, Clock, Hash, X, Loader2, Search } from 'lucide-react';
 import { PaginationInfo } from '@/components/ui/pagination-info';
 import { normalizeString } from '@/lib/normalize';
 import { cn } from '@/lib/utils';
@@ -69,6 +69,7 @@ export default function Ideas() {
   const [selectedPriority, setSelectedPriority] = useState<string>('all');
   const [selectedProject, setSelectedProject] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Clear highlight after 3 seconds
   useEffect(() => {
@@ -461,10 +462,19 @@ export default function Ideas() {
     }
   };
 
+  const totalIdeasBeforeFilter = ideas.length;
+  
   const filteredIdeas = ideas
     .filter((idea) => selectedCategory === 'all' || idea.category_id === selectedCategory)
     .filter((idea) => selectedPriority === 'all' || idea.priority === selectedPriority)
     .filter((idea) => selectedProject === 'all' || idea.project_id === selectedProject)
+    .filter((idea) => {
+      if (!searchQuery.trim()) return true;
+      const query = searchQuery.toLowerCase();
+      const matchesContent = idea.content?.toLowerCase().includes(query);
+      const matchesTags = idea.tags?.some(tag => tag.toLowerCase().includes(query));
+      return matchesContent || matchesTags;
+    })
     .sort((a, b) => {
       const dateA = new Date(a.created_at).getTime();
       const dateB = new Date(b.created_at).getTime();
@@ -707,6 +717,37 @@ export default function Ideas() {
               Manage Categories
             </Button>
           </div>
+        </div>
+
+        {/* Search & Filter Bar */}
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Search Input */}
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search ideas, tags..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-9"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
+                onClick={() => setSearchQuery('')}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          
+          {/* Search results count */}
+          {searchQuery && (
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
+              {filteredIdeas.length} of {totalIdeasBeforeFilter} ideas
+            </span>
+          )}
         </div>
 
         {/* Filter & Sort Bar */}
