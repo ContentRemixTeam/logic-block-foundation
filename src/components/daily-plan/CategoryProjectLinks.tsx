@@ -14,7 +14,7 @@ const categories = [
     key: 'nurture', 
     label: 'Nurture', 
     icon: Flame, 
-    color: 'bg-orange-500/10 text-orange-600 border-orange-500/20 hover:bg-orange-500/20',
+    color: 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20',
     description: 'Email & engagement'
   },
   { 

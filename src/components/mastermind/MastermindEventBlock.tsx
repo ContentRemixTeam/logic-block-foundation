@@ -76,14 +76,14 @@ export function MastermindEventBlock({
       <div
         className={cn(
           'rounded-md p-2 text-xs transition-all',
-          status === 'LIVE' && 'bg-gradient-to-r from-red-500/20 to-pink-500/20 border border-red-400',
-          status === 'STARTING_SOON' && 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-400',
-          status === 'UPCOMING' && 'bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-300/50'
+          status === 'LIVE' && 'bg-gradient-to-r from-red-500/20 to-primary/20 border border-red-400',
+          status === 'STARTING_SOON' && 'bg-gradient-to-r from-amber-500/20 to-warning/20 border border-amber-400',
+          status === 'UPCOMING' && 'bg-gradient-to-r from-primary/10 to-purple-500/10 border border-primary/30'
         )}
       >
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
-            <GraduationCap className="h-3 w-3 shrink-0 text-pink-500" />
+            <GraduationCap className="h-3 w-3 shrink-0 text-primary" />
             <span className="truncate font-medium">{title}</span>
             {status === 'LIVE' && (
               <span className="shrink-0 flex items-center gap-1 bg-red-500 text-white px-1.5 py-0.5 rounded text-[10px] font-bold">
@@ -120,15 +120,15 @@ export function MastermindEventBlock({
     <div
       className={cn(
         'rounded-lg p-3 transition-all',
-        status === 'LIVE' && 'bg-gradient-to-r from-red-500/20 to-pink-500/20 border-2 border-red-400',
-        status === 'STARTING_SOON' && 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-2 border-amber-400',
-        status === 'UPCOMING' && 'bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-300/50'
+        status === 'LIVE' && 'bg-gradient-to-r from-red-500/20 to-primary/20 border-2 border-red-400',
+        status === 'STARTING_SOON' && 'bg-gradient-to-r from-amber-500/20 to-warning/20 border-2 border-amber-400',
+        status === 'UPCOMING' && 'bg-gradient-to-r from-primary/10 to-purple-500/10 border border-primary/30'
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <GraduationCap className="h-4 w-4 text-pink-500 shrink-0" />
+            <GraduationCap className="h-4 w-4 text-primary shrink-0" />
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Mastermind Call
             </span>
@@ -154,9 +154,6 @@ export function MastermindEventBlock({
           <Button 
             size="sm" 
             variant={status === 'LIVE' ? 'destructive' : status === 'STARTING_SOON' ? 'default' : 'outline'}
-            className={cn(
-              status === 'STARTING_SOON' && 'bg-[hsl(330,81%,54%)] hover:bg-[hsl(330,81%,48%)]'
-            )}
             onClick={handleJoin}
           >
             {status === 'LIVE' ? 'Join Now' : status === 'STARTING_SOON' ? 'Join' : <ExternalLink className="h-4 w-4" />}

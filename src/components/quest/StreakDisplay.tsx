@@ -16,20 +16,20 @@ export function StreakDisplay({ compact = false }: StreakDisplayProps) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-gradient-to-r from-orange-500/10 to-orange-400/5 border border-orange-400/20">
+          <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-gradient-to-r from-quest-gold/10 to-quest-gold/5 border border-quest-gold/20">
             {/* Animated Flame */}
             <div className="relative">
-              <Flame className="h-5 w-5 text-orange-500 quest-flame animate-flame-flicker" />
+              <Flame className="h-5 w-5 text-quest-gold quest-flame animate-flame-flicker" />
               {streak >= 7 && (
                 <Sparkles className="absolute -top-1 -right-1 h-3 w-3 text-quest-gold animate-sparkle" />
               )}
             </div>
             
-            <span className="font-cinzel font-bold text-orange-600">{streak}</span>
+            <span className="font-cinzel font-bold text-quest-gold">{streak}</span>
             
             {/* Potion indicator */}
             {potions > 0 && (
-              <div className="flex items-center gap-0.5 pl-1 border-l border-orange-300/30">
+              <div className="flex items-center gap-0.5 pl-1 border-l border-quest-gold/30">
                 <FlaskConical className="h-3.5 w-3.5 text-quest-emerald quest-potion" />
                 <span className="text-xs font-medium text-quest-emerald">{potions}</span>
               </div>
@@ -46,15 +46,15 @@ export function StreakDisplay({ compact = false }: StreakDisplayProps) {
   }
 
   return (
-    <div className="relative rounded-xl border-2 border-orange-400/30 bg-gradient-to-br from-orange-50 to-amber-50/50 p-4 overflow-hidden">
+    <div className="relative rounded-xl border-2 border-quest-gold/30 bg-gradient-to-br from-amber-50 to-yellow-50/50 p-4 overflow-hidden">
       {/* Background flame effect */}
-      <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-gradient-to-t from-orange-400/10 to-transparent rounded-full blur-xl" />
+      <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-gradient-to-t from-quest-gold/10 to-transparent rounded-full blur-xl" />
       
       <div className="relative flex items-center justify-between">
         <div className="flex items-center gap-3">
           {/* Animated Flame Icon */}
           <div className="relative">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shadow-lg">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-quest-gold to-quest-copper flex items-center justify-center shadow-lg">
               <Flame className="h-7 w-7 text-white animate-flame-flicker" />
             </div>
             {streak >= 7 && (
@@ -65,14 +65,14 @@ export function StreakDisplay({ compact = false }: StreakDisplayProps) {
           </div>
           
           <div>
-            <h3 className="font-cinzel font-semibold text-[hsl(30,50%,25%)]">Daily Debrief Streak</h3>
+            <h3 className="font-cinzel font-semibold text-foreground">Daily Debrief Streak</h3>
             <p className="text-xs text-muted-foreground">Keep the fire burning!</p>
           </div>
         </div>
         
         {/* Streak Number */}
         <div className="text-right">
-          <span className="font-cinzel text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-orange-500 to-red-600">
+          <span className="font-cinzel text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-quest-gold to-quest-copper">
             {streak}
           </span>
           <p className="text-xs text-muted-foreground">days</p>
@@ -80,7 +80,7 @@ export function StreakDisplay({ compact = false }: StreakDisplayProps) {
       </div>
       
       {/* Stats Row */}
-      <div className="mt-4 pt-3 border-t border-orange-200/50 flex items-center justify-between">
+      <div className="mt-4 pt-3 border-t border-quest-gold/20 flex items-center justify-between">
         <div className="flex items-center gap-4">
           {/* Potions */}
           <div className="flex items-center gap-1.5">
@@ -110,7 +110,7 @@ export function StreakDisplay({ compact = false }: StreakDisplayProps) {
         {/* Longest Streak */}
         <div className="text-right">
           <span className="text-xs text-muted-foreground">Longest: </span>
-          <span className="text-sm font-semibold text-orange-600">{longestStreak} days</span>
+          <span className="text-sm font-semibold text-quest-gold">{longestStreak} days</span>
         </div>
       </div>
       

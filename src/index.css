@@ -169,6 +169,11 @@
     --sidebar-accent-foreground: 16 90% 45%;
     --sidebar-ring: 16 90% 55%;
     
+    /* Override BP variables to use vibrant orange */
+    --bp-primary: 16 90% 55%;
+    --bp-primary-soft: 16 76% 83%;
+    --theme-pink: 16 90% 55%;
+    
     /* Warmer background tones */
     --background: 30 30% 99%;
     --surface: 30 20% 100%;
@@ -217,6 +222,11 @@
     --sidebar-accent: 45 30% 92%;
     --sidebar-border: 45 30% 85%;
 
+    /* Override BP variables to use quest gold */
+    --bp-primary: 45 93% 47%;
+    --bp-primary-soft: 45 76% 83%;
+    --theme-pink: 45 93% 47%;
+
     --font-heading: 'Cinzel', serif;
   }
 
@@ -243,6 +253,11 @@
     --accent: 0 0% 23%;
     --ring: 0 0% 9%;
     --sidebar-primary: 0 0% 9%;
+    
+    /* Override BP variables to use black */
+    --bp-primary: 0 0% 9%;
+    --bp-primary-soft: 0 0% 60%;
+    --theme-pink: 0 0% 9%;
   }
 
   /* ===== DARK MODE ===== */
