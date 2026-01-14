@@ -10,7 +10,7 @@ const corsHeaders = {
 
 const TaskPrioritySchema = z.enum(['low', 'medium', 'high']).nullable().optional();
 const TaskEnergyLevelSchema = z.enum(['low', 'medium', 'high']).nullable().optional();
-const TaskStatusSchema = z.enum(['backlog', 'todo', 'in_progress', 'blocked', 'done']).nullable().optional();
+const TaskStatusSchema = z.enum(['backlog', 'todo', 'in_progress', 'blocked', 'done', 'focus', 'scheduled', 'waiting', 'someday']).nullable().optional();
 
 // Shared optional fields for update operations
 const OptionalTaskFields = z.object({
