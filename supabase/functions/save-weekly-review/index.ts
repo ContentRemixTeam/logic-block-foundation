@@ -41,7 +41,11 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { week_id, wins, challenges, lessons, intentions, weekly_score, focus_reflection, metric_1_actual, metric_2_actual, metric_3_actual, share_to_community, goal_support } = body;
+    const { 
+      week_id, wins, challenges, lessons, intentions, weekly_score, focus_reflection, 
+      metric_1_actual, metric_2_actual, metric_3_actual, metric_4_actual, metric_5_actual,
+      share_to_community, goal_support 
+    } = body;
 
     console.log('Save request:', { week_id, userId, hasWins: Boolean(wins) });
 
@@ -73,7 +77,7 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Update or insert review
+    // Update or insert review with all 5 metrics
     const { error: upsertError } = await supabase
       .from('weekly_reviews')
       .upsert({
@@ -86,6 +90,8 @@ Deno.serve(async (req) => {
         metric_1_actual: metric_1_actual ?? null,
         metric_2_actual: metric_2_actual ?? null,
         metric_3_actual: metric_3_actual ?? null,
+        metric_4_actual: metric_4_actual ?? null,
+        metric_5_actual: metric_5_actual ?? null,
         share_to_community: share_to_community ?? false,
         goal_support: goal_support || null,
         updated_at: new Date().toISOString(),
@@ -101,7 +107,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log('Review saved successfully');
+    console.log('Review saved successfully with metrics 1-5');
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,

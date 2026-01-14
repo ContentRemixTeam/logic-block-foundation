@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch full cycle data including focus_area and metric names
+    // Fetch full cycle data including focus_area and metric names (now 1-5)
     const { data: fullCycleData } = await supabase
       .from('cycles_90_day')
       .select('*')
@@ -98,6 +98,8 @@ Deno.serve(async (req) => {
       metric_1_name: fullCycleData?.metric_1_name || null,
       metric_2_name: fullCycleData?.metric_2_name || null,
       metric_3_name: fullCycleData?.metric_3_name || null,
+      metric_4_name: fullCycleData?.metric_4_name || null,
+      metric_5_name: fullCycleData?.metric_5_name || null,
     };
 
     // Get current week
@@ -208,7 +210,7 @@ Deno.serve(async (req) => {
     if (previousWeekPlan) {
       const { data: prevReview } = await supabase
         .from('weekly_reviews')
-        .select('metric_1_actual, metric_2_actual, metric_3_actual')
+        .select('metric_1_actual, metric_2_actual, metric_3_actual, metric_4_actual, metric_5_actual')
         .eq('user_id', userId)
         .eq('week_id', previousWeekPlan.week_id)
         .maybeSingle();
@@ -218,6 +220,8 @@ Deno.serve(async (req) => {
           metric_1_actual: prevReview.metric_1_actual,
           metric_2_actual: prevReview.metric_2_actual,
           metric_3_actual: prevReview.metric_3_actual,
+          metric_4_actual: prevReview.metric_4_actual,
+          metric_5_actual: prevReview.metric_5_actual,
         };
       }
     }
@@ -279,6 +283,8 @@ Deno.serve(async (req) => {
       metric_1_actual: existingReview?.metric_1_actual || null,
       metric_2_actual: existingReview?.metric_2_actual || null,
       metric_3_actual: existingReview?.metric_3_actual || null,
+      metric_4_actual: existingReview?.metric_4_actual || null,
+      metric_5_actual: existingReview?.metric_5_actual || null,
       previous_metrics: previousMetrics,
       // Goal rewrite from weekly plan (reminder)
       goal_rewrite: weekPlanData?.goal_rewrite || '',
@@ -297,10 +303,14 @@ Deno.serve(async (req) => {
         metric_2_start: fullCycleData.metric_2_start,
         metric_3_name: fullCycleData.metric_3_name,
         metric_3_start: fullCycleData.metric_3_start,
+        metric_4_name: fullCycleData.metric_4_name,
+        metric_4_start: fullCycleData.metric_4_start,
+        metric_5_name: fullCycleData.metric_5_name,
+        metric_5_start: fullCycleData.metric_5_start,
       } : null,
     };
 
-    console.log('Returning review data:', response);
+    console.log('Returning review data with metrics 1-5');
 
     return new Response(JSON.stringify(response), {
       status: 200,
