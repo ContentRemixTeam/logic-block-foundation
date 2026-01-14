@@ -3,6 +3,7 @@ import { useTour } from '@/hooks/useTour';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sparkles, Rocket, X } from 'lucide-react';
+import { getStorageItem } from '@/lib/storage';
 
 export function TourWelcome() {
   const { hasSeenTour, startTour, markTourComplete, isActive, isLoading } = useTour();
@@ -15,11 +16,14 @@ export function TourWelcome() {
     markTourComplete();
   };
 
+  // Extra safety: check localStorage directly as backup for mobile browsers
+  const localStorageSeen = getStorageItem('ninety-day-planner-tour-seen') === 'true';
+
   // Don't show if:
   // - Still loading tour state from database
-  // - Tour has been seen (persisted in database)
+  // - Tour has been seen (persisted in database OR localStorage)
   // - Tour is already active
-  if (isLoading || hasSeenTour || isActive) return null;
+  if (isLoading || hasSeenTour || localStorageSeen || isActive) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 animate-in fade-in-0 duration-300">
