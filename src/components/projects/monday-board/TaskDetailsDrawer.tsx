@@ -1,4 +1,4 @@
-import { Task, ENERGY_LEVELS, CONTEXT_TAGS, ChecklistItem, ChecklistProgress } from '@/components/tasks/types';
+import { Task, ENERGY_LEVELS, ChecklistItem, ChecklistProgress } from '@/components/tasks/types';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { SOPSelector } from '@/components/tasks/SOPSelector';
 import { useSOPs } from '@/hooks/useSOPs';
 import { CoachYourselfModal, CoachingHistorySection } from '@/components/coaching';
+import { TagManager } from '@/components/tasks/TagManager';
 
 interface TaskDetailsDrawerProps {
   task: Task | null;
@@ -227,18 +228,11 @@ export function TaskDetailsDrawer({ task, onClose, onUpdate, onDelete }: TaskDet
           {/* Tags */}
           <div className="space-y-2">
             <Label>Tags</Label>
-            <div className="flex flex-wrap gap-2">
-              {CONTEXT_TAGS.map(tag => (
-                <Badge
-                  key={tag.value}
-                  variant={(localTask.context_tags || []).includes(tag.value) ? 'default' : 'outline'}
-                  className="cursor-pointer"
-                  onClick={() => handleTagToggle(tag.value)}
-                >
-                  {tag.icon} {tag.label}
-                </Badge>
-              ))}
-            </div>
+            <TagManager
+              selectedTags={localTask.context_tags || []}
+              onTagsChange={(tags) => setLocalTask({ ...localTask, context_tags: tags })}
+              showManageButton={false}
+            />
           </div>
 
           {/* SOP */}

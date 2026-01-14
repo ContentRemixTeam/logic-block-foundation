@@ -2810,6 +2810,36 @@ export type Database = {
           },
         ]
       }
+      user_context_tags: {
+        Row: {
+          created_at: string | null
+          icon: string
+          id: string
+          label: string
+          sort_order: number | null
+          user_id: string
+          value: string
+        }
+        Insert: {
+          created_at?: string | null
+          icon?: string
+          id?: string
+          label: string
+          sort_order?: number | null
+          user_id: string
+          value: string
+        }
+        Update: {
+          created_at?: string | null
+          icon?: string
+          id?: string
+          label?: string
+          sort_order?: number | null
+          user_id?: string
+          value?: string
+        }
+        Relationships: []
+      }
       user_custom_options: {
         Row: {
           created_at: string | null
