@@ -107,14 +107,14 @@ Deno.serve(async (req) => {
         .eq('week_id', week.week_id)
         .maybeSingle();
       
-      // Fetch previous week's goal_rewrite for autofill
+      // Fetch previous week's data for autofill and carry-over
       const previousWeekStart = new Date(week.start_of_week);
       previousWeekStart.setDate(previousWeekStart.getDate() - 7);
       const previousWeekStr = previousWeekStart.toISOString().split('T')[0];
       
       const { data: previousWeekData } = await supabaseClient
         .from('weekly_plans')
-        .select('goal_rewrite')
+        .select('week_id, goal_rewrite, top_3_priorities')
         .eq('user_id', userId)
         .eq('start_of_week', previousWeekStr)
         .maybeSingle();
@@ -189,6 +189,9 @@ Deno.serve(async (req) => {
             goal_rewrite: fullWeekData?.goal_rewrite || '',
             previous_goal_rewrite: previousWeekData?.goal_rewrite || '',
             cycle_goal: fullCycleData?.goal || '',
+            // Last week's priorities for carry-over
+            last_week_priorities: previousWeekData?.top_3_priorities || [],
+            last_week_id: previousWeekData?.week_id || null,
             // Full cycle data for CycleSnapshotCard
             cycle: fullCycleData ? {
               cycle_id: fullCycleData.cycle_id,
