@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { CharacterCounter } from '@/components/ui/character-counter';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
@@ -903,7 +904,9 @@ export default function Notes() {
                 value={pageTitle}
                 onChange={(e) => setPageTitle(e.target.value)}
                 className="text-lg font-medium"
+                maxLength={100}
               />
+              <CharacterCounter current={pageTitle.length} max={100} className="mt-1" />
               
               {/* Project Selector */}
               <div className="space-y-2">
@@ -988,7 +991,9 @@ export default function Notes() {
                 value={pageContent}
                 onChange={(e) => setPageContent(e.target.value)}
                 className="min-h-[250px] resize-none"
+                maxLength={10000}
               />
+              <CharacterCounter current={pageContent.length} max={10000} className="mt-1" />
             </div>
             <DialogFooter className="gap-2">
               <Button variant="outline" onClick={closePageModal}>

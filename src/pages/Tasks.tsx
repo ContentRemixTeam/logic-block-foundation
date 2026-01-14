@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { CharacterCounter } from '@/components/ui/character-counter';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -776,7 +777,9 @@ export default function Tasks() {
                   value={newTaskText}
                   onChange={(e) => setNewTaskText(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleAddTask()}
+                  maxLength={200}
                 />
+                <CharacterCounter current={newTaskText.length} max={200} className="mt-1" />
               </div>
 
               {/* Duration & Energy */}
@@ -879,7 +882,9 @@ export default function Tasks() {
                   value={newTaskDescription}
                   onChange={(e) => setNewTaskDescription(e.target.value)}
                   className="min-h-[100px] mt-1"
+                  maxLength={1000}
                 />
+                <CharacterCounter current={newTaskDescription.length} max={1000} className="mt-1" />
               </div>
 
               <div className="flex gap-4">
@@ -993,7 +998,9 @@ export default function Tasks() {
                       value={selectedTask.task_text}
                       onChange={(e) => setSelectedTask({ ...selectedTask, task_text: e.target.value })}
                       className="text-lg font-medium"
+                      maxLength={200}
                     />
+                    <CharacterCounter current={selectedTask.task_text.length} max={200} className="mt-1" />
                   </div>
                 </div>
 
@@ -1155,7 +1162,9 @@ export default function Tasks() {
                     onChange={(e) => setSelectedTask({ ...selectedTask, notes: e.target.value })}
                     placeholder="Add notes..."
                     className="min-h-[80px] mt-1"
+                    maxLength={500}
                   />
+                  <CharacterCounter current={(selectedTask.notes || '').length} max={500} className="mt-1" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
