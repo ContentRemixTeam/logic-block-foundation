@@ -157,8 +157,8 @@ export default function Notes() {
       if (response.error) throw response.error;
       return response.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['journal-pages'] });
+    onSuccess: async () => {
+      await queryClient.refetchQueries({ queryKey: ['journal-pages'] });
       toast.success(editingPage ? 'Page updated' : 'Page created');
       closePageModal();
     },
