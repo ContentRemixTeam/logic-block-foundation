@@ -12,7 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { LoadingState } from '@/components/system/LoadingState';
-import { Plus, Pencil, Trash2, Copy, ClipboardList, X, Link as LinkIcon, GripVertical, ExternalLink } from 'lucide-react';
+import { Plus, Pencil, Trash2, Copy, ClipboardList, X, Link as LinkIcon, GripVertical, ExternalLink, Eye } from 'lucide-react';
 
 interface ChecklistItem {
   id: string;
@@ -47,7 +47,9 @@ export default function SOPs() {
   const [sops, setSOPs] = useState<SOP[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [sopToDelete, setSOPToDelete] = useState<SOP | null>(null);
+  const [viewingSOP, setViewingSOP] = useState<SOP | null>(null);
   
   // Form state
   const [editingSOP, setEditingSOP] = useState<SOP | null>(null);
@@ -287,7 +289,14 @@ export default function SOPs() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {sops.map((sop) => (
-              <Card key={sop.sop_id} className="hover:shadow-md transition-shadow">
+              <Card 
+                key={sop.sop_id} 
+                className="hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => {
+                  setViewingSOP(sop);
+                  setIsViewDialogOpen(true);
+                }}
+              >
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-start justify-between">
                     <span className="truncate">{sop.sop_name}</span>
@@ -304,7 +313,18 @@ export default function SOPs() {
                     <span>•</span>
                     <span>Used {sop.times_used} times</span>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setViewingSOP(sop);
+                        setIsViewDialogOpen(true);
+                      }}
+                    >
+                      <Eye className="h-3 w-3 mr-1" />
+                      View
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
@@ -504,6 +524,94 @@ export default function SOPs() {
             </Button>
             <Button onClick={handleSave} disabled={saving || !sopName.trim()}>
               {saving ? 'Saving...' : editingSOP ? 'Save Changes' : 'Create SOP'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* View SOP Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-primary" />
+              {viewingSOP?.sop_name}
+            </DialogTitle>
+            {viewingSOP?.description && (
+              <DialogDescription>{viewingSOP.description}</DialogDescription>
+            )}
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Checklist Items - Read Only */}
+            {viewingSOP?.checklist_items && viewingSOP.checklist_items.length > 0 && (
+              <div>
+                <Label className="font-semibold">Checklist</Label>
+                <div className="mt-2 space-y-2">
+                  {viewingSOP.checklist_items.map((item, index) => (
+                    <div key={item.id} className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                      <span className="text-muted-foreground w-6">{index + 1}.</span>
+                      <span>{item.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Links - Clickable */}
+            {viewingSOP?.links && viewingSOP.links.length > 0 && (
+              <div>
+                <Label className="font-semibold flex items-center gap-2">
+                  <LinkIcon className="h-4 w-4" />
+                  Useful Links
+                </Label>
+                <div className="mt-2 space-y-2">
+                  {viewingSOP.links.map(link => (
+                    <a 
+                      key={link.id} 
+                      href={link.url} 
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-2 bg-muted/50 rounded hover:bg-muted transition-colors"
+                    >
+                      <ExternalLink className="h-4 w-4 text-primary" />
+                      <span>{link.title}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Notes - Read Only */}
+            {viewingSOP?.notes && (
+              <div>
+                <Label className="font-semibold">Notes</Label>
+                <p className="mt-2 text-muted-foreground whitespace-pre-wrap bg-muted/50 p-3 rounded">
+                  {viewingSOP.notes}
+                </p>
+              </div>
+            )}
+
+            {/* Empty state if no content */}
+            {(!viewingSOP?.checklist_items || viewingSOP.checklist_items.length === 0) && 
+             (!viewingSOP?.links || viewingSOP.links.length === 0) && 
+             !viewingSOP?.notes && (
+              <p className="text-muted-foreground text-center py-4">
+                This SOP has no checklist items, links, or notes yet.
+              </p>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+              Close
+            </Button>
+            <Button onClick={() => {
+              setIsViewDialogOpen(false);
+              if (viewingSOP) openEditDialog(viewingSOP);
+            }}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit
             </Button>
           </div>
         </DialogContent>
