@@ -44,7 +44,7 @@ import { MastermindCallWidget } from '@/components/mastermind/MastermindCallWidg
 import { PodcastWidget } from '@/components/podcast/PodcastWidget';
 import { HelpButton } from '@/components/ui/help-button';
 import { PremiumCard, PremiumCardContent, PremiumCardHeader, PremiumCardTitle } from '@/components/ui/premium-card';
-import { TodayStrip, PlanMyWeekButton, QuickActionsPanel, ResourcesPanel, MetricsWidget, WeeklyRoutineReminder, PromotionCountdown, SalesCalendar, First3DaysChecklist, getFirst3DaysCheckedState, saveFirst3DaysCheckedState } from '@/components/dashboard';
+import { TodayStrip, PlanMyWeekButton, QuickActionsPanel, ResourcesPanel, MetricsWidget, WeeklyRoutineReminder, PromotionCountdown, SalesCalendar, First3DaysChecklist, getFirst3DaysCheckedState, saveFirst3DaysCheckedState, WinsCard } from '@/components/dashboard';
 import { DataRecoveredPopup } from '@/components/DataRecoveredPopup';
 import { ContinueSetupBanner } from '@/components/cycle/ContinueSetupBanner';
 import { supabase as supabaseClient } from '@/integrations/supabase/client';
@@ -1130,6 +1130,9 @@ export default function Dashboard() {
               
               {/* Success Metrics Widget */}
               <MetricsWidget metrics={metricsData} />
+              
+              {/* Recent Wins Card */}
+              <WinsCard />
 
               {/* Revenue Goal Tracker */}
               {revenueGoal && (
