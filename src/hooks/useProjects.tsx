@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Project, ProjectColumn } from '@/types/project';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
+import { showOperationError } from '@/components/system/ErrorToast';
 
 export const projectQueryKeys = {
   all: ['projects'] as const,
@@ -85,8 +86,7 @@ export function useProjectMutations() {
       toast.success('Project created');
     },
     onError: (error) => {
-      toast.error('Failed to create project');
-      console.error('Create project error:', error);
+      showOperationError('create', 'Project', error);
     },
   });
 
@@ -107,8 +107,7 @@ export function useProjectMutations() {
       toast.success('Project updated');
     },
     onError: (error) => {
-      toast.error('Failed to update project');
-      console.error('Update project error:', error);
+      showOperationError('update', 'Project', error);
     },
   });
 
@@ -129,8 +128,7 @@ export function useProjectMutations() {
       toast.success('Project deleted');
     },
     onError: (error) => {
-      toast.error('Failed to delete project');
-      console.error('Delete project error:', error);
+      showOperationError('delete', 'Project', error);
     },
   });
 
@@ -159,8 +157,7 @@ export function useProjectMutations() {
       toast.success('Project created from template');
     },
     onError: (error) => {
-      toast.error('Failed to create from template');
-      console.error('Duplicate template error:', error);
+      showOperationError('create', 'Project', error);
     },
   });
 

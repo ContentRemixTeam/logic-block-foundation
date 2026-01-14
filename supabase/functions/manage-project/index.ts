@@ -5,6 +5,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// User-friendly error messages
+const ERROR_MESSAGES = {
+  NO_AUTH: { code: 'AUTH_REQUIRED', message: 'Please log in to continue.' },
+  INVALID_TOKEN: { code: 'SESSION_EXPIRED', message: 'Your session has expired. Please refresh the page.' },
+  INVALID_ACTION: { code: 'INVALID_ACTION', message: 'Invalid operation requested.' },
+  NOT_FOUND: { code: 'NOT_FOUND', message: 'Project not found or you don\'t have access to it.' },
+  NAME_REQUIRED: { code: 'VALIDATION_ERROR', message: 'Project name is required.' },
+  SERVER_ERROR: { code: 'SERVER_ERROR', message: 'Something went wrong. Please try again.' },
+};
+
+function errorResponse(error: typeof ERROR_MESSAGES[keyof typeof ERROR_MESSAGES], status: number, technical?: string) {
+  console.error(`[manage-project] ${error.code}: ${technical || error.message}`);
+  return new Response(
+    JSON.stringify({ error: error.message, code: error.code, technical }),
+    { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
 function getUserIdFromJWT(authHeader: string): string | null {
   try {
     const token = authHeader.replace('Bearer ', '');
@@ -32,18 +50,12 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return errorResponse(ERROR_MESSAGES.NO_AUTH, 401);
     }
 
     const userId = getUserIdFromJWT(authHeader);
     if (!userId) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return errorResponse(ERROR_MESSAGES.INVALID_TOKEN, 401);
     }
 
     const supabase = createClient(
@@ -56,11 +68,15 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case 'create': {
+        if (!project?.name?.trim()) {
+          return errorResponse(ERROR_MESSAGES.NAME_REQUIRED, 400);
+        }
+        
         const { data, error } = await supabase
           .from('projects')
           .insert({
             user_id: userId,
-            name: project.name,
+            name: project.name.trim(),
             description: project.description || null,
             status: project.status || 'active',
             color: project.color || '#6366f1',
@@ -74,10 +90,7 @@ Deno.serve(async (req) => {
 
         if (error) {
           console.error('Error creating project:', error);
-          return new Response(JSON.stringify({ error: error.message }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
+          return errorResponse(ERROR_MESSAGES.SERVER_ERROR, 500, error.message);
         }
 
         return new Response(JSON.stringify({ data }), {
@@ -87,6 +100,10 @@ Deno.serve(async (req) => {
       }
 
       case 'update': {
+        if (!project?.id) {
+          return errorResponse(ERROR_MESSAGES.NOT_FOUND, 400);
+        }
+        
         const { data, error } = await supabase
           .from('projects')
           .update({
@@ -107,10 +124,10 @@ Deno.serve(async (req) => {
 
         if (error) {
           console.error('Error updating project:', error);
-          return new Response(JSON.stringify({ error: error.message }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
+          if (error.code === 'PGRST116') {
+            return errorResponse(ERROR_MESSAGES.NOT_FOUND, 404);
+          }
+          return errorResponse(ERROR_MESSAGES.SERVER_ERROR, 500, error.message);
         }
 
         return new Response(JSON.stringify({ data }), {
@@ -120,7 +137,18 @@ Deno.serve(async (req) => {
       }
 
       case 'delete': {
-        // First, remove project_id from all tasks in this project
+        if (!project?.id) {
+          return errorResponse(ERROR_MESSAGES.NOT_FOUND, 400);
+        }
+        
+        // First check if project has tasks
+        const { count: taskCount } = await supabase
+          .from('tasks')
+          .select('*', { count: 'exact', head: true })
+          .eq('project_id', project.id)
+          .eq('user_id', userId);
+        
+        // Remove project_id from all tasks in this project
         await supabase
           .from('tasks')
           .update({ project_id: null, project_column: 'todo' })
@@ -135,13 +163,15 @@ Deno.serve(async (req) => {
 
         if (error) {
           console.error('Error deleting project:', error);
-          return new Response(JSON.stringify({ error: error.message }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
+          return errorResponse(ERROR_MESSAGES.SERVER_ERROR, 500, error.message);
         }
 
-        return new Response(JSON.stringify({ success: true }), {
+        return new Response(JSON.stringify({ 
+          success: true,
+          message: taskCount && taskCount > 0 
+            ? `Project deleted. ${taskCount} task(s) were moved to your inbox.`
+            : 'Project deleted.'
+        }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -157,10 +187,7 @@ Deno.serve(async (req) => {
           .single();
 
         if (fetchError || !template) {
-          return new Response(JSON.stringify({ error: 'Template not found' }), {
-            status: 404,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
+          return errorResponse(ERROR_MESSAGES.NOT_FOUND, 404);
         }
 
         // Create new project from template
@@ -180,10 +207,8 @@ Deno.serve(async (req) => {
           .single();
 
         if (createError) {
-          return new Response(JSON.stringify({ error: createError.message }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
+          console.error('Error creating from template:', createError);
+          return errorResponse(ERROR_MESSAGES.SERVER_ERROR, 500, createError.message);
         }
 
         return new Response(JSON.stringify({ data: newProject }), {
@@ -193,16 +218,10 @@ Deno.serve(async (req) => {
       }
 
       default:
-        return new Response(JSON.stringify({ error: 'Invalid action' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return errorResponse(ERROR_MESSAGES.INVALID_ACTION, 400);
     }
   } catch (error) {
     console.error('Unexpected error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return errorResponse(ERROR_MESSAGES.SERVER_ERROR, 500, String(error));
   }
 });

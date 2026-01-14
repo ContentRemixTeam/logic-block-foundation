@@ -7,6 +7,7 @@ import { format, endOfWeek } from 'date-fns';
 import { checkAndHandleRateLimit } from '@/lib/rateLimitHandler';
 import { Task } from '@/components/tasks/types';
 import { mutationLogger } from '@/components/dev/DevDebugPanel';
+import { showOperationError } from '@/components/system/ErrorToast';
 
 // Re-export the Task type for convenience
 export type { Task } from '@/components/tasks/types';
@@ -197,7 +198,7 @@ export function useTaskMutations() {
       if (context?.previousTasks) {
         queryClient.setQueryData(taskQueryKeys.all, context.previousTasks);
       }
-      toast.error('Failed to create task');
+      showOperationError('create', 'Task', err);
     },
     onSuccess: (createdTask, _variables, context) => {
       // Replace the optimistic task with the real one
@@ -261,7 +262,7 @@ export function useTaskMutations() {
       if (context?.previousTasks) {
         queryClient.setQueryData(taskQueryKeys.all, context.previousTasks);
       }
-      toast.error('Failed to update task');
+      showOperationError('update', 'Task', err);
     },
   });
 
@@ -294,7 +295,7 @@ export function useTaskMutations() {
       if (context?.previousTasks) {
         queryClient.setQueryData(taskQueryKeys.all, context.previousTasks);
       }
-      toast.error('Failed to update task');
+      showOperationError('update', 'Task', err);
     },
   });
 
@@ -324,7 +325,7 @@ export function useTaskMutations() {
       if (context?.previousTasks) {
         queryClient.setQueryData(taskQueryKeys.all, context.previousTasks);
       }
-      toast.error('Failed to delete task');
+      showOperationError('delete', 'Task', err);
     },
     onSuccess: () => {
       toast.success('Task deleted');
@@ -365,7 +366,7 @@ export function useTaskMutations() {
       if (context?.previousTasks) {
         queryClient.setQueryData(taskQueryKeys.all, context.previousTasks);
       }
-      toast.error('Failed to move task');
+      showOperationError('update', 'Task', err);
     },
   });
 
@@ -402,7 +403,7 @@ export function useTaskMutations() {
       if (context?.previousTasks) {
         queryClient.setQueryData(taskQueryKeys.all, context.previousTasks);
       }
-      toast.error('Failed to update time block');
+      showOperationError('update', 'Task', err);
     },
   });
 

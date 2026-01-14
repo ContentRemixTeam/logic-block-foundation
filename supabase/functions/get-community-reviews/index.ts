@@ -45,8 +45,12 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error('Error in get-community-reviews:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ error: message }), {
+    const technicalMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(JSON.stringify({ 
+      error: 'Couldn\'t load community reviews. Please try again.',
+      code: 'LOAD_ERROR',
+      technical: technicalMessage 
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
