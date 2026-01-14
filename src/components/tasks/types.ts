@@ -83,10 +83,14 @@ export interface Task {
   last_rescheduled_at?: string | null;
   reschedule_loop_active?: boolean;
   reschedule_nudge_dismissed_until?: string | null;
+  // Custom recurrence fields
+  recurrence_interval?: number | null;
+  recurrence_unit?: 'days' | 'weeks' | 'months' | null;
+  recurrence_end_date?: string | null;
 }
 
 export type FilterTab = 'today' | 'week' | 'future' | 'all' | 'completed';
-export type RecurrencePattern = 'none' | 'daily' | 'weekly' | 'monthly';
+export type RecurrencePattern = 'none' | 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'custom';
 export type DeleteType = 'single' | 'future' | 'all';
 export type ViewMode = 'list' | 'kanban' | 'timeline' | 'database' | 'board';
 export type EnergyLevel = 'high_focus' | 'medium' | 'low_energy';

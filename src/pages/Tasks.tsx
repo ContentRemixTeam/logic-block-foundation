@@ -117,6 +117,9 @@ export default function Tasks() {
   const [newRecurrencePattern, setNewRecurrencePattern] = useState<RecurrencePattern>('none');
   const [newRecurrenceDays, setNewRecurrenceDays] = useState<string[]>([]);
   const [newMonthlyDay, setNewMonthlyDay] = useState<number>(1);
+  const [newRecurrenceInterval, setNewRecurrenceInterval] = useState<number>(1);
+  const [newRecurrenceUnit, setNewRecurrenceUnit] = useState<'days' | 'weeks' | 'months'>('weeks');
+  const [newRecurrenceEndDate, setNewRecurrenceEndDate] = useState<Date | undefined>();
   const [selectedSopId, setSelectedSopId] = useState<string>('');
   const [newChecklistProgress, setNewChecklistProgress] = useState<ChecklistProgress[]>([]);
   const [newEstimatedMinutes, setNewEstimatedMinutes] = useState<number | null>(null);
@@ -428,7 +431,12 @@ export default function Tasks() {
           ? newRecurrenceDays 
           : newRecurrencePattern === 'monthly' 
             ? [String(newMonthlyDay)] 
-            : [],
+            : newRecurrencePattern === 'weekdays'
+              ? ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+              : [],
+        recurrence_interval: newRecurrencePattern === 'custom' ? newRecurrenceInterval : null,
+        recurrence_unit: newRecurrencePattern === 'custom' ? newRecurrenceUnit : null,
+        recurrence_end_date: newRecurrenceEndDate ? format(newRecurrenceEndDate, 'yyyy-MM-dd') : null,
         sop_id: selectedSopId && selectedSopId !== 'none' ? selectedSopId : null,
         checklist_progress: newChecklistProgress,
         estimated_minutes: newEstimatedMinutes,
@@ -452,6 +460,9 @@ export default function Tasks() {
     setNewRecurrencePattern('none');
     setNewRecurrenceDays([]);
     setNewMonthlyDay(1);
+    setNewRecurrenceInterval(1);
+    setNewRecurrenceUnit('weeks');
+    setNewRecurrenceEndDate(undefined);
     setSelectedSopId('');
     setNewChecklistProgress([]);
     setNewEstimatedMinutes(null);
@@ -589,13 +600,21 @@ export default function Tasks() {
     setIsAddDialogOpen(true);
   };
 
-  const getRecurrenceLabel = (pattern: string | null, days: string[] | null) => {
+  const getRecurrenceLabel = (pattern: string | null, days: string[] | null, task?: Task) => {
     switch (pattern) {
       case 'daily': return 'Every day';
+      case 'weekdays': return 'Every weekday (Mon-Fri)';
       case 'weekly': return days?.length ? `Every ${days.join(', ')}` : 'Weekly';
+      case 'biweekly': return days?.length ? `Every 2 weeks on ${days.join(', ')}` : 'Every 2 weeks';
       case 'monthly': 
         const day = days?.length ? parseInt(days[0], 10) : 1;
         return `${getOrdinalSuffix(day)} of each month`;
+      case 'quarterly': return 'Every 3 months';
+      case 'custom':
+        if (task?.recurrence_interval && task?.recurrence_unit) {
+          return `Every ${task.recurrence_interval} ${task.recurrence_unit}`;
+        }
+        return 'Custom';
       default: return '';
     }
   };
@@ -1078,16 +1097,32 @@ export default function Tasks() {
                     <Label htmlFor="r-daily" className="font-normal">Daily</Label>
                   </div>
                   <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="weekdays" id="r-weekdays" />
+                    <Label htmlFor="r-weekdays" className="font-normal">Every weekday (Mon-Fri)</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
                     <RadioGroupItem value="weekly" id="r-weekly" />
                     <Label htmlFor="r-weekly" className="font-normal">Weekly</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="biweekly" id="r-biweekly" />
+                    <Label htmlFor="r-biweekly" className="font-normal">Bi-weekly</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="monthly" id="r-monthly" />
                     <Label htmlFor="r-monthly" className="font-normal">Monthly</Label>
                   </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="quarterly" id="r-quarterly" />
+                    <Label htmlFor="r-quarterly" className="font-normal">Quarterly</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="custom" id="r-custom" />
+                    <Label htmlFor="r-custom" className="font-normal">Custom</Label>
+                  </div>
                 </RadioGroup>
 
-                {newRecurrencePattern === 'weekly' && (
+                {(newRecurrencePattern === 'weekly' || newRecurrencePattern === 'biweekly') && (
                   <div className="flex flex-wrap gap-2 pl-6">
                     {DAYS_OF_WEEK.map((day) => (
                       <Badge
@@ -1118,6 +1153,65 @@ export default function Tasks() {
                       </SelectContent>
                     </Select>
                     <Label className="font-normal">of each month</Label>
+                  </div>
+                )}
+
+                {newRecurrencePattern === 'custom' && (
+                  <div className="flex items-center gap-2 pl-6 flex-wrap">
+                    <Label className="font-normal">Repeat every</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={365}
+                      value={newRecurrenceInterval}
+                      onChange={(e) => setNewRecurrenceInterval(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-16"
+                    />
+                    <Select value={newRecurrenceUnit} onValueChange={(v) => setNewRecurrenceUnit(v as 'days' | 'weeks' | 'months')}>
+                      <SelectTrigger className="w-28">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="days">days</SelectItem>
+                        <SelectItem value="weeks">weeks</SelectItem>
+                        <SelectItem value="months">months</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {newRecurrencePattern !== 'none' && (
+                  <div className="flex items-center gap-2 pl-6">
+                    <Label className="font-normal">End date (optional):</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-40 justify-start">
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {newRecurrenceEndDate ? format(newRecurrenceEndDate, 'MMM d, yyyy') : 'No end date'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={newRecurrenceEndDate}
+                          onSelect={setNewRecurrenceEndDate}
+                          initialFocus
+                          disabled={(date) => date < new Date()}
+                        />
+                        {newRecurrenceEndDate && (
+                          <div className="p-2 border-t">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="w-full"
+                              onClick={() => setNewRecurrenceEndDate(undefined)}
+                            >
+                              Clear end date
+                            </Button>
+                          </div>
+                        )}
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 )}
               </div>

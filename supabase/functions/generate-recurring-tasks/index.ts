@@ -31,14 +31,50 @@ function getDayName(date: Date): string {
   return days[date.getDay()];
 }
 
+// Check if today is a weekday (Mon-Fri)
+function isWeekday(date: Date): boolean {
+  const day = date.getDay();
+  return day >= 1 && day <= 5;
+}
+
+// Calculate days between two dates
+function daysBetween(date1: Date, date2: Date): number {
+  const oneDay = 24 * 60 * 60 * 1000;
+  return Math.floor(Math.abs((date1.getTime() - date2.getTime()) / oneDay));
+}
+
 // Check if today matches recurrence pattern
-function shouldCreateInstance(pattern: string, recurrenceDays: string[], today: Date, monthlyDay?: number): boolean {
+function shouldCreateInstance(
+  pattern: string, 
+  recurrenceDays: string[], 
+  today: Date, 
+  monthlyDay?: number,
+  createdAt?: string,
+  recurrenceInterval?: number,
+  recurrenceUnit?: string
+): boolean {
   switch (pattern) {
     case 'daily':
       return true;
+      
+    case 'weekdays':
+      return isWeekday(today);
+      
     case 'weekly':
       const todayName = getDayName(today);
       return recurrenceDays.includes(todayName);
+      
+    case 'biweekly':
+      // Check if it's been 2 weeks since creation
+      if (!createdAt) return false;
+      const createdDate = new Date(createdAt);
+      const weeksSince = Math.floor(daysBetween(today, createdDate) / 7);
+      // Only trigger on even weeks
+      if (weeksSince % 2 !== 0) return false;
+      // Check if today matches the selected day(s)
+      const todayDayName = getDayName(today);
+      return recurrenceDays.includes(todayDayName);
+      
     case 'monthly':
       // Use custom day if provided, otherwise default to 1st
       const targetDay = monthlyDay || 1;
@@ -46,6 +82,40 @@ function shouldCreateInstance(pattern: string, recurrenceDays: string[], today: 
       const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
       const effectiveDay = Math.min(targetDay, lastDayOfMonth);
       return today.getDate() === effectiveDay;
+      
+    case 'quarterly':
+      // Fire on the 1st of every 3rd month from creation
+      if (!createdAt) return false;
+      const created = new Date(createdAt);
+      const monthsSince = (today.getFullYear() - created.getFullYear()) * 12 + 
+                          (today.getMonth() - created.getMonth());
+      // Only trigger every 3 months on the same day of month
+      if (monthsSince % 3 !== 0) return false;
+      return today.getDate() === created.getDate();
+      
+    case 'custom':
+      // Use custom interval and unit
+      if (!recurrenceInterval || !recurrenceUnit || !createdAt) return false;
+      const startDate = new Date(createdAt);
+      const daysDiff = daysBetween(today, startDate);
+      
+      switch (recurrenceUnit) {
+        case 'days':
+          return daysDiff % recurrenceInterval === 0;
+        case 'weeks':
+          const weeksDiff = Math.floor(daysDiff / 7);
+          // Check if we're on the right week and same day of week
+          if (weeksDiff % recurrenceInterval !== 0) return false;
+          return today.getDay() === startDate.getDay();
+        case 'months':
+          const monthDiff = (today.getFullYear() - startDate.getFullYear()) * 12 + 
+                           (today.getMonth() - startDate.getMonth());
+          if (monthDiff % recurrenceInterval !== 0) return false;
+          return today.getDate() === startDate.getDate();
+        default:
+          return false;
+      }
+      
     default:
       return false;
   }
@@ -101,18 +171,37 @@ Deno.serve(async (req) => {
     console.log('Found recurring parent tasks:', recurringTasks?.length || 0);
 
     let createdCount = 0;
+    let skippedEndDate = 0;
 
     for (const parentTask of recurringTasks || []) {
       const pattern = parentTask.recurrence_pattern;
       const recurrenceDays = Array.isArray(parentTask.recurrence_days) ? parentTask.recurrence_days : [];
+      
+      // Check if recurrence has ended
+      if (parentTask.recurrence_end_date) {
+        const endDate = new Date(parentTask.recurrence_end_date);
+        if (today > endDate) {
+          console.log('Skipping task', parentTask.task_id, '- past end date');
+          skippedEndDate++;
+          continue;
+        }
+      }
+      
       // Extract monthly_day from recurrence_days if it's a monthly pattern
-      // We store it as the first element for monthly patterns (as a number string)
       const monthlyDay = pattern === 'monthly' && recurrenceDays.length > 0 
         ? parseInt(recurrenceDays[0], 10) 
         : undefined;
 
       // Check if we should create an instance today
-      if (!shouldCreateInstance(pattern, recurrenceDays, today, monthlyDay)) {
+      if (!shouldCreateInstance(
+        pattern, 
+        recurrenceDays, 
+        today, 
+        monthlyDay,
+        parentTask.created_at,
+        parentTask.recurrence_interval,
+        parentTask.recurrence_unit
+      )) {
         console.log('Skipping task', parentTask.task_id, '- not scheduled for today');
         continue;
       }
@@ -144,6 +233,10 @@ Deno.serve(async (req) => {
           parent_task_id: parentTask.task_id,
           recurrence_pattern: null, // Instance doesn't recur
           is_recurring_parent: false,
+          sop_id: parentTask.sop_id,
+          estimated_minutes: parentTask.estimated_minutes,
+          energy_level: parentTask.energy_level,
+          context_tags: parentTask.context_tags,
         });
 
       if (insertError) {
@@ -154,11 +247,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log('Generated', createdCount, 'recurring task instances');
+    console.log('Generated', createdCount, 'recurring task instances, skipped', skippedEndDate, 'past end date');
 
     return new Response(JSON.stringify({ 
       success: true, 
       created: createdCount,
+      skipped_end_date: skippedEndDate,
       date: todayStr
     }), {
       status: 200,

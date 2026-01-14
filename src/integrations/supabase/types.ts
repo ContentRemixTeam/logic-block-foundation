@@ -2556,7 +2556,10 @@ export type Database = {
           project_column: string | null
           project_id: string | null
           recurrence_days: Json | null
+          recurrence_end_date: string | null
+          recurrence_interval: number | null
           recurrence_pattern: string | null
+          recurrence_unit: string | null
           reschedule_count_30d: number
           reschedule_loop_active: boolean
           reschedule_nudge_dismissed_until: string | null
@@ -2608,7 +2611,10 @@ export type Database = {
           project_column?: string | null
           project_id?: string | null
           recurrence_days?: Json | null
+          recurrence_end_date?: string | null
+          recurrence_interval?: number | null
           recurrence_pattern?: string | null
+          recurrence_unit?: string | null
           reschedule_count_30d?: number
           reschedule_loop_active?: boolean
           reschedule_nudge_dismissed_until?: string | null
@@ -2660,7 +2666,10 @@ export type Database = {
           project_column?: string | null
           project_id?: string | null
           recurrence_days?: Json | null
+          recurrence_end_date?: string | null
+          recurrence_interval?: number | null
           recurrence_pattern?: string | null
+          recurrence_unit?: string | null
           reschedule_count_30d?: number
           reschedule_loop_active?: boolean
           reschedule_nudge_dismissed_until?: string | null
