@@ -141,10 +141,19 @@ export interface CycleSetupDraft {
   // Step 8: Success Metrics, Projects, Habits, Reminders, Weekly Routines
   metric1Name: string;
   metric1Start: number | '';
+  metric1Goal: number | '';
   metric2Name: string;
   metric2Start: number | '';
+  metric2Goal: number | '';
   metric3Name: string;
   metric3Start: number | '';
+  metric3Goal: number | '';
+  metric4Name: string;
+  metric4Start: number | '';
+  metric4Goal: number | '';
+  metric5Name: string;
+  metric5Start: number | '';
+  metric5Goal: number | '';
   projects: string[];
   habits: Array<{ name: string; category: string }>;
   thingsToRemember: string[];
@@ -230,10 +239,19 @@ const DEFAULT_DRAFT: CycleSetupDraft = {
   ],
   metric1Name: '',
   metric1Start: '',
+  metric1Goal: '',
   metric2Name: '',
   metric2Start: '',
+  metric2Goal: '',
   metric3Name: '',
   metric3Start: '',
+  metric3Goal: '',
+  metric4Name: '',
+  metric4Start: '',
+  metric4Goal: '',
+  metric5Name: '',
+  metric5Start: '',
+  metric5Goal: '',
   projects: [''],
   habits: [{ name: '', category: '' }],
   thingsToRemember: ['', '', ''],
