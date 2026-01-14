@@ -184,7 +184,7 @@ export function MastermindCallsPanel({
         )}
       >
         <div className="flex items-center gap-2 mb-2">
-          <GraduationCap className="h-4 w-4 text-pink-500 shrink-0" />
+          <GraduationCap className="h-4 w-4 text-primary shrink-0" />
           <span className="font-medium">{title}</span>
         </div>
         <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
@@ -231,7 +231,7 @@ export function MastermindCallsPanel({
       <SheetContent side="right" className="w-full sm:max-w-md">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5 text-pink-500" />
+            <GraduationCap className="h-5 w-5 text-primary" />
             Mastermind Calls
           </SheetTitle>
           <p className="text-sm text-muted-foreground flex items-center gap-1">
@@ -329,7 +329,7 @@ export function MastermindCallsPanel({
                     return (
                       <div key={rsvp.id} className="p-4 rounded-lg border bg-primary/5 border-primary/30">
                         <div className="flex items-center gap-2 mb-2">
-                          <GraduationCap className="h-4 w-4 text-pink-500 shrink-0" />
+                          <GraduationCap className="h-4 w-4 text-primary shrink-0" />
                           <span className="font-medium">{parseEventTitle(rsvp.event_summary)}</span>
                         </div>
                         <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">

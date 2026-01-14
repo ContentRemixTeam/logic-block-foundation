@@ -88,7 +88,7 @@ export function CycleSnapshotCard({ onCycleLoaded }: CycleSnapshotCardProps) {
     
     const focusConfig: Record<string, { label: string; icon: typeof Sparkles; className: string }> = {
       discover: { label: 'DISCOVER', icon: Sparkles, className: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
-      nurture: { label: 'NURTURE', icon: Flame, className: 'bg-orange-500/10 text-orange-600 border-orange-500/20' },
+      nurture: { label: 'NURTURE', icon: Flame, className: 'bg-primary/10 text-primary border-primary/20' },
       convert: { label: 'CONVERT', icon: Users, className: 'bg-green-500/10 text-green-600 border-green-500/20' },
     };
     
