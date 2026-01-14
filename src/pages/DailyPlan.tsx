@@ -30,7 +30,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, LayoutList, CalendarDays, Calendar } from 'lucide-react';
 import { DailyAgendaCard } from '@/components/daily-plan/DailyAgendaCard';
 import { PostingSlotCard } from '@/components/daily-plan/PostingSlotCard';
-import { CategoryProjectLinks } from '@/components/daily-plan/CategoryProjectLinks';
+
 import { QuickLogCard } from '@/components/content';
 import { NurtureCheckinCard } from '@/components/nurture';
 import {
@@ -800,11 +800,9 @@ export default function DailyPlan() {
             {/* Nurture Log Card */}
             <QuickLogCard />
 
+
             {/* Today's Agenda from Weekly Plan */}
             <DailyAgendaCard onTaskToggle={() => loadDailyPlan()} />
-
-            {/* Category Project Links */}
-            <CategoryProjectLinks />
 
             {/* Focus Area Reminder */}
             {focusArea && (
