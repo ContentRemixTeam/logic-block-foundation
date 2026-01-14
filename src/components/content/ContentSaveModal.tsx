@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
-import { X, Loader2, Save, FileText, Mail, Video, Mic, PenTool, Megaphone, ExternalLink, Clock, Tag, CheckCircle } from 'lucide-react';
+import { X, Loader2, Save, FileText, Mail, Video, Mic, PenTool, Megaphone, ExternalLink, Clock, Tag, CheckCircle, BarChart3, Eye, MousePointer, Heart, MessageCircle, Share2, Bookmark, Users, DollarSign } from 'lucide-react';
 import { 
   ContentItem, 
   ContentType, 
@@ -164,7 +164,7 @@ export function ContentSaveModal({
             <ScrollArea className="h-[calc(90vh-180px)]">
               <div className="p-6">
                 <Tabs defaultValue="basics" className="space-y-6">
-                  <TabsList className="grid w-full grid-cols-4 h-11">
+                  <TabsList className="grid w-full grid-cols-5 h-11">
                     <TabsTrigger value="basics" className="gap-1.5">
                       <FileText className="h-4 w-4" />
                       Basics
@@ -176,6 +176,10 @@ export function ContentSaveModal({
                     <TabsTrigger value="details" className="gap-1.5">
                       <Tag className="h-4 w-4" />
                       {isEmail ? 'Email' : isPodcast ? 'Podcast' : isAd ? 'Ad' : 'Details'}
+                    </TabsTrigger>
+                    <TabsTrigger value="stats" className="gap-1.5">
+                      <BarChart3 className="h-4 w-4" />
+                      Stats
                     </TabsTrigger>
                     <TabsTrigger value="links" className="gap-1.5">
                       <ExternalLink className="h-4 w-4" />
@@ -497,6 +501,193 @@ export function ContentSaveModal({
                         <p className="text-sm mt-1">Use the Content tab for main details</p>
                       </div>
                     )}
+                  </TabsContent>
+
+                  {/* STATS TAB */}
+                  <TabsContent value="stats" className="space-y-5 mt-6">
+                    <div className="p-4 rounded-lg bg-muted/50 border">
+                      <p className="text-sm text-muted-foreground">
+                        Track performance metrics for your content. Add stats after publishing to see what works best.
+                      </p>
+                    </div>
+
+                    {/* Email Performance */}
+                    {isEmail && (
+                      <div className="space-y-4">
+                        <h4 className="font-medium flex items-center gap-2">
+                          <Mail className="h-4 w-4" />
+                          Email Performance
+                        </h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium flex items-center gap-2">
+                              <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                              Open Rate (%)
+                            </Label>
+                            <Input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              max="100"
+                              value={formData.open_rate}
+                              onChange={(e) => updateField('open_rate', e.target.value)}
+                              placeholder="e.g., 42.5"
+                              className="h-11"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium flex items-center gap-2">
+                              <MousePointer className="h-3.5 w-3.5 text-muted-foreground" />
+                              Click Rate (%)
+                            </Label>
+                            <Input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              max="100"
+                              value={formData.click_rate}
+                              onChange={(e) => updateField('click_rate', e.target.value)}
+                              placeholder="e.g., 8.5"
+                              className="h-11"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium flex items-center gap-2">
+                            <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                            Subscribers Gained
+                          </Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={formData.subscribers_gained}
+                            onChange={(e) => updateField('subscribers_gained', e.target.value)}
+                            placeholder="New subscribers from this email"
+                            className="h-11"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Social Engagement */}
+                    {!isEmail && (
+                      <div className="space-y-4">
+                        <h4 className="font-medium flex items-center gap-2">
+                          <Heart className="h-4 w-4" />
+                          Engagement Metrics
+                        </h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium flex items-center gap-2">
+                              <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                              Views
+                            </Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={formData.views}
+                              onChange={(e) => updateField('views', e.target.value)}
+                              placeholder="Total views"
+                              className="h-11"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium flex items-center gap-2">
+                              <Heart className="h-3.5 w-3.5 text-muted-foreground" />
+                              Likes
+                            </Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={formData.likes}
+                              onChange={(e) => updateField('likes', e.target.value)}
+                              placeholder="Total likes"
+                              className="h-11"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium flex items-center gap-2">
+                              <MessageCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                              Comments
+                            </Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={formData.comments}
+                              onChange={(e) => updateField('comments', e.target.value)}
+                              placeholder="Total comments"
+                              className="h-11"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium flex items-center gap-2">
+                              <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
+                              Shares
+                            </Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={formData.shares}
+                              onChange={(e) => updateField('shares', e.target.value)}
+                              placeholder="Total shares"
+                              className="h-11"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium flex items-center gap-2">
+                              <Bookmark className="h-3.5 w-3.5 text-muted-foreground" />
+                              Saves
+                            </Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={formData.saves}
+                              onChange={(e) => updateField('saves', e.target.value)}
+                              placeholder="Total saves"
+                              className="h-11"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium flex items-center gap-2">
+                              <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                              New Followers
+                            </Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={formData.subscribers_gained}
+                              onChange={(e) => updateField('subscribers_gained', e.target.value)}
+                              placeholder="Followers gained"
+                              className="h-11"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Revenue Impact - for all types */}
+                    <Separator />
+                    <div className="space-y-4">
+                      <h4 className="font-medium flex items-center gap-2">
+                        <DollarSign className="h-4 w-4" />
+                        Revenue Impact
+                      </h4>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Revenue Generated ($)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={formData.revenue}
+                          onChange={(e) => updateField('revenue', e.target.value)}
+                          placeholder="Sales attributed to this content"
+                          className="h-11"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Track direct sales or revenue from this content piece
+                        </p>
+                      </div>
+                    </div>
                   </TabsContent>
 
                   {/* LINKS TAB */}

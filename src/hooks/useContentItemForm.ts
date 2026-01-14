@@ -27,6 +27,16 @@ export interface ContentFormData {
   primary_text: string;
   // Meta
   markPublishedNow: boolean;
+  // Performance stats
+  open_rate: string;
+  click_rate: string;
+  views: string;
+  comments: string;
+  likes: string;
+  shares: string;
+  saves: string;
+  subscribers_gained: string;
+  revenue: string;
 }
 
 const defaultFormData: ContentFormData = {
@@ -50,6 +60,16 @@ const defaultFormData: ContentFormData = {
   headline: '',
   primary_text: '',
   markPublishedNow: false,
+  // Performance stats
+  open_rate: '',
+  click_rate: '',
+  views: '',
+  comments: '',
+  likes: '',
+  shares: '',
+  saves: '',
+  subscribers_gained: '',
+  revenue: '',
 };
 
 interface UseContentItemFormOptions {
@@ -99,6 +119,16 @@ export function useContentItemForm({
         headline: '',
         primary_text: '',
         markPublishedNow: false,
+        // Performance stats
+        open_rate: item.open_rate?.toString() || '',
+        click_rate: item.click_rate?.toString() || '',
+        views: item.views?.toString() || '',
+        comments: item.comments?.toString() || '',
+        likes: item.likes?.toString() || '',
+        shares: item.shares?.toString() || '',
+        saves: item.saves?.toString() || '',
+        subscribers_gained: item.subscribers_gained?.toString() || '',
+        revenue: item.revenue?.toString() || '',
       });
       setIsDirty(false);
     } else {
@@ -144,6 +174,16 @@ export function useContentItemForm({
           preview_text: formData.preview_text || null,
           link_url: formData.link_url || null,
           notes: formData.notes || null,
+          // Performance stats
+          open_rate: formData.open_rate ? parseFloat(formData.open_rate) : null,
+          click_rate: formData.click_rate ? parseFloat(formData.click_rate) : null,
+          views: formData.views ? parseInt(formData.views) : null,
+          comments: formData.comments ? parseInt(formData.comments) : null,
+          likes: formData.likes ? parseInt(formData.likes) : null,
+          shares: formData.shares ? parseInt(formData.shares) : null,
+          saves: formData.saves ? parseInt(formData.saves) : null,
+          subscribers_gained: formData.subscribers_gained ? parseInt(formData.subscribers_gained) : null,
+          revenue: formData.revenue ? parseFloat(formData.revenue) : null,
         });
         setLastSaved(new Date());
         setIsDirty(false);
@@ -215,6 +255,16 @@ export function useContentItemForm({
         notes: formData.notes || null,
         cycle_id: activeCycle?.cycle_id || null,
         published_at: shouldPublish ? new Date().toISOString() : null,
+        // Performance stats
+        open_rate: formData.open_rate ? parseFloat(formData.open_rate) : null,
+        click_rate: formData.click_rate ? parseFloat(formData.click_rate) : null,
+        views: formData.views ? parseInt(formData.views) : null,
+        comments: formData.comments ? parseInt(formData.comments) : null,
+        likes: formData.likes ? parseInt(formData.likes) : null,
+        shares: formData.shares ? parseInt(formData.shares) : null,
+        saves: formData.saves ? parseInt(formData.saves) : null,
+        subscribers_gained: formData.subscribers_gained ? parseInt(formData.subscribers_gained) : null,
+        revenue: formData.revenue ? parseFloat(formData.revenue) : null,
       };
 
       let result: ContentItem;
