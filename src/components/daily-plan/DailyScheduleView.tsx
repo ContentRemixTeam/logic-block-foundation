@@ -13,6 +13,7 @@ import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import { 
   Calendar, 
   RefreshCw, 
@@ -20,7 +21,8 @@ import {
   CheckCircle2,
   ListTodo,
   AlertTriangle,
-  CalendarDays
+  CalendarDays,
+  Inbox
 } from 'lucide-react';
 
 interface DailyScheduleViewProps {
@@ -38,9 +40,11 @@ export function DailyScheduleView({ onTaskToggle, onTaskClick }: DailyScheduleVi
   
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [allInboxTasks, setAllInboxTasks] = useState<Task[]>([]);
   const [overdueTasks, setOverdueTasks] = useState<Task[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [loadingTasks, setLoadingTasks] = useState(true);
+  const [dragOverHour, setDragOverHour] = useState<number | null>(null);
 
   const today = useMemo(() => startOfToday(), []);
   const todayStr = format(today, 'yyyy-MM-dd');
@@ -105,8 +109,16 @@ export function DailyScheduleView({ onTaskToggle, onTaskClick }: DailyScheduleVi
           return isBefore(parseISO(scheduledDate), startOfDay(today));
         });
 
+        // Find all unscheduled inbox tasks (no date or time assigned)
+        const inboxTasks = allTasks.filter((task: Task) => {
+          if (task.is_completed) return false;
+          // No scheduled date and no planned day = inbox task
+          return !task.scheduled_date && !task.planned_day && !task.time_block_start;
+        });
+
         setTasks(todayTasks);
         setOverdueTasks(overdue);
+        setAllInboxTasks(inboxTasks);
       } catch (error) {
         console.error('Error fetching tasks:', error);
       } finally {
@@ -211,6 +223,76 @@ export function DailyScheduleView({ onTaskToggle, onTaskClick }: DailyScheduleVi
         t.task_id === taskId ? { ...t, is_completed: currentStatus } : t
       ));
       console.error('Error toggling task:', error);
+    }
+  };
+
+  // Drag-and-drop handlers
+  const handleDragStart = (e: React.DragEvent, taskId: string) => {
+    e.dataTransfer.setData('taskId', taskId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, hour: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverHour(hour);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverHour(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, hour: number) => {
+    e.preventDefault();
+    setDragOverHour(null);
+    
+    const taskId = e.dataTransfer.getData('taskId');
+    if (!taskId) return;
+
+    // Build the time_block_start timestamp
+    const timeBlockStart = `${todayStr}T${String(hour).padStart(2, '0')}:00:00`;
+    
+    // Find the task being dropped
+    const droppedTask = [...tasks, ...allInboxTasks, ...overdueTasks].find(t => t.task_id === taskId);
+    
+    // Optimistic update
+    if (droppedTask) {
+      const updatedTask = { 
+        ...droppedTask, 
+        time_block_start: timeBlockStart,
+        scheduled_date: todayStr,
+        planned_day: todayStr
+      };
+      
+      // Remove from inbox if it was there
+      setAllInboxTasks(prev => prev.filter(t => t.task_id !== taskId));
+      
+      // Add or update in today's tasks
+      setTasks(prev => {
+        const exists = prev.some(t => t.task_id === taskId);
+        if (exists) {
+          return prev.map(t => t.task_id === taskId ? updatedTask : t);
+        }
+        return [...prev, updatedTask];
+      });
+    }
+
+    try {
+      await supabase.functions.invoke('manage-task', {
+        body: {
+          action: 'update',
+          task_id: taskId,
+          time_block_start: timeBlockStart,
+          scheduled_date: todayStr,
+        },
+      });
+      
+      toast.success(`Task scheduled for ${format(new Date().setHours(hour, 0), 'h:mm a')}`);
+    } catch (error) {
+      console.error('Error scheduling task:', error);
+      toast.error('Failed to schedule task');
+      // Revert optimistic update
+      handleRefresh();
     }
   };
 
@@ -323,6 +405,8 @@ export function DailyScheduleView({ onTaskToggle, onTaskClick }: DailyScheduleVi
                     key={task.task_id}
                     task={task}
                     compact
+                    draggable
+                    onDragStart={handleDragStart}
                     onToggle={handleTaskToggle}
                     onClick={() => onTaskClick?.(task)}
                   />
@@ -371,9 +455,13 @@ export function DailyScheduleView({ onTaskToggle, onTaskClick }: DailyScheduleVi
                   return (
                     <div
                       key={hour}
+                      onDragOver={(e) => handleDragOver(e, hour)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, hour)}
                       className={cn(
-                        "flex border-t border-border/50",
-                        isCurrentHour && "bg-primary/5"
+                        "flex border-t border-border/50 transition-colors",
+                        isCurrentHour && "bg-primary/5",
+                        dragOverHour === hour && "ring-2 ring-inset ring-primary bg-primary/10"
                       )}
                       style={{ minHeight: `${HOUR_HEIGHT}px` }}
                     >
@@ -403,10 +491,19 @@ export function DailyScheduleView({ onTaskToggle, onTaskClick }: DailyScheduleVi
                                 key={task.task_id}
                                 task={task}
                                 compact
+                                draggable
+                                onDragStart={handleDragStart}
                                 onToggle={handleTaskToggle}
                                 onClick={() => onTaskClick?.(task)}
                               />
                             ))}
+                            
+                            {/* Drop hint when empty and dragging */}
+                            {dragOverHour === hour && items.events.length === 0 && items.tasks.length === 0 && (
+                              <div className="text-xs text-primary font-medium py-2 text-center">
+                                Drop here to schedule
+                              </div>
+                            )}
                           </>
                         )}
                       </div>
@@ -420,12 +517,12 @@ export function DailyScheduleView({ onTaskToggle, onTaskClick }: DailyScheduleVi
 
         {/* Sidebar - Unscheduled Tasks */}
         <div className="space-y-4">
-          {/* Unscheduled Tasks */}
+          {/* Today's Unscheduled Tasks */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-sm">
                 <ListTodo className="h-4 w-4" />
-                Unscheduled
+                Today (Unscheduled)
                 <Badge variant="secondary" className="ml-auto">
                   {unscheduledTasks.filter(t => !t.is_completed).length}
                 </Badge>
@@ -436,20 +533,21 @@ export function DailyScheduleView({ onTaskToggle, onTaskClick }: DailyScheduleVi
                 <div className="space-y-2">
                   <Skeleton className="h-10 w-full" />
                   <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
                 </div>
               ) : unscheduledTasks.filter(t => !t.is_completed).length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-4">
-                  No unscheduled tasks for today
+                <p className="text-xs text-muted-foreground text-center py-2">
+                  All tasks scheduled!
                 </p>
               ) : (
-                <ScrollArea className="h-[300px]">
+                <ScrollArea className={unscheduledTasks.length > 4 ? "h-[150px]" : undefined}>
                   <div className="space-y-1.5">
                     {unscheduledTasks.filter(t => !t.is_completed).map(task => (
                       <TimelineTaskBlock
                         key={task.task_id}
                         task={task}
                         compact
+                        draggable
+                        onDragStart={handleDragStart}
                         onToggle={handleTaskToggle}
                         onClick={() => onTaskClick?.(task)}
                       />
@@ -459,6 +557,41 @@ export function DailyScheduleView({ onTaskToggle, onTaskClick }: DailyScheduleVi
               )}
             </CardContent>
           </Card>
+
+          {/* Task Inbox (no date assigned) */}
+          {allInboxTasks.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <Inbox className="h-4 w-4" />
+                  Task Inbox
+                  <Badge variant="outline" className="ml-auto">
+                    {allInboxTasks.length}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-2">
+                <p className="text-xs text-muted-foreground mb-2">
+                  Drag tasks to schedule them
+                </p>
+                <ScrollArea className={allInboxTasks.length > 4 ? "h-[150px]" : undefined}>
+                  <div className="space-y-1.5">
+                    {allInboxTasks.map(task => (
+                      <TimelineTaskBlock
+                        key={task.task_id}
+                        task={task}
+                        compact
+                        draggable
+                        onDragStart={handleDragStart}
+                        onToggle={handleTaskToggle}
+                        onClick={() => onTaskClick?.(task)}
+                      />
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Quick Stats */}
           <Card>
@@ -475,6 +608,12 @@ export function DailyScheduleView({ onTaskToggle, onTaskClick }: DailyScheduleVi
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-destructive">Overdue</span>
                   <Badge variant="destructive">{overdueTasks.length}</Badge>
+                </div>
+              )}
+              {allInboxTasks.length > 0 && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">In Inbox</span>
+                  <Badge variant="outline">{allInboxTasks.length}</Badge>
                 </div>
               )}
             </CardContent>

@@ -10,6 +10,7 @@ interface TimelineTaskBlockProps {
   onToggle?: (taskId: string, currentStatus: boolean) => void;
   onClick?: () => void;
   draggable?: boolean;
+  onDragStart?: (e: React.DragEvent, taskId: string) => void;
 }
 
 export function TimelineTaskBlock({ 
@@ -17,7 +18,8 @@ export function TimelineTaskBlock({
   compact = false, 
   onToggle, 
   onClick,
-  draggable = false 
+  draggable = false,
+  onDragStart 
 }: TimelineTaskBlockProps) {
   const startTime = task.time_block_start ? parseISO(task.time_block_start) : null;
   const endTime = task.time_block_end ? parseISO(task.time_block_end) : null;
@@ -38,13 +40,22 @@ export function TimelineTaskBlock({
     }
   };
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('taskId', task.task_id);
+    e.dataTransfer.effectAllowed = 'move';
+    onDragStart?.(e, task.task_id);
+  };
+
   if (compact) {
     return (
       <div
+        draggable={draggable}
+        onDragStart={draggable ? handleDragStart : undefined}
         onClick={onClick}
         className={cn(
           "flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-all text-xs",
           "border-l-2 hover:shadow-md",
+          draggable && "cursor-grab active:cursor-grabbing",
           task.is_completed ? "opacity-50" : "",
           getPriorityColor(task.priority)
         )}

@@ -147,10 +147,14 @@ serve(async (req) => {
 
     const calendarId = encodeURIComponent(connection.selected_calendar_id);
     
-    // Build API URL
+    // Build API URL - Google Calendar API requires RFC3339/ISO 8601 format
+    // Convert date strings to proper timestamps with timezone
+    const timeMin = startDate.includes('T') ? startDate : `${startDate}T00:00:00Z`;
+    const timeMax = endDate.includes('T') ? endDate : `${endDate}T23:59:59Z`;
+    
     const params = new URLSearchParams({
-      timeMin: startDate,
-      timeMax: endDate,
+      timeMin,
+      timeMax,
       singleEvents: 'true',
       orderBy: 'startTime',
       maxResults: '100',
