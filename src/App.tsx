@@ -58,6 +58,7 @@ import CoachingLog from "./pages/CoachingLog";
 import ContentVault from "./pages/ContentVault";
 import MemberSignup from "./pages/MemberSignup";
 import NotFound from "./pages/NotFound";
+import Trash from "./pages/Trash";
 
 // Configure QueryClient with stability-focused defaults
 const queryClient = new QueryClient({
@@ -148,6 +149,7 @@ const App = () => (
                       <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
                       <Route path="/coaching-log" element={<ProtectedRoute><CoachingLog /></ProtectedRoute>} />
                       <Route path="/content-vault" element={<ProtectedRoute><ContentVault /></ProtectedRoute>} />
+                      <Route path="/trash" element={<ProtectedRoute><Trash /></ProtectedRoute>} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                     <DevDebugPanel />
