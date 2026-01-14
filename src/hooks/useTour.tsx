@@ -127,19 +127,20 @@ export function TourProvider({ children }: { children: ReactNode }) {
           setHasSeenTour(seen === 'true');
         } else if (data) {
           // Use database state
-          setHasSeenTour(data.has_seen_tour === true);
+          const seenTour = data.has_seen_tour === true;
+          setHasSeenTour(seenTour);
           // Sync to localStorage for faster subsequent checks
-          if (data.has_seen_tour) {
+          if (seenTour) {
             setStorageItem(TOUR_STORAGE_KEY, 'true');
           }
+          // Use the fetched value, not the stale state
+          const checklistDismissed = getStorageItem(CHECKLIST_STORAGE_KEY);
+          setShowChecklist(seenTour && checklistDismissed !== 'true');
         } else {
           // No settings record yet - user hasn't seen tour
           setHasSeenTour(false);
+          setShowChecklist(false);
         }
-
-        // Checklist is still localStorage-based (less critical)
-        const checklistDismissed = getStorageItem(CHECKLIST_STORAGE_KEY);
-        setShowChecklist(hasSeenTour && checklistDismissed !== 'true');
       } catch (error) {
         console.error('Error loading tour state:', error);
         const seen = getStorageItem(TOUR_STORAGE_KEY);
@@ -177,21 +178,25 @@ export function TourProvider({ children }: { children: ReactNode }) {
     setStorageItem(TOUR_STORAGE_KEY, 'true');
     setShowChecklist(true);
 
-    // Save to database if user is logged in
-    if (userId) {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          await supabase.functions.invoke('save-user-settings', {
-            body: { has_seen_tour: true }
-          });
+    // Always try to save to database - get fresh session
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        console.log('Saving tour complete state to database for user:', session.user.id);
+        const response = await supabase.functions.invoke('save-user-settings', {
+          body: { has_seen_tour: true }
+        });
+        if (response.error) {
+          console.error('Failed to save tour state to database:', response.error);
+        } else {
+          console.log('Tour state saved to database successfully');
         }
-      } catch (error) {
-        console.error('Error saving tour state to database:', error);
-        // State is already saved locally, so user won't see popup again this session
       }
+    } catch (error) {
+      console.error('Error saving tour state to database:', error);
+      // State is already saved locally, so user won't see popup again this session
     }
-  }, [userId]);
+  }, []); // Remove userId dependency - use fresh session instead
 
   const startTour = useCallback(() => {
     setCurrentStep(0);
