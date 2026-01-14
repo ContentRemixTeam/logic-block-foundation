@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { format, parseISO, isToday, isTomorrow, isPast, isThisWeek } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { 
   ListTodo, AlertTriangle, Sun, Sunrise, Calendar, Clock, 
@@ -22,6 +23,11 @@ interface TaskListViewProps {
   onOpenDetail: (task: Task) => void;
   onQuickReschedule: (taskId: string, date: Date | null, status?: string) => void;
   onAddTask?: () => void;
+  // Bulk selection props
+  selectedTaskIds?: Set<string>;
+  onToggleTaskSelection?: (taskId: string) => void;
+  onSelectAllInGroup?: (tasks: Task[]) => void;
+  showSelectionCheckboxes?: boolean;
 }
 
 // Empty state component
@@ -61,6 +67,10 @@ export function TaskListView({
   onOpenDetail,
   onQuickReschedule,
   onAddTask,
+  selectedTaskIds = new Set(),
+  onToggleTaskSelection,
+  onSelectAllInGroup,
+  showSelectionCheckboxes = false,
 }: TaskListViewProps) {
   const [completedExpanded, setCompletedExpanded] = useState(false);
 
@@ -132,28 +142,55 @@ export function TaskListView({
   const renderGroup = (
     key: string, 
     title: string, 
-    tasks: Task[], 
+    groupTasks: Task[], 
     icon?: React.ReactNode,
     className?: string,
     showRescheduleAll?: boolean
   ) => {
-    if (tasks.length === 0) return null;
+    if (groupTasks.length === 0) return null;
+
+    // Calculate selection state for this group
+    const selectableTasks = groupTasks.filter(t => !t.is_completed);
+    const selectedInGroup = selectableTasks.filter(t => selectedTaskIds.has(t.task_id)).length;
+    const allSelected = selectableTasks.length > 0 && selectedInGroup === selectableTasks.length;
+    const someSelected = selectedInGroup > 0 && !allSelected;
 
     return (
       <div key={key} className="space-y-3">
         <div className={cn("flex items-center justify-between", className)}>
           <div className="flex items-center gap-2">
+            {/* Group selection checkbox */}
+            {showSelectionCheckboxes && selectableTasks.length > 0 && (
+              <Checkbox
+                checked={allSelected}
+                className="data-[state=indeterminate]:bg-primary"
+                onCheckedChange={() => {
+                  if (allSelected) {
+                    // Deselect all in group
+                    selectableTasks.forEach(t => {
+                      if (selectedTaskIds.has(t.task_id)) {
+                        onToggleTaskSelection?.(t.task_id);
+                      }
+                    });
+                  } else {
+                    // Select all in group
+                    onSelectAllInGroup?.(selectableTasks);
+                  }
+                }}
+                {...(someSelected ? { 'data-state': 'indeterminate' } : {})}
+              />
+            )}
             {icon}
             <h2 className="text-lg font-semibold">{title}</h2>
-            <Badge variant="secondary" className="text-xs">{tasks.length}</Badge>
+            <Badge variant="secondary" className="text-xs">{groupTasks.length}</Badge>
           </div>
-          {showRescheduleAll && tasks.length > 1 && (
+          {showRescheduleAll && groupTasks.length > 1 && (
             <Button 
               variant="ghost" 
               size="sm"
               className="text-xs"
               onClick={() => {
-                tasks.forEach(task => {
+                groupTasks.forEach(task => {
                   onQuickReschedule(task.task_id, new Date(), 'scheduled');
                 });
               }}
@@ -163,7 +200,7 @@ export function TaskListView({
           )}
         </div>
         <div className="space-y-2">
-          {tasks.map(task => (
+          {groupTasks.map(task => (
             <TaskCard
               key={task.task_id}
               task={task}
@@ -172,6 +209,9 @@ export function TaskListView({
               onDelete={onDeleteTask}
               onOpenDetail={onOpenDetail}
               onQuickReschedule={onQuickReschedule}
+              isSelected={selectedTaskIds.has(task.task_id)}
+              onToggleSelection={onToggleTaskSelection}
+              showSelectionCheckbox={showSelectionCheckboxes && !task.is_completed}
             />
           ))}
         </div>
@@ -207,6 +247,9 @@ export function TaskListView({
               onDelete={onDeleteTask}
               onOpenDetail={onOpenDetail}
               onQuickReschedule={onQuickReschedule}
+              isSelected={selectedTaskIds.has(task.task_id)}
+              onToggleSelection={onToggleTaskSelection}
+              showSelectionCheckbox={false}
             />
           ))}
         </div>
@@ -320,6 +363,23 @@ export function TaskListView({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-destructive">
+              {/* Group selection checkbox for overdue */}
+              {showSelectionCheckboxes && groupedTasks.overdue.length > 0 && (
+                <Checkbox
+                  checked={groupedTasks.overdue.every(t => selectedTaskIds.has(t.task_id))}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      onSelectAllInGroup?.(groupedTasks.overdue);
+                    } else {
+                      groupedTasks.overdue.forEach(t => {
+                        if (selectedTaskIds.has(t.task_id)) {
+                          onToggleTaskSelection?.(t.task_id);
+                        }
+                      });
+                    }
+                  }}
+                />
+              )}
               <AlertTriangle className="h-5 w-5" />
               <h2 className="text-lg font-semibold">Overdue</h2>
               <Badge variant="destructive">{groupedTasks.overdue.length}</Badge>
@@ -349,6 +409,9 @@ export function TaskListView({
                 onDelete={onDeleteTask}
                 onOpenDetail={onOpenDetail}
                 onQuickReschedule={onQuickReschedule}
+                isSelected={selectedTaskIds.has(task.task_id)}
+                onToggleSelection={onToggleTaskSelection}
+                showSelectionCheckbox={showSelectionCheckboxes}
               />
             ))}
           </div>
@@ -414,6 +477,9 @@ export function TaskListView({
                 onDelete={onDeleteTask}
                 onOpenDetail={onOpenDetail}
                 onQuickReschedule={onQuickReschedule}
+                isSelected={selectedTaskIds.has(task.task_id)}
+                onToggleSelection={onToggleTaskSelection}
+                showSelectionCheckbox={false}
               />
             ))}
             {groupedTasks.completed.length > 10 && (

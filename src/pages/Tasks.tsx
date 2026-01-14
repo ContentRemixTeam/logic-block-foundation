@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO, isBefore, startOfDay } from 'date-fns';
 import { Layout } from '@/components/Layout';
@@ -25,7 +25,7 @@ import { toast } from 'sonner';
 import { 
   Plus, CalendarIcon, Clock, RefreshCw, ChevronDown, 
   ClipboardList, ExternalLink, Unlink, LayoutList, Columns, 
-  Clock3, Zap, Battery, BatteryLow, Trash2, CalendarRange, Search, X
+  Clock3, Zap, Battery, BatteryLow, Trash2, CalendarRange, Search, X, CheckSquare
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -46,7 +46,9 @@ import { TimelineViewSelector, TimelineViewType } from '@/components/tasks/views
 import { TaskPlanningCards } from '@/components/tasks/TaskPlanningCards';
 import { TaskViewsToolbar } from '@/components/tasks/TaskViewsToolbar';
 import { TaskImportModal } from '@/components/tasks/TaskImportModal';
+import { BulkActionsBar } from '@/components/tasks/BulkActionsBar';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
+import { useBulkTaskSelection } from '@/hooks/useBulkTaskSelection';
 import { CalendarSelectionModal } from '@/components/google-calendar/CalendarSelectionModal';
 import { 
   Task, SOP, ChecklistItem, SOPLink, ChecklistProgress, 
@@ -103,6 +105,8 @@ export default function Tasks() {
   const [deleteType, setDeleteType] = useState<DeleteType>('single');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [recurringExpanded, setRecurringExpanded] = useState(false);
+  const [bulkSelectionMode, setBulkSelectionMode] = useState(false);
+  const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
   
   // Form state for new task
   const [newTaskText, setNewTaskText] = useState('');
@@ -246,6 +250,99 @@ export default function Tasks() {
       totalTaskCount: totalBeforeSearch
     };
   }, [tasks, cycleFilter, activeCycle, systemOnly, searchQuery]);
+
+  // Bulk selection hook
+  const {
+    selectedTaskIds,
+    selectedCount,
+    toggleTaskSelection,
+    selectAllTasks,
+    clearSelection,
+    isSelected,
+    getSelectedTasks,
+  } = useBulkTaskSelection(regularTasks);
+
+  // Bulk action handlers
+  const handleBulkReschedule = async (date: Date) => {
+    setIsBulkActionLoading(true);
+    try {
+      const selectedTasks = getSelectedTasks();
+      for (const task of selectedTasks) {
+        await manageMutation.mutateAsync({
+          action: 'update',
+          task_id: task.task_id,
+          scheduled_date: format(date, 'yyyy-MM-dd'),
+          status: 'scheduled',
+        });
+      }
+      toast.success(`${selectedTasks.length} tasks rescheduled`);
+      clearSelection();
+    } catch (error) {
+      toast.error('Failed to reschedule tasks');
+    } finally {
+      setIsBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    setIsBulkActionLoading(true);
+    try {
+      const selectedTasks = getSelectedTasks();
+      for (const task of selectedTasks) {
+        await manageMutation.mutateAsync({ action: 'delete', task_id: task.task_id });
+      }
+      toast.success(`${selectedTasks.length} tasks deleted`);
+      clearSelection();
+    } catch (error) {
+      toast.error('Failed to delete tasks');
+    } finally {
+      setIsBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkComplete = async () => {
+    setIsBulkActionLoading(true);
+    try {
+      const selectedTasks = getSelectedTasks().filter(t => !t.is_completed);
+      for (const task of selectedTasks) {
+        await manageMutation.mutateAsync({ action: 'toggle', task_id: task.task_id });
+      }
+      toast.success(`${selectedTasks.length} tasks completed`);
+      clearSelection();
+    } catch (error) {
+      toast.error('Failed to complete tasks');
+    } finally {
+      setIsBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkChangePriority = async (priority: string | null) => {
+    setIsBulkActionLoading(true);
+    try {
+      const selectedTasks = getSelectedTasks();
+      for (const task of selectedTasks) {
+        await manageMutation.mutateAsync({
+          action: 'update',
+          task_id: task.task_id,
+          priority,
+        });
+      }
+      toast.success(`Priority updated for ${selectedTasks.length} tasks`);
+      clearSelection();
+    } catch (error) {
+      toast.error('Failed to update priority');
+    } finally {
+      setIsBulkActionLoading(false);
+    }
+  };
+
+  const handleSelectAllInGroup = (tasksToSelect: Task[]) => {
+    tasksToSelect.forEach(t => {
+      if (!selectedTaskIds.has(t.task_id)) {
+        toggleTaskSelection(t.task_id);
+      }
+    });
+  };
 
   // Handlers
   const handleToggleComplete = async (taskId: string) => {
@@ -739,6 +836,10 @@ export default function Tasks() {
             onOpenDetail={openTaskDetail}
             onQuickReschedule={handleQuickReschedule}
             onAddTask={() => setIsAddDialogOpen(true)}
+            selectedTaskIds={selectedTaskIds}
+            onToggleTaskSelection={toggleTaskSelection}
+            onSelectAllInGroup={handleSelectAllInGroup}
+            showSelectionCheckboxes={true}
           />
         ) : viewMode === 'kanban' ? (
           <TaskKanbanView
@@ -1405,6 +1506,17 @@ export default function Tasks() {
         onOpenChange={setShowCalendarModal}
         calendars={calendars}
         onSelect={selectCalendar}
+      />
+
+      {/* Bulk Actions Bar */}
+      <BulkActionsBar
+        selectedCount={selectedCount}
+        onReschedule={handleBulkReschedule}
+        onDelete={handleBulkDelete}
+        onComplete={handleBulkComplete}
+        onChangePriority={handleBulkChangePriority}
+        onCancelSelection={clearSelection}
+        isLoading={isBulkActionLoading}
       />
     </Layout>
   );

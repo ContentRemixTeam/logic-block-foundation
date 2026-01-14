@@ -44,6 +44,9 @@ interface TaskCardProps {
   onOpenDetail: (task: Task) => void;
   onQuickReschedule: (taskId: string, date: Date | null, status?: string) => void;
   isDragging?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: (taskId: string) => void;
+  showSelectionCheckbox?: boolean;
 }
 
 // Format due date with relative time
@@ -83,7 +86,10 @@ export function TaskCard({
   onDelete, 
   onOpenDetail,
   onQuickReschedule,
-  isDragging = false
+  isDragging = false,
+  isSelected = false,
+  onToggleSelection,
+  showSelectionCheckbox = false
 }: TaskCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(task.task_text);
@@ -159,10 +165,22 @@ export function TaskCard({
         "hover:border-primary/30 border-l-4",
         task.is_completed && "opacity-60 bg-muted/30",
         isDragging && "shadow-lg ring-2 ring-primary/20 scale-[1.02]",
+        isSelected && "ring-2 ring-primary/50 bg-primary/5",
         priorityStyles.border,
         priorityStyles.bg || ""
       )}
     >
+      {/* Selection checkbox */}
+      {showSelectionCheckbox && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={() => onToggleSelection?.(task.task_id)}
+            className="mt-0.5 h-5 w-5"
+          />
+        </div>
+      )}
+
       {/* Drag handle */}
       <div className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab mt-1">
         <GripVertical className="h-4 w-4 text-muted-foreground" />
