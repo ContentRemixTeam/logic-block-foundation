@@ -203,7 +203,7 @@ export const MastermindCallWidget = () => {
               <div className="text-right">
                 <CountdownTimer targetDate={startTime} onComplete={fetchMastermindCalls} compact />
               </div>
-              <Button size="sm" className="bg-[hsl(330,81%,54%)] hover:bg-[hsl(330,81%,48%)]" onClick={openCircleEvents}>
+              <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={openCircleEvents}>
                 Join
               </Button>
             </div>
@@ -219,8 +219,8 @@ export const MastermindCallWidget = () => {
       <CardContent className="py-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[hsl(330,81%,54%)]/10 flex items-center justify-center">
-              <GraduationCap className="h-4 w-4 text-[hsl(330,81%,54%)]" />
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <GraduationCap className="h-4 w-4 text-primary" />
             </div>
             <div>
               <p className="text-[10px] uppercase tracking-wider text-foreground-muted font-medium">Next Mastermind Call</p>

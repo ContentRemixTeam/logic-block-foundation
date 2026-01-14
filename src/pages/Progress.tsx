@@ -170,11 +170,11 @@ const MetricSummaryCard = ({
 
 // Line colors for 5 metrics
 const METRIC_COLORS = [
-  "hsl(210, 100%, 50%)", // Blue
-  "hsl(142, 76%, 36%)",  // Green
-  "hsl(270, 70%, 50%)",  // Purple
-  "hsl(30, 100%, 50%)",  // Orange
-  "hsl(340, 82%, 52%)",  // Pink
+  "hsl(var(--primary))",           // Primary (theme color)
+  "hsl(var(--success))",           // Green
+  "hsl(var(--info))",              // Blue/Purple
+  "hsl(var(--warning))",           // Orange/Yellow
+  "hsl(var(--accent-foreground))", // Accent
 ];
 
 export default function Progress() {

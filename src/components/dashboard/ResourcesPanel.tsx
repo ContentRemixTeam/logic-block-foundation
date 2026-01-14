@@ -28,7 +28,7 @@ export function ResourcesPanel() {
             href={resource.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-between text-sm text-[hsl(330,81%,54%)] hover:underline py-1.5 group"
+            className="flex items-center justify-between text-sm text-primary hover:underline py-1.5 group"
           >
             <span>{resource.label}</span>
             <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
