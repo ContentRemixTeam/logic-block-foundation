@@ -144,7 +144,7 @@ export default function Tasks() {
       });
 
       if (response.error) throw response.error;
-      return response.data?.data || [];
+      return response.data?.sops || [];
     },
   });
 
