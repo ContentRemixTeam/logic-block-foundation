@@ -219,12 +219,14 @@ export function ScratchPadOrganizeModal({
 
       // Update ideas with categories
       for (const idea of ideas) {
-        if (!idea.id || !idea.categoryId) continue;
+        if (!idea.id) continue;
         
+        // Save idea with category - include content as required by the endpoint
         await supabase.functions.invoke('save-idea', {
           body: {
             id: idea.id,
-            category_id: idea.categoryId,
+            content: idea.text, // Required field
+            category_id: idea.categoryId || null,
           },
         });
       }
@@ -347,17 +349,17 @@ export function ScratchPadOrganizeModal({
                             <SelectTrigger className="h-8 w-[180px]">
                               <SelectValue placeholder="Select category..." />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-popover">
                               <SelectItem value="uncategorized">Uncategorized</SelectItem>
                               {categories.map((cat) => (
                                 <SelectItem key={cat.id} value={cat.id}>
-                                  <div className="flex items-center gap-2">
-                                    <div
-                                      className="w-3 h-3 rounded-full"
+                                  <span className="flex items-center gap-2">
+                                    <span
+                                      className="w-3 h-3 rounded-full shrink-0"
                                       style={{ backgroundColor: cat.color }}
                                     />
-                                    {cat.name}
-                                  </div>
+                                    <span>{cat.name}</span>
+                                  </span>
                                 </SelectItem>
                               ))}
                             </SelectContent>
