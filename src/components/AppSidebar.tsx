@@ -29,6 +29,7 @@ import {
   Smartphone,
   Library,
   Shield,
+  Trash2,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
@@ -92,6 +93,7 @@ const COMMUNITY_NAV = [
 
 const SETTINGS_NAV = [
   { name: 'Settings', href: '/settings', icon: Settings, questIcon: '⚙️' },
+  { name: 'Trash', href: '/trash', icon: Trash2, questIcon: '🗑️' },
   { name: 'Support', href: '/support', icon: HelpCircle, questIcon: '❓' },
 ];
 

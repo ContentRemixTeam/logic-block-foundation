@@ -1585,6 +1585,7 @@ export type Database = {
           category: string | null
           created_at: string | null
           cycle_id: string | null
+          deleted_at: string | null
           description: string | null
           display_order: number | null
           habit_id: string
@@ -1600,6 +1601,7 @@ export type Database = {
           category?: string | null
           created_at?: string | null
           cycle_id?: string | null
+          deleted_at?: string | null
           description?: string | null
           display_order?: number | null
           habit_id?: string
@@ -1615,6 +1617,7 @@ export type Database = {
           category?: string | null
           created_at?: string | null
           cycle_id?: string | null
+          deleted_at?: string | null
           description?: string | null
           display_order?: number | null
           habit_id?: string
@@ -1641,6 +1644,7 @@ export type Database = {
           category_id: string | null
           content: string
           created_at: string | null
+          deleted_at: string | null
           id: string
           priority: string | null
           project_id: string | null
@@ -1652,6 +1656,7 @@ export type Database = {
           category_id?: string | null
           content: string
           created_at?: string | null
+          deleted_at?: string | null
           id?: string
           priority?: string | null
           project_id?: string | null
@@ -1663,6 +1668,7 @@ export type Database = {
           category_id?: string | null
           content?: string
           created_at?: string | null
+          deleted_at?: string | null
           id?: string
           priority?: string | null
           project_id?: string | null
@@ -2386,6 +2392,7 @@ export type Database = {
         Row: {
           checklist_items: Json | null
           created_at: string | null
+          deleted_at: string | null
           description: string | null
           links: Json | null
           notes: string | null
@@ -2398,6 +2405,7 @@ export type Database = {
         Insert: {
           checklist_items?: Json | null
           created_at?: string | null
+          deleted_at?: string | null
           description?: string | null
           links?: Json | null
           notes?: string | null
@@ -2410,6 +2418,7 @@ export type Database = {
         Update: {
           checklist_items?: Json | null
           created_at?: string | null
+          deleted_at?: string | null
           description?: string | null
           links?: Json | null
           notes?: string | null
@@ -2563,6 +2572,7 @@ export type Database = {
           cycle_id: string | null
           daily_plan_id: string | null
           day_order: number | null
+          deleted_at: string | null
           due_date: string | null
           energy_level: string | null
           estimated_minutes: number | null
@@ -2618,6 +2628,7 @@ export type Database = {
           cycle_id?: string | null
           daily_plan_id?: string | null
           day_order?: number | null
+          deleted_at?: string | null
           due_date?: string | null
           energy_level?: string | null
           estimated_minutes?: number | null
@@ -2673,6 +2684,7 @@ export type Database = {
           cycle_id?: string | null
           daily_plan_id?: string | null
           day_order?: number | null
+          deleted_at?: string | null
           due_date?: string | null
           energy_level?: string | null
           estimated_minutes?: number | null
