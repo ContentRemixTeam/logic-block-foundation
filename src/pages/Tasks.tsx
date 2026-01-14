@@ -25,7 +25,7 @@ import { toast } from 'sonner';
 import { 
   Plus, CalendarIcon, Clock, RefreshCw, ChevronDown, 
   ClipboardList, ExternalLink, Unlink, LayoutList, Columns, 
-  Clock3, Zap, Battery, BatteryLow, Trash2, CalendarRange
+  Clock3, Zap, Battery, BatteryLow, Trash2, CalendarRange, Search, X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -85,6 +85,7 @@ export default function Tasks() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
   // Filter state
+  const [searchQuery, setSearchQuery] = useState('');
   const [energyFilter, setEnergyFilter] = useState<EnergyLevel[]>([]);
   const [tagsFilter, setTagsFilter] = useState<string[]>([]);
   const [cycleFilter, setCycleFilter] = useState<CycleFilterValue>('all');
@@ -198,10 +199,13 @@ export default function Tasks() {
     }).length;
   }, [tasks]);
 
-  // Separate recurring parent tasks and apply cycle filter
-  const { regularTasks, recurringParentTasks } = useMemo(() => {
+  // Separate recurring parent tasks and apply cycle filter + search
+  const { regularTasks, recurringParentTasks, totalTaskCount } = useMemo(() => {
     const regular: Task[] = [];
     const recurring: Task[] = [];
+    let totalBeforeSearch = 0;
+    
+    const searchLower = searchQuery.toLowerCase().trim();
     
     tasks.forEach((task: Task) => {
       // Apply cycle filter
@@ -214,6 +218,21 @@ export default function Tasks() {
       // Apply system-generated filter
       if (systemOnly && !task.is_system_generated) return;
       
+      // Count tasks before search filter
+      totalBeforeSearch++;
+      
+      // Apply search filter
+      if (searchLower) {
+        const matchesText = task.task_text?.toLowerCase().includes(searchLower);
+        const matchesDescription = task.task_description?.toLowerCase().includes(searchLower);
+        const matchesSop = task.sop?.sop_name?.toLowerCase().includes(searchLower);
+        const matchesNotes = task.notes?.toLowerCase().includes(searchLower);
+        
+        if (!matchesText && !matchesDescription && !matchesSop && !matchesNotes) {
+          return;
+        }
+      }
+      
       if (task.is_recurring_parent) {
         recurring.push(task);
       } else {
@@ -221,8 +240,12 @@ export default function Tasks() {
       }
     });
     
-    return { regularTasks: regular, recurringParentTasks: recurring };
-  }, [tasks, cycleFilter, activeCycle, systemOnly]);
+    return { 
+      regularTasks: regular, 
+      recurringParentTasks: recurring,
+      totalTaskCount: totalBeforeSearch
+    };
+  }, [tasks, cycleFilter, activeCycle, systemOnly, searchQuery]);
 
   // Handlers
   const handleToggleComplete = async (taskId: string) => {
@@ -631,8 +654,36 @@ export default function Tasks() {
           </Collapsible>
         )}
 
-        {/* Filters row */}
+        {/* Search and Filters */}
         <div className="flex flex-col gap-4">
+          {/* Search bar */}
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search tasks..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-9"
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                  onClick={() => setSearchQuery('')}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            {searchQuery && (
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
+                Showing {regularTasks.length + recurringParentTasks.length} of {totalTaskCount} tasks
+              </span>
+            )}
+          </div>
+
           {/* Cycle filter */}
           <div className="flex flex-wrap items-center gap-3">
             <CycleFilter
@@ -663,6 +714,7 @@ export default function Tasks() {
               selectedTags={tagsFilter}
               onTagsChange={setTagsFilter}
               onClearFilters={() => {
+                setSearchQuery('');
                 setEnergyFilter([]);
                 setTagsFilter([]);
                 setCycleFilter('all');
