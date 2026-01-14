@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { Send, Mail, CheckCircle2, Loader2 } from 'lucide-react';
 import { 
   ContentType,
@@ -14,10 +15,18 @@ import {
   CONTENT_CHANNELS,
   createSendLog,
   getTodayLogs,
+  getDefaultsForNurtureMethod,
+  getNurtureMethodLabel,
 } from '@/lib/contentService';
 import { toast } from 'sonner';
 import { useActiveCycle } from '@/hooks/useActiveCycle';
-import { useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
+
+interface NurturePlatform {
+  method: string;
+  isPrimary?: boolean;
+}
 
 interface QuickLogCardProps {
   variant?: 'compact' | 'full';
@@ -29,11 +38,15 @@ export function QuickLogCard({ variant = 'compact' }: QuickLogCardProps) {
   const [todayCount, setTodayCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
+  // User's nurture platforms from 90-day plan
+  const [userNurturePlatforms, setUserNurturePlatforms] = useState<NurturePlatform[]>([]);
+
   // Form state
   const [channel, setChannel] = useState<ContentChannel>('Email');
-  const [type, setType] = useState<ContentType>('Email');
+  const [type, setType] = useState<ContentType>('Newsletter');
   const [topic, setTopic] = useState('');
 
+  // Load today's logs
   useEffect(() => {
     const loadTodayLogs = async () => {
       try {
@@ -45,6 +58,59 @@ export function QuickLogCard({ variant = 'compact' }: QuickLogCardProps) {
     };
     loadTodayLogs();
   }, []);
+
+  // Load user's nurture platforms from their 90-day cycle
+  useEffect(() => {
+    const loadNurturePlatforms = async () => {
+      if (!cycle?.cycle_id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('cycle_strategy')
+          .select('nurture_platforms')
+          .eq('cycle_id', cycle.cycle_id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error loading nurture platforms:', error);
+          return;
+        }
+
+        if (data?.nurture_platforms && Array.isArray(data.nurture_platforms)) {
+          const platforms = (data.nurture_platforms as unknown) as NurturePlatform[];
+          setUserNurturePlatforms(platforms);
+
+          // Auto-set defaults from primary platform
+          const primary = platforms.find(p => p.isPrimary);
+          if (primary) {
+            const defaults = getDefaultsForNurtureMethod(primary.method);
+            setChannel(defaults.channel);
+            setType(defaults.type);
+          } else if (platforms.length > 0) {
+            // If no primary, use the first platform
+            const defaults = getDefaultsForNurtureMethod(platforms[0].method);
+            setChannel(defaults.channel);
+            setType(defaults.type);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading nurture platforms:', error);
+      }
+    };
+
+    loadNurturePlatforms();
+  }, [cycle?.cycle_id]);
+
+  const handleSelectPlatform = (platform: NurturePlatform) => {
+    const defaults = getDefaultsForNurtureMethod(platform.method);
+    setChannel(defaults.channel);
+    setType(defaults.type);
+  };
+
+  const isSelectedPlatform = (platform: NurturePlatform) => {
+    const defaults = getDefaultsForNurtureMethod(platform.method);
+    return channel === defaults.channel && type === defaults.type;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,40 +178,73 @@ export function QuickLogCard({ variant = 'compact' }: QuickLogCardProps) {
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label>Channel</Label>
-              <Select value={channel} onValueChange={(v) => setChannel(v as ContentChannel)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CONTENT_CHANNELS.map(c => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Quick Select from User's Platforms */}
+            {userNurturePlatforms.length > 0 && (
+              <>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Quick Select (Your Platforms)</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {userNurturePlatforms.map((platform, idx) => (
+                      <Badge
+                        key={idx}
+                        variant="outline"
+                        className={cn(
+                          "cursor-pointer hover:bg-primary/10 transition-colors",
+                          isSelectedPlatform(platform) && "bg-primary/20 border-primary text-primary"
+                        )}
+                        onClick={() => handleSelectPlatform(platform)}
+                      >
+                        {platform.isPrimary && '⭐ '}
+                        {getNurtureMethodLabel(platform.method)}
+                      </Badge>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    From your 90-Day Plan commitments
+                  </p>
+                </div>
+                <Separator />
+              </>
+            )}
+
+            {/* Channel & Type Dropdowns */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-xs">Channel (Where)</Label>
+                <Select value={channel} onValueChange={(v) => setChannel(v as ContentChannel)}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    {CONTENT_CHANNELS.map(c => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs">Type (What)</Label>
+                <Select value={type} onValueChange={(v) => setType(v as ContentType)}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    {CONTENT_TYPES.map(t => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Type</Label>
-              <Select value={type} onValueChange={(v) => setType(v as ContentType)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CONTENT_TYPES.map(t => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Topic (optional)</Label>
+              <Label className="text-xs">Topic (optional)</Label>
               <Input
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 placeholder="e.g., Mindset Monday"
+                className="h-9"
               />
             </div>
 

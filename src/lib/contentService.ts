@@ -1,8 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
 
-export type ContentType = 'Email' | 'IG Post' | 'Reel' | 'Carousel' | 'Story' | 'YouTube' | 'Podcast' | 'Blog' | 'Live' | 'Ad' | 'Landing Page' | 'Other';
+// TYPES - What format you published
+export type ContentType = 'Newsletter' | 'Post' | 'Reel/Short' | 'Video' | 'Carousel' | 'Story' | 'Live Session' | 'Podcast Episode' | 'Blog Article' | 'Webinar' | 'Challenge' | 'DM/Message' | 'Ad' | 'Landing Page' | 'Other';
 export type ContentStatus = 'Draft' | 'Ready' | 'Published';
-export type ContentChannel = 'Email' | 'Instagram' | 'Facebook' | 'YouTube' | 'Podcast' | 'Blog' | 'Twitter' | 'LinkedIn' | 'TikTok' | 'Other';
+// CHANNELS - Where you published
+export type ContentChannel = 'Email' | 'Instagram' | 'Facebook' | 'YouTube' | 'TikTok' | 'LinkedIn' | 'Twitter/X' | 'Pinterest' | 'Website/Blog' | 'Podcast Platform' | 'Community Platform' | 'DMs' | 'Other';
 
 export interface ContentItem {
   id: string;
@@ -51,15 +53,87 @@ export interface ContentFilters {
   dateTo?: string;
 }
 
+// TYPES - What format (clear distinction from channels)
 export const CONTENT_TYPES: ContentType[] = [
-  'Email', 'IG Post', 'Reel', 'Carousel', 'Story', 'YouTube', 'Podcast', 'Blog', 'Live', 'Ad', 'Landing Page', 'Other'
+  'Newsletter',
+  'Post',
+  'Reel/Short',
+  'Video',
+  'Carousel',
+  'Story',
+  'Live Session',
+  'Podcast Episode',
+  'Blog Article',
+  'Webinar',
+  'Challenge',
+  'DM/Message',
+  'Ad',
+  'Landing Page',
+  'Other'
 ];
 
 export const CONTENT_STATUSES: ContentStatus[] = ['Draft', 'Ready', 'Published'];
 
+// CHANNELS - Where you published (clear distinction from types)
 export const CONTENT_CHANNELS: ContentChannel[] = [
-  'Email', 'Instagram', 'Facebook', 'YouTube', 'Podcast', 'Blog', 'Twitter', 'LinkedIn', 'TikTok', 'Other'
+  'Email',
+  'Instagram',
+  'Facebook',
+  'YouTube',
+  'TikTok',
+  'LinkedIn',
+  'Twitter/X',
+  'Pinterest',
+  'Website/Blog',
+  'Podcast Platform',
+  'Community Platform',
+  'DMs',
+  'Other'
 ];
+
+// Helper to map nurture methods from 90-day plan to smart defaults
+export function getDefaultsForNurtureMethod(method: string): { channel: ContentChannel; type: ContentType } {
+  const mapping: Record<string, { channel: ContentChannel; type: ContentType }> = {
+    'email': { channel: 'Email', type: 'Newsletter' },
+    'community': { channel: 'Community Platform', type: 'Post' },
+    'dm': { channel: 'DMs', type: 'DM/Message' },
+    'podcast': { channel: 'Podcast Platform', type: 'Podcast Episode' },
+    'webinar': { channel: 'YouTube', type: 'Webinar' },
+    'challenge': { channel: 'Email', type: 'Challenge' },
+    'live': { channel: 'Instagram', type: 'Live Session' },
+    'youtube': { channel: 'YouTube', type: 'Video' },
+    'instagram': { channel: 'Instagram', type: 'Post' },
+    'facebook': { channel: 'Facebook', type: 'Post' },
+    'tiktok': { channel: 'TikTok', type: 'Reel/Short' },
+    'linkedin': { channel: 'LinkedIn', type: 'Post' },
+    'twitter': { channel: 'Twitter/X', type: 'Post' },
+    'blog': { channel: 'Website/Blog', type: 'Blog Article' },
+  };
+  
+  return mapping[method.toLowerCase()] || { channel: 'Email', type: 'Newsletter' };
+}
+
+// Get display label for nurture method
+export function getNurtureMethodLabel(method: string): string {
+  const labels: Record<string, string> = {
+    'email': '📧 Email',
+    'community': '👥 Community',
+    'dm': '💬 DMs',
+    'podcast': '🎙️ Podcast',
+    'webinar': '🎓 Webinar',
+    'challenge': '🎯 Challenge',
+    'live': '📺 Live',
+    'youtube': '📹 YouTube',
+    'instagram': '📸 Instagram',
+    'facebook': '👍 Facebook',
+    'tiktok': '🎵 TikTok',
+    'linkedin': '💼 LinkedIn',
+    'twitter': '🐦 Twitter/X',
+    'blog': '📝 Blog',
+  };
+  
+  return labels[method.toLowerCase()] || method;
+}
 
 // Content Items CRUD
 export async function getContentItems(filters?: ContentFilters): Promise<ContentItem[]> {
@@ -284,10 +358,10 @@ export async function getNurtureStats(cycleId?: string): Promise<{
   });
 
   const thisWeekLogs = logs.filter(l => new Date(l.sent_at) >= startOfWeek);
-  const thisWeekEmails = thisWeekLogs.filter(l => l.type === 'Email').length;
+  const thisWeekEmails = thisWeekLogs.filter(l => l.type === 'Newsletter').length;
   const thisWeekTotal = thisWeekLogs.length;
 
-  const thisMonthEmails = logs.filter(l => l.type === 'Email').length;
+  const thisMonthEmails = logs.filter(l => l.type === 'Newsletter').length;
   const thisMonthTotal = logs.length;
 
   // Calculate streak (weeks with at least 1 nurture log)

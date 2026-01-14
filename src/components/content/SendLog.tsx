@@ -41,7 +41,7 @@ export function SendLog({ onLogCreated }: SendLogProps) {
 
   // Form state
   const [channel, setChannel] = useState<ContentChannel>('Email');
-  const [type, setType] = useState<ContentType>('Email');
+  const [type, setType] = useState<ContentType>('Newsletter');
   const [topic, setTopic] = useState('');
 
   const loadData = async () => {
