@@ -577,7 +577,10 @@ export default function Notes() {
               {/* Hashtag Filters */}
               <div className="flex flex-wrap gap-2 items-center">
                 <Hash className="h-4 w-4 text-muted-foreground" />
-                {(activeTab === 'entries' ? HASHTAG_FILTERS : [...new Set([...HASHTAG_FILTERS, ...allTags])]).map(tag => (
+                {(activeTab === 'entries' 
+                  ? HASHTAG_FILTERS 
+                  : [...new Set([...HASHTAG_FILTERS, ...allTags])].sort()
+                ).map(tag => (
                   <Badge
                     key={tag}
                     variant={hashtagFilter === tag ? "default" : "outline"}
