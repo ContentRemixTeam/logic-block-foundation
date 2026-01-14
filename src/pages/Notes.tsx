@@ -230,8 +230,9 @@ export default function Notes() {
   }, [entries, searchQuery, dateRange, hashtagFilter]);
 
   // Filter pages based on search, project, and hashtag
-  const filteredPages = useMemo(() => {
+  const { filteredPages, totalPagesCount } = useMemo(() => {
     let result = pages;
+    const totalBeforeSearch = pages.length;
 
     // Filter by project
     if (projectFilter) {
@@ -246,17 +247,23 @@ export default function Notes() {
       });
     }
 
-    // Filter by search query
+    // Filter by search query (includes title, content, and tags)
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(page => 
-        page.title?.toLowerCase().includes(query) ||
-        page.content?.toLowerCase().includes(query)
-      );
+      result = result.filter(page => {
+        const matchesTitle = page.title?.toLowerCase().includes(query);
+        const matchesContent = page.content?.toLowerCase().includes(query);
+        const pageTags = Array.isArray(page.tags) ? page.tags : [];
+        const matchesTags = pageTags.some(t => t.toLowerCase().includes(query));
+        return matchesTitle || matchesContent || matchesTags;
+      });
     }
 
-    return result;
+    return { filteredPages: result, totalPagesCount: totalBeforeSearch };
   }, [pages, searchQuery, projectFilter, hashtagFilter, activeTab]);
+
+  // Get filtered entries count for display
+  const totalEntriesCount = entries.length;
 
   // Group entries by date for display
   const groupedEntries = useMemo(() => {
@@ -456,10 +463,10 @@ export default function Notes() {
                 <div className="relative flex-1 min-w-[200px]">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder={activeTab === 'entries' ? "Search entries..." : "Search pages..."}
+                    placeholder={activeTab === 'entries' ? "Search entries..." : "Search pages, content, or tags..."}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
+                    className="pl-9 pr-9"
                   />
                   {searchQuery && (
                     <Button
@@ -472,6 +479,16 @@ export default function Notes() {
                     </Button>
                   )}
                 </div>
+                
+                {/* Search results count */}
+                {searchQuery && (
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">
+                    {activeTab === 'entries' 
+                      ? `${filteredEntries.length} of ${totalEntriesCount} entries`
+                      : `${filteredPages.length} of ${totalPagesCount} pages`
+                    }
+                  </span>
+                )}
 
                 {/* Date Range Filter - only for entries */}
                 {activeTab === 'entries' && (
