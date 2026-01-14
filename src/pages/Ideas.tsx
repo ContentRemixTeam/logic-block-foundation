@@ -17,10 +17,18 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Zap, Edit, Trash2, Plus, ArrowUpDown, FolderKanban, Clock, Hash, X, Loader2, Search } from 'lucide-react';
+import { Zap, Edit, Trash2, Plus, ArrowUpDown, FolderKanban, Clock, Hash, X, Loader2, Search, ChevronDown, Check } from 'lucide-react';
 import { PaginationInfo } from '@/components/ui/pagination-info';
 import { normalizeString } from '@/lib/normalize';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuCheckboxItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 interface Category {
   id: string;
@@ -68,6 +76,7 @@ export default function Ideas() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedPriority, setSelectedPriority] = useState<string>('all');
   const [selectedProject, setSelectedProject] = useState<string>('all');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -464,10 +473,19 @@ export default function Ideas() {
 
   const totalIdeasBeforeFilter = ideas.length;
   
+  // Extract all unique tags from ideas
+  const allUniqueTags = Array.from(
+    new Set(ideas.flatMap(idea => idea.tags || []))
+  ).sort();
+  
   const filteredIdeas = ideas
     .filter((idea) => selectedCategory === 'all' || idea.category_id === selectedCategory)
     .filter((idea) => selectedPriority === 'all' || idea.priority === selectedPriority)
     .filter((idea) => selectedProject === 'all' || idea.project_id === selectedProject)
+    .filter((idea) => {
+      if (selectedTags.length === 0) return true;
+      return idea.tags?.some(tag => selectedTags.includes(tag));
+    })
     .filter((idea) => {
       if (!searchQuery.trim()) return true;
       const query = searchQuery.toLowerCase();
@@ -811,11 +829,68 @@ export default function Ideas() {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Tag Filter */}
+          {allUniqueTags.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Label>Tags:</Label>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-[160px] justify-between">
+                    {selectedTags.length === 0 
+                      ? "All" 
+                      : `${selectedTags.length} selected`}
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 max-h-[300px] overflow-y-auto">
+                  <DropdownMenuItem onClick={() => setSelectedTags([])}>
+                    Clear all
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {allUniqueTags.map(tag => (
+                    <DropdownMenuCheckboxItem
+                      key={tag}
+                      checked={selectedTags.includes(tag)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedTags([...selectedTags, tag]);
+                        } else {
+                          setSelectedTags(selectedTags.filter(t => t !== tag));
+                        }
+                      }}
+                    >
+                      <Hash className="h-3 w-3 mr-2 text-muted-foreground" />
+                      {tag}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
           
           <Button variant="outline" size="sm" onClick={toggleSortOrder}>
             <ArrowUpDown className="h-4 w-4 mr-2" />
             {sortOrder === 'newest' ? 'Newest first' : 'Oldest first'}
           </Button>
+          
+          {/* Active tag filters display */}
+          {selectedTags.length > 0 && (
+            <div className="flex flex-wrap gap-1 ml-2">
+              {selectedTags.map(tag => (
+                <Badge 
+                  key={tag} 
+                  variant="secondary" 
+                  className="gap-1 cursor-pointer hover:bg-destructive/20"
+                  onClick={() => setSelectedTags(selectedTags.filter(t => t !== tag))}
+                >
+                  <Hash className="h-3 w-3" />
+                  {tag}
+                  <X className="h-3 w-3" />
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Ideas Grid */}
