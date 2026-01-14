@@ -15,6 +15,7 @@ import { UsefulThoughtsModal } from '@/components/UsefulThoughtsModal';
 import { WeekPlannerNew } from '@/components/weekly-plan/WeekPlannerNew';
 import { WeeklyTimelineView } from '@/components/weekly-plan/WeeklyTimelineView';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { LastWeekPriorities } from '@/components/weekly-plan/LastWeekPriorities';
 import { ArrowLeft, Calendar, Loader2, Save, CheckCircle2, TrendingUp, Brain, Zap, Target, BarChart3, Clock, LayoutList } from 'lucide-react';
 import { useDataProtection } from '@/hooks/useDataProtection';
 import { SaveStatusIndicator, SaveStatusBanner } from '@/components/SaveStatusIndicator';
@@ -63,6 +64,9 @@ export default function WeeklyPlan() {
   const [cycleGoal, setCycleGoal] = useState('');
   const [thoughtsModalOpen, setThoughtsModalOpen] = useState(false);
   const [identityAnchor, setIdentityAnchor] = useState<any>(null);
+  
+  // Last week's priorities for carry-over
+  const [lastWeekPriorities, setLastWeekPriorities] = useState<string[]>([]);
 
   // Cycle metrics from cycle setup
   const [cycleMetrics, setCycleMetrics] = useState<{
@@ -182,6 +186,9 @@ export default function WeeklyPlan() {
         if (weekData.cycle_metrics) {
           setCycleMetrics(weekData.cycle_metrics);
         }
+        
+        // Set last week's priorities for carry-over
+        setLastWeekPriorities(normalizeArray(weekData.last_week_priorities));
 
         setMetric1Target(weekData.metric_1_target ?? '');
         setMetric2Target(weekData.metric_2_target ?? '');
@@ -214,6 +221,44 @@ export default function WeeklyPlan() {
       return updated;
     });
   }, []);
+
+  // Handle carry-over from last week
+  const handleCarryOver = useCallback((priority: string, _index: number) => {
+    // Find the first empty priority slot
+    setPriorities(prev => {
+      const emptyIdx = prev.findIndex(p => !p.trim());
+      if (emptyIdx !== -1) {
+        const updated = [...prev];
+        updated[emptyIdx] = priority;
+        return updated;
+      }
+      // If all slots are filled, show toast
+      toast({
+        title: 'All priority slots filled',
+        description: 'Clear a slot first to carry over this priority.',
+        variant: 'destructive',
+      });
+      return prev;
+    });
+    toast({
+      title: 'Priority carried over',
+      description: 'Added to this week\'s priorities.',
+    });
+  }, [toast]);
+
+  const handleDropPriority = useCallback((_index: number) => {
+    toast({
+      title: 'Priority dropped',
+      description: 'This priority won\'t be carried over.',
+    });
+  }, [toast]);
+
+  const handleMarkDone = useCallback((_index: number) => {
+    toast({
+      title: 'Nice work! 🎉',
+      description: 'Priority marked as completed.',
+    });
+  }, [toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -349,6 +394,14 @@ export default function WeeklyPlan() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Last Week's Priorities for Carry-Over */}
+            <LastWeekPriorities
+              priorities={lastWeekPriorities}
+              onCarryOver={handleCarryOver}
+              onDrop={handleDropPriority}
+              onMarkDone={handleMarkDone}
+            />
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <Card>
