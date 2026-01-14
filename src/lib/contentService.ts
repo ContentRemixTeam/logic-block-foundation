@@ -28,6 +28,16 @@ export interface ContentItem {
   project_id: string | null;
   created_at: string;
   updated_at: string;
+  // Performance stats
+  open_rate: number | null;
+  click_rate: number | null;
+  views: number | null;
+  comments: number | null;
+  likes: number | null;
+  shares: number | null;
+  saves: number | null;
+  subscribers_gained: number | null;
+  revenue: number | null;
 }
 
 export interface ContentSendLog {

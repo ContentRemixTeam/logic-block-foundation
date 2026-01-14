@@ -1,21 +1,43 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Copy, Mail, Search, Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Copy, Mail, Search, Loader2, Eye, MousePointer, ArrowUpDown, TrendingUp, TrendingDown } from 'lucide-react';
 import { ContentItem, getContentItems } from '@/lib/contentService';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface SubjectLineLibraryProps {
   onDuplicate: (id: string) => void;
 }
 
+type SortOption = 'newest' | 'oldest' | 'open_rate_high' | 'open_rate_low' | 'click_rate_high' | 'click_rate_low';
+
+const getOpenRateColor = (rate: number | null): string => {
+  if (rate === null) return 'bg-muted text-muted-foreground';
+  if (rate >= 40) return 'bg-green-500/20 text-green-600 border-green-500/30';
+  if (rate >= 25) return 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30';
+  if (rate >= 15) return 'bg-amber-500/20 text-amber-600 border-amber-500/30';
+  return 'bg-red-500/20 text-red-600 border-red-500/30';
+};
+
+const getClickRateColor = (rate: number | null): string => {
+  if (rate === null) return 'bg-muted text-muted-foreground';
+  if (rate >= 5) return 'bg-green-500/20 text-green-600 border-green-500/30';
+  if (rate >= 2.5) return 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30';
+  if (rate >= 1) return 'bg-amber-500/20 text-amber-600 border-amber-500/30';
+  return 'bg-red-500/20 text-red-600 border-red-500/30';
+};
+
 export function SubjectLineLibrary({ onDuplicate }: SubjectLineLibraryProps) {
   const [items, setItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [showOnlyWithStats, setShowOnlyWithStats] = useState(false);
 
   const loadItems = async () => {
     setLoading(true);
@@ -39,15 +61,47 @@ export function SubjectLineLibrary({ onDuplicate }: SubjectLineLibraryProps) {
     toast.success(`${label} copied`);
   };
 
-  const filteredItems = items.filter(item => {
-    const searchLower = search.toLowerCase();
-    return (
-      item.subject_line?.toLowerCase().includes(searchLower) ||
-      item.preview_text?.toLowerCase().includes(searchLower) ||
-      item.topic?.toLowerCase().includes(searchLower) ||
-      item.title.toLowerCase().includes(searchLower)
-    );
-  });
+  const filteredAndSortedItems = useMemo(() => {
+    let result = items.filter(item => {
+      const searchLower = search.toLowerCase();
+      const matchesSearch = (
+        item.subject_line?.toLowerCase().includes(searchLower) ||
+        item.preview_text?.toLowerCase().includes(searchLower) ||
+        item.topic?.toLowerCase().includes(searchLower) ||
+        item.title.toLowerCase().includes(searchLower)
+      );
+      
+      if (showOnlyWithStats) {
+        return matchesSearch && (item.open_rate !== null || item.click_rate !== null);
+      }
+      
+      return matchesSearch;
+    });
+
+    // Sort
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'oldest':
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case 'open_rate_high':
+          return (b.open_rate ?? -1) - (a.open_rate ?? -1);
+        case 'open_rate_low':
+          return (a.open_rate ?? 999) - (b.open_rate ?? 999);
+        case 'click_rate_high':
+          return (b.click_rate ?? -1) - (a.click_rate ?? -1);
+        case 'click_rate_low':
+          return (a.click_rate ?? 999) - (b.click_rate ?? 999);
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [items, search, sortBy, showOnlyWithStats]);
+
+  const itemsWithStats = items.filter(i => i.open_rate !== null || i.click_rate !== null).length;
 
   if (loading) {
     return (
@@ -59,19 +113,67 @@ export function SubjectLineLibrary({ onDuplicate }: SubjectLineLibraryProps) {
 
   return (
     <div className="space-y-6">
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search subject lines..."
-          className="pl-10"
-        />
+      {/* Search and Sort Controls */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search subject lines..."
+            className="pl-10"
+          />
+        </div>
+        <div className="flex gap-2">
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+            <SelectTrigger className="w-[180px]">
+              <ArrowUpDown className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Sort by..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest First</SelectItem>
+              <SelectItem value="oldest">Oldest First</SelectItem>
+              <SelectItem value="open_rate_high">
+                <span className="flex items-center gap-2">
+                  <TrendingUp className="h-3.5 w-3.5 text-green-500" />
+                  Highest Open Rate
+                </span>
+              </SelectItem>
+              <SelectItem value="open_rate_low">
+                <span className="flex items-center gap-2">
+                  <TrendingDown className="h-3.5 w-3.5 text-red-500" />
+                  Lowest Open Rate
+                </span>
+              </SelectItem>
+              <SelectItem value="click_rate_high">
+                <span className="flex items-center gap-2">
+                  <TrendingUp className="h-3.5 w-3.5 text-green-500" />
+                  Highest Click Rate
+                </span>
+              </SelectItem>
+              <SelectItem value="click_rate_low">
+                <span className="flex items-center gap-2">
+                  <TrendingDown className="h-3.5 w-3.5 text-red-500" />
+                  Lowest Click Rate
+                </span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          {itemsWithStats > 0 && (
+            <Button
+              variant={showOnlyWithStats ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowOnlyWithStats(!showOnlyWithStats)}
+              className="whitespace-nowrap"
+            >
+              With Stats ({itemsWithStats})
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Results */}
-      {filteredItems.length === 0 ? (
+      {filteredAndSortedItems.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <Mail className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -81,7 +183,7 @@ export function SubjectLineLibrary({ onDuplicate }: SubjectLineLibraryProps) {
         </Card>
       ) : (
         <div className="space-y-3">
-          {filteredItems.map((item) => (
+          {filteredAndSortedItems.map((item) => (
             <Card key={item.id} className="group">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-4">
@@ -115,8 +217,8 @@ export function SubjectLineLibrary({ onDuplicate }: SubjectLineLibraryProps) {
                       </div>
                     )}
 
-                    {/* Meta */}
-                    <div className="flex items-center gap-2 pl-6">
+                    {/* Meta Row */}
+                    <div className="flex items-center flex-wrap gap-2 pl-6">
                       {item.topic && (
                         <Badge variant="secondary" className="text-xs">
                           {item.topic}
@@ -124,11 +226,12 @@ export function SubjectLineLibrary({ onDuplicate }: SubjectLineLibraryProps) {
                       )}
                       <Badge 
                         variant="outline" 
-                        className={`text-xs ${
+                        className={cn(
+                          "text-xs",
                           item.status === 'Published' 
                             ? 'bg-green-500/10 text-green-600 border-green-500/20'
                             : 'bg-muted text-muted-foreground'
-                        }`}
+                        )}
                       >
                         {item.status}
                       </Badge>
@@ -136,6 +239,26 @@ export function SubjectLineLibrary({ onDuplicate }: SubjectLineLibraryProps) {
                         <span className="text-xs text-muted-foreground">
                           {format(new Date(item.published_at), 'MMM d, yyyy')}
                         </span>
+                      )}
+
+                      {/* Performance Stats */}
+                      {item.open_rate !== null && (
+                        <Badge 
+                          variant="outline" 
+                          className={cn("text-xs gap-1", getOpenRateColor(item.open_rate))}
+                        >
+                          <Eye className="h-3 w-3" />
+                          {item.open_rate.toFixed(1)}% open
+                        </Badge>
+                      )}
+                      {item.click_rate !== null && (
+                        <Badge 
+                          variant="outline" 
+                          className={cn("text-xs gap-1", getClickRateColor(item.click_rate))}
+                        >
+                          <MousePointer className="h-3 w-3" />
+                          {item.click_rate.toFixed(1)}% clicks
+                        </Badge>
                       )}
                     </div>
                   </div>
@@ -158,7 +281,7 @@ export function SubjectLineLibrary({ onDuplicate }: SubjectLineLibraryProps) {
       )}
 
       <p className="text-xs text-muted-foreground text-center">
-        Your saved email subject lines from the Content Vault. Click to copy or duplicate.
+        Your saved email subject lines from the Content Vault. Click to copy or duplicate. Add stats to track performance.
       </p>
     </div>
   );

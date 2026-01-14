@@ -401,71 +401,98 @@ export type Database = {
         Row: {
           body: string | null
           channel: string | null
+          click_rate: number | null
+          comments: number | null
           created_at: string
           cta: string | null
           cycle_id: string | null
           hook: string | null
           id: string
+          likes: number | null
           link_url: string | null
           notes: string | null
           offer: string | null
+          open_rate: number | null
           preview_text: string | null
           project_id: string | null
           published_at: string | null
+          revenue: number | null
+          saves: number | null
+          shares: number | null
           status: string
           subject_line: string | null
+          subscribers_gained: number | null
           tags: string[] | null
           title: string
           topic: string | null
           type: string
           updated_at: string
           user_id: string
+          views: number | null
         }
         Insert: {
           body?: string | null
           channel?: string | null
+          click_rate?: number | null
+          comments?: number | null
           created_at?: string
           cta?: string | null
           cycle_id?: string | null
           hook?: string | null
           id?: string
+          likes?: number | null
           link_url?: string | null
           notes?: string | null
           offer?: string | null
+          open_rate?: number | null
           preview_text?: string | null
           project_id?: string | null
           published_at?: string | null
+          revenue?: number | null
+          saves?: number | null
+          shares?: number | null
           status?: string
           subject_line?: string | null
+          subscribers_gained?: number | null
           tags?: string[] | null
           title: string
           topic?: string | null
           type: string
           updated_at?: string
           user_id: string
+          views?: number | null
         }
         Update: {
           body?: string | null
           channel?: string | null
+          click_rate?: number | null
+          comments?: number | null
           created_at?: string
           cta?: string | null
           cycle_id?: string | null
           hook?: string | null
           id?: string
+          likes?: number | null
           link_url?: string | null
           notes?: string | null
           offer?: string | null
+          open_rate?: number | null
           preview_text?: string | null
           project_id?: string | null
           published_at?: string | null
+          revenue?: number | null
+          saves?: number | null
+          shares?: number | null
           status?: string
           subject_line?: string | null
+          subscribers_gained?: number | null
           tags?: string[] | null
           title?: string
           topic?: string | null
           type?: string
           updated_at?: string
           user_id?: string
+          views?: number | null
         }
         Relationships: [
           {
