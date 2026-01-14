@@ -10,7 +10,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { Filter, Zap, Battery, BatteryLow, Tag, Target, X } from 'lucide-react';
-import { EnergyLevel, ENERGY_LEVELS, CONTEXT_TAGS } from './types';
+import { EnergyLevel, ENERGY_LEVELS } from './types';
+import { useContextTags } from '@/hooks/useContextTags';
 
 interface TaskFiltersProps {
   selectedEnergy: EnergyLevel[];
@@ -27,6 +28,7 @@ export function TaskFilters({
   onTagsChange,
   onClearFilters,
 }: TaskFiltersProps) {
+  const { tags: contextTags } = useContextTags();
   const hasFilters = selectedEnergy.length > 0 || selectedTags.length > 0;
 
   const toggleEnergy = (energy: EnergyLevel) => {
@@ -116,7 +118,7 @@ export function TaskFilters({
         <DropdownMenuContent align="start">
           <DropdownMenuLabel>Filter by Context</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {CONTEXT_TAGS.map(tag => (
+          {contextTags.map(tag => (
             <DropdownMenuCheckboxItem
               key={tag.value}
               checked={selectedTags.includes(tag.value)}
@@ -163,7 +165,7 @@ export function TaskFilters({
             );
           })}
           {selectedTags.map(tag => {
-            const tagInfo = CONTEXT_TAGS.find(t => t.value === tag);
+            const tagInfo = contextTags.find(t => t.value === tag);
             return (
               <Badge 
                 key={tag} 
@@ -171,7 +173,7 @@ export function TaskFilters({
                 className="gap-1 cursor-pointer hover:bg-destructive/20"
                 onClick={() => toggleTag(tag)}
               >
-                {tagInfo?.icon} {tagInfo?.label}
+                {tagInfo?.icon} {tagInfo?.label || tag}
                 <X className="h-3 w-3" />
               </Badge>
             );

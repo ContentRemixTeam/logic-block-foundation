@@ -54,12 +54,13 @@ import { CalendarSelectionModal } from '@/components/google-calendar/CalendarSel
 import { 
   Task, SOP, ChecklistItem, SOPLink, ChecklistProgress, 
   FilterTab, ViewMode, EnergyLevel, RecurrencePattern, DeleteType,
-  DAYS_OF_WEEK, DURATION_OPTIONS, ENERGY_LEVELS, CONTEXT_TAGS
+  DAYS_OF_WEEK, DURATION_OPTIONS, ENERGY_LEVELS
 } from '@/components/tasks/types';
 import { CycleFilter, CycleFilterValue, CycleBadge } from '@/components/tasks/CycleFilter';
 import { useActiveCycle } from '@/hooks/useActiveCycle';
 import { CycleTimeline } from '@/components/CycleTimeline';
 import { SOPSelector } from '@/components/tasks/SOPSelector';
+import { TagManager } from '@/components/tasks/TagManager';
 
 export default function Tasks() {
   const queryClient = useQueryClient();
@@ -1079,23 +1080,11 @@ export default function Tasks() {
               {/* Context Tags */}
               <div>
                 <Label>Context Tags</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {CONTEXT_TAGS.map(tag => (
-                    <Badge
-                      key={tag.value}
-                      variant={newContextTags.includes(tag.value) ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => {
-                        if (newContextTags.includes(tag.value)) {
-                          setNewContextTags(newContextTags.filter(t => t !== tag.value));
-                        } else {
-                          setNewContextTags([...newContextTags, tag.value]);
-                        }
-                      }}
-                    >
-                      {tag.icon} {tag.label}
-                    </Badge>
-                  ))}
+                <div className="mt-2">
+                  <TagManager
+                    selectedTags={newContextTags}
+                    onTagsChange={setNewContextTags}
+                  />
                 </div>
               </div>
 
@@ -1368,24 +1357,11 @@ export default function Tasks() {
                 {/* Context Tags */}
                 <div>
                   <Label>Context Tags</Label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {CONTEXT_TAGS.map(tag => (
-                      <Badge
-                        key={tag.value}
-                        variant={(selectedTask.context_tags || []).includes(tag.value) ? "default" : "outline"}
-                        className="cursor-pointer"
-                        onClick={() => {
-                          const current = selectedTask.context_tags || [];
-                          if (current.includes(tag.value)) {
-                            setSelectedTask({ ...selectedTask, context_tags: current.filter(t => t !== tag.value) });
-                          } else {
-                            setSelectedTask({ ...selectedTask, context_tags: [...current, tag.value] });
-                          }
-                        }}
-                      >
-                        {tag.icon} {tag.label}
-                      </Badge>
-                    ))}
+                  <div className="mt-2">
+                    <TagManager
+                      selectedTags={selectedTask.context_tags || []}
+                      onTagsChange={(tags) => setSelectedTask({ ...selectedTask, context_tags: tags })}
+                    />
                   </div>
                 </div>
 
