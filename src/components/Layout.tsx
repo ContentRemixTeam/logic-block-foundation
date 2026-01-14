@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
@@ -10,9 +9,9 @@ import { AppSidebar } from '@/components/AppSidebar';
 import { QuickCaptureButton } from '@/components/quick-capture';
 import { SmartActionButton } from '@/components/SmartActionButton';
 import { TrialBanner, TrialExpiredScreen } from '@/components/trial';
-import { CoinCounter, PetWidget, PomodoroMiniWidget, ArcadeDrawer } from '@/components/arcade';
+import { ArcadeDrawer } from '@/components/arcade';
 import { useArcade } from '@/hooks/useArcade';
-import { OfflineDetector } from '@/components/OfflineDetector';
+import { OfflineBanner, OfflineIndicator } from '@/components/OfflineIndicator';
 import { Loader2, Sparkles, ArrowRight, X } from 'lucide-react';
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
@@ -53,7 +52,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <OfflineDetector />
+      <OfflineBanner />
       <SidebarProvider>
         <div className="flex min-h-screen w-full">
         {/* Premium Sidebar */}
@@ -97,20 +96,25 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-3">
               <SidebarTrigger className="h-8 w-8" />
             </div>
-            {/* Arcade widgets - temporarily hidden for public release */}
-            {/* TODO: Re-enable when arcade features are ready
-            {!arcadeLoading && settings.arcade_enabled && (
-              <div className="flex items-center gap-2 ml-auto">
-                {settings.show_pomodoro_widget && (
-                  <PomodoroMiniWidget onClick={() => { setArcadeDefaultTab('focus'); setArcadeOpen(true); }} />
-                )}
-                {settings.show_coin_counter && (
-                  <CoinCounter onClick={() => { setArcadeDefaultTab('stats'); setArcadeOpen(true); }} />
-                )}
-                {settings.show_pet_widget && <PetWidget />}
-              </div>
-            )}
-            */}
+            <div className="flex items-center gap-3 ml-auto">
+              {/* Offline sync indicator */}
+              <OfflineIndicator compact showSyncButton />
+              
+              {/* Arcade widgets - temporarily hidden for public release */}
+              {/* TODO: Re-enable when arcade features are ready
+              {!arcadeLoading && settings.arcade_enabled && (
+                <>
+                  {settings.show_pomodoro_widget && (
+                    <PomodoroMiniWidget onClick={() => { setArcadeDefaultTab('focus'); setArcadeOpen(true); }} />
+                  )}
+                  {settings.show_coin_counter && (
+                    <CoinCounter onClick={() => { setArcadeDefaultTab('stats'); setArcadeOpen(true); }} />
+                  )}
+                  {settings.show_pet_widget && <PetWidget />}
+                </>
+              )}
+              */}
+            </div>
           </header>
 
           {/* Page Content */}
