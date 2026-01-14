@@ -286,6 +286,7 @@ export function ProjectBoardView({ onSwitchToList }: ProjectBoardViewProps) {
                     setIsCreateColumnOpen(false);
                   }}
                   onCancel={() => setIsCreateColumnOpen(false)}
+                  isSubmitting={columnMutations.createColumn.isPending}
                 />
               ) : (
                 <Button

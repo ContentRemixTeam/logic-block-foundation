@@ -1020,7 +1020,14 @@ export default function Notes() {
                 onClick={handleSavePage}
                 disabled={savePageMutation.isPending}
               >
-                {savePageMutation.isPending ? 'Saving...' : 'Save Page'}
+                {savePageMutation.isPending ? (
+                  <>
+                    <span className="animate-spin mr-2">⏳</span>
+                    Saving...
+                  </>
+                ) : (
+                  'Save Page'
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>

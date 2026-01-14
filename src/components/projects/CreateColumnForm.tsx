@@ -4,19 +4,21 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { COLUMN_COLORS } from '@/types/project';
 import { cn } from '@/lib/utils';
+import { Loader2 } from 'lucide-react';
 
 interface CreateColumnFormProps {
   onSubmit: (name: string, color: string) => void;
   onCancel: () => void;
+  isSubmitting?: boolean;
 }
 
-export function CreateColumnForm({ onSubmit, onCancel }: CreateColumnFormProps) {
+export function CreateColumnForm({ onSubmit, onCancel, isSubmitting = false }: CreateColumnFormProps) {
   const [name, setName] = useState('');
   const [color, setColor] = useState(COLUMN_COLORS[0]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (name.trim()) {
+    if (name.trim() && !isSubmitting) {
       onSubmit(name.trim(), color);
     }
   };
@@ -52,8 +54,15 @@ export function CreateColumnForm({ onSubmit, onCancel }: CreateColumnFormProps) 
         </div>
 
         <div className="flex gap-2">
-          <Button type="submit" size="sm" disabled={!name.trim()}>
-            Add
+          <Button type="submit" size="sm" disabled={!name.trim() || isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                Adding...
+              </>
+            ) : (
+              'Add'
+            )}
           </Button>
           <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
             Cancel

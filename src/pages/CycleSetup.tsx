@@ -5105,7 +5105,14 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
                 Preview Projects & Tasks
               </Button>
               <Button onClick={handleCreateCycleClick} disabled={loading || !goal}>
-                {loading ? 'Saving...' : isEditMode ? 'Update Plan →' : 'Create Cycle →'}
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  isEditMode ? 'Update Plan →' : 'Create Cycle →'
+                )}
               </Button>
             </div>
           )}
