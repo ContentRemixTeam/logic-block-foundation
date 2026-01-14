@@ -387,35 +387,47 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
       {/* Logged in content */}
       {user && (
         <>
-          {/* Type selector chips */}
-          <div className="flex gap-2">
-            <Button
-              variant={captureType === 'task' ? 'default' : 'outline'}
-              size="sm"
+          {/* Type selector - segmented control */}
+          <div className="inline-flex rounded-lg border bg-muted p-1 gap-1">
+            <button
+              type="button"
               onClick={() => toggleCaptureType('task', true)}
-              className="gap-1"
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all",
+                captureType === 'task'
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+              )}
             >
               <ListTodo className="h-4 w-4" />
               Task
-            </Button>
-            <Button
-              variant={captureType === 'idea' ? 'default' : 'outline'}
-              size="sm"
+            </button>
+            <button
+              type="button"
               onClick={() => toggleCaptureType('idea', true)}
-              className="gap-1"
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all",
+                captureType === 'idea'
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+              )}
             >
               <Lightbulb className="h-4 w-4" />
               Idea
-            </Button>
-            <Button
-              variant={captureType === 'content' ? 'default' : 'outline'}
-              size="sm"
+            </button>
+            <button
+              type="button"
               onClick={() => toggleCaptureType('content', true)}
-              className="gap-1"
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all",
+                captureType === 'content'
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+              )}
             >
               <FileText className="h-4 w-4" />
               Content
-            </Button>
+            </button>
           </div>
 
           {/* Input field with mic button */}
