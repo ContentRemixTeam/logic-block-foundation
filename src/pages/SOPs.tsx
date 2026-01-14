@@ -12,12 +12,15 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { LoadingState } from '@/components/system/LoadingState';
-import { Plus, Pencil, Trash2, Copy, ClipboardList, X, Link as LinkIcon, GripVertical, ExternalLink, Eye } from 'lucide-react';
+import { Plus, Pencil, Trash2, Copy, ClipboardList, X, Link as LinkIcon, GripVertical, ExternalLink, Eye, ChevronDown, Video, FileText } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface ChecklistItem {
   id: string;
   text: string;
   order: number;
+  instructions?: string;
+  link_url?: string;
 }
 
 interface SOPLink {
@@ -219,9 +222,9 @@ export default function SOPs() {
     setChecklistItems(checklistItems.filter(item => item.id !== id));
   };
 
-  const updateChecklistItem = (id: string, text: string) => {
+  const updateChecklistItem = (id: string, updates: Partial<ChecklistItem>) => {
     setChecklistItems(checklistItems.map(item => 
-      item.id === id ? { ...item, text } : item
+      item.id === id ? { ...item, ...updates } : item
     ));
   };
 
@@ -400,21 +403,61 @@ export default function SOPs() {
               <Label>Checklist Items</Label>
               
               {checklistItems.map((item, index) => (
-                <div key={item.id} className="flex items-center gap-2">
-                  <GripVertical className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground w-6">{index + 1}.</span>
-                  <Input
-                    value={item.text}
-                    onChange={(e) => updateChecklistItem(item.id, e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeChecklistItem(item.id)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                <div key={item.id} className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-sm text-muted-foreground w-6 flex-shrink-0">{index + 1}.</span>
+                    <Input
+                      value={item.text}
+                      onChange={(e) => updateChecklistItem(item.id, { text: e.target.value })}
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeChecklistItem(item.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  {/* Collapsible Instructions Section */}
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" className="ml-10 gap-2 text-muted-foreground hover:text-foreground">
+                        <ChevronDown className="h-3 w-3 transition-transform group-data-[state=open]:rotate-180" />
+                        <FileText className="h-3 w-3" />
+                        {item.instructions || item.link_url ? 'Edit instructions' : 'Add instructions'}
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="ml-10 mt-2 space-y-2 p-3 bg-muted/50 rounded-lg border">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Video className="h-3 w-3" />
+                          Video/Link URL (Loom, YouTube, etc.)
+                        </Label>
+                        <Input
+                          placeholder="https://www.loom.com/share/..."
+                          value={item.link_url || ''}
+                          onChange={(e) => updateChecklistItem(item.id, { link_url: e.target.value })}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                          <FileText className="h-3 w-3" />
+                          Additional Instructions
+                        </Label>
+                        <Textarea
+                          placeholder="Step-by-step details, tips, or notes..."
+                          value={item.instructions || ''}
+                          onChange={(e) => updateChecklistItem(item.id, { instructions: e.target.value })}
+                          rows={3}
+                          className="text-sm"
+                        />
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 </div>
               ))}
 
@@ -543,17 +586,62 @@ export default function SOPs() {
           </DialogHeader>
 
           <div className="space-y-6 py-4">
-            {/* Checklist Items - Read Only */}
+            {/* Checklist Items - Read Only with Collapsible Instructions */}
             {viewingSOP?.checklist_items && viewingSOP.checklist_items.length > 0 && (
               <div>
                 <Label className="font-semibold">Checklist</Label>
                 <div className="mt-2 space-y-2">
-                  {viewingSOP.checklist_items.map((item, index) => (
-                    <div key={item.id} className="flex items-center gap-2 p-2 bg-muted/50 rounded">
-                      <span className="text-muted-foreground w-6">{index + 1}.</span>
-                      <span>{item.text}</span>
-                    </div>
-                  ))}
+                  {viewingSOP.checklist_items.map((item, index) => {
+                    const hasDetails = item.instructions || item.link_url;
+                    return (
+                      <div key={item.id} className="space-y-1">
+                        {hasDetails ? (
+                          <Collapsible>
+                            <div className="flex items-start gap-2 p-2 bg-muted/50 rounded">
+                              <span className="text-muted-foreground w-6 flex-shrink-0 pt-0.5">{index + 1}.</span>
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between">
+                                  <span>{item.text}</span>
+                                  <CollapsibleTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="gap-1 text-xs text-muted-foreground hover:text-foreground h-7">
+                                      <ChevronDown className="h-3 w-3" />
+                                      Details
+                                    </Button>
+                                  </CollapsibleTrigger>
+                                </div>
+                              </div>
+                            </div>
+                            <CollapsibleContent className="ml-8 mt-1 p-3 bg-card border rounded-lg space-y-3">
+                              {item.link_url && (
+                                <a 
+                                  href={item.link_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-2 text-sm text-primary hover:underline"
+                                >
+                                  <Video className="h-4 w-4" />
+                                  {item.link_url.includes('loom.com') ? 'Watch Loom Video' : 
+                                   item.link_url.includes('youtube.com') || item.link_url.includes('youtu.be') ? 'Watch YouTube Video' : 
+                                   'Open Link'}
+                                  <ExternalLink className="h-3 w-3" />
+                                </a>
+                              )}
+                              {item.instructions && (
+                                <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+                                  {item.instructions}
+                                </div>
+                              )}
+                            </CollapsibleContent>
+                          </Collapsible>
+                        ) : (
+                          <div className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                            <span className="text-muted-foreground w-6">{index + 1}.</span>
+                            <span>{item.text}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
