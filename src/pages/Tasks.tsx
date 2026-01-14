@@ -25,7 +25,8 @@ import { toast } from 'sonner';
 import { 
   Plus, CalendarIcon, Clock, RefreshCw, ChevronDown, 
   ClipboardList, ExternalLink, Unlink, LayoutList, Columns, 
-  Clock3, Zap, Battery, BatteryLow, Trash2, CalendarRange, Search, X, CheckSquare
+  Clock3, Zap, Battery, BatteryLow, Trash2, CalendarRange, Search, X, CheckSquare,
+  AlertTriangle, Calendar as CalendarDays, Inbox
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -108,6 +109,8 @@ export default function Tasks() {
   const [recurringExpanded, setRecurringExpanded] = useState(false);
   const [bulkSelectionMode, setBulkSelectionMode] = useState(false);
   const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
+  const [isOverdueModalOpen, setIsOverdueModalOpen] = useState(false);
+  const [isProcessingOverdue, setIsProcessingOverdue] = useState(false);
   
   // Form state for new task
   const [newTaskText, setNewTaskText] = useState('');
@@ -197,15 +200,17 @@ export default function Tasks() {
     },
   });
 
-  // Calculate overdue tasks count
-  const overdueCount = useMemo(() => {
+  // Calculate overdue tasks
+  const overdueTasks = useMemo(() => {
     const today = startOfDay(new Date());
     return tasks.filter((t: Task) => {
       if (t.is_completed || t.is_recurring_parent) return false;
       if (!t.scheduled_date) return false;
       return isBefore(parseISO(t.scheduled_date), today);
-    }).length;
+    });
   }, [tasks]);
+
+  const overdueCount = overdueTasks.length;
 
   // Separate recurring parent tasks and apply cycle filter + search
   const { regularTasks, recurringParentTasks, totalTaskCount } = useMemo(() => {
@@ -346,6 +351,49 @@ export default function Tasks() {
         toggleTaskSelection(t.task_id);
       }
     });
+  };
+
+  // Overdue tasks handlers
+  const handleRescheduleOverdue = async (action: 'today' | 'tomorrow' | 'someday') => {
+    setIsProcessingOverdue(true);
+    try {
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      for (const task of overdueTasks) {
+        if (action === 'someday') {
+          // Move to someday/backlog by clearing schedule
+          await manageMutation.mutateAsync({
+            action: 'update',
+            task_id: task.task_id,
+            scheduled_date: null,
+            status: 'someday',
+          });
+        } else {
+          const targetDate = action === 'today' ? today : tomorrow;
+          await manageMutation.mutateAsync({
+            action: 'update',
+            task_id: task.task_id,
+            scheduled_date: format(targetDate, 'yyyy-MM-dd'),
+            status: 'scheduled',
+          });
+        }
+      }
+      
+      const actionLabels = {
+        today: 'rescheduled to today',
+        tomorrow: 'rescheduled to tomorrow',
+        someday: 'moved to Someday'
+      };
+      
+      toast.success(`${overdueTasks.length} overdue tasks ${actionLabels[action]}`);
+      setIsOverdueModalOpen(false);
+    } catch (error) {
+      toast.error('Failed to process overdue tasks');
+    } finally {
+      setIsProcessingOverdue(false);
+    }
   };
 
   // Handlers
@@ -656,6 +704,31 @@ export default function Tasks() {
             <p className="text-muted-foreground">Your workflow command center</p>
           </div>
         </div>
+
+        {/* Overdue Tasks Banner */}
+        {overdueCount > 0 && (
+          <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+              <div>
+                <p className="font-medium text-destructive">
+                  You have {overdueCount} overdue task{overdueCount !== 1 ? 's' : ''}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Clear your backlog to stay on track
+                </p>
+              </div>
+            </div>
+            <Button 
+              variant="destructive" 
+              size="sm"
+              onClick={() => setIsOverdueModalOpen(true)}
+              className="shrink-0"
+            >
+              Handle Overdue Tasks
+            </Button>
+          </div>
+        )}
 
         {/* Cycle Progress */}
         {activeCycle && (
@@ -1632,6 +1705,64 @@ export default function Tasks() {
         calendars={calendars}
         onSelect={selectCalendar}
       />
+
+      {/* Overdue Tasks Modal */}
+      <Dialog open={isOverdueModalOpen} onOpenChange={setIsOverdueModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Handle {overdueCount} Overdue Task{overdueCount !== 1 ? 's' : ''}
+            </DialogTitle>
+            <DialogDescription>
+              Choose how to handle your overdue tasks. This will update all {overdueCount} overdue tasks at once.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <Button
+              variant="default"
+              className="w-full justify-start gap-3 h-auto py-3"
+              onClick={() => handleRescheduleOverdue('today')}
+              disabled={isProcessingOverdue}
+            >
+              <CalendarDays className="h-5 w-5 shrink-0" />
+              <div className="text-left">
+                <div className="font-medium">Reschedule all to today</div>
+                <div className="text-sm text-primary-foreground/70">Tackle them now and get back on track</div>
+              </div>
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-3 h-auto py-3"
+              onClick={() => handleRescheduleOverdue('tomorrow')}
+              disabled={isProcessingOverdue}
+            >
+              <CalendarIcon className="h-5 w-5 shrink-0" />
+              <div className="text-left">
+                <div className="font-medium">Reschedule all to tomorrow</div>
+                <div className="text-sm text-muted-foreground">Give yourself a fresh start tomorrow</div>
+              </div>
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-3 h-auto py-3"
+              onClick={() => handleRescheduleOverdue('someday')}
+              disabled={isProcessingOverdue}
+            >
+              <Inbox className="h-5 w-5 shrink-0" />
+              <div className="text-left">
+                <div className="font-medium">Move all to Someday</div>
+                <div className="text-sm text-muted-foreground">Unschedule and revisit later</div>
+              </div>
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsOverdueModalOpen(false)} disabled={isProcessingOverdue}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Bulk Actions Bar */}
       <BulkActionsBar
