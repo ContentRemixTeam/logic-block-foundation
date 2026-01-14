@@ -24,6 +24,7 @@ import {
   Clock,
   FolderKanban,
   Hash,
+  FileText,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -48,6 +49,16 @@ interface Idea {
   updated_at: string;
 }
 
+interface Note {
+  id: string;
+  title: string;
+  content: string | null;
+  tags: string[];
+  project_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 const PRIORITY_OPTIONS = [
   { value: 'asap', label: 'ASAP', color: 'bg-red-500' },
   { value: 'next_week', label: 'Next Week', color: 'bg-orange-500' },
@@ -64,9 +75,11 @@ export default function ProjectDetail() {
   const { updateProject, deleteProject } = useProjectMutations();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'tasks' | 'ideas'>('tasks');
+  const [viewMode, setViewMode] = useState<'tasks' | 'ideas' | 'notes'>('tasks');
   const [projectIdeas, setProjectIdeas] = useState<Idea[]>([]);
   const [loadingIdeas, setLoadingIdeas] = useState(false);
+  const [projectNotes, setProjectNotes] = useState<Note[]>([]);
+  const [loadingNotes, setLoadingNotes] = useState(false);
 
   // Filter tasks for this project
   const projectTasks = useMemo(() => {
@@ -102,11 +115,53 @@ export default function ProjectDetail() {
     }
   }, [user, id]);
 
+  // Load notes for this project
+  const loadProjectNotes = useCallback(async () => {
+    if (!user || !id) return;
+    
+    setLoadingNotes(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-journal-pages?project_id=${id}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      if (!response.ok) throw new Error('Failed to fetch notes');
+      
+      const data = await response.json();
+      const pages = Array.isArray(data?.pages) ? data.pages : [];
+      
+      setProjectNotes(pages.map((page: any) => ({
+        id: page.id,
+        title: page.title || 'Untitled',
+        content: page.content || null,
+        tags: Array.isArray(page.tags) ? page.tags : [],
+        project_id: page.project_id || null,
+        created_at: page.created_at || '',
+        updated_at: page.updated_at || '',
+      })));
+    } catch (error) {
+      console.error('Error loading project notes:', error);
+    } finally {
+      setLoadingNotes(false);
+    }
+  }, [user, id]);
+
   useEffect(() => {
     if (viewMode === 'ideas') {
       loadProjectIdeas();
+    } else if (viewMode === 'notes') {
+      loadProjectNotes();
     }
-  }, [viewMode, loadProjectIdeas]);
+  }, [viewMode, loadProjectIdeas, loadProjectNotes]);
 
   const handleBack = () => {
     navigate('/projects');
@@ -191,7 +246,7 @@ export default function ProjectDetail() {
 
             <div className="flex items-center gap-2">
               {/* View Toggle */}
-              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'tasks' | 'ideas')}>
+              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'tasks' | 'ideas' | 'notes')}>
                 <TabsList>
                   <TabsTrigger value="tasks" className="gap-2">
                     <ListTodo className="h-4 w-4" />
@@ -205,6 +260,13 @@ export default function ProjectDetail() {
                     Ideas
                     <Badge variant="secondary" className="ml-1 text-xs">
                       {projectIdeas.length}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="notes" className="gap-2">
+                    <FileText className="h-4 w-4" />
+                    Notes
+                    <Badge variant="secondary" className="ml-1 text-xs">
+                      {projectNotes.length}
                     </Badge>
                   </TabsTrigger>
                 </TabsList>
@@ -270,7 +332,7 @@ export default function ProjectDetail() {
         <div className="flex-1 overflow-hidden">
           {viewMode === 'tasks' ? (
             <MondayBoardView projectId={project.id} tasks={projectTasks} />
-          ) : (
+          ) : viewMode === 'ideas' ? (
             <div className="p-4 h-full overflow-auto">
               {loadingIdeas ? (
                 <div className="flex items-center justify-center h-40">
@@ -341,6 +403,74 @@ export default function ProjectDetail() {
                       </Card>
                     );
                   })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="p-4 h-full overflow-auto">
+              {loadingNotes ? (
+                <div className="flex items-center justify-center h-40">
+                  <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+                </div>
+              ) : projectNotes.length === 0 ? (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground text-center">
+                      No notes linked to this project yet.
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Add notes from the Notes page and assign them to this project.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      className="mt-4"
+                      onClick={() => navigate('/notes')}
+                    >
+                      Go to Notes
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {projectNotes.map((note) => (
+                    <Card key={note.id} className="hover:shadow-md transition-shadow">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 space-y-2">
+                            <h3 className="font-medium text-sm line-clamp-1">{note.title}</h3>
+                            {note.content && (
+                              <p className="text-sm text-muted-foreground line-clamp-3 whitespace-pre-wrap">
+                                {note.content}
+                              </p>
+                            )}
+                            {note.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {note.tags.map((tag) => (
+                                  <Badge key={tag} variant="outline" className="text-xs">
+                                    #{tag}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => navigate('/notes')}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(note.updated_at || note.created_at).toLocaleDateString()}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               )}
             </div>
