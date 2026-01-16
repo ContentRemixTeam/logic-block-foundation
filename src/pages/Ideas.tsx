@@ -51,10 +51,10 @@ interface Idea {
 }
 
 const PRIORITY_OPTIONS = [
-  { value: 'asap', label: 'ASAP', color: 'bg-red-500' },
-  { value: 'next_week', label: 'Next Week', color: 'bg-orange-500' },
-  { value: 'next_month', label: 'Next Month', color: 'bg-blue-500' },
-  { value: 'someday', label: 'Someday', color: 'bg-gray-500' },
+  { value: 'asap', label: 'ASAP', className: 'bg-priority-high text-white' },
+  { value: 'next_week', label: 'Next Week', className: 'bg-priority-medium text-white' },
+  { value: 'next_month', label: 'Next Month', className: 'bg-status-scheduled text-white' },
+  { value: 'someday', label: 'Someday', className: 'bg-status-someday text-white' },
 ];
 
 const PAGE_SIZE = 50;
@@ -687,7 +687,7 @@ export default function Ideas() {
                 {PRIORITY_OPTIONS.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     <div className="flex items-center gap-2">
-                      <div className={cn("w-2 h-2 rounded-full", opt.color)} />
+                      <div className={cn("w-2 h-2 rounded-full", opt.className.split(' ')[0])} />
                       {opt.label}
                     </div>
                   </SelectItem>

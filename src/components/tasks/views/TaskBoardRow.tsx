@@ -51,17 +51,17 @@ interface TaskBoardRowProps {
 }
 
 const STATUS_OPTIONS = [
-  { value: 'focus', label: 'Focus', className: 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary' },
-  { value: 'scheduled', label: 'Scheduled', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' },
-  { value: 'backlog', label: 'Backlog', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300' },
-  { value: 'waiting', label: 'Waiting', className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300' },
-  { value: 'someday', label: 'Someday', className: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
+  { value: 'focus', label: 'Focus', className: 'bg-status-focus/10 text-status-focus dark:bg-status-focus/20' },
+  { value: 'scheduled', label: 'Scheduled', className: 'bg-status-scheduled/10 text-status-scheduled dark:bg-status-scheduled/20' },
+  { value: 'backlog', label: 'Backlog', className: 'bg-status-backlog/10 text-status-backlog dark:bg-status-backlog/20' },
+  { value: 'waiting', label: 'Waiting', className: 'bg-status-waiting/10 text-status-waiting dark:bg-status-waiting/20' },
+  { value: 'someday', label: 'Someday', className: 'bg-status-someday/10 text-status-someday dark:bg-status-someday/20' },
 ];
 
 const PRIORITY_OPTIONS = [
-  { value: 'high', label: 'High', className: 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300' },
-  { value: 'medium', label: 'Medium', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300' },
-  { value: 'low', label: 'Low', className: 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' },
+  { value: 'high', label: 'High', className: 'bg-priority-high/10 text-priority-high dark:bg-priority-high/20' },
+  { value: 'medium', label: 'Medium', className: 'bg-priority-medium/10 text-priority-medium dark:bg-priority-medium/20' },
+  { value: 'low', label: 'Low', className: 'bg-priority-low/10 text-priority-low dark:bg-priority-low/20' },
 ];
 
 const ENERGY_OPTIONS = [

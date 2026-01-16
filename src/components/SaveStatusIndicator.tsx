@@ -78,7 +78,7 @@ export function SaveStatusIndicator({
         <Badge 
           variant="outline" 
           className={cn(
-            "text-xs text-green-600 border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800 dark:text-green-400",
+            "text-xs text-success border-success/20 bg-success/10 dark:bg-success/20 dark:border-success/30",
             className
           )}
         >
@@ -108,7 +108,7 @@ export function SaveStatusIndicator({
         <Badge 
           variant="outline" 
           className={cn(
-            "text-xs text-amber-600 border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-400",
+            "text-xs text-warning border-warning/20 bg-warning/10 dark:bg-warning/20 dark:border-warning/30",
             className
           )}
         >
@@ -144,13 +144,13 @@ export function SaveStatusBanner({ status, onRetry }: SaveStatusBannerProps) {
     <div className={cn(
       "rounded-lg border p-4 mb-4",
       status === 'offline' 
-        ? "bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-800" 
+        ? "bg-warning/10 border-warning/20 dark:bg-warning/20 dark:border-warning/30" 
         : "bg-destructive/10 border-destructive/20"
     )}>
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0 mt-0.5">
           {status === 'offline' ? (
-            <WifiOff className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            <WifiOff className="h-5 w-5 text-warning" />
           ) : (
             <AlertTriangle className="h-5 w-5 text-destructive" />
           )}
@@ -160,7 +160,7 @@ export function SaveStatusBanner({ status, onRetry }: SaveStatusBannerProps) {
           <p className={cn(
             "font-medium text-sm",
             status === 'offline' 
-              ? "text-amber-800 dark:text-amber-200" 
+              ? "text-warning" 
               : "text-destructive"
           )}>
             {status === 'offline' ? '🔴 You\'re offline' : '⚠️ Save failed'}

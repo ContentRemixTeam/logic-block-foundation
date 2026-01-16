@@ -131,15 +131,32 @@ export default {
   				border: 'hsl(var(--sidebar-border))',
   				ring: 'hsl(var(--sidebar-ring))'
   			},
-  			quest: {
-  				gold: 'hsl(var(--quest-gold))',
-  				'gold-light': 'hsl(var(--quest-gold-light))',
-  				copper: 'hsl(var(--quest-copper))',
-  				forest: 'hsl(var(--quest-forest))',
-  				emerald: 'hsl(var(--quest-emerald))',
-  				purple: 'hsl(var(--quest-purple))',
-  				blue: 'hsl(var(--quest-blue))'
-  			}
+			quest: {
+				gold: 'hsl(var(--quest-gold))',
+				'gold-light': 'hsl(var(--quest-gold-light))',
+				copper: 'hsl(var(--quest-copper))',
+				forest: 'hsl(var(--quest-forest))',
+				emerald: 'hsl(var(--quest-emerald))',
+				purple: 'hsl(var(--quest-purple))',
+				blue: 'hsl(var(--quest-blue))'
+			},
+			status: {
+				focus: 'hsl(var(--status-focus))',
+				scheduled: 'hsl(var(--status-scheduled))',
+				backlog: 'hsl(var(--status-backlog))',
+				waiting: 'hsl(var(--status-waiting))',
+				someday: 'hsl(var(--status-someday))',
+			},
+			priority: {
+				high: 'hsl(var(--priority-high))',
+				medium: 'hsl(var(--priority-medium))',
+				low: 'hsl(var(--priority-low))',
+			},
+			category: {
+				content: 'hsl(var(--category-content))',
+				nurture: 'hsl(var(--category-nurture))',
+				offer: 'hsl(var(--category-offer))',
+			}
   		},
   		borderRadius: {
   			lg: 'var(--radius-lg)',

@@ -201,7 +201,7 @@ export function MastermindCallsPanel({
           className={cn(
             'w-full',
             isRsvpd 
-              ? 'border-green-500/50 text-green-600 hover:bg-green-50 hover:text-red-600 hover:border-red-500/50' 
+              ? 'border-success/50 text-success hover:bg-success/10 hover:text-destructive hover:border-destructive/50' 
               : 'bg-primary hover:bg-primary/90'
           )}
           variant={isRsvpd ? 'outline' : 'default'}
@@ -343,7 +343,7 @@ export function MastermindCallsPanel({
                           </span>
                         </div>
                         <Button
-                          className="w-full border-green-500/50 text-green-600 hover:bg-green-50 hover:text-red-600 hover:border-red-500/50"
+                          className="w-full border-success/50 text-success hover:bg-success/10 hover:text-destructive hover:border-destructive/50"
                           variant="outline"
                           disabled={addingEvent === rsvp.event_id}
                           onClick={() => handleRemoveFromSchedule(rsvp.event_id)}
