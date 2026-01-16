@@ -1272,6 +1272,44 @@ export type Database = {
           },
         ]
       }
+      daily_top3_tasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          date: string
+          id: string
+          position: number
+          task_id: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          position: number
+          task_id?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          position?: number
+          task_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_top3_tasks_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
+          },
+        ]
+      }
       earned_trophies: {
         Row: {
           challenge_name: string | null

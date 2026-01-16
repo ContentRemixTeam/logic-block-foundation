@@ -26,6 +26,7 @@ import {
   Sparkle,
   PanelLeftClose,
   PanelLeft,
+  Gamepad2,
   Smartphone,
   Library,
   Shield,
@@ -54,6 +55,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils';
 import { useQuickCapture } from '@/components/quick-capture';
 import { supabase } from '@/integrations/supabase/client';
+import { useArcade } from '@/hooks/useArcade';
 
 const MAIN_NAV = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, questIcon: '🗺️' },
@@ -103,6 +105,7 @@ export function AppSidebar() {
   const { open: sidebarOpen, toggleSidebar } = useSidebar();
   const { isQuestMode, themeLoaded, level, currentLevelXP, xpToNextLevel, levelTitle } = useTheme();
   const { openQuickCapture } = useQuickCapture();
+  const { settings: arcadeSettings, isLoading: arcadeLoading } = useArcade();
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -282,6 +285,50 @@ export function AppSidebar() {
         <NavSection label="Review" items={REVIEW_NAV} />
         <NavSection label="Mindset" items={MINDSET_NAV} />
         <NavSection label="Community" items={COMMUNITY_NAV} />
+        
+        {/* Focus & Rewards - Only visible when arcade is enabled */}
+        {!arcadeLoading && arcadeSettings.arcade_enabled && (
+          <SidebarGroup>
+            {sidebarOpen && (
+              <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold px-3 mb-1">
+                Focus
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SidebarMenuButton 
+                        asChild 
+                        isActive={location.pathname === '/arcade'}
+                        className={cn(
+                          "h-9 gap-3 transition-all duration-150",
+                          location.pathname === '/arcade' && "bg-primary/10 text-primary font-medium"
+                        )}
+                      >
+                        <Link to="/arcade">
+                          {isQuestMode ? (
+                            <span className="text-base w-5 text-center">🎮</span>
+                          ) : (
+                            <Gamepad2 className="h-4 w-4" />
+                          )}
+                          <span className="truncate">Focus & Rewards</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </TooltipTrigger>
+                    {!sidebarOpen && (
+                      <TooltipContent side="right" className="font-medium">
+                        Focus & Rewards
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+        
         <NavSection label="Settings" items={SETTINGS_NAV} />
         
         {/* Admin Section - Only visible to admins */}
