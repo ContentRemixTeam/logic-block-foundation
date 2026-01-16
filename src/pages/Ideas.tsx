@@ -18,6 +18,7 @@ import { useProjects } from '@/hooks/useProjects';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Zap, Edit, Trash2, Plus, ArrowUpDown, FolderKanban, Clock, Hash, X, Loader2, Search, ChevronDown, Check } from 'lucide-react';
+import { IdeaFormFields } from '@/components/ideas/IdeaFormFields';
 import { PaginationInfo } from '@/components/ui/pagination-info';
 import { normalizeString } from '@/lib/normalize';
 import { cn } from '@/lib/utils';
@@ -285,24 +286,6 @@ export default function Ideas() {
     setInlineAddCategoryColor('#FF3370');
   };
 
-  const handleAddTag = (isEdit: boolean) => {
-    const input = isEdit ? editTagInput : newTagInput;
-    const tags = isEdit ? editTags : newTags;
-    const setTags = isEdit ? setEditTags : setNewTags;
-    const setInput = isEdit ? setEditTagInput : setNewTagInput;
-    
-    if (input.trim() && !tags.includes(input.trim())) {
-      setTags([...tags, input.trim()]);
-      setInput('');
-    }
-  };
-
-  const handleRemoveTag = (tag: string, isEdit: boolean) => {
-    const setTags = isEdit ? setEditTags : setNewTags;
-    const tags = isEdit ? editTags : newTags;
-    setTags(tags.filter(t => t !== tag));
-  };
-
   const handleAddIdea = async () => {
     if (!newContent.trim()) return;
 
@@ -521,197 +504,6 @@ export default function Ideas() {
   if (loading) return <Layout><LoadingState message="Loading ideas..." /></Layout>;
   if (error) return <Layout><ErrorState message={error} onRetry={loadData} /></Layout>;
 
-  const IdeaFormFields = ({ isEdit = false }: { isEdit?: boolean }) => {
-    const content = isEdit ? editContent : newContent;
-    const setContent = isEdit ? setEditContent : setNewContent;
-    const categoryId = isEdit ? editCategoryId : newCategoryId;
-    const setCategoryId = isEdit ? setEditCategoryId : setNewCategoryId;
-    const priority = isEdit ? editPriority : newPriority;
-    const setPriority = isEdit ? setEditPriority : setNewPriority;
-    const tags = isEdit ? editTags : newTags;
-    const tagInput = isEdit ? editTagInput : newTagInput;
-    const setTagInput = isEdit ? setEditTagInput : setNewTagInput;
-    const projectId = isEdit ? editProjectId : newProjectId;
-    const setProjectId = isEdit ? setEditProjectId : setNewProjectId;
-
-    return (
-      <div className="space-y-4">
-        <div>
-          <Label htmlFor={isEdit ? "editContent" : "newContent"}>Idea</Label>
-          <Textarea
-            id={isEdit ? "editContent" : "newContent"}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={4}
-            placeholder="What's your idea?"
-            className="resize-none"
-            maxLength={1000}
-          />
-          <CharacterCounter current={content.length} max={1000} className="mt-1" />
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Category</Label>
-            {(isEdit ? showInlineEditCategory : showInlineAddCategory) ? (
-              <div className="space-y-2 p-3 border rounded-md bg-muted/30">
-                <Input
-                  placeholder="Category name"
-                  value={isEdit ? inlineEditCategoryName : inlineAddCategoryName}
-                  onChange={(e) => isEdit ? setInlineEditCategoryName(e.target.value) : setInlineAddCategoryName(e.target.value)}
-                  autoFocus
-                />
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs text-muted-foreground">Color:</Label>
-                  <input
-                    type="color"
-                    value={isEdit ? inlineEditCategoryColor : inlineAddCategoryColor}
-                    onChange={(e) => isEdit ? setInlineEditCategoryColor(e.target.value) : setInlineAddCategoryColor(e.target.value)}
-                    className="w-8 h-8 rounded cursor-pointer border-0"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => handleInlineCategoryCreate(isEdit)}
-                    disabled={actionLoading || !(isEdit ? inlineEditCategoryName : inlineAddCategoryName).trim()}
-                  >
-                    Create
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      if (isEdit) {
-                        setShowInlineEditCategory(false);
-                        setInlineEditCategoryName('');
-                      } else {
-                        setShowInlineAddCategory(false);
-                        setInlineAddCategoryName('');
-                      }
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <Select value={categoryId || "uncategorized"} onValueChange={(val) => {
-                if (val === "__create_new__") {
-                  if (isEdit) {
-                    setShowInlineEditCategory(true);
-                  } else {
-                    setShowInlineAddCategory(true);
-                  }
-                } else {
-                  setCategoryId(val === "uncategorized" ? "" : val);
-                }
-              }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="uncategorized">No category</SelectItem>
-                  {categories.filter(cat => cat.id).map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
-                        {cat.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="__create_new__">
-                    <div className="flex items-center gap-2 text-primary">
-                      <Plus className="h-3 w-3" />
-                      Create new category
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-          
-          <div>
-            <Label>Priority</Label>
-            <Select value={priority || "none"} onValueChange={(val) => setPriority(val === "none" ? "" : val)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No priority</SelectItem>
-                {PRIORITY_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    <div className="flex items-center gap-2">
-                      <div className={cn("w-2 h-2 rounded-full", opt.color)} />
-                      {opt.label}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div>
-          <Label>Project</Label>
-          <Select value={projectId || "none"} onValueChange={(val) => setProjectId(val === "none" ? "" : val)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select project" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">No project</SelectItem>
-              {projects.filter(p => !p.is_template).map((project) => (
-                <SelectItem key={project.id} value={project.id}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: project.color || 'hsl(var(--primary))' }} />
-                    {project.name}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label>Tags</Label>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {tags.map((tag) => (
-              <Badge key={tag} variant="secondary" className="gap-1">
-                <Hash className="h-3 w-3" />
-                {tag}
-                <button
-                  type="button"
-                  onClick={() => handleRemoveTag(tag, isEdit)}
-                  className="ml-1 hover:bg-destructive/20 rounded-full"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <Input
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddTag(isEdit);
-                }
-              }}
-              placeholder="Add a tag..."
-              className="flex-1"
-            />
-            <Button type="button" variant="outline" size="sm" onClick={() => handleAddTag(isEdit)}>
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <Layout>
@@ -1010,7 +802,31 @@ export default function Ideas() {
           <DialogHeader>
             <DialogTitle>Add New Idea</DialogTitle>
           </DialogHeader>
-          <IdeaFormFields isEdit={false} />
+          <IdeaFormFields
+            isEdit={false}
+            content={newContent}
+            onContentChange={setNewContent}
+            categoryId={newCategoryId}
+            onCategoryIdChange={setNewCategoryId}
+            priority={newPriority}
+            onPriorityChange={setNewPriority}
+            tags={newTags}
+            onTagsChange={setNewTags}
+            tagInput={newTagInput}
+            onTagInputChange={setNewTagInput}
+            projectId={newProjectId}
+            onProjectIdChange={setNewProjectId}
+            categories={categories}
+            projects={projects}
+            actionLoading={actionLoading}
+            showInlineCategory={showInlineAddCategory}
+            onShowInlineCategoryChange={setShowInlineAddCategory}
+            inlineCategoryName={inlineAddCategoryName}
+            onInlineCategoryNameChange={setInlineAddCategoryName}
+            inlineCategoryColor={inlineAddCategoryColor}
+            onInlineCategoryColorChange={setInlineAddCategoryColor}
+            onInlineCategoryCreate={() => handleInlineCategoryCreate(false)}
+          />
           <Button onClick={handleAddIdea} disabled={actionLoading || !newContent.trim()} className="w-full">
             {actionLoading ? 'Adding...' : 'Add Idea'}
           </Button>
@@ -1023,7 +839,31 @@ export default function Ideas() {
           <DialogHeader>
             <DialogTitle>Edit Idea</DialogTitle>
           </DialogHeader>
-          <IdeaFormFields isEdit={true} />
+          <IdeaFormFields
+            isEdit={true}
+            content={editContent}
+            onContentChange={setEditContent}
+            categoryId={editCategoryId}
+            onCategoryIdChange={setEditCategoryId}
+            priority={editPriority}
+            onPriorityChange={setEditPriority}
+            tags={editTags}
+            onTagsChange={setEditTags}
+            tagInput={editTagInput}
+            onTagInputChange={setEditTagInput}
+            projectId={editProjectId}
+            onProjectIdChange={setEditProjectId}
+            categories={categories}
+            projects={projects}
+            actionLoading={actionLoading}
+            showInlineCategory={showInlineEditCategory}
+            onShowInlineCategoryChange={setShowInlineEditCategory}
+            inlineCategoryName={inlineEditCategoryName}
+            onInlineCategoryNameChange={setInlineEditCategoryName}
+            inlineCategoryColor={inlineEditCategoryColor}
+            onInlineCategoryColorChange={setInlineEditCategoryColor}
+            onInlineCategoryCreate={() => handleInlineCategoryCreate(true)}
+          />
           <Button onClick={handleSaveEdit} disabled={actionLoading} className="w-full">
             {actionLoading ? 'Saving...' : 'Save Changes'}
           </Button>
