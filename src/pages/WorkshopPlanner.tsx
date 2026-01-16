@@ -1068,12 +1068,15 @@ export default function WorkshopPlanner() {
 
                 <div>
                   <Label>Second Nurture Method (Optional)</Label>
-                  <Select value={data.nurtureMethod2} onValueChange={(v) => updateData({ nurtureMethod2: v })}>
+                  <Select 
+                    value={(data.nurtureMethod2 && data.nurtureMethod2 !== "") ? data.nurtureMethod2 : "none"}
+                    onValueChange={(v) => updateData({ nurtureMethod2: v === "none" ? "" : v })}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Add a secondary method" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       <SelectItem value="email">Email Newsletter</SelectItem>
                       <SelectItem value="community">Free Community (FB Group, Discord, etc.)</SelectItem>
                       <SelectItem value="dm">DM Conversations</SelectItem>
@@ -1087,12 +1090,15 @@ export default function WorkshopPlanner() {
 
                 <div>
                   <Label>Third Nurture Method (Optional)</Label>
-                  <Select value={data.nurtureMethod3} onValueChange={(v) => updateData({ nurtureMethod3: v })}>
+                  <Select 
+                    value={(data.nurtureMethod3 && data.nurtureMethod3 !== "") ? data.nurtureMethod3 : "none"}
+                    onValueChange={(v) => updateData({ nurtureMethod3: v === "none" ? "" : v })}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Add a third method" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       <SelectItem value="email">Email Newsletter</SelectItem>
                       <SelectItem value="community">Free Community (FB Group, Discord, etc.)</SelectItem>
                       <SelectItem value="dm">DM Conversations</SelectItem>

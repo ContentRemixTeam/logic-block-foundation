@@ -66,8 +66,8 @@ export function CustomFieldCell({ field, value, onUpdate, className }: CustomFie
       return (
         <div className={cellClass} style={{ width, minWidth: width }} onClick={(e) => e.stopPropagation()}>
           <Select
-            value={value || ''}
-            onValueChange={(val) => onUpdate(val || null)}
+            value={value || '__none__'}
+            onValueChange={(val) => onUpdate(val === '__none__' ? null : val)}
           >
             <SelectTrigger className="h-7 border-0 shadow-none p-0 w-full">
               {value ? (
@@ -77,7 +77,7 @@ export function CustomFieldCell({ field, value, onUpdate, className }: CustomFie
               )}
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">None</SelectItem>
+              <SelectItem value="__none__">None</SelectItem>
               {(field.field_options || []).map((option: string) => (
                 <SelectItem key={option} value={option}>
                   {option}

@@ -174,12 +174,12 @@ export default function CoachingLog() {
                   {/* Cycle Filter */}
                   <div className="space-y-2">
                     <Label>Cycle</Label>
-                    <Select value={cycleFilter} onValueChange={setCycleFilter}>
+                    <Select value={cycleFilter || 'all'} onValueChange={(v) => setCycleFilter(v === 'all' ? '' : v)}>
                       <SelectTrigger>
                         <SelectValue placeholder="All cycles" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All cycles</SelectItem>
+                        <SelectItem value="all">All cycles</SelectItem>
                         {cycles.map(cycle => (
                           <SelectItem key={cycle.cycle_id} value={cycle.cycle_id}>
                             {cycle.goal?.slice(0, 30) || format(new Date(cycle.start_date), 'MMM yyyy')}
@@ -192,12 +192,12 @@ export default function CoachingLog() {
                   {/* Task Filter */}
                   <div className="space-y-2">
                     <Label>Task</Label>
-                    <Select value={taskFilter} onValueChange={setTaskFilter}>
+                    <Select value={taskFilter || 'all'} onValueChange={(v) => setTaskFilter(v === 'all' ? '' : v)}>
                       <SelectTrigger>
                         <SelectValue placeholder="All tasks" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All tasks</SelectItem>
+                        <SelectItem value="all">All tasks</SelectItem>
                         {tasksWithEntries.map(task => (
                           <SelectItem key={task.task_id} value={task.task_id}>
                             {task.task_text.slice(0, 40)}
