@@ -304,11 +304,11 @@ export function NurtureCheckinCard() {
 
   return (
     <>
-      <Card className="border-pink-500/30 bg-gradient-to-br from-pink-500/5 to-purple-500/5">
+      <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-secondary/5">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-pink-500/10">
-              <Heart className="h-4 w-4 text-pink-500" />
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Heart className="h-4 w-4 text-primary" />
             </div>
             <CardTitle className="text-base">Quick check-in</CardTitle>
           </div>
@@ -345,7 +345,7 @@ export function NurtureCheckinCard() {
           <DrawerContent className="px-4 pb-8">
             <DrawerHeader className="text-left">
               <DrawerTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-pink-500" />
+                <Sparkles className="h-5 w-5 text-primary" />
                 Self-Coach + Reschedule
               </DrawerTitle>
             </DrawerHeader>
@@ -356,10 +356,10 @@ export function NurtureCheckinCard() {
         <Dialog open={showCoachDrawer} onOpenChange={setShowCoachDrawer}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-pink-500" />
-                Self-Coach + Reschedule
-              </DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Self-Coach + Reschedule
+            </DialogTitle>
             </DialogHeader>
             {CoachContent}
           </DialogContent>

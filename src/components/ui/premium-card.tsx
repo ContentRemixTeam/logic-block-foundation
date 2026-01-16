@@ -11,9 +11,9 @@ interface PremiumCardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const categoryConfig: Record<CardCategory, { color: string; label: string; borderColor: string }> = {
   plan: { 
-    color: 'bg-[hsl(330,81%,54%)]', 
+    color: 'bg-primary', 
     label: 'PLANNING',
-    borderColor: 'border-t-[hsl(330,81%,54%)]'
+    borderColor: 'border-t-primary'
   },
   do: { 
     color: 'bg-[hsl(173,80%,40%)]', 

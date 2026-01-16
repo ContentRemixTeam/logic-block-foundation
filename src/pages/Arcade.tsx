@@ -118,7 +118,7 @@ export default function Arcade() {
 
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-full bg-pink-100 dark:bg-pink-900/30">
+              <div className="p-2 rounded-full bg-primary/10 dark:bg-primary/20">
                 <span className="text-xl">
                   {pet?.stage === 'hatched' ? '🐣' : pet ? '🥚' : '❓'}
                 </span>
