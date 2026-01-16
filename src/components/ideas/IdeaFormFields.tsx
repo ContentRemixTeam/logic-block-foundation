@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { CharacterCounter } from '@/components/ui/character-counter';
@@ -54,7 +55,7 @@ interface IdeaFormFieldsProps {
   onInlineCategoryCreate: () => void;
 }
 
-export function IdeaFormFields({
+export const IdeaFormFields = memo(function IdeaFormFields({
   isEdit,
   content,
   onContentChange,
@@ -259,4 +260,4 @@ export function IdeaFormFields({
       </div>
     </div>
   );
-}
+});

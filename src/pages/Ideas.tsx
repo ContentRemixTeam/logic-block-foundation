@@ -136,6 +136,31 @@ export default function Ideas() {
   const [inlineEditCategoryName, setInlineEditCategoryName] = useState('');
   const [inlineEditCategoryColor, setInlineEditCategoryColor] = useState('#FF3370');
 
+  // Stable callbacks for Add form fields (prevents IdeaFormFields re-renders)
+  const handleNewContentChange = useCallback((value: string) => setNewContent(value), []);
+  const handleNewCategoryIdChange = useCallback((value: string) => setNewCategoryId(value), []);
+  const handleNewPriorityChange = useCallback((value: string) => setNewPriority(value), []);
+  const handleNewTagsChange = useCallback((tags: string[]) => setNewTags(tags), []);
+  const handleNewTagInputChange = useCallback((value: string) => setNewTagInput(value), []);
+  const handleNewProjectIdChange = useCallback((value: string) => setNewProjectId(value), []);
+  const handleShowInlineAddCategoryChange = useCallback((value: boolean) => setShowInlineAddCategory(value), []);
+  const handleInlineAddCategoryNameChange = useCallback((value: string) => setInlineAddCategoryName(value), []);
+  const handleInlineAddCategoryColorChange = useCallback((value: string) => setInlineAddCategoryColor(value), []);
+
+  // Stable callbacks for Edit form fields (prevents IdeaFormFields re-renders)
+  const handleEditContentChange = useCallback((value: string) => setEditContent(value), []);
+  const handleEditCategoryIdChange = useCallback((value: string) => setEditCategoryId(value), []);
+  const handleEditPriorityChange = useCallback((value: string) => setEditPriority(value), []);
+  const handleEditTagsChange = useCallback((tags: string[]) => setEditTags(tags), []);
+  const handleEditTagInputChange = useCallback((value: string) => setEditTagInput(value), []);
+  const handleEditProjectIdChange = useCallback((value: string) => setEditProjectId(value), []);
+  const handleShowInlineEditCategoryChange = useCallback((value: boolean) => setShowInlineEditCategory(value), []);
+  const handleInlineEditCategoryNameChange = useCallback((value: string) => setInlineEditCategoryName(value), []);
+  const handleInlineEditCategoryColorChange = useCallback((value: string) => setInlineEditCategoryColor(value), []);
+
+  const handleInlineAddCategoryCreate = useCallback(() => handleInlineCategoryCreate(false), []);
+  const handleInlineEditCategoryCreate = useCallback(() => handleInlineCategoryCreate(true), []);
+
   const handleInlineCategoryCreate = async (isEdit: boolean) => {
     const name = isEdit ? inlineEditCategoryName : inlineAddCategoryName;
     const color = isEdit ? inlineEditCategoryColor : inlineAddCategoryColor;
@@ -805,27 +830,27 @@ export default function Ideas() {
           <IdeaFormFields
             isEdit={false}
             content={newContent}
-            onContentChange={setNewContent}
+            onContentChange={handleNewContentChange}
             categoryId={newCategoryId}
-            onCategoryIdChange={setNewCategoryId}
+            onCategoryIdChange={handleNewCategoryIdChange}
             priority={newPriority}
-            onPriorityChange={setNewPriority}
+            onPriorityChange={handleNewPriorityChange}
             tags={newTags}
-            onTagsChange={setNewTags}
+            onTagsChange={handleNewTagsChange}
             tagInput={newTagInput}
-            onTagInputChange={setNewTagInput}
+            onTagInputChange={handleNewTagInputChange}
             projectId={newProjectId}
-            onProjectIdChange={setNewProjectId}
+            onProjectIdChange={handleNewProjectIdChange}
             categories={categories}
             projects={projects}
             actionLoading={actionLoading}
             showInlineCategory={showInlineAddCategory}
-            onShowInlineCategoryChange={setShowInlineAddCategory}
+            onShowInlineCategoryChange={handleShowInlineAddCategoryChange}
             inlineCategoryName={inlineAddCategoryName}
-            onInlineCategoryNameChange={setInlineAddCategoryName}
+            onInlineCategoryNameChange={handleInlineAddCategoryNameChange}
             inlineCategoryColor={inlineAddCategoryColor}
-            onInlineCategoryColorChange={setInlineAddCategoryColor}
-            onInlineCategoryCreate={() => handleInlineCategoryCreate(false)}
+            onInlineCategoryColorChange={handleInlineAddCategoryColorChange}
+            onInlineCategoryCreate={handleInlineAddCategoryCreate}
           />
           <Button onClick={handleAddIdea} disabled={actionLoading || !newContent.trim()} className="w-full">
             {actionLoading ? 'Adding...' : 'Add Idea'}
@@ -842,27 +867,27 @@ export default function Ideas() {
           <IdeaFormFields
             isEdit={true}
             content={editContent}
-            onContentChange={setEditContent}
+            onContentChange={handleEditContentChange}
             categoryId={editCategoryId}
-            onCategoryIdChange={setEditCategoryId}
+            onCategoryIdChange={handleEditCategoryIdChange}
             priority={editPriority}
-            onPriorityChange={setEditPriority}
+            onPriorityChange={handleEditPriorityChange}
             tags={editTags}
-            onTagsChange={setEditTags}
+            onTagsChange={handleEditTagsChange}
             tagInput={editTagInput}
-            onTagInputChange={setEditTagInput}
+            onTagInputChange={handleEditTagInputChange}
             projectId={editProjectId}
-            onProjectIdChange={setEditProjectId}
+            onProjectIdChange={handleEditProjectIdChange}
             categories={categories}
             projects={projects}
             actionLoading={actionLoading}
             showInlineCategory={showInlineEditCategory}
-            onShowInlineCategoryChange={setShowInlineEditCategory}
+            onShowInlineCategoryChange={handleShowInlineEditCategoryChange}
             inlineCategoryName={inlineEditCategoryName}
-            onInlineCategoryNameChange={setInlineEditCategoryName}
+            onInlineCategoryNameChange={handleInlineEditCategoryNameChange}
             inlineCategoryColor={inlineEditCategoryColor}
-            onInlineCategoryColorChange={setInlineEditCategoryColor}
-            onInlineCategoryCreate={() => handleInlineCategoryCreate(true)}
+            onInlineCategoryColorChange={handleInlineEditCategoryColorChange}
+            onInlineCategoryCreate={handleInlineEditCategoryCreate}
           />
           <Button onClick={handleSaveEdit} disabled={actionLoading} className="w-full">
             {actionLoading ? 'Saving...' : 'Save Changes'}
