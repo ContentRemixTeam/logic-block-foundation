@@ -39,9 +39,9 @@ const columns: KanbanColumn[] = [
     id: 'focus', 
     title: 'Focus', 
     icon: Target, 
-    color: 'text-rose-600 dark:text-rose-400',
-    headerBg: 'bg-gradient-to-r from-rose-50 to-rose-100/50 dark:from-rose-950/30 dark:to-rose-900/20',
-    accentColor: 'border-l-rose-500',
+    color: 'text-primary dark:text-primary',
+    headerBg: 'bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10',
+    accentColor: 'border-l-primary',
     maxTasks: 3 
   },
   { 

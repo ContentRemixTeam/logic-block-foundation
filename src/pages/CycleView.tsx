@@ -321,8 +321,8 @@ export default function CycleView() {
         {(cycle.biggest_fear || cycle.commitment_statement || cycle.accountability_person) && (
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Heart className="h-5 w-5 text-rose-500" />
+            <CardTitle className="flex items-center gap-2">
+                <Heart className="h-5 w-5 text-primary" />
                 Mindset & Commitment
               </CardTitle>
             </CardHeader>

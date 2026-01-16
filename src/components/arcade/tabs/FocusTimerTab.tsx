@@ -23,7 +23,7 @@ export function FocusTimerTab() {
   const getModeDisplay = () => {
     switch (mode) {
       case 'focus':
-        return { label: 'Focus Time', color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950/20' };
+        return { label: 'Focus Time', color: 'text-primary', bg: 'bg-primary/10 dark:bg-primary/20' };
       case 'break':
         return { label: 'Break Time', color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-950/20' };
       default:

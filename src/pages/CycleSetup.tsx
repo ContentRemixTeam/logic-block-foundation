@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -2847,9 +2847,9 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
 
                   <p className="text-xs text-muted-foreground text-center">
                     Don't have a plan yet?{' '}
-                    <a href="/workshop-planner" target="_blank" className="text-primary hover:underline">
+                    <Link to="/workshop-planner" className="text-primary hover:underline">
                       Try our free Workshop Planner
-                    </a>
+                    </Link>
                   </p>
                 </div>
               </DialogContent>
@@ -3652,7 +3652,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
                                     className={cn(
                                       "cursor-pointer transition-colors",
                                       platform.postingDays.includes(day) && (platform.isPrimary 
-                                        ? "bg-pink-600 hover:bg-pink-700" 
+                                        ? "bg-primary hover:bg-primary-hover" 
                                         : "bg-purple-600 hover:bg-purple-700")
                                     )}
                                     onClick={() => toggleNurturePlatformDay(idx, day)}
@@ -5076,7 +5076,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
               </Alert>
 
 {/* Export Section - PROMINENT at the end of Step 9 */}
-              <div className="mt-8 p-1 rounded-2xl bg-gradient-to-r from-primary via-purple-500 to-pink-500">
+              <div className="mt-8 p-1 rounded-2xl bg-gradient-to-r from-primary via-purple-500 to-accent">
                 <Card className="border-0 bg-background">
                   <CardHeader className="pb-3 text-center">
                     <div className="mx-auto mb-3 w-16 h-16 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center">

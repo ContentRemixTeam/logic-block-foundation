@@ -39,8 +39,8 @@ const planningCards: PlanningCard[] = [
     description: 'Set your main business focus for this month.',
     href: '/monthly-review',
     icon: CalendarRange,
-    iconColorClass: 'text-rose-500',
-    iconBgClass: 'bg-rose-100',
+    iconColorClass: 'text-primary',
+    iconBgClass: 'bg-primary/10',
   },
   {
     title: '90-Day Goals',
@@ -190,7 +190,7 @@ export default function Planning() {
           <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
             <div className={cn(
               'w-10 h-10 rounded-full flex items-center justify-center',
-              stats.monthlyPlanExists ? 'bg-green-100 text-green-600' : 'bg-rose-100 text-rose-600'
+              stats.monthlyPlanExists ? 'bg-green-100 text-green-600' : 'bg-primary/10 text-primary'
             )}>
               {stats.monthlyPlanExists ? (
                 <CheckCircle2 className="h-5 w-5" />
