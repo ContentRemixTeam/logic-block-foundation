@@ -48,7 +48,7 @@ export function ProjectCard({
   const getStatusBadge = () => {
     switch (project.status) {
       case 'completed':
-        return <Badge variant="default" className="bg-green-500/20 text-green-600 border-green-500/30">Completed</Badge>;
+        return <Badge variant="default" className="bg-success/20 text-success border-success/30">Completed</Badge>;
       case 'archived':
         return <Badge variant="secondary">Archived</Badge>;
       default:

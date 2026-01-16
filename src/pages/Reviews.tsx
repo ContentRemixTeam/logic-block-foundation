@@ -23,40 +23,40 @@ const reviewCards: ReviewCard[] = [
     description: 'Reflect on your day and celebrate wins.',
     href: '/daily-review',
     icon: Sparkles,
-    iconBgClass: 'bg-primary/10 dark:bg-primary/20',
-    iconColorClass: 'text-primary dark:text-primary',
+    iconBgClass: 'bg-primary/10',
+    iconColorClass: 'text-primary',
   },
   {
     title: 'Weekly Review',
     description: 'Review your week and plan ahead.',
     href: '/weekly-review',
     icon: FileText,
-    iconBgClass: 'bg-blue-100 dark:bg-blue-900/30',
-    iconColorClass: 'text-blue-600 dark:text-blue-400',
+    iconBgClass: 'bg-status-scheduled/10',
+    iconColorClass: 'text-status-scheduled',
   },
   {
     title: 'Weekly Reflection (Share)',
     description: 'Share your wins and lessons with the group.',
     href: '/weekly-reflection',
     icon: Share2,
-    iconBgClass: 'bg-teal-100 dark:bg-teal-900/30',
-    iconColorClass: 'text-teal-600 dark:text-teal-400',
+    iconBgClass: 'bg-info/10',
+    iconColorClass: 'text-info',
   },
   {
     title: 'Monthly Review',
     description: 'Assess your monthly progress and lessons.',
     href: '/monthly-review',
     icon: BarChart3,
-    iconBgClass: 'bg-amber-100 dark:bg-amber-900/30',
-    iconColorClass: 'text-amber-600 dark:text-amber-400',
+    iconBgClass: 'bg-status-backlog/10',
+    iconColorClass: 'text-status-backlog',
   },
   {
     title: 'Quarterly Review',
     description: 'Summarize your 90-day cycle results.',
     href: '/cycle-summary',
     icon: Target,
-    iconBgClass: 'bg-purple-100 dark:bg-purple-900/30',
-    iconColorClass: 'text-purple-600 dark:text-purple-400',
+    iconBgClass: 'bg-status-waiting/10',
+    iconColorClass: 'text-status-waiting',
   },
 ];
 
@@ -180,7 +180,7 @@ export default function Reviews() {
           <h2 className="text-lg font-semibold mb-4">This Month's Review Progress</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {/* Daily Reviews */}
-            <div className="text-center p-4 rounded-lg bg-primary/10 dark:bg-primary/20">
+            <div className="text-center p-4 rounded-lg bg-primary/10">
               <p className="text-sm text-muted-foreground mb-1">Daily</p>
               <p className="text-2xl font-bold text-primary">
                 {stats.dailyReviewsCompleted}/{stats.dailyReviewsTotal}
@@ -189,21 +189,21 @@ export default function Reviews() {
             </div>
 
             {/* Weekly Reviews */}
-            <div className="text-center p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+            <div className="text-center p-4 rounded-lg bg-status-scheduled/10">
               <p className="text-sm text-muted-foreground mb-1">Weekly</p>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              <p className="text-2xl font-bold text-status-scheduled">
                 {stats.weeklyReviewsCompleted}/{stats.weeklyReviewsTotal}
               </p>
               <p className="text-xs text-muted-foreground">{weeklyProgress}%</p>
             </div>
 
             {/* Monthly Review */}
-            <div className="text-center p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20">
+            <div className="text-center p-4 rounded-lg bg-status-backlog/10">
               <p className="text-sm text-muted-foreground mb-1">Monthly</p>
               {stats.monthlyReviewExists ? (
-                <CheckCircle2 className="h-8 w-8 mx-auto text-amber-600 dark:text-amber-400" />
+                <CheckCircle2 className="h-8 w-8 mx-auto text-status-backlog" />
               ) : (
-                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">—</p>
+                <p className="text-2xl font-bold text-status-backlog">—</p>
               )}
               <p className="text-xs text-muted-foreground">
                 {stats.monthlyReviewExists ? 'Complete' : 'Not started'}
@@ -211,12 +211,12 @@ export default function Reviews() {
             </div>
 
             {/* Quarterly Review */}
-            <div className="text-center p-4 rounded-lg bg-purple-50 dark:bg-purple-900/20">
+            <div className="text-center p-4 rounded-lg bg-status-waiting/10">
               <p className="text-sm text-muted-foreground mb-1">Quarterly</p>
               {stats.quarterlyReviewExists ? (
-                <CheckCircle2 className="h-8 w-8 mx-auto text-purple-600 dark:text-purple-400" />
+                <CheckCircle2 className="h-8 w-8 mx-auto text-status-waiting" />
               ) : (
-                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">—</p>
+                <p className="text-2xl font-bold text-status-waiting">—</p>
               )}
               <p className="text-xs text-muted-foreground">
                 {stats.quarterlyReviewExists ? 'Complete' : 'Not started'}
