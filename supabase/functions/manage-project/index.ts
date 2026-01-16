@@ -23,23 +23,28 @@ function errorResponse(error: typeof ERROR_MESSAGES[keyof typeof ERROR_MESSAGES]
   );
 }
 
-function getUserIdFromJWT(authHeader: string): string | null {
-  try {
-    const token = authHeader.replace('Bearer ', '');
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-    const payload = JSON.parse(jsonPayload);
-    return payload.sub || null;
-  } catch (error) {
-    console.error('JWT decode error:', error);
-    return null;
+async function getAuthenticatedUserId(req: Request): Promise<{ userId: string | null; error: string | null }> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { userId: null, error: 'No authorization header' };
   }
+
+  const token = authHeader.replace('Bearer ', '');
+  
+  const authClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const { data, error } = await authClient.auth.getClaims(token);
+  
+  if (error || !data?.claims) {
+    console.error('[manage-project] JWT validation failed:', error);
+    return { userId: null, error: 'Invalid or expired token' };
+  }
+
+  return { userId: data.claims.sub as string, error: null };
 }
 
 Deno.serve(async (req) => {
@@ -48,13 +53,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return errorResponse(ERROR_MESSAGES.NO_AUTH, 401);
-    }
-
-    const userId = getUserIdFromJWT(authHeader);
-    if (!userId) {
+    const { userId, error: authError } = await getAuthenticatedUserId(req);
+    
+    if (authError || !userId) {
       return errorResponse(ERROR_MESSAGES.INVALID_TOKEN, 401);
     }
 

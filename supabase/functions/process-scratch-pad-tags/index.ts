@@ -5,6 +5,30 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+async function getAuthenticatedUserId(req: Request): Promise<{ userId: string | null; error: string | null }> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { userId: null, error: 'No authorization header' };
+  }
+
+  const token = authHeader.replace('Bearer ', '');
+  
+  const authClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const { data, error } = await authClient.auth.getClaims(token);
+  
+  if (error || !data?.claims) {
+    console.error('[process-scratch-pad-tags] JWT validation failed:', error);
+    return { userId: null, error: 'Invalid or expired token' };
+  }
+
+  return { userId: data.claims.sub as string, error: null };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -25,38 +49,23 @@ Deno.serve(async (req) => {
   };
 
   try {
+    const { userId, error: authError } = await getAuthenticatedUserId(req);
+    
+    if (authError || !userId) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: authError || 'Unauthorized',
+          processed,
+          createdIds,
+        }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Authenticate user via JWT decode
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    
-    // Decode JWT to get user_id
-    let userId: string;
-    try {
-      const base64Url = token.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
-      );
-      const payload = JSON.parse(jsonPayload);
-      userId = payload.sub;
-      if (!userId) {
-        throw new Error('No user ID in token');
-      }
-    } catch (decodeError) {
-      console.error('[process-scratch-pad-tags] JWT decode error:', decodeError);
-      throw new Error('Invalid token format');
-    }
 
     const { daily_plan_id, scratch_pad_content } = await req.json();
 
