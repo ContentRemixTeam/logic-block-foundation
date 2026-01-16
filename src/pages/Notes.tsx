@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO, isToday, subDays } from 'date-fns';
 import { Layout } from '@/components/Layout';
@@ -35,11 +35,13 @@ import {
   FileText,
   Trash2,
   Pencil,
-  FolderOpen
+  FolderOpen,
+  AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useProjects } from '@/hooks/useProjects';
+import { useFormDraftProtection } from '@/hooks/useFormDraftProtection';
 import { PaginationInfo } from '@/components/ui/pagination-info';
 
 const PAGE_SIZE = 50;
@@ -121,6 +123,43 @@ export default function Notes() {
   const [pageTags, setPageTags] = useState<string[]>([]);
   const [newTagInput, setNewTagInput] = useState('');
 
+  // Draft protection for journal page editor
+  const pageDraftProtection = useFormDraftProtection<{
+    title: string;
+    content: string;
+    projectId: string | null;
+    tags: string[];
+  }>({
+    localStorageKey: `journal_page_draft_${editingPage?.id || 'new'}`,
+    enabled: pageModalOpen,
+  });
+
+  // Save page draft when content changes
+  useEffect(() => {
+    if (pageModalOpen && (pageTitle || pageContent)) {
+      pageDraftProtection.saveDraft({
+        title: pageTitle,
+        content: pageContent,
+        projectId: pageProjectId,
+        tags: pageTags,
+      });
+    }
+  }, [pageModalOpen, pageTitle, pageContent, pageProjectId, pageTags]);
+
+  // Restore draft when modal opens for new page
+  useEffect(() => {
+    if (pageModalOpen && !editingPage && pageDraftProtection.hasDraft && !pageTitle && !pageContent) {
+      const draft = pageDraftProtection.loadDraft();
+      if (draft) {
+        setPageTitle(draft.title || '');
+        setPageContent(draft.content || '');
+        setPageProjectId(draft.projectId);
+        setPageTags(draft.tags || []);
+        toast.success('Draft restored - your previous unsaved page has been restored');
+      }
+    }
+  }, [pageModalOpen, editingPage]);
+
   // Fetch journal entries
   const { data, isLoading } = useQuery({
     queryKey: ['journal-entries', selectedDate?.toISOString(), searchQuery],
@@ -186,6 +225,7 @@ export default function Notes() {
     onSuccess: async () => {
       await queryClient.refetchQueries({ queryKey: ['journal-pages'] });
       toast.success(editingPage ? 'Page updated' : 'Page created');
+      pageDraftProtection.clearDraft(); // Clear draft on successful save
       closePageModal();
     },
     onError: (error) => {

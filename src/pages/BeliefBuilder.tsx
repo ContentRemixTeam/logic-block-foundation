@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
@@ -9,9 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
-import { Zap, Plus, Trash2, TrendingUp } from 'lucide-react';
+import { Zap, Plus, Trash2, TrendingUp, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { useFormDraftProtection } from '@/hooks/useFormDraftProtection';
 
 interface Belief {
   belief_id: string;
@@ -34,6 +35,46 @@ export default function BeliefBuilder() {
   const [evidenceList, setEvidenceList] = useState<string[]>([]);
   const [newCommitment, setNewCommitment] = useState('');
   const [commitmentList, setCommitmentList] = useState<string[]>([]);
+
+  // Draft protection for belief form
+  const beliefDraftProtection = useFormDraftProtection<{
+    limitingBelief: string;
+    upgradedBelief: string;
+    confidenceScore: number;
+    evidenceList: string[];
+    commitmentList: string[];
+  }>({
+    localStorageKey: `belief_draft_${editingBelief?.belief_id || 'new'}`,
+    enabled: isDialogOpen,
+  });
+
+  // Save draft when form changes
+  useEffect(() => {
+    if (isDialogOpen && (limitingBelief || upgradedBelief)) {
+      beliefDraftProtection.saveDraft({
+        limitingBelief,
+        upgradedBelief,
+        confidenceScore: confidenceScore[0],
+        evidenceList,
+        commitmentList,
+      });
+    }
+  }, [isDialogOpen, limitingBelief, upgradedBelief, confidenceScore, evidenceList, commitmentList]);
+
+  // Restore draft when dialog opens for new belief
+  useEffect(() => {
+    if (isDialogOpen && !editingBelief && beliefDraftProtection.hasDraft && !limitingBelief && !upgradedBelief) {
+      const draft = beliefDraftProtection.loadDraft();
+      if (draft) {
+        setLimitingBelief(draft.limitingBelief || '');
+        setUpgradedBelief(draft.upgradedBelief || '');
+        setConfidenceScore([draft.confidenceScore || 5]);
+        setEvidenceList(draft.evidenceList || []);
+        setCommitmentList(draft.commitmentList || []);
+        toast.success('Draft restored - your previous unsaved belief has been restored');
+      }
+    }
+  }, [isDialogOpen, editingBelief]);
 
   const { data: beliefs = [], isLoading } = useQuery({
     queryKey: ['beliefs'],
@@ -66,6 +107,7 @@ export default function BeliefBuilder() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['beliefs'] });
       toast.success('⚡ Belief created successfully!');
+      beliefDraftProtection.clearDraft();
       resetForm();
       setIsDialogOpen(false);
     },
@@ -90,6 +132,7 @@ export default function BeliefBuilder() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['beliefs'] });
       toast.success('⚡ Belief updated successfully!');
+      beliefDraftProtection.clearDraft();
       resetForm();
       setIsDialogOpen(false);
     },

@@ -15,6 +15,7 @@ import { CoinCounter } from '@/components/arcade/CoinCounter';
 import { PetWidget } from '@/components/arcade/PetWidget';
 import { useArcade } from '@/hooks/useArcade';
 import { OfflineBanner, OfflineIndicator } from '@/components/OfflineIndicator';
+import { UnsyncedDataBanner } from '@/components/UnsyncedDataBanner';
 import { Loader2, Sparkles, ArrowRight, X } from 'lucide-react';
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
@@ -56,6 +57,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <>
       <OfflineBanner />
+      <UnsyncedDataBanner />
       <SidebarProvider>
         <div className="flex min-h-screen w-full">
         {/* Premium Sidebar */}

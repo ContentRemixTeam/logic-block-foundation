@@ -15,9 +15,10 @@ import { LoadingState } from '@/components/system/LoadingState';
 import { ErrorState } from '@/components/system/ErrorState';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
+import { useFormDraftProtection } from '@/hooks/useFormDraftProtection';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Zap, Edit, Trash2, Plus, ArrowUpDown, FolderKanban, Clock, Hash, X, Loader2, Search, ChevronDown, Check } from 'lucide-react';
+import { Zap, Edit, Trash2, Plus, ArrowUpDown, FolderKanban, Clock, Hash, X, Loader2, Search, ChevronDown, Check, AlertCircle } from 'lucide-react';
 import { IdeaFormFields } from '@/components/ideas/IdeaFormFields';
 import { PaginationInfo } from '@/components/ui/pagination-info';
 import { normalizeString } from '@/lib/normalize';
@@ -125,6 +126,74 @@ export default function Ideas() {
   const [categoryColor, setCategoryColor] = useState('#FF3370');
   
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Draft protection for add idea form
+  const addDraftProtection = useFormDraftProtection<{
+    content: string;
+    categoryId: string;
+    priority: string;
+    tags: string[];
+    projectId: string;
+  }>({
+    localStorageKey: 'idea_add_draft',
+    enabled: addModalOpen,
+  });
+
+  // Draft protection for edit idea form
+  const editDraftProtection = useFormDraftProtection<{
+    content: string;
+    categoryId: string;
+    priority: string;
+    tags: string[];
+    projectId: string;
+  }>({
+    localStorageKey: `idea_edit_draft_${editingIdea?.id || 'none'}`,
+    enabled: editModalOpen,
+  });
+
+  // Save add form draft when content changes
+  useEffect(() => {
+    if (addModalOpen && (newContent || newCategoryId || newPriority || newTags.length > 0 || newProjectId)) {
+      addDraftProtection.saveDraft({
+        content: newContent,
+        categoryId: newCategoryId,
+        priority: newPriority,
+        tags: newTags,
+        projectId: newProjectId,
+      });
+    }
+  }, [addModalOpen, newContent, newCategoryId, newPriority, newTags, newProjectId]);
+
+  // Save edit form draft when content changes
+  useEffect(() => {
+    if (editModalOpen && editingIdea && (editContent || editCategoryId || editPriority || editTags.length > 0 || editProjectId)) {
+      editDraftProtection.saveDraft({
+        content: editContent,
+        categoryId: editCategoryId,
+        priority: editPriority,
+        tags: editTags,
+        projectId: editProjectId,
+      });
+    }
+  }, [editModalOpen, editingIdea, editContent, editCategoryId, editPriority, editTags, editProjectId]);
+
+  // Restore add draft when modal opens
+  useEffect(() => {
+    if (addModalOpen && addDraftProtection.hasDraft && !newContent) {
+      const draft = addDraftProtection.loadDraft();
+      if (draft) {
+        setNewContent(draft.content || '');
+        setNewCategoryId(draft.categoryId || '');
+        setNewPriority(draft.priority || '');
+        setNewTags(draft.tags || []);
+        setNewProjectId(draft.projectId || '');
+        toast({
+          title: 'Draft restored',
+          description: 'Your previous unsaved idea has been restored.',
+        });
+      }
+    }
+  }, [addModalOpen]);
 
   // Inline category creation state for Add modal
   const [showInlineAddCategory, setShowInlineAddCategory] = useState(false);
