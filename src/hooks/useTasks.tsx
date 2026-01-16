@@ -31,7 +31,9 @@ export function useTasks() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
+      // Add pagination to prevent unbounded fetches
       const response = await supabase.functions.invoke('get-all-tasks', {
+        body: { limit: 500, offset: 0 },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
