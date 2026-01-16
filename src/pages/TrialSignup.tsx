@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { TrialSignupCard } from '@/components/trial';
 import { AuthLogo } from '@/components/auth/AuthLogo';
@@ -27,9 +27,9 @@ export default function TrialSignup() {
         <div className="text-center">
           <p className="text-sm text-muted-foreground">
             Already have an account?{' '}
-            <a href="/auth" className="text-primary hover:underline font-medium">
+            <Link to="/auth" className="text-primary hover:underline font-medium">
               Sign in
-            </a>
+            </Link>
           </p>
         </div>
       </div>

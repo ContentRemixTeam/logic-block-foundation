@@ -734,11 +734,11 @@ export default function DailyPlan() {
             
             {/* Save Status Indicator */}
             <SaveStatusIndicator status={saveStatus} lastSaved={lastSaved} />
-            <Button variant="outline" size="sm" onClick={() => window.location.href = '/dashboard'}>
-              Dashboard
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/dashboard">Dashboard</Link>
             </Button>
-            <Button variant="outline" size="sm" onClick={() => window.location.href = '/habits'}>
-              Habits
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/habits">Habits</Link>
             </Button>
           </div>
         </div>

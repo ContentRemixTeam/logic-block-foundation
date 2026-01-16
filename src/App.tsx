@@ -63,7 +63,8 @@ import Trash from "./pages/Trash";
 import Arcade from "./pages/Arcade";
 
 // Configure QueryClient with stability-focused defaults
-const queryClient = new QueryClient({
+// Export for use in auth hook to clear cache on logout
+export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       // Retry failed queries up to 3 times with exponential backoff
