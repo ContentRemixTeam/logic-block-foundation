@@ -10,6 +10,41 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
+  build: {
+    // Optimize chunk splitting for better caching
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Core React - rarely changes
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          // UI components library
+          'vendor-radix': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-tooltip',
+            '@radix-ui/react-select',
+            '@radix-ui/react-checkbox',
+            '@radix-ui/react-switch',
+            '@radix-ui/react-accordion',
+            '@radix-ui/react-collapsible',
+          ],
+          // Charting (heavy, only used on some pages)
+          'vendor-charts': ['recharts'],
+          // Date utilities
+          'vendor-date': ['date-fns'],
+          // Query/state management
+          'vendor-query': ['@tanstack/react-query'],
+          // DnD (only for Kanban views)
+          'vendor-dnd': ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
+          // Virtual scrolling
+          'vendor-virtual': ['@tanstack/react-virtual'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 500,
+  },
   plugins: [
     react(),
     mode === "development" && componentTagger(),
