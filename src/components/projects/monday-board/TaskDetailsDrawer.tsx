@@ -11,13 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Trash2, Clock, ClipboardList } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Calendar as CalendarIcon, Trash2, Clock, ClipboardList, Cloud, CloudOff } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { SOPSelector } from '@/components/tasks/SOPSelector';
 import { useSOPs } from '@/hooks/useSOPs';
 import { CoachYourselfModal, CoachingHistorySection } from '@/components/coaching';
 import { TagManager } from '@/components/tasks/TagManager';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 interface TaskDetailsDrawerProps {
   task: Task | null;
@@ -52,21 +53,100 @@ const DURATION_OPTIONS = [
 export function TaskDetailsDrawer({ task, onClose, onUpdate, onDelete }: TaskDetailsDrawerProps) {
   const [localTask, setLocalTask] = useState<Task | null>(task);
   const [showCoachingModal, setShowCoachingModal] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const { data: sops = [] } = useSOPs();
+  const isOnline = useOnlineStatus();
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const localStorageKey = `task_edit_draft_${task?.task_id}`;
 
   useEffect(() => {
     setLocalTask(task);
+    setHasUnsavedChanges(false);
+    setSaveStatus('idle');
   }, [task]);
+
+  // Save draft to localStorage whenever task changes
+  useEffect(() => {
+    if (localTask && hasUnsavedChanges) {
+      try {
+        localStorage.setItem(localStorageKey, JSON.stringify({
+          data: localTask,
+          timestamp: new Date().toISOString(),
+        }));
+      } catch (e) {
+        console.error('Failed to save task draft:', e);
+      }
+    }
+  }, [localTask, hasUnsavedChanges, localStorageKey]);
+
+  // Restore draft on mount if exists
+  useEffect(() => {
+    if (task) {
+      try {
+        const stored = localStorage.getItem(localStorageKey);
+        if (stored) {
+          const { data, timestamp } = JSON.parse(stored);
+          const age = Date.now() - new Date(timestamp).getTime();
+          // Only restore if draft is less than 1 hour old and different from current
+          if (age < 60 * 60 * 1000 && JSON.stringify(data) !== JSON.stringify(task)) {
+            setLocalTask(data);
+            setHasUnsavedChanges(true);
+          } else {
+            localStorage.removeItem(localStorageKey);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to restore task draft:', e);
+      }
+    }
+  }, [task?.task_id]);
+
+  // Beforeunload warning
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes.';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   if (!task || !localTask) return null;
 
   // Get the full SOP data if a task has an SOP attached
   const attachedSop = localTask.sop_id ? sops.find(s => s.sop_id === localTask.sop_id) : null;
 
-  const handleChange = (field: keyof Task, value: any) => {
+  const handleChange = useCallback((field: keyof Task, value: any) => {
     setLocalTask(prev => prev ? { ...prev, [field]: value } : null);
-    onUpdate(task.task_id, { [field]: value });
-  };
+    setHasUnsavedChanges(true);
+    setSaveStatus('saving');
+
+    // Clear existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Debounced save
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        onUpdate(task.task_id, { [field]: value });
+        setSaveStatus('saved');
+        setHasUnsavedChanges(false);
+        // Clear localStorage on successful save
+        localStorage.removeItem(localStorageKey);
+        // Reset status after delay
+        setTimeout(() => setSaveStatus('idle'), 2000);
+      } catch (error) {
+        console.error('Failed to save task:', error);
+        setSaveStatus('error');
+      }
+    }, 1000);
+  }, [task?.task_id, onUpdate, localStorageKey]);
 
   const handleTagToggle = (tag: string) => {
     const currentTags = localTask.context_tags || [];
@@ -102,7 +182,16 @@ export function TaskDetailsDrawer({ task, onClose, onUpdate, onDelete }: TaskDet
     <Sheet open={!!task} onOpenChange={(open) => !open && onClose()}>
       <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
         <SheetHeader>
-          <SheetTitle className="text-left">Task Details</SheetTitle>
+          <div className="flex items-center justify-between">
+            <SheetTitle className="text-left">Task Details</SheetTitle>
+            {/* Save status indicator */}
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              {!isOnline && <CloudOff className="h-3 w-3 text-amber-500" />}
+              {saveStatus === 'saving' && <span className="animate-pulse">Saving...</span>}
+              {saveStatus === 'saved' && <span className="text-green-600">✓ Saved</span>}
+              {saveStatus === 'error' && <span className="text-destructive">Save failed</span>}
+            </div>
+          </div>
         </SheetHeader>
 
         <div className="mt-6 space-y-6">
