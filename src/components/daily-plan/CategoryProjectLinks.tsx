@@ -7,21 +7,21 @@ const categories = [
     key: 'content', 
     label: 'Content', 
     icon: Sparkles, 
-    color: 'bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500/20',
+    color: 'bg-category-content/10 text-category-content border-category-content/20 hover:bg-category-content/20',
     description: 'Lead generation'
   },
   { 
     key: 'nurture', 
     label: 'Nurture', 
     icon: Flame, 
-    color: 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20',
+    color: 'bg-category-nurture/10 text-category-nurture border-category-nurture/20 hover:bg-category-nurture/20',
     description: 'Email & engagement'
   },
   { 
     key: 'offer', 
     label: 'Offer', 
     icon: Users, 
-    color: 'bg-green-500/10 text-green-600 border-green-500/20 hover:bg-green-500/20',
+    color: 'bg-category-offer/10 text-category-offer border-category-offer/20 hover:bg-category-offer/20',
     description: 'Sales & conversion'
   },
 ];

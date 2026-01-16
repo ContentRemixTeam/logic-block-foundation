@@ -50,7 +50,7 @@ export function TrialBanner({ expiresAt, isGracePeriod = false }: TrialBannerPro
         'border-b px-4 py-2.5 transition-colors',
         isGracePeriod
           ? 'bg-destructive/10 border-destructive/20'
-          : 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800'
+          : 'bg-warning/10 border-warning/20'
       )}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
@@ -59,14 +59,14 @@ export function TrialBanner({ expiresAt, isGracePeriod = false }: TrialBannerPro
             {isGracePeriod ? (
               <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
             ) : (
-              <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <Clock className="w-4 h-4 text-warning shrink-0" />
             )}
             <span
               className={cn(
                 'font-semibold text-sm',
                 isGracePeriod
                   ? 'text-destructive'
-                  : 'text-amber-900 dark:text-amber-100'
+                  : 'text-warning'
               )}
             >
               {isGracePeriod ? 'Trial Expired' : 'Trial Access'}:{' '}
@@ -78,7 +78,7 @@ export function TrialBanner({ expiresAt, isGracePeriod = false }: TrialBannerPro
               'text-sm hidden md:block',
               isGracePeriod
                 ? 'text-destructive/80'
-                : 'text-amber-700 dark:text-amber-300'
+                : 'text-warning/80'
             )}
           >
             {isGracePeriod
@@ -93,7 +93,7 @@ export function TrialBanner({ expiresAt, isGracePeriod = false }: TrialBannerPro
             'shrink-0',
             isGracePeriod
               ? 'bg-destructive hover:bg-destructive/90'
-              : 'bg-amber-600 hover:bg-amber-700 text-white'
+              : 'bg-warning hover:bg-warning/90 text-warning-foreground'
           )}
         >
           Join Now

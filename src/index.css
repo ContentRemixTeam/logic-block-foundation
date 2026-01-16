@@ -136,6 +136,23 @@
     --quest-purple: 262 83% 58%;
     --quest-blue: 217 91% 60%;
 
+    /* === SEMANTIC STATUS COLORS === */
+    --status-focus: 330 81% 54%;
+    --status-scheduled: 217 91% 60%;
+    --status-backlog: 38 92% 50%;
+    --status-waiting: 262 83% 58%;
+    --status-someday: 220 9% 46%;
+    
+    /* === SEMANTIC PRIORITY COLORS === */
+    --priority-high: 0 72% 50%;
+    --priority-medium: 38 92% 50%;
+    --priority-low: 142 71% 45%;
+    
+    /* === SEMANTIC CATEGORY COLORS === */
+    --category-content: 217 91% 60%;
+    --category-nurture: 330 81% 54%;
+    --category-offer: 142 71% 45%;
+
     /* === FONT === */
     --font-sans: 'Montserrat', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
     --font-heading: 'Inter', system-ui, sans-serif;
@@ -178,6 +195,10 @@
     --background: 30 30% 99%;
     --surface: 30 20% 100%;
     --card: 30 20% 100%;
+    
+    /* Semantic colors use the theme primary (orange) */
+    --status-focus: 16 90% 55%;
+    --category-nurture: 16 90% 55%;
     
     /* Complementary chart colors */
     --chart-1: 16 90% 55%;
@@ -226,6 +247,10 @@
     --bp-primary: 45 93% 47%;
     --bp-primary-soft: 45 76% 83%;
     --theme-pink: 45 93% 47%;
+    
+    /* Semantic colors use the theme primary (gold) */
+    --status-focus: 45 93% 47%;
+    --category-nurture: 45 93% 47%;
 
     --font-heading: 'Cinzel', serif;
   }
@@ -258,6 +283,19 @@
     --bp-primary: 0 0% 9%;
     --bp-primary-soft: 0 0% 60%;
     --theme-pink: 0 0% 9%;
+    
+    /* Semantic colors use grayscale for B&W theme */
+    --status-focus: 0 0% 9%;
+    --status-scheduled: 0 0% 30%;
+    --status-backlog: 0 0% 50%;
+    --status-waiting: 0 0% 40%;
+    --status-someday: 0 0% 60%;
+    --priority-high: 0 0% 15%;
+    --priority-medium: 0 0% 35%;
+    --priority-low: 0 0% 55%;
+    --category-content: 0 0% 30%;
+    --category-nurture: 0 0% 9%;
+    --category-offer: 0 0% 50%;
   }
 
   /* ===== DARK MODE ===== */

@@ -767,12 +767,12 @@ export default function WeeklyReview() {
         )}
 
         {/* Share to Community CTA */}
-        <Card className="border-teal-200 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-900/20">
+        <Card className="border-info/20 bg-info/5 dark:bg-info/10">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-teal-100 dark:bg-teal-800/50">
-                  <Share2 className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                <div className="p-2 rounded-lg bg-info/10 dark:bg-info/20">
+                  <Share2 className="h-5 w-5 text-info" />
                 </div>
                 <div>
                   <p className="font-semibold">Want to share this with the group?</p>
@@ -783,7 +783,7 @@ export default function WeeklyReview() {
               </div>
               <Button
                 variant="outline"
-                className="border-teal-300 dark:border-teal-700 hover:bg-teal-100 dark:hover:bg-teal-800"
+                className="border-info/30 hover:bg-info/10"
                 onClick={() => navigate('/weekly-reflection', {
                   state: {
                     prefill: {

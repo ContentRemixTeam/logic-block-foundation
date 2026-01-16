@@ -36,28 +36,28 @@ interface TaskMondayBoardViewProps {
 type GroupByOption = 'status' | 'date' | 'priority' | 'project';
 
 const STATUS_GROUPS = [
-  { id: 'focus', name: 'Focus', color: '#EF4444' },
-  { id: 'scheduled', name: 'Scheduled', color: '#3B82F6' },
-  { id: 'backlog', name: 'Backlog', color: '#6B7280' },
-  { id: 'waiting', name: 'Waiting', color: '#F59E0B' },
-  { id: 'someday', name: 'Someday', color: '#8B5CF6' },
-  { id: 'none', name: 'No Status', color: '#9CA3AF' },
+  { id: 'focus', name: 'Focus', color: 'hsl(var(--status-focus))' },
+  { id: 'scheduled', name: 'Scheduled', color: 'hsl(var(--status-scheduled))' },
+  { id: 'backlog', name: 'Backlog', color: 'hsl(var(--status-backlog))' },
+  { id: 'waiting', name: 'Waiting', color: 'hsl(var(--status-waiting))' },
+  { id: 'someday', name: 'Someday', color: 'hsl(var(--status-someday))' },
+  { id: 'none', name: 'No Status', color: 'hsl(var(--muted-foreground))' },
 ];
 
 const DATE_GROUPS = [
-  { id: 'overdue', name: 'Overdue', color: '#EF4444' },
-  { id: 'today', name: 'Today', color: '#22C55E' },
-  { id: 'tomorrow', name: 'Tomorrow', color: '#3B82F6' },
-  { id: 'this_week', name: 'This Week', color: '#8B5CF6' },
-  { id: 'later', name: 'Later', color: '#6B7280' },
-  { id: 'no_date', name: 'No Date', color: '#9CA3AF' },
+  { id: 'overdue', name: 'Overdue', color: 'hsl(var(--destructive))' },
+  { id: 'today', name: 'Today', color: 'hsl(var(--success))' },
+  { id: 'tomorrow', name: 'Tomorrow', color: 'hsl(var(--status-scheduled))' },
+  { id: 'this_week', name: 'This Week', color: 'hsl(var(--status-waiting))' },
+  { id: 'later', name: 'Later', color: 'hsl(var(--status-someday))' },
+  { id: 'no_date', name: 'No Date', color: 'hsl(var(--muted-foreground))' },
 ];
 
 const PRIORITY_GROUPS = [
-  { id: 'high', name: 'High Priority', color: '#EF4444' },
-  { id: 'medium', name: 'Medium Priority', color: '#F59E0B' },
-  { id: 'low', name: 'Low Priority', color: '#22C55E' },
-  { id: 'none', name: 'No Priority', color: '#9CA3AF' },
+  { id: 'high', name: 'High Priority', color: 'hsl(var(--priority-high))' },
+  { id: 'medium', name: 'Medium Priority', color: 'hsl(var(--priority-medium))' },
+  { id: 'low', name: 'Low Priority', color: 'hsl(var(--priority-low))' },
+  { id: 'none', name: 'No Priority', color: 'hsl(var(--muted-foreground))' },
 ];
 
 const DEFAULT_VISIBLE_COLUMNS = ['task', 'status', 'scheduled_date', 'priority', 'tags', 'estimated_minutes', 'project'];

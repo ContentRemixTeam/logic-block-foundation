@@ -23,10 +23,10 @@ interface Project {
 }
 
 const PRIORITY_OPTIONS = [
-  { value: 'asap', label: 'ASAP', color: 'bg-red-500' },
-  { value: 'next_week', label: 'Next Week', color: 'bg-orange-500' },
-  { value: 'next_month', label: 'Next Month', color: 'bg-blue-500' },
-  { value: 'someday', label: 'Someday', color: 'bg-gray-500' },
+  { value: 'asap', label: 'ASAP', className: 'bg-priority-high' },
+  { value: 'next_week', label: 'Next Week', className: 'bg-priority-medium' },
+  { value: 'next_month', label: 'Next Month', className: 'bg-status-scheduled' },
+  { value: 'someday', label: 'Someday', className: 'bg-status-someday' },
 ];
 
 interface IdeaFormFieldsProps {
@@ -193,7 +193,7 @@ export const IdeaFormFields = memo(function IdeaFormFields({
               {PRIORITY_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   <div className="flex items-center gap-2">
-                    <div className={cn("w-2 h-2 rounded-full", opt.color)} />
+                    <div className={cn("w-2 h-2 rounded-full", opt.className)} />
                     {opt.label}
                   </div>
                 </SelectItem>

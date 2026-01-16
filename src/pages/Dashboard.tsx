@@ -660,14 +660,14 @@ export default function Dashboard() {
 
         {/* Recovery Banner - Show if user just came from CycleSetup but no cycle exists, or has draft */}
         {showRecoveryBanner && !hasCycle && (
-          <Alert className="border-amber-500 bg-amber-50 dark:bg-amber-950/30">
-            <AlertCircle className="h-4 w-4 text-amber-600" />
-            <AlertTitle className="text-amber-800 dark:text-amber-200">
+          <Alert className="border-warning/30 bg-warning/10 dark:bg-warning/20">
+            <AlertCircle className="h-4 w-4 text-warning" />
+            <AlertTitle className="text-warning">
               {hasDraft 
                 ? `📝 You have a saved draft at Step ${draftStep}` 
                 : "Did you just complete your cycle setup?"}
             </AlertTitle>
-            <AlertDescription className="text-amber-700 dark:text-amber-300">
+            <AlertDescription className="text-warning/80">
               {hasDraft ? (
                 <>
                   Your progress was saved as a draft. You can resume where you left off, or check if your cycle was actually saved.
@@ -676,7 +676,7 @@ export default function Dashboard() {
                       <Button 
                         variant="default"
                         size="sm"
-                        className="bg-amber-600 hover:bg-amber-700"
+                        className="bg-warning hover:bg-warning/90 text-warning-foreground"
                       >
                         Resume Draft (Step {draftStep})
                       </Button>
@@ -685,7 +685,7 @@ export default function Dashboard() {
                       onClick={handleCheckForLostData} 
                       variant="outline"
                       size="sm"
-                      className="border-amber-500 text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900"
+                      className="border-warning/30 text-warning hover:bg-warning/10"
                       disabled={checkingForData}
                     >
                       {checkingForData ? (
@@ -709,7 +709,7 @@ export default function Dashboard() {
                     onClick={handleCheckForLostData} 
                     variant="outline"
                     size="sm"
-                    className="mt-2 ml-0 block border-amber-500 text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900"
+                    className="mt-2 ml-0 block border-warning/30 text-warning hover:bg-warning/10"
                     disabled={checkingForData}
                   >
                     {checkingForData ? (
