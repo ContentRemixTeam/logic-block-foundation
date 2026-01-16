@@ -34,8 +34,8 @@ const planningCards: PlanningCard[] = [
     description: 'Set your main business focus for this month.',
     href: '/monthly-review',
     icon: CalendarRange,
-    iconColorClass: 'text-rose-500',
-    iconBgClass: 'bg-rose-100',
+    iconColorClass: 'text-primary',
+    iconBgClass: 'bg-primary/10',
   },
   {
     title: '90-Day Goals ⚡',

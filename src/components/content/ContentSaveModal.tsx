@@ -422,7 +422,7 @@ export function ContentSaveModal({
                     {/* Instagram-specific fields */}
                     {isInstagram && (
                       <>
-                        <div className="p-4 rounded-lg bg-gradient-to-br from-pink-500/10 to-purple-500/10 border border-pink-500/20">
+                        <div className="p-4 rounded-lg bg-gradient-to-br from-primary/10 to-purple-500/10 border border-primary/20">
                           <h4 className="font-medium text-sm mb-2">Instagram Tips</h4>
                           <ul className="text-xs text-muted-foreground space-y-1">
                             <li>• Strong hook in first 1-3 seconds</li>

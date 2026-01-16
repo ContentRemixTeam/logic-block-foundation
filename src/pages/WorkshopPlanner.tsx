@@ -1159,7 +1159,7 @@ export default function WorkshopPlanner() {
                         variant={data.proofMethods.includes(method) ? "default" : "outline"}
                         className={cn(
                           "cursor-pointer transition-colors",
-                          data.proofMethods.includes(method) && "bg-pink-600 hover:bg-pink-700"
+                          data.proofMethods.includes(method) && "bg-primary hover:bg-primary-hover"
                         )}
                         onClick={() => toggleProofMethod(method)}
                       >

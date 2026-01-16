@@ -51,7 +51,7 @@ interface TaskBoardRowProps {
 }
 
 const STATUS_OPTIONS = [
-  { value: 'focus', label: 'Focus', className: 'bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300' },
+  { value: 'focus', label: 'Focus', className: 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary' },
   { value: 'scheduled', label: 'Scheduled', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' },
   { value: 'backlog', label: 'Backlog', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300' },
   { value: 'waiting', label: 'Waiting', className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300' },

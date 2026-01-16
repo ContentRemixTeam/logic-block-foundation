@@ -5,16 +5,26 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-function getUserIdFromJWT(authHeader: string): string | null {
-  try {
-    const token = authHeader.replace('Bearer ', '');
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    const payload = JSON.parse(atob(parts[1]));
-    return payload.sub || null;
-  } catch {
-    return null;
+async function getAuthenticatedUserId(req: Request): Promise<{ userId: string | null; error: string | null }> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { userId: null, error: 'No authorization header' };
   }
+
+  const authClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const { data: { user }, error } = await authClient.auth.getUser();
+  
+  if (error || !user) {
+    console.error('JWT validation failed:', error);
+    return { userId: null, error: 'Invalid or expired token' };
+  }
+
+  return { userId: user.id, error: null };
 }
 
 Deno.serve(async (req) => {
@@ -23,17 +33,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const userId = getUserIdFromJWT(authHeader);
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), {
+    const { userId, error: authError } = await getAuthenticatedUserId(req);
+    if (authError || !userId) {
+      return new Response(JSON.stringify({ error: authError || 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

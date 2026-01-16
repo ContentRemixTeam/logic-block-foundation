@@ -23,8 +23,8 @@ const reviewCards: ReviewCard[] = [
     description: 'Reflect on your day and celebrate wins.',
     href: '/daily-review',
     icon: Sparkles,
-    iconBgClass: 'bg-rose-100 dark:bg-rose-900/30',
-    iconColorClass: 'text-rose-600 dark:text-rose-400',
+    iconBgClass: 'bg-primary/10 dark:bg-primary/20',
+    iconColorClass: 'text-primary dark:text-primary',
   },
   {
     title: 'Weekly Review',
@@ -180,9 +180,9 @@ export default function Reviews() {
           <h2 className="text-lg font-semibold mb-4">This Month's Review Progress</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {/* Daily Reviews */}
-            <div className="text-center p-4 rounded-lg bg-rose-50 dark:bg-rose-900/20">
+            <div className="text-center p-4 rounded-lg bg-primary/10 dark:bg-primary/20">
               <p className="text-sm text-muted-foreground mb-1">Daily</p>
-              <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">
+              <p className="text-2xl font-bold text-primary">
                 {stats.dailyReviewsCompleted}/{stats.dailyReviewsTotal}
               </p>
               <p className="text-xs text-muted-foreground">{dailyProgress}%</p>
