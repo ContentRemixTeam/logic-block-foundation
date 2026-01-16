@@ -359,7 +359,7 @@ export default function MonthlyReview() {
                   </div>
                 </div>
                 <div className="text-center p-3 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-pink-500">{executionSummary.nurture_tasks_completed}</div>
+                  <div className="text-2xl font-bold text-primary">{executionSummary.nurture_tasks_completed}</div>
                   <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
                     <Heart className="h-3 w-3" /> Nurture
                   </div>

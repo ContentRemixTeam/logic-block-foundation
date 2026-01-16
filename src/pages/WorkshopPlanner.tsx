@@ -742,7 +742,7 @@ export default function WorkshopPlanner() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <Label className="text-base font-semibold">NURTURE</Label>
-                    <span className="text-2xl font-bold text-pink-600">{data.nurtureScore}</span>
+                    <span className="text-2xl font-bold text-primary">{data.nurtureScore}</span>
                   </div>
                   <p className="text-sm text-muted-foreground">Are you helping them for free effectively?</p>
                   <Slider
@@ -1038,12 +1038,12 @@ export default function WorkshopPlanner() {
 
           {/* Step 5: Nurture Strategy */}
           {currentStep === 5 && (
-            <Card className="border-pink-500/20">
+            <Card className="border-primary/20">
               <CardHeader>
                 <div className="flex items-center gap-2">
-                  <Heart className="h-5 w-5 text-pink-600" />
+                  <Heart className="h-5 w-5 text-primary" />
                   <CardTitle>Nurture Strategy</CardTitle>
-                  <Badge className="bg-pink-500/10 text-pink-600 border-pink-500/20">NURTURE</Badge>
+                  <Badge className="bg-primary/10 text-primary border-primary/20">NURTURE</Badge>
                 </div>
                 <CardDescription>How will you build trust and relationships?</CardDescription>
               </CardHeader>

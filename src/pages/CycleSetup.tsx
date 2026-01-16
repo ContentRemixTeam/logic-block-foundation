@@ -3036,7 +3036,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <Label className="text-base font-semibold">NURTURE</Label>
-                    <span className="text-2xl font-bold text-pink-600">{nurtureScore}</span>
+                    <span className="text-2xl font-bold text-primary">{nurtureScore}</span>
                   </div>
                   <p className="text-sm text-muted-foreground">Are you helping them for free effectively?</p>
                   <Slider
@@ -3533,12 +3533,12 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
 
           {/* Step 5: Nurture Strategy */}
           {currentStep === 5 && (
-            <Card className="border-pink-500/20">
+            <Card className="border-primary/20">
               <CardHeader>
                 <div className="flex items-center gap-2">
-                  <Heart className="h-5 w-5 text-pink-600" />
+                  <Heart className="h-5 w-5 text-primary" />
                   <CardTitle>Nurture Strategy</CardTitle>
-                  <Badge className="bg-pink-500/10 text-pink-600 border-pink-500/20">NURTURE</Badge>
+                  <Badge className="bg-primary/10 text-primary border-primary/20">NURTURE</Badge>
                 </div>
                 <CardDescription>How will you build trust and relationships?</CardDescription>
               </CardHeader>
@@ -3560,8 +3560,8 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
                       className={cn(
                         "relative",
                         platform.isPrimary 
-                          ? "border-pink-500/30 bg-pink-500/5" 
-                          : "border-purple-500/20 bg-purple-500/5"
+                          ? "border-primary/30 bg-primary/5" 
+                          : "border-secondary/20 bg-secondary/5"
                       )}
                     >
                       <CardHeader className="pb-3">
@@ -3569,7 +3569,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
                           <div className="flex items-center gap-2">
                             <Heart className={cn(
                               "h-4 w-4",
-                              platform.isPrimary ? "text-pink-600" : "text-purple-600"
+                              platform.isPrimary ? "text-primary" : "text-secondary-foreground"
                             )} />
                             <CardTitle className="text-base">
                               {platform.method ? methodLabel : `Nurture Platform ${idx + 1}`}
@@ -3579,8 +3579,8 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
                               className={cn(
                                 "text-xs",
                                 platform.isPrimary 
-                                  ? "bg-pink-500/10 text-pink-600 border-pink-500/30" 
-                                  : "bg-purple-500/10 text-purple-600 border-purple-500/30"
+                                  ? "bg-primary/10 text-primary border-primary/30" 
+                                  : "bg-secondary/10 text-secondary-foreground border-secondary/30"
                               )}
                             >
                               {platform.isPrimary ? 'PRIMARY' : 'SECONDARY'}
@@ -3727,14 +3727,14 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
                               <div className={cn(
                                 "p-3 rounded-lg border",
                                 platform.isPrimary 
-                                  ? "bg-pink-500/10 border-pink-500/20" 
-                                  : "bg-purple-500/10 border-purple-500/20"
+                                  ? "bg-primary/10 border-primary/20" 
+                                  : "bg-secondary/10 border-secondary/20"
                               )}>
                                 <p className={cn(
                                   "text-sm",
                                   platform.isPrimary 
-                                    ? "text-pink-700 dark:text-pink-300" 
-                                    : "text-purple-700 dark:text-purple-300"
+                                    ? "text-primary" 
+                                    : "text-secondary-foreground"
                                 )}>
                                   <strong>✨ {platform.postingDays.length * 13} tasks</strong> will be created ({platform.postingDays.length}x/week for 90 days)
                                 </p>
@@ -3787,7 +3787,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
                         variant={proofMethods.includes(method) ? "default" : "outline"}
                         className={cn(
                           "cursor-pointer transition-colors",
-                          proofMethods.includes(method) && "bg-pink-600 hover:bg-pink-700"
+                          proofMethods.includes(method) && "bg-primary hover:bg-primary/90"
                         )}
                         onClick={() => toggleProofMethod(method)}
                       >
@@ -3802,7 +3802,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
                   <Card className="border-dashed">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-base flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-pink-500" />
+                        <Mail className="h-4 w-4 text-primary" />
                         Email Follow-Through Check-ins
                       </CardTitle>
                       <CardDescription>
