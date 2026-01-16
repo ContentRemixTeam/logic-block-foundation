@@ -139,25 +139,37 @@ function validationErrorResponse(error: z.ZodError) {
   );
 }
 
-// ==================== AUTH HELPERS ====================
+// ==================== SECURE AUTH HELPER ====================
 
-function getUserIdFromJWT(authHeader: string): string | null {
-  try {
-    const token = authHeader.replace('Bearer ', '');
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-    const payload = JSON.parse(jsonPayload);
-    return payload.sub || null;
-  } catch (error) {
-    console.error('JWT decode error:', error);
-    return null;
+async function getAuthenticatedUserId(req: Request): Promise<{ userId: string | null; error: string | null }> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { userId: null, error: 'No authorization header' };
   }
+
+  const token = authHeader.replace('Bearer ', '');
+  
+  // Create a client with anon key to validate the JWT
+  const authClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  // Validate the JWT and get claims
+  const { data, error } = await authClient.auth.getClaims(token);
+  
+  if (error || !data?.claims) {
+    console.error('JWT validation failed:', error);
+    return { userId: null, error: 'Invalid or expired token' };
+  }
+
+  const userId = data.claims.sub;
+  if (!userId) {
+    return { userId: null, error: 'No user ID in token' };
+  }
+
+  return { userId, error: null };
 }
 
 // ==================== RATE LIMITING ====================
@@ -251,17 +263,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const userId = getUserIdFromJWT(authHeader);
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    // SECURE: Validate JWT with Supabase Auth
+    const { userId, error: authError } = await getAuthenticatedUserId(req);
+    if (authError || !userId) {
+      console.error('Authentication failed:', authError);
+      return new Response(JSON.stringify({ error: authError || 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -421,66 +427,34 @@ Deno.serve(async (req) => {
         if (updateFields.section_id !== undefined) updateData.section_id = updateFields.section_id;
         if (updateFields.cycle_id !== undefined) updateData.cycle_id = updateFields.cycle_id;
 
-        // Reschedule tracking
-        const prevScheduled = currentTaskState?.planned_day || currentTaskState?.time_block_start;
-        const newScheduled = updateFields.planned_day !== undefined ? updateFields.planned_day : (updateFields.time_block_start !== undefined ? updateFields.time_block_start : null);
-        const prevDueDate = currentTaskState?.scheduled_date;
-        const newDueDate = updateFields.scheduled_date !== undefined ? updateFields.scheduled_date : null;
-        
-        const scheduleChanged = (updateFields.planned_day !== undefined && prevScheduled !== updateFields.planned_day) || 
-                               (updateFields.time_block_start !== undefined && currentTaskState?.time_block_start !== updateFields.time_block_start);
-        const dueDateChanged = updateFields.scheduled_date !== undefined && prevDueDate !== updateFields.scheduled_date;
-        
-        if (scheduleChanged || dueDateChanged) {
-          if (!currentTaskState?.original_scheduled_at && prevScheduled) {
-            updateData.original_scheduled_at = prevScheduled;
+        // Track reschedules: if date/time is being changed for first time, store originals
+        const isRescheduling = (
+          (updateFields.scheduled_date !== undefined && updateFields.scheduled_date !== currentTaskState?.scheduled_date) ||
+          (updateFields.planned_day !== undefined && updateFields.planned_day !== currentTaskState?.planned_day) ||
+          (updateFields.time_block_start !== undefined && updateFields.time_block_start !== currentTaskState?.time_block_start)
+        );
+
+        if (isRescheduling && currentTaskState && !currentTaskState.original_scheduled_at) {
+          // Store original scheduling info on first reschedule
+          const originalDate = currentTaskState.scheduled_date || currentTaskState.planned_day;
+          if (originalDate) {
+            updateData.original_scheduled_at = new Date().toISOString();
+            updateData.original_due_date = originalDate;
           }
-          if (!currentTaskState?.original_due_date && prevDueDate) {
-            updateData.original_due_date = prevDueDate;
-          }
-          
-          updateData.last_rescheduled_at = new Date().toISOString();
-          
-          await supabase
-            .from('task_schedule_history')
-            .insert({
-              user_id: userId,
-              task_id: task_id,
-              previous_scheduled_at: prevScheduled || null,
-              new_scheduled_at: newScheduled || updateFields.planned_day || null,
-              previous_due_date: prevDueDate || null,
-              new_due_date: newDueDate || null,
-              change_source: change_source || 'api',
-            });
-          
-          const thirtyDaysAgo = new Date();
-          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-          
-          const { count } = await supabase
-            .from('task_schedule_history')
-            .select('*', { count: 'exact', head: true })
+          updateData.reschedule_count = 1;
+        } else if (isRescheduling && currentTaskState?.original_scheduled_at) {
+          // Increment reschedule count on subsequent reschedules
+          const { data: taskWithCount } = await supabase
+            .from('tasks')
+            .select('reschedule_count')
             .eq('task_id', task_id)
             .eq('user_id', userId)
-            .gte('changed_at', thirtyDaysAgo.toISOString());
+            .single();
           
-          updateData.reschedule_count_30d = count || 0;
-          
-          let daysPushed = 0;
-          const originalScheduled = currentTaskState?.original_scheduled_at || prevScheduled;
-          const originalDue = currentTaskState?.original_due_date || prevDueDate;
-          
-          if (originalScheduled && newScheduled) {
-            const origDate = new Date(originalScheduled);
-            const newDate = new Date(newScheduled);
-            daysPushed = Math.floor((newDate.getTime() - origDate.getTime()) / (1000 * 60 * 60 * 24));
-          } else if (originalDue && newDueDate) {
-            const origDate = new Date(originalDue);
-            const newDate = new Date(newDueDate);
-            daysPushed = Math.floor((newDate.getTime() - origDate.getTime()) / (1000 * 60 * 60 * 24));
-          }
-          
-          updateData.reschedule_loop_active = (count || 0) >= 3 || daysPushed >= 7;
+          updateData.reschedule_count = (taskWithCount?.reschedule_count || 0) + 1;
         }
+
+        updateData.updated_at = new Date().toISOString();
 
         result = await supabase
           .from('tasks')
@@ -495,40 +469,74 @@ Deno.serve(async (req) => {
       case 'delete': {
         const { task_id, delete_type } = validatedData;
         
+        // First get the task to check if it's a recurring parent
         const { data: taskToDelete } = await supabase
           .from('tasks')
-          .select('is_recurring_parent, parent_task_id')
+          .select('*')
           .eq('task_id', task_id)
           .eq('user_id', userId)
           .single();
 
-        if (taskToDelete?.is_recurring_parent && delete_type === 'all') {
-          await supabase
-            .from('tasks')
-            .delete()
-            .eq('parent_task_id', task_id)
-            .eq('user_id', userId);
+        if (!taskToDelete) {
+          return new Response(JSON.stringify({ error: 'Task not found' }), {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
 
-        if (delete_type === 'future' && taskToDelete?.parent_task_id) {
-          await supabase
+        // Soft delete by setting deleted_at
+        if (delete_type === 'all' && taskToDelete.is_recurring_parent) {
+          // Delete all instances of recurring task
+          result = await supabase
             .from('tasks')
-            .delete()
+            .update({ deleted_at: new Date().toISOString() })
+            .or(`task_id.eq.${task_id},parent_task_id.eq.${task_id}`)
+            .eq('user_id', userId)
+            .select();
+        } else if (delete_type === 'future' && taskToDelete.parent_task_id) {
+          // Delete this and future instances
+          const { data: parentTask } = await supabase
+            .from('tasks')
+            .select('*')
             .eq('task_id', taskToDelete.parent_task_id)
-            .eq('user_id', userId);
-        }
+            .single();
 
-        result = await supabase
-          .from('tasks')
-          .delete()
-          .eq('task_id', task_id)
-          .eq('user_id', userId);
+          if (parentTask) {
+            // Update parent's recurrence end date
+            await supabase
+              .from('tasks')
+              .update({ 
+                recurrence_end_date: taskToDelete.scheduled_date,
+                updated_at: new Date().toISOString()
+              })
+              .eq('task_id', taskToDelete.parent_task_id);
+          }
+
+          // Delete this and all future instances
+          result = await supabase
+            .from('tasks')
+            .update({ deleted_at: new Date().toISOString() })
+            .eq('parent_task_id', taskToDelete.parent_task_id)
+            .gte('scheduled_date', taskToDelete.scheduled_date)
+            .eq('user_id', userId)
+            .select();
+        } else {
+          // Single delete
+          result = await supabase
+            .from('tasks')
+            .update({ deleted_at: new Date().toISOString() })
+            .eq('task_id', task_id)
+            .eq('user_id', userId)
+            .select()
+            .single();
+        }
         break;
       }
 
       case 'toggle': {
         const { task_id } = validatedData;
         
+        // Get current state
         const { data: currentTask } = await supabase
           .from('tasks')
           .select('is_completed')
@@ -536,12 +544,21 @@ Deno.serve(async (req) => {
           .eq('user_id', userId)
           .single();
 
-        const newStatus = !currentTask?.is_completed;
+        if (!currentTask) {
+          return new Response(JSON.stringify({ error: 'Task not found' }), {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        const newState = !currentTask.is_completed;
+
         result = await supabase
           .from('tasks')
           .update({
-            is_completed: newStatus,
-            completed_at: newStatus ? new Date().toISOString() : null,
+            is_completed: newState,
+            completed_at: newState ? new Date().toISOString() : null,
+            updated_at: new Date().toISOString(),
           })
           .eq('task_id', task_id)
           .eq('user_id', userId)
@@ -553,25 +570,48 @@ Deno.serve(async (req) => {
       case 'toggle_checklist_item': {
         const { task_id, item_id } = validatedData;
         
-        const { data: taskWithChecklist } = await supabase
+        // Get current task
+        const { data: currentTask } = await supabase
           .from('tasks')
-          .select('checklist_progress')
+          .select('checklist_progress, sop_id')
           .eq('task_id', task_id)
           .eq('user_id', userId)
           .single();
-        
-        let currentProgress = taskWithChecklist?.checklist_progress || [];
-        const existingIndex = currentProgress.findIndex((p: any) => p.item_id === item_id);
-        
-        if (existingIndex >= 0) {
-          currentProgress[existingIndex].completed = !currentProgress[existingIndex].completed;
-        } else {
-          currentProgress.push({ item_id, completed: true });
+
+        if (!currentTask) {
+          return new Response(JSON.stringify({ error: 'Task not found' }), {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
+
+        const currentProgress = currentTask.checklist_progress || [];
+        const itemIndex = currentProgress.findIndex((p: any) => p.item_id === item_id);
         
+        let newProgress;
+        if (itemIndex >= 0) {
+          // Toggle existing item
+          newProgress = [...currentProgress];
+          newProgress[itemIndex] = {
+            ...newProgress[itemIndex],
+            completed: !newProgress[itemIndex].completed,
+            completed_at: !newProgress[itemIndex].completed ? new Date().toISOString() : null,
+          };
+        } else {
+          // Add new completed item
+          newProgress = [...currentProgress, {
+            item_id,
+            completed: true,
+            completed_at: new Date().toISOString(),
+          }];
+        }
+
         result = await supabase
           .from('tasks')
-          .update({ checklist_progress: currentProgress })
+          .update({
+            checklist_progress: newProgress,
+            updated_at: new Date().toISOString(),
+          })
           .eq('task_id', task_id)
           .eq('user_id', userId)
           .select()
@@ -584,7 +624,11 @@ Deno.serve(async (req) => {
         
         result = await supabase
           .from('tasks')
-          .update({ sop_id: null })
+          .update({
+            sop_id: null,
+            checklist_progress: [],
+            updated_at: new Date().toISOString(),
+          })
           .eq('task_id', task_id)
           .eq('user_id', userId)
           .select()
@@ -595,23 +639,21 @@ Deno.serve(async (req) => {
 
     if (result?.error) {
       console.error('Database error:', result.error);
-      throw result.error;
-    }
-
-    return new Response(
-      JSON.stringify({ success: true, data: result?.data }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
-  } catch (error: any) {
-    console.error('Error in manage-task:', error);
-    return new Response(
-      JSON.stringify({ error: error?.message || 'Unknown error' }),
-      {
+      return new Response(JSON.stringify({ error: result.error.message }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+      });
+    }
+
+    return new Response(JSON.stringify({ success: true, data: result?.data }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  } catch (error: any) {
+    console.error('Unexpected error:', error);
+    return new Response(JSON.stringify({ error: error?.message || 'Internal server error' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
