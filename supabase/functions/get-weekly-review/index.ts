@@ -5,15 +5,35 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-function getUserIdFromJWT(authHeader: string): string | null {
-  try {
-    const token = authHeader.replace('Bearer ', '');
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.sub || null;
-  } catch (e) {
-    console.error('JWT decode error:', e);
-    return null;
+// ==================== SECURE AUTH HELPER ====================
+
+async function getAuthenticatedUserId(req: Request): Promise<{ userId: string | null; error: string | null }> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { userId: null, error: 'No authorization header' };
   }
+
+  const token = authHeader.replace('Bearer ', '');
+  
+  const authClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const { data, error } = await authClient.auth.getClaims(token);
+  
+  if (error || !data?.claims) {
+    console.error('JWT validation failed:', error);
+    return { userId: null, error: 'Invalid or expired token' };
+  }
+
+  const userId = data.claims.sub;
+  if (!userId) {
+    return { userId: null, error: 'No user ID in token' };
+  }
+
+  return { userId, error: null };
 }
 
 Deno.serve(async (req) => {
@@ -27,23 +47,17 @@ Deno.serve(async (req) => {
       hasAuthHeader: Boolean(req.headers.get('Authorization')),
     });
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header' }), {
+    // SECURE: Validate JWT with Supabase Auth
+    const { userId, error: authError } = await getAuthenticatedUserId(req);
+    if (authError || !userId) {
+      console.error('Authentication failed:', authError);
+      return new Response(JSON.stringify({ error: authError || 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const userId = getUserIdFromJWT(authHeader);
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    console.log('User ID from JWT:', { userId: Boolean(userId) });
+    console.log('User ID from validated JWT:', { userId: Boolean(userId) });
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -286,9 +300,7 @@ Deno.serve(async (req) => {
       metric_4_actual: existingReview?.metric_4_actual || null,
       metric_5_actual: existingReview?.metric_5_actual || null,
       previous_metrics: previousMetrics,
-      // Goal rewrite from weekly plan (reminder)
       goal_rewrite: weekPlanData?.goal_rewrite || '',
-      // Full cycle data for CycleSnapshotCard
       cycle: fullCycleData ? {
         cycle_id: fullCycleData.cycle_id,
         goal: fullCycleData.goal,
