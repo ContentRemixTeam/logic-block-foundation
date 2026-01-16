@@ -10,6 +10,8 @@ import { DebriefReminderPopup } from '@/components/DebriefReminderPopup';
 import { OfficeHoursDisplay } from '@/components/OfficeHoursDisplay';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
+import { DailyTop3Card } from '@/components/arcade/DailyTop3Card';
+import { useArcade } from '@/hooks/useArcade';
 import { supabase } from '@/integrations/supabase/client';
 import { normalizeArray, normalizeString, normalizeNumber } from '@/lib/normalize';
 import { 
@@ -919,47 +921,8 @@ export default function Dashboard() {
                 </PremiumCardContent>
               </PremiumCard>
 
-              {/* Today's Top 3 Card */}
-              <PremiumCard category="do">
-                <PremiumCardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CheckSquare className="h-4 w-4 text-foreground-muted" />
-                      <PremiumCardTitle>Today's Top 3</PremiumCardTitle>
-                    </div>
-                    <Link to="/daily-plan">
-                      <Button variant="ghost" size="sm" className="text-sm">
-                        Edit <ArrowRight className="h-3 w-3 ml-1" />
-                      </Button>
-                    </Link>
-                  </div>
-                </PremiumCardHeader>
-                <PremiumCardContent>
-                  {todayTop3.length > 0 ? (
-                    <div className="space-y-3">
-                      {todayTop3.map((task, idx) => (
-                        <div key={idx} className="flex items-start gap-3 p-3 rounded-xl bg-muted/30">
-                          <div className="w-6 h-6 rounded-full bg-[hsl(173,80%,40%)]/10 text-[hsl(173,80%,40%)] flex items-center justify-center text-sm font-semibold flex-shrink-0">
-                            {idx + 1}
-                          </div>
-                          <span className="text-sm leading-relaxed">{task}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-6">
-                      <Target className="h-10 w-10 text-foreground-muted/30 mx-auto mb-3" />
-                      <p className="font-medium mb-1">What are your Big 3 today?</p>
-                      <p className="text-sm text-foreground-muted mb-4">
-                        Choose 3 tasks that will move you forward (1 min)
-                      </p>
-                      <Link to="/daily-plan">
-                        <Button>Plan Today</Button>
-                      </Link>
-                    </div>
-                  )}
-                </PremiumCardContent>
-              </PremiumCard>
+              {/* Today's Top 3 Card - Arcade version with coins/pet */}
+              <DailyTop3Card />
 
               {/* Habits Status Card */}
               <PremiumCard category="do">
