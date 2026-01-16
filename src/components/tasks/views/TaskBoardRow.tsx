@@ -207,8 +207,8 @@ export function TaskBoardRow({
         const priorityOption = PRIORITY_OPTIONS.find(p => p.value === task.priority);
         return (
           <Select
-            value={task.priority || ''}
-            onValueChange={(value) => onUpdateTask(task.task_id, { priority: value || null })}
+            value={task.priority || '__none__'}
+            onValueChange={(value) => onUpdateTask(task.task_id, { priority: value === '__none__' ? null : value })}
           >
             <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/50">
               {priorityOption ? (
@@ -220,7 +220,7 @@ export function TaskBoardRow({
               )}
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">None</SelectItem>
+              <SelectItem value="__none__">None</SelectItem>
               {PRIORITY_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   <Badge className={cn("text-xs", option.className)}>{option.label}</Badge>
@@ -235,8 +235,8 @@ export function TaskBoardRow({
         const EnergyIcon = energyOption?.icon || Battery;
         return (
           <Select
-            value={task.energy_level || ''}
-            onValueChange={(value) => onUpdateTask(task.task_id, { energy_level: (value || null) as Task['energy_level'] })}
+            value={task.energy_level || '__none__'}
+            onValueChange={(value) => onUpdateTask(task.task_id, { energy_level: (value === '__none__' ? null : value) as Task['energy_level'] })}
           >
             <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/50">
               {energyOption ? (
@@ -249,7 +249,7 @@ export function TaskBoardRow({
               )}
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">None</SelectItem>
+              <SelectItem value="__none__">None</SelectItem>
               {ENERGY_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   <div className="flex items-center gap-1.5">
@@ -265,9 +265,9 @@ export function TaskBoardRow({
       case 'estimated_minutes':
         return (
           <Select
-            value={task.estimated_minutes?.toString() || ''}
+            value={task.estimated_minutes?.toString() || '__none__'}
             onValueChange={(value) => 
-              onUpdateTask(task.task_id, { estimated_minutes: value ? parseInt(value) : null })
+              onUpdateTask(task.task_id, { estimated_minutes: value === '__none__' ? null : parseInt(value) })
             }
           >
             <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/50">
@@ -281,7 +281,7 @@ export function TaskBoardRow({
               )}
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">None</SelectItem>
+              <SelectItem value="__none__">None</SelectItem>
               {TIME_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}

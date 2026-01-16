@@ -52,12 +52,12 @@ export function FocusTimerTab() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Select value={selectedTaskId || ''} onValueChange={(val) => setSelectedTaskId(val || null)}>
+            <Select value={selectedTaskId || 'none'} onValueChange={(val) => setSelectedTaskId(val === 'none' ? null : val)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a task (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No task - free focus</SelectItem>
+                <SelectItem value="none">No task - free focus</SelectItem>
                 {incompleteTasks.slice(0, 20).map((task) => (
                   <SelectItem key={task.task_id} value={task.task_id}>
                     <span className="truncate max-w-[250px] block">{task.task_text}</span>
