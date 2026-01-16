@@ -23,16 +23,16 @@ const planningCards: PlanningCard[] = [
     description: "Plan what's most important for today.",
     href: '/daily-plan',
     icon: CalendarDays,
-    iconColorClass: 'text-violet-600',
-    iconBgClass: 'bg-violet-100',
+    iconColorClass: 'text-status-waiting',
+    iconBgClass: 'bg-status-waiting/10',
   },
   {
     title: 'Weekly Planner',
     description: 'Review and plan your weekly focus.',
     href: '/weekly-plan',
     icon: Calendar,
-    iconColorClass: 'text-teal-600',
-    iconBgClass: 'bg-teal-100',
+    iconColorClass: 'text-info',
+    iconBgClass: 'bg-info/10',
   },
   {
     title: 'Monthly Planning',
@@ -47,8 +47,8 @@ const planningCards: PlanningCard[] = [
     description: 'Define your quarterly goal and milestones.',
     href: '/cycle-setup',
     icon: Target,
-    iconColorClass: 'text-purple-600',
-    iconBgClass: 'bg-purple-100',
+    iconColorClass: 'text-status-waiting',
+    iconBgClass: 'bg-status-waiting/10',
   },
 ];
 
@@ -152,7 +152,7 @@ export default function Planning() {
           <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
             <div className={cn(
               'w-10 h-10 rounded-full flex items-center justify-center',
-              dailyPercentage >= 80 ? 'bg-green-100 text-green-600' : 'bg-violet-100 text-violet-600'
+              dailyPercentage >= 80 ? 'bg-success/10 text-success' : 'bg-status-waiting/10 text-status-waiting'
             )}>
               <CalendarDays className="h-5 w-5" />
             </div>
@@ -171,7 +171,7 @@ export default function Planning() {
           <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
             <div className={cn(
               'w-10 h-10 rounded-full flex items-center justify-center',
-              weeklyPercentage >= 80 ? 'bg-green-100 text-green-600' : 'bg-teal-100 text-teal-600'
+              weeklyPercentage >= 80 ? 'bg-success/10 text-success' : 'bg-info/10 text-info'
             )}>
               <Calendar className="h-5 w-5" />
             </div>
@@ -190,7 +190,7 @@ export default function Planning() {
           <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
             <div className={cn(
               'w-10 h-10 rounded-full flex items-center justify-center',
-              stats.monthlyPlanExists ? 'bg-green-100 text-green-600' : 'bg-primary/10 text-primary'
+              stats.monthlyPlanExists ? 'bg-success/10 text-success' : 'bg-primary/10 text-primary'
             )}>
               {stats.monthlyPlanExists ? (
                 <CheckCircle2 className="h-5 w-5" />

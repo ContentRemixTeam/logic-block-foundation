@@ -60,10 +60,10 @@ interface Note {
 }
 
 const PRIORITY_OPTIONS = [
-  { value: 'asap', label: 'ASAP', color: 'bg-red-500' },
-  { value: 'next_week', label: 'Next Week', color: 'bg-orange-500' },
-  { value: 'next_month', label: 'Next Month', color: 'bg-blue-500' },
-  { value: 'someday', label: 'Someday', color: 'bg-gray-500' },
+  { value: 'asap', label: 'ASAP', color: 'bg-priority-high' },
+  { value: 'next_week', label: 'Next Week', color: 'bg-priority-medium' },
+  { value: 'next_month', label: 'Next Month', color: 'bg-status-scheduled' },
+  { value: 'someday', label: 'Someday', color: 'bg-status-someday' },
 ];
 
 export default function ProjectDetail() {
@@ -233,7 +233,7 @@ export default function ProjectDetail() {
                 )}
                 
                 {project.status === 'completed' && (
-                  <Badge className="bg-green-500/20 text-green-600 border-green-500/30">
+                  <Badge className="bg-success/20 text-success border-success/30">
                     Completed
                   </Badge>
                 )}

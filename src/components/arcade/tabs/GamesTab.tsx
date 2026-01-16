@@ -72,9 +72,9 @@ export function GamesTab({ onPlayGame }: GamesTabProps) {
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'easy': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      case 'hard': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      case 'easy': return 'bg-success/10 text-success';
+      case 'medium': return 'bg-warning/10 text-warning';
+      case 'hard': return 'bg-destructive/10 text-destructive';
       default: return 'bg-muted text-muted-foreground';
     }
   };
@@ -92,13 +92,13 @@ export function GamesTab({ onPlayGame }: GamesTabProps) {
             <div className="flex items-center gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Tokens</p>
-                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                <p className="text-2xl font-bold text-status-waiting">
                   🎮 {wallet.tokens_balance}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Coins</p>
-                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                <p className="text-2xl font-bold text-warning">
                   <Coins className="inline h-5 w-5 mr-1" />
                   {wallet.coins_balance}
                 </p>
@@ -142,7 +142,7 @@ export function GamesTab({ onPlayGame }: GamesTabProps) {
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="text-purple-600 dark:text-purple-400">
+                    <span className="text-status-waiting">
                       🎮 {game.token_cost} {game.token_cost === 1 ? 'token' : 'tokens'}
                     </span>
                     {!unlocked && minCoins > 0 && (

@@ -42,17 +42,17 @@ interface BoardRowProps {
 }
 
 const STATUS_OPTIONS = [
-  { value: 'focus', label: 'Focus', color: 'bg-red-500/20 text-red-600' },
-  { value: 'scheduled', label: 'Scheduled', color: 'bg-blue-500/20 text-blue-600' },
-  { value: 'backlog', label: 'Backlog', color: 'bg-gray-500/20 text-gray-600' },
-  { value: 'waiting', label: 'Waiting', color: 'bg-yellow-500/20 text-yellow-600' },
-  { value: 'someday', label: 'Someday', color: 'bg-purple-500/20 text-purple-600' },
+  { value: 'focus', label: 'Focus', color: 'bg-status-focus/20 text-status-focus' },
+  { value: 'scheduled', label: 'Scheduled', color: 'bg-status-scheduled/20 text-status-scheduled' },
+  { value: 'backlog', label: 'Backlog', color: 'bg-status-backlog/20 text-status-backlog' },
+  { value: 'waiting', label: 'Waiting', color: 'bg-status-waiting/20 text-status-waiting' },
+  { value: 'someday', label: 'Someday', color: 'bg-status-someday/20 text-status-someday' },
 ];
 
 const PRIORITY_OPTIONS = [
-  { value: 'high', label: 'High', color: 'bg-red-500/20 text-red-600' },
-  { value: 'medium', label: 'Medium', color: 'bg-yellow-500/20 text-yellow-600' },
-  { value: 'low', label: 'Low', color: 'bg-green-500/20 text-green-600' },
+  { value: 'high', label: 'High', color: 'bg-priority-high/20 text-priority-high' },
+  { value: 'medium', label: 'Medium', color: 'bg-priority-medium/20 text-priority-medium' },
+  { value: 'low', label: 'Low', color: 'bg-priority-low/20 text-priority-low' },
 ];
 
 export function BoardRow({

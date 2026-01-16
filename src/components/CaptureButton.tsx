@@ -28,7 +28,7 @@ export function CaptureButton({ categories, onIdeaSaved }: CaptureButtonProps) {
   const [categoryId, setCategoryId] = useState<string>('');
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [newCategoryColor, setNewCategoryColor] = useState('#FF3370');
+  const [newCategoryColor, setNewCategoryColor] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -107,7 +107,7 @@ export function CaptureButton({ categories, onIdeaSaved }: CaptureButtonProps) {
       });
 
       setNewCategoryName('');
-      setNewCategoryColor('#FF3370');
+      setNewCategoryColor('');
       setShowNewCategory(false);
       setCategoryId(data.category.id);
       onIdeaSaved();
@@ -219,9 +219,9 @@ export function CaptureButton({ categories, onIdeaSaved }: CaptureButtonProps) {
                   <Button
                     variant="ghost"
                     onClick={() => {
-                      setShowNewCategory(false);
+                    setShowNewCategory(false);
                       setNewCategoryName('');
-                      setNewCategoryColor('#FF3370');
+                      setNewCategoryColor('');
                     }}
                     size="sm"
                   >

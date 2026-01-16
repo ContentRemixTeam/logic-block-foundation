@@ -39,42 +39,42 @@ const columns: KanbanColumn[] = [
     id: 'focus', 
     title: 'Focus', 
     icon: Target, 
-    color: 'text-primary dark:text-primary',
-    headerBg: 'bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10',
-    accentColor: 'border-l-primary',
+    color: 'text-status-focus',
+    headerBg: 'bg-gradient-to-r from-status-focus/10 to-status-focus/5',
+    accentColor: 'border-l-status-focus',
     maxTasks: 3 
   },
   { 
     id: 'scheduled', 
     title: 'Scheduled', 
     icon: Calendar, 
-    color: 'text-blue-600 dark:text-blue-400',
-    headerBg: 'bg-gradient-to-r from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20',
-    accentColor: 'border-l-blue-500'
+    color: 'text-status-scheduled',
+    headerBg: 'bg-gradient-to-r from-status-scheduled/10 to-status-scheduled/5',
+    accentColor: 'border-l-status-scheduled'
   },
   { 
     id: 'backlog', 
     title: 'Backlog', 
     icon: Inbox, 
-    color: 'text-amber-600 dark:text-amber-400',
-    headerBg: 'bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20',
-    accentColor: 'border-l-amber-500'
+    color: 'text-status-backlog',
+    headerBg: 'bg-gradient-to-r from-status-backlog/10 to-status-backlog/5',
+    accentColor: 'border-l-status-backlog'
   },
   { 
     id: 'waiting', 
     title: 'Waiting', 
     icon: Clock, 
-    color: 'text-purple-600 dark:text-purple-400',
-    headerBg: 'bg-gradient-to-r from-purple-50 to-purple-100/50 dark:from-purple-950/30 dark:to-purple-900/20',
-    accentColor: 'border-l-purple-500'
+    color: 'text-status-waiting',
+    headerBg: 'bg-gradient-to-r from-status-waiting/10 to-status-waiting/5',
+    accentColor: 'border-l-status-waiting'
   },
   { 
     id: 'someday', 
     title: 'Someday', 
     icon: CloudSun, 
-    color: 'text-slate-500 dark:text-slate-400',
-    headerBg: 'bg-gradient-to-r from-slate-50 to-slate-100/50 dark:from-slate-800/30 dark:to-slate-700/20',
-    accentColor: 'border-l-slate-400'
+    color: 'text-status-someday',
+    headerBg: 'bg-gradient-to-r from-status-someday/10 to-status-someday/5',
+    accentColor: 'border-l-status-someday'
   },
 ];
 
@@ -181,7 +181,7 @@ export function TaskKanbanView({
                     className={cn(
                       "h-6 min-w-[24px] justify-center font-medium text-xs",
                       "bg-background/80 shadow-sm",
-                      isAtLimit && "bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300"
+                      isAtLimit && "bg-destructive/10 text-destructive"
                     )}
                   >
                     {columnTasks.length}

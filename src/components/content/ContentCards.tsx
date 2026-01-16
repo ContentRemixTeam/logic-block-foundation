@@ -22,27 +22,27 @@ const typeIcons: Partial<Record<ContentType, React.ReactNode>> = {
 };
 
 const typeColors: Record<ContentType, string> = {
-  'Newsletter': 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+  'Newsletter': 'bg-info/10 text-info border-info/20',
   'Post': 'bg-primary/10 text-primary border-primary/20',
-  'Reel/Short': 'bg-purple-500/10 text-purple-600 border-purple-500/20',
-  'Video': 'bg-red-500/10 text-red-600 border-red-500/20',
-  'Carousel': 'bg-violet-500/10 text-violet-600 border-violet-500/20',
-  'Story': 'bg-orange-500/10 text-orange-600 border-orange-500/20',
-  'Live Session': 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  'Podcast Episode': 'bg-green-500/10 text-green-600 border-green-500/20',
-  'Blog Article': 'bg-teal-500/10 text-teal-600 border-teal-500/20',
-  'Webinar': 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20',
+  'Reel/Short': 'bg-status-waiting/10 text-status-waiting border-status-waiting/20',
+  'Video': 'bg-destructive/10 text-destructive border-destructive/20',
+  'Carousel': 'bg-status-waiting/10 text-status-waiting border-status-waiting/20',
+  'Story': 'bg-warning/10 text-warning border-warning/20',
+  'Live Session': 'bg-warning/10 text-warning border-warning/20',
+  'Podcast Episode': 'bg-success/10 text-success border-success/20',
+  'Blog Article': 'bg-info/10 text-info border-info/20',
+  'Webinar': 'bg-status-scheduled/10 text-status-scheduled border-status-scheduled/20',
   'Challenge': 'bg-primary/10 text-primary border-primary/20',
-  'DM/Message': 'bg-sky-500/10 text-sky-600 border-sky-500/20',
-  'Ad': 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20',
-  'Landing Page': 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20',
-  'Other': 'bg-gray-500/10 text-gray-600 border-gray-500/20',
+  'DM/Message': 'bg-info/10 text-info border-info/20',
+  'Ad': 'bg-info/10 text-info border-info/20',
+  'Landing Page': 'bg-status-scheduled/10 text-status-scheduled border-status-scheduled/20',
+  'Other': 'bg-muted text-muted-foreground',
 };
 
 const statusColors: Record<ContentStatus, string> = {
   'Draft': 'bg-muted text-muted-foreground',
-  'Ready': 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
-  'Published': 'bg-green-500/10 text-green-600 border-green-500/20',
+  'Ready': 'bg-warning/10 text-warning border-warning/20',
+  'Published': 'bg-success/10 text-success border-success/20',
 };
 
 export function ContentCards({ items, onEdit, onDuplicate, onDelete, onMarkPublished, onLogSend }: ContentCardsProps) {

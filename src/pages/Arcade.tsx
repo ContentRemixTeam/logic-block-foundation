@@ -82,8 +82,8 @@ export default function Arcade() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/30">
-                <Coins className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              <div className="p-2 rounded-full bg-warning/10">
+                <Coins className="h-5 w-5 text-warning" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Coins</p>
@@ -94,8 +94,8 @@ export default function Arcade() {
 
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900/30">
-                <Gamepad2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <div className="p-2 rounded-full bg-status-waiting/10">
+                <Gamepad2 className="h-5 w-5 text-status-waiting" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Tokens</p>
@@ -106,8 +106,8 @@ export default function Arcade() {
 
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/30">
-                <Target className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <div className="p-2 rounded-full bg-success/10">
+                <Target className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Earned</p>
