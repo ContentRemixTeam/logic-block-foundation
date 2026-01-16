@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
@@ -9,14 +9,16 @@ import { AppSidebar } from '@/components/AppSidebar';
 import { QuickCaptureButton } from '@/components/quick-capture';
 import { SmartActionButton } from '@/components/SmartActionButton';
 import { TrialBanner, TrialExpiredScreen } from '@/components/trial';
-import { ArcadeDrawer } from '@/components/arcade';
-import { PomodoroMiniWidget } from '@/components/arcade/PomodoroMiniWidget';
-import { CoinCounter } from '@/components/arcade/CoinCounter';
-import { PetWidget } from '@/components/arcade/PetWidget';
 import { useArcade } from '@/hooks/useArcade';
 import { OfflineBanner, OfflineIndicator } from '@/components/OfflineIndicator';
 import { UnsyncedDataBanner } from '@/components/UnsyncedDataBanner';
 import { Loader2, Sparkles, ArrowRight, X } from 'lucide-react';
+
+// Lazy load heavy arcade components - only loaded when arcade is enabled
+const ArcadeDrawer = lazy(() => import('@/components/arcade/ArcadeDrawer').then(m => ({ default: m.ArcadeDrawer })));
+const PomodoroMiniWidget = lazy(() => import('@/components/arcade/PomodoroMiniWidget').then(m => ({ default: m.PomodoroMiniWidget })));
+const CoinCounter = lazy(() => import('@/components/arcade/CoinCounter').then(m => ({ default: m.CoinCounter })));
+const PetWidget = lazy(() => import('@/components/arcade/PetWidget').then(m => ({ default: m.PetWidget })));
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -105,9 +107,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               {/* Offline sync indicator */}
               <OfflineIndicator compact showSyncButton />
               
-              {/* Arcade widgets */}
+              {/* Arcade widgets - lazy loaded only when enabled */}
               {!arcadeLoading && settings.arcade_enabled && (
-                <>
+                <Suspense fallback={null}>
                   {settings.show_pomodoro_widget && (
                     <PomodoroMiniWidget onClick={() => { setArcadeDefaultTab('focus'); setArcadeOpen(true); }} />
                   )}
@@ -115,7 +117,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                     <CoinCounter onClick={() => { setArcadeDefaultTab('stats'); setArcadeOpen(true); }} />
                   )}
                   {settings.show_pet_widget && <PetWidget />}
-                </>
+                </Suspense>
               )}
             </div>
           </header>
@@ -132,12 +134,16 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         <SmartActionButton />
         <QuickCaptureButton />
         
-        {/* Arcade Drawer */}
-        <ArcadeDrawer 
-          open={arcadeOpen} 
-          onOpenChange={setArcadeOpen} 
-          defaultTab={arcadeDefaultTab}
-        />
+        {/* Arcade Drawer - lazy loaded */}
+        {settings.arcade_enabled && (
+          <Suspense fallback={null}>
+            <ArcadeDrawer 
+              open={arcadeOpen} 
+              onOpenChange={setArcadeOpen} 
+              defaultTab={arcadeDefaultTab}
+            />
+          </Suspense>
+        )}
         </div>
       </SidebarProvider>
     </>

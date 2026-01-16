@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,67 +16,70 @@ import { TourWelcome } from "@/components/tour/TourWelcome";
 import { TourKeyboardHandler } from "@/components/tour/TourKeyboardHandler";
 import { QuickCaptureProvider } from "@/components/quick-capture";
 import { DevDebugPanel } from "@/components/dev/DevDebugPanel";
+import { LoadingState } from "@/components/system/LoadingState";
+
+// Eagerly load critical auth pages (small, needed immediately)
 import Auth from "./pages/Auth";
 import LoginHelp from "./pages/LoginHelp";
-import Dashboard from "./pages/Dashboard";
-import Onboarding from "./pages/Onboarding";
-import Planning from "./pages/Planning";
-import Reviews from "./pages/Reviews";
-import Mindset from "./pages/Mindset";
-import CycleSetup from "./pages/CycleSetup";
-import CycleManagement from "./pages/CycleManagement";
-import CycleView from "./pages/CycleView";
-import WeeklyPlan from "./pages/WeeklyPlan";
-import WeeklyReview from "./pages/WeeklyReview";
-import WeeklyReflection from "./pages/WeeklyReflection";
-import MonthlyReview from "./pages/MonthlyReview";
-import CycleSummary from "./pages/CycleSummary";
-import DailyPlan from "./pages/DailyPlan";
-import DailyReview from "./pages/DailyReview";
-import Habits from "./pages/Habits";
-import Ideas from "./pages/Ideas";
-import UsefulThoughts from "./pages/UsefulThoughts";
-import BeliefBuilder from "./pages/BeliefBuilder";
-import IdentityAnchors from "./pages/IdentityAnchors";
-import SelfCoaching from "./pages/SelfCoaching";
-import Settings from "./pages/Settings";
-import Progress from "./pages/Progress";
-import Tasks from "./pages/Tasks";
-import Notes from "./pages/Notes";
-import SOPs from "./pages/SOPs";
-import Wins from "./pages/Wins";
-
-import Support from "./pages/Support";
-import CaptureLaunchPage from "./pages/CaptureLaunchPage";
-import InstallApp from "./pages/InstallApp";
-import Projects from "./pages/Projects";
-import ProjectDetail from "./pages/ProjectDetail";
-import MastermindHub from "./pages/MastermindHub";
-import MastermindRosterImport from "./pages/MastermindRosterImport";
-import WorkshopPlanner from "./pages/WorkshopPlanner";
-import TrialSignup from "./pages/TrialSignup";
-import Admin from "./pages/Admin";
-import CoachingLog from "./pages/CoachingLog";
-import ContentVault from "./pages/ContentVault";
-import MemberSignup from "./pages/MemberSignup";
 import NotFound from "./pages/NotFound";
-import Trash from "./pages/Trash";
-import Arcade from "./pages/Arcade";
 
-// Configure QueryClient with stability-focused defaults
-// Export for use in auth hook to clear cache on logout
+// Lazy load all other pages for code splitting
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Onboarding = lazy(() => import('./pages/Onboarding'));
+const Planning = lazy(() => import('./pages/Planning'));
+const Reviews = lazy(() => import('./pages/Reviews'));
+const Mindset = lazy(() => import('./pages/Mindset'));
+const CycleSetup = lazy(() => import('./pages/CycleSetup'));
+const CycleManagement = lazy(() => import('./pages/CycleManagement'));
+const CycleView = lazy(() => import('./pages/CycleView'));
+const WeeklyPlan = lazy(() => import('./pages/WeeklyPlan'));
+const WeeklyReview = lazy(() => import('./pages/WeeklyReview'));
+const WeeklyReflection = lazy(() => import('./pages/WeeklyReflection'));
+const MonthlyReview = lazy(() => import('./pages/MonthlyReview'));
+const CycleSummary = lazy(() => import('./pages/CycleSummary'));
+const DailyPlan = lazy(() => import('./pages/DailyPlan'));
+const DailyReview = lazy(() => import('./pages/DailyReview'));
+const Habits = lazy(() => import('./pages/Habits'));
+const Ideas = lazy(() => import('./pages/Ideas'));
+const UsefulThoughts = lazy(() => import('./pages/UsefulThoughts'));
+const BeliefBuilder = lazy(() => import('./pages/BeliefBuilder'));
+const IdentityAnchors = lazy(() => import('./pages/IdentityAnchors'));
+const SelfCoaching = lazy(() => import('./pages/SelfCoaching'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Progress = lazy(() => import('./pages/Progress'));
+const Tasks = lazy(() => import('./pages/Tasks'));
+const Notes = lazy(() => import('./pages/Notes'));
+const SOPs = lazy(() => import('./pages/SOPs'));
+const Wins = lazy(() => import('./pages/Wins'));
+const Support = lazy(() => import('./pages/Support'));
+const CaptureLaunchPage = lazy(() => import('./pages/CaptureLaunchPage'));
+const InstallApp = lazy(() => import('./pages/InstallApp'));
+const Projects = lazy(() => import('./pages/Projects'));
+const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
+const MastermindHub = lazy(() => import('./pages/MastermindHub'));
+const MastermindRosterImport = lazy(() => import('./pages/MastermindRosterImport'));
+const WorkshopPlanner = lazy(() => import('./pages/WorkshopPlanner'));
+const TrialSignup = lazy(() => import('./pages/TrialSignup'));
+const Admin = lazy(() => import('./pages/Admin'));
+const CoachingLog = lazy(() => import('./pages/CoachingLog'));
+const ContentVault = lazy(() => import('./pages/ContentVault'));
+const MemberSignup = lazy(() => import('./pages/MemberSignup'));
+const Trash = lazy(() => import('./pages/Trash'));
+const Arcade = lazy(() => import('./pages/Arcade'));
+
+// Configure QueryClient with performance-focused defaults
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Retry failed queries up to 3 times with exponential backoff
+      // Retry failed queries with exponential backoff
       retry: 3,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-      // Keep data fresh but don't refetch too aggressively
-      staleTime: 1000 * 60, // 1 minute
-      gcTime: 1000 * 60 * 5, // 5 minutes (formerly cacheTime)
-      // Don't refetch on window focus in production to reduce API calls
+      // Keep data fresh longer to reduce API calls
+      staleTime: 1000 * 60 * 5, // 5 minutes (increased from 1)
+      gcTime: 1000 * 60 * 15, // 15 minutes (increased from 5)
+      // Don't refetch on window focus (realtime handles updates)
       refetchOnWindowFocus: false,
-      // Don't refetch on reconnect automatically
+      // Always refetch on reconnect to sync data
       refetchOnReconnect: 'always',
     },
     mutations: {
@@ -89,6 +93,15 @@ export const queryClient = new QueryClient({
 function OnlineStatusMonitor() {
   useOnlineStatus();
   return null;
+}
+
+// Suspense wrapper for lazy-loaded pages
+function PageSuspense({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<LoadingState variant="skeleton" />}>
+      {children}
+    </Suspense>
+  );
 }
 
 const App = () => (
@@ -111,50 +124,54 @@ const App = () => (
                       <Route path="/" element={<Navigate to="/dashboard" replace />} />
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/login-help" element={<LoginHelp />} />
-                      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                      <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
-                      <Route path="/planning" element={<ProtectedRoute><Planning /></ProtectedRoute>} />
-                      <Route path="/reviews" element={<ProtectedRoute><Reviews /></ProtectedRoute>} />
-                      <Route path="/cycle-setup" element={<ProtectedRoute><CycleSetup /></ProtectedRoute>} />
-                      <Route path="/cycles" element={<ProtectedRoute><CycleManagement /></ProtectedRoute>} />
-                      <Route path="/cycle-view/:id" element={<ProtectedRoute><CycleView /></ProtectedRoute>} />
-                      <Route path="/weekly-plan" element={<ProtectedRoute><WeeklyPlan /></ProtectedRoute>} />
-                      <Route path="/weekly-review" element={<ProtectedRoute><WeeklyReview /></ProtectedRoute>} />
-                      <Route path="/weekly-reflection" element={<ProtectedRoute><WeeklyReflection /></ProtectedRoute>} />
-                      <Route path="/monthly-review" element={<ProtectedRoute><MonthlyReview /></ProtectedRoute>} />
-                      <Route path="/cycle-summary" element={<ProtectedRoute><CycleSummary /></ProtectedRoute>} />
-                      <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
-                      <Route path="/daily-plan" element={<ProtectedRoute><DailyPlan /></ProtectedRoute>} />
-                      <Route path="/daily-review" element={<ProtectedRoute><DailyReview /></ProtectedRoute>} />
-                      <Route path="/notes" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
-                      <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
-                      <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
-                      <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
-                      <Route path="/sops" element={<ProtectedRoute><SOPs /></ProtectedRoute>} />
-                      <Route path="/habits" element={<ProtectedRoute><Habits /></ProtectedRoute>} />
-                      <Route path="/ideas" element={<ProtectedRoute><Ideas /></ProtectedRoute>} />
-                      <Route path="/wins" element={<ProtectedRoute><Wins /></ProtectedRoute>} />
-                      <Route path="/mindset" element={<ProtectedRoute><Mindset /></ProtectedRoute>} />
-                      <Route path="/useful-thoughts" element={<ProtectedRoute><UsefulThoughts /></ProtectedRoute>} />
-                      <Route path="/belief-builder" element={<ProtectedRoute><BeliefBuilder /></ProtectedRoute>} />
-                      <Route path="/identity-anchors" element={<ProtectedRoute><IdentityAnchors /></ProtectedRoute>} />
-                      <Route path="/self-coaching" element={<ProtectedRoute><SelfCoaching /></ProtectedRoute>} />
                       
-                      <Route path="/mastermind" element={<ProtectedRoute><MastermindHub /></ProtectedRoute>} />
-                      <Route path="/admin/mastermind-roster" element={<ProtectedRoute><MastermindRosterImport /></ProtectedRoute>} />
-                      <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
-                      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-                      <Route path="/capture" element={<CaptureLaunchPage />} />
-                      <Route path="/install" element={<InstallApp />} />
-                      <Route path="/workshop-planner" element={<WorkshopPlanner />} />
-                      <Route path="/workshop-planner/create" element={<WorkshopPlanner />} />
-                      <Route path="/trial" element={<TrialSignup />} />
-                      <Route path="/join" element={<MemberSignup />} />
-                      <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-                      <Route path="/coaching-log" element={<ProtectedRoute><CoachingLog /></ProtectedRoute>} />
-                      <Route path="/content-vault" element={<ProtectedRoute><ContentVault /></ProtectedRoute>} />
-                      <Route path="/trash" element={<ProtectedRoute><Trash /></ProtectedRoute>} />
-                      <Route path="/arcade" element={<ProtectedRoute><Arcade /></ProtectedRoute>} />
+                      {/* Protected routes with lazy loading */}
+                      <Route path="/dashboard" element={<ProtectedRoute><PageSuspense><Dashboard /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/onboarding" element={<ProtectedRoute><PageSuspense><Onboarding /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/planning" element={<ProtectedRoute><PageSuspense><Planning /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/reviews" element={<ProtectedRoute><PageSuspense><Reviews /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/cycle-setup" element={<ProtectedRoute><PageSuspense><CycleSetup /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/cycles" element={<ProtectedRoute><PageSuspense><CycleManagement /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/cycle-view/:id" element={<ProtectedRoute><PageSuspense><CycleView /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/weekly-plan" element={<ProtectedRoute><PageSuspense><WeeklyPlan /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/weekly-review" element={<ProtectedRoute><PageSuspense><WeeklyReview /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/weekly-reflection" element={<ProtectedRoute><PageSuspense><WeeklyReflection /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/monthly-review" element={<ProtectedRoute><PageSuspense><MonthlyReview /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/cycle-summary" element={<ProtectedRoute><PageSuspense><CycleSummary /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/progress" element={<ProtectedRoute><PageSuspense><Progress /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/daily-plan" element={<ProtectedRoute><PageSuspense><DailyPlan /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/daily-review" element={<ProtectedRoute><PageSuspense><DailyReview /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/notes" element={<ProtectedRoute><PageSuspense><Notes /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/tasks" element={<ProtectedRoute><PageSuspense><Tasks /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/projects" element={<ProtectedRoute><PageSuspense><Projects /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/projects/:id" element={<ProtectedRoute><PageSuspense><ProjectDetail /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/sops" element={<ProtectedRoute><PageSuspense><SOPs /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/habits" element={<ProtectedRoute><PageSuspense><Habits /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/ideas" element={<ProtectedRoute><PageSuspense><Ideas /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/wins" element={<ProtectedRoute><PageSuspense><Wins /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/mindset" element={<ProtectedRoute><PageSuspense><Mindset /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/useful-thoughts" element={<ProtectedRoute><PageSuspense><UsefulThoughts /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/belief-builder" element={<ProtectedRoute><PageSuspense><BeliefBuilder /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/identity-anchors" element={<ProtectedRoute><PageSuspense><IdentityAnchors /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/self-coaching" element={<ProtectedRoute><PageSuspense><SelfCoaching /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/mastermind" element={<ProtectedRoute><PageSuspense><MastermindHub /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/admin/mastermind-roster" element={<ProtectedRoute><PageSuspense><MastermindRosterImport /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/support" element={<ProtectedRoute><PageSuspense><Support /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/settings" element={<ProtectedRoute><PageSuspense><Settings /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/admin" element={<ProtectedRoute><PageSuspense><Admin /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/coaching-log" element={<ProtectedRoute><PageSuspense><CoachingLog /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/content-vault" element={<ProtectedRoute><PageSuspense><ContentVault /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/trash" element={<ProtectedRoute><PageSuspense><Trash /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/arcade" element={<ProtectedRoute><PageSuspense><Arcade /></PageSuspense></ProtectedRoute>} />
+                      
+                      {/* Public routes with lazy loading */}
+                      <Route path="/capture" element={<PageSuspense><CaptureLaunchPage /></PageSuspense>} />
+                      <Route path="/install" element={<PageSuspense><InstallApp /></PageSuspense>} />
+                      <Route path="/workshop-planner" element={<PageSuspense><WorkshopPlanner /></PageSuspense>} />
+                      <Route path="/workshop-planner/create" element={<PageSuspense><WorkshopPlanner /></PageSuspense>} />
+                      <Route path="/trial" element={<PageSuspense><TrialSignup /></PageSuspense>} />
+                      <Route path="/join" element={<PageSuspense><MemberSignup /></PageSuspense>} />
+                      
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                     <DevDebugPanel />
