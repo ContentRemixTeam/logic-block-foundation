@@ -131,7 +131,7 @@ export function BoardRow({
         return (
           <div key={columnId} className={cellClass} style={{ width, minWidth: width }}>
             <Select
-              value={task.status || ''}
+              value={task.status || 'backlog'}
               onValueChange={(value) => onUpdate(task.task_id, { status: value as any })}
             >
               <SelectTrigger className="h-7 border-0 shadow-none p-0">

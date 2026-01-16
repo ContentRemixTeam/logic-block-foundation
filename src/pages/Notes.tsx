@@ -74,6 +74,32 @@ type ViewTab = 'entries' | 'pages';
 
 const HASHTAG_FILTERS = ['#task', '#idea', '#thought', '#win', '#offer'];
 
+// Highlight search terms in text
+const highlightText = (text: string, searchTerm: string): React.ReactNode => {
+  if (!searchTerm.trim()) return text;
+  
+  const parts = text.split(new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
+  return parts.map((part, i) => 
+    part.toLowerCase() === searchTerm.toLowerCase() ? (
+      <mark key={i} className="bg-primary/30 text-foreground rounded px-0.5">{part}</mark>
+    ) : part
+  );
+};
+
+// Get preview of content with search highlight
+const getPreview = (content: string, maxLength: number = 150): string => {
+  if (!content) return '';
+  if (content.length <= maxLength) return content;
+  return content.substring(0, maxLength) + '...';
+};
+
+// Count matches in content
+const countMatches = (content: string, searchTerm: string): number => {
+  if (!searchTerm.trim() || !content) return 0;
+  const regex = new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+  return (content.match(regex) || []).length;
+};
+
 export default function Notes() {
   const queryClient = useQueryClient();
   const { data: projects = [] } = useProjects();
@@ -276,31 +302,6 @@ export default function Notes() {
     return groups;
   }, [filteredEntries]);
 
-  // Highlight search terms in text
-  const highlightText = (text: string, searchTerm: string): React.ReactNode => {
-    if (!searchTerm.trim()) return text;
-    
-    const parts = text.split(new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
-    return parts.map((part, i) => 
-      part.toLowerCase() === searchTerm.toLowerCase() ? (
-        <mark key={i} className="bg-primary/30 text-foreground rounded px-0.5">{part}</mark>
-      ) : part
-    );
-  };
-
-  // Get preview of content with search highlight
-  const getPreview = (content: string, maxLength: number = 150): string => {
-    if (!content) return '';
-    if (content.length <= maxLength) return content;
-    return content.substring(0, maxLength) + '...';
-  };
-
-  // Count matches in content
-  const countMatches = (content: string, searchTerm: string): number => {
-    if (!searchTerm.trim() || !content) return 0;
-    const regex = new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-    return (content.match(regex) || []).length;
-  };
 
   const handleCopyContent = async (content: string, id: string) => {
     try {
