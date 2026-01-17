@@ -1547,6 +1547,39 @@ export type Database = {
         }
         Relationships: []
       }
+      google_selected_calendars: {
+        Row: {
+          calendar_id: string
+          calendar_name: string
+          color: string | null
+          created_at: string | null
+          id: string
+          is_enabled: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          calendar_id: string
+          calendar_name: string
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          calendar_id?: string
+          calendar_name?: string
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       google_sync_state: {
         Row: {
           calendar_id: string

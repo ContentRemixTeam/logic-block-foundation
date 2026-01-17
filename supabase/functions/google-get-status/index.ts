@@ -46,26 +46,56 @@ serve(async (req) => {
         JSON.stringify({ 
           connected: false,
           calendarSelected: false,
+          selectedCalendars: [],
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Get sync state
+    // Get selected calendars from new multi-calendar table
+    const { data: selectedCalendars, error: calError } = await supabase
+      .from('google_selected_calendars')
+      .select('calendar_id, calendar_name, is_enabled, color')
+      .eq('user_id', user.id)
+      .eq('is_enabled', true);
+
+    // Transform to expected format
+    const calendarsArray = (selectedCalendars || []).map(cal => ({
+      id: cal.calendar_id,
+      name: cal.calendar_name,
+      isEnabled: cal.is_enabled,
+      color: cal.color,
+    }));
+
+    // Get sync state (use first calendar for backward compatibility)
     const { data: syncState } = await supabase
       .from('google_sync_state')
       .select('sync_status, last_full_sync_at, last_incremental_sync_at, last_error_message')
       .eq('user_id', user.id)
+      .limit(1)
       .single();
 
     const lastSyncAt = syncState?.last_incremental_sync_at || syncState?.last_full_sync_at;
 
+    // Determine if calendars are selected (new way or legacy way)
+    const hasSelectedCalendars = calendarsArray.length > 0 || !!connection.selected_calendar_id;
+
     return new Response(
       JSON.stringify({
         connected: connection.is_active,
-        calendarSelected: !!connection.selected_calendar_id,
-        calendarName: connection.selected_calendar_name,
-        calendarId: connection.selected_calendar_id,
+        calendarSelected: hasSelectedCalendars,
+        // Legacy single calendar support
+        calendarName: calendarsArray[0]?.name || connection.selected_calendar_name,
+        calendarId: calendarsArray[0]?.id || connection.selected_calendar_id,
+        // New multi-calendar support
+        selectedCalendars: calendarsArray.length > 0 ? calendarsArray : (
+          // Fallback to legacy single calendar if no multi-calendar data
+          connection.selected_calendar_id ? [{
+            id: connection.selected_calendar_id,
+            name: connection.selected_calendar_name || 'Calendar',
+            isEnabled: true,
+          }] : []
+        ),
         syncStatus: syncState?.sync_status || 'unknown',
         lastSyncAt,
         lastError: syncState?.last_error_message,

@@ -17,7 +17,7 @@ export function GoogleCalendarPanel() {
     showCalendarModal,
     setShowCalendarModal,
     connect,
-    selectCalendar,
+    selectCalendars,
     disconnect,
     syncNow,
     handleOAuthReturn,
@@ -114,7 +114,8 @@ export function GoogleCalendarPanel() {
           open={showCalendarModal}
           onOpenChange={setShowCalendarModal}
           calendars={calendars}
-          onSelect={selectCalendar}
+          onSelect={selectCalendars}
+          initialSelected={status.selectedCalendars}
         />
       </>
     );
@@ -160,7 +161,16 @@ export function GoogleCalendarPanel() {
             {getSyncStatusBadge()}
           </div>
           <CardDescription className="space-y-1">
-            <span>Connected to: {status.calendarName || 'Unknown calendar'}</span>
+            <span>
+              Connected to: {status.selectedCalendars.length > 1 
+                ? `${status.selectedCalendars.length} calendars` 
+                : (status.calendarName || 'Unknown calendar')}
+            </span>
+            {status.selectedCalendars.length > 1 && (
+              <span className="text-xs block">
+                {status.selectedCalendars.map(c => c.name).join(', ')}
+              </span>
+            )}
             {status.connectedEmail && (
               <span className="flex items-center gap-1 text-xs">
                 <Mail className="h-3 w-3" />
@@ -236,7 +246,8 @@ export function GoogleCalendarPanel() {
         open={showCalendarModal}
         onOpenChange={setShowCalendarModal}
         calendars={calendars}
-        onSelect={selectCalendar}
+        onSelect={selectCalendars}
+        initialSelected={status.selectedCalendars}
       />
     </>
   );

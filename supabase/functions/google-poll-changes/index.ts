@@ -81,6 +81,75 @@ async function getValidAccessToken(supabase: any, userId: string): Promise<strin
   return data.access_token;
 }
 
+interface CalendarToSync {
+  calendar_id: string;
+  calendar_name: string;
+  color?: string;
+}
+
+async function fetchCalendarEvents(
+  accessToken: string,
+  calendarId: string,
+  syncToken: string | null
+): Promise<{ events: any[]; newSyncToken: string | null; isFullSync: boolean; requiresRetry: boolean }> {
+  const encodedCalendarId = encodeURIComponent(calendarId);
+  let events: any[] = [];
+  let newSyncToken: string | null = null;
+  const isFullSync = !syncToken;
+
+  const params = new URLSearchParams({
+    maxResults: '250',
+    singleEvents: 'true',
+  });
+
+  if (syncToken) {
+    params.set('syncToken', syncToken);
+  } else {
+    // Full sync - get events from last 30 days to next 90 days
+    const timeMin = new Date();
+    timeMin.setDate(timeMin.getDate() - 30);
+    const timeMax = new Date();
+    timeMax.setDate(timeMax.getDate() + 90);
+    
+    params.set('timeMin', timeMin.toISOString());
+    params.set('timeMax', timeMax.toISOString());
+    params.set('showDeleted', 'false');
+  }
+
+  let pageToken: string | null = null;
+
+  do {
+    if (pageToken) {
+      params.set('pageToken', pageToken);
+    }
+
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodedCalendarId}/events?${params.toString()}`;
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      
+      // Handle 410 Gone - sync token expired
+      if (response.status === 410) {
+        console.log('Sync token expired for calendar:', calendarId);
+        return { events: [], newSyncToken: null, isFullSync: true, requiresRetry: true };
+      }
+
+      throw new Error(error.error?.message || 'Failed to fetch events');
+    }
+
+    const data = await response.json();
+    events = events.concat(data.items || []);
+    pageToken = data.nextPageToken || null;
+    newSyncToken = data.nextSyncToken || newSyncToken;
+
+  } while (pageToken);
+
+  return { events, newSyncToken, isFullSync, requiresRetry: false };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -109,25 +178,51 @@ serve(async (req) => {
       );
     }
 
-    // Get connection and sync state
+    // Get connection status
     const { data: connection, error: connError } = await supabase
       .from('google_calendar_connection')
-      .select('selected_calendar_id, is_active')
+      .select('is_active')
       .eq('user_id', user.id)
       .single();
 
-    if (connError || !connection || !connection.is_active || !connection.selected_calendar_id) {
+    if (connError || !connection || !connection.is_active) {
       return new Response(
         JSON.stringify({ error: 'No active Google Calendar connection' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const { data: syncState, error: stateError } = await supabase
-      .from('google_sync_state')
-      .select('*')
+    // Get all selected calendars from multi-calendar table
+    const { data: selectedCalendars, error: calError } = await supabase
+      .from('google_selected_calendars')
+      .select('calendar_id, calendar_name, color')
       .eq('user_id', user.id)
-      .single();
+      .eq('is_enabled', true);
+
+    // Fallback to legacy single calendar if no multi-calendar data
+    let calendarsToSync: CalendarToSync[] = selectedCalendars || [];
+    
+    if (calendarsToSync.length === 0) {
+      const { data: legacyConn } = await supabase
+        .from('google_calendar_connection')
+        .select('selected_calendar_id, selected_calendar_name')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (legacyConn?.selected_calendar_id) {
+        calendarsToSync = [{
+          calendar_id: legacyConn.selected_calendar_id,
+          calendar_name: legacyConn.selected_calendar_name || 'Calendar',
+        }];
+      }
+    }
+
+    if (calendarsToSync.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'No calendars selected for sync' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const accessToken = await getValidAccessToken(supabase, user.id);
     if (!accessToken) {
@@ -146,190 +241,171 @@ serve(async (req) => {
       );
     }
 
-    const calendarId = encodeURIComponent(connection.selected_calendar_id);
-    let syncToken = syncState?.sync_token;
-    let isFullSync = !syncToken;
-    let events: any[] = [];
-    let newSyncToken: string | null = null;
-
-    // Build API URL
-    const params = new URLSearchParams({
-      maxResults: '250',
-      singleEvents: 'true',
-    });
-
-    if (syncToken) {
-      params.set('syncToken', syncToken);
-    } else {
-      // Full sync - get events from last 30 days to next 90 days
-      const timeMin = new Date();
-      timeMin.setDate(timeMin.getDate() - 30);
-      const timeMax = new Date();
-      timeMax.setDate(timeMax.getDate() + 90);
-      
-      params.set('timeMin', timeMin.toISOString());
-      params.set('timeMax', timeMax.toISOString());
-      params.set('showDeleted', 'false');
-    }
-
-    let pageToken: string | null = null;
-
-    do {
-      if (pageToken) {
-        params.set('pageToken', pageToken);
-      }
-
-      const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?${params.toString()}`;
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        
-        // Handle 410 Gone - sync token expired
-        if (response.status === 410) {
-          console.log('Sync token expired, performing full sync');
-          
-          // Clear sync token and retry
-          await supabase
-            .from('google_sync_state')
-            .update({
-              sync_token: null,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('user_id', user.id);
-
-          // Recursive call with cleared token
-          return new Response(
-            JSON.stringify({ 
-              message: 'Sync token expired, please retry for full sync',
-              requiresRetry: true 
-            }),
-            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
-        console.error('Failed to fetch events:', error);
-        
-        await supabase
-          .from('google_sync_state')
-          .update({
-            sync_status: 'error',
-            last_error_message: error.error?.message || 'Failed to fetch events',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', user.id);
-
-        return new Response(
-          JSON.stringify({ error: `Failed to fetch events: ${error.error?.message || 'Unknown error'}` }),
-          { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const data = await response.json();
-      events = events.concat(data.items || []);
-      pageToken = data.nextPageToken || null;
-      newSyncToken = data.nextSyncToken || newSyncToken;
-
-    } while (pageToken);
-
-    // Process events
-    const processedEvents: any[] = [];
-    const deletedEventIds: string[] = [];
-
-    for (const event of events) {
-      if (event.status === 'cancelled') {
-        deletedEventIds.push(event.id);
-        continue;
-      }
-
-      // Only process events with start/end times (skip all-day events)
-      if (!event.start?.dateTime || !event.end?.dateTime) {
-        continue;
-      }
-
-      processedEvents.push({
-        googleEventId: event.id,
-        title: event.summary || 'Untitled',
-        description: event.description || '',
-        startTime: event.start.dateTime,
-        endTime: event.end.dateTime,
-        timeZone: event.start.timeZone || 'UTC',
-        etag: event.etag,
-        updated: event.updated,
-      });
-    }
-
-    // Get existing mappings
-    const { data: existingMappings } = await supabase
-      .from('event_sync_mapping')
-      .select('app_block_id, google_event_id, google_etag')
+    // Get sync states for all calendars
+    const { data: syncStates } = await supabase
+      .from('google_sync_state')
+      .select('calendar_id, sync_token')
       .eq('user_id', user.id);
 
-    const mappingsByGoogleId = new Map(
-      (existingMappings || []).map(m => [m.google_event_id, m])
-    );
+    const syncStateMap = new Map((syncStates || []).map(s => [s.calendar_id, s.sync_token]));
 
-    // Categorize events
-    const newEvents = processedEvents.filter(e => !mappingsByGoogleId.has(e.googleEventId));
-    const updatedEvents = processedEvents.filter(e => {
-      const mapping = mappingsByGoogleId.get(e.googleEventId);
-      return mapping && mapping.google_etag !== e.etag;
-    });
+    // Aggregate results from all calendars
+    let allNewEvents: any[] = [];
+    let allUpdatedEvents: any[] = [];
+    let allDeletedEventIds: string[] = [];
+    let totalFetched = 0;
+    let anyRequiresRetry = false;
 
-    // Handle deleted events - remove mappings
-    if (deletedEventIds.length > 0) {
-      await supabase
-        .from('event_sync_mapping')
-        .delete()
-        .eq('user_id', user.id)
-        .in('google_event_id', deletedEventIds);
+    for (const calendar of calendarsToSync) {
+      const syncToken = syncStateMap.get(calendar.calendar_id) || null;
+      
+      try {
+        const { events, newSyncToken, isFullSync, requiresRetry } = await fetchCalendarEvents(
+          accessToken,
+          calendar.calendar_id,
+          syncToken
+        );
+
+        if (requiresRetry) {
+          // Clear sync token and mark for retry
+          await supabase
+            .from('google_sync_state')
+            .upsert({
+              user_id: user.id,
+              calendar_id: calendar.calendar_id,
+              sync_token: null,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'user_id' });
+          anyRequiresRetry = true;
+          continue;
+        }
+
+        // Process events for this calendar
+        const processedEvents: any[] = [];
+        const deletedEventIds: string[] = [];
+
+        for (const event of events) {
+          if (event.status === 'cancelled') {
+            deletedEventIds.push(event.id);
+            continue;
+          }
+
+          // Skip events without proper times (like all-day events)
+          if (!event.start?.dateTime || !event.end?.dateTime) {
+            continue;
+          }
+
+          processedEvents.push({
+            googleEventId: event.id,
+            title: event.summary || 'Untitled',
+            description: event.description || '',
+            startTime: event.start.dateTime,
+            endTime: event.end.dateTime,
+            timeZone: event.start.timeZone || 'UTC',
+            etag: event.etag,
+            updated: event.updated,
+            // Add source calendar info
+            sourceCalendarId: calendar.calendar_id,
+            sourceCalendarName: calendar.calendar_name,
+            calendarColor: calendar.color,
+          });
+        }
+
+        totalFetched += events.length;
+
+        // Get existing mappings for this calendar
+        const { data: existingMappings } = await supabase
+          .from('event_sync_mapping')
+          .select('app_block_id, google_event_id, google_etag')
+          .eq('user_id', user.id);
+
+        const mappingsByGoogleId = new Map(
+          (existingMappings || []).map(m => [m.google_event_id, m])
+        );
+
+        // Categorize events
+        const newEvents = processedEvents.filter(e => !mappingsByGoogleId.has(e.googleEventId));
+        const updatedEvents = processedEvents.filter(e => {
+          const mapping = mappingsByGoogleId.get(e.googleEventId);
+          return mapping && mapping.google_etag !== e.etag;
+        });
+
+        allNewEvents = allNewEvents.concat(newEvents);
+        allUpdatedEvents = allUpdatedEvents.concat(updatedEvents);
+        allDeletedEventIds = allDeletedEventIds.concat(deletedEventIds);
+
+        // Handle deleted events - remove mappings
+        if (deletedEventIds.length > 0) {
+          await supabase
+            .from('event_sync_mapping')
+            .delete()
+            .eq('user_id', user.id)
+            .in('google_event_id', deletedEventIds);
+        }
+
+        // Update sync state for this calendar
+        const updateData: any = {
+          user_id: user.id,
+          calendar_id: calendar.calendar_id,
+          sync_status: 'active',
+          last_error_message: null,
+          updated_at: new Date().toISOString(),
+        };
+
+        if (newSyncToken) {
+          updateData.sync_token = newSyncToken;
+        }
+
+        if (isFullSync) {
+          updateData.last_full_sync_at = new Date().toISOString();
+        } else {
+          updateData.last_incremental_sync_at = new Date().toISOString();
+        }
+
+        await supabase
+          .from('google_sync_state')
+          .upsert(updateData, { onConflict: 'user_id' });
+
+        console.log('Poll completed for calendar:', calendar.calendar_id, 
+          '- New:', newEvents.length, 
+          '- Updated:', updatedEvents.length,
+          '- Deleted:', deletedEventIds.length);
+
+      } catch (calError) {
+        console.error('Error syncing calendar:', calendar.calendar_id, calError);
+        // Continue with other calendars
+      }
     }
 
-    // Update sync state
-    const updateData: any = {
-      sync_status: 'active',
-      last_error_message: null,
-      updated_at: new Date().toISOString(),
-    };
-
-    if (newSyncToken) {
-      updateData.sync_token = newSyncToken;
+    if (anyRequiresRetry) {
+      return new Response(
+        JSON.stringify({ 
+          message: 'Sync token expired for one or more calendars, please retry for full sync',
+          requiresRetry: true 
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-
-    if (isFullSync) {
-      updateData.last_full_sync_at = new Date().toISOString();
-    } else {
-      updateData.last_incremental_sync_at = new Date().toISOString();
-    }
-
-    await supabase
-      .from('google_sync_state')
-      .upsert({
-        user_id: user.id,
-        calendar_id: connection.selected_calendar_id,
-        ...updateData,
-      }, { onConflict: 'user_id' });
 
     console.log('Poll completed for user:', user.id, 
-      '- New:', newEvents.length, 
-      '- Updated:', updatedEvents.length,
-      '- Deleted:', deletedEventIds.length);
+      '- Calendars:', calendarsToSync.length,
+      '- Total New:', allNewEvents.length, 
+      '- Total Updated:', allUpdatedEvents.length,
+      '- Total Deleted:', allDeletedEventIds.length);
 
     return new Response(
       JSON.stringify({
         success: true,
-        isFullSync,
+        calendarsPolled: calendarsToSync.length,
         stats: {
-          totalFetched: events.length,
-          newEvents: newEvents.length,
-          updatedEvents: updatedEvents.length,
-          deletedEvents: deletedEventIds.length,
+          totalFetched,
+          newEvents: allNewEvents.length,
+          updatedEvents: allUpdatedEvents.length,
+          deletedEvents: allDeletedEventIds.length,
         },
-        newEvents,
-        updatedEvents,
-        deletedEventIds,
+        newEvents: allNewEvents,
+        updatedEvents: allUpdatedEvents,
+        deletedEventIds: allDeletedEventIds,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

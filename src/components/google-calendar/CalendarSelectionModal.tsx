@@ -1,28 +1,75 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar, Star, Search } from 'lucide-react';
 import type { GoogleCalendar } from '@/hooks/useGoogleCalendar';
 
+interface SelectedCalendar {
+  id: string;
+  name: string;
+  isEnabled: boolean;
+  color?: string;
+}
+
 interface CalendarSelectionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   calendars: GoogleCalendar[];
-  onSelect: (calendarId: string, calendarName: string) => void;
+  onSelect: (calendars: SelectedCalendar[]) => void;
+  initialSelected?: SelectedCalendar[];
 }
+
+const CALENDAR_COLORS = [
+  '#4285f4', // Blue
+  '#ea4335', // Red
+  '#34a853', // Green
+  '#fbbc04', // Yellow
+  '#9c27b0', // Purple
+  '#00acc1', // Cyan
+  '#ff7043', // Orange
+  '#8e24aa', // Deep Purple
+];
 
 export function CalendarSelectionModal({
   open,
   onOpenChange,
   calendars,
   onSelect,
+  initialSelected = [],
 }: CalendarSelectionModalProps) {
-  const [selectedId, setSelectedId] = useState<string>('');
+  const [selectedCalendars, setSelectedCalendars] = useState<Map<string, SelectedCalendar>>(new Map());
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Initialize selections from initialSelected or pre-select primary
+  useEffect(() => {
+    if (open && calendars.length > 0) {
+      const newSelected = new Map<string, SelectedCalendar>();
+      
+      if (initialSelected.length > 0) {
+        // Use existing selections
+        initialSelected.forEach(cal => {
+          newSelected.set(cal.id, cal);
+        });
+      } else {
+        // Pre-select primary calendar
+        const primary = calendars.find(c => c.primary);
+        if (primary) {
+          newSelected.set(primary.id, {
+            id: primary.id,
+            name: primary.summary,
+            isEnabled: true,
+            color: CALENDAR_COLORS[0],
+          });
+        }
+      }
+      
+      setSelectedCalendars(newSelected);
+    }
+  }, [open, calendars, initialSelected]);
 
   // Filter calendars by search
   const filteredCalendars = useMemo(() => {
@@ -32,22 +79,33 @@ export function CalendarSelectionModal({
     );
   }, [calendars, searchQuery]);
 
+  const toggleCalendar = (calendar: GoogleCalendar) => {
+    setSelectedCalendars(prev => {
+      const newMap = new Map(prev);
+      if (newMap.has(calendar.id)) {
+        newMap.delete(calendar.id);
+      } else {
+        // Assign a color based on position
+        const colorIndex = newMap.size % CALENDAR_COLORS.length;
+        newMap.set(calendar.id, {
+          id: calendar.id,
+          name: calendar.summary,
+          isEnabled: true,
+          color: CALENDAR_COLORS[colorIndex],
+        });
+      }
+      return newMap;
+    });
+  };
+
   const handleSave = () => {
-    const selected = calendars.find(c => c.id === selectedId);
-    if (selected) {
-      onSelect(selected.id, selected.summary);
+    const selected = Array.from(selectedCalendars.values());
+    if (selected.length > 0) {
+      onSelect(selected);
     }
   };
 
-  // Pre-select primary calendar if none selected
-  if (!selectedId && calendars.length > 0) {
-    const primary = calendars.find(c => c.primary);
-    if (primary) {
-      setSelectedId(primary.id);
-    } else {
-      setSelectedId(calendars[0].id);
-    }
-  }
+  const selectedCount = selectedCalendars.size;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -55,8 +113,11 @@ export function CalendarSelectionModal({
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Select Calendar to Sync
+            Select Calendars to Sync
           </DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            You can select multiple calendars. Events from all selected calendars will appear on your timeline.
+          </p>
         </DialogHeader>
 
         {/* Search Input */}
@@ -83,19 +144,33 @@ export function CalendarSelectionModal({
               No calendars found matching "{searchQuery}"
             </p>
           ) : (
-            <RadioGroup value={selectedId} onValueChange={setSelectedId}>
-              <div className="space-y-2 py-2">
-                {filteredCalendars.map((calendar) => (
+            <div className="space-y-2 py-2">
+              {filteredCalendars.map((calendar) => {
+                const isSelected = selectedCalendars.has(calendar.id);
+                const selectedCal = selectedCalendars.get(calendar.id);
+                
+                return (
                   <div
                     key={calendar.id}
                     className={`flex items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer ${
-                      selectedId === calendar.id
+                      isSelected
                         ? 'border-primary bg-primary/5'
                         : 'border-border hover:border-primary/50'
                     }`}
-                    onClick={() => setSelectedId(calendar.id)}
+                    onClick={() => toggleCalendar(calendar)}
                   >
-                    <RadioGroupItem value={calendar.id} id={calendar.id} />
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => toggleCalendar(calendar)}
+                      id={calendar.id}
+                    />
+                    {/* Color indicator */}
+                    {isSelected && selectedCal?.color && (
+                      <div
+                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: selectedCal.color }}
+                      />
+                    )}
                     <Label
                       htmlFor={calendar.id}
                       className="flex-1 cursor-pointer flex items-center gap-2 min-w-0"
@@ -109,21 +184,52 @@ export function CalendarSelectionModal({
                       {calendar.accessRole}
                     </span>
                   </div>
-                ))}
-              </div>
-            </RadioGroup>
+                );
+              })}
+            </div>
           )}
         </ScrollArea>
 
         <DialogFooter className="flex-shrink-0 pt-4 border-t">
+          <div className="flex-1 text-sm text-muted-foreground">
+            {selectedCount} calendar{selectedCount !== 1 ? 's' : ''} selected
+          </div>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={!selectedId}>
+          <Button onClick={handleSave} disabled={selectedCount === 0}>
             Save Selection
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Re-export for backward compatibility with single selection usage
+export function CalendarSelectionModalSingle({
+  open,
+  onOpenChange,
+  calendars,
+  onSelect,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  calendars: GoogleCalendar[];
+  onSelect: (calendarId: string, calendarName: string) => void;
+}) {
+  const handleSelect = (selected: SelectedCalendar[]) => {
+    if (selected.length > 0) {
+      onSelect(selected[0].id, selected[0].name);
+    }
+  };
+
+  return (
+    <CalendarSelectionModal
+      open={open}
+      onOpenChange={onOpenChange}
+      calendars={calendars}
+      onSelect={handleSelect}
+    />
   );
 }
