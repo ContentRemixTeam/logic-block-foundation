@@ -53,7 +53,7 @@ export function WeekPlannerNew({
     showCalendarModal,
     setShowCalendarModal,
     connect: connectGoogle,
-    selectCalendar,
+    selectCalendars,
     syncNow,
     handleOAuthReturn,
   } = useGoogleCalendar();
@@ -493,7 +493,8 @@ export function WeekPlannerNew({
         open={showCalendarModal}
         onOpenChange={setShowCalendarModal}
         calendars={calendars}
-        onSelect={selectCalendar}
+        onSelect={selectCalendars}
+        initialSelected={googleStatus.selectedCalendars}
       />
 
       {/* Mastermind Calls Panel */}

@@ -10,11 +10,21 @@ export interface GoogleCalendar {
   accessRole: string;
 }
 
+export interface SelectedCalendar {
+  id: string;
+  name: string;
+  isEnabled: boolean;
+  color?: string;
+}
+
 export interface GoogleCalendarStatus {
   connected: boolean;
   calendarSelected: boolean;
+  // For backward compatibility
   calendarName?: string;
   calendarId?: string;
+  // New multi-calendar support
+  selectedCalendars: SelectedCalendar[];
   syncStatus?: string;
   lastSyncAt?: string;
   lastError?: string;
@@ -47,6 +57,7 @@ export function useGoogleCalendar() {
   const [status, setStatus] = useState<GoogleCalendarStatus>({
     connected: false,
     calendarSelected: false,
+    selectedCalendars: [],
   });
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
@@ -67,7 +78,29 @@ export function useGoogleCalendar() {
       
       if (error) throw error;
       
-      setStatus(data);
+      // Transform response to include selectedCalendars array
+      const selectedCalendars: SelectedCalendar[] = data.selectedCalendars || [];
+      
+      // Backward compatibility: if old single-calendar data exists but no array
+      if (selectedCalendars.length === 0 && data.calendarId) {
+        selectedCalendars.push({
+          id: data.calendarId,
+          name: data.calendarName || 'Calendar',
+          isEnabled: true,
+        });
+      }
+      
+      setStatus({
+        connected: data.connected,
+        calendarSelected: data.calendarSelected || selectedCalendars.length > 0,
+        calendarId: data.calendarId || selectedCalendars[0]?.id,
+        calendarName: data.calendarName || selectedCalendars[0]?.name,
+        selectedCalendars,
+        syncStatus: data.syncStatus,
+        lastSyncAt: data.lastSyncAt,
+        lastError: data.lastError,
+        connectedEmail: data.connectedEmail,
+      });
     } catch (error) {
       console.error('Error fetching Google Calendar status:', error);
     } finally {
@@ -112,7 +145,7 @@ export function useGoogleCalendar() {
         
         toast({
           title: '✅ Connected to Google Calendar',
-          description: 'Please select which calendar to sync.',
+          description: 'Please select which calendars to sync.',
         });
         
         lastOAuthError = null;
@@ -184,27 +217,32 @@ export function useGoogleCalendar() {
     }
   }, [toast]);
 
-  const selectCalendar = useCallback(async (calendarId: string, calendarName: string) => {
+  // New multi-calendar selection
+  const selectCalendars = useCallback(async (calendarsToSelect: SelectedCalendar[]) => {
     try {
       const { error } = await supabase.functions.invoke('google-save-calendar-selection', {
-        body: { calendarId, calendarName },
+        body: { calendars: calendarsToSelect },
       });
 
       if (error) throw error;
 
       setShowCalendarModal(false);
+      
+      const calendarNames = calendarsToSelect.map(c => c.name).join(', ');
+      
       setStatus(prev => ({
         ...prev,
         connected: true,
         calendarSelected: true,
-        calendarId,
-        calendarName,
+        calendarId: calendarsToSelect[0]?.id,
+        calendarName: calendarsToSelect[0]?.name,
+        selectedCalendars: calendarsToSelect,
         syncStatus: 'active',
       }));
 
       toast({
-        title: 'Calendar selected',
-        description: `Syncing with "${calendarName}"`,
+        title: 'Calendars selected',
+        description: `Syncing with ${calendarsToSelect.length} calendar${calendarsToSelect.length > 1 ? 's' : ''}: ${calendarNames}`,
       });
 
       // Trigger initial sync
@@ -218,6 +256,11 @@ export function useGoogleCalendar() {
     }
   }, [toast]);
 
+  // Keep backward compatible single calendar selection
+  const selectCalendar = useCallback(async (calendarId: string, calendarName: string) => {
+    await selectCalendars([{ id: calendarId, name: calendarName, isEnabled: true }]);
+  }, [selectCalendars]);
+
   const disconnect = useCallback(async () => {
     try {
       const { error } = await supabase.functions.invoke('google-disconnect');
@@ -227,6 +270,7 @@ export function useGoogleCalendar() {
       setStatus({
         connected: false,
         calendarSelected: false,
+        selectedCalendars: [],
       });
 
       toast({
@@ -328,6 +372,7 @@ export function useGoogleCalendar() {
     setShowCalendarModal,
     connect,
     selectCalendar,
+    selectCalendars,
     disconnect,
     syncNow,
     pushBlock,

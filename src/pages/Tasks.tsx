@@ -73,7 +73,7 @@ export default function Tasks() {
     calendars,
     showCalendarModal,
     setShowCalendarModal,
-    selectCalendar,
+    selectCalendars,
     handleOAuthReturn 
   } = useGoogleCalendar();
 
@@ -1679,7 +1679,8 @@ export default function Tasks() {
         open={showCalendarModal}
         onOpenChange={setShowCalendarModal}
         calendars={calendars}
-        onSelect={selectCalendar}
+        onSelect={selectCalendars}
+        initialSelected={calendarStatus.selectedCalendars}
       />
 
       {/* Overdue Tasks Modal */}
