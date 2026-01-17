@@ -3089,10 +3089,10 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
 
           {/* Step 3: Audience & Message */}
           {currentStep === 3 && (
-            <Card className="border-purple-500/20">
+            <Card className="border-primary/20">
               <CardHeader>
                 <div className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-purple-600" />
+                  <Users className="h-5 w-5 text-primary" />
                   <CardTitle>Audience & Message Clarity</CardTitle>
                 </div>
                 <CardDescription>Get crystal clear on who you serve and what you say</CardDescription>

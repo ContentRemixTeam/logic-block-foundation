@@ -46,10 +46,10 @@ export function LastWeekPriorities({
   }
 
   return (
-    <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-900/50 dark:bg-amber-950/20">
+    <Card className="border-warning/30 bg-warning/10 dark:border-warning/20 dark:bg-warning/10">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <History className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+          <History className="h-5 w-5 text-warning" />
           <CardTitle className="text-base">Last Week's Priorities</CardTitle>
         </div>
         <CardDescription>Review and decide what to do with each priority</CardDescription>
@@ -104,7 +104,7 @@ export function LastWeekPriorities({
                     type="button"
                     size="sm"
                     variant="outline"
-                    className="h-8 px-2 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
+                    className="h-8 px-2 text-success hover:text-success hover:bg-success/10 dark:hover:bg-success/20"
                     onClick={() => handleAction('done', priority, idx)}
                     title="Mark as done"
                   >
@@ -115,7 +115,7 @@ export function LastWeekPriorities({
                     type="button"
                     size="sm"
                     variant="outline"
-                    className="h-8 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950"
+                    className="h-8 px-2 text-info hover:text-info hover:bg-info/10 dark:hover:bg-info/20"
                     onClick={() => handleAction('carried', priority, idx)}
                     title="Carry over to this week"
                   >

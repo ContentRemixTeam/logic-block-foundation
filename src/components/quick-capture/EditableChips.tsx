@@ -290,9 +290,9 @@ export function EditableChips({ parsedTask, onUpdate }: EditableChipsProps) {
               variant="outline"
               className={cn(
                 "text-xs cursor-pointer gap-1 pr-1",
-                parsedTask.priority === 'high' && "border-destructive text-destructive hover:bg-destructive/10",
-                parsedTask.priority === 'medium' && "border-yellow-500 text-yellow-600 hover:bg-yellow-500/10",
-                parsedTask.priority === 'low' && "border-muted-foreground hover:bg-muted"
+                parsedTask.priority === 'high' && "border-priority-high text-priority-high hover:bg-priority-high/10",
+                parsedTask.priority === 'medium' && "border-priority-medium text-priority-medium hover:bg-priority-medium/10",
+                parsedTask.priority === 'low' && "border-priority-low text-priority-low hover:bg-priority-low/10"
               )}
             >
               <Flag className="h-3 w-3" />
@@ -314,8 +314,8 @@ export function EditableChips({ parsedTask, onUpdate }: EditableChipsProps) {
                   size="sm"
                   className={cn(
                     "h-7 text-xs justify-start gap-2",
-                    p === 'high' && parsedTask.priority !== p && "text-destructive",
-                    p === 'medium' && parsedTask.priority !== p && "text-yellow-600",
+                    p === 'high' && parsedTask.priority !== p && "text-priority-high",
+                    p === 'medium' && parsedTask.priority !== p && "text-priority-medium",
                   )}
                   onClick={() => handlePriorityChange(p)}
                 >
@@ -343,8 +343,8 @@ export function EditableChips({ parsedTask, onUpdate }: EditableChipsProps) {
                   size="sm"
                   className={cn(
                     "h-7 text-xs justify-start gap-2",
-                    p === 'high' && "text-destructive",
-                    p === 'medium' && "text-yellow-600",
+                    p === 'high' && "text-priority-high",
+                    p === 'medium' && "text-priority-medium",
                   )}
                   onClick={() => handlePriorityChange(p)}
                 >

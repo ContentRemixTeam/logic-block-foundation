@@ -93,8 +93,8 @@ export function CalendarEventBlock({ event, compact = false, onClick }: Calendar
           "calendar-event-block rounded-md px-2 py-1.5 cursor-pointer transition-all text-xs",
           "border-l-2 hover:shadow-md",
           isMastermindEvent 
-            ? "border-l-purple-500 bg-purple-50 dark:bg-purple-950/20" 
-            : "border-l-blue-500 bg-blue-50 dark:bg-blue-950/20"
+            ? "border-l-status-waiting bg-status-waiting/10 dark:bg-status-waiting/20" 
+            : "border-l-info bg-info/10 dark:bg-info/20"
         )}
       >
         <div className="flex items-center gap-1.5">
@@ -102,7 +102,7 @@ export function CalendarEventBlock({ event, compact = false, onClick }: Calendar
             {startTime ? format(startTime, 'h:mm a') : 'All day'}
           </span>
           <span className="font-medium truncate flex-1">{event.summary}</span>
-          {hasVideoCall && <Video className="h-3 w-3 text-green-600" />}
+          {hasVideoCall && <Video className="h-3 w-3 text-success" />}
           <Lock className="h-2.5 w-2.5 text-muted-foreground/50" />
         </div>
       </div>
@@ -116,8 +116,8 @@ export function CalendarEventBlock({ event, compact = false, onClick }: Calendar
         "calendar-event-block rounded-lg p-3 cursor-pointer transition-all relative",
         "border-l-4 shadow-sm hover:shadow-md",
         isMastermindEvent 
-          ? "border-l-purple-500 bg-gradient-to-r from-purple-50 to-purple-25 dark:from-purple-950/30 dark:to-purple-950/10" 
-          : "border-l-blue-500 bg-gradient-to-r from-blue-50 to-blue-25 dark:from-blue-950/30 dark:to-blue-950/10"
+          ? "border-l-status-waiting bg-status-waiting/10 dark:bg-status-waiting/20" 
+          : "border-l-info bg-info/10 dark:bg-info/20"
       )}
     >
       {/* Read-only indicator */}
@@ -141,7 +141,7 @@ export function CalendarEventBlock({ event, compact = false, onClick }: Calendar
           <Button
             size="sm"
             variant="default"
-            className="ml-auto h-6 px-2 text-xs bg-green-600 hover:bg-green-700"
+            className="ml-auto h-6 px-2 text-xs bg-success hover:bg-success/90"
             onClick={handleJoinClick}
           >
             <Video className="h-3 w-3 mr-1" />
