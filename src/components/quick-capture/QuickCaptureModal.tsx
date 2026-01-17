@@ -258,8 +258,29 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
     setLastCaptureType(captureType);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('No session');
+      // Check session - iOS PWA can lose localStorage sessions
+      let { data: { session } } = await supabase.auth.getSession();
+      
+      // If no session, try to refresh (iOS Safari PWA fix)
+      if (!session) {
+        console.log('📱 No session found, attempting refresh...');
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        session = refreshData?.session;
+        
+        if (refreshError || !session) {
+          console.error('Session refresh failed:', refreshError);
+          toast.error('Session expired', {
+            description: 'Please log in again to save',
+            action: {
+              label: 'Log in',
+              onClick: () => navigate('/auth?redirect=/capture'),
+            },
+            duration: 8000,
+          });
+          return;
+        }
+        console.log('✅ Session refreshed successfully');
+      }
 
       let savedId = '';
       let savedText = '';
@@ -330,9 +351,27 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
 
     } catch (error: any) {
       console.error('Error saving:', error);
-      toast.error('Error', {
-        description: error.message || 'Failed to save',
-      });
+      
+      // Check for auth-related errors
+      const isAuthError = error.message?.includes('session') || 
+                          error.message?.includes('auth') || 
+                          error.message?.includes('JWT') ||
+                          error.status === 401;
+      
+      if (isAuthError) {
+        toast.error('Session expired', {
+          description: 'Please log in again to save',
+          action: {
+            label: 'Log in',
+            onClick: () => navigate('/auth?redirect=/capture'),
+          },
+          duration: 8000,
+        });
+      } else {
+        toast.error('Error', {
+          description: error.message || 'Failed to save',
+        });
+      }
     } finally {
       setSaving(false);
     }

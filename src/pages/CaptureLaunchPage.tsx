@@ -1,15 +1,48 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuickCapture } from '@/components/quick-capture';
-import { Zap, LayoutDashboard } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Zap, LayoutDashboard, RefreshCw } from 'lucide-react';
 
 export default function CaptureLaunchPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { isOpen, openQuickCapture, setStayOpenAfterSave } = useQuickCapture();
   const didAutoOpenRef = useRef(false);
+  const [sessionValidating, setSessionValidating] = useState(false);
+
+  // Proactively validate session on PWA launch (iOS fix)
+  useEffect(() => {
+    const validateSession = async () => {
+      if (loading || !user) return;
+      
+      setSessionValidating(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        // If no session found but we have a user in context, try refresh
+        if (!session) {
+          console.log('📱 PWA session validation: No session, attempting refresh...');
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          
+          if (refreshError || !refreshData?.session) {
+            console.warn('Session refresh failed on PWA launch, redirecting to auth');
+            navigate('/auth?redirect=/capture', { replace: true });
+            return;
+          }
+          console.log('✅ PWA session refreshed successfully');
+        }
+      } catch (err) {
+        console.error('Session validation error:', err);
+      } finally {
+        setSessionValidating(false);
+      }
+    };
+
+    validateSession();
+  }, [user, loading, navigate]);
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -20,7 +53,7 @@ export default function CaptureLaunchPage() {
 
   // Auto-open quick capture once when page loads (if authenticated)
   useEffect(() => {
-    if (user && !loading && !didAutoOpenRef.current && !isOpen) {
+    if (user && !loading && !sessionValidating && !didAutoOpenRef.current && !isOpen) {
       didAutoOpenRef.current = true;
       // Enable stay-open mode for /capture page
       setStayOpenAfterSave(true);
@@ -29,7 +62,7 @@ export default function CaptureLaunchPage() {
         openQuickCapture({ stayOpenAfterSave: true });
       }, 100);
     }
-  }, [user, loading, isOpen, openQuickCapture, setStayOpenAfterSave]);
+  }, [user, loading, sessionValidating, isOpen, openQuickCapture, setStayOpenAfterSave]);
 
   // Reset the auto-open flag when navigating away
   useEffect(() => {
@@ -38,11 +71,14 @@ export default function CaptureLaunchPage() {
     };
   }, []);
 
-  // Show loading state while checking auth
-  if (loading) {
+  // Show loading state while checking auth or validating session
+  if (loading || sessionValidating) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <RefreshCw className="h-4 w-4 animate-spin" />
+          <span>{sessionValidating ? 'Verifying session...' : 'Loading...'}</span>
+        </div>
       </div>
     );
   }
