@@ -144,22 +144,22 @@ export function DevDebugPanel() {
           <span className="font-bold text-primary">🔧 Debug</span>
           <div className="flex gap-1">
             {successCount > 0 && (
-              <span className="bg-green-500/20 text-green-600 px-1.5 rounded">
+              <span className="bg-success/20 text-success px-1.5 rounded">
                 ✓{successCount}
               </span>
             )}
             {errorCount > 0 && (
-              <span className="bg-red-500/20 text-red-600 px-1.5 rounded">
+              <span className="bg-destructive/20 text-destructive px-1.5 rounded">
                 ✗{errorCount}
               </span>
             )}
             {pendingCount > 0 && (
-              <span className="bg-yellow-500/20 text-yellow-600 px-1.5 rounded animate-pulse">
+              <span className="bg-warning/20 text-warning px-1.5 rounded animate-pulse">
                 ⏳{pendingCount}
               </span>
             )}
             {oauthDebugInfo.lastError && (
-              <span className="bg-orange-500/20 text-orange-600 px-1.5 rounded">
+              <span className="bg-warning/20 text-warning px-1.5 rounded">
                 OAuth ✗
               </span>
             )}
@@ -226,20 +226,20 @@ export function DevDebugPanel() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     {entry.status === 'success' && (
-                      <Check className="h-3 w-3 text-green-500" />
+                      <Check className="h-3 w-3 text-success" />
                     )}
                     {entry.status === 'error' && (
-                      <AlertCircle className="h-3 w-3 text-red-500" />
+                      <AlertCircle className="h-3 w-3 text-destructive" />
                     )}
                     {entry.status === 'pending' && (
-                      <Clock className="h-3 w-3 text-yellow-500 animate-pulse" />
+                      <Clock className="h-3 w-3 text-warning animate-pulse" />
                     )}
                     <span className={cn(
                       "font-medium uppercase",
-                      entry.type === 'create' && "text-blue-500",
-                      entry.type === 'update' && "text-yellow-500",
-                      entry.type === 'delete' && "text-red-500",
-                      entry.type === 'toggle' && "text-purple-500",
+                      entry.type === 'create' && "text-info",
+                      entry.type === 'update' && "text-warning",
+                      entry.type === 'delete' && "text-destructive",
+                      entry.type === 'toggle' && "text-status-waiting",
                     )}>
                       {entry.type}
                     </span>

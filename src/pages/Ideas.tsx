@@ -123,7 +123,7 @@ export default function Ideas() {
   const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [categoryName, setCategoryName] = useState('');
-  const [categoryColor, setCategoryColor] = useState('#FF3370');
+  const [categoryColor, setCategoryColor] = useState('');
   
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -198,12 +198,12 @@ export default function Ideas() {
   // Inline category creation state for Add modal
   const [showInlineAddCategory, setShowInlineAddCategory] = useState(false);
   const [inlineAddCategoryName, setInlineAddCategoryName] = useState('');
-  const [inlineAddCategoryColor, setInlineAddCategoryColor] = useState('#FF3370');
+  const [inlineAddCategoryColor, setInlineAddCategoryColor] = useState('');
 
   // Inline category creation state for Edit modal
   const [showInlineEditCategory, setShowInlineEditCategory] = useState(false);
   const [inlineEditCategoryName, setInlineEditCategoryName] = useState('');
-  const [inlineEditCategoryColor, setInlineEditCategoryColor] = useState('#FF3370');
+  const [inlineEditCategoryColor, setInlineEditCategoryColor] = useState('');
 
   // Stable callbacks for Add form fields (prevents IdeaFormFields re-renders)
   const handleNewContentChange = useCallback((value: string) => setNewContent(value), []);
@@ -264,12 +264,12 @@ export default function Ideas() {
           setEditCategoryId(newCat.id);
           setShowInlineEditCategory(false);
           setInlineEditCategoryName('');
-          setInlineEditCategoryColor('#FF3370');
+          setInlineEditCategoryColor('');
         } else {
           setNewCategoryId(newCat.id);
           setShowInlineAddCategory(false);
           setInlineAddCategoryName('');
-          setInlineAddCategoryColor('#FF3370');
+          setInlineAddCategoryColor('');
         }
       }
 
@@ -377,7 +377,7 @@ export default function Ideas() {
     setNewProjectId('');
     setShowInlineAddCategory(false);
     setInlineAddCategoryName('');
-    setInlineAddCategoryColor('#FF3370');
+    setInlineAddCategoryColor('');
   };
 
   const handleAddIdea = async () => {

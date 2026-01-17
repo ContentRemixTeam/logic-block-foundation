@@ -186,7 +186,7 @@ export function SendLog({ onLogCreated }: SendLogProps) {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-              <Flame className="h-4 w-4 text-orange-500" />
+              <Flame className="h-4 w-4 text-warning" />
               Streak
             </div>
             <p className="text-2xl font-bold">{stats.streak} weeks</p>
@@ -196,7 +196,7 @@ export function SendLog({ onLogCreated }: SendLogProps) {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-              <Mail className="h-4 w-4 text-blue-500" />
+              <Mail className="h-4 w-4 text-info" />
               Emails This Week
             </div>
             <p className="text-2xl font-bold">{stats.thisWeekEmails}</p>
@@ -206,7 +206,7 @@ export function SendLog({ onLogCreated }: SendLogProps) {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-              <TrendingUp className="h-4 w-4 text-green-500" />
+              <TrendingUp className="h-4 w-4 text-success" />
               Total This Week
             </div>
             <p className="text-2xl font-bold">{stats.thisWeekTotal}</p>
@@ -216,7 +216,7 @@ export function SendLog({ onLogCreated }: SendLogProps) {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-              <Calendar className="h-4 w-4 text-purple-500" />
+              <Calendar className="h-4 w-4 text-primary" />
               Last Published
             </div>
             <p className="text-lg font-medium">

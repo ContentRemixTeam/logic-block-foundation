@@ -79,26 +79,26 @@ export function StatsTab() {
       title: 'Total Coins Earned',
       value: stats.totalCoinsEarned,
       icon: Coins,
-      color: 'text-amber-600 dark:text-amber-400',
+      color: 'text-warning',
     },
     {
       title: 'Games Played',
       value: stats.gamesPlayed,
       icon: Gamepad2,
-      color: 'text-purple-600 dark:text-purple-400',
+      color: 'text-primary',
     },
     {
       title: 'Focus Sessions',
       value: stats.focusSessionsCompleted,
       icon: Timer,
-      color: 'text-red-600 dark:text-red-400',
+      color: 'text-destructive',
       subtitle: stats.totalFocusMinutes > 0 ? `${Math.round(stats.totalFocusMinutes / 60)} hours total` : undefined,
     },
     {
       title: 'Pets Hatched',
       value: stats.petsHatched,
       icon: Egg,
-      color: 'text-green-600 dark:text-green-400',
+      color: 'text-success',
     },
   ];
 
