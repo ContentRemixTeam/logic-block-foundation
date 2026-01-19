@@ -266,6 +266,14 @@ export default {
 					transform: 'scaleY(1.02) rotate(-1deg)'
 				}
 			},
+			'flame-pulse': {
+				'0%, 100%': {
+					transform: 'scale(1)'
+				},
+				'50%': {
+					transform: 'scale(1.15)'
+				}
+			},
 			'sparkle': {
 				'0%, 100%': {
 					opacity: '0',
@@ -286,6 +294,7 @@ export default {
 			'shimmer': 'shimmer 2s linear infinite',
 			'quest-pulse-glow': 'quest-pulse-glow 2s ease-in-out infinite',
 			'flame-flicker': 'flame-flicker 0.8s ease-in-out infinite',
+			'flame-pulse': 'flame-pulse 1.5s ease-in-out infinite',
 			'sparkle': 'sparkle 1.5s ease-in-out infinite'
 		}
   	}

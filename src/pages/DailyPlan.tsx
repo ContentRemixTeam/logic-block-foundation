@@ -33,6 +33,7 @@ import { PostingSlotCard } from '@/components/daily-plan/PostingSlotCard';
 
 import { QuickLogCard } from '@/components/content';
 import { NurtureCheckinCard } from '@/components/nurture';
+import { HabitTrackerCard } from '@/components/habits';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1240,39 +1241,8 @@ export default function DailyPlan() {
             </Card>
           )}
 
-          {/* Habits */}
-          {habits.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Today's Habits</CardTitle>
-                <CardDescription>
-                  Track your daily habits
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {habits.map((habit) => (
-                  <div key={habit.habit_id} className="flex items-center space-x-3">
-                    <Checkbox
-                      id={habit.habit_id}
-                      checked={habitLogs[habit.habit_id] || false}
-                      onCheckedChange={() => toggleHabit(habit.habit_id)}
-                    />
-                    <label
-                      htmlFor={habit.habit_id}
-                      className="flex-1 text-sm font-medium cursor-pointer"
-                    >
-                      {habit.habit_name}
-                      {habit.category && (
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          ({habit.category})
-                        </span>
-                      )}
-                    </label>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+          {/* Habits - Using new HabitTrackerCard */}
+          <HabitTrackerCard view="daily" />
 
           {/* Deep Mode Toggle */}
           <Button
