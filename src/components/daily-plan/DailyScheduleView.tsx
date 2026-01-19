@@ -90,7 +90,7 @@ export function DailyScheduleView({ onTaskToggle, onTaskClick }: DailyScheduleVi
 
         if (error) throw error;
 
-        const allTasks = (data?.tasks || []).filter((task: Task) => !task.is_recurring_parent);
+        const allTasks = (data?.data || []).filter((task: Task) => !task.is_recurring_parent);
         
         // Filter tasks for today
         const todayTasks = allTasks.filter((task: Task) => {
@@ -308,7 +308,7 @@ export function DailyScheduleView({ onTaskToggle, onTaskClick }: DailyScheduleVi
     if (user) {
       try {
         const { data } = await supabase.functions.invoke('get-all-tasks');
-        const allTasks = (data?.tasks || []).filter((task: Task) => !task.is_recurring_parent);
+        const allTasks = (data?.data || []).filter((task: Task) => !task.is_recurring_parent);
         
         const todayTasks = allTasks.filter((task: Task) => {
           const isScheduledToday = task.scheduled_date === todayStr;
