@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Info, Loader2, PenLine } from 'lucide-react';
+import { Info, Loader2, PenLine, ExternalLink } from 'lucide-react';
 
 interface GoalRewritePromptProps {
   context: 'daily' | 'weekly';
@@ -63,6 +64,23 @@ export function GoalRewritePrompt({
         <p className="text-xs text-muted-foreground">{subtext}</p>
       </CardHeader>
       <CardContent className="px-4 pb-4 space-y-3">
+        {/* Original Goal Display */}
+        {cycleGoal && (
+          <div className="bg-background/60 border border-border/50 rounded-lg p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">Your 90-Day Goal:</span>
+              <Link 
+                to="/cycle-summary" 
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
+                View full plan
+                <ExternalLink className="h-3 w-3" />
+              </Link>
+            </div>
+            <p className="text-sm italic text-foreground/80">"{cycleGoal}"</p>
+          </div>
+        )}
+
         <Textarea
           value={value}
           onChange={(e) => handleChange(e.target.value)}
