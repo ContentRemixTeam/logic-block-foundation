@@ -30,7 +30,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, LayoutList, CalendarDays, Calendar, CalendarRange } from 'lucide-react';
 import { DailyAgendaCard } from '@/components/daily-plan/DailyAgendaCard';
 import { PostingSlotCard } from '@/components/daily-plan/PostingSlotCard';
-import { EnhancedScratchPad } from '@/components/EnhancedScratchPad';
+
 
 import { QuickLogCard } from '@/components/content';
 import { NurtureCheckinCard } from '@/components/nurture';
@@ -1070,11 +1070,17 @@ export default function DailyPlan() {
                   maxLength={200}
                 />
               </div>
-              <EnhancedScratchPad
+              <Textarea
                 value={scratchPadContent}
-                onChange={setScratchPadContent}
-                placeholder="Write freely... Use #task, #idea, #thought, #offer, #win to organize"
-                className="min-h-[300px] bg-background/80 border-muted"
+                onChange={(e) => setScratchPadContent(e.target.value)}
+                placeholder="Brain dump here... Use #task #idea #thought #win #offer to tag items
+
+Example:
+Record podcast #task
+New ad funnel #task  
+Maybe pivot to B2B? #idea
+Revenue grows with retention #thought"
+                className="min-h-[300px] resize-y font-mono text-sm"
                 onBlur={() => saveNow()}
                 maxLength={5000}
               />
