@@ -380,6 +380,13 @@ export function DailyAgendaCard({ date = new Date(), onTaskToggle }: DailyAgenda
                   {unscheduledTasks.length}
                 </Badge>
               )}
+              <Link 
+                to="/weekly-plan" 
+                className="ml-auto text-primary hover:underline text-xs font-normal normal-case flex items-center gap-1"
+              >
+                <Clock className="h-3 w-3" />
+                Schedule tasks →
+              </Link>
             </p>
             <div className="space-y-1.5">
               {unscheduledTasks.map((task) => (
