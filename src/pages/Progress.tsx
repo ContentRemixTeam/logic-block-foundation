@@ -4,6 +4,7 @@ import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, TrendingDown, Minus, BarChart3, ArrowRight, Target } from "lucide-react";
+import { WinsCard } from "@/components/dashboard/WinsCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -438,6 +439,12 @@ export default function Progress() {
               weeklyData={getWeeklyDataForMetric(5)}
             />
           </div>
+        </div>
+
+        {/* Recent Wins */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Recent Wins</h2>
+          <WinsCard />
         </div>
       </div>
     </Layout>
