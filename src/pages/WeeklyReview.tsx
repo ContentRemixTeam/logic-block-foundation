@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Zap, Target, BarChart3, TrendingUp, TrendingDown, Users, Share2, Send, Mail, Download, Trophy } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { ReflectionList } from "@/components/ReflectionList";
+import { HabitTrackerCard } from "@/components/habits";
 import { getNurtureStats } from "@/lib/contentService";
 import { useDataProtection } from "@/hooks/useDataProtection";
 import { SaveStatusIndicator, SaveStatusBanner } from "@/components/SaveStatusIndicator";
@@ -467,20 +468,7 @@ export default function WeeklyReview() {
         </div>
 
         {/* Progress Metrics */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Habit Completion</CardTitle>
-              <CardDescription>
-                {habitStats.completed} of {habitStats.total} habits
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Progress value={habitStats.percent} className="h-2" />
-              <p className="text-sm text-muted-foreground mt-2">{habitStats.percent}%</p>
-            </CardContent>
-          </Card>
-
+        <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Cycle Progress</CardTitle>
@@ -516,6 +504,9 @@ export default function WeeklyReview() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Habit Consistency Tracker */}
+        <HabitTrackerCard view="weekly" />
 
         {/* Focus Area Reflection */}
         {focusArea && (

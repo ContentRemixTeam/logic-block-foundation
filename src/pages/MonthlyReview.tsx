@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Target, TrendingUp, CheckCircle2, AlertTriangle, Heart, DollarSign, Sparkles, ArrowRight, Calendar } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { ReflectionList } from "@/components/ReflectionList";
+import { HabitTrackerCard } from "@/components/habits";
 import { ToastAction } from "@/components/ui/toast";
 import { useDataProtection } from "@/hooks/useDataProtection";
 import { SaveStatusIndicator, SaveStatusBanner } from "@/components/SaveStatusIndicator";
@@ -322,18 +323,7 @@ export default function MonthlyReview() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4" />
-                Habit Consistency
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Progress value={habitConsistency} className="h-2" />
-              <p className="text-sm text-muted-foreground mt-2">{habitConsistency}% this month</p>
-            </CardContent>
-          </Card>
+          <HabitTrackerCard view="monthly" />
         </div>
 
         {/* Execution Summary */}
