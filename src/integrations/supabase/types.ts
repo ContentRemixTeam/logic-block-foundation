@@ -2712,6 +2712,7 @@ export type Database = {
           template_key: string | null
           time_block_end: string | null
           time_block_start: string | null
+          updated_at: string | null
           user_id: string
           waiting_on: string | null
           week_in_cycle: number | null
@@ -2768,6 +2769,7 @@ export type Database = {
           template_key?: string | null
           time_block_end?: string | null
           time_block_start?: string | null
+          updated_at?: string | null
           user_id: string
           waiting_on?: string | null
           week_in_cycle?: number | null
@@ -2824,6 +2826,7 @@ export type Database = {
           template_key?: string | null
           time_block_end?: string | null
           time_block_start?: string | null
+          updated_at?: string | null
           user_id?: string
           waiting_on?: string | null
           week_in_cycle?: number | null

@@ -441,17 +441,17 @@ Deno.serve(async (req) => {
             updateData.original_scheduled_at = new Date().toISOString();
             updateData.original_due_date = originalDate;
           }
-          updateData.reschedule_count = 1;
+          updateData.reschedule_count_30d = 1;
         } else if (isRescheduling && currentTaskState?.original_scheduled_at) {
           // Increment reschedule count on subsequent reschedules
           const { data: taskWithCount } = await supabase
             .from('tasks')
-            .select('reschedule_count')
+            .select('reschedule_count_30d')
             .eq('task_id', task_id)
             .eq('user_id', userId)
             .single();
           
-          updateData.reschedule_count = (taskWithCount?.reschedule_count || 0) + 1;
+          updateData.reschedule_count_30d = (taskWithCount?.reschedule_count_30d || 0) + 1;
         }
 
         updateData.updated_at = new Date().toISOString();
