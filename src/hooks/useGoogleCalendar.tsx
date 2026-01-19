@@ -297,6 +297,22 @@ export function useGoogleCalendar() {
         throw error;
       }
 
+      // Handle token expiry - auto disconnect and prompt reconnect
+      if (data?.requiresReconnect || data?.error?.includes('invalid_grant')) {
+        setStatus({
+          connected: false,
+          calendarSelected: false,
+          selectedCalendars: [],
+          lastError: 'Token expired. Please reconnect.',
+        });
+        toast({
+          title: 'Connection expired',
+          description: 'Your Google Calendar connection has expired. Please reconnect.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       if (data.requiresRetry) {
         // Sync token expired, retry
         const { data: retryData, error: retryError } = await supabase.functions.invoke('google-poll-changes');
@@ -319,6 +335,24 @@ export function useGoogleCalendar() {
       await fetchStatus();
     } catch (error: any) {
       console.error('Error syncing:', error);
+      
+      // Check for invalid_grant in error message
+      const errorMsg = error?.message || '';
+      if (errorMsg.includes('invalid_grant') || errorMsg.includes('Token expired')) {
+        setStatus({
+          connected: false,
+          calendarSelected: false,
+          selectedCalendars: [],
+          lastError: 'Token expired. Please reconnect.',
+        });
+        toast({
+          title: 'Connection expired',
+          description: 'Your Google Calendar connection has expired. Please reconnect.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
       // Log to backend for admin visibility
       await logApiError('google-poll-changes', error, { action: 'sync-failed' });
       toast({

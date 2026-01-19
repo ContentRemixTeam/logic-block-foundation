@@ -62,6 +62,20 @@ async function getValidAccessToken(supabase: any, userId: string): Promise<strin
 
   if (data.error) {
     console.error('Token refresh failed:', data);
+    // Check for invalid_grant error (token revoked or expired)
+    if (data.error === 'invalid_grant') {
+      // Mark connection as inactive
+      const serviceSupabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+      await serviceSupabase
+        .from('google_calendar_connection')
+        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .eq('user_id', userId);
+      
+      console.log('Marked connection as inactive due to invalid_grant for user:', userId);
+    }
     return null;
   }
 
@@ -140,7 +154,12 @@ serve(async (req) => {
     const accessToken = await getValidAccessToken(supabase, user.id);
     if (!accessToken) {
       return new Response(
-        JSON.stringify({ error: 'Failed to get valid access token', events: [], connected: false }),
+        JSON.stringify({ 
+          error: 'Token expired or revoked. Please reconnect your Google Calendar.', 
+          events: [], 
+          connected: false,
+          requiresReconnect: true 
+        }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
