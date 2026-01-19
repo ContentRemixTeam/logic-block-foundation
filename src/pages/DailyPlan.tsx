@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { SmartScratchPad } from '@/components/SmartScratchPad';
 import { CharacterCounter } from '@/components/ui/character-counter';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -1048,26 +1049,19 @@ export default function DailyPlan() {
                   maxLength={200}
                 />
               </div>
-              <Textarea
+              <SmartScratchPad
                 value={scratchPadContent}
-                onChange={(e) => setScratchPadContent(e.target.value)}
-                placeholder="Brain dump here... Use #task #idea #thought #win #offer to tag items
+                onChange={setScratchPadContent}
+                onBlur={() => saveNow()}
+                maxLength={5000}
+                placeholder="Brain dump here... Type # for tag suggestions
 
 Example:
 Record podcast #task
 New ad funnel #task  
 Maybe pivot to B2B? #idea
 Revenue grows with retention #thought"
-                className="min-h-[300px] resize-y font-mono text-sm"
-                onBlur={() => saveNow()}
-                maxLength={5000}
               />
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  Quick tags: <span className="font-medium">#task</span> (add to tasks) • <span className="font-medium">#idea</span> (save idea) • <span className="font-medium">#thought</span> (save insight) • <span className="font-medium">#offer</span> (mark offer) • <span className="font-medium">#win</span> (celebrate)
-                </p>
-                <CharacterCounter current={scratchPadContent.length} max={5000} />
-              </div>
               <div className="flex gap-2">
                 <Button
                   type="button"
