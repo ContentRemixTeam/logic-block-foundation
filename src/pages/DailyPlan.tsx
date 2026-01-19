@@ -27,7 +27,7 @@ import { GoalRewritePrompt } from '@/components/cycle/GoalRewritePrompt';
 import { DailyTimelineView } from '@/components/daily-plan/DailyTimelineView';
 import { DailyScheduleView } from '@/components/daily-plan/DailyScheduleView';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, LayoutList, CalendarDays, Calendar } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, LayoutList, CalendarDays, Calendar, CalendarRange } from 'lucide-react';
 import { DailyAgendaCard } from '@/components/daily-plan/DailyAgendaCard';
 import { PostingSlotCard } from '@/components/daily-plan/PostingSlotCard';
 
@@ -741,6 +741,35 @@ export default function DailyPlan() {
               <Link to="/habits">Habits</Link>
             </Button>
           </div>
+        </div>
+
+        {/* Planning Quick Links */}
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-muted-foreground text-xs">Planning:</span>
+          <Link to="/daily-plan">
+            <Badge variant="secondary" className="cursor-pointer">
+              <CalendarDays className="h-3 w-3 mr-1" />
+              Daily
+            </Badge>
+          </Link>
+          <Link to="/weekly-plan">
+            <Badge variant="outline" className="cursor-pointer hover:bg-muted">
+              <Calendar className="h-3 w-3 mr-1" />
+              Weekly
+            </Badge>
+          </Link>
+          <Link to="/monthly-review">
+            <Badge variant="outline" className="cursor-pointer hover:bg-muted">
+              <CalendarRange className="h-3 w-3 mr-1" />
+              Monthly
+            </Badge>
+          </Link>
+          <Link to="/cycle-summary">
+            <Badge variant="outline" className="cursor-pointer hover:bg-muted">
+              <Target className="h-3 w-3 mr-1" />
+              90-Day
+            </Badge>
+          </Link>
         </div>
 
         {/* Save Status Banner for offline/error states */}
