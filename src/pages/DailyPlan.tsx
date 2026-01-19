@@ -978,28 +978,6 @@ export default function DailyPlan() {
             </CardContent>
           </Card>
 
-          {/* Quick Tasks from Scratch Pad */}
-          {otherTasks.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <ListTodo className="h-4 w-4" />
-                  📋 Quick Tasks ({otherTasks.filter(t => !t.is_completed).length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {otherTasks.filter(t => !t.is_completed).map((task) => (
-                  <div key={task.task_id} className="flex items-center gap-3">
-                    <Checkbox
-                      checked={task.is_completed}
-                      onCheckedChange={() => toggleOtherTask(task.task_id, task.is_completed)}
-                    />
-                    <span className="text-sm">{task.task_text}</span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
 
           {/* Completed Today */}
           {(() => {
