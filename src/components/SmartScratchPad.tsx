@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CharacterCounter } from '@/components/ui/character-counter';
 import { cn } from '@/lib/utils';
-import { ListTodo, Lightbulb, Brain, Trophy, Gift } from 'lucide-react';
+import { ListTodo, Lightbulb, Brain, Trophy } from 'lucide-react';
 
 interface SmartScratchPadProps {
   value: string;
@@ -65,16 +65,6 @@ const TAGS: TagConfig[] = [
     bgColor: 'bg-green-100 dark:bg-green-900/40',
     textColor: 'text-green-700 dark:text-green-300',
     badgeBg: 'bg-green-500/20 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700',
-  },
-  {
-    tag: 'offer',
-    label: 'Offer',
-    icon: <Gift className="h-3.5 w-3.5" />,
-    emoji: '🎁',
-    description: 'Track offer',
-    bgColor: 'bg-pink-100 dark:bg-pink-900/40',
-    textColor: 'text-pink-700 dark:text-pink-300',
-    badgeBg: 'bg-pink-500/20 text-pink-700 dark:text-pink-300 border-pink-300 dark:border-pink-700',
   },
 ];
 
@@ -248,7 +238,7 @@ export function SmartScratchPad({
 
     const parts: React.ReactNode[] = [];
     let lastIndex = 0;
-    const regex = /#(task|idea|thought|win|offer)\b/gi;
+    const regex = /#(task|idea|thought|win)\b/gi;
     let match;
 
     while ((match = regex.exec(value)) !== null) {
