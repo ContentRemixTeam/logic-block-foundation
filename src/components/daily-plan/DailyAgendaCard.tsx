@@ -70,6 +70,12 @@ export function DailyAgendaCard({ date = new Date(), onTaskToggle }: DailyAgenda
         });
 
         if (error) throw error;
+        
+        // Handle token expiry requiring reconnection
+        if (data?.requiresReconnect) {
+          console.warn('Google Calendar token expired, needs reconnection');
+        }
+        
         setCalendarEvents(data?.events || []);
       } catch (error) {
         console.error('Error fetching calendar events:', error);
@@ -81,25 +87,41 @@ export function DailyAgendaCard({ date = new Date(), onTaskToggle }: DailyAgenda
     fetchCalendarEvents();
   }, [isConnected, isCalendarSelected, todayStr]);
 
-  // Filter tasks for today
+  // Filter tasks for today - include completed tasks too for accurate counts
   const todayTasks = useMemo(() => {
-    return allTasks.filter((task: Task) => {
+    const filtered = allTasks.filter((task: Task) => {
       const isScheduledToday = task.scheduled_date === todayStr;
       const isPlannedToday = task.planned_day === todayStr;
       const hasTimeBlockToday = task.time_block_start?.startsWith(todayStr);
       
       return (isScheduledToday || isPlannedToday || hasTimeBlockToday) && 
-             !task.is_recurring_parent && 
-             !task.is_completed;
+             !task.is_recurring_parent;
     });
+    
+    // Debug logging (dev only)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DailyAgendaCard] Tasks for today:', {
+        date: todayStr,
+        totalTasks: allTasks.length,
+        filteredCount: filtered.length,
+        incompleteTasks: filtered.filter(t => !t.is_completed).length,
+      });
+    }
+    
+    return filtered;
   }, [allTasks, todayStr]);
+  
+  // Separate incomplete tasks for display
+  const incompleteTodayTasks = useMemo(() => {
+    return todayTasks.filter(t => !t.is_completed);
+  }, [todayTasks]);
 
-  // Separate scheduled and unscheduled tasks
+  // Separate scheduled and unscheduled tasks (only incomplete ones)
   const { scheduledTasks, unscheduledTasks, allDayEvents } = useMemo(() => {
     const scheduled: Task[] = [];
     const unscheduled: Task[] = [];
 
-    todayTasks.forEach(task => {
+    incompleteTodayTasks.forEach(task => {
       if (task.time_block_start) {
         scheduled.push(task);
       } else {
