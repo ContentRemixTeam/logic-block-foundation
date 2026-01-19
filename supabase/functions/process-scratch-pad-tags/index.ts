@@ -29,6 +29,81 @@ async function getAuthenticatedUserId(req: Request): Promise<{ userId: string | 
   return { userId: data.claims.sub as string, error: null };
 }
 
+// NEW: Parse hashtags correctly - each hashtag creates a separate item
+function parseHashtagContent(content: string): Array<{ type: string; content: string }> {
+  const items: Array<{ type: string; content: string }> = [];
+  const supportedTags = ['task', 'idea', 'thought', 'offer', 'win'];
+  
+  // Regex to find all hashtags with their positions
+  const tagRegex = /#(task|idea|thought|offer|win)\b/gi;
+  const matches: Array<{ tag: string; index: number; length: number }> = [];
+  
+  let match;
+  while ((match = tagRegex.exec(content)) !== null) {
+    matches.push({ 
+      tag: match[1].toLowerCase(), 
+      index: match.index, 
+      length: match[0].length 
+    });
+  }
+  
+  if (matches.length === 0) {
+    return [];
+  }
+  
+  // For each tag, determine the content associated with it
+  // Content can be BEFORE the tag (up to previous tag or start) OR AFTER the tag (up to next tag or end)
+  for (let i = 0; i < matches.length; i++) {
+    const currentMatch = matches[i];
+    const tagType = currentMatch.tag;
+    
+    // Get content BEFORE this tag (from previous tag end or start of string)
+    const prevEndIndex = i === 0 ? 0 : matches[i - 1].index + matches[i - 1].length;
+    const beforeContent = content.substring(prevEndIndex, currentMatch.index).trim();
+    
+    // Get content AFTER this tag (up to next tag or end of string)
+    const nextStartIndex = i < matches.length - 1 ? matches[i + 1].index : content.length;
+    const afterTagIndex = currentMatch.index + currentMatch.length;
+    const afterContent = content.substring(afterTagIndex, nextStartIndex).trim();
+    
+    // Decide which content belongs to this tag
+    // Priority: beforeContent if it exists and isn't claimed by previous tag
+    // If no beforeContent, use afterContent (for "#tag content" pattern)
+    let itemContent = '';
+    
+    if (beforeContent) {
+      // Check if this beforeContent was already used by a previous tag's afterContent
+      // This happens when content is between two tags
+      if (i === 0 || !afterContent) {
+        itemContent = beforeContent;
+      } else {
+        // For middle tags, prefer beforeContent
+        itemContent = beforeContent;
+      }
+    }
+    
+    // If no beforeContent and we're the last tag, or this is "#tag content" pattern
+    if (!itemContent && afterContent) {
+      // Only use afterContent if it's not going to be the beforeContent of the next tag
+      // For the last tag, always use afterContent
+      if (i === matches.length - 1) {
+        itemContent = afterContent;
+      } else {
+        // For "#tag content #anothertag" - the content belongs to first tag
+        itemContent = afterContent;
+      }
+    }
+    
+    // For #offer, content is optional
+    if (itemContent || tagType === 'offer') {
+      items.push({ type: tagType, content: itemContent });
+      console.log(`[process-scratch-pad-tags] Parsed ${tagType}: "${itemContent}"`);
+    }
+  }
+  
+  return items;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -78,6 +153,7 @@ Deno.serve(async (req) => {
     }
 
     console.log('[process-scratch-pad-tags] Processing for user:', userId, 'plan:', daily_plan_id);
+    console.log('[process-scratch-pad-tags] Content to parse:', scratch_pad_content);
 
     // Verify user owns this daily plan
     const { data: dailyPlan, error: planError } = await supabase
@@ -96,69 +172,13 @@ Deno.serve(async (req) => {
       throw new Error('Daily plan not found or access denied');
     }
 
-    // Parse tags using line-by-line approach to handle tags ANYWHERE in the line
-    console.log('[process-scratch-pad-tags] Content to parse:', scratch_pad_content);
-
     const errors: string[] = [];
     let currentWins = Array.isArray(dailyPlan.daily_wins) ? dailyPlan.daily_wins : [];
 
-    // Collect items to process
-    const itemsToProcess: Array<{ type: string; content: string }> = [];
+    // Use the new parsing function that handles multiple tags on same line
+    const itemsToProcess = parseHashtagContent(scratch_pad_content);
 
-    // Split content into lines and process each
-    const lines = scratch_pad_content.split('\n');
-    
-    for (const line of lines) {
-      const trimmedLine = line.trim();
-      if (!trimmedLine) continue;
-
-      // Check for each tag type in the line (case-insensitive)
-      const hasTask = /#task\b/i.test(trimmedLine);
-      const hasIdea = /#idea\b/i.test(trimmedLine);
-      const hasThought = /#thought\b/i.test(trimmedLine);
-      const hasOffer = /#offer\b/i.test(trimmedLine);
-      const hasWin = /#win\b/i.test(trimmedLine);
-
-      if (hasTask) {
-        // Remove the #task tag and use the rest as content
-        const content = trimmedLine.replace(/#task\b/gi, '').trim();
-        if (content) {
-          itemsToProcess.push({ type: 'task', content });
-          console.log('[process-scratch-pad-tags] Found task:', content);
-        }
-      }
-
-      if (hasIdea) {
-        const content = trimmedLine.replace(/#idea\b/gi, '').trim();
-        if (content) {
-          itemsToProcess.push({ type: 'idea', content });
-          console.log('[process-scratch-pad-tags] Found idea:', content);
-        }
-      }
-
-      if (hasThought) {
-        const content = trimmedLine.replace(/#thought\b/gi, '').trim();
-        if (content) {
-          itemsToProcess.push({ type: 'thought', content });
-          console.log('[process-scratch-pad-tags] Found thought:', content);
-        }
-      }
-
-      if (hasOffer) {
-        itemsToProcess.push({ type: 'offer', content: '' });
-        console.log('[process-scratch-pad-tags] Found offer');
-      }
-
-      if (hasWin) {
-        const content = trimmedLine.replace(/#win\b/gi, '').trim();
-        if (content) {
-          itemsToProcess.push({ type: 'win', content });
-          console.log('[process-scratch-pad-tags] Found win:', content);
-        }
-      }
-    }
-
-    console.log('[process-scratch-pad-tags] Items to process:', itemsToProcess.length);
+    console.log('[process-scratch-pad-tags] Items to process:', itemsToProcess.length, itemsToProcess);
 
     // Check if no valid tags found
     if (itemsToProcess.length === 0) {
