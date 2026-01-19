@@ -9,7 +9,18 @@
  * That's it! No other files need to be modified.
  */
 
-export type ThemeId = 'minimal' | 'vibrant' | 'quest' | 'bw';
+export type ThemeId = 
+  | 'pink' 
+  | 'vibrant' 
+  | 'orange' 
+  | 'green' 
+  | 'red' 
+  | 'blue' 
+  | 'purple' 
+  | 'teal'
+  | 'minimal' 
+  | 'quest' 
+  | 'bw';
 
 export interface ThemeConfig {
   id: ThemeId;
@@ -28,12 +39,12 @@ export interface ThemeConfig {
  * The order determines display order in settings
  */
 export const THEMES: Record<ThemeId, ThemeConfig> = {
-  minimal: {
-    id: 'minimal',
-    name: 'Minimal',
-    description: 'Clean, focused design with premium pink accents',
+  pink: {
+    id: 'pink',
+    name: 'Pink',
+    description: 'Premium pink theme with elegant styling',
     isQuestTheme: false,
-    previewColor: '330 81% 54%',
+    previewColor: '330 81% 60%',
     icon: 'sparkles',
   },
   vibrant: {
@@ -41,8 +52,64 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     name: 'Vibrant',
     description: 'Bold coral-orange theme with warm, energetic styling',
     isQuestTheme: false,
-    previewColor: '16 90% 55%',
+    previewColor: '330 81% 60%',
     icon: 'palette',
+  },
+  orange: {
+    id: 'orange',
+    name: 'Orange',
+    description: 'Warm orange theme for energetic vibes',
+    isQuestTheme: false,
+    previewColor: '28 80% 52%',
+    icon: 'palette',
+  },
+  green: {
+    id: 'green',
+    name: 'Green',
+    description: 'Fresh green theme for growth and renewal',
+    isQuestTheme: false,
+    previewColor: '142 76% 36%',
+    icon: 'palette',
+  },
+  red: {
+    id: 'red',
+    name: 'Red',
+    description: 'Bold red theme for passion and energy',
+    isQuestTheme: false,
+    previewColor: '0 84% 60%',
+    icon: 'palette',
+  },
+  blue: {
+    id: 'blue',
+    name: 'Blue',
+    description: 'Cool blue theme for calm focus',
+    isQuestTheme: false,
+    previewColor: '221 83% 53%',
+    icon: 'palette',
+  },
+  purple: {
+    id: 'purple',
+    name: 'Purple',
+    description: 'Rich purple theme for creativity',
+    isQuestTheme: false,
+    previewColor: '262 83% 58%',
+    icon: 'palette',
+  },
+  teal: {
+    id: 'teal',
+    name: 'Teal',
+    description: 'Ocean teal theme for fresh modern styling',
+    isQuestTheme: false,
+    previewColor: '173 80% 40%',
+    icon: 'palette',
+  },
+  minimal: {
+    id: 'minimal',
+    name: 'Minimal',
+    description: 'Clean, focused design with blue accents',
+    isQuestTheme: false,
+    previewColor: '221 83% 53%',
+    icon: 'sparkles',
   },
   quest: {
     id: 'quest',

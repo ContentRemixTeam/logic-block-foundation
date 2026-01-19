@@ -173,129 +173,178 @@
     --spacing: 0.25rem;
   }
 
-  /* ===== VIBRANT THEME - Bold Coral/Orange Energy ===== */
+  /* ===== PINK PREMIUM THEME ===== */
+  [data-theme="pink"],
   [data-theme="vibrant"] {
-    --primary: 16 90% 55%;               /* Vibrant coral-orange */
-    --primary-hover: 16 90% 50%;
-    --accent: 16 90% 95%;
-    --accent-hover: 16 90% 55%;
-    --accent-foreground: 16 90% 45%;
-    --ring: 16 90% 55%;
-    --sidebar-primary: 16 90% 55%;
-    --sidebar-accent: 16 90% 95%;
-    --sidebar-accent-foreground: 16 90% 45%;
-    --sidebar-ring: 16 90% 55%;
-    
-    /* Override BP variables to use vibrant orange */
-    --bp-primary: 16 90% 55%;
-    --bp-primary-soft: 16 76% 83%;
-    --theme-pink: 16 90% 55%;
-    
-    /* Warmer background tones */
-    --background: 30 30% 99%;
-    --surface: 30 20% 100%;
-    --card: 30 20% 100%;
-    
-    /* Semantic colors use the theme primary (orange) */
-    --status-focus: 16 90% 55%;
-    --category-nurture: 16 90% 55%;
-    
-    /* Complementary chart colors */
-    --chart-1: 16 90% 55%;
-    --chart-2: 173 70% 45%;
-    --chart-3: 45 90% 55%;
-    --chart-4: 280 70% 60%;
-    --chart-5: 200 80% 50%;
+    --primary: 330 81% 60%;
+    --primary-hover: 330 81% 55%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 330 81% 60%;
+    --accent-hover: 330 81% 55%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 330 81% 60%;
+    --sidebar-primary: 330 81% 60%;
+    --sidebar-ring: 330 81% 60%;
+    --sidebar-accent: 330 60% 96%;
+    --sidebar-accent-foreground: 330 81% 30%;
+    --chart-1: 330 81% 60%;
+    --chart-2: 173 80% 40%;
+    --chart-3: 55 90% 70%;
+    --chart-4: 258 89% 66%;
+    --chart-5: 220 9% 46%;
   }
 
-  /* ===== QUEST MODE THEME ===== */
-  [data-theme="quest"] {
-    --background: 40 25% 96%;
-    --surface: 40 20% 99%;
-    --surface-elevated: 40 20% 100%;
-    --foreground: 220 25% 15%;
-    --foreground-muted: 220 15% 45%;
-
-    --primary: 45 93% 47%;
-    --primary-hover: 45 93% 42%;
+  /* ===== ORANGE THEME ===== */
+  [data-theme="orange"] {
+    --primary: 28 80% 52%;
+    --primary-hover: 28 80% 47%;
     --primary-foreground: 0 0% 100%;
-
-    --secondary: 262 60% 55%;
-    --secondary-foreground: 0 0% 100%;
-
-    --accent: 262 60% 55%;
+    --accent: 28 80% 52%;
+    --accent-hover: 28 80% 47%;
     --accent-foreground: 0 0% 100%;
+    --ring: 28 80% 52%;
+    --sidebar-primary: 28 80% 52%;
+    --sidebar-ring: 28 80% 52%;
+    --sidebar-accent: 28 60% 96%;
+    --sidebar-accent-foreground: 28 80% 30%;
+    --chart-1: 28 80% 52%;
+    --chart-2: 20 70% 50%;
+    --chart-3: 35 85% 55%;
+    --chart-4: 40 90% 60%;
+    --chart-5: 15 75% 45%;
+  }
 
-    --muted: 40 15% 92%;
-    --muted-foreground: 220 15% 45%;
+  /* ===== GREEN THEME ===== */
+  [data-theme="green"] {
+    --primary: 142 76% 36%;
+    --primary-hover: 142 76% 31%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 142 76% 36%;
+    --accent-hover: 142 76% 31%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 142 76% 36%;
+    --sidebar-primary: 142 76% 36%;
+    --sidebar-ring: 142 76% 36%;
+    --sidebar-accent: 142 60% 96%;
+    --sidebar-accent-foreground: 142 76% 20%;
+    --chart-1: 142 76% 36%;
+    --chart-2: 160 84% 39%;
+    --chart-3: 130 70% 40%;
+    --chart-4: 150 80% 45%;
+    --chart-5: 170 75% 35%;
+  }
 
-    --border: 45 40% 85%;
-    --border-subtle: 45 30% 90%;
-    --input: 45 20% 88%;
-    --ring: 45 93% 47%;
+  /* ===== RED THEME ===== */
+  [data-theme="red"] {
+    --primary: 0 84% 60%;
+    --primary-hover: 0 84% 55%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 0 84% 60%;
+    --accent-hover: 0 84% 55%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 0 84% 60%;
+    --sidebar-primary: 0 84% 60%;
+    --sidebar-ring: 0 84% 60%;
+    --sidebar-accent: 0 60% 96%;
+    --sidebar-accent-foreground: 0 84% 30%;
+    --chart-1: 0 84% 60%;
+    --chart-2: 355 80% 55%;
+    --chart-3: 5 85% 58%;
+    --chart-4: 350 75% 52%;
+    --chart-5: 10 80% 56%;
+  }
 
-    --card: 40 20% 99%;
-    --card-foreground: 220 25% 15%;
+  /* ===== BLUE THEME ===== */
+  [data-theme="blue"] {
+    --primary: 221 83% 53%;
+    --primary-hover: 221 83% 48%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 221 83% 53%;
+    --accent-hover: 221 83% 48%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 221 83% 53%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-ring: 221 83% 53%;
+    --sidebar-accent: 221 60% 96%;
+    --sidebar-accent-foreground: 221 83% 30%;
+    --chart-1: 221 83% 53%;
+    --chart-2: 217 91% 60%;
+    --chart-3: 210 85% 55%;
+    --chart-4: 200 80% 50%;
+    --chart-5: 190 75% 45%;
+  }
 
-    --sidebar-background: 40 20% 98%;
-    --sidebar-foreground: 220 25% 25%;
-    --sidebar-primary: 45 93% 47%;
-    --sidebar-accent: 45 30% 92%;
-    --sidebar-border: 45 30% 85%;
+  /* ===== PURPLE THEME ===== */
+  [data-theme="purple"] {
+    --primary: 262 83% 58%;
+    --primary-hover: 262 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 262 83% 58%;
+    --accent-hover: 262 83% 53%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 262 83% 58%;
+    --sidebar-primary: 262 83% 58%;
+    --sidebar-ring: 262 83% 58%;
+    --sidebar-accent: 262 60% 96%;
+    --sidebar-accent-foreground: 262 83% 30%;
+    --chart-1: 262 83% 58%;
+    --chart-2: 270 80% 55%;
+    --chart-3: 255 85% 60%;
+    --chart-4: 280 75% 52%;
+    --chart-5: 250 80% 56%;
+  }
 
-    /* Override BP variables to use quest gold */
-    --bp-primary: 45 93% 47%;
-    --bp-primary-soft: 45 76% 83%;
-    --theme-pink: 45 93% 47%;
-    
-    /* Semantic colors use the theme primary (gold) */
-    --status-focus: 45 93% 47%;
-    --category-nurture: 45 93% 47%;
-
-    --font-heading: 'Cinzel', serif;
+  /* ===== TEAL THEME ===== */
+  [data-theme="teal"] {
+    --primary: 173 80% 40%;
+    --primary-hover: 173 80% 35%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 173 80% 40%;
+    --accent-hover: 173 80% 35%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 173 80% 40%;
+    --sidebar-primary: 173 80% 40%;
+    --sidebar-ring: 173 80% 40%;
+    --sidebar-accent: 173 60% 96%;
+    --sidebar-accent-foreground: 173 80% 20%;
+    --chart-1: 173 80% 40%;
+    --chart-2: 180 75% 45%;
+    --chart-3: 170 85% 42%;
+    --chart-4: 185 70% 38%;
+    --chart-5: 165 80% 40%;
   }
 
   /* ===== MINIMAL THEME ===== */
-  /* Keeps premium pink branding with cleaner, simpler visual styling */
   [data-theme="minimal"] {
-    /* Keep the premium pink palette - same as root */
-    --primary: 330 81% 54%;
-    --primary-hover: 330 81% 48%;
-    --accent: 330 81% 97%;
-    --accent-hover: 330 81% 55%;
-    --accent-foreground: 330 81% 54%;
-    --ring: 330 81% 54%;
-    --sidebar-primary: 330 81% 54%;
-    --sidebar-accent: 330 81% 97%;
-    --sidebar-accent-foreground: 330 81% 54%;
-    --sidebar-ring: 330 81% 54%;
+    --primary: 221 83% 53%;
+    --primary-hover: 221 83% 48%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 221 83% 53%;
+    --accent-hover: 221 83% 48%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 221 83% 53%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-ring: 221 83% 53%;
   }
 
   /* ===== B&W THEME ===== */
   [data-theme="bw"] {
     --primary: 0 0% 9%;
     --primary-hover: 0 0% 15%;
+    --primary-foreground: 0 0% 100%;
     --accent: 0 0% 23%;
+    --accent-hover: 0 0% 30%;
+    --accent-foreground: 0 0% 100%;
     --ring: 0 0% 9%;
     --sidebar-primary: 0 0% 9%;
-    
-    /* Override BP variables to use black */
-    --bp-primary: 0 0% 9%;
-    --bp-primary-soft: 0 0% 60%;
-    --theme-pink: 0 0% 9%;
-    
-    /* Semantic colors use grayscale for B&W theme */
-    --status-focus: 0 0% 9%;
-    --status-scheduled: 0 0% 30%;
-    --status-backlog: 0 0% 50%;
-    --status-waiting: 0 0% 40%;
-    --status-someday: 0 0% 60%;
-    --priority-high: 0 0% 15%;
-    --priority-medium: 0 0% 35%;
-    --priority-low: 0 0% 55%;
-    --category-content: 0 0% 30%;
-    --category-nurture: 0 0% 9%;
-    --category-offer: 0 0% 50%;
+    --sidebar-ring: 0 0% 9%;
+    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent-foreground: 0 0% 9%;
+    --chart-1: 0 0% 9%;
+    --chart-2: 0 0% 30%;
+    --chart-3: 0 0% 50%;
+    --chart-4: 0 0% 65%;
+    --chart-5: 0 0% 80%;
   }
 
   /* ===== DARK MODE ===== */
