@@ -14,6 +14,8 @@ import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { useTasks, useTaskMutations } from '@/hooks/useTasks';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { InlineTaskAdd } from '@/components/weekly-plan/InlineTaskAdd';
+import { useQueryClient } from '@tanstack/react-query';
 import { 
   Calendar, 
   RefreshCw, 
@@ -38,6 +40,7 @@ export function DailyAgendaCard({ date = new Date(), onTaskToggle }: DailyAgenda
   const { status: calendarStatus, syncing, syncNow, connect } = useGoogleCalendar();
   const { data: allTasks = [], isLoading: loadingTasks } = useTasks();
   const { toggleComplete } = useTaskMutations();
+  const queryClient = useQueryClient();
   
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
@@ -160,6 +163,25 @@ export function DailyAgendaCard({ date = new Date(), onTaskToggle }: DailyAgenda
   const handleTaskToggle = async (taskId: string, currentCompleted: boolean) => {
     toggleComplete.mutate(taskId);
     onTaskToggle?.(taskId, currentCompleted);
+  };
+
+  const handleAddTask = async (taskText: string) => {
+    const { error } = await supabase.functions.invoke('manage-task', {
+      body: {
+        action: 'create',
+        task_text: taskText,
+        scheduled_date: todayStr,
+        priority: 'medium',
+      },
+    });
+
+    if (error) {
+      console.error('Failed to add task:', error);
+      throw error;
+    }
+
+    // Refresh tasks list
+    queryClient.invalidateQueries({ queryKey: ['tasks'] });
   };
 
   const formatDuration = (minutes: number | null): string => {
@@ -348,14 +370,16 @@ export function DailyAgendaCard({ date = new Date(), onTaskToggle }: DailyAgenda
         )}
 
         {/* Unscheduled tasks */}
-        {!isLoading && unscheduledTasks.length > 0 && (
+        {!isLoading && (
           <div>
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1">
               <ListTodo className="h-3 w-3" />
               Tasks for Today
-              <Badge variant="secondary" className="ml-1 text-xs">
-                {unscheduledTasks.length}
-              </Badge>
+              {unscheduledTasks.length > 0 && (
+                <Badge variant="secondary" className="ml-1 text-xs">
+                  {unscheduledTasks.length}
+                </Badge>
+              )}
             </p>
             <div className="space-y-1.5">
               {unscheduledTasks.map((task) => (
@@ -384,6 +408,13 @@ export function DailyAgendaCard({ date = new Date(), onTaskToggle }: DailyAgenda
                   )}
                 </div>
               ))}
+              
+              {/* Inline add task */}
+              <InlineTaskAdd 
+                onAdd={handleAddTask}
+                placeholder="+ Add a task for today..."
+                className="mt-1"
+              />
             </div>
           </div>
         )}
