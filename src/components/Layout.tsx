@@ -28,7 +28,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const [forceShow, setForceShow] = useState(false);
   const [dismissedPlanBanner, setDismissedPlanBanner] = useState(false);
   const [arcadeOpen, setArcadeOpen] = useState(false);
-  const [arcadeDefaultTab, setArcadeDefaultTab] = useState('games');
+  const [arcadeDefaultTab, setArcadeDefaultTab] = useState('tasks');
   useTheme();
 
   const hasNoPlan = !cyclesLoading && user && (!cycles || cycles.length === 0);
