@@ -5,43 +5,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FocusTimerTab } from '@/components/arcade/tabs/FocusTimerTab';
 import { PetStoreTab } from '@/components/arcade/tabs/PetStoreTab';
-import { GamesTab } from '@/components/arcade/tabs/GamesTab';
 import { StatsTab } from '@/components/arcade/tabs/StatsTab';
-import { DailyTop3Card } from '@/components/arcade/DailyTop3Card';
-import { MemoryMatch } from '@/components/arcade/games/MemoryMatch';
+import { PetGrowthCard } from '@/components/arcade/PetGrowthCard';
+import { TodaysReflections } from '@/components/arcade/TodaysReflections';
 import { useArcade } from '@/hooks/useArcade';
 import { 
   Timer, 
   Target, 
   Sparkles, 
-  Gamepad2, 
   BarChart3,
   Coins,
   Settings,
+  CheckSquare,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
 
 export default function Arcade() {
   const { wallet, pet, settings, updateSettings, isLoading } = useArcade();
-  const [activeTab, setActiveTab] = useState('focus');
-  const [playingGame, setPlayingGame] = useState<{ id: string; title: string } | null>(null);
-
-  const handlePlayGame = async (gameId: string, gameTitle: string) => {
-    // For now, just launch Memory Match
-    if (gameTitle.toLowerCase().includes('memory')) {
-      setPlayingGame({ id: gameId, title: gameTitle });
-    } else {
-      toast.info('This game is coming soon!');
-    }
-  };
-
-  const handleGameComplete = (score: number) => {
-    toast.success(`Game complete! Score: ${score}`);
-    setPlayingGame(null);
-  };
+  const [activeTab, setActiveTab] = useState('tasks');
 
   if (isLoading) {
     return (
@@ -53,29 +35,12 @@ export default function Arcade() {
     );
   }
 
-  // If playing a game, show full screen game
-  if (playingGame) {
-    return (
-      <Layout>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">{playingGame.title}</h1>
-            <Button variant="outline" onClick={() => setPlayingGame(null)}>
-              Exit Game
-            </Button>
-          </div>
-          <MemoryMatch onComplete={handleGameComplete} onClose={() => setPlayingGame(null)} />
-        </div>
-      </Layout>
-    );
-  }
-
   return (
     <Layout>
       <div className="space-y-6">
         <PageHeader
           title="Focus & Rewards"
-          description="Complete tasks, earn coins, and grow your pet!"
+          description="Complete tasks, earn coins, and grow your pets!"
         />
 
         {/* Quick Stats Bar */}
@@ -88,18 +53,6 @@ export default function Arcade() {
               <div>
                 <p className="text-sm text-muted-foreground">Coins</p>
                 <p className="text-xl font-bold">{wallet.coins_balance}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-full bg-status-waiting/10">
-                <Gamepad2 className="h-5 w-5 text-status-waiting" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Tokens</p>
-                <p className="text-xl font-bold">{wallet.tokens_balance}</p>
               </div>
             </CardContent>
           </Card>
@@ -124,10 +77,22 @@ export default function Arcade() {
                 </span>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Pet</p>
+                <p className="text-sm text-muted-foreground">Current Pet</p>
                 <p className="text-xl font-bold capitalize">
                   {pet?.stage === 'adult' ? pet.pet_type : pet ? pet.stage : 'None'}
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-full bg-secondary/50">
+                <Sparkles className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Hatched Today</p>
+                <p className="text-xl font-bold">{pet?.pets_hatched_today || 0}</p>
               </div>
             </CardContent>
           </Card>
@@ -135,22 +100,18 @@ export default function Arcade() {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid grid-cols-5 w-full max-w-xl">
+          <TabsList className="grid grid-cols-4 w-full max-w-lg">
+            <TabsTrigger value="tasks" className="gap-1.5">
+              <CheckSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">Tasks</span>
+            </TabsTrigger>
             <TabsTrigger value="focus" className="gap-1.5">
               <Timer className="h-4 w-4" />
               <span className="hidden sm:inline">Focus</span>
             </TabsTrigger>
-            <TabsTrigger value="goals" className="gap-1.5">
-              <Target className="h-4 w-4" />
-              <span className="hidden sm:inline">Goals</span>
-            </TabsTrigger>
             <TabsTrigger value="pets" className="gap-1.5">
               <Sparkles className="h-4 w-4" />
               <span className="hidden sm:inline">Pets</span>
-            </TabsTrigger>
-            <TabsTrigger value="games" className="gap-1.5">
-              <Gamepad2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Games</span>
             </TabsTrigger>
             <TabsTrigger value="stats" className="gap-1.5">
               <BarChart3 className="h-4 w-4" />
@@ -158,12 +119,36 @@ export default function Arcade() {
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="tasks" className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <PetGrowthCard />
+              </div>
+              <div className="space-y-4">
+                <TodaysReflections />
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm">How It Works</CardTitle>
+                    <CardDescription>
+                      Focus on what matters most each day
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm text-muted-foreground">
+                    <p>1. Enter your top 3 tasks for today</p>
+                    <p>2. Complete each task to grow your pet (+5 coins)</p>
+                    <p>3. Reflect on what went well (+2 bonus coins)</p>
+                    <p>4. Hatch multiple pets in a day!</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
           <TabsContent value="focus" className="space-y-4">
             <div className="grid md:grid-cols-2 gap-6">
               <FocusTimerTab />
               <div className="space-y-4">
-                <DailyTop3Card />
-                
                 {/* Quick Settings */}
                 <Card>
                   <CardHeader className="pb-3">
@@ -203,33 +188,8 @@ export default function Arcade() {
             </div>
           </TabsContent>
 
-          <TabsContent value="goals" className="space-y-4">
-            <div className="max-w-lg">
-              <DailyTop3Card />
-            </div>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>How It Works</CardTitle>
-                <CardDescription>
-                  Focus on what matters most each day
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-muted-foreground">
-                <p>1. Select your top 3 most important tasks for today</p>
-                <p>2. Complete each task to earn +5 coins</p>
-                <p>3. Completing all 3 tasks hatches your daily pet!</p>
-                <p>4. Use the Pomodoro timer to stay focused</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           <TabsContent value="pets">
             <PetStoreTab />
-          </TabsContent>
-
-          <TabsContent value="games">
-            <GamesTab onPlayGame={handlePlayGame} />
           </TabsContent>
 
           <TabsContent value="stats">
