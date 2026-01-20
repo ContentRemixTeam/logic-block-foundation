@@ -54,7 +54,7 @@ export function PetWidget() {
           <span className="text-lg cursor-default animate-pulse">🥚</span>
         </TooltipTrigger>
         <TooltipContent>
-          <p>{petName} is growing! ({progress}/5 tasks)</p>
+          <p>{petName} is growing! ({progress}/3 tasks)</p>
         </TooltipContent>
       </Tooltip>
     );

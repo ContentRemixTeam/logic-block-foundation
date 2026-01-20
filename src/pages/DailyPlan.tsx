@@ -37,6 +37,7 @@ import { QuickLogCard } from '@/components/content';
 import { NurtureCheckinCard } from '@/components/nurture';
 import { HabitTrackerCard } from '@/components/habits';
 import { HealthCheckPanel } from '@/components/dev';
+import { DailyTop3Card, ArcadeIntroCard } from '@/components/arcade';
 import { CalendarReconnectBanner } from '@/components/google-calendar/CalendarReconnectBanner';
 import {
   AlertDialog,
@@ -903,6 +904,12 @@ export default function DailyPlan() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Arcade Intro Card - Shows for new users who haven't engaged */}
+          <ArcadeIntroCard />
+
+          {/* Today's Top 3 - Arcade Version (gamified with coins/pet) */}
+          <DailyTop3Card />
+
           {/* The ONE Thing */}
           <Card className="border-accent/30 bg-accent/5">
             <CardHeader className="pb-3">
