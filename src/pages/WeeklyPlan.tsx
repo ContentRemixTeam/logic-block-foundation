@@ -19,7 +19,7 @@ import { LastWeekPriorities } from '@/components/weekly-plan/LastWeekPriorities'
 import { ArrowLeft, Calendar, Loader2, Save, CheckCircle2, TrendingUp, Brain, Zap, Target, BarChart3, Clock, LayoutList } from 'lucide-react';
 import { useDataProtection } from '@/hooks/useDataProtection';
 import { SaveStatusIndicator, SaveStatusBanner } from '@/components/SaveStatusIndicator';
-import { DailyTop3Card } from '@/components/arcade';
+import { PetGrowthCard } from '@/components/arcade';
 
 export default function WeeklyPlan() {
   const { user } = useAuth();
@@ -374,7 +374,7 @@ export default function WeeklyPlan() {
             </div>
 
             {/* Today's Top 3 - Quick access from weekly view */}
-            <DailyTop3Card />
+            <PetGrowthCard />
             
             {/* Weekly Summary */}
             <Card>

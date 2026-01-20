@@ -31,7 +31,7 @@ export function PetStoreTab() {
     const petInfo = PETS.find(p => p.type === pet.pet_type);
     const progress = Math.min((pet.tasks_completed_today / 3) * 100, 100);
     
-    if (pet.stage === 'hatched') {
+    if (pet.stage === 'adult') {
       return (
         <Card className="border-2 border-green-500 bg-green-50 dark:bg-green-950/20">
           <CardContent className="pt-6 text-center">
@@ -39,7 +39,7 @@ export function PetStoreTab() {
               {petInfo?.emoji}
             </div>
             <p className="text-lg font-semibold text-green-700 dark:text-green-300">
-              Your {petInfo?.name} hatched! 🎉
+              Your {petInfo?.name} is fully grown! 🎉
             </p>
             <p className="text-sm text-muted-foreground mt-1">
               Complete more tasks to earn coins
@@ -49,16 +49,20 @@ export function PetStoreTab() {
       );
     }
     
+    const stageLabel = pet.stage === 'sleeping' ? 'Sleeping' 
+      : pet.stage === 'baby' ? 'Baby' 
+      : pet.stage === 'teen' ? 'Teen' : 'Growing';
+    
     return (
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-center">Today's Egg</CardTitle>
+          <CardTitle className="text-center">Today's Pet ({stageLabel})</CardTitle>
           <CardDescription className="text-center">
-            Complete 3 tasks to hatch your pet
+            Complete 3 tasks to fully grow your pet
           </CardDescription>
         </CardHeader>
         <CardContent className="text-center">
-          <div className="text-6xl mb-4">🥚</div>
+          <div className="text-6xl mb-4">{pet.stage === 'sleeping' ? '🥚' : petInfo?.emoji}</div>
           <div className="space-y-2">
             <Progress value={progress} className="h-3" />
             <p className="text-sm text-muted-foreground">
@@ -66,7 +70,7 @@ export function PetStoreTab() {
             </p>
           </div>
           <p className="text-sm mt-2">
-            Hatching: {petInfo?.emoji} {petInfo?.name}
+            Growing: {petInfo?.emoji} {petInfo?.name}
           </p>
         </CardContent>
       </Card>
@@ -93,7 +97,7 @@ export function PetStoreTab() {
                 variant={isSelected ? 'default' : 'outline'}
                 className="flex flex-col h-auto py-3 px-2"
                 onClick={() => handleSelectPet(petOption.type)}
-                disabled={isSelected && pet?.stage !== 'hatched'}
+                disabled={isSelected && pet?.stage === 'adult'}
               >
                 <span className="text-2xl mb-1">{petOption.emoji}</span>
                 <span className="text-xs">{petOption.name}</span>
