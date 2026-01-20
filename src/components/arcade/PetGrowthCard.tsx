@@ -1,16 +1,20 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useArcade } from '@/hooks/useArcade';
+import { useTasks } from '@/hooks/useTasks';
+import { usePomodoro } from '@/hooks/usePomodoro';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { TaskCelebrationModal } from './TaskCelebrationModal';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, ChevronDown, Timer, Pause, Play, X, Check } from 'lucide-react';
 
 // Pet emojis for each stage
 const PET_STAGE_EMOJIS: Record<string, Record<string, string>> = {
@@ -49,11 +53,15 @@ interface TaskSlot {
   id: string;
   text: string;
   completed: boolean;
+  linkedTaskId?: string; // Reference to task from task manager
+  timerActive?: boolean;
 }
 
 export function PetGrowthCard() {
   const { user } = useAuth();
-  const { pet, refreshPet, refreshWallet } = useArcade();
+  const { pet, refreshPet, settings } = useArcade();
+  const { data: allTasks = [] } = useTasks();
+  const pomodoro = usePomodoro();
   const today = new Date().toISOString().split('T')[0];
   
   const [tasks, setTasks] = useState<TaskSlot[]>([
@@ -66,6 +74,14 @@ export function PetGrowthCard() {
   const [lastCompletedTask, setLastCompletedTask] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [openPopoverIndex, setOpenPopoverIndex] = useState<number | null>(null);
+  const [activeTimerIndex, setActiveTimerIndex] = useState<number | null>(null);
+
+  // Get incomplete tasks from task manager for dropdown
+  const incompleteTasks = useMemo(() => 
+    allTasks.filter(t => !t.is_completed).slice(0, 30),
+    [allTasks]
+  );
 
   // Calculate current stage based on completed tasks
   const completedCount = tasks.filter(t => t.completed).length;
@@ -108,10 +124,32 @@ export function PetGrowthCard() {
   const handleTaskChange = useCallback((index: number, text: string) => {
     setTasks(prev => {
       const updated = [...prev];
-      updated[index] = { ...updated[index], text };
+      updated[index] = { ...updated[index], text, linkedTaskId: undefined };
       return updated;
     });
   }, []);
+
+  const handleSelectTask = useCallback((index: number, taskId: string, taskText: string) => {
+    setTasks(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], text: taskText, linkedTaskId: taskId };
+      return updated;
+    });
+    setOpenPopoverIndex(null);
+  }, []);
+
+  const handleStartTimer = useCallback((index: number) => {
+    const task = tasks[index];
+    if (!task.text.trim()) return;
+    
+    pomodoro.startFocus(task.linkedTaskId);
+    setActiveTimerIndex(index);
+  }, [tasks, pomodoro]);
+
+  const handleStopTimer = useCallback(() => {
+    pomodoro.reset();
+    setActiveTimerIndex(null);
+  }, [pomodoro]);
 
   const handleTaskComplete = useCallback(async (index: number) => {
     if (!user || isSubmitting) return;
@@ -120,6 +158,11 @@ export function PetGrowthCard() {
     if (!task.text.trim() || task.completed) return;
 
     setIsSubmitting(true);
+    
+    // Stop timer if running on this task
+    if (activeTimerIndex === index) {
+      handleStopTimer();
+    }
     
     // Optimistic update
     setTasks(prev => {
@@ -160,35 +203,17 @@ export function PetGrowthCard() {
           });
       }
 
-      // Award coins
+      // Log event (without coins)
       const dedupeKey = `pet_task_complete:${user.id}:${today}:${index}`;
       await supabase.from('arcade_events').insert({
         user_id: user.id,
         event_type: 'task_completed',
-        coins_delta: 5,
-        metadata: { task_index: index, task_text: task.text, date: today },
+        coins_delta: 0,
+        metadata: { task_index: index, task_text: task.text, date: today, linked_task_id: task.linkedTaskId },
         dedupe_key: dedupeKey,
       });
 
-      // Update wallet
-      const { data: walletData } = await supabase
-        .from('arcade_wallet')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (walletData) {
-        await supabase
-          .from('arcade_wallet')
-          .update({
-            coins_balance: (walletData.coins_balance || 0) + 5,
-            total_coins_earned: (walletData.total_coins_earned || 0) + 5,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', user.id);
-      }
-
-      await Promise.all([refreshPet(), refreshWallet()]);
+      await refreshPet();
       
       // Show celebration modal
       setLastCompletedIndex(index);
@@ -207,7 +232,7 @@ export function PetGrowthCard() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [user, tasks, completedCount, pet, today, refreshPet, refreshWallet, isSubmitting]);
+  }, [user, tasks, completedCount, pet, today, refreshPet, isSubmitting, activeTimerIndex, handleStopTimer]);
 
   const handleCelebrate = async (wentWell: string, couldImprove: string) => {
     if (!user) return;
@@ -225,35 +250,7 @@ export function PetGrowthCard() {
           could_improve: couldImprove.trim() || null,
         });
         
-        // Bonus coins for reflecting
-        const dedupeKey = `reflection_bonus:${user.id}:${today}:${lastCompletedIndex}`;
-        await supabase.from('arcade_events').insert({
-          user_id: user.id,
-          event_type: 'reflection_bonus',
-          coins_delta: 2,
-          metadata: { went_well: wentWell, could_improve: couldImprove, date: today },
-          dedupe_key: dedupeKey,
-        });
-        
-        const { data: walletData } = await supabase
-          .from('arcade_wallet')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (walletData) {
-          await supabase
-            .from('arcade_wallet')
-            .update({
-              coins_balance: (walletData.coins_balance || 0) + 2,
-              total_coins_earned: (walletData.total_coins_earned || 0) + 2,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('user_id', user.id);
-        }
-        
-        await refreshWallet();
-        toast.success('+2 bonus coins for reflecting! 💡');
+        toast.success('Reflection saved! 💡');
       } catch (err) {
         console.error('Failed to save reflection:', err);
       }
@@ -316,6 +313,10 @@ export function PetGrowthCard() {
 
   const progress = (completedCount / 3) * 100;
 
+  // Check if timer is active for a specific task
+  const isTimerActiveForTask = (index: number) => 
+    activeTimerIndex === index && pomodoro.mode === 'focus';
+
   return (
     <>
       <Card className={cn(
@@ -368,31 +369,126 @@ export function PetGrowthCard() {
                 <div 
                   key={task.id}
                   className={cn(
-                    "flex items-center gap-3 p-3 rounded-lg border transition-all",
+                    "flex flex-col gap-2 p-3 rounded-lg border transition-all",
                     task.completed 
                       ? "bg-primary/10 border-primary/30" 
                       : "bg-muted/30 border-border"
                   )}
                 >
-                  <span className="text-sm font-medium text-muted-foreground w-16">
-                    Task {index + 1}
-                  </span>
-                  <Input
-                    value={task.text}
-                    onChange={(e) => handleTaskChange(index, e.target.value)}
-                    placeholder={`What's your ${index === 0 ? 'first' : index === 1 ? 'second' : 'third'} task?`}
-                    disabled={task.completed}
-                    className={cn(
-                      "flex-1 h-9",
-                      task.completed && "line-through text-muted-foreground"
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-muted-foreground w-14 flex-shrink-0">
+                      Task {index + 1}
+                    </span>
+                    
+                    {/* Task Input with Dropdown */}
+                    <Popover open={openPopoverIndex === index} onOpenChange={(open) => setOpenPopoverIndex(open ? index : null)}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openPopoverIndex === index}
+                          disabled={task.completed}
+                          className={cn(
+                            "flex-1 justify-between h-9 font-normal",
+                            !task.text && "text-muted-foreground",
+                            task.completed && "line-through text-muted-foreground"
+                          )}
+                        >
+                          <span className="truncate text-left">
+                            {task.text || `Select or type task ${index + 1}...`}
+                          </span>
+                          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[300px] p-0" align="start">
+                        <Command>
+                          <CommandInput 
+                            placeholder="Search or type a task..."
+                            value={task.text}
+                            onValueChange={(value) => handleTaskChange(index, value)}
+                          />
+                          <CommandList>
+                            <CommandEmpty>
+                              {task.text.trim() ? (
+                                <button 
+                                  className="w-full p-2 text-left text-sm hover:bg-muted rounded flex items-center gap-2"
+                                  onClick={() => setOpenPopoverIndex(null)}
+                                >
+                                  <Check className="h-4 w-4" />
+                                  Use "{task.text}"
+                                </button>
+                              ) : (
+                                "Type to create a task or search..."
+                              )}
+                            </CommandEmpty>
+                            {incompleteTasks.length > 0 && (
+                              <CommandGroup heading="Your Tasks">
+                                {incompleteTasks.map((t) => (
+                                  <CommandItem
+                                    key={t.task_id}
+                                    value={t.task_text}
+                                    onSelect={() => handleSelectTask(index, t.task_id, t.task_text)}
+                                  >
+                                    <span className="truncate">{t.task_text}</span>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            )}
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+
+                    {/* Timer Button */}
+                    {!task.completed && task.text.trim() && (
+                      <Button
+                        variant={isTimerActiveForTask(index) ? "destructive" : "ghost"}
+                        size="icon"
+                        className="h-9 w-9 flex-shrink-0"
+                        onClick={() => isTimerActiveForTask(index) ? handleStopTimer() : handleStartTimer(index)}
+                        title={isTimerActiveForTask(index) ? "Stop timer" : "Start focus timer"}
+                      >
+                        {isTimerActiveForTask(index) ? (
+                          <X className="h-4 w-4" />
+                        ) : (
+                          <Timer className="h-4 w-4" />
+                        )}
+                      </Button>
                     )}
-                  />
-                  <Checkbox
-                    checked={task.completed}
-                    disabled={!task.text.trim() || task.completed || isSubmitting}
-                    onCheckedChange={() => handleTaskComplete(index)}
-                    className="h-6 w-6"
-                  />
+
+                    {/* Checkbox */}
+                    <Checkbox
+                      checked={task.completed}
+                      disabled={!task.text.trim() || task.completed || isSubmitting}
+                      onCheckedChange={() => handleTaskComplete(index)}
+                      className="h-6 w-6 flex-shrink-0"
+                    />
+                  </div>
+
+                  {/* Inline Timer Display */}
+                  {isTimerActiveForTask(index) && (
+                    <div className="flex items-center justify-between bg-primary/10 rounded-lg p-2 ml-14">
+                      <div className="flex items-center gap-2">
+                        <Timer className="h-4 w-4 text-primary" />
+                        <span className="font-mono font-bold text-primary">{pomodoro.formattedTime}</span>
+                        <span className="text-xs text-muted-foreground">Focus Time</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {pomodoro.isRunning ? (
+                          <Button variant="ghost" size="sm" onClick={pomodoro.pause} className="h-7 px-2">
+                            <Pause className="h-3 w-3" />
+                          </Button>
+                        ) : (
+                          <Button variant="ghost" size="sm" onClick={pomodoro.resume} className="h-7 px-2">
+                            <Play className="h-3 w-3" />
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm" onClick={handleStopTimer} className="h-7 px-2">
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

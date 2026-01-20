@@ -96,7 +96,7 @@ export function TaskCelebrationModal({
           {/* Two Reflection Questions */}
           <div className="w-full space-y-4">
             <p className="text-sm text-center text-muted-foreground">
-              Quick reflection to earn bonus coins 🏆
+              Quick reflection (optional)
             </p>
             
             {/* What went well? */}
@@ -144,14 +144,9 @@ export function TaskCelebrationModal({
               disabled={isSubmitting}
             >
               <Trophy className="h-4 w-4" />
-              {hasContent ? 'Save & Earn' : 'Continue'}
+              {hasContent ? 'Save & Continue' : 'Continue'}
             </Button>
           </div>
-
-          {/* Coins indicator */}
-          <p className="text-xs text-muted-foreground text-center">
-            +5 coins earned{hasContent && ' • +2 bonus for reflecting'}
-          </p>
         </div>
       </DialogContent>
     </Dialog>
