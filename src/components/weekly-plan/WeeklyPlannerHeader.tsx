@@ -1,10 +1,11 @@
 import { format, addDays } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Settings2, CalendarDays, RefreshCw, Loader2, Calendar, Eye, GraduationCap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Settings2, CalendarDays, RefreshCw, Loader2, Calendar, Eye, GraduationCap, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { OfficeHoursDisplay } from '@/components/OfficeHoursDisplay';
 import { cn } from '@/lib/utils';
+import { OfficeHoursBlock, formatOfficeHoursTime } from '@/hooks/useOfficeHours';
+
 interface WeeklyPlannerHeaderProps {
   currentWeekStart: Date;
   onPreviousWeek: () => void;
@@ -14,10 +15,8 @@ interface WeeklyPlannerHeaderProps {
   onOpenOfficeHours?: () => void;
   showWeekend?: boolean;
   onToggleWeekend?: () => void;
-  // Office hours data
-  officeHoursStart?: string;
-  officeHoursEnd?: string;
-  officeHoursDays?: string[];
+  // Office hours data - new format with multiple blocks
+  officeHoursBlocks?: OfficeHoursBlock[];
   // Google Calendar props
   googleConnected?: boolean;
   googleCalendarName?: string;
@@ -38,9 +37,7 @@ export function WeeklyPlannerHeader({
   onOpenOfficeHours,
   showWeekend = true,
   onToggleWeekend,
-  officeHoursStart,
-  officeHoursEnd,
-  officeHoursDays,
+  officeHoursBlocks = [],
   googleConnected = false,
   googleCalendarName,
   onConnectGoogle,
@@ -53,17 +50,35 @@ export function WeeklyPlannerHeader({
   const weekEnd = addDays(currentWeekStart, 6);
   const weekLabel = `Week of ${format(currentWeekStart, 'MMMM d, yyyy')}`;
 
+  // Get today's office hours blocks for display
+  const todayDayOfWeek = new Date().getDay();
+  const todayBlocks = officeHoursBlocks.filter(b => b.day_of_week === todayDayOfWeek);
+  const hasOfficeHours = todayBlocks.length > 0;
+  
+  // Format today's hours for badge display
+  const formatTodayHours = () => {
+    if (todayBlocks.length === 0) return null;
+    if (todayBlocks.length === 1) {
+      return `${formatOfficeHoursTime(todayBlocks[0].start_time)} – ${formatOfficeHoursTime(todayBlocks[0].end_time)}`;
+    }
+    return `${todayBlocks.length} blocks today`;
+  };
+
   return (
     <div className="flex items-center justify-between pb-4">
       <div className="flex items-center gap-3">
         <h1 className="text-2xl font-bold tracking-tight">Weekly Planner</h1>
         {/* Office Hours Badge */}
-        <OfficeHoursDisplay
-          officeHoursStart={officeHoursStart}
-          officeHoursEnd={officeHoursEnd}
-          officeHoursDays={officeHoursDays}
-          variant="compact"
-        />
+        {hasOfficeHours && (
+          <Badge 
+            variant="outline" 
+            className="text-xs font-normal gap-1.5 cursor-pointer hover:bg-muted"
+            onClick={onOpenOfficeHours}
+          >
+            <Clock className="h-3 w-3" />
+            {formatTodayHours()}
+          </Badge>
+        )}
         <Button 
           variant="outline" 
           size="sm" 

@@ -5,13 +5,14 @@ import { CalendarEvent, CalendarEventBlock } from '@/components/tasks/views/Cale
 import { WeeklyTaskCard } from './WeeklyTaskCard';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { OfficeHoursBlock, formatOfficeHoursTime } from '@/hooks/useOfficeHours';
 
 interface WeeklyTimelineBoardProps {
   tasks: Task[];
   calendarEvents?: CalendarEvent[];
   currentWeekStart: Date;
-  officeHoursStart?: string;
-  officeHoursEnd?: string;
+  officeHoursBlocks?: OfficeHoursBlock[];
   showWeekend?: boolean;
   onTaskDrop: (taskId: string, fromPlannedDay: string | null, targetDate: string, timeSlot?: string) => void;
   onTaskToggle: (taskId: string, completed: boolean) => void;
@@ -87,8 +88,7 @@ function WeeklyTimelineBoardInner({
   tasks,
   calendarEvents = [],
   currentWeekStart,
-  officeHoursStart = '9:00',
-  officeHoursEnd = '17:00',
+  officeHoursBlocks = [],
   showWeekend = true,
   onTaskDrop,
   onTaskToggle,
@@ -144,14 +144,27 @@ function WeeklyTimelineBoardInner({
     return days;
   }, [currentWeekStart, showWeekend]);
 
-  // Parse office hours
-  const parseTime = (timeStr: string): number => {
-    const [hours] = timeStr.split(':').map(Number);
-    return hours;
-  };
+  // Helper to check if an hour is within office hours for a specific day
+  const isWithinOfficeHoursForDay = useCallback((dayOfWeek: number, hour: number): boolean => {
+    const dayBlocks = officeHoursBlocks.filter(b => b.day_of_week === dayOfWeek && b.is_active);
+    if (dayBlocks.length === 0) return false;
+    
+    return dayBlocks.some(block => {
+      const startHour = parseInt(block.start_time.split(':')[0], 10);
+      const endHour = parseInt(block.end_time.split(':')[0], 10);
+      return hour >= startHour && hour < endHour;
+    });
+  }, [officeHoursBlocks]);
 
-  const officeStart = parseTime(officeHoursStart);
-  const officeEnd = parseTime(officeHoursEnd);
+  // Get formatted office hours for a day
+  const getOfficeHoursLabel = useCallback((dayOfWeek: number): string => {
+    const dayBlocks = officeHoursBlocks.filter(b => b.day_of_week === dayOfWeek && b.is_active);
+    if (dayBlocks.length === 0) return 'No hours set';
+    if (dayBlocks.length === 1) {
+      return `${formatOfficeHoursTime(dayBlocks[0].start_time)} – ${formatOfficeHoursTime(dayBlocks[0].end_time)}`;
+    }
+    return `${dayBlocks.length} blocks`;
+  }, [officeHoursBlocks]);
 
   // Group tasks by day and time slot
   const tasksByDayAndHour = useMemo(() => {
@@ -307,10 +320,24 @@ function WeeklyTimelineBoardInner({
     }
 
     if (taskId) {
+      // Check if dropping outside office hours
+      if (hour !== undefined) {
+        const dropDate = parseISO(dateStr);
+        const dayOfWeek = dropDate.getDay();
+        const isInOfficeHours = isWithinOfficeHoursForDay(dayOfWeek, hour);
+        
+        if (!isInOfficeHours && officeHoursBlocks.length > 0) {
+          toast.warning('Task scheduled outside office hours', {
+            description: 'Consider scheduling during your working hours for better focus.',
+            duration: 3000,
+          });
+        }
+      }
+
       const timeSlot = hour !== undefined ? `${String(hour).padStart(2, '0')}:00` : undefined;
       onTaskDrop(taskId, fromPlannedDay, dateStr, timeSlot);
     }
-  }, [onTaskDrop]);
+  }, [onTaskDrop, isWithinOfficeHoursForDay, officeHoursBlocks.length]);
 
   const formatHour = (hour: number): string => {
     if (hour === 0) return '12 AM';
@@ -319,9 +346,6 @@ function WeeklyTimelineBoardInner({
     return `${hour - 12} PM`;
   };
 
-  const isWithinOfficeHours = (hour: number): boolean => {
-    return hour >= officeStart && hour < officeEnd;
-  };
 
   return (
     <div className={cn(
@@ -364,7 +388,7 @@ function WeeklyTimelineBoardInner({
                     {format(day, 'd')}
                   </div>
                   <div className="text-[10px] text-muted-foreground mt-0.5">
-                    {officeHoursStart} – {officeHoursEnd}
+                    {getOfficeHoursLabel(day.getDay())}
                   </div>
                 </div>
               );
@@ -454,7 +478,7 @@ function WeeklyTimelineBoardInner({
                 const today = isToday(day);
                 const cellKey = `${dateStr}-${hour}`;
                 const isOver = dragOverCell === cellKey;
-                const isOfficeHour = isWithinOfficeHours(hour);
+                const isOfficeHour = isWithinOfficeHoursForDay(day.getDay(), hour);
                 const cellTasks = tasksByDayAndHour[dateStr]?.[hour] || [];
                 const cellEvents = eventsByDayAndHour[dateStr]?.[hour] || [];
                 
