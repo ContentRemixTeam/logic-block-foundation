@@ -108,10 +108,10 @@ export function PetGrowthCard() {
   const [timerCompleteOpen, setTimerCompleteOpen] = useState(false);
   const [timerCompletedTaskIndex, setTimerCompletedTaskIndex] = useState<number | null>(null);
 
-  // Get incomplete tasks from task manager for dropdown
+  // Get incomplete tasks scheduled for today from task manager for dropdown
   const incompleteTasks = useMemo(() => 
-    allTasks.filter(t => !t.is_completed).slice(0, 30),
-    [allTasks]
+    allTasks.filter(t => !t.is_completed && t.scheduled_date === today).slice(0, 30),
+    [allTasks, today]
   );
 
   // Calculate current stage based on completed tasks
