@@ -5,5 +5,6 @@ export { ArcadeIntroCard } from './ArcadeIntroCard';
 export { DailyTop3Card } from './DailyTop3Card';
 export { PetGrowthCard } from './PetGrowthCard';
 export { TaskCelebrationModal } from './TaskCelebrationModal';
+export { TimerCompleteModal } from './TimerCompleteModal';
 export { PetCollectionWidget } from './PetCollectionWidget';
 export { TodaysReflections } from './TodaysReflections';

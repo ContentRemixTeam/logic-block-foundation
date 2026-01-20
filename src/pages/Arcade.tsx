@@ -3,10 +3,10 @@ import { Layout } from '@/components/Layout';
 import { PageHeader } from '@/components/ui/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PetStoreTab } from '@/components/arcade/tabs/PetStoreTab';
 import { StatsTab } from '@/components/arcade/tabs/StatsTab';
 import { PetGrowthCard } from '@/components/arcade/PetGrowthCard';
 import { TodaysReflections } from '@/components/arcade/TodaysReflections';
+import { PetCollectionWidget } from '@/components/arcade/PetCollectionWidget';
 import { useArcade } from '@/hooks/useArcade';
 import { 
   Target, 
@@ -91,7 +91,7 @@ export default function Arcade() {
               <CheckSquare className="h-4 w-4" />
               <span className="hidden sm:inline">Tasks</span>
             </TabsTrigger>
-            <TabsTrigger value="pets" className="gap-1.5">
+            <TabsTrigger value="collection" className="gap-1.5">
               <Egg className="h-4 w-4" />
               <span className="hidden sm:inline">Collection</span>
             </TabsTrigger>
@@ -117,9 +117,9 @@ export default function Arcade() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-2 text-sm text-muted-foreground">
-                    <p>1. Enter your top 3 tasks for today</p>
-                    <p>2. Complete each task to grow your pet</p>
-                    <p>3. Reflect on what went well</p>
+                    <p>1. Choose your pet and enter 3 tasks</p>
+                    <p>2. Use the optional timer for focus sessions</p>
+                    <p>3. Complete each task to grow your pet</p>
                     <p>4. Hatch multiple pets in a day!</p>
                   </CardContent>
                 </Card>
@@ -163,8 +163,21 @@ export default function Arcade() {
             </div>
           </TabsContent>
 
-          <TabsContent value="pets">
-            <PetStoreTab />
+          <TabsContent value="collection">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Egg className="h-5 w-5" />
+                  Pet Collection
+                </CardTitle>
+                <CardDescription>
+                  Your hatched pets from today and beyond
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PetCollectionWidget />
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="stats">
