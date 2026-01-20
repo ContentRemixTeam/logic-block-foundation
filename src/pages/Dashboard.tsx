@@ -48,6 +48,7 @@ import { HelpButton } from '@/components/ui/help-button';
 import { PremiumCard, PremiumCardContent, PremiumCardHeader, PremiumCardTitle } from '@/components/ui/premium-card';
 import { TodayStrip, PlanMyWeekButton, QuickActionsPanel, ResourcesPanel, MetricsWidget, WeeklyRoutineReminder, PromotionCountdown, SalesCalendar, First3DaysChecklist, getFirst3DaysCheckedState, saveFirst3DaysCheckedState, WinsCard } from '@/components/dashboard';
 import { DataRecoveredPopup } from '@/components/DataRecoveredPopup';
+import { ChallengeProgressWidget } from '@/components/challenges';
 import { ContinueSetupBanner } from '@/components/cycle/ContinueSetupBanner';
 import { supabase as supabaseClient } from '@/integrations/supabase/client';
 
@@ -1084,6 +1085,9 @@ export default function Dashboard() {
                 weeklyPlanningDay={weeklyRoutines.planning_day}
                 weeklyDebriefDay={weeklyRoutines.debrief_day}
               />
+              
+              {/* Monthly Challenge Progress - Beta Feature */}
+              <ChallengeProgressWidget />
               
               {/* Promotion Countdown - Priority placement */}
               <PromotionCountdown />
