@@ -390,22 +390,26 @@ const featuresData: FeatureSection[] = [
     ]
   },
   {
-    id: 'quest-mode',
+    id: 'pet-mode',
     category: 'Other Features',
-    title: 'Quest Mode (Gamification)',
+    title: 'Pet Mode (Daily Tasks & Rewards)',
     icon: Trophy,
-    description: 'Turn your 90-day journey into an adventure with XP, streaks, and a quest map.',
+    description: 'Make task completion fun! Complete 3 daily tasks to grow a virtual pet from egg to adult.',
     details: [
-      'Enable Quest Mode in Settings for a gamified experience',
-      'Earn XP for completing plans, reviews, and tasks',
-      'Build and maintain your debrief streak',
-      'See your progress on the Quest Map',
-      'Unlock levels as you gain XP'
+      'Access Pet Mode from the ✨ button in the header or via /arcade',
+      'Choose from 10 different pets: Unicorn, Dragon, Cat, Dog, Bunny, Fox, Panda, Penguin, Owl, or Hamster',
+      'Enter 3 tasks or select from your existing task list',
+      'Complete each task to evolve your pet: Egg → Baby → Teen → Adult',
+      'Use the optional Pomodoro timer (5/10/15/25/45 min) for focused work sessions',
+      'When the timer ends, a sound plays and you\'re asked if you completed the task',
+      'Hatch multiple pets in a day by clicking "Start Fresh" after completing all 3 tasks',
+      'Track your collection and progress in the Progress tab'
     ],
     tips: [
-      'Great for adding motivation and fun to your planning',
-      'Use streak potions if you need to skip a day',
-      'The quest metaphor reframes your goals as an adventure'
+      'Great for building a consistent daily habit of completing your top priorities',
+      'Use the timer for tasks that need deep focus',
+      'Reflect on "what went well" after each task to build self-awareness',
+      'Try to hatch at least one pet every day to build momentum'
     ]
   },
   {

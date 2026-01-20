@@ -69,6 +69,13 @@ const tourSteps: TourStep[] = [
     placement: 'right',
   },
   {
+    id: 'arcade',
+    target: '[data-tour="arcade"]',
+    title: 'Daily Tasks & Pet Mode 🐣',
+    content: "Make task completion fun! Complete 3 daily tasks to grow a virtual pet from egg to adult. Use the optional focus timer and build your pet collection!",
+    placement: 'right',
+  },
+  {
     id: 'resources',
     target: '[data-tour="resources"]',
     title: 'Your Support Toolkit',

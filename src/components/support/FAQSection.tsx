@@ -104,8 +104,18 @@ const faqData: FAQItem[] = [
   // Features
   {
     category: 'Features',
-    question: 'What is Quest Mode?',
-    answer: 'Quest Mode is an optional gamified experience you can enable in Settings. It turns your 90-day journey into an adventure—earn XP for completing plans and reviews, build streaks, see your progress on a Quest Map, and level up. Great for adding motivation and fun to your planning routine.'
+    question: 'What is Pet Mode?',
+    answer: 'Pet Mode is a gamified daily task experience. Each day, choose a virtual pet (like a unicorn, dragon, or panda) and complete 3 tasks to grow it from an egg to an adult. Use the optional Pomodoro timer for focused work sessions. When you complete all 3 tasks, your pet hatches and joins your collection—then you can start fresh with a new egg!'
+  },
+  {
+    category: 'Features',
+    question: 'How does the Pomodoro timer work in Pet Mode?',
+    answer: 'Each task in Pet Mode has an optional timer button. Click it to choose a focus duration (5, 10, 15, 25, or 45 minutes). When the timer ends, a sound plays and a popup asks if you completed the task. You can mark it done, add more time, or skip. Great for maintaining focus on important tasks.'
+  },
+  {
+    category: 'Features',
+    question: 'How do I hatch multiple pets in one day?',
+    answer: 'After completing all 3 tasks and growing your pet to "Adult" stage, click the "Start Fresh" button. This saves your hatched pet to your collection and gives you a new random egg. You can repeat this as many times as you like—challenge yourself to hatch multiple pets daily!'
   },
   {
     category: 'Features',

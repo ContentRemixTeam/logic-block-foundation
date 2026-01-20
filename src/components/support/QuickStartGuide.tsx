@@ -92,6 +92,24 @@ export function QuickStartGuide() {
         });
         return !!(data?.review?.wins || data?.review?.what_worked);
       }
+    },
+    {
+      id: 6,
+      title: 'Hatch your first pet 🐣',
+      description: 'Complete 3 daily tasks in Pet Mode to grow and hatch your first virtual pet!',
+      icon: Sparkles,
+      href: '/arcade',
+      checkComplete: async () => {
+        if (!user) return false;
+        const today = new Date().toISOString().split('T')[0];
+        const { data } = await supabase
+          .from('arcade_daily_pet')
+          .select('stage, pets_hatched_today')
+          .eq('user_id', user.id)
+          .eq('date', today)
+          .maybeSingle();
+        return data?.stage === 'adult' || (data?.pets_hatched_today && data.pets_hatched_today > 0);
+      }
     }
   ];
 
