@@ -19,6 +19,7 @@ const ArcadeDrawer = lazy(() => import('@/components/arcade/ArcadeDrawer').then(
 const PomodoroMiniWidget = lazy(() => import('@/components/arcade/PomodoroMiniWidget').then(m => ({ default: m.PomodoroMiniWidget })));
 const CoinCounter = lazy(() => import('@/components/arcade/CoinCounter').then(m => ({ default: m.CoinCounter })));
 const PetWidget = lazy(() => import('@/components/arcade/PetWidget').then(m => ({ default: m.PetWidget })));
+const PetCollectionWidget = lazy(() => import('@/components/arcade/PetCollectionWidget').then(m => ({ default: m.PetCollectionWidget })));
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -110,6 +111,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               {/* Arcade widgets - lazy loaded only when enabled */}
               {!arcadeLoading && settings.arcade_enabled && (
                 <Suspense fallback={null}>
+                  <PetCollectionWidget />
                   {settings.show_pomodoro_widget && (
                     <PomodoroMiniWidget onClick={() => { setArcadeDefaultTab('focus'); setArcadeOpen(true); }} />
                   )}

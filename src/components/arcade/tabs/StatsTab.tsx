@@ -3,11 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useArcade } from '@/hooks/useArcade';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Coins, Gamepad2, Timer, Egg } from 'lucide-react';
+import { Coins, Timer, Egg, CheckSquare } from 'lucide-react';
 
 interface Stats {
   totalCoinsEarned: number;
-  gamesPlayed: number;
+  tasksCompleted: number;
   focusSessionsCompleted: number;
   totalFocusMinutes: number;
   petsHatched: number;
@@ -18,7 +18,7 @@ export function StatsTab() {
   const { wallet } = useArcade();
   const [stats, setStats] = useState<Stats>({
     totalCoinsEarned: 0,
-    gamesPlayed: 0,
+    tasksCompleted: 0,
     focusSessionsCompleted: 0,
     totalFocusMinutes: 0,
     petsHatched: 0,
@@ -30,11 +30,12 @@ export function StatsTab() {
       if (!user) return;
 
       try {
-        // Get games played count
-        const { count: gamesCount } = await supabase
-          .from('arcade_game_sessions')
+        // Get tasks completed (from arcade events)
+        const { count: tasksCount } = await supabase
+          .from('arcade_events')
           .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id);
+          .eq('user_id', user.id)
+          .eq('event_type', 'task_completed');
 
         // Get pomodoro sessions completed
         const { data: pomodoroData } = await supabase
@@ -46,16 +47,15 @@ export function StatsTab() {
         const focusSessions = pomodoroData?.length || 0;
         const totalMinutes = pomodoroData?.reduce((sum, s) => sum + (s.focus_minutes || 0), 0) || 0;
 
-        // Get pets hatched count
+        // Get total pets hatched (from hatched_pets table)
         const { count: petsCount } = await supabase
-          .from('arcade_daily_pet')
+          .from('hatched_pets')
           .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('stage', 'hatched');
+          .eq('user_id', user.id);
 
         setStats({
           totalCoinsEarned: wallet.total_coins_earned,
-          gamesPlayed: gamesCount || 0,
+          tasksCompleted: tasksCount || 0,
           focusSessionsCompleted: focusSessions,
           totalFocusMinutes: totalMinutes,
           petsHatched: petsCount || 0,
@@ -82,9 +82,9 @@ export function StatsTab() {
       color: 'text-warning',
     },
     {
-      title: 'Games Played',
-      value: stats.gamesPlayed,
-      icon: Gamepad2,
+      title: 'Tasks Completed',
+      value: stats.tasksCompleted,
+      icon: CheckSquare,
       color: 'text-primary',
     },
     {
@@ -129,17 +129,20 @@ export function StatsTab() {
           <CardTitle className="text-sm">Next Milestones</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
-          {stats.totalCoinsEarned < 50 && (
-            <p>🎮 Earn {50 - stats.totalCoinsEarned} more coins to unlock Focus Challenge</p>
-          )}
-          {stats.totalCoinsEarned < 100 && (
-            <p>🎮 Earn {100 - stats.totalCoinsEarned} more coins to unlock Pattern Pro</p>
-          )}
           {stats.petsHatched < 5 && (
             <p>🥚 Hatch {5 - stats.petsHatched} more pets to become a Pet Master</p>
           )}
+          {stats.petsHatched >= 5 && stats.petsHatched < 10 && (
+            <p>🥚 Hatch {10 - stats.petsHatched} more pets to become a Pet Legend</p>
+          )}
           {stats.focusSessionsCompleted < 10 && (
             <p>🍅 Complete {10 - stats.focusSessionsCompleted} more focus sessions</p>
+          )}
+          {stats.tasksCompleted < 30 && (
+            <p>✅ Complete {30 - stats.tasksCompleted} more tasks for Task Champion</p>
+          )}
+          {stats.totalCoinsEarned < 100 && (
+            <p>🪙 Earn {100 - stats.totalCoinsEarned} more coins to reach 100!</p>
           )}
         </CardContent>
       </Card>

@@ -3,12 +3,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { useArcade } from '@/hooks/useArcade';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { TaskCelebrationModal } from './TaskCelebrationModal';
+import { RotateCcw } from 'lucide-react';
 
 // Pet emojis for each stage
 const PET_STAGE_EMOJIS: Record<string, Record<string, string>> = {
@@ -37,6 +39,12 @@ const PET_NAMES: Record<string, string> = {
   hamster: 'Hamster',
 };
 
+// Get random pet type
+const getRandomPetType = () => {
+  const types = Object.keys(PET_NAMES);
+  return types[Math.floor(Math.random() * types.length)];
+};
+
 interface TaskSlot {
   id: string;
   text: string;
@@ -55,7 +63,9 @@ export function PetGrowthCard() {
   ]);
   const [celebrationOpen, setCelebrationOpen] = useState(false);
   const [lastCompletedIndex, setLastCompletedIndex] = useState<number | null>(null);
+  const [lastCompletedTask, setLastCompletedTask] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   // Calculate current stage based on completed tasks
   const completedCount = tasks.filter(t => t.completed).length;
@@ -73,6 +83,7 @@ export function PetGrowthCard() {
   const currentStage = getStage(completedCount);
   const petEmojis = PET_STAGE_EMOJIS[petType] || PET_STAGE_EMOJIS.unicorn;
   const currentEmoji = petEmojis[currentStage];
+  const isComplete = completedCount >= 3;
 
   const getStageMessage = () => {
     switch (currentStage) {
@@ -181,6 +192,7 @@ export function PetGrowthCard() {
       
       // Show celebration modal
       setLastCompletedIndex(index);
+      setLastCompletedTask(task.text);
       setCelebrationOpen(true);
       
     } catch (err) {
@@ -197,26 +209,29 @@ export function PetGrowthCard() {
     }
   }, [user, tasks, completedCount, pet, today, refreshPet, refreshWallet, isSubmitting]);
 
-  const handleCelebrate = async (reflection: string) => {
+  const handleCelebrate = async (wentWell: string, couldImprove: string) => {
     if (!user) return;
     
-    // Save reflection as a trophy/micro-celebration
-    if (reflection.trim()) {
+    const hasReflection = wentWell.trim() || couldImprove.trim();
+    
+    // Save reflection to new table
+    if (hasReflection) {
       try {
-        await supabase.from('earned_trophies').insert({
+        await supabase.from('task_reflections').insert({
           user_id: user.id,
-          trophy_type: 'micro_win',
-          challenge_name: reflection,
-          earned_at: new Date().toISOString(),
+          date: today,
+          task_text: lastCompletedTask,
+          went_well: wentWell.trim() || null,
+          could_improve: couldImprove.trim() || null,
         });
         
-        // Bonus coins for celebrating
-        const dedupeKey = `celebration_bonus:${user.id}:${today}:${lastCompletedIndex}`;
+        // Bonus coins for reflecting
+        const dedupeKey = `reflection_bonus:${user.id}:${today}:${lastCompletedIndex}`;
         await supabase.from('arcade_events').insert({
           user_id: user.id,
-          event_type: 'celebration_bonus',
+          event_type: 'reflection_bonus',
           coins_delta: 2,
-          metadata: { reflection, date: today },
+          metadata: { went_well: wentWell, could_improve: couldImprove, date: today },
           dedupe_key: dedupeKey,
         });
         
@@ -238,14 +253,65 @@ export function PetGrowthCard() {
         }
         
         await refreshWallet();
-        toast.success('+2 bonus coins for celebrating! 🏆');
+        toast.success('+2 bonus coins for reflecting! 💡');
       } catch (err) {
-        console.error('Failed to save celebration:', err);
+        console.error('Failed to save reflection:', err);
       }
     }
     
     setCelebrationOpen(false);
     setLastCompletedIndex(null);
+    setLastCompletedTask('');
+  };
+
+  const handleReset = async () => {
+    if (!user || isResetting) return;
+    
+    setIsResetting(true);
+    
+    try {
+      // Save the hatched pet to collection
+      const currentPetEmoji = petEmojis['adult'];
+      await supabase.from('hatched_pets').insert({
+        user_id: user.id,
+        date: today,
+        pet_type: petType,
+        pet_emoji: currentPetEmoji,
+      });
+      
+      // Get a new random pet type
+      const newPetType = getRandomPetType();
+      
+      // Reset the daily pet with new type
+      await supabase
+        .from('arcade_daily_pet')
+        .update({
+          pet_type: newPetType,
+          stage: 'sleeping',
+          tasks_completed_today: 0,
+          hatched_at: null,
+          pets_hatched_today: (pet?.pets_hatched_today || 0) + 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', user.id)
+        .eq('date', today);
+      
+      // Reset local tasks state
+      setTasks([
+        { id: `${Date.now()}-1`, text: '', completed: false },
+        { id: `${Date.now()}-2`, text: '', completed: false },
+        { id: `${Date.now()}-3`, text: '', completed: false },
+      ]);
+      
+      await refreshPet();
+      toast.success(`${petName} added to your collection! New egg ready 🥚`);
+      
+    } catch (err) {
+      console.error('Failed to reset pet:', err);
+      toast.error('Failed to start fresh');
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   const progress = (completedCount / 3) * 100;
@@ -279,41 +345,58 @@ export function PetGrowthCard() {
             <Progress value={progress} className="h-2 max-w-xs mx-auto" />
           </div>
 
-          {/* Task Inputs */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-center">📝 Today's Tasks</h4>
-            {tasks.map((task, index) => (
-              <div 
-                key={task.id}
-                className={cn(
-                  "flex items-center gap-3 p-3 rounded-lg border transition-all",
-                  task.completed 
-                    ? "bg-primary/10 border-primary/30" 
-                    : "bg-muted/30 border-border"
-                )}
+          {/* Reset Button - Show when complete */}
+          {isComplete && (
+            <div className="flex justify-center">
+              <Button
+                onClick={handleReset}
+                disabled={isResetting}
+                variant="outline"
+                className="gap-2"
               >
-                <span className="text-sm font-medium text-muted-foreground w-16">
-                  Task {index + 1}
-                </span>
-                <Input
-                  value={task.text}
-                  onChange={(e) => handleTaskChange(index, e.target.value)}
-                  placeholder={`What's your ${index === 0 ? 'first' : index === 1 ? 'second' : 'third'} task?`}
-                  disabled={task.completed}
+                <RotateCcw className={cn("h-4 w-4", isResetting && "animate-spin")} />
+                {isResetting ? 'Starting fresh...' : 'Start Fresh - Hatch Another Pet'}
+              </Button>
+            </div>
+          )}
+
+          {/* Task Inputs - Hide when complete */}
+          {!isComplete && (
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium text-center">📝 Today's Tasks</h4>
+              {tasks.map((task, index) => (
+                <div 
+                  key={task.id}
                   className={cn(
-                    "flex-1 h-9",
-                    task.completed && "line-through text-muted-foreground"
+                    "flex items-center gap-3 p-3 rounded-lg border transition-all",
+                    task.completed 
+                      ? "bg-primary/10 border-primary/30" 
+                      : "bg-muted/30 border-border"
                   )}
-                />
-                <Checkbox
-                  checked={task.completed}
-                  disabled={!task.text.trim() || task.completed || isSubmitting}
-                  onCheckedChange={() => handleTaskComplete(index)}
-                  className="h-6 w-6"
-                />
-              </div>
-            ))}
-          </div>
+                >
+                  <span className="text-sm font-medium text-muted-foreground w-16">
+                    Task {index + 1}
+                  </span>
+                  <Input
+                    value={task.text}
+                    onChange={(e) => handleTaskChange(index, e.target.value)}
+                    placeholder={`What's your ${index === 0 ? 'first' : index === 1 ? 'second' : 'third'} task?`}
+                    disabled={task.completed}
+                    className={cn(
+                      "flex-1 h-9",
+                      task.completed && "line-through text-muted-foreground"
+                    )}
+                  />
+                  <Checkbox
+                    checked={task.completed}
+                    disabled={!task.text.trim() || task.completed || isSubmitting}
+                    onCheckedChange={() => handleTaskComplete(index)}
+                    className="h-6 w-6"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Hint text */}
           {completedCount === 0 && (
@@ -329,11 +412,13 @@ export function PetGrowthCard() {
         onClose={() => {
           setCelebrationOpen(false);
           setLastCompletedIndex(null);
+          setLastCompletedTask('');
         }}
         onCelebrate={handleCelebrate}
         petEmoji={currentEmoji}
         completedCount={completedCount}
         isAllComplete={completedCount >= 3}
+        taskText={lastCompletedTask}
       />
     </>
   );

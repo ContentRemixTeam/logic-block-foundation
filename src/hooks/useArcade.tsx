@@ -14,6 +14,7 @@ interface DailyPet {
   stage: 'sleeping' | 'baby' | 'teen' | 'adult';
   tasks_completed_today: number;
   hatched_at: string | null;
+  pets_hatched_today: number;
 }
 
 interface ArcadeSettings {
@@ -131,6 +132,7 @@ export function ArcadeProvider({ children }: { children: ReactNode }) {
           stage: data.stage as 'sleeping' | 'baby' | 'teen' | 'adult',
           tasks_completed_today: data.tasks_completed_today || 0,
           hatched_at: data.hatched_at,
+          pets_hatched_today: data.pets_hatched_today || 0,
         });
       } else {
         setPet(null);
@@ -199,6 +201,7 @@ export function ArcadeProvider({ children }: { children: ReactNode }) {
           stage: data.stage as 'sleeping' | 'baby' | 'teen' | 'adult',
           tasks_completed_today: data.tasks_completed_today || 0,
           hatched_at: data.hatched_at,
+          pets_hatched_today: data.pets_hatched_today || 0,
         });
       }
     } catch (err) {

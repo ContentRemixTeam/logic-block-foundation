@@ -45,6 +45,7 @@ export type Database = {
           hatched_at: string | null
           id: string
           pet_type: string
+          pets_hatched_today: number | null
           stage: string | null
           tasks_completed_today: number | null
           updated_at: string | null
@@ -56,6 +57,7 @@ export type Database = {
           hatched_at?: string | null
           id?: string
           pet_type: string
+          pets_hatched_today?: number | null
           stage?: string | null
           tasks_completed_today?: number | null
           updated_at?: string | null
@@ -67,6 +69,7 @@ export type Database = {
           hatched_at?: string | null
           id?: string
           pet_type?: string
+          pets_hatched_today?: number | null
           stage?: string | null
           tasks_completed_today?: number | null
           updated_at?: string | null
@@ -1737,6 +1740,33 @@ export type Database = {
           },
         ]
       }
+      hatched_pets: {
+        Row: {
+          date: string
+          hatched_at: string | null
+          id: string
+          pet_emoji: string
+          pet_type: string
+          user_id: string
+        }
+        Insert: {
+          date?: string
+          hatched_at?: string | null
+          id?: string
+          pet_emoji: string
+          pet_type: string
+          user_id: string
+        }
+        Update: {
+          date?: string
+          hatched_at?: string | null
+          id?: string
+          pet_emoji?: string
+          pet_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ideas: {
         Row: {
           category_id: string | null
@@ -2569,6 +2599,36 @@ export type Database = {
             referencedColumns: ["task_id"]
           },
         ]
+      }
+      task_reflections: {
+        Row: {
+          could_improve: string | null
+          created_at: string | null
+          date: string
+          id: string
+          task_text: string | null
+          user_id: string
+          went_well: string | null
+        }
+        Insert: {
+          could_improve?: string | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          task_text?: string | null
+          user_id: string
+          went_well?: string | null
+        }
+        Update: {
+          could_improve?: string | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          task_text?: string | null
+          user_id?: string
+          went_well?: string | null
+        }
+        Relationships: []
       }
       task_schedule_history: {
         Row: {

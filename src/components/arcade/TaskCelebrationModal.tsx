@@ -7,16 +7,18 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Trophy, Sparkles, PartyPopper } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Trophy, Sparkles, PartyPopper, Heart, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TaskCelebrationModalProps {
   open: boolean;
   onClose: () => void;
-  onCelebrate: (reflection: string) => void;
+  onCelebrate: (wentWell: string, couldImprove: string) => void;
   petEmoji: string;
   completedCount: number;
   isAllComplete: boolean;
+  taskText?: string;
 }
 
 export function TaskCelebrationModal({
@@ -26,24 +28,30 @@ export function TaskCelebrationModal({
   petEmoji,
   completedCount,
   isAllComplete,
+  taskText,
 }: TaskCelebrationModalProps) {
-  const [reflection, setReflection] = useState('');
+  const [wentWell, setWentWell] = useState('');
+  const [couldImprove, setCouldImprove] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleCelebrate = async () => {
     setIsSubmitting(true);
-    await onCelebrate(reflection);
-    setReflection('');
+    await onCelebrate(wentWell, couldImprove);
+    setWentWell('');
+    setCouldImprove('');
     setIsSubmitting(false);
   };
 
   const handleSkip = () => {
-    setReflection('');
+    setWentWell('');
+    setCouldImprove('');
     onClose();
   };
 
+  const hasContent = wentWell.trim() || couldImprove.trim();
+
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleSkip()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center sr-only">Task Complete</DialogTitle>
@@ -85,17 +93,39 @@ export function TaskCelebrationModal({
             </p>
           </div>
 
-          {/* Reflection Input */}
-          <div className="w-full space-y-2">
-            <p className="text-sm text-center">
-              Celebrate your micro win to earn a trophy! 🏆
+          {/* Two Reflection Questions */}
+          <div className="w-full space-y-4">
+            <p className="text-sm text-center text-muted-foreground">
+              Quick reflection to earn bonus coins 🏆
             </p>
-            <Textarea
-              value={reflection}
-              onChange={(e) => setReflection(e.target.value)}
-              placeholder="What are you celebrating? (e.g., Made progress, Focused well)"
-              className="min-h-[80px] resize-none"
-            />
+            
+            {/* What went well? */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-sm">
+                <Heart className="h-4 w-4 text-success" />
+                What went well?
+              </Label>
+              <Textarea
+                value={wentWell}
+                onChange={(e) => setWentWell(e.target.value)}
+                placeholder="e.g., Stayed focused, made good progress..."
+                className="min-h-[60px] resize-none"
+              />
+            </div>
+
+            {/* What could have been better? */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-sm">
+                <Lightbulb className="h-4 w-4 text-warning" />
+                What could have been better?
+              </Label>
+              <Textarea
+                value={couldImprove}
+                onChange={(e) => setCouldImprove(e.target.value)}
+                placeholder="e.g., Started earlier, fewer distractions..."
+                className="min-h-[60px] resize-none"
+              />
+            </div>
           </div>
 
           {/* Action Buttons */}
@@ -114,13 +144,13 @@ export function TaskCelebrationModal({
               disabled={isSubmitting}
             >
               <Trophy className="h-4 w-4" />
-              Celebrate & Earn
+              {hasContent ? 'Save & Earn' : 'Continue'}
             </Button>
           </div>
 
           {/* Coins indicator */}
           <p className="text-xs text-muted-foreground text-center">
-            +5 coins earned • +2 bonus for celebrating
+            +5 coins earned{hasContent && ' • +2 bonus for reflecting'}
           </p>
         </div>
       </DialogContent>
