@@ -16,6 +16,7 @@ import { Loader2, Zap, Target, BarChart3, TrendingUp, TrendingDown, Users, Share
 import { Layout } from "@/components/Layout";
 import { ReflectionList } from "@/components/ReflectionList";
 import { HabitTrackerCard } from "@/components/habits";
+import { CourseProgressPanel } from "@/components/courses";
 import { getNurtureStats } from "@/lib/contentService";
 import { useDataProtection } from "@/hooks/useDataProtection";
 import { SaveStatusIndicator, SaveStatusBanner } from "@/components/SaveStatusIndicator";
@@ -507,6 +508,9 @@ export default function WeeklyReview() {
 
         {/* Habit Consistency Tracker */}
         <HabitTrackerCard view="weekly" />
+
+        {/* Course Progress Panel */}
+        <CourseProgressPanel />
 
         {/* Focus Area Reflection */}
         {focusArea && (
