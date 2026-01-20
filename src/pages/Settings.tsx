@@ -20,6 +20,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTour } from '@/hooks/useTour';
 import { GoogleCalendarPanel } from '@/components/google-calendar/GoogleCalendarPanel';
 import { THEMES, THEME_IDS, ThemeId } from '@/lib/themes';
+import { DelightSettingsCard } from '@/components/settings';
+import { ThemeGallery } from '@/components/themes';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -581,6 +583,13 @@ export default function Settings() {
             )}
           </CardContent>
         </Card>
+
+        {/* Delight & Celebrations Settings (Theme FX) */}
+        <DelightSettingsCard />
+
+        {/* Theme Gallery (Unlocked Themes from Challenges) */}
+        <ThemeGallery />
+
         {/* Custom Review Questions */}
         <Card>
           <CardHeader>
