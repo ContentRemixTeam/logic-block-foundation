@@ -36,7 +36,6 @@ import { PostingSlotCard } from '@/components/daily-plan/PostingSlotCard';
 import { QuickLogCard } from '@/components/content';
 import { NurtureCheckinCard } from '@/components/nurture';
 import { HabitTrackerCard } from '@/components/habits';
-import { HealthCheckPanel } from '@/components/dev';
 import { PetGrowthCard, ArcadeIntroCard } from '@/components/arcade';
 import { CalendarReconnectBanner } from '@/components/google-calendar/CalendarReconnectBanner';
 import {
@@ -783,9 +782,6 @@ export default function DailyPlan() {
 
         {/* Save Status Banner for offline/error states */}
         <SaveStatusBanner status={saveStatus} onRetry={saveNow} />
-        
-        {/* Dev Health Check Panel - only visible in development */}
-        <HealthCheckPanel />
 
         {/* Schedule View */}
         {viewMode === 'schedule' && (
