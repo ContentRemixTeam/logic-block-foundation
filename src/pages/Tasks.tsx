@@ -47,6 +47,7 @@ import { TimelineViewSelector, TimelineViewType } from '@/components/tasks/views
 import { TaskPlanningCards } from '@/components/tasks/TaskPlanningCards';
 import { TaskViewsToolbar } from '@/components/tasks/TaskViewsToolbar';
 import { TaskImportModal } from '@/components/tasks/TaskImportModal';
+import { useTasks, useTaskMutations } from '@/hooks/useTasks';
 import { BulkActionsBar } from '@/components/tasks/BulkActionsBar';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { useBulkTaskSelection } from '@/hooks/useBulkTaskSelection';
@@ -130,21 +131,11 @@ export default function Tasks() {
   const [newEnergyLevel, setNewEnergyLevel] = useState<EnergyLevel | null>(null);
   const [newContextTags, setNewContextTags] = useState<string[]>([]);
 
-  // Fetch all tasks
-  const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['all-tasks'],
-    queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
-
-      const response = await supabase.functions.invoke('get-all-tasks', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-
-      if (response.error) throw response.error;
-      return response.data?.data || [];
-    },
-  });
+  // Fetch all tasks with optimistic updates
+  const { data: tasks = [], isLoading } = useTasks();
+  
+  // Task mutations with optimistic updates for instant UI feedback
+  const { toggleComplete, updateTask: optimisticUpdateTask, deleteTask: optimisticDeleteTask, createTask: optimisticCreateTask } = useTaskMutations();
 
   // Fetch SOPs for dropdown
   const { data: sops = [] } = useQuery({
@@ -397,48 +388,32 @@ export default function Tasks() {
     }
   };
 
-  // Handlers
-  const handleToggleComplete = async (taskId: string) => {
-    try {
-      await manageMutation.mutateAsync({ action: 'toggle', task_id: taskId });
-      // Celebration animation could be added here
-    } catch (error) {
-      toast.error('Failed to update task');
-    }
-  };
+  // Handlers - Use optimistic mutations for instant UI feedback
+  const handleToggleComplete = useCallback((taskId: string) => {
+    // Uses optimistic update - UI updates immediately before server confirms
+    toggleComplete.mutate(taskId);
+  }, [toggleComplete]);
 
-  const handleUpdateTask = async (taskId: string, updates: Partial<Task>) => {
-    try {
-      await manageMutation.mutateAsync({ 
-        action: 'update', 
-        task_id: taskId,
-        ...updates 
-      });
-    } catch (error) {
-      toast.error('Failed to update task');
-    }
-  };
+  const handleUpdateTask = useCallback((taskId: string, updates: Partial<Task>) => {
+    // Uses optimistic update for instant feedback
+    optimisticUpdateTask.mutate({ taskId, updates });
+  }, [optimisticUpdateTask]);
 
-  const handleQuickReschedule = async (taskId: string, date: Date | null, status?: string) => {
-    try {
-      const updates: Record<string, unknown> = {
-        action: 'update',
-        task_id: taskId,
-        scheduled_date: date ? format(date, 'yyyy-MM-dd') : null,
-      };
-      
-      if (status) {
-        updates.status = status;
-      }
-      
-      await manageMutation.mutateAsync(updates);
-      toast.success(status === 'someday' ? 'Task moved to Someday' : 'Task rescheduled');
-    } catch (error) {
-      toast.error('Failed to reschedule task');
+  const handleQuickReschedule = useCallback((taskId: string, date: Date | null, status?: string) => {
+    // Use optimistic update for instant feedback
+    const updates: Partial<Task> = {
+      scheduled_date: date ? format(date, 'yyyy-MM-dd') : null,
+    };
+    
+    if (status) {
+      updates.status = status as Task['status'];
     }
-  };
+    
+    optimisticUpdateTask.mutate({ taskId, updates });
+    toast.success(status === 'someday' ? 'Task moved to Someday' : 'Task rescheduled');
+  }, [optimisticUpdateTask]);
 
-  const handleQuickAdd = async (parsed: {
+  const handleQuickAdd = useCallback((parsed: {
     text: string;
     date?: Date;
     time?: string;
@@ -446,21 +421,17 @@ export default function Tasks() {
     priority?: 'high' | 'medium' | 'low';
     duration?: number;
   }) => {
-    try {
-      await manageMutation.mutateAsync({
-        action: 'create',
-        task_text: parsed.text,
-        scheduled_date: parsed.date ? format(parsed.date, 'yyyy-MM-dd') : null,
-        priority: parsed.priority || null,
-        estimated_minutes: parsed.duration || null,
-        context_tags: parsed.tags.length > 0 ? parsed.tags : null,
-        status: 'backlog',
-      });
-      toast.success('Task added');
-    } catch (error) {
-      toast.error('Failed to add task');
-    }
-  };
+    // Use optimistic create for instant feedback
+    optimisticCreateTask.mutate({
+      task_text: parsed.text,
+      scheduled_date: parsed.date ? format(parsed.date, 'yyyy-MM-dd') : null,
+      priority: parsed.priority || null,
+      estimated_minutes: parsed.duration || null,
+      context_tags: parsed.tags.length > 0 ? parsed.tags : null,
+      status: 'backlog',
+    });
+    toast.success('Task added');
+  }, [optimisticCreateTask]);
 
   const handleAddTask = async () => {
     if (!newTaskText.trim()) {
@@ -573,32 +544,24 @@ export default function Tasks() {
     setDeleteType('single');
   };
 
-  const handleDeleteTask = async () => {
+  const handleDeleteTask = useCallback(() => {
     if (!deleteTaskId) return;
 
-    try {
-      await manageMutation.mutateAsync({ 
-        action: 'delete', 
-        task_id: deleteTaskId,
-        delete_type: deleteType
-      });
-      toast.success('Task deleted');
-      setDeleteTaskId(null);
-      setDeleteTaskInfo(null);
-      setDeleteType('single');
-      setIsDetailDialogOpen(false);
-    } catch (error) {
-      toast.error('Failed to delete task');
-    }
-  };
+    // Use optimistic delete for instant feedback
+    optimisticDeleteTask.mutate({ taskId: deleteTaskId, deleteType });
+    setDeleteTaskId(null);
+    setDeleteTaskInfo(null);
+    setDeleteType('single');
+    setIsDetailDialogOpen(false);
+  }, [deleteTaskId, deleteType, optimisticDeleteTask]);
 
-  const handleSaveTaskDetail = async () => {
+  const handleSaveTaskDetail = useCallback(() => {
     if (!selectedTask) return;
 
-    try {
-      await manageMutation.mutateAsync({
-        action: 'update',
-        task_id: selectedTask.task_id,
+    // Use optimistic update for instant feedback
+    optimisticUpdateTask.mutate({
+      taskId: selectedTask.task_id,
+      updates: {
         task_text: selectedTask.task_text,
         task_description: selectedTask.task_description,
         scheduled_date: selectedTask.scheduled_date,
@@ -611,14 +574,12 @@ export default function Tasks() {
         status: selectedTask.status,
         waiting_on: selectedTask.waiting_on,
         notes: selectedTask.notes,
-      });
-      toast.success('Task updated');
-      setIsDetailDialogOpen(false);
-      setSelectedTask(null);
-    } catch (error) {
-      toast.error('Failed to update task');
-    }
-  };
+      } as Partial<Task>,
+    });
+    toast.success('Task updated');
+    setIsDetailDialogOpen(false);
+    setSelectedTask(null);
+  }, [selectedTask, optimisticUpdateTask]);
 
   const handleToggleChecklistItem = async (taskId: string, itemId: string) => {
     try {
