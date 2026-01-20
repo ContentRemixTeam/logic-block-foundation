@@ -6,12 +6,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useTasks, useTaskMutations } from '@/hooks/useTasks';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
+import { useOfficeHours } from '@/hooks/useOfficeHours';
 import { scheduleStore } from '@/lib/taskSchedulingStore';
 import { Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CalendarEvent } from '@/components/tasks/views/CalendarEventBlock';
 import { CalendarSelectionModal } from '@/components/google-calendar/CalendarSelectionModal';
+import { OfficeHoursEditorModal } from '@/components/office-hours/OfficeHoursEditorModal';
 import { CycleFocusBanner } from '@/components/cycle/CycleFocusBanner';
 import { MastermindCallsPanel } from '@/components/mastermind/MastermindCallsPanel';
 
@@ -66,11 +68,15 @@ export function WeekPlannerNew({
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
 
+  // Office hours from new hook
+  const { officeHours, isWithinOfficeHours } = useOfficeHours();
+  
+  // Office hours modal
+  const [officeHoursModalOpen, setOfficeHoursModalOpen] = useState(false);
+
   // Settings
   const [weekStartDay, setWeekStartDay] = useState(1);
   const [capacityMinutes, setCapacityMinutes] = useState(240);
-  const [officeHoursStart, setOfficeHoursStart] = useState('9:00');
-  const [officeHoursEnd, setOfficeHoursEnd] = useState('17:00');
 
   // Current week navigation
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
@@ -104,14 +110,6 @@ export function WeekPlannerNew({
           setWeekStartDay(data.week_start_day);
           setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: data.week_start_day as 0 | 1 }));
         }
-      }
-      
-      // Load office hours from cycle data
-      const { data: cycleResult } = await supabase.functions.invoke('get-current-cycle-or-create');
-      if (cycleResult?.data?.cycle) {
-        const cycle = cycleResult.data.cycle;
-        if (cycle.office_hours_start) setOfficeHoursStart(cycle.office_hours_start);
-        if (cycle.office_hours_end) setOfficeHoursEnd(cycle.office_hours_end);
       }
       
       // Load works_weekends preference and show_mastermind_calls from user settings
@@ -408,8 +406,8 @@ export function WeekPlannerNew({
         isCurrentWeek={isCurrentWeek}
         showWeekend={showWeekend}
         onToggleWeekend={() => setShowWeekend(prev => !prev)}
-        officeHoursStart={officeHoursStart}
-        officeHoursEnd={officeHoursEnd}
+        officeHoursBlocks={officeHours}
+        onOpenOfficeHours={() => setOfficeHoursModalOpen(true)}
         googleConnected={googleStatus.connected && googleStatus.calendarSelected}
         googleCalendarName={googleStatus.calendarName}
         onConnectGoogle={() => connectGoogle('/weekly-plan')}
@@ -457,8 +455,7 @@ export function WeekPlannerNew({
               tasks={tasks}
               calendarEvents={calendarEvents}
               currentWeekStart={currentWeekStart}
-              officeHoursStart={officeHoursStart}
-              officeHoursEnd={officeHoursEnd}
+              officeHoursBlocks={officeHours}
               showWeekend={showWeekend}
               onTaskDrop={handleTaskDrop}
               onTaskToggle={handleTaskToggle}
@@ -466,6 +463,12 @@ export function WeekPlannerNew({
           </div>
         </div>
       )}
+
+      {/* Office Hours Editor Modal */}
+      <OfficeHoursEditorModal
+        open={officeHoursModalOpen}
+        onOpenChange={setOfficeHoursModalOpen}
+      />
 
       {/* Clear Week Confirmation */}
       <Dialog open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
