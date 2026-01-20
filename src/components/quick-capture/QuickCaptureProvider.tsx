@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { QuickCaptureModal } from './QuickCaptureModal';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface QuickCaptureOptions {
   stayOpenAfterSave?: boolean;
@@ -28,15 +29,19 @@ interface QuickCaptureProviderProps {
 }
 
 export function QuickCaptureProvider({ children }: QuickCaptureProviderProps) {
+  const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
   const [stayOpenAfterSave, setStayOpenAfterSave] = useState(false);
 
   const openQuickCapture = useCallback((options?: QuickCaptureOptions) => {
+    // Default to stay open on mobile for rapid capture
     if (options?.stayOpenAfterSave !== undefined) {
       setStayOpenAfterSave(options.stayOpenAfterSave);
+    } else if (isMobile) {
+      setStayOpenAfterSave(true);
     }
     setIsOpen(true);
-  }, []);
+  }, [isMobile]);
 
   const closeQuickCapture = useCallback(() => {
     setIsOpen(false);
