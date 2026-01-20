@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useArcade } from '@/hooks/useArcade';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Coins, Timer, Egg, CheckSquare } from 'lucide-react';
+import { Timer, Egg, CheckSquare, Palette } from 'lucide-react';
 
 interface Stats {
-  totalCoinsEarned: number;
   tasksCompleted: number;
   focusSessionsCompleted: number;
   totalFocusMinutes: number;
@@ -15,9 +13,7 @@ interface Stats {
 
 export function StatsTab() {
   const { user } = useAuth();
-  const { wallet } = useArcade();
   const [stats, setStats] = useState<Stats>({
-    totalCoinsEarned: 0,
     tasksCompleted: 0,
     focusSessionsCompleted: 0,
     totalFocusMinutes: 0,
@@ -54,7 +50,6 @@ export function StatsTab() {
           .eq('user_id', user.id);
 
         setStats({
-          totalCoinsEarned: wallet.total_coins_earned,
           tasksCompleted: tasksCount || 0,
           focusSessionsCompleted: focusSessions,
           totalFocusMinutes: totalMinutes,
@@ -68,19 +63,13 @@ export function StatsTab() {
     };
 
     loadStats();
-  }, [user, wallet.total_coins_earned]);
+  }, [user]);
 
   if (isLoading) {
     return <div className="text-center py-8 text-muted-foreground">Loading stats...</div>;
   }
 
   const statCards = [
-    {
-      title: 'Total Coins Earned',
-      value: stats.totalCoinsEarned,
-      icon: Coins,
-      color: 'text-warning',
-    },
     {
       title: 'Tasks Completed',
       value: stats.tasksCompleted,
@@ -102,6 +91,10 @@ export function StatsTab() {
     },
   ];
 
+  // Calculate progress toward theme unlock
+  const tasksToTheme = Math.max(0, 50 - stats.tasksCompleted);
+  const petsToTheme = Math.max(0, 10 - stats.petsHatched);
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
@@ -121,12 +114,28 @@ export function StatsTab() {
             </CardContent>
           </Card>
         ))}
+        
+        {/* Theme unlock progress card */}
+        <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Palette className="h-4 w-4 text-primary" />
+              Theme Unlock
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">Coming soon!</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Complete tasks to unlock special themes
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Milestone hints */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Next Milestones</CardTitle>
+          <CardTitle className="text-sm">Progress Milestones</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
           {stats.petsHatched < 5 && (
@@ -141,8 +150,20 @@ export function StatsTab() {
           {stats.tasksCompleted < 30 && (
             <p>✅ Complete {30 - stats.tasksCompleted} more tasks for Task Champion</p>
           )}
-          {stats.totalCoinsEarned < 100 && (
-            <p>🪙 Earn {100 - stats.totalCoinsEarned} more coins to reach 100!</p>
+          {tasksToTheme > 0 && (
+            <p className="flex items-center gap-1">
+              <Palette className="h-3 w-3" />
+              Complete {tasksToTheme} more tasks to unlock a special theme!
+            </p>
+          )}
+          {petsToTheme > 0 && tasksToTheme <= 0 && (
+            <p className="flex items-center gap-1">
+              <Palette className="h-3 w-3" />
+              Hatch {petsToTheme} more pets for another theme unlock!
+            </p>
+          )}
+          {stats.tasksCompleted >= 50 && stats.petsHatched >= 10 && (
+            <p className="text-primary font-medium">🎉 You're a productivity champion!</p>
           )}
         </CardContent>
       </Card>

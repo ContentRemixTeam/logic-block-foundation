@@ -17,7 +17,6 @@ import { Loader2, Sparkles, ArrowRight, X } from 'lucide-react';
 // Lazy load heavy arcade components - only loaded when arcade is enabled
 const ArcadeDrawer = lazy(() => import('@/components/arcade/ArcadeDrawer').then(m => ({ default: m.ArcadeDrawer })));
 const PomodoroMiniWidget = lazy(() => import('@/components/arcade/PomodoroMiniWidget').then(m => ({ default: m.PomodoroMiniWidget })));
-const CoinCounter = lazy(() => import('@/components/arcade/CoinCounter').then(m => ({ default: m.CoinCounter })));
 const PetWidget = lazy(() => import('@/components/arcade/PetWidget').then(m => ({ default: m.PetWidget })));
 const PetCollectionWidget = lazy(() => import('@/components/arcade/PetCollectionWidget').then(m => ({ default: m.PetCollectionWidget })));
 
@@ -113,10 +112,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                 <Suspense fallback={null}>
                   <PetCollectionWidget />
                   {settings.show_pomodoro_widget && (
-                    <PomodoroMiniWidget onClick={() => { setArcadeDefaultTab('focus'); setArcadeOpen(true); }} />
-                  )}
-                  {settings.show_coin_counter && (
-                    <CoinCounter onClick={() => { setArcadeDefaultTab('stats'); setArcadeOpen(true); }} />
+                    <PomodoroMiniWidget onClick={() => { setArcadeDefaultTab('tasks'); setArcadeOpen(true); }} />
                   )}
                   {settings.show_pet_widget && <PetWidget />}
                 </Suspense>
