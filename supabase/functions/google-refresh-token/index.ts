@@ -23,32 +23,66 @@ function encryptToken(token: string): string {
   return btoa(combined);
 }
 
-async function refreshAccessToken(refreshToken: string): Promise<{ accessToken: string; expiresIn: number } | null> {
+async function refreshAccessToken(refreshToken: string): Promise<{ accessToken: string; expiresIn: number; error?: string } | null> {
   const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
   const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
 
-  const response = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: clientId!,
-      client_secret: clientSecret!,
-      refresh_token: refreshToken,
-      grant_type: 'refresh_token',
-    }),
-  });
+  // Retry with exponential backoff for transient errors
+  const maxRetries = 3;
+  let lastError = '';
 
-  const data = await response.json();
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: clientId!,
+          client_secret: clientSecret!,
+          refresh_token: refreshToken,
+          grant_type: 'refresh_token',
+        }),
+      });
 
-  if (data.error) {
-    console.error('Token refresh error:', data);
-    return null;
+      const data = await response.json();
+
+      if (data.error) {
+        lastError = data.error;
+        console.error(`Token refresh error (attempt ${attempt}):`, data);
+        
+        // Don't retry on permanent errors like invalid_grant
+        if (data.error === 'invalid_grant' || data.error === 'invalid_client') {
+          return { accessToken: '', expiresIn: 0, error: data.error };
+        }
+
+        // Retry on transient errors
+        if (attempt < maxRetries) {
+          const delay = Math.pow(2, attempt) * 1000; // 2s, 4s
+          console.log(`Retrying token refresh in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        return null;
+      }
+
+      return {
+        accessToken: data.access_token,
+        expiresIn: data.expires_in,
+      };
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : 'Network error';
+      console.error(`Token refresh network error (attempt ${attempt}):`, error);
+      
+      if (attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 1000;
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
   }
 
-  return {
-    accessToken: data.access_token,
-    expiresIn: data.expires_in,
-  };
+  console.error('All token refresh attempts failed:', lastError);
+  return null;
 }
 
 serve(async (req) => {
@@ -113,19 +147,43 @@ serve(async (req) => {
     const refreshToken = decryptToken(connection.refresh_token_encrypted);
     const result = await refreshAccessToken(refreshToken);
 
-    if (!result) {
+    if (!result || result.error) {
+      // Check if token was permanently revoked
+      const isRevoked = result?.error === 'invalid_grant';
+      
+      // Update connection status for permanent errors
+      if (isRevoked) {
+        const serviceSupabase = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
+        
+        await serviceSupabase
+          .from('google_calendar_connection')
+          .update({ 
+            is_active: false, 
+            updated_at: new Date().toISOString() 
+          })
+          .eq('user_id', user.id);
+      }
+      
       // Update sync state to error
       await supabase
         .from('google_sync_state')
         .update({
           sync_status: 'error',
-          last_error_message: 'Token refresh failed. Please reconnect.',
+          last_error_message: isRevoked 
+            ? 'Google Calendar access was revoked. Please reconnect.'
+            : 'Token refresh failed. Please reconnect.',
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', user.id);
 
       return new Response(
-        JSON.stringify({ error: 'Failed to refresh token. Please reconnect your Google Calendar.' }),
+        JSON.stringify({ 
+          error: 'Failed to refresh token. Please reconnect your Google Calendar.',
+          requiresReconnect: isRevoked
+        }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

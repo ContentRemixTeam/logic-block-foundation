@@ -37,6 +37,7 @@ import { QuickLogCard } from '@/components/content';
 import { NurtureCheckinCard } from '@/components/nurture';
 import { HabitTrackerCard } from '@/components/habits';
 import { HealthCheckPanel } from '@/components/dev';
+import { CalendarReconnectBanner } from '@/components/google-calendar/CalendarReconnectBanner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -746,6 +747,9 @@ export default function DailyPlan() {
             </Button>
           </div>
         </div>
+
+        {/* Google Calendar Reconnection Banner */}
+        <CalendarReconnectBanner />
 
         {/* Planning Quick Links */}
         <div className="flex flex-wrap items-center gap-2 text-sm">

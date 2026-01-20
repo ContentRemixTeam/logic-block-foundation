@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.admin-student-lookup]
 verify_jwt = false
+
+[functions.google-token-keepalive]
+verify_jwt = false

@@ -190,6 +190,36 @@ serve(async (req) => {
     if (!response.ok) {
       const error = await response.json();
       console.error('Failed to fetch events:', error);
+      
+      // Handle 401 - token expired/revoked
+      if (response.status === 401) {
+        const serviceSupabase = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
+        
+        // Mark connection as inactive
+        await serviceSupabase
+          .from('google_calendar_connection')
+          .update({ 
+            is_active: false, 
+            updated_at: new Date().toISOString() 
+          })
+          .eq('user_id', user.id);
+        
+        console.log('Marked connection as inactive due to 401 for user:', user.id);
+        
+        return new Response(
+          JSON.stringify({ 
+            error: 'Google Calendar access expired. Please reconnect.', 
+            events: [], 
+            connected: false,
+            requiresReconnect: true 
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ error: 'Failed to fetch calendar events', events: [], connected: true }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
