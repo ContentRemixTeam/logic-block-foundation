@@ -10,7 +10,7 @@ import { DebriefReminderPopup } from '@/components/DebriefReminderPopup';
 import { OfficeHoursDisplay } from '@/components/OfficeHoursDisplay';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
-import { DailyTop3Card } from '@/components/arcade/DailyTop3Card';
+import { DailyTop3Card, ArcadeIntroCard } from '@/components/arcade';
 import { useArcade } from '@/hooks/useArcade';
 import { supabase } from '@/integrations/supabase/client';
 import { normalizeArray, normalizeString, normalizeNumber } from '@/lib/normalize';
@@ -920,6 +920,9 @@ export default function Dashboard() {
                   )}
                 </PremiumCardContent>
               </PremiumCard>
+
+              {/* Arcade Intro Card - Shows for new users */}
+              <ArcadeIntroCard />
 
               {/* Today's Top 3 Card - Arcade version with coins/pet */}
               <DailyTop3Card />
