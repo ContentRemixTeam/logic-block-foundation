@@ -1,0 +1,1 @@
+export { ThemeGallery } from './ThemeGallery';

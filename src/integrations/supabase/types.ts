@@ -38,6 +38,42 @@ export type Database = {
         }
         Relationships: []
       }
+      app_themes: {
+        Row: {
+          config_json: Json
+          created_at: string
+          id: string
+          is_published: boolean
+          name: string
+          preview_emoji: string | null
+          slug: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          config_json: Json
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          name: string
+          preview_emoji?: string | null
+          slug: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          config_json?: Json
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          name?: string
+          preview_emoji?: string | null
+          slug?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
       arcade_daily_pet: {
         Row: {
           created_at: string | null
@@ -1307,6 +1343,27 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_checkins: {
+        Row: {
+          checkin_date: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          checkin_date: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          checkin_date?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_plans: {
         Row: {
           created_at: string | null
@@ -1605,6 +1662,30 @@ export type Database = {
           last_synced_at?: string | null
           sync_direction?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      feature_flags: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          key: string
+          rollout_percent: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          key: string
+          rollout_percent?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          key?: string
+          rollout_percent?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -2186,6 +2267,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      monthly_challenge_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_published: boolean
+          month_end: string
+          month_start: string
+          reward_theme_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          month_end: string
+          month_start: string
+          reward_theme_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          month_end?: string
+          month_start?: string
+          reward_theme_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_challenge_templates_reward_theme_id_fkey"
+            columns: ["reward_theme_id"]
+            isOneToOne: false
+            referencedRelation: "app_themes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       monthly_reviews: {
         Row: {
@@ -3237,6 +3362,38 @@ export type Database = {
         }
         Relationships: []
       }
+      user_feature_flags: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          key: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          key: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          key?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_feature_flags_key_fkey"
+            columns: ["key"]
+            isOneToOne: false
+            referencedRelation: "feature_flags"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
       user_mastermind_rsvps: {
         Row: {
           added_at: string | null
@@ -3266,6 +3423,57 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_monthly_challenges: {
+        Row: {
+          challenge_type: string
+          completed_at: string | null
+          enrolled_at: string
+          id: string
+          project_id: string | null
+          status: string
+          target_value: number
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          challenge_type: string
+          completed_at?: string | null
+          enrolled_at?: string
+          id?: string
+          project_id?: string | null
+          status?: string
+          target_value: number
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          challenge_type?: string
+          completed_at?: string | null
+          enrolled_at?: string
+          id?: string
+          project_id?: string | null
+          status?: string
+          target_value?: number
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_monthly_challenges_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_monthly_challenges_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_challenge_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_profiles: {
         Row: {
@@ -3311,15 +3519,18 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          active_theme_id: string | null
           ai_api_key: string | null
           arcade_enabled: boolean | null
           arcade_reduce_motion: boolean | null
           arcade_sounds_off: boolean | null
+          celebrations_enabled: boolean
           created_at: string | null
           current_debrief_streak: number | null
           cycle_summary_questions: Json | null
           daily_anchor_enabled: boolean | null
           daily_review_questions: Json | null
+          delight_intensity: string
           habit_categories_enabled: boolean | null
           has_seen_tour: boolean | null
           last_debrief_date: string | null
@@ -3338,8 +3549,10 @@ export type Database = {
           show_mastermind_calls: boolean | null
           show_pet_widget: boolean | null
           show_pomodoro_widget: boolean | null
+          sound_enabled: boolean
           streak_potions_remaining: number | null
           theme_preference: string | null
+          themes_enabled: boolean
           updated_at: string | null
           user_id: string
           user_level: number | null
@@ -3348,15 +3561,18 @@ export type Database = {
           xp_points: number | null
         }
         Insert: {
+          active_theme_id?: string | null
           ai_api_key?: string | null
           arcade_enabled?: boolean | null
           arcade_reduce_motion?: boolean | null
           arcade_sounds_off?: boolean | null
+          celebrations_enabled?: boolean
           created_at?: string | null
           current_debrief_streak?: number | null
           cycle_summary_questions?: Json | null
           daily_anchor_enabled?: boolean | null
           daily_review_questions?: Json | null
+          delight_intensity?: string
           habit_categories_enabled?: boolean | null
           has_seen_tour?: boolean | null
           last_debrief_date?: string | null
@@ -3375,8 +3591,10 @@ export type Database = {
           show_mastermind_calls?: boolean | null
           show_pet_widget?: boolean | null
           show_pomodoro_widget?: boolean | null
+          sound_enabled?: boolean
           streak_potions_remaining?: number | null
           theme_preference?: string | null
+          themes_enabled?: boolean
           updated_at?: string | null
           user_id: string
           user_level?: number | null
@@ -3385,15 +3603,18 @@ export type Database = {
           xp_points?: number | null
         }
         Update: {
+          active_theme_id?: string | null
           ai_api_key?: string | null
           arcade_enabled?: boolean | null
           arcade_reduce_motion?: boolean | null
           arcade_sounds_off?: boolean | null
+          celebrations_enabled?: boolean
           created_at?: string | null
           current_debrief_streak?: number | null
           cycle_summary_questions?: Json | null
           daily_anchor_enabled?: boolean | null
           daily_review_questions?: Json | null
+          delight_intensity?: string
           habit_categories_enabled?: boolean | null
           has_seen_tour?: boolean | null
           last_debrief_date?: string | null
@@ -3412,8 +3633,10 @@ export type Database = {
           show_mastermind_calls?: boolean | null
           show_pet_widget?: boolean | null
           show_pomodoro_widget?: boolean | null
+          sound_enabled?: boolean
           streak_potions_remaining?: number | null
           theme_preference?: string | null
+          themes_enabled?: boolean
           updated_at?: string | null
           user_id?: string
           user_level?: number | null
@@ -3421,7 +3644,54 @@ export type Database = {
           works_weekends?: boolean | null
           xp_points?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_settings_active_theme_id_fkey"
+            columns: ["active_theme_id"]
+            isOneToOne: false
+            referencedRelation: "app_themes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_theme_unlocks: {
+        Row: {
+          id: string
+          source_user_challenge_id: string | null
+          theme_id: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          source_user_challenge_id?: string | null
+          theme_id: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          source_user_challenge_id?: string | null
+          theme_id?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_theme_unlocks_source_user_challenge_id_fkey"
+            columns: ["source_user_challenge_id"]
+            isOneToOne: false
+            referencedRelation: "user_monthly_challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_theme_unlocks_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "app_themes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       weekly_goals: {
         Row: {
@@ -3647,11 +3917,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_feature_flag: { Args: { p_key: string }; Returns: boolean }
       check_mastermind_entitlement: {
         Args: { user_email: string }
         Returns: boolean
       }
       cleanup_rate_limits: { Args: never; Returns: undefined }
+      complete_monthly_challenge_if_ready: {
+        Args: { p_user_challenge_id: string }
+        Returns: Json
+      }
       create_daily_plan: {
         Args: {
           p_date: string
@@ -3707,6 +3982,10 @@ export type Database = {
       get_dashboard_summary: { Args: { p_user_id: string }; Returns: Json }
       get_habit_summary_for_week: {
         Args: { p_user_id: string; p_week_id: string }
+        Returns: Json
+      }
+      get_monthly_challenge_progress: {
+        Args: { p_user_challenge_id: string }
         Returns: Json
       }
       get_user_entitlement: {
