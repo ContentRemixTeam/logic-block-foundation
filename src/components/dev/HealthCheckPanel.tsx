@@ -58,29 +58,48 @@ export function HealthCheckPanel() {
       });
     }
 
-    // 2. Google Calendar check
+    // 2. Google Calendar check - enhanced with token health
     if (calendarStatus.connected) {
-      if (calendarStatus.lastError) {
+      // Check for sync errors that indicate token issues
+      if (calendarStatus.syncStatus === 'error' || calendarStatus.lastError) {
+        const isTokenError = calendarStatus.lastError?.toLowerCase().includes('token') ||
+                            calendarStatus.lastError?.toLowerCase().includes('revoked') ||
+                            calendarStatus.lastError?.toLowerCase().includes('reconnect');
         checks.push({
           name: 'Google Calendar',
           status: 'error',
-          message: 'Connection error',
-          details: calendarStatus.lastError,
+          message: isTokenError ? 'Token expired/revoked' : 'Connection error',
+          details: isTokenError 
+            ? 'Go to Settings → Google Calendar to reconnect'
+            : calendarStatus.lastError,
         });
       } else if (!calendarStatus.calendarSelected) {
         checks.push({
           name: 'Google Calendar',
           status: 'warning',
           message: 'Connected but no calendar selected',
+          details: 'Select a calendar in Settings',
         });
       } else {
+        // Check token freshness
+        const lastSync = calendarStatus.lastSyncAt ? new Date(calendarStatus.lastSyncAt) : null;
+        const hoursSinceSync = lastSync ? (Date.now() - lastSync.getTime()) / (1000 * 60 * 60) : null;
+        
+        let tokenStatus: 'ok' | 'warning' = 'ok';
+        let tokenMessage = `Connected: ${calendarStatus.calendarName || 'Calendar'}`;
+        
+        if (hoursSinceSync && hoursSinceSync > 24) {
+          tokenStatus = 'warning';
+          tokenMessage = 'Sync may be stale';
+        }
+        
         checks.push({
           name: 'Google Calendar',
-          status: 'ok',
-          message: `Connected: ${calendarStatus.calendarName || 'Calendar'}`,
-          details: calendarStatus.lastSyncAt 
-            ? `Last sync: ${format(new Date(calendarStatus.lastSyncAt), 'h:mm a')}`
-            : undefined,
+          status: tokenStatus,
+          message: tokenMessage,
+          details: lastSync 
+            ? `Last sync: ${format(lastSync, 'h:mm a')}${hoursSinceSync && hoursSinceSync > 24 ? ' (>24h ago)' : ''}`
+            : 'Never synced',
         });
       }
     } else {
@@ -88,7 +107,7 @@ export function HealthCheckPanel() {
         name: 'Google Calendar',
         status: 'warning',
         message: 'Not connected',
-        details: 'Connect in settings to sync events',
+        details: 'Connect in Settings to sync events',
       });
     }
 
