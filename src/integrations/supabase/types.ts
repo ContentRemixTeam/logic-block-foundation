@@ -565,6 +565,169 @@ export type Database = {
           },
         ]
       }
+      course_checkins: {
+        Row: {
+          blocker: string | null
+          checkin_date: string
+          checkin_type: string
+          course_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          on_track: boolean | null
+          user_id: string
+        }
+        Insert: {
+          blocker?: string | null
+          checkin_date: string
+          checkin_type: string
+          course_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          on_track?: boolean | null
+          user_id: string
+        }
+        Update: {
+          blocker?: string | null
+          checkin_date?: string
+          checkin_type?: string
+          course_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          on_track?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_checkins_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_study_plans: {
+        Row: {
+          auto_generate_sessions: boolean
+          course_id: string
+          created_at: string
+          id: string
+          last_generation_op_id: string | null
+          preferred_days: number[]
+          session_minutes: number
+          sessions_per_week: number
+          start_date: string
+          target_finish_date: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_generate_sessions?: boolean
+          course_id: string
+          created_at?: string
+          id?: string
+          last_generation_op_id?: string | null
+          preferred_days?: number[]
+          session_minutes?: number
+          sessions_per_week?: number
+          start_date: string
+          target_finish_date?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_generate_sessions?: boolean
+          course_id?: string
+          created_at?: string
+          id?: string
+          last_generation_op_id?: string | null
+          preferred_days?: number[]
+          session_minutes?: number
+          sessions_per_week?: number
+          start_date?: string
+          target_finish_date?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_study_plans_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courses: {
+        Row: {
+          course_url: string | null
+          created_at: string
+          id: string
+          intention: string | null
+          notes: string | null
+          progress_percent: number
+          provider: string | null
+          purchase_date: string | null
+          roi_checkin_date: string | null
+          roi_checkin_days: number
+          roi_target: string | null
+          roi_type: string | null
+          start_date: string | null
+          status: string
+          success_criteria: string | null
+          target_finish_date: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          course_url?: string | null
+          created_at?: string
+          id?: string
+          intention?: string | null
+          notes?: string | null
+          progress_percent?: number
+          provider?: string | null
+          purchase_date?: string | null
+          roi_checkin_date?: string | null
+          roi_checkin_days?: number
+          roi_target?: string | null
+          roi_type?: string | null
+          start_date?: string | null
+          status?: string
+          success_criteria?: string | null
+          target_finish_date?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          course_url?: string | null
+          created_at?: string
+          id?: string
+          intention?: string | null
+          notes?: string | null
+          progress_percent?: number
+          provider?: string | null
+          purchase_date?: string | null
+          roi_checkin_date?: string | null
+          roi_checkin_days?: number
+          roi_target?: string | null
+          roi_type?: string | null
+          start_date?: string | null
+          status?: string
+          success_criteria?: string | null
+          target_finish_date?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ctfar: {
         Row: {
           action: string | null
@@ -2762,6 +2925,7 @@ export type Database = {
           checklist_progress: Json | null
           completed_at: string | null
           context_tags: string[] | null
+          course_id: string | null
           created_at: string | null
           cycle_id: string | null
           daily_plan_id: string | null
@@ -2805,6 +2969,7 @@ export type Database = {
           task_description: string | null
           task_id: string
           task_text: string
+          task_type: string | null
           template_key: string | null
           time_block_end: string | null
           time_block_start: string | null
@@ -2819,6 +2984,7 @@ export type Database = {
           checklist_progress?: Json | null
           completed_at?: string | null
           context_tags?: string[] | null
+          course_id?: string | null
           created_at?: string | null
           cycle_id?: string | null
           daily_plan_id?: string | null
@@ -2862,6 +3028,7 @@ export type Database = {
           task_description?: string | null
           task_id?: string
           task_text: string
+          task_type?: string | null
           template_key?: string | null
           time_block_end?: string | null
           time_block_start?: string | null
@@ -2876,6 +3043,7 @@ export type Database = {
           checklist_progress?: Json | null
           completed_at?: string | null
           context_tags?: string[] | null
+          course_id?: string | null
           created_at?: string | null
           cycle_id?: string | null
           daily_plan_id?: string | null
@@ -2919,6 +3087,7 @@ export type Database = {
           task_description?: string | null
           task_id?: string
           task_text?: string
+          task_type?: string | null
           template_key?: string | null
           time_block_end?: string | null
           time_block_start?: string | null
@@ -2928,6 +3097,13 @@ export type Database = {
           week_in_cycle?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tasks_cycle_id_fkey"
             columns: ["cycle_id"]
@@ -3494,6 +3670,16 @@ export type Database = {
       evaluate_habit_color: {
         Args: { p_date: string; p_user_id: string }
         Returns: string
+      }
+      generate_course_study_sessions: {
+        Args: {
+          p_client_op_id: string
+          p_course_id: string
+          p_from_date?: string
+          p_plan_id: string
+          p_weeks?: number
+        }
+        Returns: Json
       }
       get_current_cycle: {
         Args: { p_today?: string; p_user_id: string }
