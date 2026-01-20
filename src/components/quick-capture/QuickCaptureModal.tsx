@@ -15,6 +15,7 @@ import { useProjects } from '@/hooks/useProjects';
 import { Zap, ListTodo, Lightbulb, LogIn, Calendar, Plus, Mic, MicOff, FolderKanban, Clock, Hash, X, FileText, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { getStorageItem, setStorageItem } from '@/lib/storage';
 import {
   CaptureType,
   detectCaptureTypeWithConfidence,
@@ -24,9 +25,9 @@ import {
 } from './useCaptureTypeDetection';
 import { useSpeechDictation } from './useSpeechDictation';
 import { EditableChips } from './EditableChips';
+import { QuickChips } from './QuickChips';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ContentSaveModal } from '@/components/content/ContentSaveModal';
 
 interface QuickCaptureModalProps {
@@ -56,6 +57,13 @@ const PRIORITY_OPTIONS = [
   { value: 'someday', label: 'Someday' },
 ];
 
+// Helper for haptic feedback
+const triggerHaptic = () => {
+  if ('vibrate' in navigator) {
+    navigator.vibrate(10);
+  }
+};
+
 export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpenAfterSave = false }: QuickCaptureModalProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -76,6 +84,19 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
   const [userOverrodeType, setUserOverrodeType] = useState(false);
   const [newIdeaTag, setNewIdeaTag] = useState('');
   const [contentModalOpen, setContentModalOpen] = useState(false);
+
+  // Recent tags and projects from localStorage
+  const [recentTags, setRecentTags] = useState<string[]>(() => {
+    const stored = getStorageItem('quick-capture-recent-tags');
+    return stored ? JSON.parse(stored) : [];
+  });
+  const [recentProjectIds, setRecentProjectIds] = useState<string[]>(() => {
+    const stored = getStorageItem('quick-capture-recent-projects');
+    return stored ? JSON.parse(stored) : [];
+  });
+
+  // Recent projects with full data
+  const recentProjects = projects.filter(p => recentProjectIds.includes(p.id) && !p.is_template);
 
   // Speech dictation
   const {
@@ -242,6 +263,85 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
     setIdeaData(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
   };
 
+  // Update recents after save
+  const updateRecents = (tags: string[], projectId?: string) => {
+    if (tags.length) {
+      const updated = [...new Set([...tags, ...recentTags])].slice(0, 10);
+      setRecentTags(updated);
+      setStorageItem('quick-capture-recent-tags', JSON.stringify(updated));
+    }
+    if (projectId) {
+      const updated = [projectId, ...recentProjectIds.filter(id => id !== projectId)].slice(0, 5);
+      setRecentProjectIds(updated);
+      setStorageItem('quick-capture-recent-projects', JSON.stringify(updated));
+    }
+  };
+
+  // Burst save for multi-line tasks
+  const handleBurstSave = async (lines: string[]) => {
+    let savedCount = 0;
+    const errors: string[] = [];
+    
+    // Get shared metadata from current parsedTask/chips
+    const sharedDate = parsedTask?.date;
+    const sharedPriority = parsedTask?.priority;
+    const sharedDuration = parsedTask?.duration;
+    const sharedTags = parsedTask?.tags || [];
+    const sharedProjectId = parsedTask?.projectId;
+
+    for (const line of lines) {
+      try {
+        const taskParsed = parseTaskInput(line);
+        
+        // Merge with shared chips (line-specific takes precedence)
+        await createTask.mutateAsync({
+          task_text: taskParsed.text || line,
+          scheduled_date: taskParsed.date 
+            ? format(taskParsed.date, 'yyyy-MM-dd') 
+            : sharedDate ? format(sharedDate, 'yyyy-MM-dd') : null,
+          priority: taskParsed.priority || sharedPriority || null,
+          estimated_minutes: taskParsed.duration || sharedDuration || null,
+          context_tags: taskParsed.tags.length > 0 
+            ? taskParsed.tags 
+            : sharedTags.length > 0 ? sharedTags : null,
+          project_id: taskParsed.projectId || sharedProjectId || null,
+          status: 'backlog',
+        });
+        
+        savedCount++;
+      } catch (err: any) {
+        errors.push(`"${line.slice(0, 20)}...": ${err.message}`);
+      }
+    }
+
+    // Show result
+    if (errors.length > 0) {
+      toast.error(`Failed to save ${errors.length} task(s)`, {
+        description: errors.slice(0, 2).join('\n'),
+        duration: 5000,
+      });
+    }
+    
+    if (savedCount > 0) {
+      if (isMobile) triggerHaptic();
+      toast.success(`✅ Saved ${savedCount} task${savedCount > 1 ? 's' : ''}`, {
+        duration: 2000,
+      });
+      
+      // Update recents
+      updateRecents(sharedTags, sharedProjectId || undefined);
+      
+      // Reset or close based on stayOpenAfterSave
+      if (stayOpenAfterSave) {
+        setInput('');
+        setParsedTask(null);
+        setTimeout(() => inputRef.current?.focus(), 50);
+      } else {
+        onOpenChange(false);
+      }
+    }
+  };
+
   const handleSave = async () => {
     if (!input.trim()) return;
 
@@ -258,6 +358,16 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
     setLastCaptureType(captureType);
 
     try {
+      // Check for multi-line input (burst mode) for tasks
+      const lines = input.split('\n').map(l => l.trim()).filter(Boolean);
+      
+      if (lines.length > 1 && captureType === 'task') {
+        // Multi-task burst save
+        await handleBurstSave(lines);
+        setSaving(false);
+        return;
+      }
+
       // Check session - iOS PWA can lose localStorage sessions
       let { data: { session } } = await supabase.auth.getSession();
       
@@ -319,6 +429,9 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
         });
         
         savedId = createdTask?.task_id || '';
+        
+        // Update recents
+        updateRecents(taskData.tags, taskData.projectId || undefined);
       }
 
       // Handle stay-open mode vs close mode
@@ -331,9 +444,12 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
         setShowConvertChips(false);
         setUserOverrodeType(false);
         
-        // Show a quick inline toast
+        // Haptic + toast
+        if (isMobile) {
+          triggerHaptic();
+        }
         toast.success(savedType === 'task' ? '✅ Task saved' : '💡 Idea saved', {
-          duration: 2000,
+          duration: 1500,
         });
         
         // Refocus input after a short delay
@@ -398,8 +514,27 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
     }
   };
 
-  // Content for both mobile and desktop
-  const modalContent = (
+  // Handle quick chip updates
+  const handleQuickChipUpdate = (updates: Partial<ParsedTask>) => {
+    setParsedTask(prev => {
+      if (!prev) {
+        // Create new parsed task with defaults
+        return {
+          text: input.trim(),
+          tags: [],
+          ...updates,
+        };
+      }
+      return { ...prev, ...updates };
+    });
+  };
+
+  // Calculate multi-line count
+  const lines = input.split('\n').map(l => l.trim()).filter(Boolean);
+  const isMultiLine = lines.length > 1 && captureType === 'task';
+
+  // Desktop content (without sticky footer)
+  const desktopContent = (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-2">
@@ -535,6 +670,13 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
               </span>
               Listening... Tap mic or speak to finish
             </div>
+          )}
+
+          {/* Multi-line indicator */}
+          {isMultiLine && (
+            <Badge variant="secondary" className="text-xs">
+              📝 {lines.length} tasks detected
+            </Badge>
           )}
 
           {/* Convert chips - shown after dictation or paste */}
@@ -774,7 +916,7 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
             disabled={!input.trim() || saving}
             className="w-full h-12"
           >
-            {saving ? 'Saving...' : `Save ${captureType === 'task' ? 'Task' : 'Idea'}`}
+            {saving ? 'Saving...' : `Save ${captureType === 'task' ? (isMultiLine ? `${lines.length} Tasks` : 'Task') : 'Idea'}`}
           </Button>
 
           {/* Hint text */}
@@ -786,14 +928,272 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
     </div>
   );
 
+  // Mobile content with sticky footer and quick chips
+  const mobileContent = (
+    <div className="flex flex-col h-full">
+      {/* Scrollable content area */}
+      <div className="flex-1 overflow-y-auto space-y-4">
+        {/* Header */}
+        <div className="flex items-center gap-2">
+          <Zap className="h-5 w-5 text-primary" />
+          <h2 className="text-lg font-semibold">Quick Capture</h2>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="ml-auto h-8 w-8" 
+            onClick={() => onOpenChange(false)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Not logged in state */}
+        {!user && (
+          <div className="flex flex-col items-center justify-center py-8 space-y-4">
+            <LogIn className="h-12 w-12 text-muted-foreground" />
+            <p className="text-muted-foreground text-center">
+              Log in to capture tasks and ideas
+            </p>
+            <Button onClick={() => window.location.href = '/auth'}>
+              Go to Login
+            </Button>
+          </div>
+        )}
+
+        {/* Logged in content */}
+        {user && (
+          <>
+            {/* Type selector - segmented control */}
+            <div className="inline-flex rounded-lg border bg-muted p-1 gap-1">
+              <button
+                type="button"
+                onClick={() => toggleCaptureType('task', true)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-all",
+                  captureType === 'task'
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                )}
+              >
+                <ListTodo className="h-4 w-4" />
+                Task
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleCaptureType('idea', true)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-all",
+                  captureType === 'idea'
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                )}
+              >
+                <Lightbulb className="h-4 w-4" />
+                Idea
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleCaptureType('content', true)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-all",
+                  captureType === 'content'
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                )}
+              >
+                <FileText className="h-4 w-4" />
+                Content
+              </button>
+            </div>
+
+            {/* Input field with mic button */}
+            <div className="relative">
+              <Input
+                ref={inputRef}
+                value={isListening ? input + interimText : input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
+                placeholder={
+                  isListening 
+                    ? "Listening..."
+                    : captureType === 'task'
+                      ? "Add task..."
+                      : "Add idea..."
+                }
+                className={cn(
+                  "text-base h-12 pr-12",
+                  isListening && "border-primary ring-2 ring-primary/20"
+                )}
+                autoComplete="off"
+                disabled={isListening}
+              />
+              
+              {/* Mic button */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={handleMicClick}
+                disabled={!speechSupported}
+                className={cn(
+                  "absolute right-1 top-1/2 -translate-y-1/2 h-10 w-10",
+                  isListening && "text-primary animate-pulse"
+                )}
+              >
+                {isListening ? (
+                  <MicOff className="h-5 w-5" />
+                ) : (
+                  <Mic className="h-5 w-5" />
+                )}
+              </Button>
+            </div>
+
+            {/* Listening indicator */}
+            {isListening && (
+              <div className="flex items-center gap-2 text-sm text-primary">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                </span>
+                Listening... Tap mic to stop
+              </div>
+            )}
+
+            {/* Multi-line indicator */}
+            {isMultiLine && (
+              <Badge variant="secondary" className="text-xs w-fit">
+                📝 {lines.length} tasks detected
+              </Badge>
+            )}
+
+            {/* Quick Chips for tasks - mobile only */}
+            {captureType === 'task' && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-medium">Quick add:</p>
+                <QuickChips
+                  parsedTask={parsedTask}
+                  onUpdate={handleQuickChipUpdate}
+                  recentTags={recentTags}
+                  recentProjects={recentProjects}
+                />
+              </div>
+            )}
+
+            {/* Convert chips - shown after dictation or paste */}
+            {showConvertChips && input.trim() && !isListening && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-muted-foreground">Detected as:</span>
+                <Button
+                  variant={captureType === 'task' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => toggleCaptureType('task', true)}
+                  className="h-10 gap-1"
+                >
+                  <ListTodo className="h-4 w-4" />
+                  Task
+                </Button>
+                <Button
+                  variant={captureType === 'idea' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => toggleCaptureType('idea', true)}
+                  className="h-10 gap-1"
+                >
+                  <Lightbulb className="h-4 w-4" />
+                  Idea
+                </Button>
+              </div>
+            )}
+
+            {/* Task preview (simplified for mobile) */}
+            {captureType === 'task' && parsedTask && input.trim() && (
+              <div className="p-3 rounded-lg bg-muted/50 space-y-2">
+                <div className="text-sm font-medium">
+                  {parsedTask.text || '(enter task name)'}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {parsedTask.date && (
+                    <Badge variant="secondary" className="text-xs">
+                      📅 {format(parsedTask.date, 'MMM d')}
+                    </Badge>
+                  )}
+                  {parsedTask.duration && (
+                    <Badge variant="secondary" className="text-xs">
+                      ⏱️ {parsedTask.duration}m
+                    </Badge>
+                  )}
+                  {parsedTask.priority && (
+                    <Badge variant="secondary" className="text-xs">
+                      {parsedTask.priority === 'high' ? '🔴' : parsedTask.priority === 'medium' ? '🟡' : '🟢'} {parsedTask.priority}
+                    </Badge>
+                  )}
+                  {parsedTask.tags.map(tag => (
+                    <Badge key={tag} variant="outline" className="text-xs">
+                      #{tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Idea preview */}
+            {captureType === 'idea' && input.trim() && (
+              <div className="p-3 rounded-lg bg-muted/50 space-y-3">
+                <div className="text-sm font-medium flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4 text-yellow-500" />
+                  {cleanIdeaInput(input) || '(enter your idea)'}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Sticky bottom action bar */}
+      {user && (
+        <div className="sticky bottom-0 left-0 right-0 bg-background border-t pt-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] mt-4 -mx-4 px-4">
+          <div className="flex gap-2">
+            <Button
+              onClick={handleSave}
+              disabled={!input.trim() || saving}
+              className="flex-1 h-12"
+            >
+              {saving ? 'Saving...' : (isMultiLine ? `Save ${lines.length} Tasks` : 'Save')}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                handleSave();
+              }}
+              disabled={!input.trim() || saving}
+              className="flex-1 h-12"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Another
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   // Use Drawer on mobile, Dialog on desktop
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="px-4 pb-8 pt-4">
-          {modalContent}
-        </DrawerContent>
-      </Drawer>
+      <>
+        <Drawer open={open} onOpenChange={onOpenChange}>
+          <DrawerContent className="max-h-[100dvh] overflow-y-auto px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
+            {mobileContent}
+          </DrawerContent>
+        </Drawer>
+        
+        {/* Content Save Modal */}
+        <ContentSaveModal
+          open={contentModalOpen}
+          onOpenChange={setContentModalOpen}
+          onSaved={() => {}}
+        />
+      </>
     );
   }
 
@@ -801,7 +1201,7 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-md">
-          {modalContent}
+          {desktopContent}
         </DialogContent>
       </Dialog>
       
