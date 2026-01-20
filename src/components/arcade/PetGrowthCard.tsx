@@ -1,19 +1,20 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useArcade } from '@/hooks/useArcade';
 import { useTasks } from '@/hooks/useTasks';
-import { usePomodoro } from '@/hooks/usePomodoro';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { TaskCelebrationModal } from './TaskCelebrationModal';
+import { TimerCompleteModal } from './TimerCompleteModal';
+import { playTimerSound } from '@/lib/timerSound';
 import { RotateCcw, ChevronDown, Timer, Pause, Play, X, Check } from 'lucide-react';
 
 // Pet emojis for each stage
@@ -30,6 +31,27 @@ const PET_STAGE_EMOJIS: Record<string, Record<string, string>> = {
   hamster: { sleeping: '🥚', baby: '🐹', teen: '🐹✨', adult: '🐹🌻' },
 };
 
+const PET_OPTIONS = [
+  { type: 'unicorn', emoji: '🦄', name: 'Unicorn' },
+  { type: 'dragon', emoji: '🐉', name: 'Dragon' },
+  { type: 'cat', emoji: '🐱', name: 'Cat' },
+  { type: 'dog', emoji: '🐕', name: 'Dog' },
+  { type: 'bunny', emoji: '🐰', name: 'Bunny' },
+  { type: 'fox', emoji: '🦊', name: 'Fox' },
+  { type: 'panda', emoji: '🐼', name: 'Panda' },
+  { type: 'penguin', emoji: '🐧', name: 'Penguin' },
+  { type: 'owl', emoji: '🦉', name: 'Owl' },
+  { type: 'hamster', emoji: '🐹', name: 'Hamster' },
+];
+
+const TIMER_DURATIONS = [
+  { value: 5, label: '5 min' },
+  { value: 10, label: '10 min' },
+  { value: 15, label: '15 min' },
+  { value: 25, label: '25 min' },
+  { value: 45, label: '45 min' },
+];
+
 const PET_NAMES: Record<string, string> = {
   unicorn: 'Unicorn',
   dragon: 'Dragon',
@@ -43,7 +65,6 @@ const PET_NAMES: Record<string, string> = {
   hamster: 'Hamster',
 };
 
-// Get random pet type
 const getRandomPetType = () => {
   const types = Object.keys(PET_NAMES);
   return types[Math.floor(Math.random() * types.length)];
@@ -53,16 +74,23 @@ interface TaskSlot {
   id: string;
   text: string;
   completed: boolean;
-  linkedTaskId?: string; // Reference to task from task manager
+  linkedTaskId?: string;
   timerActive?: boolean;
 }
 
 export function PetGrowthCard() {
   const { user } = useAuth();
-  const { pet, refreshPet, settings } = useArcade();
+  const { pet, refreshPet, selectPet } = useArcade();
   const { data: allTasks = [] } = useTasks();
-  const pomodoro = usePomodoro();
   const today = new Date().toISOString().split('T')[0];
+  
+  // Timer state (inline instead of usePomodoro for custom duration)
+  const [timerState, setTimerState] = useState({
+    isRunning: false,
+    timeRemaining: 0,
+    totalDuration: 0,
+  });
+  const intervalRef = useRef<number | null>(null);
   
   const [tasks, setTasks] = useState<TaskSlot[]>([
     { id: '1', text: '', completed: false },
@@ -76,6 +104,9 @@ export function PetGrowthCard() {
   const [isResetting, setIsResetting] = useState(false);
   const [openPopoverIndex, setOpenPopoverIndex] = useState<number | null>(null);
   const [activeTimerIndex, setActiveTimerIndex] = useState<number | null>(null);
+  const [timerDurationPopoverIndex, setTimerDurationPopoverIndex] = useState<number | null>(null);
+  const [timerCompleteOpen, setTimerCompleteOpen] = useState(false);
+  const [timerCompletedTaskIndex, setTimerCompletedTaskIndex] = useState<number | null>(null);
 
   // Get incomplete tasks from task manager for dropdown
   const incompleteTasks = useMemo(() => 
@@ -88,7 +119,6 @@ export function PetGrowthCard() {
   const petType = pet?.pet_type || 'unicorn';
   const petName = PET_NAMES[petType] || 'Pet';
   
-  // Determine stage: sleeping (0), baby (1), teen (2), adult (3)
   const getStage = (count: number) => {
     if (count >= 3) return 'adult';
     if (count >= 2) return 'teen';
@@ -100,6 +130,37 @@ export function PetGrowthCard() {
   const petEmojis = PET_STAGE_EMOJIS[petType] || PET_STAGE_EMOJIS.unicorn;
   const currentEmoji = petEmojis[currentStage];
   const isComplete = completedCount >= 3;
+  const canSelectPet = currentStage === 'sleeping';
+
+  // Timer tick effect
+  useEffect(() => {
+    if (timerState.isRunning && timerState.timeRemaining > 0) {
+      intervalRef.current = window.setInterval(() => {
+        setTimerState(prev => {
+          if (prev.timeRemaining <= 1) {
+            // Timer complete!
+            playTimerSound();
+            setTimerCompleteOpen(true);
+            setTimerCompletedTaskIndex(activeTimerIndex);
+            return { ...prev, isRunning: false, timeRemaining: 0 };
+          }
+          return { ...prev, timeRemaining: prev.timeRemaining - 1 };
+        });
+      }, 1000);
+    }
+    
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [timerState.isRunning, timerState.timeRemaining, activeTimerIndex]);
+
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const getStageMessage = () => {
     switch (currentStage) {
@@ -121,6 +182,11 @@ export function PetGrowthCard() {
     }
   };
 
+  const handlePetSelect = async (newPetType: string) => {
+    await selectPet(newPetType);
+    toast.success(`You selected ${PET_NAMES[newPetType]}! Complete 3 tasks to hatch it 🥚`);
+  };
+
   const handleTaskChange = useCallback((index: number, text: string) => {
     setTasks(prev => {
       const updated = [...prev];
@@ -138,18 +204,34 @@ export function PetGrowthCard() {
     setOpenPopoverIndex(null);
   }, []);
 
-  const handleStartTimer = useCallback((index: number) => {
+  const handleStartTimer = useCallback((index: number, durationMinutes: number) => {
     const task = tasks[index];
     if (!task.text.trim()) return;
     
-    pomodoro.startFocus(task.linkedTaskId);
+    setTimerState({
+      isRunning: true,
+      timeRemaining: durationMinutes * 60,
+      totalDuration: durationMinutes * 60,
+    });
     setActiveTimerIndex(index);
-  }, [tasks, pomodoro]);
+    setTimerDurationPopoverIndex(null);
+  }, [tasks]);
+
+  const handlePauseTimer = useCallback(() => {
+    setTimerState(prev => ({ ...prev, isRunning: false }));
+  }, []);
+
+  const handleResumeTimer = useCallback(() => {
+    setTimerState(prev => ({ ...prev, isRunning: true }));
+  }, []);
 
   const handleStopTimer = useCallback(() => {
-    pomodoro.reset();
+    setTimerState({ isRunning: false, timeRemaining: 0, totalDuration: 0 });
     setActiveTimerIndex(null);
-  }, [pomodoro]);
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+  }, []);
 
   const handleTaskComplete = useCallback(async (index: number) => {
     if (!user || isSubmitting) return;
@@ -163,6 +245,10 @@ export function PetGrowthCard() {
     if (activeTimerIndex === index) {
       handleStopTimer();
     }
+    
+    // Close timer complete modal if open
+    setTimerCompleteOpen(false);
+    setTimerCompletedTaskIndex(null);
     
     // Optimistic update
     setTasks(prev => {
@@ -203,7 +289,7 @@ export function PetGrowthCard() {
           });
       }
 
-      // Log event (without coins)
+      // Log event
       const dedupeKey = `pet_task_complete:${user.id}:${today}:${index}`;
       await supabase.from('arcade_events').insert({
         user_id: user.id,
@@ -222,7 +308,6 @@ export function PetGrowthCard() {
       
     } catch (err) {
       console.error('Failed to complete task:', err);
-      // Revert optimistic update
       setTasks(prev => {
         const updated = [...prev];
         updated[index] = { ...updated[index], completed: false };
@@ -239,7 +324,6 @@ export function PetGrowthCard() {
     
     const hasReflection = wentWell.trim() || couldImprove.trim();
     
-    // Save reflection to new table
     if (hasReflection) {
       try {
         await supabase.from('task_reflections').insert({
@@ -267,7 +351,6 @@ export function PetGrowthCard() {
     setIsResetting(true);
     
     try {
-      // Save the hatched pet to collection
       const currentPetEmoji = petEmojis['adult'];
       await supabase.from('hatched_pets').insert({
         user_id: user.id,
@@ -276,10 +359,8 @@ export function PetGrowthCard() {
         pet_emoji: currentPetEmoji,
       });
       
-      // Get a new random pet type
       const newPetType = getRandomPetType();
       
-      // Reset the daily pet with new type
       await supabase
         .from('arcade_daily_pet')
         .update({
@@ -293,7 +374,6 @@ export function PetGrowthCard() {
         .eq('user_id', user.id)
         .eq('date', today);
       
-      // Reset local tasks state
       setTasks([
         { id: `${Date.now()}-1`, text: '', completed: false },
         { id: `${Date.now()}-2`, text: '', completed: false },
@@ -311,11 +391,37 @@ export function PetGrowthCard() {
     }
   };
 
-  const progress = (completedCount / 3) * 100;
+  // Timer complete modal handlers
+  const handleTimerTaskComplete = () => {
+    if (timerCompletedTaskIndex !== null) {
+      handleTaskComplete(timerCompletedTaskIndex);
+    }
+  };
 
-  // Check if timer is active for a specific task
-  const isTimerActiveForTask = (index: number) => 
-    activeTimerIndex === index && pomodoro.mode === 'focus';
+  const handleTimerNeedMoreTime = () => {
+    if (timerCompletedTaskIndex !== null) {
+      // Restart timer with same duration
+      const lastDuration = timerState.totalDuration || 25 * 60;
+      setTimerState({
+        isRunning: true,
+        timeRemaining: lastDuration,
+        totalDuration: lastDuration,
+      });
+      setActiveTimerIndex(timerCompletedTaskIndex);
+    }
+    setTimerCompleteOpen(false);
+    setTimerCompletedTaskIndex(null);
+  };
+
+  const handleTimerSkip = () => {
+    setTimerCompleteOpen(false);
+    setTimerCompletedTaskIndex(null);
+    handleStopTimer();
+  };
+
+  const progress = (completedCount / 3) * 100;
+  const isTimerActiveForTask = (index: number) => activeTimerIndex === index && timerState.timeRemaining > 0;
+  const timerCompletedTaskText = timerCompletedTaskIndex !== null ? tasks[timerCompletedTaskIndex]?.text || '' : '';
 
   return (
     <>
@@ -340,6 +446,26 @@ export function PetGrowthCard() {
             </div>
             <h3 className="font-semibold text-lg">{getStageTitle()}</h3>
             <p className="text-sm text-muted-foreground">{getStageMessage()}</p>
+            
+            {/* Pet Selector - only when sleeping */}
+            {canSelectPet && (
+              <div className="flex items-center justify-center gap-2 pt-2">
+                <span className="text-sm text-muted-foreground">Choose pet:</span>
+                <Select value={petType} onValueChange={handlePetSelect}>
+                  <SelectTrigger className="w-[140px] h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PET_OPTIONS.map(option => (
+                      <SelectItem key={option.type} value={option.type}>
+                        {option.emoji} {option.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
             <div className="flex items-center justify-center gap-2">
               <span className="text-sm font-medium">{completedCount}/3 tasks completed</span>
             </div>
@@ -439,20 +565,53 @@ export function PetGrowthCard() {
                       </PopoverContent>
                     </Popover>
 
-                    {/* Timer Button */}
-                    {!task.completed && task.text.trim() && (
+                    {/* Timer Button with Duration Popover */}
+                    {!task.completed && task.text.trim() && !isTimerActiveForTask(index) && (
+                      <Popover 
+                        open={timerDurationPopoverIndex === index} 
+                        onOpenChange={(open) => setTimerDurationPopoverIndex(open ? index : null)}
+                      >
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 flex-shrink-0"
+                            title="Start focus timer"
+                          >
+                            <Timer className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-3" align="end">
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium text-center">Focus Duration</p>
+                            <div className="flex gap-1 flex-wrap justify-center">
+                              {TIMER_DURATIONS.map(duration => (
+                                <Button
+                                  key={duration.value}
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 px-3"
+                                  onClick={() => handleStartTimer(index, duration.value)}
+                                >
+                                  {duration.label}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    )}
+
+                    {/* Stop Timer Button when active */}
+                    {isTimerActiveForTask(index) && (
                       <Button
-                        variant={isTimerActiveForTask(index) ? "destructive" : "ghost"}
+                        variant="destructive"
                         size="icon"
                         className="h-9 w-9 flex-shrink-0"
-                        onClick={() => isTimerActiveForTask(index) ? handleStopTimer() : handleStartTimer(index)}
-                        title={isTimerActiveForTask(index) ? "Stop timer" : "Start focus timer"}
+                        onClick={handleStopTimer}
+                        title="Stop timer"
                       >
-                        {isTimerActiveForTask(index) ? (
-                          <X className="h-4 w-4" />
-                        ) : (
-                          <Timer className="h-4 w-4" />
-                        )}
+                        <X className="h-4 w-4" />
                       </Button>
                     )}
 
@@ -470,16 +629,16 @@ export function PetGrowthCard() {
                     <div className="flex items-center justify-between bg-primary/10 rounded-lg p-2 ml-14">
                       <div className="flex items-center gap-2">
                         <Timer className="h-4 w-4 text-primary" />
-                        <span className="font-mono font-bold text-primary">{pomodoro.formattedTime}</span>
+                        <span className="font-mono font-bold text-primary">{formatTime(timerState.timeRemaining)}</span>
                         <span className="text-xs text-muted-foreground">Focus Time</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        {pomodoro.isRunning ? (
-                          <Button variant="ghost" size="sm" onClick={pomodoro.pause} className="h-7 px-2">
+                        {timerState.isRunning ? (
+                          <Button variant="ghost" size="sm" onClick={handlePauseTimer} className="h-7 px-2">
                             <Pause className="h-3 w-3" />
                           </Button>
                         ) : (
-                          <Button variant="ghost" size="sm" onClick={pomodoro.resume} className="h-7 px-2">
+                          <Button variant="ghost" size="sm" onClick={handleResumeTimer} className="h-7 px-2">
                             <Play className="h-3 w-3" />
                           </Button>
                         )}
@@ -515,6 +674,15 @@ export function PetGrowthCard() {
         completedCount={completedCount}
         isAllComplete={completedCount >= 3}
         taskText={lastCompletedTask}
+      />
+
+      <TimerCompleteModal
+        open={timerCompleteOpen}
+        onOpenChange={setTimerCompleteOpen}
+        taskText={timerCompletedTaskText}
+        onTaskComplete={handleTimerTaskComplete}
+        onNeedMoreTime={handleTimerNeedMoreTime}
+        onSkip={handleTimerSkip}
       />
     </>
   );
