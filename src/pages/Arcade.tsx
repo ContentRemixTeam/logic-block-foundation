@@ -120,13 +120,13 @@ export default function Arcade() {
             <CardContent className="p-4 flex items-center gap-3">
               <div className="p-2 rounded-full bg-primary/10 dark:bg-primary/20">
                 <span className="text-xl">
-                  {pet?.stage === 'hatched' ? '🐣' : pet ? '🥚' : '❓'}
+                  {pet?.stage === 'adult' ? '🎉' : pet ? '🥚' : '❓'}
                 </span>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Pet</p>
                 <p className="text-xl font-bold capitalize">
-                  {pet?.stage === 'hatched' ? pet.pet_type : pet ? 'Growing' : 'None'}
+                  {pet?.stage === 'adult' ? pet.pet_type : pet ? pet.stage : 'None'}
                 </p>
               </div>
             </CardContent>

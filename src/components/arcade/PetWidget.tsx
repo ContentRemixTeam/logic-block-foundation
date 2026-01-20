@@ -1,17 +1,18 @@
 import { useArcade } from '@/hooks/useArcade';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
-const PET_EMOJIS: Record<string, string> = {
-  unicorn: '🦄',
-  dragon: '🐉',
-  cat: '🐱',
-  dog: '🐕',
-  bunny: '🐰',
-  fox: '🦊',
-  panda: '🐼',
-  penguin: '🐧',
-  owl: '🦉',
-  hamster: '🐹',
+// Pet emojis for each stage
+const PET_STAGE_EMOJIS: Record<string, Record<string, string>> = {
+  unicorn: { sleeping: '🥚', baby: '🦄', teen: '🦄', adult: '🦄' },
+  dragon: { sleeping: '🥚', baby: '🐲', teen: '🐲', adult: '🐉' },
+  cat: { sleeping: '🥚', baby: '🐱', teen: '🐱', adult: '😺' },
+  dog: { sleeping: '🥚', baby: '🐶', teen: '🐕', adult: '🐕' },
+  bunny: { sleeping: '🥚', baby: '🐰', teen: '🐰', adult: '🐰' },
+  fox: { sleeping: '🥚', baby: '🦊', teen: '🦊', adult: '🦊' },
+  panda: { sleeping: '🥚', baby: '🐼', teen: '🐼', adult: '🐼' },
+  penguin: { sleeping: '🥚', baby: '🐧', teen: '🐧', adult: '🐧' },
+  owl: { sleeping: '🥚', baby: '🦉', teen: '🦉', adult: '🦉' },
+  hamster: { sleeping: '🥚', baby: '🐹', teen: '🐹', adult: '🐹' },
 };
 
 const PET_NAMES: Record<string, string> = {
@@ -44,14 +45,17 @@ export function PetWidget() {
     );
   }
   
-  // Show growing egg if pet is selected but not hatched
-  if (pet.stage !== 'hatched') {
-    const progress = pet.tasks_completed_today || 0;
-    const petName = PET_NAMES[pet.pet_type] || pet.pet_type;
+  const petName = PET_NAMES[pet.pet_type] || pet.pet_type;
+  const petEmojis = PET_STAGE_EMOJIS[pet.pet_type] || PET_STAGE_EMOJIS.unicorn;
+  const emoji = petEmojis[pet.stage] || '🥚';
+  const progress = pet.tasks_completed_today || 0;
+  
+  // Show based on stage
+  if (pet.stage !== 'adult') {
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="text-lg cursor-default animate-pulse">🥚</span>
+          <span className="text-lg cursor-default animate-pulse">{emoji}</span>
         </TooltipTrigger>
         <TooltipContent>
           <p>{petName} is growing! ({progress}/3 tasks)</p>
@@ -59,9 +63,6 @@ export function PetWidget() {
       </Tooltip>
     );
   }
-  
-  const emoji = PET_EMOJIS[pet.pet_type] || '🐾';
-  const name = PET_NAMES[pet.pet_type] || pet.pet_type;
   
   return (
     <Tooltip>
@@ -71,7 +72,7 @@ export function PetWidget() {
         </span>
       </TooltipTrigger>
       <TooltipContent>
-        <p>Your {name} hatched today! 🎉</p>
+        <p>Your {petName} is fully grown! 🎉</p>
       </TooltipContent>
     </Tooltip>
   );

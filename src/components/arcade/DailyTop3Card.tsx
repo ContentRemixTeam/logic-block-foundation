@@ -203,12 +203,12 @@ export function DailyTop3Card() {
         {pet && (
           <div className="flex items-center justify-center gap-2 pt-2 text-sm text-muted-foreground">
             <span className="text-lg">
-              {pet.stage === 'hatched' ? '🐣' : '🥚'}
+              {pet.stage === 'adult' ? '🎉' : '🥚'}
             </span>
             <span>
-              {pet.stage === 'hatched' 
-                ? 'Your pet hatched!' 
-                : `${pet.tasks_completed_today}/3 to hatch`
+              {pet.stage === 'adult' 
+                ? 'Your pet is fully grown!' 
+                : `${pet.tasks_completed_today}/3 to grow`
               }
             </span>
           </div>

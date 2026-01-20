@@ -11,7 +11,7 @@ interface ArcadeWallet {
 interface DailyPet {
   id: string;
   pet_type: string;
-  stage: 'egg' | 'growing' | 'hatched';
+  stage: 'sleeping' | 'baby' | 'teen' | 'adult';
   tasks_completed_today: number;
   hatched_at: string | null;
 }
@@ -128,7 +128,7 @@ export function ArcadeProvider({ children }: { children: ReactNode }) {
         setPet({
           id: data.id,
           pet_type: data.pet_type,
-          stage: data.stage as 'egg' | 'growing' | 'hatched',
+          stage: data.stage as 'sleeping' | 'baby' | 'teen' | 'adult',
           tasks_completed_today: data.tasks_completed_today || 0,
           hatched_at: data.hatched_at,
         });
@@ -181,9 +181,9 @@ export function ArcadeProvider({ children }: { children: ReactNode }) {
         .upsert({
           user_id: user.id,
           date: today,
-          pet_type: petType,
-          stage: 'egg',
-          tasks_completed_today: 0,
+        pet_type: petType,
+        stage: 'sleeping',
+        tasks_completed_today: 0,
         }, {
           onConflict: 'user_id,date',
         })
@@ -196,7 +196,7 @@ export function ArcadeProvider({ children }: { children: ReactNode }) {
         setPet({
           id: data.id,
           pet_type: data.pet_type,
-          stage: data.stage as 'egg' | 'growing' | 'hatched',
+          stage: data.stage as 'sleeping' | 'baby' | 'teen' | 'adult',
           tasks_completed_today: data.tasks_completed_today || 0,
           hatched_at: data.hatched_at,
         });
