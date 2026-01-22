@@ -336,17 +336,14 @@ export function DailyAgendaCard({ date = new Date(), onTaskToggle }: DailyAgenda
                 {hours.map((hour) => {
                   const items = timelineItems[hour];
                   const hasContent = items.events.length > 0 || items.tasks.length > 0;
-                  
-                  // Skip empty hours unless they're near current time
-                  const currentHour = new Date().getHours();
-                  const isNearCurrent = Math.abs(hour - currentHour) <= 1;
-                  
-                  if (!hasContent && !isNearCurrent) return null;
 
                   return (
                     <div
                       key={hour}
-                      className="flex border-t border-border/30"
+                      className={cn(
+                        "flex border-t border-border/30",
+                        !hasContent && "opacity-50"
+                      )}
                       style={{ minHeight: `${HOUR_HEIGHT}px` }}
                     >
                       <div className="w-14 shrink-0 py-1 px-2 text-xs text-muted-foreground text-right">
