@@ -166,6 +166,12 @@ Deno.serve(async (req) => {
         color: '#F97316', // Orange for launches
         start_date: wizardData.cartOpens,
         end_date: wizardData.cartCloses,
+        // Launch-specific columns
+        is_launch: true,
+        launch_start_date: wizardData.cartOpens,
+        launch_end_date: wizardData.cartCloses,
+        revenue_goal: wizardData.revenueGoal,
+        offer_goal: wizardData.offerGoal || 50,
       })
       .select()
       .single();
