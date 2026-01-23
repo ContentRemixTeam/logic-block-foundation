@@ -77,6 +77,7 @@ export function SmartScratchPad({
   className,
 }: SmartScratchPadProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [autocompletePosition, setAutocompletePosition] = useState({ top: 0, left: 0 });
@@ -220,10 +221,14 @@ export function SmartScratchPad({
     }
   };
 
-  // Close autocomplete when clicking outside
+  // Close autocomplete when clicking outside (but not on dropdown)
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (textareaRef.current && !textareaRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const isOutsideTextarea = textareaRef.current && !textareaRef.current.contains(target);
+      const isOutsideDropdown = dropdownRef.current && !dropdownRef.current.contains(target);
+      
+      if (isOutsideTextarea && isOutsideDropdown) {
         setShowAutocomplete(false);
       }
     };
@@ -352,7 +357,8 @@ export function SmartScratchPad({
         {/* Autocomplete Dropdown */}
         {showAutocomplete && filteredTags.length > 0 && (
           <div
-            className="absolute z-50 w-56 bg-popover border border-border rounded-lg shadow-lg overflow-hidden"
+            ref={dropdownRef}
+            className="absolute z-[100] w-56 bg-popover border border-border rounded-lg shadow-lg overflow-hidden pointer-events-auto"
             style={{
               top: autocompletePosition.top,
               left: autocompletePosition.left,
@@ -365,7 +371,11 @@ export function SmartScratchPad({
               <button
                 key={tag.tag}
                 type="button"
-                onClick={() => insertTag(tag.tag)}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  insertTag(tag.tag);
+                }}
                 className={cn(
                   "w-full px-3 py-2 flex items-center gap-2 text-left text-sm transition-colors",
                   index === selectedIndex
