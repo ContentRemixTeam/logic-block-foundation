@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
       .select(`
         *,
         sop:sops(sop_id, sop_name, description, checklist_items, links, notes),
-        project:projects(id, name, color)
+        project:projects(id, name, color, is_launch, launch_start_date, launch_end_date)
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
