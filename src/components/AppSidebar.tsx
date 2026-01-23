@@ -61,6 +61,7 @@ import { useArcade } from '@/hooks/useArcade';
 const MAIN_NAV = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, questIcon: '🗺️' },
   { name: 'My Cycles', href: '/cycles', icon: Target, questIcon: '🎯' },
+  { name: 'Smart Wizards', href: '/wizards', icon: Sparkles, questIcon: '🪄' },
   { name: 'Planning', href: '/planning', icon: CalendarDays, questIcon: '🧭' },
   { name: 'Tasks', href: '/tasks', icon: ListTodo, questIcon: '📜' },
   { name: 'Projects', href: '/projects', icon: FolderKanban, questIcon: '📁' },
