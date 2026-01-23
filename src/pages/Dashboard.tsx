@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Layout } from '@/components/Layout';
@@ -14,6 +14,8 @@ import { PetGrowthCard, ArcadeIntroCard } from '@/components/arcade';
 import { useArcade } from '@/hooks/useArcade';
 import { supabase } from '@/integrations/supabase/client';
 import { normalizeArray, normalizeString, normalizeNumber } from '@/lib/normalize';
+import { useQuery } from '@tanstack/react-query';
+import { differenceInDays, isWithinInterval, addDays } from 'date-fns';
 import { 
   Target, 
   Calendar, 
@@ -33,7 +35,8 @@ import {
   RefreshCw,
   AlertCircle,
   Eye,
-  Edit
+  Edit,
+  Rocket
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
@@ -54,6 +57,7 @@ import { supabase as supabaseClient } from '@/integrations/supabase/client';
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { isQuestMode, getNavLabel } = useTheme();
   const { toast } = useToast();
   const [summary, setSummary] = useState<any>(null);
@@ -530,6 +534,52 @@ export default function Dashboard() {
     }
   };
 
+  // Query for active launches (upcoming within 30 days + in progress)
+  const { data: activeLaunches } = useQuery({
+    queryKey: ['active-launches', user?.id],
+    queryFn: async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const futureDate = addDays(new Date(), 30).toISOString().split('T')[0];
+      
+      const { data } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('user_id', user?.id)
+        .eq('is_launch', true)
+        .gte('launch_end_date', today) // Not yet ended
+        .lte('launch_start_date', futureDate) // Starts within 30 days
+        .order('launch_start_date');
+      
+      return data || [];
+    },
+    enabled: !!user
+  });
+
+  // Helper function to calculate launch countdown
+  const getLaunchCountdown = (launch: any) => {
+    const today = new Date();
+    const startDate = new Date(launch.launch_start_date);
+    const endDate = new Date(launch.launch_end_date);
+    
+    const isLive = isWithinInterval(today, { start: startDate, end: endDate });
+    
+    if (isLive) {
+      const daysLeft = differenceInDays(endDate, today);
+      return {
+        text: daysLeft === 0 ? 'Cart closes TODAY!' : `Cart closes in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`,
+        status: 'live' as const,
+        daysLeft
+      };
+    } else {
+      const daysUntil = differenceInDays(startDate, today);
+      return {
+        text: daysUntil === 0 ? 'Cart opens TODAY!' : `${daysUntil} day${daysUntil !== 1 ? 's' : ''} until cart opens`,
+        status: 'upcoming' as const,
+        daysUntil
+      };
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -782,6 +832,59 @@ export default function Dashboard() {
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Left Column - Main Content */}
             <div className="flex-1 space-y-6 max-w-3xl">
+              {/* Launch Countdowns */}
+              {activeLaunches && activeLaunches.length > 0 && (
+                <div className="space-y-3">
+                  {activeLaunches.map(launch => {
+                    const countdown = getLaunchCountdown(launch);
+                    const isLive = countdown.status === 'live';
+                    
+                    return (
+                      <div
+                        key={launch.id}
+                        className={`rounded-xl border-2 p-4 cursor-pointer transition-all hover:shadow-md ${
+                          isLive 
+                            ? 'border-green-500 bg-green-50 dark:bg-green-950/30' 
+                            : 'border-primary bg-primary/5'
+                        }`}
+                        onClick={() => navigate(`/projects/${launch.id}`)}
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Rocket className={`h-5 w-5 flex-shrink-0 ${isLive ? 'text-green-600' : 'text-primary'}`} />
+                              <h3 className="font-semibold truncate">{launch.name}</h3>
+                              {isLive && (
+                                <Badge className="bg-green-500 text-white text-xs">
+                                  LIVE NOW
+                                </Badge>
+                              )}
+                            </div>
+                            <p className={`text-sm mt-1 ${isLive ? 'text-green-700 dark:text-green-300' : 'text-muted-foreground'}`}>
+                              {countdown.text}
+                            </p>
+                          </div>
+                          
+                          <div className="text-right flex-shrink-0">
+                            <div className={`text-3xl font-bold ${isLive ? 'text-green-600' : 'text-primary'}`}>
+                              {isLive ? countdown.daysLeft : countdown.daysUntil}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {isLive ? 'days left' : 'days'}
+                            </div>
+                            {launch.revenue_goal && (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                Goal: ${Number(launch.revenue_goal).toLocaleString()}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               {/* Today Strip */}
               <TodayStrip 
                 topPriority={topPriority} 
