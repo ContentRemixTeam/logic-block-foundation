@@ -16,6 +16,7 @@ interface WizardLayoutProps {
   canProceed: boolean;
   isSaving?: boolean;
   isLastStep?: boolean;
+  lastStepButtonText?: string;
   children: ReactNode;
   className?: string;
 }
@@ -31,6 +32,7 @@ export function WizardLayout({
   canProceed,
   isSaving = false,
   isLastStep = false,
+  lastStepButtonText = 'Complete',
   children,
   className,
 }: WizardLayoutProps) {
@@ -101,7 +103,7 @@ export function WizardLayout({
             {isSaving ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : isLastStep ? (
-              'Create Cycle'
+              lastStepButtonText
             ) : (
               <>
                 Next
