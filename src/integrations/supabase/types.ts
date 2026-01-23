@@ -4406,6 +4406,33 @@ export type Database = {
         }
         Relationships: []
       }
+      wizard_drafts: {
+        Row: {
+          created_at: string | null
+          draft_data: Json
+          id: string
+          updated_at: string | null
+          user_id: string
+          wizard_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          draft_data?: Json
+          id?: string
+          updated_at?: string | null
+          user_id: string
+          wizard_name: string
+        }
+        Update: {
+          created_at?: string | null
+          draft_data?: Json
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+          wizard_name?: string
+        }
+        Relationships: []
+      }
       wizard_templates: {
         Row: {
           created_at: string | null
