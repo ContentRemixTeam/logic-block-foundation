@@ -601,6 +601,53 @@ export type Database = {
           },
         ]
       }
+      content_topics: {
+        Row: {
+          created_at: string | null
+          id: string
+          planned_date: string | null
+          related_content_ids: string[] | null
+          status: string | null
+          topic_notes: string | null
+          topic_text: string | null
+          updated_at: string | null
+          user_id: string
+          workflow_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          planned_date?: string | null
+          related_content_ids?: string[] | null
+          status?: string | null
+          topic_notes?: string | null
+          topic_text?: string | null
+          updated_at?: string | null
+          user_id: string
+          workflow_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          planned_date?: string | null
+          related_content_ids?: string[] | null
+          status?: string | null
+          topic_notes?: string | null
+          topic_text?: string | null
+          updated_at?: string | null
+          user_id?: string
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_topics_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "user_content_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_checkins: {
         Row: {
           blocker: string | null
@@ -1204,6 +1251,7 @@ export type Database = {
           focus_area: string | null
           goal: string
           identity: string | null
+          limiting_thought: string | null
           metric_1_goal: number | null
           metric_1_name: string | null
           metric_1_start: number | null
@@ -1230,6 +1278,8 @@ export type Database = {
           target_feeling: string | null
           things_to_remember: Json | null
           updated_at: string | null
+          useful_belief: string | null
+          useful_thought: string | null
           user_id: string
           weekly_debrief_day: string | null
           weekly_planning_day: string | null
@@ -1257,6 +1307,7 @@ export type Database = {
           focus_area?: string | null
           goal: string
           identity?: string | null
+          limiting_thought?: string | null
           metric_1_goal?: number | null
           metric_1_name?: string | null
           metric_1_start?: number | null
@@ -1283,6 +1334,8 @@ export type Database = {
           target_feeling?: string | null
           things_to_remember?: Json | null
           updated_at?: string | null
+          useful_belief?: string | null
+          useful_thought?: string | null
           user_id: string
           weekly_debrief_day?: string | null
           weekly_planning_day?: string | null
@@ -1310,6 +1363,7 @@ export type Database = {
           focus_area?: string | null
           goal?: string
           identity?: string | null
+          limiting_thought?: string | null
           metric_1_goal?: number | null
           metric_1_name?: string | null
           metric_1_start?: number | null
@@ -1336,6 +1390,8 @@ export type Database = {
           target_feeling?: string | null
           things_to_remember?: Json | null
           updated_at?: string | null
+          useful_belief?: string | null
+          useful_thought?: string | null
           user_id?: string
           weekly_debrief_day?: string | null
           weekly_planning_day?: string | null
@@ -1686,6 +1742,24 @@ export type Database = {
           key?: string
           rollout_percent?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      feature_releases: {
+        Row: {
+          description: string | null
+          feature_name: string
+          released_at: string
+        }
+        Insert: {
+          description?: string | null
+          feature_name: string
+          released_at?: string
+        }
+        Update: {
+          description?: string | null
+          feature_name?: string
+          released_at?: string
         }
         Relationships: []
       }
@@ -2704,6 +2778,38 @@ export type Database = {
           },
         ]
       }
+      project_snapshots: {
+        Row: {
+          created_at: string | null
+          id: string
+          project_id: string
+          reason: string | null
+          snapshot_data: Json
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          project_id: string
+          reason?: string | null
+          snapshot_data: Json
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          project_id?: string
+          reason?: string | null
+          snapshot_data?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_snapshots_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           board_id: string | null
@@ -2714,12 +2820,15 @@ export type Database = {
           cycle_id: string | null
           description: string | null
           end_date: string | null
+          has_topic_planning: boolean | null
           id: string
           is_template: boolean | null
           name: string
           start_date: string | null
           status: string
+          topic_planning_cadence: string | null
           updated_at: string | null
+          upgrade_dismissed: boolean | null
           user_id: string
         }
         Insert: {
@@ -2731,12 +2840,15 @@ export type Database = {
           cycle_id?: string | null
           description?: string | null
           end_date?: string | null
+          has_topic_planning?: boolean | null
           id?: string
           is_template?: boolean | null
           name: string
           start_date?: string | null
           status?: string
+          topic_planning_cadence?: string | null
           updated_at?: string | null
+          upgrade_dismissed?: boolean | null
           user_id: string
         }
         Update: {
@@ -2748,12 +2860,15 @@ export type Database = {
           cycle_id?: string | null
           description?: string | null
           end_date?: string | null
+          has_topic_planning?: boolean | null
           id?: string
           is_template?: boolean | null
           name?: string
           start_date?: string | null
           status?: string
+          topic_planning_cadence?: string | null
           updated_at?: string | null
+          upgrade_dismissed?: boolean | null
           user_id?: string
         }
         Relationships: [
@@ -3049,6 +3164,7 @@ export type Database = {
           category: string | null
           checklist_progress: Json | null
           completed_at: string | null
+          content_topic_id: string | null
           context_tags: string[] | null
           course_id: string | null
           created_at: string | null
@@ -3108,6 +3224,7 @@ export type Database = {
           category?: string | null
           checklist_progress?: Json | null
           completed_at?: string | null
+          content_topic_id?: string | null
           context_tags?: string[] | null
           course_id?: string | null
           created_at?: string | null
@@ -3167,6 +3284,7 @@ export type Database = {
           category?: string | null
           checklist_progress?: Json | null
           completed_at?: string | null
+          content_topic_id?: string | null
           context_tags?: string[] | null
           course_id?: string | null
           created_at?: string | null
@@ -3222,6 +3340,13 @@ export type Database = {
           week_in_cycle?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_content_topic_id_fkey"
+            columns: ["content_topic_id"]
+            isOneToOne: false
+            referencedRelation: "content_topics"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tasks_course_id_fkey"
             columns: ["course_id"]
@@ -3307,6 +3432,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_content_workflows: {
+        Row: {
+          content_type: string
+          created_at: string | null
+          custom_schedule: Json | null
+          id: string
+          is_active: boolean | null
+          recurrence: string | null
+          topic_planning_cadence: string | null
+          updated_at: string | null
+          user_id: string
+          workflow_name: string
+        }
+        Insert: {
+          content_type: string
+          created_at?: string | null
+          custom_schedule?: Json | null
+          id?: string
+          is_active?: boolean | null
+          recurrence?: string | null
+          topic_planning_cadence?: string | null
+          updated_at?: string | null
+          user_id: string
+          workflow_name: string
+        }
+        Update: {
+          content_type?: string
+          created_at?: string | null
+          custom_schedule?: Json | null
+          id?: string
+          is_active?: boolean | null
+          recurrence?: string | null
+          topic_planning_cadence?: string | null
+          updated_at?: string | null
+          user_id?: string
+          workflow_name?: string
+        }
+        Relationships: []
       }
       user_context_tags: {
         Row: {
@@ -3478,6 +3642,7 @@ export type Database = {
       user_profiles: {
         Row: {
           created_at: string
+          default_planning_level: string | null
           email: string | null
           id: string
           membership_status: string | null
@@ -3491,6 +3656,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          default_planning_level?: string | null
           email?: string | null
           id: string
           membership_status?: string | null
@@ -3504,6 +3670,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          default_planning_level?: string | null
           email?: string | null
           id?: string
           membership_status?: string | null
@@ -3911,6 +4078,72 @@ export type Database = {
             referencedColumns: ["week_id"]
           },
         ]
+      }
+      wizard_completions: {
+        Row: {
+          answers: Json
+          completed_at: string | null
+          created_at: string | null
+          created_cycle_id: string | null
+          id: string
+          planning_level: string | null
+          template_name: string
+          user_id: string
+        }
+        Insert: {
+          answers?: Json
+          completed_at?: string | null
+          created_at?: string | null
+          created_cycle_id?: string | null
+          id?: string
+          planning_level?: string | null
+          template_name: string
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          completed_at?: string | null
+          created_at?: string | null
+          created_cycle_id?: string | null
+          id?: string
+          planning_level?: string | null
+          template_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wizard_templates: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_name: string
+          estimated_time_minutes: number | null
+          icon: string | null
+          id: string
+          questions: Json
+          template_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_name: string
+          estimated_time_minutes?: number | null
+          icon?: string | null
+          id?: string
+          questions?: Json
+          template_name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_name?: string
+          estimated_time_minutes?: number | null
+          icon?: string | null
+          id?: string
+          questions?: Json
+          template_name?: string
+        }
+        Relationships: []
       }
     }
     Views: {

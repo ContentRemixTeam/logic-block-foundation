@@ -68,6 +68,7 @@ const Trash = lazy(() => import('./pages/Trash'));
 const Arcade = lazy(() => import('./pages/Arcade'));
 const Courses = lazy(() => import('./pages/Courses'));
 const CourseDetail = lazy(() => import('./pages/CourseDetail'));
+const Wizards = lazy(() => import('./pages/Wizards'));
 
 // Configure QueryClient with performance-focused defaults
 export const queryClient = new QueryClient({
@@ -167,6 +168,7 @@ const App = () => (
                       <Route path="/arcade" element={<ProtectedRoute><PageSuspense><Arcade /></PageSuspense></ProtectedRoute>} />
                       <Route path="/courses" element={<ProtectedRoute><PageSuspense><Courses /></PageSuspense></ProtectedRoute>} />
                       <Route path="/courses/:id" element={<ProtectedRoute><PageSuspense><CourseDetail /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/wizards" element={<ProtectedRoute><PageSuspense><Wizards /></PageSuspense></ProtectedRoute>} />
                       
                       {/* Public routes with lazy loading */}
                       <Route path="/capture" element={<PageSuspense><CaptureLaunchPage /></PageSuspense>} />
