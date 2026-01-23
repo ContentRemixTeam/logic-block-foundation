@@ -3101,8 +3101,13 @@ export type Database = {
           end_date: string | null
           has_topic_planning: boolean | null
           id: string
+          is_launch: boolean
           is_template: boolean | null
+          launch_end_date: string | null
+          launch_start_date: string | null
           name: string
+          offer_goal: number | null
+          revenue_goal: number | null
           start_date: string | null
           status: string
           topic_planning_cadence: string | null
@@ -3121,8 +3126,13 @@ export type Database = {
           end_date?: string | null
           has_topic_planning?: boolean | null
           id?: string
+          is_launch?: boolean
           is_template?: boolean | null
+          launch_end_date?: string | null
+          launch_start_date?: string | null
           name: string
+          offer_goal?: number | null
+          revenue_goal?: number | null
           start_date?: string | null
           status?: string
           topic_planning_cadence?: string | null
@@ -3141,8 +3151,13 @@ export type Database = {
           end_date?: string | null
           has_topic_planning?: boolean | null
           id?: string
+          is_launch?: boolean
           is_template?: boolean | null
+          launch_end_date?: string | null
+          launch_start_date?: string | null
           name?: string
+          offer_goal?: number | null
+          revenue_goal?: number | null
           start_date?: string | null
           status?: string
           topic_planning_cadence?: string | null
