@@ -55,6 +55,9 @@ export interface LaunchWizardData {
   postPurchaseFlow: string[];
   nonBuyerFollowup: string;
   debriefDate: string;
+
+  // Index signature for Record<string, unknown> compatibility
+  [key: string]: unknown;
 }
 
 export const DEFAULT_LAUNCH_WIZARD_DATA: LaunchWizardData = {
