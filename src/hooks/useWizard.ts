@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { formatDistanceToNow } from 'date-fns';
 
-const AUTOSAVE_INTERVAL = 30000; // 30 seconds
+const DEBOUNCE_DELAY = 3000; // 3 seconds
 const LOCAL_STORAGE_PREFIX = 'wizard_draft_';
 
 interface UseWizardOptions<T> {
@@ -29,6 +30,10 @@ interface UseWizardReturn<T> {
   hasDraft: boolean;
   clearDraft: () => Promise<void>;
   totalSteps: number;
+  lastServerSync: Date | null;
+  syncError: string | null;
+  getDraftAge: () => string | null;
+  draftUpdatedAt: Date | null;
 }
 
 export function useWizard<T extends Record<string, unknown>>({
@@ -44,10 +49,30 @@ export function useWizard<T extends Record<string, unknown>>({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasDraft, setHasDraft] = useState(false);
-  const autosaveRef = useRef<NodeJS.Timeout | null>(null);
+  const [lastServerSync, setLastServerSync] = useState<Date | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [draftUpdatedAt, setDraftUpdatedAt] = useState<Date | null>(null);
+  
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedRef = useRef<string>('');
+  const hasUnsavedChanges = useRef(false);
+  const isInitialLoad = useRef(true);
 
   const localStorageKey = `${LOCAL_STORAGE_PREFIX}${templateName}`;
+
+  // Browser close warning
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges.current) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   // Load draft on mount
   useEffect(() => {
@@ -55,37 +80,47 @@ export function useWizard<T extends Record<string, unknown>>({
       setIsLoading(true);
       try {
         // Try localStorage first (for offline support)
-        const localDraft = localStorage.getItem(localStorageKey);
-        let draftData: T | null = null;
-        let draftStep = 1;
-
-        if (localDraft) {
-          try {
-            const parsed = JSON.parse(localDraft);
-            draftData = parsed.data;
-            draftStep = parsed.step || 1;
-          } catch {
-            // Invalid JSON, ignore
+        let localDraft: { data: T; step: number; updatedAt?: string } | null = null;
+        
+        try {
+          const stored = localStorage.getItem(localStorageKey);
+          if (stored) {
+            localDraft = JSON.parse(stored);
           }
+        } catch {
+          // Invalid JSON, ignore
         }
+
+        let draftData: T | null = localDraft?.data || null;
+        let draftStep = localDraft?.step || 1;
+        let updatedAt: Date | null = localDraft?.updatedAt ? new Date(localDraft.updatedAt) : null;
 
         // Try server if user is authenticated
         if (user) {
-          const { data: serverDraft } = await supabase
-            .from('wizard_completions')
-            .select('*')
-            .eq('user_id', user.id)
-            .eq('template_name', templateName)
-            .is('completed_at', null)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
+          try {
+            const { data: serverDraft } = await supabase
+              .from('wizard_completions')
+              .select('*')
+              .eq('user_id', user.id)
+              .eq('template_name', templateName)
+              .is('completed_at', null)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .single();
 
-          if (serverDraft?.answers) {
-            const serverData = serverDraft.answers as T;
-            // Use server draft if it exists and is newer
-            draftData = serverData;
-            draftStep = (serverDraft.answers as Record<string, unknown>)._step as number || 1;
+            if (serverDraft?.answers) {
+              const serverData = serverDraft.answers as T;
+              const serverUpdatedAt = new Date(serverDraft.created_at);
+              
+              // Use server draft if it's newer than local
+              if (!updatedAt || serverUpdatedAt > updatedAt) {
+                draftData = serverData;
+                draftStep = (serverDraft.answers as Record<string, unknown>)._step as number || 1;
+                updatedAt = serverUpdatedAt;
+              }
+            }
+          } catch {
+            // No server draft found, continue with local
           }
         }
 
@@ -93,7 +128,12 @@ export function useWizard<T extends Record<string, unknown>>({
           setDataState({ ...defaultData, ...draftData });
           setStep(draftStep);
           setHasDraft(true);
+          setDraftUpdatedAt(updatedAt);
+          setLastServerSync(updatedAt);
+          lastSavedRef.current = JSON.stringify(draftData);
         }
+        
+        isInitialLoad.current = false;
       } catch (err) {
         console.error('Error loading wizard draft:', err);
       } finally {
@@ -104,76 +144,119 @@ export function useWizard<T extends Record<string, unknown>>({
     loadDraft();
   }, [user, templateName, localStorageKey, defaultData]);
 
-  // Autosave setup
+  // Cleanup debounce on unmount
   useEffect(() => {
-    autosaveRef.current = setInterval(() => {
-      const currentDataStr = JSON.stringify(data);
-      if (currentDataStr !== lastSavedRef.current) {
-        saveDraftInternal();
-      }
-    }, AUTOSAVE_INTERVAL);
-
     return () => {
-      if (autosaveRef.current) {
-        clearInterval(autosaveRef.current);
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
       }
     };
-  }, [data]);
+  }, []);
 
-  const saveDraftInternal = useCallback(async () => {
-    const draftPayload = { ...data, _step: step };
+  const saveToServer = useCallback(async (draftPayload: T & { _step: number }) => {
+    if (!user) return;
     
-    // Always save to localStorage
-    localStorage.setItem(localStorageKey, JSON.stringify({ data: draftPayload, step }));
-    lastSavedRef.current = JSON.stringify(data);
-    setHasDraft(true);
+    setIsSaving(true);
+    setSyncError(null);
+    
+    try {
+      // Check if draft exists
+      const { data: existing } = await supabase
+        .from('wizard_completions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('template_name', templateName)
+        .is('completed_at', null)
+        .limit(1)
+        .single();
 
-    // Save to server if authenticated
-    if (user) {
-      try {
-        // Check if draft exists
-        const { data: existing } = await supabase
+      if (existing) {
+        await supabase
           .from('wizard_completions')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('template_name', templateName)
-          .is('completed_at', null)
-          .limit(1)
-          .single();
-
-        if (existing) {
-          await supabase
-            .from('wizard_completions')
-            .update({ answers: JSON.parse(JSON.stringify(draftPayload)) })
-            .eq('id', existing.id);
-        } else {
-          await supabase
-            .from('wizard_completions')
-            .insert([{
-              user_id: user.id,
-              template_name: templateName,
-              answers: JSON.parse(JSON.stringify(draftPayload)),
-            }]);
-        }
-      } catch (err) {
-        console.error('Error saving draft to server:', err);
+          .update({ 
+            answers: JSON.parse(JSON.stringify(draftPayload))
+          })
+          .eq('id', existing.id);
+      } else {
+        await supabase
+          .from('wizard_completions')
+          .insert([{
+            user_id: user.id,
+            template_name: templateName,
+            answers: JSON.parse(JSON.stringify(draftPayload)),
+          }]);
       }
+      
+      const now = new Date();
+      setLastServerSync(now);
+      hasUnsavedChanges.current = false;
+    } catch (err) {
+      console.error('Error saving draft to server:', err);
+      setSyncError('Failed to sync');
+    } finally {
+      setIsSaving(false);
     }
-  }, [data, step, user, templateName, localStorageKey]);
+  }, [user, templateName]);
+
+  const saveDraftInternal = useCallback(async (immediate = false) => {
+    const draftPayload = { ...data, _step: step };
+    const currentDataStr = JSON.stringify(draftPayload);
+    
+    // Skip if nothing changed
+    if (currentDataStr === lastSavedRef.current && !immediate) {
+      return;
+    }
+    
+    // Always save to localStorage immediately
+    try {
+      localStorage.setItem(localStorageKey, JSON.stringify({ 
+        data: draftPayload, 
+        step,
+        updatedAt: new Date().toISOString()
+      }));
+      lastSavedRef.current = currentDataStr;
+      setHasDraft(true);
+      hasUnsavedChanges.current = true;
+    } catch (err) {
+      console.error('Error saving to localStorage:', err);
+    }
+
+    // Debounce server sync
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    if (immediate) {
+      await saveToServer(draftPayload);
+    } else {
+      debounceRef.current = setTimeout(() => {
+        saveToServer(draftPayload);
+      }, DEBOUNCE_DELAY);
+    }
+  }, [data, step, localStorageKey, saveToServer]);
 
   const setData = useCallback((updates: Partial<T>) => {
-    setDataState(prev => ({ ...prev, ...updates }));
+    setDataState(prev => {
+      const newData = { ...prev, ...updates };
+      return newData;
+    });
     setError(null);
   }, []);
+
+  // Trigger save when data changes (after initial load)
+  useEffect(() => {
+    if (!isInitialLoad.current && !isLoading) {
+      saveDraftInternal();
+    }
+  }, [data, step, saveDraftInternal, isLoading]);
 
   const canProceed = validateStep ? validateStep(step, data) : true;
 
   const goNext = useCallback(() => {
     if (step < totalSteps && canProceed) {
       setStep(prev => prev + 1);
-      saveDraftInternal();
     }
-  }, [step, totalSteps, canProceed, saveDraftInternal]);
+  }, [step, totalSteps, canProceed]);
 
   const goBack = useCallback(() => {
     if (step > 1) {
@@ -190,7 +273,7 @@ export function useWizard<T extends Record<string, unknown>>({
   const saveDraft = useCallback(async () => {
     setIsSaving(true);
     try {
-      await saveDraftInternal();
+      await saveDraftInternal(true);
       toast.success('Draft saved');
     } catch (err) {
       toast.error('Failed to save draft');
@@ -203,7 +286,7 @@ export function useWizard<T extends Record<string, unknown>>({
     setIsSaving(true);
     setError(null);
     try {
-      await saveDraftInternal();
+      await saveDraftInternal(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to save';
       setError(message);
@@ -214,10 +297,19 @@ export function useWizard<T extends Record<string, unknown>>({
   }, [saveDraftInternal]);
 
   const clearDraft = useCallback(async () => {
-    localStorage.removeItem(localStorageKey);
+    try {
+      localStorage.removeItem(localStorageKey);
+    } catch (err) {
+      console.error('Error clearing localStorage:', err);
+    }
+    
     setHasDraft(false);
     setDataState(defaultData);
     setStep(1);
+    setLastServerSync(null);
+    setDraftUpdatedAt(null);
+    hasUnsavedChanges.current = false;
+    lastSavedRef.current = '';
 
     if (user) {
       try {
@@ -232,6 +324,11 @@ export function useWizard<T extends Record<string, unknown>>({
       }
     }
   }, [user, templateName, localStorageKey, defaultData]);
+
+  const getDraftAge = useCallback((): string | null => {
+    if (!lastServerSync) return null;
+    return formatDistanceToNow(lastServerSync, { addSuffix: true });
+  }, [lastServerSync]);
 
   return {
     step,
@@ -249,5 +346,9 @@ export function useWizard<T extends Record<string, unknown>>({
     hasDraft,
     clearDraft,
     totalSteps,
+    lastServerSync,
+    syncError,
+    getDraftAge,
+    draftUpdatedAt,
   };
 }
