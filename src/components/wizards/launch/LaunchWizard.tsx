@@ -1,5 +1,7 @@
 import { WizardLayout } from '@/components/wizards/WizardLayout';
 import { WizardProgress } from '@/components/wizards/WizardProgress';
+import { WizardSaveStatus } from '@/components/wizards/WizardSaveStatus';
+import { ResumeDraftDialog } from '@/components/wizards/ResumeDraftDialog';
 import { useWizard } from '@/hooks/useWizard';
 import { LaunchWizardData, DEFAULT_LAUNCH_WIZARD_DATA } from '@/types/launch';
 import { validateLaunchStep } from '@/lib/launchValidation';
@@ -14,7 +16,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { formatDistanceToNow } from 'date-fns';
 
 const LAUNCH_WIZARD_STEPS = [
   { number: 1, title: 'Launch Basics' },
@@ -30,6 +33,8 @@ export function LaunchWizard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isCreating, setIsCreating] = useState(false);
+  const [showResumeDialog, setShowResumeDialog] = useState(false);
+  const [hasCheckedDraft, setHasCheckedDraft] = useState(false);
 
   const {
     step,
@@ -44,12 +49,41 @@ export function LaunchWizard() {
     isLoading,
     clearDraft,
     totalSteps,
+    hasDraft,
+    lastServerSync,
+    syncError,
+    draftUpdatedAt,
   } = useWizard<LaunchWizardData>({
     templateName: 'launch-planner',
     totalSteps: 7,
     defaultData: DEFAULT_LAUNCH_WIZARD_DATA,
     validateStep: validateLaunchStep,
   });
+
+  // Show resume dialog when draft is detected
+  useEffect(() => {
+    if (!isLoading && !hasCheckedDraft) {
+      setHasCheckedDraft(true);
+      if (hasDraft && draftUpdatedAt) {
+        setShowResumeDialog(true);
+      }
+    }
+  }, [isLoading, hasDraft, draftUpdatedAt, hasCheckedDraft]);
+
+  const handleResumeDraft = () => {
+    setShowResumeDialog(false);
+    // Data is already loaded, just close dialog
+  };
+
+  const handleStartFresh = async () => {
+    setShowResumeDialog(false);
+    await clearDraft();
+  };
+
+  const getDraftAgeText = () => {
+    if (!draftUpdatedAt) return null;
+    return formatDistanceToNow(draftUpdatedAt, { addSuffix: false });
+  };
 
   const handleChange = (updates: Partial<LaunchWizardData>) => {
     setData(updates);
@@ -163,9 +197,23 @@ export function LaunchWizard() {
         isSaving={isSaving || isCreating}
         isLastStep={step === totalSteps}
         lastStepButtonText="Create Launch"
+        statusIndicator={
+          <WizardSaveStatus
+            isSaving={isSaving}
+            lastSaved={lastServerSync}
+            syncError={syncError}
+          />
+        }
       >
         {renderStep()}
       </WizardLayout>
+
+      <ResumeDraftDialog
+        isOpen={showResumeDialog}
+        draftAge={getDraftAgeText()}
+        onResume={handleResumeDraft}
+        onStartFresh={handleStartFresh}
+      />
     </div>
   );
 }

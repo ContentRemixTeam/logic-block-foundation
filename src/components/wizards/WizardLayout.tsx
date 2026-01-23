@@ -19,6 +19,7 @@ interface WizardLayoutProps {
   lastStepButtonText?: string;
   children: ReactNode;
   className?: string;
+  statusIndicator?: ReactNode;
 }
 
 export function WizardLayout({
@@ -35,6 +36,7 @@ export function WizardLayout({
   lastStepButtonText = 'Complete',
   children,
   className,
+  statusIndicator,
 }: WizardLayoutProps) {
   const progress = calculateProgress(currentStep, totalSteps);
 
@@ -45,9 +47,12 @@ export function WizardLayout({
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">{title}</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Step {currentStep} of {totalSteps}: {stepTitle}
-            </p>
+            <div className="flex items-center gap-3 mt-1">
+              <p className="text-sm text-muted-foreground">
+                Step {currentStep} of {totalSteps}: {stepTitle}
+              </p>
+              {statusIndicator}
+            </div>
           </div>
           <Button 
             variant="ghost" 
