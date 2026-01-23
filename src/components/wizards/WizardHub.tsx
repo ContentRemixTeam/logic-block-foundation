@@ -6,12 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Target, Clock, ArrowRight, RotateCcw } from 'lucide-react';
+import { Target, Clock, ArrowRight, RotateCcw, Rocket, Mail, Zap } from 'lucide-react';
 import { WizardTemplate, WizardCompletion } from '@/types/wizard';
 import { formatDistanceToNow } from 'date-fns';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   Target: <Target className="h-8 w-8" />,
+  Rocket: <Rocket className="h-8 w-8" />,
+  Mail: <Mail className="h-8 w-8" />,
+  Zap: <Zap className="h-8 w-8" />,
 };
 
 export default function WizardHub() {
@@ -65,6 +68,12 @@ export default function WizardHub() {
   const handleStart = (templateName: string) => {
     if (templateName === 'cycle-90-day') {
       navigate('/cycle-setup');
+    } else if (templateName === 'launch-planner') {
+      navigate('/wizards/launch');
+    } else if (templateName === 'email-campaign') {
+      navigate('/wizards/email');
+    } else if (templateName === 'content-sprint') {
+      navigate('/wizards/content');
     }
   };
 

@@ -2486,21 +2486,26 @@ export type Database = {
           cycle_id: string | null
           debrief_date: string | null
           email_sequences: string[] | null
+          has_ads: string | null
           has_lead_magnet: boolean | null
           has_waitlist: boolean | null
           id: string
+          launch_duration: string | null
           lead_magnet_due_date: string | null
           lead_magnet_topic: string | null
           limiting_thought: string | null
           live_events: Json | null
           name: string
           non_buyer_followup: string | null
+          offer_breakdown: Json | null
           offer_goal: number | null
           post_purchase_flow: string[] | null
           price_per_sale: number | null
           revenue_goal: number | null
           sales_needed: number | null
+          selected_content_ids: string[] | null
           social_posts_per_day: number | null
+          social_strategy: string[] | null
           status: string | null
           updated_at: string | null
           useful_thought: string | null
@@ -2518,21 +2523,26 @@ export type Database = {
           cycle_id?: string | null
           debrief_date?: string | null
           email_sequences?: string[] | null
+          has_ads?: string | null
           has_lead_magnet?: boolean | null
           has_waitlist?: boolean | null
           id?: string
+          launch_duration?: string | null
           lead_magnet_due_date?: string | null
           lead_magnet_topic?: string | null
           limiting_thought?: string | null
           live_events?: Json | null
           name: string
           non_buyer_followup?: string | null
+          offer_breakdown?: Json | null
           offer_goal?: number | null
           post_purchase_flow?: string[] | null
           price_per_sale?: number | null
           revenue_goal?: number | null
           sales_needed?: number | null
+          selected_content_ids?: string[] | null
           social_posts_per_day?: number | null
+          social_strategy?: string[] | null
           status?: string | null
           updated_at?: string | null
           useful_thought?: string | null
@@ -2550,21 +2560,26 @@ export type Database = {
           cycle_id?: string | null
           debrief_date?: string | null
           email_sequences?: string[] | null
+          has_ads?: string | null
           has_lead_magnet?: boolean | null
           has_waitlist?: boolean | null
           id?: string
+          launch_duration?: string | null
           lead_magnet_due_date?: string | null
           lead_magnet_topic?: string | null
           limiting_thought?: string | null
           live_events?: Json | null
           name?: string
           non_buyer_followup?: string | null
+          offer_breakdown?: Json | null
           offer_goal?: number | null
           post_purchase_flow?: string[] | null
           price_per_sale?: number | null
           revenue_goal?: number | null
           sales_needed?: number | null
+          selected_content_ids?: string[] | null
           social_posts_per_day?: number | null
+          social_strategy?: string[] | null
           status?: string | null
           updated_at?: string | null
           useful_thought?: string | null
