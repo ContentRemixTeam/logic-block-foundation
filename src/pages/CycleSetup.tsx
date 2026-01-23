@@ -29,6 +29,8 @@ import { AutopilotSetupModal, AutopilotOptions } from '@/components/cycle/Autopi
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { loadCycleForExport, exportCycleAsJSON, exportCycleAsPDF, CycleExportData, generateExportFromFormData, CycleFormData, ExportResult } from '@/lib/cycleExport';
 import { PDFInstructionsModal } from '@/components/pdf/PDFInstructionsModal';
+import { PlanningLevelSelector } from '@/components/wizards/PlanningLevelSelector';
+import { PlanningLevel } from '@/types/wizard';
 
 const WORKSHOP_STORAGE_KEY = 'workshop-planner-data';
 
@@ -526,6 +528,9 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
   const [day3Date, setDay3Date] = useState<Date | undefined>(undefined);
   const [day3Top3, setDay3Top3] = useState<string[]>(['', '', '']);
   const [day3Why, setDay3Why] = useState('');
+
+  // Planning Level (Smart Wizards integration)
+  const [planningLevel, setPlanningLevel] = useState<PlanningLevel>('simple');
 
   // Form validation function
   const validateFormData = useCallback((): { isValid: boolean; errors: string[] } => {
@@ -2383,6 +2388,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
     day3Top3,
     day3Why,
     currentStep,
+    planningLevel,
   }), [
     startDate, goal, why, identity, feeling,
     discoverScore, nurtureScore, convertScore, biggestBottleneck,
@@ -2396,7 +2402,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
     projects, habits, thingsToRemember,
     weeklyPlanningDay, weeklyDebriefDay, officeHoursStart, officeHoursEnd, officeHoursDays, autoCreateWeeklyTasks, recurringTasks,
     biggestFear, whatWillYouDoWhenFearHits, commitmentStatement, whoWillHoldYouAccountable,
-    day1Top3, day1Why, day2Top3, day2Why, day3Top3, day3Why, currentStep
+    day1Top3, day1Why, day2Top3, day2Why, day3Top3, day3Why, currentStep, planningLevel
   ]);
 
   // Force immediate save before step navigation
@@ -2986,6 +2992,20 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
                       placeholder="e.g., Confident, Energized, In control"
                     />
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Planning Level Selector */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Planning Level</CardTitle>
+                  <CardDescription>How much detail do you want in your plan?</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <PlanningLevelSelector
+                    value={planningLevel}
+                    onChange={setPlanningLevel}
+                  />
                 </CardContent>
               </Card>
             </div>
