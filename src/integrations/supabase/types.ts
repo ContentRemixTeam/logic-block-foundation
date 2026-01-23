@@ -601,6 +601,89 @@ export type Database = {
           },
         ]
       }
+      content_sprints: {
+        Row: {
+          batch_date: string | null
+          content_type: string
+          created_at: string | null
+          creation_method: string | null
+          cycle_id: string | null
+          edit_date: string | null
+          first_post_date: string | null
+          id: string
+          last_post_date: string | null
+          name: string | null
+          needs_help: string[] | null
+          new_pieces_count: number | null
+          piece_count: number
+          platform: string
+          posting_frequency: string | null
+          reused_content_ids: string[] | null
+          schedule_date: string | null
+          status: string | null
+          theme: string | null
+          timeline: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          batch_date?: string | null
+          content_type: string
+          created_at?: string | null
+          creation_method?: string | null
+          cycle_id?: string | null
+          edit_date?: string | null
+          first_post_date?: string | null
+          id?: string
+          last_post_date?: string | null
+          name?: string | null
+          needs_help?: string[] | null
+          new_pieces_count?: number | null
+          piece_count: number
+          platform: string
+          posting_frequency?: string | null
+          reused_content_ids?: string[] | null
+          schedule_date?: string | null
+          status?: string | null
+          theme?: string | null
+          timeline?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          batch_date?: string | null
+          content_type?: string
+          created_at?: string | null
+          creation_method?: string | null
+          cycle_id?: string | null
+          edit_date?: string | null
+          first_post_date?: string | null
+          id?: string
+          last_post_date?: string | null
+          name?: string | null
+          needs_help?: string[] | null
+          new_pieces_count?: number | null
+          piece_count?: number
+          platform?: string
+          posting_frequency?: string | null
+          reused_content_ids?: string[] | null
+          schedule_date?: string | null
+          status?: string | null
+          theme?: string | null
+          timeline?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_sprints_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+        ]
+      }
       content_topics: {
         Row: {
           created_at: string | null
@@ -1613,6 +1696,80 @@ export type Database = {
         }
         Relationships: []
       }
+      email_campaigns: {
+        Row: {
+          audience: string | null
+          created_at: string | null
+          custom_frequency: string | null
+          cycle_id: string | null
+          email_count: number | null
+          emails_to_write: number | null
+          goal: string | null
+          id: string
+          main_cta: string | null
+          name: string
+          offer_count: number | null
+          problem_solved: string | null
+          reused_content_ids: string[] | null
+          send_frequency: string | null
+          start_date: string | null
+          status: string | null
+          transformation: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          audience?: string | null
+          created_at?: string | null
+          custom_frequency?: string | null
+          cycle_id?: string | null
+          email_count?: number | null
+          emails_to_write?: number | null
+          goal?: string | null
+          id?: string
+          main_cta?: string | null
+          name: string
+          offer_count?: number | null
+          problem_solved?: string | null
+          reused_content_ids?: string[] | null
+          send_frequency?: string | null
+          start_date?: string | null
+          status?: string | null
+          transformation?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          audience?: string | null
+          created_at?: string | null
+          custom_frequency?: string | null
+          cycle_id?: string | null
+          email_count?: number | null
+          emails_to_write?: number | null
+          goal?: string | null
+          id?: string
+          main_cta?: string | null
+          name?: string
+          offer_count?: number | null
+          problem_solved?: string | null
+          reused_content_ids?: string[] | null
+          send_frequency?: string | null
+          start_date?: string | null
+          status?: string | null
+          transformation?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_campaigns_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+        ]
+      }
       entitlements: {
         Row: {
           created_at: string
@@ -2315,6 +2472,113 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      launches: {
+        Row: {
+          ads_budget: number | null
+          ads_platform: string[] | null
+          belief: string | null
+          cart_closes: string
+          cart_opens: string
+          created_at: string | null
+          cycle_id: string | null
+          debrief_date: string | null
+          email_sequences: string[] | null
+          has_lead_magnet: boolean | null
+          has_waitlist: boolean | null
+          id: string
+          lead_magnet_due_date: string | null
+          lead_magnet_topic: string | null
+          limiting_thought: string | null
+          live_events: Json | null
+          name: string
+          non_buyer_followup: string | null
+          offer_goal: number | null
+          post_purchase_flow: string[] | null
+          price_per_sale: number | null
+          revenue_goal: number | null
+          sales_needed: number | null
+          social_posts_per_day: number | null
+          status: string | null
+          updated_at: string | null
+          useful_thought: string | null
+          user_id: string
+          waitlist_incentive: string | null
+          waitlist_opens: string | null
+        }
+        Insert: {
+          ads_budget?: number | null
+          ads_platform?: string[] | null
+          belief?: string | null
+          cart_closes: string
+          cart_opens: string
+          created_at?: string | null
+          cycle_id?: string | null
+          debrief_date?: string | null
+          email_sequences?: string[] | null
+          has_lead_magnet?: boolean | null
+          has_waitlist?: boolean | null
+          id?: string
+          lead_magnet_due_date?: string | null
+          lead_magnet_topic?: string | null
+          limiting_thought?: string | null
+          live_events?: Json | null
+          name: string
+          non_buyer_followup?: string | null
+          offer_goal?: number | null
+          post_purchase_flow?: string[] | null
+          price_per_sale?: number | null
+          revenue_goal?: number | null
+          sales_needed?: number | null
+          social_posts_per_day?: number | null
+          status?: string | null
+          updated_at?: string | null
+          useful_thought?: string | null
+          user_id: string
+          waitlist_incentive?: string | null
+          waitlist_opens?: string | null
+        }
+        Update: {
+          ads_budget?: number | null
+          ads_platform?: string[] | null
+          belief?: string | null
+          cart_closes?: string
+          cart_opens?: string
+          created_at?: string | null
+          cycle_id?: string | null
+          debrief_date?: string | null
+          email_sequences?: string[] | null
+          has_lead_magnet?: boolean | null
+          has_waitlist?: boolean | null
+          id?: string
+          lead_magnet_due_date?: string | null
+          lead_magnet_topic?: string | null
+          limiting_thought?: string | null
+          live_events?: Json | null
+          name?: string
+          non_buyer_followup?: string | null
+          offer_goal?: number | null
+          post_purchase_flow?: string[] | null
+          price_per_sale?: number | null
+          revenue_goal?: number | null
+          sales_needed?: number | null
+          social_posts_per_day?: number | null
+          status?: string | null
+          updated_at?: string | null
+          useful_thought?: string | null
+          user_id?: string
+          waitlist_incentive?: string | null
+          waitlist_opens?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "launches_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
           },
         ]
       }
