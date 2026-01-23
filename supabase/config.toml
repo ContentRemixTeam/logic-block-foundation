@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.create-cycle-from-wizard]
 verify_jwt = false
+
+[functions.create-launch-from-wizard]
+verify_jwt = false
