@@ -11,9 +11,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 interface ContentItem {
   id: string;
   title: string;
-  content_type: string;
+  type: string;
   channel: string | null;
-  metrics: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -36,7 +35,7 @@ export function LaunchContentReuse({ data, onChange }: LaunchContentReuseProps) 
     setIsLoading(true);
     const { data: items } = await supabase
       .from('content_items')
-      .select('id, title, content_type, channel, metrics, created_at')
+      .select('id, title, type, channel, created_at')
       .order('created_at', { ascending: false })
       .limit(100);
     
@@ -48,7 +47,7 @@ export function LaunchContentReuse({ data, onChange }: LaunchContentReuseProps) 
     const matchesSearch =
       !searchQuery ||
       item.title.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = filterType === 'all' || item.content_type === filterType;
+    const matchesType = filterType === 'all' || item.type === filterType;
     return matchesSearch && matchesType;
   });
 
@@ -71,7 +70,7 @@ export function LaunchContentReuse({ data, onChange }: LaunchContentReuseProps) 
     }
   };
 
-  const contentTypes = Array.from(new Set(contentItems.map((c) => c.content_type)));
+  const contentTypes = Array.from(new Set(contentItems.map((c) => c.type)));
 
   return (
     <div className="space-y-6">
@@ -141,13 +140,13 @@ export function LaunchContentReuse({ data, onChange }: LaunchContentReuseProps) 
               >
                 <Checkbox checked={isSelected} className="pointer-events-none" />
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  {getIcon(item.content_type)}
+                  {getIcon(item.type)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{item.title}</p>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Badge variant="outline" className="text-xs">
-                      {item.content_type}
+                      {item.type}
                     </Badge>
                     {item.channel && (
                       <Badge variant="secondary" className="text-xs">
