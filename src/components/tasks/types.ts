@@ -69,7 +69,14 @@ export interface Task {
   // Project fields
   project_id: string | null;
   project_column: 'todo' | 'in_progress' | 'done' | null;
-  project?: { id: string; name: string; color: string } | null;
+  project?: { 
+    id: string; 
+    name: string; 
+    color: string; 
+    is_launch?: boolean;
+    launch_start_date?: string | null;
+    launch_end_date?: string | null;
+  } | null;
   section_id: string | null;
   // Cycle automation fields
   cycle_id: string | null;
