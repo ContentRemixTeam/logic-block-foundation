@@ -87,6 +87,8 @@ export interface Task {
   recurrence_interval?: number | null;
   recurrence_unit?: 'days' | 'weeks' | 'months' | null;
   recurrence_end_date?: string | null;
+  // Launch/category fields
+  category?: string | null;
 }
 
 export type FilterTab = 'today' | 'week' | 'future' | 'all' | 'completed';

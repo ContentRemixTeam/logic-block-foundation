@@ -12,6 +12,7 @@ import { CurrentTimeIndicator } from '@/components/tasks/views/CurrentTimeIndica
 import { Task } from '@/components/tasks/types';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { useTasks, useTaskMutations } from '@/hooks/useTasks';
+import { useProjects } from '@/hooks/useProjects';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { InlineTaskAdd } from '@/components/weekly-plan/InlineTaskAdd';
@@ -24,8 +25,21 @@ import {
   Edit,
   CalendarDays,
   ListTodo,
-  MapPin
+  MapPin,
+  Rocket
 } from 'lucide-react';
+
+// Category order matching launch wizard categories
+const TASK_CATEGORIES = [
+  'Pre-Launch',
+  'Email Campaign',
+  'Live Events',
+  'Social Media',
+  'Paid Ads',
+  'Sales Activities',
+  'Post-Launch',
+  'Other'
+] as const;
 
 interface DailyAgendaCardProps {
   date?: Date;
@@ -40,10 +54,34 @@ export function DailyAgendaCard({ date = new Date(), onTaskToggle }: DailyAgenda
   const { status: calendarStatus, syncing, syncNow, connect } = useGoogleCalendar();
   const { data: allTasks = [], isLoading: loadingTasks } = useTasks();
   const { toggleComplete } = useTaskMutations();
+  const { data: projects = [] } = useProjects();
   const queryClient = useQueryClient();
   
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
+
+  // Create project lookup map
+  const projectMap = useMemo(() => 
+    new Map(projects.map(p => [p.id, p])), 
+    [projects]
+  );
+
+  // Group tasks by category
+  const groupTasksByCategory = (tasks: Task[]) => {
+    const grouped: Record<string, Task[]> = {};
+    
+    TASK_CATEGORIES.forEach(cat => {
+      if (cat === 'Other') {
+        grouped[cat] = tasks.filter(t => 
+          !t.category || !TASK_CATEGORIES.includes(t.category as any)
+        );
+      } else {
+        grouped[cat] = tasks.filter(t => t.category === cat);
+      }
+    });
+    
+    return grouped;
+  };
 
   // Extract primitive values to avoid re-render loops
   const isConnected = calendarStatus.connected;
@@ -388,7 +426,7 @@ export function DailyAgendaCard({ date = new Date(), onTaskToggle }: DailyAgenda
           </div>
         )}
 
-        {/* Unscheduled tasks */}
+        {/* Unscheduled tasks - Grouped by Category */}
         {!isLoading && (
           <div>
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1">
@@ -407,41 +445,99 @@ export function DailyAgendaCard({ date = new Date(), onTaskToggle }: DailyAgenda
                 Schedule tasks →
               </Link>
             </p>
-            <div className="space-y-1.5">
-              {unscheduledTasks.map((task) => (
-                <div 
-                  key={task.task_id}
-                  className="flex items-center gap-3 p-2.5 rounded-lg bg-background/50 hover:bg-background/80 transition-colors border"
-                >
-                  <Checkbox
-                    checked={task.is_completed}
-                    onCheckedChange={() => handleTaskToggle(task.task_id, task.is_completed)}
-                  />
-                  <span className={cn(
-                    "flex-1 text-sm",
-                    task.is_completed && "line-through text-muted-foreground"
-                  )}>
-                    {task.task_text}
-                  </span>
-                  {task.estimated_minutes && (
-                    <Badge variant="secondary" className="text-xs">
-                      <Clock className="h-3 w-3 mr-1" />
-                      {formatDuration(task.estimated_minutes)}
-                    </Badge>
-                  )}
-                  {task.priority === 'high' && (
-                    <Badge variant="destructive" className="text-xs">!</Badge>
-                  )}
-                </div>
-              ))}
-              
-              {/* Inline add task */}
-              <InlineTaskAdd 
-                onAdd={handleAddTask}
-                placeholder="+ Add a task for today..."
-                className="mt-1"
-              />
+            
+            {/* Category-grouped tasks */}
+            <div className="space-y-4">
+              {Object.entries(groupTasksByCategory(unscheduledTasks)).map(([category, categoryTasks]) => {
+                if (categoryTasks.length === 0) return null;
+                
+                return (
+                  <div key={category} className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs font-medium">
+                        {category}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {categoryTasks.length} task{categoryTasks.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-1.5 pl-2 border-l-2 border-muted">
+                      {categoryTasks.map(task => {
+                        const project = task.project_id ? projectMap.get(task.project_id) : null;
+                        
+                        return (
+                          <div 
+                            key={task.task_id}
+                            className="flex items-center gap-3 p-2.5 rounded-lg bg-background/50 hover:bg-background/80 transition-colors border"
+                          >
+                            <Checkbox
+                              checked={task.is_completed}
+                              onCheckedChange={() => handleTaskToggle(task.task_id, task.is_completed)}
+                              className="shrink-0"
+                            />
+                            
+                            <div className="flex-1 min-w-0">
+                              <span className={cn(
+                                "text-sm block truncate",
+                                task.is_completed && "line-through text-muted-foreground"
+                              )}>
+                                {task.task_text}
+                              </span>
+                              
+                              {/* Project/Launch context */}
+                              {project && (
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <div 
+                                    className="w-2 h-2 rounded-full shrink-0" 
+                                    style={{ backgroundColor: project.color || 'hsl(var(--primary))' }}
+                                  />
+                                  <span className="text-xs text-muted-foreground truncate max-w-[150px]">
+                                    {project.name}
+                                  </span>
+                                  {project.is_launch && (
+                                    <Rocket className="h-3 w-3 text-primary shrink-0" />
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Time block if exists */}
+                            {task.time_block_start && (
+                              <Badge variant="secondary" className="text-xs shrink-0">
+                                <Clock className="h-3 w-3 mr-1" />
+                                {format(parseISO(task.time_block_start), 'h:mm a')}
+                              </Badge>
+                            )}
+                            
+                            {/* Estimated duration */}
+                            {task.estimated_minutes && !task.time_block_start && (
+                              <Badge variant="secondary" className="text-xs shrink-0">
+                                {formatDuration(task.estimated_minutes)}
+                              </Badge>
+                            )}
+                            
+                            {/* Priority badge */}
+                            {task.priority === 'high' && (
+                              <Badge variant="destructive" className="text-xs shrink-0">
+                                High
+                              </Badge>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+            
+            {/* Inline add task */}
+            <InlineTaskAdd 
+              onAdd={handleAddTask}
+              placeholder="+ Add a task for today..."
+              className="mt-3"
+            />
           </div>
         )}
 

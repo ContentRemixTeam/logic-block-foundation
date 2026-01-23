@@ -14,6 +14,11 @@ export interface Project {
   created_at: string;
   updated_at: string;
   task_count?: number;
+  // Launch fields
+  is_launch?: boolean;
+  launch_start_date?: string | null;
+  launch_end_date?: string | null;
+  revenue_goal?: number | null;
 }
 
 export interface ProjectBoard {
