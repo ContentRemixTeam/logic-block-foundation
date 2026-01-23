@@ -62,59 +62,40 @@ export function LaunchWizard() {
 
   const handleCreateLaunch = async () => {
     if (isCreating || !user) return;
+    
+    // Validation
+    if (!data.name?.trim()) {
+      toast.error('Please enter a launch name');
+      return;
+    }
+    if (!data.cartOpens || !data.cartCloses) {
+      toast.error('Please select valid cart open and close dates');
+      return;
+    }
+    
     setIsCreating(true);
 
     try {
-      // Transform wizard data to database format (JSON.parse/stringify for Supabase Json compatibility)
-      const launchData = {
-        user_id: user.id,
-        name: data.name.trim(),
-        cart_opens: data.cartOpens,
-        cart_closes: data.cartCloses,
-        launch_duration: data.launchDuration,
-        revenue_goal: data.revenueGoal,
-        price_per_sale: data.pricePerSale,
-        sales_needed: data.salesNeeded,
-        selected_content_ids: data.selectedContentIds,
-        has_waitlist: data.hasWaitlist,
-        waitlist_opens: data.waitlistOpens || null,
-        waitlist_incentive: data.waitlistIncentive || null,
-        has_lead_magnet: data.hasLeadMagnet === 'skip' ? false : data.hasLeadMagnet,
-        lead_magnet_topic: data.leadMagnetTopic || null,
-        lead_magnet_due_date: data.leadMagnetDueDate || null,
-        email_sequences: data.emailSequences,
-        live_events: JSON.parse(JSON.stringify(data.liveEvents)),
-        has_ads: String(data.hasAds),
-        ads_budget: data.adsBudget,
-        ads_platform: data.adsPlatform,
-        social_posts_per_day: data.socialPostsPerDay,
-        social_strategy: data.socialStrategy,
-        offer_goal: data.offerGoal,
-        offer_breakdown: JSON.parse(JSON.stringify(data.offerBreakdown)),
-        belief: data.belief || null,
-        limiting_thought: data.limitingThought || null,
-        useful_thought: data.usefulThought || null,
-        post_purchase_flow: data.postPurchaseFlow,
-        non_buyer_followup: data.nonBuyerFollowup || null,
-        debrief_date: data.debriefDate || null,
-        status: 'planning',
-      };
-
-      const { data: launch, error } = await supabase
-        .from('launches')
-        .insert([launchData])
-        .select('id')
-        .single();
+      // Call the edge function that creates project + tasks
+      const { data: result, error } = await supabase.functions.invoke('create-launch-from-wizard', {
+        body: data
+      });
 
       if (error) throw error;
 
-      // Clear the draft after successful creation
-      await clearDraft();
-      
-      toast.success('Launch created successfully!');
-      navigate(`/launches/${launch.id}`);
+      if (result?.success) {
+        // Clear the draft after successful creation
+        await clearDraft();
+        
+        toast.success(result.message || `Launch created with ${result.tasks_created} tasks!`);
+        
+        // Redirect to the created project
+        navigate(`/projects/${result.project_id}`);
+      } else {
+        throw new Error(result?.message || 'Failed to create launch');
+      }
     } catch (error) {
-      console.error('Error creating launch:', error);
+      console.error('Create launch error:', error);
       toast.error('Failed to create launch. Please try again.');
     } finally {
       setIsCreating(false);
@@ -181,6 +162,7 @@ export function LaunchWizard() {
         canProceed={canProceed}
         isSaving={isSaving || isCreating}
         isLastStep={step === totalSteps}
+        lastStepButtonText="Create Launch"
       >
         {renderStep()}
       </WizardLayout>
