@@ -1,8 +1,12 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Target } from 'lucide-react';
 import { LaunchWizardData, LAUNCH_DURATION_OPTIONS } from '@/types/launch';
 import { formatCurrency } from '@/lib/wizardHelpers';
+import { useActiveCycle } from '@/hooks/useActiveCycle';
 
 interface LaunchBasicsProps {
   data: LaunchWizardData;
@@ -10,6 +14,8 @@ interface LaunchBasicsProps {
 }
 
 export function LaunchBasics({ data, onChange }: LaunchBasicsProps) {
+  const { data: activeCycle } = useActiveCycle();
+
   const calculateSalesNeeded = (revenue: number | null, price: number | null) => {
     if (!revenue || !price || price <= 0) return 0;
     return Math.ceil(revenue / price);
@@ -31,8 +37,58 @@ export function LaunchBasics({ data, onChange }: LaunchBasicsProps) {
     });
   };
 
+  // Calculate launch percentage of quarterly goal
+  const launchPercentage = activeCycle?.revenue_goal && data.revenueGoal
+    ? Math.round((data.revenueGoal / activeCycle.revenue_goal) * 100)
+    : null;
+
   return (
     <div className="space-y-8">
+      {/* 90-Day Cycle Context Card */}
+      {activeCycle && (
+        <Card className="bg-primary/5 border-primary/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base font-semibold">
+              <Target className="h-4 w-4 text-primary" />
+              Your 90-Day Cycle Context
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid gap-2">
+              {activeCycle.goal && (
+                <div>
+                  <span className="text-sm text-muted-foreground">Goal: </span>
+                  <span className="text-sm font-medium">{activeCycle.goal}</span>
+                </div>
+              )}
+              {activeCycle.revenue_goal && (
+                <div>
+                  <span className="text-sm text-muted-foreground">Revenue Target: </span>
+                  <span className="text-sm font-medium">{formatCurrency(activeCycle.revenue_goal)}</span>
+                </div>
+              )}
+              {activeCycle.biggest_bottleneck && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Focus: </span>
+                  <Badge variant="secondary" className="text-xs">
+                    {activeCycle.biggest_bottleneck}
+                  </Badge>
+                </div>
+              )}
+            </div>
+            
+            {/* Smart suggestion */}
+            {launchPercentage !== null && (
+              <div className="pt-2 border-t border-primary/10">
+                <p className="text-sm text-muted-foreground">
+                  💡 This launch is <span className="font-semibold text-primary">{launchPercentage}%</span> of your quarterly revenue goal
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* What are you launching */}
       <div className="space-y-3">
         <Label htmlFor="launch-name" className="text-lg font-semibold">

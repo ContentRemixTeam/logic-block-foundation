@@ -8,6 +8,8 @@ export interface ActiveCycle {
   end_date: string;
   focus_area: string | null;
   identity: string | null;
+  biggest_bottleneck: string | null;
+  revenue_goal: number | null;
 }
 
 export function useActiveCycle() {
@@ -26,7 +28,28 @@ export function useActiveCycle() {
         return null;
       }
 
-      return response.data?.data?.cycle as ActiveCycle | null;
+      const cycle = response.data?.data?.cycle || response.data?.cycle;
+      if (!cycle) return null;
+
+      // Fetch additional data: biggest_bottleneck from cycles_90_day and revenue_goal from cycle_revenue_plan
+      const [bottleneckResult, revenueResult] = await Promise.all([
+        supabase
+          .from('cycles_90_day')
+          .select('biggest_bottleneck')
+          .eq('cycle_id', cycle.cycle_id)
+          .maybeSingle(),
+        supabase
+          .from('cycle_revenue_plan')
+          .select('revenue_goal')
+          .eq('cycle_id', cycle.cycle_id)
+          .maybeSingle(),
+      ]);
+
+      return {
+        ...cycle,
+        biggest_bottleneck: bottleneckResult.data?.biggest_bottleneck || null,
+        revenue_goal: revenueResult.data?.revenue_goal || null,
+      } as ActiveCycle;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
