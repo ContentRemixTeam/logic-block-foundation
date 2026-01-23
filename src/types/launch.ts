@@ -148,6 +148,7 @@ export const POST_PURCHASE_OPTIONS = [
 
 export const NON_BUYER_OPTIONS = [
   { value: 'nurture', label: 'Move to regular nurture sequence' },
+  { value: 'downsell', label: 'Offer a downsell (lower-ticket alternative)' },
   { value: 'special_offer', label: 'Special offer for next launch' },
   { value: 'survey', label: 'Survey to understand why they didn\'t buy' },
   { value: 'nothing', label: 'Nothing - they stay on main list' },
