@@ -1,11 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Plus, DollarSign, TrendingUp, TrendingDown, PieChart, Upload, Target } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, PieChart, Upload, Target } from 'lucide-react';
 import { useFinancialTracker } from '@/hooks/useFinancialTracker';
 import { useFinancialGoals } from '@/hooks/useFinancialGoals';
+import { useUserSettings } from '@/hooks/useUserSettings';
+import { useToast } from '@/hooks/use-toast';
 import { LoadingState } from '@/components/system/LoadingState';
 import { FinancialDashboard } from '@/components/financial/FinancialDashboard';
 import { TransactionList } from '@/components/financial/TransactionList';
@@ -13,14 +15,16 @@ import { TransactionFormDrawer } from '@/components/financial/TransactionFormDra
 import { TransactionImportModal } from '@/components/financial/TransactionImportModal';
 import { MonthlyGoalModal } from '@/components/financial/MonthlyGoalModal';
 import { GoalProgressCard } from '@/components/financial/GoalProgressCard';
+import { CycleMonthlyBreakdown } from '@/components/financial/CycleMonthlyBreakdown';
 import { PeriodSelector, PeriodType, getDateRangeForPeriod } from '@/components/financial/PeriodSelector';
 import { PageHeader } from '@/components/ui/page-header';
-import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
-
+import { startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 export default function FinancialTracker() {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { settings, isLoading: settingsLoading } = useUserSettings();
   const { transactions, categories, summary, isLoading, addTransaction, deleteTransaction, refresh, incomeCategories, expenseCategories } = useFinancialTracker();
-  const { monthlyGoal, cycleGoal, setMonthlyRevenueGoal, calculateMonthlyProgress, calculateCycleProgress, isLoading: goalsLoading } = useFinancialGoals();
+  const { monthlyGoal, cycleGoal, cycleStartDate, cycleEndDate, setMonthlyRevenueGoal, calculateMonthlyProgress, calculateCycleProgress, isLoading: goalsLoading } = useFinancialGoals();
   
   const [activeTab, setActiveTab] = useState('dashboard');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -29,6 +33,17 @@ export default function FinancialTracker() {
   const [transactionType, setTransactionType] = useState<'income' | 'expense'>('income');
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('month');
   const [dateRange, setDateRange] = useState(() => getDateRangeForPeriod('month'));
+
+  // Check if finance tracking is enabled - redirect if disabled
+  useEffect(() => {
+    if (!settingsLoading && settings && !settings.show_income_tracker) {
+      toast({
+        title: 'Finance Tracking Disabled',
+        description: 'Enable finance tracking in Settings to use this feature.',
+      });
+      navigate('/dashboard');
+    }
+  }, [settings, settingsLoading, navigate, toast]);
 
   const handlePeriodChange = (period: PeriodType, start: Date, end: Date) => {
     setSelectedPeriod(period);
@@ -132,12 +147,17 @@ export default function FinancialTracker() {
     expense: expenseCategories.map(c => c.name),
   };
 
-  if (isLoading || goalsLoading) {
+  if (isLoading || goalsLoading || settingsLoading) {
     return (
       <Layout>
         <LoadingState message="Loading financial data..." />
       </Layout>
     );
+  }
+
+  // If settings loaded and finance tracking is disabled, don't render
+  if (settings && !settings.show_income_tracker) {
+    return null;
   }
 
   return (
@@ -218,11 +238,19 @@ export default function FinancialTracker() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard" className="mt-0">
+          <TabsContent value="dashboard" className="mt-0 space-y-6">
             <FinancialDashboard 
               summary={periodSummary} 
               transactions={filteredTransactions}
               periodLabel={selectedPeriod === 'month' ? undefined : selectedPeriod}
+            />
+            
+            {/* 90-Day Cycle Monthly Breakdown */}
+            <CycleMonthlyBreakdown
+              cycleStartDate={cycleStartDate}
+              cycleEndDate={cycleEndDate}
+              cycleRevenueGoal={cycleGoal}
+              transactions={transactions}
             />
           </TabsContent>
 
