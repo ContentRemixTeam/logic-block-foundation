@@ -1,253 +1,295 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Layers, Plus, X, FileText, Mail, Video, Mic, MessageSquare } from 'lucide-react';
-import { LaunchWizardData, ContentPiece, CONTENT_TYPE_OPTIONS } from '@/types/launch';
-import { useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Mail, Video, Mic, FileText, MessageSquare, CheckCircle2 } from 'lucide-react';
+import { LaunchWizardData } from '@/types/launch';
 
 interface LaunchContentPlanProps {
   data: LaunchWizardData;
   onChange: (updates: Partial<LaunchWizardData>) => void;
 }
 
-const CONTENT_ICONS: Record<string, React.ReactNode> = {
-  blog: <FileText className="h-3 w-3" />,
-  email: <Mail className="h-3 w-3" />,
-  video: <Video className="h-3 w-3" />,
-  podcast: <Mic className="h-3 w-3" />,
-  social: <MessageSquare className="h-3 w-3" />,
-};
-
-const CONTENT_COLORS: Record<string, string> = {
-  blog: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  email: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-  video: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-  podcast: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-  social: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-};
-
-const QUICK_ADD_TEMPLATES = [
-  { type: 'email' as const, title: 'Warm-up email', week: -3 },
-  { type: 'email' as const, title: 'Story email', week: -2 },
-  { type: 'email' as const, title: 'Value bomb email', week: -1 },
-  { type: 'social' as const, title: 'Problem awareness post', week: -4 },
-  { type: 'social' as const, title: 'Transformation story', week: -2 },
-  { type: 'video' as const, title: 'Teaching video', week: -3 },
-];
-
 export function LaunchContentPlan({ data, onChange }: LaunchContentPlanProps) {
-  const [newContent, setNewContent] = useState<Partial<ContentPiece>>({
-    type: 'email',
-    title: '',
-    scheduledWeek: -1,
-  });
+  const contentFormats = data.contentFormats || {
+    email: true,
+    video: false,
+    podcast: false,
+    blog: false,
+    social: true,
+  };
 
+  const podcastTopics = data.podcastTopics || ['', '', '', ''];
+  const beliefShifts = data.beliefShifts || [];
+  const objectionsToAddress = Array.isArray(data.objectionsToAddress) ? data.objectionsToAddress : [];
   const runwayWeeks = data.runwayWeeks || 4;
-  const weekOptions = Array.from({ length: runwayWeeks + 1 }, (_, i) => {
-    const week = -runwayWeeks + i;
-    return {
-      value: week,
-      label: week === 0 ? 'Launch Week' : `Week ${week}`,
-    };
-  });
 
-  const addContent = () => {
-    if (!newContent.title?.trim()) return;
+  const updateFormat = (format: keyof typeof contentFormats, checked: boolean) => {
+    onChange({
+      contentFormats: { ...contentFormats, [format]: checked },
+    });
+  };
+
+  const updatePodcastTopic = (index: number, value: string) => {
+    const newTopics = [...podcastTopics];
+    newTopics[index] = value;
+    onChange({ podcastTopics: newTopics });
+  };
+
+  // Generate suggested topics based on messaging strategy
+  const getSuggestedTopics = () => {
+    const topics = [];
+    const firstObjection = objectionsToAddress[0] || 'common objection';
     
-    const piece: ContentPiece = {
-      id: crypto.randomUUID(),
-      type: newContent.type || 'email',
-      title: newContent.title.trim(),
-      scheduledWeek: newContent.scheduledWeek ?? -1,
-      status: 'planned',
-    };
+    topics.push({
+      week: -runwayWeeks,
+      title: 'Problem awareness content',
+      description: beliefShifts[0]?.from 
+        ? `Why "${beliefShifts[0].from}" is holding you back`
+        : 'Are you struggling with [problem]?',
+    });
     
-    onChange({ contentPieces: [...(data.contentPieces || []), piece] });
-    setNewContent({ type: 'email', title: '', scheduledWeek: -1 });
+    topics.push({
+      week: Math.floor(-runwayWeeks * 0.75),
+      title: 'Solution introduction',
+      description: beliefShifts[0]?.to 
+        ? `The shift: "${beliefShifts[0].to}"`
+        : "Here's what actually works",
+    });
+    
+    topics.push({
+      week: Math.floor(-runwayWeeks * 0.5),
+      title: `Address objection: "${firstObjection}"`,
+      description: 'Pre-handle resistance before cart opens',
+    });
+    
+    topics.push({
+      week: -1,
+      title: 'Social proof & case studies',
+      description: 'Show transformation is possible',
+    });
+    
+    return topics;
   };
 
-  const removeContent = (id: string) => {
-    onChange({ contentPieces: data.contentPieces.filter(p => p.id !== id) });
-  };
-
-  const quickAddContent = (template: typeof QUICK_ADD_TEMPLATES[0]) => {
-    const piece: ContentPiece = {
-      id: crypto.randomUUID(),
-      type: template.type,
-      title: template.title,
-      scheduledWeek: Math.max(template.week, -runwayWeeks),
-      status: 'planned',
-    };
-    onChange({ contentPieces: [...(data.contentPieces || []), piece] });
-  };
-
-  // Group content by week
-  const contentByWeek = weekOptions.reduce((acc, week) => {
-    acc[week.value] = (data.contentPieces || []).filter(p => p.scheduledWeek === week.value);
-    return acc;
-  }, {} as Record<number, ContentPiece[]>);
+  const suggestedTopics = getSuggestedTopics();
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <Card className="bg-primary/5 border-primary/20">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base font-semibold">
-            <Layers className="h-4 w-4 text-primary" />
-            Content Plan
-          </CardTitle>
-          <CardDescription>
-            Map out your pre-launch content across your {runwayWeeks}-week runway.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
-      {/* Quick add templates */}
-      <div className="space-y-3">
-        <Label className="text-sm font-medium">Quick Add Common Content</Label>
-        <div className="flex flex-wrap gap-2">
-          {QUICK_ADD_TEMPLATES.filter(t => t.week >= -runwayWeeks).map((template, i) => (
-            <Button
-              key={i}
-              variant="outline"
-              size="sm"
-              onClick={() => quickAddContent(template)}
-              className="text-xs gap-1"
-            >
-              {CONTENT_ICONS[template.type]}
-              {template.title}
-            </Button>
-          ))}
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          📝 Pre-Launch Content Topics
+        </CardTitle>
+        <CardDescription>
+          Based on your messaging strategy, here are the topics you should cover in your 
+          {runwayWeeks}-week runway period to warm up your list.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Auto-suggested based on belief shifts */}
+        <div className="p-4 bg-primary/5 rounded-lg">
+          <h4 className="font-semibold mb-2 flex items-center gap-2">
+            🎯 Suggested Content Topics
+          </h4>
+          <p className="text-sm text-muted-foreground mb-3">
+            Based on your belief shifts and objections:
+          </p>
+          <ul className="space-y-2 text-sm">
+            {suggestedTopics.map((topic, index) => (
+              <li key={index} className="flex items-start gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+                <span>
+                  <strong>Week {topic.week}:</strong> {topic.title} - "{topic.description}"
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
-      </div>
 
-      {/* Add new content */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium">Add Content Piece</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-2">
-              <Label className="text-xs">Type</Label>
-              <Select
-                value={newContent.type}
-                onValueChange={(value) => setNewContent(prev => ({ ...prev, type: value as ContentPiece['type'] }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CONTENT_TYPE_OPTIONS.map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.icon} {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs">Week</Label>
-              <Select
-                value={String(newContent.scheduledWeek)}
-                onValueChange={(value) => setNewContent(prev => ({ ...prev, scheduledWeek: Number(value) }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {weekOptions.map(opt => (
-                    <SelectItem key={opt.value} value={String(opt.value)}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs">&nbsp;</Label>
-              <Button onClick={addContent} disabled={!newContent.title?.trim()} className="w-full">
-                <Plus className="h-4 w-4 mr-1" />
-                Add
-              </Button>
-            </div>
-          </div>
-          <Input
-            value={newContent.title || ''}
-            onChange={(e) => setNewContent(prev => ({ ...prev, title: e.target.value }))}
-            placeholder="Content title or topic..."
-            onKeyDown={(e) => e.key === 'Enter' && addContent()}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Timeline view */}
-      <div className="space-y-4">
-        <Label className="text-lg font-semibold">Your Content Timeline</Label>
-        
-        {weekOptions.map(week => (
-          <div key={week.value} className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className={`text-sm font-medium ${week.value === 0 ? 'text-primary' : ''}`}>
-                {week.label}
-              </span>
-              {week.value === 0 && <Badge variant="default">Launch!</Badge>}
-            </div>
-            
-            <div className="pl-4 border-l-2 border-muted min-h-[40px]">
-              {contentByWeek[week.value]?.length > 0 ? (
-                <div className="flex flex-wrap gap-2 py-2">
-                  {contentByWeek[week.value].map(piece => (
-                    <Badge
-                      key={piece.id}
-                      variant="secondary"
-                      className={`gap-1 py-1.5 px-3 ${CONTENT_COLORS[piece.type]}`}
-                    >
-                      {CONTENT_ICONS[piece.type]}
-                      {piece.title}
-                      <button
-                        onClick={() => removeContent(piece.id)}
-                        className="ml-1 opacity-60 hover:opacity-100"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
+        {/* Content Format Planning */}
+        <div className="space-y-3">
+          <Label className="text-base font-medium">
+            How will you deliver this content?
+          </Label>
+          
+          <div className="space-y-3">
+            {/* Email */}
+            <div
+              className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${
+                contentFormats.email ? 'border-primary bg-primary/5' : 'hover:border-primary/50'
+              }`}
+              onClick={() => updateFormat('email', !contentFormats.email)}
+            >
+              <div className="flex items-center gap-3">
+                <Mail className="h-5 w-5 text-purple-600" />
+                <div>
+                  <p className="font-medium">Email Sequence</p>
+                  <p className="text-xs text-muted-foreground">3-7 emails during runway</p>
                 </div>
-              ) : (
-                <p className="text-xs text-muted-foreground py-2">No content planned</p>
-              )}
+              </div>
+              <Checkbox
+                checked={contentFormats.email}
+                onCheckedChange={(checked) => updateFormat('email', !!checked)}
+              />
+            </div>
+
+            {/* Video */}
+            <div
+              className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${
+                contentFormats.video ? 'border-primary bg-primary/5' : 'hover:border-primary/50'
+              }`}
+              onClick={() => updateFormat('video', !contentFormats.video)}
+            >
+              <div className="flex items-center gap-3">
+                <Video className="h-5 w-5 text-red-600" />
+                <div>
+                  <p className="font-medium">Video Series</p>
+                  <p className="text-xs text-muted-foreground">YouTube or email videos</p>
+                </div>
+              </div>
+              <Checkbox
+                checked={contentFormats.video}
+                onCheckedChange={(checked) => updateFormat('video', !!checked)}
+              />
+            </div>
+
+            {/* Video stats callout */}
+            {contentFormats.video && (
+              <Alert className="ml-6 bg-purple-50 border-purple-200 dark:bg-purple-950/20 dark:border-purple-800">
+                <Video className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                <AlertTitle className="text-purple-800 dark:text-purple-300">
+                  Video Converts 2-3x Higher
+                </AlertTitle>
+                <AlertDescription className="text-sm text-purple-700 dark:text-purple-400">
+                  <strong>Stats you should know:</strong>
+                  <ul className="mt-2 space-y-1 ml-4 text-xs">
+                    <li>• Email with video gets 96% higher click-through rate</li>
+                    <li>• Video on landing page increases conversions by 80%</li>
+                    <li>• People retain 95% of a message when watching vs 10% reading</li>
+                    <li>• Video viewers are 64-85% more likely to buy</li>
+                  </ul>
+                  <p className="mt-2 font-medium">
+                    💡 Recommendation: Record 3-5 short videos (5-10 min) during runway
+                  </p>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Podcast */}
+            <div
+              className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${
+                contentFormats.podcast ? 'border-primary bg-primary/5' : 'hover:border-primary/50'
+              }`}
+              onClick={() => updateFormat('podcast', !contentFormats.podcast)}
+            >
+              <div className="flex items-center gap-3">
+                <Mic className="h-5 w-5 text-green-600" />
+                <div>
+                  <p className="font-medium">Podcast Episodes</p>
+                  <p className="text-xs text-muted-foreground">Release 2-4 episodes during runway</p>
+                </div>
+              </div>
+              <Checkbox
+                checked={contentFormats.podcast}
+                onCheckedChange={(checked) => updateFormat('podcast', !!checked)}
+              />
+            </div>
+
+            {/* Podcast topics */}
+            {contentFormats.podcast && (
+              <div className="ml-6 space-y-2">
+                <Label className="text-sm">Podcast episode topics:</Label>
+                {[0, 1, 2, 3].map((index) => (
+                  <Input
+                    key={index}
+                    placeholder={`Episode ${index + 1} topic`}
+                    value={podcastTopics[index] || ''}
+                    onChange={(e) => updatePodcastTopic(index, e.target.value)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Blog */}
+            <div
+              className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${
+                contentFormats.blog ? 'border-primary bg-primary/5' : 'hover:border-primary/50'
+              }`}
+              onClick={() => updateFormat('blog', !contentFormats.blog)}
+            >
+              <div className="flex items-center gap-3">
+                <FileText className="h-5 w-5 text-blue-600" />
+                <div>
+                  <p className="font-medium">Blog Posts / Long-Form</p>
+                  <p className="text-xs text-muted-foreground">SEO & authority building</p>
+                </div>
+              </div>
+              <Checkbox
+                checked={contentFormats.blog}
+                onCheckedChange={(checked) => updateFormat('blog', !!checked)}
+              />
+            </div>
+
+            {/* Social */}
+            <div
+              className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${
+                contentFormats.social ? 'border-primary bg-primary/5' : 'hover:border-primary/50'
+              }`}
+              onClick={() => updateFormat('social', !contentFormats.social)}
+            >
+              <div className="flex items-center gap-3">
+                <MessageSquare className="h-5 w-5 text-orange-600" />
+                <div>
+                  <p className="font-medium">Social Media Posts</p>
+                  <p className="text-xs text-muted-foreground">Daily engagement & value</p>
+                </div>
+              </div>
+              <Checkbox
+                checked={contentFormats.social}
+                onCheckedChange={(checked) => updateFormat('social', !!checked)}
+              />
             </div>
           </div>
-        ))}
-      </div>
+        </div>
 
-      {/* Summary */}
-      {data.contentPieces?.length > 0 && (
-        <Card className="bg-muted/30">
-          <CardContent className="pt-4">
-            <div className="flex flex-wrap gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">Total pieces:</span>{' '}
-                <span className="font-medium">{data.contentPieces.length}</span>
-              </div>
-              {CONTENT_TYPE_OPTIONS.map(type => {
-                const count = data.contentPieces.filter(p => p.type === type.value).length;
-                if (count === 0) return null;
-                return (
-                  <div key={type.value}>
-                    <span className="text-muted-foreground">{type.label}s:</span>{' '}
-                    <span className="font-medium">{count}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+        {/* Summary */}
+        <div className="p-4 bg-muted/30 rounded-lg">
+          <h4 className="font-medium text-sm mb-2">Your Content Mix</h4>
+          <div className="flex flex-wrap gap-2">
+            {contentFormats.email && (
+              <span className="text-xs px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 rounded">
+                📧 Email Series
+              </span>
+            )}
+            {contentFormats.video && (
+              <span className="text-xs px-2 py-1 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 rounded">
+                🎬 Video
+              </span>
+            )}
+            {contentFormats.podcast && (
+              <span className="text-xs px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 rounded">
+                🎙️ Podcast
+              </span>
+            )}
+            {contentFormats.blog && (
+              <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded">
+                📝 Blog
+              </span>
+            )}
+            {contentFormats.social && (
+              <span className="text-xs px-2 py-1 bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 rounded">
+                📱 Social
+              </span>
+            )}
+          </div>
+          {!Object.values(contentFormats).some(Boolean) && (
+            <p className="text-xs text-amber-600 mt-2">
+              ⚠️ Select at least one content format for your runway
+            </p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
