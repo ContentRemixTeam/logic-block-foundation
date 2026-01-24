@@ -66,11 +66,33 @@ const DB_NAME = 'boss-planner-offline';
 const DB_VERSION = 1;
 
 let dbInstance: IDBPDatabase<OfflineDBSchema> | null = null;
+let isClosing = false;
+
+/**
+ * Reset the database instance (useful when connection closes unexpectedly)
+ */
+export function resetDbInstance(): void {
+  if (dbInstance) {
+    try {
+      dbInstance.close();
+    } catch {
+      // Already closed
+    }
+  }
+  dbInstance = null;
+  isClosing = false;
+}
 
 /**
  * Initialize and get the IndexedDB database
  */
 export async function getDb(): Promise<IDBPDatabase<OfflineDBSchema>> {
+  // If we're in the middle of closing, reset and wait
+  if (isClosing) {
+    resetDbInstance();
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  
   if (dbInstance) return dbInstance;
   
   dbInstance = await openDB<OfflineDBSchema>(DB_NAME, DB_VERSION, {
@@ -111,9 +133,55 @@ export async function getDb(): Promise<IDBPDatabase<OfflineDBSchema>> {
         weeklyStore.createIndex('by-user', 'user_id');
       }
     },
+    blocked() {
+      // Another tab is blocking the upgrade
+      console.warn('IDB blocked - another tab may be using the database');
+    },
+    blocking() {
+      // This tab is blocking another tab's upgrade
+      isClosing = true;
+      resetDbInstance();
+    },
+    terminated() {
+      // The database was closed unexpectedly
+      isClosing = true;
+      resetDbInstance();
+    },
   });
   
   return dbInstance;
+}
+
+/**
+ * Safely execute an IDB operation with automatic retry on connection close
+ */
+export async function safeDbOperation<T>(
+  operation: (db: IDBPDatabase<OfflineDBSchema>) => Promise<T>,
+  fallback?: T
+): Promise<T> {
+  try {
+    const db = await getDb();
+    return await operation(db);
+  } catch (error: any) {
+    // Handle "database connection is closing" errors
+    if (error?.name === 'InvalidStateError' || error?.message?.includes('closing')) {
+      console.warn('IDB connection closed, resetting...');
+      resetDbInstance();
+      
+      // Retry once
+      try {
+        const db = await getDb();
+        return await operation(db);
+      } catch (retryError) {
+        console.error('IDB retry failed:', retryError);
+        if (fallback !== undefined) return fallback;
+        throw retryError;
+      }
+    }
+    
+    if (fallback !== undefined) return fallback;
+    throw error;
+  }
 }
 
 // ============ API Cache Functions ============

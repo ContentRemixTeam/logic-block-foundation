@@ -155,7 +155,18 @@ export async function syncPendingMutations(): Promise<{ synced: number; failed: 
   let failed = 0;
 
   try {
-    const mutations = await getPendingMutations();
+    let mutations: QueuedMutation[];
+    try {
+      mutations = await getPendingMutations();
+    } catch (dbError: any) {
+      // Handle IDB connection closing (e.g., during navigation)
+      if (dbError?.name === 'InvalidStateError' || dbError?.message?.includes('closing')) {
+        console.warn('IDB connection closed during sync, will retry later');
+        isSyncing = false;
+        return { synced: 0, failed: 0 };
+      }
+      throw dbError;
+    }
     
     if (mutations.length === 0) {
       emitSyncEvent('sync-complete', { synced: 0, failed: 0 });
@@ -166,10 +177,19 @@ export async function syncPendingMutations(): Promise<{ synced: number; failed: 
 
     // Process mutations in order (FIFO)
     for (const mutation of mutations.sort((a, b) => a.timestamp - b.timestamp)) {
-      const success = await processMutation(mutation);
-      if (success) {
-        synced++;
-      } else {
+      try {
+        const success = await processMutation(mutation);
+        if (success) {
+          synced++;
+        } else {
+          failed++;
+        }
+      } catch (mutationError: any) {
+        // Handle IDB closing mid-sync
+        if (mutationError?.name === 'InvalidStateError') {
+          console.warn('IDB closed during mutation processing');
+          break;
+        }
         failed++;
       }
       
@@ -177,8 +197,12 @@ export async function syncPendingMutations(): Promise<{ synced: number; failed: 
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    // Update sync time
-    await updateSyncTime('mutations');
+    // Update sync time (ignore errors if DB is closing)
+    try {
+      await updateSyncTime('mutations');
+    } catch {
+      // Ignore - DB may be closing
+    }
 
     emitSyncEvent('sync-complete', { synced, failed });
     console.log(`Sync complete: ${synced} synced, ${failed} failed`);
