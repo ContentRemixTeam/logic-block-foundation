@@ -11,7 +11,7 @@ export interface FocusTask {
 }
 
 export function useFocusTasks() {
-  const { top3Tasks, isLoading: top3Loading, completeTask, refetch } = useDailyTop3();
+  const { top3Tasks, isLoading: top3Loading, completeTask, selectTask, removeTask, refetch } = useDailyTop3();
   const { data: allTasks, isLoading: tasksLoading } = useTasks();
 
   const today = new Date().toISOString().split('T')[0];
@@ -53,17 +53,37 @@ export function useFocusTasks() {
     return [];
   }, [top3Tasks, allTasks, today]);
 
+  // Get available tasks for selection (not already in top 3, not completed)
+  const availableTasks = useMemo(() => {
+    if (!allTasks) return [];
+    const selectedTaskIds = focusTasks.map(t => t.taskId).filter(Boolean);
+    return allTasks.filter(t => 
+      !t.is_completed && 
+      !selectedTaskIds.includes(t.task_id)
+    );
+  }, [allTasks, focusTasks]);
+
+  // Get which positions are empty (for adding new tasks)
+  const emptyPositions = useMemo(() => {
+    const filledPositions = focusTasks.map(t => t.position);
+    return ([1, 2, 3] as const).filter(p => !filledPositions.includes(p));
+  }, [focusTasks]);
+
   const completedCount = focusTasks.filter(t => t.isCompleted).length;
   const allComplete = focusTasks.length === 3 && completedCount === 3;
   const hasAnyTasks = focusTasks.length > 0;
 
   return {
     focusTasks,
+    availableTasks,
+    emptyPositions,
     isLoading: top3Loading || tasksLoading,
     completedCount,
     allComplete,
     hasAnyTasks,
     completeTask,
+    selectTask,
+    removeTask,
     refetch,
   };
 }

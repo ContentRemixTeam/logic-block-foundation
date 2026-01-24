@@ -11,7 +11,17 @@ import { Maximize2, Minimize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function Focus() {
-  const { focusTasks, isLoading, completedCount, completeTask, refetch } = useFocusTasks();
+  const { 
+    focusTasks, 
+    availableTasks, 
+    emptyPositions,
+    isLoading, 
+    completedCount, 
+    completeTask, 
+    selectTask,
+    removeTask,
+    refetch 
+  } = useFocusTasks();
   const [activeTask, setActiveTask] = useState<FocusTask | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -32,6 +42,16 @@ export default function Focus() {
     if (activeTask?.position === position) {
       setActiveTask(null);
     }
+  };
+
+  const handleSelectTask = async (taskId: string, position: 1 | 2 | 3) => {
+    await selectTask(taskId, position);
+    await refetch();
+  };
+
+  const handleRemoveTask = async (position: 1 | 2 | 3) => {
+    await removeTask(position);
+    await refetch();
   };
 
   if (isLoading) {
@@ -109,7 +129,11 @@ export default function Focus() {
           <div>
             <FocusTaskList
               tasks={focusTasks}
+              availableTasks={availableTasks}
+              emptyPositions={emptyPositions}
               onComplete={handleTaskComplete}
+              onSelectTask={handleSelectTask}
+              onRemoveTask={handleRemoveTask}
               onStartTimer={handleStartTimer}
               activeTaskId={activeTask?.id}
             />
