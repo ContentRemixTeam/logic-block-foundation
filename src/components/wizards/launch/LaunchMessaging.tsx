@@ -151,11 +151,11 @@ export function LaunchMessaging({ data, onChange }: LaunchMessagingProps) {
         </div>
 
         {/* Educational Alert */}
-        <Alert className="bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800">
-          <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-          <AlertTitle className="text-green-800 dark:text-green-300">Why Messaging Matters</AlertTitle>
-          <AlertDescription className="text-sm text-green-700 dark:text-green-400">
-            <strong>Launches with pre-planned messaging convert 3-5x higher</strong> than launches 
+        <Alert className="bg-secondary/50 border-secondary">
+          <TrendingUp className="h-4 w-4 text-primary" />
+          <AlertTitle className="text-foreground">Why Messaging Matters</AlertTitle>
+          <AlertDescription className="text-sm text-muted-foreground">
+            <strong className="text-foreground">Launches with pre-planned messaging convert 3-5x higher</strong> than launches 
             that wing it. When you address objections and create belief shifts BEFORE asking for 
             the sale, your conversion rate skyrockets.
           </AlertDescription>

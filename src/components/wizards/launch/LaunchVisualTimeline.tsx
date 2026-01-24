@@ -24,12 +24,12 @@ interface TimelineTask {
 }
 
 const TYPE_CONFIG = {
-  email: { icon: Mail, color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300', label: 'Email' },
-  social: { icon: MessageSquare, color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300', label: 'Social' },
-  video: { icon: Video, color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300', label: 'Video' },
-  podcast: { icon: Mic, color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300', label: 'Podcast' },
-  event: { icon: Users, color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300', label: 'Live Event' },
-  asset: { icon: FileText, color: 'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-300', label: 'Asset' },
+  email: { icon: Mail, color: 'bg-primary/10 text-primary', label: 'Email' },
+  social: { icon: MessageSquare, color: 'bg-accent text-accent-foreground', label: 'Social' },
+  video: { icon: Video, color: 'bg-destructive/10 text-destructive', label: 'Video' },
+  podcast: { icon: Mic, color: 'bg-secondary text-secondary-foreground', label: 'Podcast' },
+  event: { icon: Users, color: 'bg-muted text-muted-foreground', label: 'Live Event' },
+  asset: { icon: FileText, color: 'bg-card text-card-foreground border', label: 'Asset' },
   milestone: { icon: Target, color: 'bg-primary/10 text-primary', label: 'Milestone' },
 };
 

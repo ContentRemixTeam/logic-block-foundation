@@ -102,7 +102,7 @@ export function LaunchSalesAssets({ data, onChange }: LaunchSalesAssetsProps) {
         </div>
 
         {data.salesPageDeadline && !isDeadlineValid() && (
-          <div className="flex items-center gap-2 p-3 rounded-md bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300">
+          <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 text-destructive">
             <AlertTriangle className="h-4 w-4" />
             <p className="text-sm">Your deadline is after cart opens. Consider moving it earlier.</p>
           </div>
@@ -153,13 +153,13 @@ export function LaunchSalesAssets({ data, onChange }: LaunchSalesAssetsProps) {
         )}
 
         {!data.hasTestimonials && (
-          <Card className="border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
+          <Card className="border-muted bg-muted/50">
             <CardContent className="pt-4">
               <div className="flex gap-3">
-                <Star className="h-5 w-5 text-amber-600 shrink-0" />
+                <Star className="h-5 w-5 text-primary shrink-0" />
                 <div className="text-sm">
-                  <p className="font-medium text-amber-900 dark:text-amber-100">No testimonials yet?</p>
-                  <p className="text-amber-700 dark:text-amber-300 mt-1">
+                  <p className="font-medium text-foreground">No testimonials yet?</p>
+                  <p className="text-muted-foreground mt-1">
                     Consider offering beta access or a pilot program to collect results before launch.
                   </p>
                 </div>

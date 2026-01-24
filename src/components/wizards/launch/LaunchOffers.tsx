@@ -83,7 +83,7 @@ export function LaunchOffers({ data, onChange }: LaunchOffersProps) {
           <span className="text-lg text-muted-foreground">offers</span>
         </div>
         {isLowOfferGoal && (
-          <div className="flex items-start gap-2 p-3 bg-amber-500/10 rounded-md text-amber-700 dark:text-amber-400">
+          <div className="flex items-start gap-2 p-3 bg-destructive/10 rounded-md text-destructive">
             <AlertCircle className="h-5 w-5 mt-0.5 shrink-0" />
             <p className="text-sm">
               If you picked less than 30 for a week-long launch, you're leaving money on the table. Just saying.

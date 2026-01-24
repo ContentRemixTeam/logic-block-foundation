@@ -120,9 +120,9 @@ export function BusinessDiagnostic({
 
       <Card className={cn(
         'border-2 transition-colors',
-        focusArea === 'discover' && 'border-blue-500/50 bg-blue-500/5',
-        focusArea === 'nurture' && 'border-pink-500/50 bg-pink-500/5',
-        focusArea === 'convert' && 'border-green-500/50 bg-green-500/5',
+        focusArea === 'discover' && 'border-primary/50 bg-primary/5',
+        focusArea === 'nurture' && 'border-accent/50 bg-accent/5',
+        focusArea === 'convert' && 'border-secondary/50 bg-secondary/5',
       )}>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center justify-between">
