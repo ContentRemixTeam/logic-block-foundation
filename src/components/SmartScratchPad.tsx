@@ -237,57 +237,70 @@ export function SmartScratchPad({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Render highlighted content
+  // Render highlighted content - highlights entire lines that contain tags
   const renderHighlightedContent = useMemo(() => {
     if (!value) return null;
 
-    const parts: React.ReactNode[] = [];
-    let lastIndex = 0;
-    const regex = /#(task|idea|thought|win)\b/gi;
-    let match;
-
-    while ((match = regex.exec(value)) !== null) {
-      // Add text before the match
-      if (match.index > lastIndex) {
-        parts.push(
-          <span key={`text-${lastIndex}`}>
-            {value.substring(lastIndex, match.index)}
-          </span>
-        );
-      }
-
-      // Add the highlighted tag
-      const tagName = match[1].toLowerCase();
-      const tagConfig = TAGS.find(t => t.tag === tagName);
+    // Process line by line to highlight entire lines with tags
+    const lines = value.split('\n');
+    
+    return lines.map((line, lineIndex) => {
+      // Check if this line contains any tag
+      const tagMatch = line.match(/#(task|idea|thought|win)\b/i);
       
-      if (tagConfig) {
-        parts.push(
-          <span
-            key={`tag-${match.index}`}
-            className={cn(
-              'rounded px-1 py-0.5 font-medium',
-              tagConfig.bgColor,
-              tagConfig.textColor
-            )}
-          >
-            {match[0]}
-          </span>
-        );
+      if (tagMatch) {
+        const tagName = tagMatch[1].toLowerCase();
+        const tagConfig = TAGS.find(t => t.tag === tagName);
+        
+        if (tagConfig) {
+          // Get the content before the hashtag (this is what will be saved)
+          const hashIndex = line.indexOf('#');
+          const contentBeforeHash = line.substring(0, hashIndex).trim();
+          const tagPart = tagMatch[0];
+          const afterTag = line.substring(hashIndex + tagPart.length);
+          
+          return (
+            <div 
+              key={`line-${lineIndex}`} 
+              className={cn(
+                'rounded-sm px-1 -mx-1 transition-colors',
+                tagConfig.bgColor,
+              )}
+            >
+              {/* Content that will be saved - shown with emphasis */}
+              {contentBeforeHash && (
+                <span className={cn('font-medium', tagConfig.textColor)}>
+                  {contentBeforeHash}
+                </span>
+              )}
+              {contentBeforeHash && ' '}
+              {/* The tag itself */}
+              <span className={cn(
+                'inline-flex items-center gap-1 rounded px-1 py-0.5 text-xs font-bold uppercase tracking-wide',
+                tagConfig.textColor,
+                'bg-white/50 dark:bg-black/20'
+              )}>
+                {tagConfig.emoji} {tagPart}
+              </span>
+              {/* Any text after the tag */}
+              {afterTag && <span className="opacity-60">{afterTag}</span>}
+            </div>
+          );
+        }
       }
-
-      lastIndex = match.index + match[0].length;
-    }
-
-    // Add remaining text
-    if (lastIndex < value.length) {
-      parts.push(
-        <span key={`text-end`}>
-          {value.substring(lastIndex)}
-        </span>
+      
+      // Regular line without tags - show as dimmed/untagged
+      return (
+        <div 
+          key={`line-${lineIndex}`}
+          className={cn(
+            line.trim() ? 'text-muted-foreground' : '',
+          )}
+        >
+          {line || '\u200B'} {/* Zero-width space for empty lines to maintain height */}
+        </div>
       );
-    }
-
-    return parts;
+    });
   }, [value]);
 
   return (
@@ -326,7 +339,7 @@ export function SmartScratchPad({
       <div className="relative">
         {/* Highlighting layer (behind textarea) */}
         <div
-          className="absolute inset-0 p-3 font-mono text-sm whitespace-pre-wrap break-words pointer-events-none overflow-hidden"
+          className="absolute inset-0 p-3 font-mono text-sm whitespace-pre-wrap break-words pointer-events-none overflow-hidden leading-[20px]"
           aria-hidden="true"
         >
           {renderHighlightedContent}
@@ -342,7 +355,7 @@ export function SmartScratchPad({
           placeholder={placeholder}
           maxLength={maxLength}
           className={cn(
-            "w-full min-h-[300px] p-3 font-mono text-sm resize-y rounded-md border border-input bg-transparent",
+            "w-full min-h-[300px] p-3 font-mono text-sm resize-y rounded-md border border-input bg-transparent leading-[20px]",
             "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
             "placeholder:text-muted-foreground",
             // Make text transparent so highlighting shows through, but keep caret visible
