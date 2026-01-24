@@ -64,6 +64,15 @@ export interface LaunchWizardData {
   objectionsToAddress: string[];
 
   // Step 4: Content Plan (NEW)
+  contentFormats: {
+    email: boolean;
+    video: boolean;
+    podcast: boolean;
+    blog: boolean;
+    social: boolean;
+  };
+  videoCount: number;
+  podcastTopics: string[];
   contentPieces: ContentPiece[];
 
   // Step 5: Content Reuse (was Step 2)
@@ -145,6 +154,15 @@ export const DEFAULT_LAUNCH_WIZARD_DATA: LaunchWizardData = {
   transformationPromise: '',
   objectionsToAddress: ['', '', ''],
   // Step 4 - Content Plan
+  contentFormats: {
+    email: true,
+    video: false,
+    podcast: false,
+    blog: false,
+    social: true,
+  },
+  videoCount: 3,
+  podcastTopics: ['', '', '', ''],
   contentPieces: [],
   // Step 5 - Content Reuse
   selectedContentIds: [],
