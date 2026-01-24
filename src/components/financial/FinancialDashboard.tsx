@@ -24,6 +24,7 @@ import { format } from 'date-fns';
 interface FinancialDashboardProps {
   summary: FinancialSummary | null;
   transactions: Transaction[];
+  periodLabel?: string;
 }
 
 const COLORS = [
@@ -35,7 +36,7 @@ const COLORS = [
   'hsl(var(--primary))',
 ];
 
-export function FinancialDashboard({ summary, transactions }: FinancialDashboardProps) {
+export function FinancialDashboard({ summary, transactions, periodLabel }: FinancialDashboardProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
