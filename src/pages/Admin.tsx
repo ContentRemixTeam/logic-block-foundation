@@ -149,6 +149,7 @@ export default function Admin() {
   
   const [users, setUsers] = useState<User[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [adminUsers, setAdminUsers] = useState<{ id: string; email: string | null; user_id: string | null; created_at: string }[]>([]);
   const [errorLogs, setErrorLogs] = useState<ErrorLog[]>([]);
   const [issueReports, setIssueReports] = useState<IssueReport[]>([]);
   const [featureRequests, setFeatureRequests] = useState<FeatureRequest[]>([]);
@@ -161,6 +162,9 @@ export default function Admin() {
   const [newMemberFirstName, setNewMemberFirstName] = useState('');
   const [newMemberLastName, setNewMemberLastName] = useState('');
   const [addMemberOpen, setAddMemberOpen] = useState(false);
+  
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [addAdminOpen, setAddAdminOpen] = useState(false);
   
   const [parsedRows, setParsedRows] = useState<CSVRow[]>([]);
   const [existingEmails, setExistingEmails] = useState<Set<string>>(new Set());
@@ -227,12 +231,13 @@ export default function Admin() {
 
   const loadAllData = async () => {
     try {
-      const [usersRes, errorsRes, issuesRes, featuresRes, membersRes] = await Promise.all([
+      const [usersRes, errorsRes, issuesRes, featuresRes, membersRes, adminsRes] = await Promise.all([
         supabase.functions.invoke('admin-get-data', { body: { action: 'get_users', limit: 100 } }),
         supabase.functions.invoke('admin-get-data', { body: { action: 'get_error_logs', limit: 100 } }),
         supabase.functions.invoke('admin-get-data', { body: { action: 'get_issue_reports', limit: 100 } }),
         supabase.functions.invoke('admin-get-data', { body: { action: 'get_feature_requests', limit: 100 } }),
         supabase.from('entitlements').select('*').order('created_at', { ascending: false }),
+        supabase.from('admin_users').select('*').order('created_at', { ascending: false }),
       ]);
 
       if (usersRes.data?.users) setUsers(usersRes.data.users);
@@ -240,6 +245,7 @@ export default function Admin() {
       if (issuesRes.data?.issue_reports) setIssueReports(issuesRes.data.issue_reports);
       if (featuresRes.data?.feature_requests) setFeatureRequests(featuresRes.data.feature_requests);
       if (membersRes.data) setMembers(membersRes.data);
+      if (adminsRes.data) setAdminUsers(adminsRes.data);
       
       // Update existing emails set
       if (membersRes.data) {
@@ -360,6 +366,57 @@ export default function Admin() {
       await loadAllData();
     } catch (err: any) {
       toast.error(err.message || 'Failed to reactivate member');
+    }
+  };
+
+  // Admin User Management
+  const handleAddAdmin = async () => {
+    if (!newAdminEmail) {
+      toast.error('Email is required');
+      return;
+    }
+    
+    const emailLower = newAdminEmail.toLowerCase().trim();
+    
+    // Check if already exists
+    if (adminUsers.some(a => a.email?.toLowerCase() === emailLower)) {
+      toast.error('This email is already an administrator');
+      return;
+    }
+    
+    try {
+      const { error } = await supabase.from('admin_users').insert({
+        email: emailLower,
+        created_by: user?.id,
+      });
+      
+      if (error) throw error;
+      toast.success('Administrator added');
+      setAddAdminOpen(false);
+      setNewAdminEmail('');
+      await loadAllData();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to add administrator');
+    }
+  };
+
+  const handleRemoveAdmin = async (adminId: string, email: string | null) => {
+    // Prevent removing yourself
+    if (adminUsers.find(a => a.id === adminId)?.user_id === user?.id) {
+      toast.error("You cannot remove yourself as an administrator");
+      return;
+    }
+    
+    if (!confirm(`Remove ${email || 'this user'} as an administrator?`)) return;
+    
+    try {
+      const { error } = await supabase.from('admin_users').delete().eq('id', adminId);
+      
+      if (error) throw error;
+      toast.success('Administrator removed');
+      await loadAllData();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to remove administrator');
     }
   };
 
@@ -723,10 +780,14 @@ export default function Admin() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="members" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Members</span> ({activeMembers.length})
+            </TabsTrigger>
+            <TabsTrigger value="admins" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              <span className="hidden sm:inline">Admins</span> ({adminUsers.length})
             </TabsTrigger>
             <TabsTrigger value="lookup" className="flex items-center gap-2">
               <Search className="h-4 w-4" />
@@ -1002,6 +1063,136 @@ export default function Admin() {
                     </TableBody>
                   </Table>
                 </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ADMINS TAB */}
+          <TabsContent value="admins" className="space-y-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Administrators
+                  </CardTitle>
+                  <CardDescription>
+                    Manage who has administrative access to this panel
+                  </CardDescription>
+                </div>
+                <Dialog open={addAdminOpen} onOpenChange={setAddAdminOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm">
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Add Admin
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add Administrator</DialogTitle>
+                      <DialogDescription>
+                        Add a new administrator by email. They will have admin access once they sign up or log in with this email.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="admin-email">Email Address</Label>
+                        <Input
+                          id="admin-email"
+                          type="email"
+                          placeholder="admin@example.com"
+                          value={newAdminEmail}
+                          onChange={(e) => setNewAdminEmail(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setAddAdminOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleAddAdmin}>
+                        Add Administrator
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Email</TableHead>
+                      <TableHead>User ID</TableHead>
+                      <TableHead>Added</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {adminUsers.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                          No administrators configured
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      adminUsers.map((admin) => (
+                        <TableRow key={admin.id}>
+                          <TableCell className="font-medium">{admin.email || '—'}</TableCell>
+                          <TableCell className="font-mono text-xs text-muted-foreground">
+                            {admin.user_id ? admin.user_id.slice(0, 8) + '...' : 'Not yet linked'}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {format(new Date(admin.created_at), 'MMM d, yyyy')}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {admin.user_id === user?.id ? (
+                              <Badge variant="secondary">You</Badge>
+                            ) : (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Remove Administrator?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will remove {admin.email || 'this user'} as an administrator. They will lose access to this admin panel.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleRemoveAdmin(admin.id, admin.email)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Remove
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            <Card className="border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20">
+              <CardContent className="pt-6">
+                <div className="flex gap-3">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-amber-800 dark:text-amber-200">Security Note</p>
+                    <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                      Administrators have full access to view all user data, manage members, and modify system settings. Only add trusted team members.
+                    </p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
