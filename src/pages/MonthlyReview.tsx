@@ -15,6 +15,8 @@ import { HabitTrackerCard } from "@/components/habits";
 import { ToastAction } from "@/components/ui/toast";
 import { useDataProtection } from "@/hooks/useDataProtection";
 import { SaveStatusIndicator, SaveStatusBanner } from "@/components/SaveStatusIndicator";
+import { LaunchCheckInCard } from "@/components/launch/LaunchCheckInCard";
+import { LaunchProgressCard } from "@/components/monthly-review/LaunchProgressCard";
 
 interface ExecutionSummary {
   tasks_scheduled: number;
@@ -325,6 +327,10 @@ export default function MonthlyReview() {
 
           <HabitTrackerCard view="monthly" />
         </div>
+
+        {/* Launch Progress (if active launches) */}
+        <LaunchProgressCard />
+        <LaunchCheckInCard reviewType="monthly" />
 
         {/* Execution Summary */}
         {executionSummary && (
