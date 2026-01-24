@@ -8,6 +8,12 @@ import {
   clearEmergencyBackup,
   isStorageLimited,
 } from '@/lib/storage';
+import {
+  saveDraftToIDB,
+  loadDraftFromIDB,
+  deleteDraftFromIDB,
+  getDraftWithMetadata,
+} from '@/lib/offlineDb';
 
 interface LocalStorageSyncConfig {
   key: string;
@@ -19,12 +25,16 @@ interface LocalStorageSyncReturn<T> {
   load: () => Promise<T | null>;
   clear: () => Promise<void>;
   isStorageLimited: boolean;
+  getTimestamp: () => Promise<number | null>;
 }
 
 /**
  * Hook for immediate localStorage synchronization with multi-layer fallback.
  * Saves data with 0ms delay (synchronous) to localStorage, with automatic
  * fallback to sessionStorage, memory, and IndexedDB.
+ * 
+ * ENHANCED (Prompt 7): Now ALWAYS saves to IndexedDB in parallel with localStorage
+ * for 50MB+ storage capacity and Safari private mode support.
  * 
  * Works on all browsers including Safari private browsing mode.
  */
@@ -36,8 +46,8 @@ export function useLocalStorageSync<T extends Record<string, any>>({
   const storageLimited = useMemo(() => isStorageLimited(), []);
 
   /**
-   * Immediately saves data to localStorage with fallbacks.
-   * Returns true if save was successful, false otherwise.
+   * Immediately saves data to localStorage AND IndexedDB in parallel.
+   * Returns true if at least one save was successful, false otherwise.
    */
   const save = useCallback(async (data: T): Promise<boolean> => {
     try {
@@ -50,37 +60,62 @@ export function useLocalStorageSync<T extends Record<string, any>>({
       const jsonStr = JSON.stringify(backup);
       
       // Primary: Use safe storage (handles fallbacks automatically)
-      const success = setStorageItem(key, jsonStr);
+      const localStorageSuccess = setStorageItem(key, jsonStr);
       
-      // If storage is limited (private browsing) or primary failed, use IndexedDB
-      if (enableIndexDBFallback && (storageLimited || !success)) {
-        await emergencyBackupToIDB(key, backup);
+      // ENHANCED (Prompt 7): ALWAYS save to IndexedDB in parallel for redundancy
+      // This provides 50MB+ storage and works in Safari private mode
+      let idbSuccess = false;
+      if (enableIndexDBFallback) {
+        // Use both the drafts store (for structured access) and emergency backup
+        const [draftResult, emergencyResult] = await Promise.all([
+          saveDraftToIDB(key, backup),
+          emergencyBackupToIDB(key, backup),
+        ]);
+        idbSuccess = draftResult || emergencyResult;
       }
       
-      return true;
+      // Log for debugging
+      if (!localStorageSuccess && !idbSuccess) {
+        console.warn('[useLocalStorageSync] All storage methods failed for key:', key);
+      }
+      
+      return localStorageSuccess || idbSuccess;
     } catch (error) {
       console.error('[useLocalStorageSync] Save failed:', error);
       return false;
     }
-  }, [key, enableIndexDBFallback, storageLimited]);
+  }, [key, enableIndexDBFallback]);
 
   /**
-   * Loads data from localStorage with IndexedDB fallback.
+   * Loads data with priority: localStorage → IndexedDB drafts → IndexedDB emergency → null
    * Returns null if no data found or parse error.
    */
   const load = useCallback(async (): Promise<T | null> => {
     try {
-      // Try regular storage first
+      // Priority 1: Try localStorage first (fastest)
       const stored = getStorageItem(key);
       if (stored) {
-        const backup = JSON.parse(stored);
-        return backup.data as T;
+        try {
+          const backup = JSON.parse(stored);
+          return backup.data as T;
+        } catch {
+          // Corrupted data, continue to fallbacks
+          console.warn('[useLocalStorageSync] Corrupted localStorage data, trying IDB');
+        }
       }
       
-      // Fallback to IndexedDB
+      // Priority 2: Try IndexedDB drafts store
       if (enableIndexDBFallback) {
+        const idbDraft = await loadDraftFromIDB(key);
+        if (idbDraft) {
+          console.log('[useLocalStorageSync] Restored from IndexedDB drafts store');
+          return idbDraft.data as T;
+        }
+        
+        // Priority 3: Try IndexedDB emergency backup
         const idbBackup = await restoreFromIDB(key);
         if (idbBackup) {
+          console.log('[useLocalStorageSync] Restored from IndexedDB emergency backup');
           return idbBackup.data as T;
         }
       }
@@ -93,6 +128,38 @@ export function useLocalStorageSync<T extends Record<string, any>>({
   }, [key, enableIndexDBFallback]);
 
   /**
+   * Get timestamp of the most recent save
+   */
+  const getTimestamp = useCallback(async (): Promise<number | null> => {
+    try {
+      // Check localStorage first
+      const stored = getStorageItem(key);
+      if (stored) {
+        try {
+          const backup = JSON.parse(stored);
+          if (backup.timestamp) {
+            return new Date(backup.timestamp).getTime();
+          }
+        } catch {
+          // Continue to IDB
+        }
+      }
+      
+      // Check IndexedDB drafts
+      if (enableIndexDBFallback) {
+        const draft = await getDraftWithMetadata(key);
+        if (draft?.timestamp) {
+          return draft.timestamp;
+        }
+      }
+      
+      return null;
+    } catch {
+      return null;
+    }
+  }, [key, enableIndexDBFallback]);
+
+  /**
    * Clears data from all storage layers.
    */
   const clear = useCallback(async (): Promise<void> => {
@@ -100,7 +167,10 @@ export function useLocalStorageSync<T extends Record<string, any>>({
       removeStorageItem(key);
       
       if (enableIndexDBFallback) {
-        await clearEmergencyBackup(key);
+        await Promise.all([
+          deleteDraftFromIDB(key),
+          clearEmergencyBackup(key),
+        ]);
       }
     } catch (error) {
       console.error('[useLocalStorageSync] Clear failed:', error);
@@ -112,5 +182,6 @@ export function useLocalStorageSync<T extends Record<string, any>>({
     load,
     clear,
     isStorageLimited: storageLimited,
+    getTimestamp,
   };
 }
