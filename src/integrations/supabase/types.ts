@@ -2578,6 +2578,71 @@ export type Database = {
           },
         ]
       }
+      launch_debriefs: {
+        Row: {
+          actual_revenue: number | null
+          actual_sales: number | null
+          biggest_win: string | null
+          completed_at: string
+          conversion_rate: number | null
+          created_at: string
+          energy_rating: number | null
+          id: string
+          launch_id: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+          what_to_improve: string | null
+          what_worked: string | null
+          will_launch_again: boolean | null
+          would_do_differently: string | null
+        }
+        Insert: {
+          actual_revenue?: number | null
+          actual_sales?: number | null
+          biggest_win?: string | null
+          completed_at?: string
+          conversion_rate?: number | null
+          created_at?: string
+          energy_rating?: number | null
+          id?: string
+          launch_id: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+          what_to_improve?: string | null
+          what_worked?: string | null
+          will_launch_again?: boolean | null
+          would_do_differently?: string | null
+        }
+        Update: {
+          actual_revenue?: number | null
+          actual_sales?: number | null
+          biggest_win?: string | null
+          completed_at?: string
+          conversion_rate?: number | null
+          created_at?: string
+          energy_rating?: number | null
+          id?: string
+          launch_id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+          what_to_improve?: string | null
+          what_worked?: string | null
+          will_launch_again?: boolean | null
+          would_do_differently?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "launch_debriefs_launch_id_fkey"
+            columns: ["launch_id"]
+            isOneToOne: true
+            referencedRelation: "launches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       launches: {
         Row: {
           ads_budget: number | null
@@ -4096,6 +4161,7 @@ export type Database = {
           daily_review_questions: Json | null
           dashboard_widgets: Json | null
           delight_intensity: string
+          dismissed_launch_debriefs: Json | null
           habit_categories_enabled: boolean | null
           has_seen_tour: boolean | null
           last_debrief_date: string | null
@@ -4140,6 +4206,7 @@ export type Database = {
           daily_review_questions?: Json | null
           dashboard_widgets?: Json | null
           delight_intensity?: string
+          dismissed_launch_debriefs?: Json | null
           habit_categories_enabled?: boolean | null
           has_seen_tour?: boolean | null
           last_debrief_date?: string | null
@@ -4184,6 +4251,7 @@ export type Database = {
           daily_review_questions?: Json | null
           dashboard_widgets?: Json | null
           delight_intensity?: string
+          dismissed_launch_debriefs?: Json | null
           habit_categories_enabled?: boolean | null
           has_seen_tour?: boolean | null
           last_debrief_date?: string | null

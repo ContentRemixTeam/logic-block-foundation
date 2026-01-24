@@ -14,6 +14,7 @@ import { OfflineBanner, OfflineIndicator } from '@/components/OfflineIndicator';
 import { UnsyncedDataBanner } from '@/components/UnsyncedDataBanner';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { LaunchDebriefBanner } from '@/components/LaunchDebriefBanner';
 import { Loader2, Sparkles, ArrowRight, X } from 'lucide-react';
 
 // Lazy load heavy arcade components - only loaded when arcade is enabled
@@ -126,6 +127,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           {/* Page Content - Add bottom padding on mobile for nav */}
           <main className="flex-1 overflow-auto bg-background">
             <div className={`mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8 ${isMobile ? 'pb-24' : ''}`}>
+              {/* Launch Debrief Banner - persistent until completed or dismissed */}
+              <LaunchDebriefBanner />
               {children}
             </div>
           </main>
