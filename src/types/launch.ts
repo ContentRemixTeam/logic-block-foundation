@@ -7,6 +7,40 @@ export interface LaunchLiveEvent {
   topic: string;
 }
 
+// NEW: Content pieces for pre-launch planning
+export interface ContentPiece {
+  id: string;
+  type: 'blog' | 'social' | 'video' | 'email' | 'podcast';
+  title: string;
+  scheduledWeek: number; // -4, -3, -2, -1, 0 for launch week
+  status: 'planned' | 'drafted' | 'scheduled' | 'published';
+}
+
+// NEW: Video content planning
+export interface VideoContent {
+  id: string;
+  platform: 'youtube' | 'instagram' | 'tiktok';
+  topic: string;
+  scheduledDate: string;
+}
+
+// NEW: Podcast appearances
+export interface PodcastAppearance {
+  id: string;
+  showName: string;
+  topic: string;
+  recordingDate: string;
+  releaseDate?: string;
+}
+
+// NEW: Sales asset item
+export interface SalesAsset {
+  id: string;
+  type: 'testimonial' | 'case-study' | 'bonus' | 'guarantee';
+  title: string;
+  status: 'needed' | 'in-progress' | 'complete';
+}
+
 export interface LaunchWizardData {
   // Step 1: Launch Basics
   name: string;
@@ -17,10 +51,25 @@ export interface LaunchWizardData {
   pricePerSale: number | null;
   salesNeeded: number;
 
-  // Step 2: Content Reuse
+  // Step 2: Runway Timeline (NEW)
+  runwayWeeks: 2 | 4 | 6 | 8;
+  runwayStartDate: string; // Auto-calculated from cartOpens - runwayWeeks
+  warmUpStrategy: 'email-series' | 'video-series' | 'challenge' | 'workshop-series' | 'content-blitz';
+  warmUpFrequency: 'daily' | 'every-other-day' | '2x-week' | 'weekly';
+
+  // Step 3: Messaging Strategy (NEW)
+  transformationPromise: string;
+  keyBenefits: string[];
+  objectionsToAddress: string[];
+  socialProofType: string[];
+
+  // Step 4: Content Plan (NEW)
+  contentPieces: ContentPiece[];
+
+  // Step 5: Content Reuse (was Step 2)
   selectedContentIds: string[];
 
-  // Step 3: Pre-Launch Setup
+  // Step 6: Pre-Launch Setup (was Step 3)
   hasWaitlist: boolean;
   waitlistOpens: string;
   waitlistIncentive: string;
@@ -29,7 +78,7 @@ export interface LaunchWizardData {
   leadMagnetDueDate: string;
   emailSequences: string[]; // 'pre-launch', 'launch', 'mid-launch', 'urgency', 'post-launch'
 
-  // Step 4: Launch Activities
+  // Step 7: Launch Activities (was Step 4)
   liveEvents: LaunchLiveEvent[];
   hasAds: boolean | 'maybe';
   adsBudget: number | null;
@@ -37,7 +86,19 @@ export interface LaunchWizardData {
   socialPostsPerDay: number;
   socialStrategy: string[];
 
-  // Step 5: Making Offers
+  // Step 8: Video & Podcasts (NEW)
+  videoContent: VideoContent[];
+  podcastAppearances: PodcastAppearance[];
+
+  // Step 9: Sales Assets (NEW)
+  salesPageDeadline: string;
+  hasTestimonials: boolean;
+  testimonialGoal: number;
+  hasBonuses: boolean;
+  bonuses: string[];
+  salesAssets: SalesAsset[];
+
+  // Step 10: Making Offers (was Step 5)
   offerGoal: number;
   offerBreakdown: {
     emails: number;
@@ -48,7 +109,7 @@ export interface LaunchWizardData {
     liveEvents: number;
   };
 
-  // Step 6: Thought Work + Post-Launch
+  // Step 11: Thought Work + Post-Launch (was Step 6)
   belief: string;
   limitingThought: string;
   usefulThought: string;
@@ -61,6 +122,7 @@ export interface LaunchWizardData {
 }
 
 export const DEFAULT_LAUNCH_WIZARD_DATA: LaunchWizardData = {
+  // Step 1
   name: '',
   cartOpens: '',
   cartCloses: '',
@@ -68,7 +130,21 @@ export const DEFAULT_LAUNCH_WIZARD_DATA: LaunchWizardData = {
   revenueGoal: null,
   pricePerSale: null,
   salesNeeded: 0,
+  // Step 2 - Runway
+  runwayWeeks: 4,
+  runwayStartDate: '',
+  warmUpStrategy: 'email-series',
+  warmUpFrequency: '2x-week',
+  // Step 3 - Messaging
+  transformationPromise: '',
+  keyBenefits: [],
+  objectionsToAddress: [],
+  socialProofType: [],
+  // Step 4 - Content Plan
+  contentPieces: [],
+  // Step 5 - Content Reuse
   selectedContentIds: [],
+  // Step 6 - Pre-Launch
   hasWaitlist: false,
   waitlistOpens: '',
   waitlistIncentive: '',
@@ -76,12 +152,24 @@ export const DEFAULT_LAUNCH_WIZARD_DATA: LaunchWizardData = {
   leadMagnetTopic: '',
   leadMagnetDueDate: '',
   emailSequences: [],
+  // Step 7 - Activities
   liveEvents: [],
   hasAds: false,
   adsBudget: null,
   adsPlatform: [],
   socialPostsPerDay: 1,
   socialStrategy: [],
+  // Step 8 - Video & Podcasts
+  videoContent: [],
+  podcastAppearances: [],
+  // Step 9 - Sales Assets
+  salesPageDeadline: '',
+  hasTestimonials: false,
+  testimonialGoal: 5,
+  hasBonuses: false,
+  bonuses: [],
+  salesAssets: [],
+  // Step 10 - Offers
   offerGoal: 50,
   offerBreakdown: {
     emails: 0,
@@ -91,6 +179,7 @@ export const DEFAULT_LAUNCH_WIZARD_DATA: LaunchWizardData = {
     salesCalls: 0,
     liveEvents: 0,
   },
+  // Step 11 - Thought Work
   belief: '',
   limitingThought: '',
   usefulThought: '',
@@ -105,6 +194,50 @@ export const LAUNCH_DURATION_OPTIONS = [
   { value: '7_days', label: '7 days' },
   { value: '14_days', label: '14 days' },
   { value: 'evergreen', label: 'Evergreen (always open)' },
+] as const;
+
+export const RUNWAY_WEEKS_OPTIONS = [
+  { value: 2, label: '2 weeks', description: 'Quick launch - minimal warm-up' },
+  { value: 4, label: '4 weeks', description: 'Standard - good balance of prep and momentum' },
+  { value: 6, label: '6 weeks', description: 'Extended - more time for audience building' },
+  { value: 8, label: '8 weeks', description: 'Maximum - build deep trust and anticipation' },
+] as const;
+
+export const WARM_UP_STRATEGY_OPTIONS = [
+  { value: 'email-series', label: 'Email series', description: '3-7 emails before launch to build anticipation' },
+  { value: 'video-series', label: 'Video series', description: 'YouTube/social videos building up to launch' },
+  { value: 'challenge', label: '5-day challenge', description: 'Free challenge that leads into the offer' },
+  { value: 'workshop-series', label: 'Workshop series', description: '2-3 live trainings before cart opens' },
+  { value: 'content-blitz', label: 'Content blitz', description: 'Daily value posts across platforms' },
+] as const;
+
+export const WARM_UP_FREQUENCY_OPTIONS = [
+  { value: 'daily', label: 'Daily', description: 'Maximum engagement (requires lots of content)' },
+  { value: 'every-other-day', label: 'Every other day', description: 'Consistent without overwhelm' },
+  { value: '2x-week', label: '2x per week', description: 'Sustainable and effective' },
+  { value: 'weekly', label: 'Weekly', description: 'Lighter touch, relies on quality over quantity' },
+] as const;
+
+export const CONTENT_TYPE_OPTIONS = [
+  { value: 'blog', label: 'Blog Post', icon: '📝' },
+  { value: 'social', label: 'Social Post', icon: '📱' },
+  { value: 'video', label: 'Video', icon: '🎬' },
+  { value: 'email', label: 'Email', icon: '📧' },
+  { value: 'podcast', label: 'Podcast', icon: '🎙️' },
+] as const;
+
+export const VIDEO_PLATFORM_OPTIONS = [
+  { value: 'youtube', label: 'YouTube' },
+  { value: 'instagram', label: 'Instagram Reels' },
+  { value: 'tiktok', label: 'TikTok' },
+] as const;
+
+export const SOCIAL_PROOF_OPTIONS = [
+  { value: 'testimonials', label: 'Written testimonials' },
+  { value: 'video-testimonials', label: 'Video testimonials' },
+  { value: 'case-studies', label: 'Case studies' },
+  { value: 'screenshots', label: 'Screenshots/Results' },
+  { value: 'media-mentions', label: 'Media mentions' },
 ] as const;
 
 export const EMAIL_SEQUENCE_OPTIONS = [

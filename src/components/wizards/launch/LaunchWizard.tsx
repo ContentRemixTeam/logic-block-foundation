@@ -6,12 +6,17 @@ import { useWizard } from '@/hooks/useWizard';
 import { LaunchWizardData, DEFAULT_LAUNCH_WIZARD_DATA } from '@/types/launch';
 import { validateLaunchStep } from '@/lib/launchValidation';
 import { LaunchBasics } from './LaunchBasics';
+import { LaunchRunwayTimeline } from './LaunchRunwayTimeline';
+import { LaunchMessaging } from './LaunchMessaging';
+import { LaunchContentPlan } from './LaunchContentPlan';
 import { LaunchContentReuse } from './LaunchContentReuse';
 import { LaunchPreLaunch } from './LaunchPreLaunch';
 import { LaunchActivities } from './LaunchActivities';
+import { LaunchVideoStrategy } from './LaunchVideoStrategy';
+import { LaunchSalesAssets } from './LaunchSalesAssets';
 import { LaunchOffers } from './LaunchOffers';
 import { LaunchThoughtWork } from './LaunchThoughtWork';
-import { LaunchReview } from './LaunchReview';
+import { LaunchVisualTimeline } from './LaunchVisualTimeline';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -21,12 +26,17 @@ import { formatDistanceToNow } from 'date-fns';
 
 const LAUNCH_WIZARD_STEPS = [
   { number: 1, title: 'Launch Basics' },
-  { number: 2, title: 'Content Reuse' },
-  { number: 3, title: 'Pre-Launch' },
-  { number: 4, title: 'Activities' },
-  { number: 5, title: 'Making Offers' },
-  { number: 6, title: 'Thought Work' },
-  { number: 7, title: 'Review' },
+  { number: 2, title: 'Runway Timeline' },
+  { number: 3, title: 'Messaging' },
+  { number: 4, title: 'Content Plan' },
+  { number: 5, title: 'Content Reuse' },
+  { number: 6, title: 'Pre-Launch' },
+  { number: 7, title: 'Activities' },
+  { number: 8, title: 'Video & Podcasts' },
+  { number: 9, title: 'Sales Assets' },
+  { number: 10, title: 'Offers' },
+  { number: 11, title: 'Thought Work' },
+  { number: 12, title: 'Timeline Review' },
 ];
 
 export function LaunchWizard() {
@@ -55,12 +65,11 @@ export function LaunchWizard() {
     draftUpdatedAt,
   } = useWizard<LaunchWizardData>({
     templateName: 'launch-planner',
-    totalSteps: 7,
+    totalSteps: 12,
     defaultData: DEFAULT_LAUNCH_WIZARD_DATA,
     validateStep: validateLaunchStep,
   });
 
-  // Show resume dialog when draft is detected
   useEffect(() => {
     if (!isLoading && !hasCheckedDraft) {
       setHasCheckedDraft(true);
@@ -70,25 +79,13 @@ export function LaunchWizard() {
     }
   }, [isLoading, hasDraft, draftUpdatedAt, hasCheckedDraft]);
 
-  const handleResumeDraft = () => {
-    setShowResumeDialog(false);
-    // Data is already loaded, just close dialog
-  };
-
+  const handleResumeDraft = () => setShowResumeDialog(false);
   const handleStartFresh = async () => {
     setShowResumeDialog(false);
     await clearDraft();
   };
-
-  const getDraftAgeText = () => {
-    if (!draftUpdatedAt) return null;
-    return formatDistanceToNow(draftUpdatedAt, { addSuffix: false });
-  };
-
-  const handleChange = (updates: Partial<LaunchWizardData>) => {
-    setData(updates);
-  };
-
+  const getDraftAgeText = () => draftUpdatedAt ? formatDistanceToNow(draftUpdatedAt, { addSuffix: false }) : null;
+  const handleChange = (updates: Partial<LaunchWizardData>) => setData(updates);
   const handleSaveAndExit = async () => {
     await saveDraft();
     navigate('/wizards');
@@ -96,38 +93,18 @@ export function LaunchWizard() {
 
   const handleCreateLaunch = async () => {
     if (isCreating || !user) return;
-    
-    // Validation
-    if (!data.name?.trim()) {
-      toast.error('Please enter a launch name');
-      return;
-    }
-    if (!data.cartOpens || !data.cartCloses) {
-      toast.error('Please select valid cart open and close dates');
-      return;
-    }
+    if (!data.name?.trim()) { toast.error('Please enter a launch name'); return; }
+    if (!data.cartOpens || !data.cartCloses) { toast.error('Please select valid cart dates'); return; }
     
     setIsCreating(true);
-
     try {
-      // Call the edge function that creates project + tasks
-      const { data: result, error } = await supabase.functions.invoke('create-launch-from-wizard', {
-        body: data
-      });
-
+      const { data: result, error } = await supabase.functions.invoke('create-launch-from-wizard', { body: data });
       if (error) throw error;
-
       if (result?.success) {
-        // Clear the draft after successful creation
         await clearDraft();
-        
         toast.success(result.message || `Launch created with ${result.tasks_created} tasks!`);
-        
-        // Redirect to the created project
         navigate(`/projects/${result.project_id}`);
-      } else {
-        throw new Error(result?.message || 'Failed to create launch');
-      }
+      } else throw new Error(result?.message || 'Failed to create launch');
     } catch (error) {
       console.error('Create launch error:', error);
       toast.error('Failed to create launch. Please try again.');
@@ -136,13 +113,7 @@ export function LaunchWizard() {
     }
   };
 
-  const handleNext = () => {
-    if (step === totalSteps) {
-      handleCreateLaunch();
-    } else {
-      goNext();
-    }
-  };
+  const handleNext = () => step === totalSteps ? handleCreateLaunch() : goNext();
 
   if (isLoading) {
     return (
@@ -157,22 +128,19 @@ export function LaunchWizard() {
 
   const renderStep = () => {
     switch (step) {
-      case 1:
-        return <LaunchBasics data={data} onChange={handleChange} />;
-      case 2:
-        return <LaunchContentReuse data={data} onChange={handleChange} />;
-      case 3:
-        return <LaunchPreLaunch data={data} onChange={handleChange} />;
-      case 4:
-        return <LaunchActivities data={data} onChange={handleChange} />;
-      case 5:
-        return <LaunchOffers data={data} onChange={handleChange} />;
-      case 6:
-        return <LaunchThoughtWork data={data} onChange={handleChange} />;
-      case 7:
-        return <LaunchReview data={data} />;
-      default:
-        return null;
+      case 1: return <LaunchBasics data={data} onChange={handleChange} />;
+      case 2: return <LaunchRunwayTimeline data={data} onChange={handleChange} />;
+      case 3: return <LaunchMessaging data={data} onChange={handleChange} />;
+      case 4: return <LaunchContentPlan data={data} onChange={handleChange} />;
+      case 5: return <LaunchContentReuse data={data} onChange={handleChange} />;
+      case 6: return <LaunchPreLaunch data={data} onChange={handleChange} />;
+      case 7: return <LaunchActivities data={data} onChange={handleChange} />;
+      case 8: return <LaunchVideoStrategy data={data} onChange={handleChange} />;
+      case 9: return <LaunchSalesAssets data={data} onChange={handleChange} />;
+      case 10: return <LaunchOffers data={data} onChange={handleChange} />;
+      case 11: return <LaunchThoughtWork data={data} onChange={handleChange} />;
+      case 12: return <LaunchVisualTimeline data={data} />;
+      default: return null;
     }
   };
 
