@@ -1789,6 +1789,39 @@ export type Database = {
           },
         ]
       }
+      emergency_saves: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          page_id: string | null
+          page_type: string
+          recovered_at: string | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data: Json
+          id?: string
+          page_id?: string | null
+          page_type: string
+          recovered_at?: string | null
+          source: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          page_id?: string | null
+          page_type?: string
+          recovered_at?: string | null
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       entitlements: {
         Row: {
           created_at: string
