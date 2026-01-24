@@ -191,10 +191,10 @@ export function LaunchPreLaunchTasks({ data, onChange }: LaunchPreLaunchTasksPro
               description="Video proof converts 2-3x higher than text testimonials"
             >
               {tasks.videoTestimonials && (
-                <Alert className="mt-3 bg-purple-50 border-purple-200 dark:bg-purple-950/30 dark:border-purple-800">
-                  <Video className="h-4 w-4 text-purple-600" />
-                  <AlertTitle className="text-sm">Conversion Boost</AlertTitle>
-                  <AlertDescription className="text-xs">
+                <Alert className="mt-3 bg-secondary/50 border-secondary">
+                  <Video className="h-4 w-4 text-primary" />
+                  <AlertTitle className="text-sm text-foreground">Conversion Boost</AlertTitle>
+                  <AlertDescription className="text-xs text-muted-foreground">
                     Adding 3-5 video testimonials to your sales page can increase conversions by 20-30%
                   </AlertDescription>
                 </Alert>

@@ -98,7 +98,7 @@ export function LaunchContentPlan({ data, onChange }: LaunchContentPlanProps) {
           <ul className="space-y-2 text-sm">
             {suggestedTopics.map((topic, index) => (
               <li key={index} className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+                <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                 <span>
                   <strong>Week {topic.week}:</strong> {topic.title} - "{topic.description}"
                 </span>
@@ -122,7 +122,7 @@ export function LaunchContentPlan({ data, onChange }: LaunchContentPlanProps) {
               onClick={() => updateFormat('email', !contentFormats.email)}
             >
               <div className="flex items-center gap-3">
-                <Mail className="h-5 w-5 text-purple-600" />
+                <Mail className="h-5 w-5 text-primary" />
                 <div>
                   <p className="font-medium">Email Sequence</p>
                   <p className="text-xs text-muted-foreground">3-7 emails during runway</p>
@@ -142,7 +142,7 @@ export function LaunchContentPlan({ data, onChange }: LaunchContentPlanProps) {
               onClick={() => updateFormat('video', !contentFormats.video)}
             >
               <div className="flex items-center gap-3">
-                <Video className="h-5 w-5 text-red-600" />
+                <Video className="h-5 w-5 text-destructive" />
                 <div>
                   <p className="font-medium">Video Series</p>
                   <p className="text-xs text-muted-foreground">YouTube or email videos</p>
@@ -156,20 +156,20 @@ export function LaunchContentPlan({ data, onChange }: LaunchContentPlanProps) {
 
             {/* Video stats callout */}
             {contentFormats.video && (
-              <Alert className="ml-6 bg-purple-50 border-purple-200 dark:bg-purple-950/20 dark:border-purple-800">
-                <Video className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                <AlertTitle className="text-purple-800 dark:text-purple-300">
+              <Alert className="ml-6 bg-secondary/50 border-secondary">
+                <Video className="h-4 w-4 text-primary" />
+                <AlertTitle className="text-foreground">
                   Video Converts 2-3x Higher
                 </AlertTitle>
-                <AlertDescription className="text-sm text-purple-700 dark:text-purple-400">
-                  <strong>Stats you should know:</strong>
+                <AlertDescription className="text-sm text-muted-foreground">
+                  <strong className="text-foreground">Stats you should know:</strong>
                   <ul className="mt-2 space-y-1 ml-4 text-xs">
                     <li>• Email with video gets 96% higher click-through rate</li>
                     <li>• Video on landing page increases conversions by 80%</li>
                     <li>• People retain 95% of a message when watching vs 10% reading</li>
                     <li>• Video viewers are 64-85% more likely to buy</li>
                   </ul>
-                  <p className="mt-2 font-medium">
+                  <p className="mt-2 font-medium text-foreground">
                     💡 Recommendation: Record 3-5 short videos (5-10 min) during runway
                   </p>
                 </AlertDescription>
@@ -184,7 +184,7 @@ export function LaunchContentPlan({ data, onChange }: LaunchContentPlanProps) {
               onClick={() => updateFormat('podcast', !contentFormats.podcast)}
             >
               <div className="flex items-center gap-3">
-                <Mic className="h-5 w-5 text-green-600" />
+                <Mic className="h-5 w-5 text-primary" />
                 <div>
                   <p className="font-medium">Podcast Episodes</p>
                   <p className="text-xs text-muted-foreground">Release 2-4 episodes during runway</p>
@@ -219,7 +219,7 @@ export function LaunchContentPlan({ data, onChange }: LaunchContentPlanProps) {
               onClick={() => updateFormat('blog', !contentFormats.blog)}
             >
               <div className="flex items-center gap-3">
-                <FileText className="h-5 w-5 text-blue-600" />
+                <FileText className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <p className="font-medium">Blog Posts / Long-Form</p>
                   <p className="text-xs text-muted-foreground">SEO & authority building</p>
@@ -239,7 +239,7 @@ export function LaunchContentPlan({ data, onChange }: LaunchContentPlanProps) {
               onClick={() => updateFormat('social', !contentFormats.social)}
             >
               <div className="flex items-center gap-3">
-                <MessageSquare className="h-5 w-5 text-orange-600" />
+                <MessageSquare className="h-5 w-5 text-accent-foreground" />
                 <div>
                   <p className="font-medium">Social Media Posts</p>
                   <p className="text-xs text-muted-foreground">Daily engagement & value</p>
@@ -258,33 +258,33 @@ export function LaunchContentPlan({ data, onChange }: LaunchContentPlanProps) {
           <h4 className="font-medium text-sm mb-2">Your Content Mix</h4>
           <div className="flex flex-wrap gap-2">
             {contentFormats.email && (
-              <span className="text-xs px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 rounded">
+              <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded">
                 📧 Email Series
               </span>
             )}
             {contentFormats.video && (
-              <span className="text-xs px-2 py-1 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 rounded">
+              <span className="text-xs px-2 py-1 bg-destructive/10 text-destructive rounded">
                 🎬 Video
               </span>
             )}
             {contentFormats.podcast && (
-              <span className="text-xs px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 rounded">
+              <span className="text-xs px-2 py-1 bg-secondary text-secondary-foreground rounded">
                 🎙️ Podcast
               </span>
             )}
             {contentFormats.blog && (
-              <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded">
+              <span className="text-xs px-2 py-1 bg-muted text-muted-foreground rounded">
                 📝 Blog
               </span>
             )}
             {contentFormats.social && (
-              <span className="text-xs px-2 py-1 bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 rounded">
+              <span className="text-xs px-2 py-1 bg-accent text-accent-foreground rounded">
                 📱 Social
               </span>
             )}
           </div>
           {!Object.values(contentFormats).some(Boolean) && (
-            <p className="text-xs text-amber-600 mt-2">
+            <p className="text-xs text-destructive mt-2">
               ⚠️ Select at least one content format for your runway
             </p>
           )}

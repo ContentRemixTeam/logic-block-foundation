@@ -80,7 +80,7 @@ export function LaunchThoughtWork({ data, onChange }: LaunchThoughtWorkProps) {
       {/* Useful Thought */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <Lightbulb className="h-4 w-4 text-amber-500" />
+          <Lightbulb className="h-4 w-4 text-primary" />
           <Label className="text-lg font-semibold">What will you think instead?</Label>
         </div>
         <p className="text-sm text-muted-foreground">
