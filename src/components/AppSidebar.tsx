@@ -289,7 +289,7 @@ export function AppSidebar() {
         <NavSection label="Mindset" items={MINDSET_NAV} />
         <NavSection label="Community" items={COMMUNITY_NAV} />
         
-        {/* Focus & Rewards - Only visible when arcade is enabled */}
+        {/* Focus Mode - Only visible when arcade is enabled */}
         {!arcadeLoading && arcadeSettings.arcade_enabled && (
           <SidebarGroup>
             {sidebarOpen && (
@@ -304,25 +304,25 @@ export function AppSidebar() {
                     <TooltipTrigger asChild>
                       <SidebarMenuButton 
                         asChild 
-                        isActive={location.pathname === '/arcade'}
+                        isActive={location.pathname === '/focus'}
                         className={cn(
                           "h-9 gap-3 transition-all duration-150",
-                          location.pathname === '/arcade' && "bg-primary/10 text-primary font-medium"
+                          location.pathname === '/focus' && "bg-primary/10 text-primary font-medium"
                         )}
                       >
-                        <Link to="/arcade">
+                        <Link to="/focus">
                           {isQuestMode ? (
-                            <span className="text-base w-5 text-center">🎮</span>
+                            <span className="text-base w-5 text-center">🎯</span>
                           ) : (
                             <Gamepad2 className="h-4 w-4" />
                           )}
-                          <span className="truncate">Focus & Rewards</span>
+                          <span className="truncate">Focus Mode</span>
                         </Link>
                       </SidebarMenuButton>
                     </TooltipTrigger>
                     {!sidebarOpen && (
                       <TooltipContent side="right" className="font-medium">
-                        Focus & Rewards
+                        Focus Mode
                       </TooltipContent>
                     )}
                   </Tooltip>

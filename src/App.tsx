@@ -66,6 +66,7 @@ const ContentVault = lazy(() => import('./pages/ContentVault'));
 const MemberSignup = lazy(() => import('./pages/MemberSignup'));
 const Trash = lazy(() => import('./pages/Trash'));
 const Arcade = lazy(() => import('./pages/Arcade'));
+const Focus = lazy(() => import('./pages/Focus'));
 const Courses = lazy(() => import('./pages/Courses'));
 const CourseDetail = lazy(() => import('./pages/CourseDetail'));
 const Wizards = lazy(() => import('./pages/Wizards'));
@@ -166,6 +167,7 @@ const App = () => (
                       <Route path="/content-vault" element={<ProtectedRoute><PageSuspense><ContentVault /></PageSuspense></ProtectedRoute>} />
                       <Route path="/trash" element={<ProtectedRoute><PageSuspense><Trash /></PageSuspense></ProtectedRoute>} />
                       <Route path="/arcade" element={<ProtectedRoute><PageSuspense><Arcade /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/focus" element={<ProtectedRoute><PageSuspense><Focus /></PageSuspense></ProtectedRoute>} />
                       <Route path="/courses" element={<ProtectedRoute><PageSuspense><Courses /></PageSuspense></ProtectedRoute>} />
                       <Route path="/courses/:id" element={<ProtectedRoute><PageSuspense><CourseDetail /></PageSuspense></ProtectedRoute>} />
                       <Route path="/wizards" element={<ProtectedRoute><PageSuspense><Wizards /></PageSuspense></ProtectedRoute>} />
