@@ -616,6 +616,23 @@ export async function loadBackups(
 }
 
 /**
+ * Load the most recent backup for a specific page (for recovery)
+ */
+export async function loadLatestBackup(
+  userId: string,
+  pageType: string,
+  pageId?: string
+): Promise<BackupEntry | null> {
+  return safeDbOperation(async (db) => {
+    const allBackups = await db.getAllFromIndex('backups', 'by-user', userId);
+    const filtered = allBackups
+      .filter(b => b.pageType === pageType && (!pageId || b.pageId === pageId))
+      .sort((a, b) => b.timestamp - a.timestamp);
+    return filtered[0] ?? null;
+  }, null);
+}
+
+/**
  * Get a specific backup by ID
  */
 export async function getBackupById(id: string): Promise<BackupEntry | null> {
