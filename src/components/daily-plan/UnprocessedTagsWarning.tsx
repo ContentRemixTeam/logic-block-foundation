@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useState } from 'react';
-import { useBlocker } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,43 +25,59 @@ export function UnprocessedTagsWarning({
   onProcessTags 
 }: UnprocessedTagsWarningProps) {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showDialog, setShowDialog] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+  const navigate = useNavigate();
   
   // Check if there are unprocessed tags
   const hasUnprocessedTags = useCallback(() => {
     if (!scratchPadContent?.trim()) return false;
-    return TAG_REGEX.test(scratchPadContent);
+    // Reset regex lastIndex before testing
+    const regex = new RegExp(TAG_REGEX.source, 'gi');
+    return regex.test(scratchPadContent);
   }, [scratchPadContent]);
 
-  // Block navigation when there are unprocessed tags
-  const blocker = useBlocker(
-    ({ currentLocation, nextLocation }) =>
-      hasUnprocessedTags() && currentLocation.pathname !== nextLocation.pathname
-  );
+  // Handle browser beforeunload
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnprocessedTags()) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnprocessedTags]);
 
   const handleProcessAndLeave = async () => {
     setIsProcessing(true);
     try {
       await onProcessTags();
-      // After processing, proceed with navigation
-      if (blocker.state === 'blocked') {
-        blocker.proceed();
+      setShowDialog(false);
+      if (pendingNavigation) {
+        navigate(pendingNavigation);
+        setPendingNavigation(null);
       }
     } catch (error) {
       console.error('Failed to process tags:', error);
+    } finally {
       setIsProcessing(false);
     }
   };
 
   const handleLeaveWithoutProcessing = () => {
-    if (blocker.state === 'blocked') {
-      blocker.proceed();
+    setShowDialog(false);
+    if (pendingNavigation) {
+      navigate(pendingNavigation);
+      setPendingNavigation(null);
     }
   };
 
   const handleStay = () => {
-    if (blocker.state === 'blocked') {
-      blocker.reset();
-    }
+    setShowDialog(false);
+    setPendingNavigation(null);
   };
 
   // Count tags for display
@@ -90,7 +106,7 @@ export function UnprocessedTagsWarning({
   const tagInfo = getTagCounts();
 
   return (
-    <AlertDialog open={blocker.state === 'blocked'}>
+    <AlertDialog open={showDialog} onOpenChange={setShowDialog}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
