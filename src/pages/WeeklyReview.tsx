@@ -20,6 +20,7 @@ import { CourseProgressPanel } from "@/components/courses";
 import { getNurtureStats } from "@/lib/contentService";
 import { useDataProtection } from "@/hooks/useDataProtection";
 import { SaveStatusIndicator, SaveStatusBanner } from "@/components/SaveStatusIndicator";
+import { LaunchCheckInCard } from "@/components/launch/LaunchCheckInCard";
 
 interface Belief {
   belief_id: string;
@@ -508,6 +509,9 @@ export default function WeeklyReview() {
 
         {/* Habit Consistency Tracker */}
         <HabitTrackerCard view="weekly" />
+
+        {/* Launch Check-In (if active launches) */}
+        <LaunchCheckInCard reviewType="weekly" />
 
         {/* Course Progress Panel */}
         <CourseProgressPanel />

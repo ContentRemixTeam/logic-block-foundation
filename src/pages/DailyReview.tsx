@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { CycleSnapshotCard } from '@/components/cycle/CycleSnapshotCard';
 import { useDataProtection } from '@/hooks/useDataProtection';
 import { SaveStatusIndicator, SaveStatusBanner } from '@/components/SaveStatusIndicator';
+import { LaunchCheckInCard } from '@/components/launch/LaunchCheckInCard';
 
 export default function DailyReview() {
   const { user } = useAuth();
@@ -255,6 +256,9 @@ export default function DailyReview() {
 
         {/* 90-Day Cycle Snapshot */}
         <CycleSnapshotCard />
+
+        {/* Launch Check-In (if active launches) */}
+        <LaunchCheckInCard reviewType="daily" />
 
         {loading ? (
           <Card>

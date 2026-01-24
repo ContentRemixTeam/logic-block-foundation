@@ -16,6 +16,7 @@ import { CalendarSelectionModal } from '@/components/google-calendar/CalendarSel
 import { OfficeHoursEditorModal } from '@/components/office-hours/OfficeHoursEditorModal';
 import { CycleFocusBanner } from '@/components/cycle/CycleFocusBanner';
 import { MastermindCallsPanel } from '@/components/mastermind/MastermindCallsPanel';
+import { LaunchMilestonesCard } from './LaunchMilestonesCard';
 
 // New UI Components
 import { WeeklyPlannerHeader } from './WeeklyPlannerHeader';
@@ -437,7 +438,7 @@ export function WeekPlannerNew({
       {activeTab === 'planner' && (
         <div className="flex gap-4" style={{ minHeight: '600px' }}>
           {/* Available Tasks Sidebar */}
-          <div className="w-56 shrink-0">
+          <div className="w-56 shrink-0 space-y-4">
             <AvailableTasksSidebar
               tasks={tasks}
               onTaskToggle={handleTaskToggle}
@@ -447,6 +448,8 @@ export function WeekPlannerNew({
               isPulling={isPulling}
               highlightTaskId={highlightTaskId}
             />
+            {/* Launch Milestones Card */}
+            <LaunchMilestonesCard />
           </div>
 
           {/* Timeline Board */}
