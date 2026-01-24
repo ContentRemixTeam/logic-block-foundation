@@ -1,5 +1,7 @@
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Progress } from '@/components/ui/progress';
 
 interface WizardProgressProps {
   steps: { number: number; title: string }[];
@@ -14,6 +16,28 @@ export function WizardProgress({
   onStepClick,
   className 
 }: WizardProgressProps) {
+  const isMobile = useIsMobile();
+  const progress = ((currentStep - 1) / (steps.length - 1)) * 100;
+  const currentStepData = steps.find(s => s.number === currentStep);
+
+  // Mobile: Compact "Step X of Y" with progress bar
+  if (isMobile) {
+    return (
+      <div className={cn('space-y-2', className)}>
+        <div className="flex items-center justify-between text-sm">
+          <span className="font-medium text-foreground">
+            Step {currentStep} of {steps.length}
+          </span>
+          <span className="text-muted-foreground truncate ml-2 max-w-[60%] text-right">
+            {currentStepData?.title}
+          </span>
+        </div>
+        <Progress value={progress} className="h-1.5" />
+      </div>
+    );
+  }
+
+  // Desktop: Full horizontal stepper
   return (
     <nav className={cn('space-y-1', className)} aria-label="Progress">
       <ol className="flex items-center gap-2 overflow-x-auto pb-2">

@@ -12,6 +12,8 @@ import { TrialBanner, TrialExpiredScreen } from '@/components/trial';
 import { useArcade } from '@/hooks/useArcade';
 import { OfflineBanner, OfflineIndicator } from '@/components/OfflineIndicator';
 import { UnsyncedDataBanner } from '@/components/UnsyncedDataBanner';
+import { MobileBottomNav } from '@/components/MobileBottomNav';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Loader2, Sparkles, ArrowRight, X } from 'lucide-react';
 
 // Lazy load heavy arcade components - only loaded when arcade is enabled
@@ -22,6 +24,7 @@ const PetCollectionWidget = lazy(() => import('@/components/arcade/PetCollection
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const trialStatus = useTrialStatus();
   const { data: cycles, isLoading: cyclesLoading } = useAllCycles();
   const { settings, isLoading: arcadeLoading } = useArcade();
@@ -98,10 +101,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             />
           )}
 
-          {/* Top Bar */}
+          {/* Top Bar - Hide sidebar trigger on mobile (use bottom nav instead) */}
           <header className="top-bar">
             <div className="flex items-center gap-3">
-              <SidebarTrigger className="h-8 w-8" />
+              {!isMobile && <SidebarTrigger className="h-8 w-8" />}
             </div>
             <div className="flex items-center gap-3 ml-auto">
               {/* Offline sync indicator */}
@@ -120,9 +123,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          {/* Page Content */}
+          {/* Page Content - Add bottom padding on mobile for nav */}
           <main className="flex-1 overflow-auto bg-background">
-            <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8">
+            <div className={`mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8 ${isMobile ? 'pb-24' : ''}`}>
               {children}
             </div>
           </main>
@@ -143,6 +146,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           </Suspense>
         )}
         </div>
+        
+        {/* Mobile Bottom Navigation */}
+        {isMobile && <MobileBottomNav />}
       </SidebarProvider>
     </>
   );
