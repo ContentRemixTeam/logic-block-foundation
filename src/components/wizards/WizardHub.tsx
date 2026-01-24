@@ -71,6 +71,8 @@ export default function WizardHub() {
       navigate('/cycle-setup');
     } else if (templateName === 'launch-planner') {
       navigate('/wizards/launch');
+    } else if (templateName === 'habit-planner') {
+      navigate('/wizards/habits');
     } else {
       // Email and Content Sprint wizards coming soon
       toast.info('This wizard is coming soon!');
