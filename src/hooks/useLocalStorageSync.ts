@@ -14,10 +14,17 @@ import {
   deleteDraftFromIDB,
   getDraftWithMetadata,
 } from '@/lib/offlineDb';
+import { useCrossTabSync } from '@/hooks/useCrossTabSync';
 
 interface LocalStorageSyncConfig {
   key: string;
   enableIndexDBFallback?: boolean;
+  /** Enable cross-tab synchronization */
+  enableCrossTabSync?: boolean;
+  /** Called when another tab updates the data */
+  onRemoteUpdate?: (data: unknown) => void;
+  /** Called when a conflict is detected between tabs */
+  onConflict?: () => void;
 }
 
 interface LocalStorageSyncReturn<T> {
@@ -26,6 +33,10 @@ interface LocalStorageSyncReturn<T> {
   clear: () => Promise<void>;
   isStorageLimited: boolean;
   getTimestamp: () => Promise<number | null>;
+  /** Broadcast data to other tabs (only if cross-tab sync enabled) */
+  broadcastUpdate: (data: T) => void;
+  /** Unique tab ID for conflict detection */
+  tabId: string;
 }
 
 /**
@@ -36,17 +47,36 @@ interface LocalStorageSyncReturn<T> {
  * ENHANCED (Prompt 7): Now ALWAYS saves to IndexedDB in parallel with localStorage
  * for 50MB+ storage capacity and Safari private mode support.
  * 
+ * ENHANCED (Prompt 11): Now supports cross-tab synchronization via BroadcastChannel
+ * to keep data in sync across multiple open browser tabs.
+ * 
  * Works on all browsers including Safari private browsing mode.
  */
 export function useLocalStorageSync<T extends Record<string, any>>({
   key,
   enableIndexDBFallback = true,
+  enableCrossTabSync = false,
+  onRemoteUpdate,
+  onConflict,
 }: LocalStorageSyncConfig): LocalStorageSyncReturn<T> {
   
   const storageLimited = useMemo(() => isStorageLimited(), []);
 
+  // Cross-tab sync integration
+  const { broadcast, broadcastSaveComplete, tabId } = useCrossTabSync<T>({
+    key,
+    enabled: enableCrossTabSync,
+    onRemoteUpdate: (data) => {
+      onRemoteUpdate?.(data);
+    },
+    onConflict: () => {
+      onConflict?.();
+    },
+  });
+
   /**
    * Immediately saves data to localStorage AND IndexedDB in parallel.
+   * Also broadcasts to other tabs if cross-tab sync is enabled.
    * Returns true if at least one save was successful, false otherwise.
    */
   const save = useCallback(async (data: T): Promise<boolean> => {
@@ -74,6 +104,12 @@ export function useLocalStorageSync<T extends Record<string, any>>({
         idbSuccess = draftResult || emergencyResult;
       }
       
+      // ENHANCED (Prompt 11): Broadcast to other tabs on successful save
+      if ((localStorageSuccess || idbSuccess) && enableCrossTabSync) {
+        broadcast(data);
+        broadcastSaveComplete();
+      }
+      
       // Log for debugging
       if (!localStorageSuccess && !idbSuccess) {
         console.warn('[useLocalStorageSync] All storage methods failed for key:', key);
@@ -84,7 +120,7 @@ export function useLocalStorageSync<T extends Record<string, any>>({
       console.error('[useLocalStorageSync] Save failed:', error);
       return false;
     }
-  }, [key, enableIndexDBFallback]);
+  }, [key, enableIndexDBFallback, enableCrossTabSync, broadcast, broadcastSaveComplete]);
 
   /**
    * Loads data with priority: localStorage → IndexedDB drafts → IndexedDB emergency → null
@@ -177,11 +213,22 @@ export function useLocalStorageSync<T extends Record<string, any>>({
     }
   }, [key, enableIndexDBFallback]);
 
+  /**
+   * Manually broadcast data update to other tabs
+   */
+  const broadcastUpdate = useCallback((data: T) => {
+    if (enableCrossTabSync) {
+      broadcast(data);
+    }
+  }, [enableCrossTabSync, broadcast]);
+
   return {
     save,
     load,
     clear,
     isStorageLimited: storageLimited,
     getTimestamp,
+    broadcastUpdate,
+    tabId,
   };
 }
