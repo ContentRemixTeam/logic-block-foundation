@@ -110,19 +110,19 @@ function PageSuspense({ children }: { children: React.ReactNode }) {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <TourProvider>
-        <Toaster />
-        <Sonner />
-        <TourOverlay />
-        <TourWelcome />
-        <TourKeyboardHandler />
-        <BrowserRouter>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <TourProvider>
           <AuthProvider>
             <ThemeProvider>
               <MembershipProvider>
                 <ArcadeProvider>
                   <QuickCaptureProvider>
                     <OnlineStatusMonitor />
+                    <TourOverlay />
+                    <TourWelcome />
+                    <TourKeyboardHandler />
                     <Routes>
                       <Route path="/" element={<Navigate to="/dashboard" replace />} />
                       <Route path="/auth" element={<Auth />} />
@@ -187,8 +187,8 @@ const App = () => (
               </MembershipProvider>
             </ThemeProvider>
           </AuthProvider>
-        </BrowserRouter>
-      </TourProvider>
+        </TourProvider>
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
