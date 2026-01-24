@@ -148,16 +148,19 @@ export default function Notes() {
 
   // Restore draft when modal opens for new page
   useEffect(() => {
-    if (pageModalOpen && !editingPage && pageDraftProtection.hasDraft && !pageTitle && !pageContent) {
-      const draft = pageDraftProtection.loadDraft();
-      if (draft) {
-        setPageTitle(draft.title || '');
-        setPageContent(draft.content || '');
-        setPageProjectId(draft.projectId);
-        setPageTags(draft.tags || []);
-        toast.success('Draft restored - your previous unsaved page has been restored');
+    const restoreDraft = async () => {
+      if (pageModalOpen && !editingPage && pageDraftProtection.hasDraft && !pageTitle && !pageContent) {
+        const draft = await pageDraftProtection.loadDraft();
+        if (draft) {
+          setPageTitle(draft.title || '');
+          setPageContent(draft.content || '');
+          setPageProjectId(draft.projectId);
+          setPageTags(draft.tags || []);
+          toast.success('Draft restored - your previous unsaved page has been restored');
+        }
       }
-    }
+    };
+    restoreDraft();
   }, [pageModalOpen, editingPage]);
 
   // Fetch journal entries

@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { 
+  getStorageItem, 
+  setStorageItem, 
+  removeStorageItem, 
+  emergencyBackupToIDB,
+  restoreFromIDB,
+  clearEmergencyBackup,
+  isStorageLimited 
+} from '@/lib/storage';
 
 export type SaveStatus =
   | 'idle'
@@ -45,42 +54,57 @@ export function useDataProtection<T extends Record<string, any>>({
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isSavingRef = useRef(false);
   const rateLimitedUntilRef = useRef<number>(0);
+  const isUnmountingRef = useRef(false);
 
-  const saveToLocalStorage = useCallback((data: T) => {
+  // Multi-layer backup: localStorage + sessionStorage + memory + IndexedDB
+  const saveToLocalStorage = useCallback(async (data: T) => {
     if (!enableLocalBackup) return;
-    try {
-      const backup = {
-        data,
-        timestamp: new Date().toISOString(),
-        version: '1.0',
-      };
-      localStorage.setItem(localStorageKey, JSON.stringify(backup));
-    } catch (error) {
-      console.error('Failed to save to localStorage:', error);
+    
+    const backup = {
+      data,
+      timestamp: new Date().toISOString(),
+      version: '2.0', // Upgraded version with multi-layer support
+    };
+    
+    const jsonStr = JSON.stringify(backup);
+    
+    // Primary: Use safe storage (handles fallbacks automatically)
+    const success = setStorageItem(localStorageKey, jsonStr);
+    
+    // If storage is limited (private browsing), also use IndexedDB
+    if (isStorageLimited() || !success) {
+      await emergencyBackupToIDB(localStorageKey, backup);
     }
   }, [localStorageKey, enableLocalBackup]);
 
-  const loadFromLocalStorage = useCallback((): T | null => {
+  const loadFromLocalStorage = useCallback(async (): Promise<T | null> => {
     if (!enableLocalBackup) return null;
-    try {
-      const stored = localStorage.getItem(localStorageKey);
-      if (!stored) return null;
-      
-      const backup = JSON.parse(stored);
-      return backup.data;
-    } catch (error) {
-      console.error('Failed to load from localStorage:', error);
-      return null;
+    
+    // Try regular storage first
+    const stored = getStorageItem(localStorageKey);
+    if (stored) {
+      try {
+        const backup = JSON.parse(stored);
+        return backup.data;
+      } catch (error) {
+        console.error('Failed to parse stored backup:', error);
+      }
     }
+    
+    // Fallback to IndexedDB
+    const idbBackup = await restoreFromIDB(localStorageKey);
+    if (idbBackup) {
+      return idbBackup.data;
+    }
+    
+    return null;
   }, [localStorageKey, enableLocalBackup]);
 
-  const clearLocalStorage = useCallback(() => {
+  const clearLocalStorage = useCallback(async () => {
     if (!enableLocalBackup) return;
-    try {
-      localStorage.removeItem(localStorageKey);
-    } catch (error) {
-      console.error('Failed to clear localStorage:', error);
-    }
+    
+    removeStorageItem(localStorageKey);
+    await clearEmergencyBackup(localStorageKey);
   }, [localStorageKey, enableLocalBackup]);
 
   const performSave = useCallback(async () => {
@@ -88,7 +112,7 @@ export function useDataProtection<T extends Record<string, any>>({
 
     if (!isOnline) {
       setSaveStatus('offline');
-      saveToLocalStorage(dataRef.current);
+      await saveToLocalStorage(dataRef.current);
       return;
     }
 
@@ -104,7 +128,7 @@ export function useDataProtection<T extends Record<string, any>>({
       setHasUnsavedChanges(false);
       setLastSaved(new Date());
       
-      clearLocalStorage();
+      await clearLocalStorage();
       
       if (onSaveSuccess) {
         onSaveSuccess();
@@ -119,7 +143,7 @@ export function useDataProtection<T extends Record<string, any>>({
       isSavingRef.current = false;
 
       if (dataRef.current) {
-        saveToLocalStorage(dataRef.current);
+        await saveToLocalStorage(dataRef.current);
       }
 
       // Check for rate limit error (429)
@@ -129,14 +153,12 @@ export function useDataProtection<T extends Record<string, any>>({
                           errorMessage.includes('Too many requests');
       
       if (isRateLimit) {
-        // Extract retry_after from error message if available
         const retryMatch = errorMessage.match(/retry_after[":]*\s*(\d+)/);
         const retryAfter = retryMatch ? parseInt(retryMatch[1], 10) : 20;
         
         rateLimitedUntilRef.current = Date.now() + (retryAfter * 1000);
         setSaveStatus('pending');
         
-        // Silent retry after rate limit expires - no toast spam
         retryTimeoutRef.current = setTimeout(() => {
           rateLimitedUntilRef.current = 0;
           performSave();
@@ -209,16 +231,18 @@ export function useDataProtection<T extends Record<string, any>>({
   }, [hasUnsavedChanges, performSave, toast]);
 
   const register = useCallback((data: T) => {
-    // Skip if data hasn't actually changed (prevents excessive saves)
+    // Skip if data hasn't actually changed
     const dataHash = JSON.stringify(data);
     if (lastDataHashRef.current === dataHash) {
-      return; // No actual change, skip registration
+      return;
     }
     lastDataHashRef.current = dataHash;
     
     dataRef.current = data;
     setHasUnsavedChanges(true);
     setSaveStatus('pending');
+    
+    // Immediate local backup (synchronous)
     saveToLocalStorage(data);
 
     if (saveTimeoutRef.current) {
@@ -228,7 +252,6 @@ export function useDataProtection<T extends Record<string, any>>({
     // Check if we're rate limited
     const now = Date.now();
     if (rateLimitedUntilRef.current > now) {
-      // We're rate limited, schedule save after limit expires
       const waitTime = rateLimitedUntilRef.current - now + 1000;
       saveTimeoutRef.current = setTimeout(() => {
         performSave();
@@ -254,12 +277,58 @@ export function useDataProtection<T extends Record<string, any>>({
     await performSave();
   }, [performSave]);
 
-  // Before unload warning
+  // Emergency save on visibility change (Safari/iOS backup)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && dataRef.current && hasUnsavedChanges) {
+        // Synchronously save to storage when page is hidden
+        saveToLocalStorage(dataRef.current);
+        
+        // Try to save to server with sendBeacon-style fire-and-forget
+        if (isOnline && !isUnmountingRef.current) {
+          performSave();
+        }
+      }
+    };
+
+    // pagehide is more reliable than beforeunload on Safari/iOS
+    const handlePageHide = (e: PageTransitionEvent) => {
+      if (dataRef.current && hasUnsavedChanges) {
+        // Synchronous backup - critical for iOS
+        saveToLocalStorage(dataRef.current);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', handlePageHide);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handlePageHide);
+    };
+  }, [hasUnsavedChanges, isOnline, performSave, saveToLocalStorage]);
+
+  // Before unload warning (desktop browsers)
   useEffect(() => {
     if (!enableBeforeUnload) return;
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges) {
+        // Final backup attempt
+        if (dataRef.current) {
+          const backup = {
+            data: dataRef.current,
+            timestamp: new Date().toISOString(),
+            version: '2.0',
+          };
+          // Use sync localStorage directly for final save
+          try {
+            localStorage.setItem(localStorageKey, JSON.stringify(backup));
+          } catch {
+            // Fallback already handled by saveToLocalStorage
+          }
+        }
+        
         e.preventDefault();
         e.returnValue = '';
         return '';
@@ -271,14 +340,32 @@ export function useDataProtection<T extends Record<string, any>>({
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [hasUnsavedChanges, enableBeforeUnload]);
+  }, [hasUnsavedChanges, enableBeforeUnload, localStorageKey]);
 
   // Cleanup and final save attempt
   useEffect(() => {
     return () => {
-      if (dataRef.current && hasUnsavedChanges && isOnline) {
-        saveFn(dataRef.current).catch(console.error);
+      isUnmountingRef.current = true;
+      
+      if (dataRef.current && hasUnsavedChanges) {
+        // Synchronous backup on unmount
+        const backup = {
+          data: dataRef.current,
+          timestamp: new Date().toISOString(),
+          version: '2.0',
+        };
+        try {
+          localStorage.setItem(localStorageKey, JSON.stringify(backup));
+        } catch {
+          // Memory fallback handled by storage utility
+        }
+        
+        // Async save attempt
+        if (isOnline) {
+          saveFn(dataRef.current).catch(console.error);
+        }
       }
+      
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
@@ -286,7 +373,7 @@ export function useDataProtection<T extends Record<string, any>>({
         clearTimeout(retryTimeoutRef.current);
       }
     };
-  }, [hasUnsavedChanges, isOnline, saveFn]);
+  }, [hasUnsavedChanges, isOnline, saveFn, localStorageKey]);
 
   return {
     register,
