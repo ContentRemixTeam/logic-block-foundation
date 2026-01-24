@@ -52,6 +52,7 @@ import {
 import { ToastAction } from '@/components/ui/toast';
 import { useDataProtection } from '@/hooks/useDataProtection';
 import { SaveStatusIndicator, SaveStatusBanner } from '@/components/SaveStatusIndicator';
+import { UnprocessedTagsWarning } from '@/components/daily-plan/UnprocessedTagsWarning';
 
 export default function DailyPlan() {
   const { user } = useAuth();
@@ -1371,6 +1372,12 @@ Revenue grows with retention #thought"
           userId={user.id}
         />
       )}
+
+      {/* Navigation warning for unprocessed tags */}
+      <UnprocessedTagsWarning
+        scratchPadContent={scratchPadContent}
+        onProcessTags={handleProcessTags}
+      />
     </Layout>
   );
 }
