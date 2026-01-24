@@ -51,7 +51,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ToastAction } from '@/components/ui/toast';
-import { useDataProtection } from '@/hooks/useDataProtection';
+import { useLocalStorageSync } from '@/hooks/useLocalStorageSync';
+import { useServerSync, SyncStatus } from '@/hooks/useServerSync';
+import { useBeforeUnload } from '@/hooks/useBeforeUnload';
+import { useMobileProtection } from '@/hooks/useMobileProtection';
 import { SaveStatusIndicator, SaveStatusBanner } from '@/components/SaveStatusIndicator';
 import { UnprocessedTagsWarning } from '@/components/daily-plan/UnprocessedTagsWarning';
 
@@ -137,15 +140,25 @@ export default function DailyPlan() {
     goal_rewrite: goalRewrite,
   }), [dayId, newTop3Text, selectedPriorities, thought, feeling, deepModeNotes, scratchPadContent, scratchPadTitle, oneThing, goalRewrite]);
 
-  // Data protection hook for auto-save, localStorage backup, and offline handling
+  // Track if we have unsaved changes
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const lastDataHashRef = useRef<string | null>(null);
+
+  // 1. Immediate localStorage sync (0ms delay)
+  const localStorageKey = `daily_plan_backup_${dayId || 'pending'}`;
+  const { save: saveToLocal, load: loadFromLocal, clear: clearLocal } = useLocalStorageSync<typeof dailyPlanData>({
+    key: localStorageKey,
+    enableIndexDBFallback: true,
+  });
+
+  // 2. Debounced server sync (1 second delay)
   const {
-    register: registerData,
-    saveNow,
-    saveStatus,
-    hasUnsavedChanges,
+    sync: syncToServer,
+    syncNow: saveNow,
+    status: serverSyncStatus,
     isOnline,
-    lastSaved,
-  } = useDataProtection({
+    lastSynced: lastSaved,
+  } = useServerSync<typeof dailyPlanData>({
     saveFn: async (data) => {
       if (!user || !data.day_id) return;
       
@@ -159,20 +172,103 @@ export default function DailyPlan() {
 
       if (fnError) throw fnError;
     },
-    autoSaveDelay: 2500,
-    localStorageKey: `daily_plan_backup_${dayId}`,
-    enableLocalBackup: true,
-    enableBeforeUnload: true,
+    delay: 1000,
     maxRetries: 3,
     retryDelay: 5000,
+    onSuccess: () => {
+      clearLocal();
+      setHasUnsavedChanges(false);
+    },
   });
 
-  // Register data changes with the protection hook (skip during initial load)
+  // Map server sync status to SaveStatus type for compatibility
+  const saveStatus = serverSyncStatus;
+
+  // 3. Warn before closing with unsaved changes
+  useBeforeUnload({
+    hasUnsavedChanges,
+    onFinalSave: () => {
+      // Synchronous final save to localStorage
+      if (dayId) {
+        const backup = {
+          data: dailyPlanData,
+          timestamp: new Date().toISOString(),
+          version: '2.0',
+        };
+        try {
+          localStorage.setItem(localStorageKey, JSON.stringify(backup));
+        } catch (e) {
+          console.error('[DailyPlan] Final save failed:', e);
+        }
+      }
+    },
+    enabled: true,
+  });
+
+  // 4. Force save on mobile when app is backgrounded
+  useMobileProtection({
+    getData: () => dayId ? dailyPlanData : null,
+    onSave: (data) => {
+      saveToLocal(data);
+      if (isOnline) {
+        syncToServer(data);
+      }
+    },
+    enabled: !loading && !!dayId,
+  });
+
+  // Register data changes - immediate localStorage + debounced server save
   useEffect(() => {
     if (!loading && dayId && !isInitialLoadRef.current) {
-      registerData(dailyPlanData);
+      const dataHash = JSON.stringify(dailyPlanData);
+      if (lastDataHashRef.current === dataHash) return;
+      lastDataHashRef.current = dataHash;
+      
+      setHasUnsavedChanges(true);
+      
+      // Immediate localStorage save (0ms)
+      saveToLocal(dailyPlanData);
+      
+      // Debounced server save (1s)
+      syncToServer(dailyPlanData);
     }
-  }, [dailyPlanData, loading, dayId, registerData]);
+  }, [dailyPlanData, loading, dayId, saveToLocal, syncToServer]);
+
+  // Try to restore from localStorage on initial load
+  useEffect(() => {
+    const tryRestoreBackup = async () => {
+      if (!dayId || !isInitialLoadRef.current) return;
+      
+      const backup = await loadFromLocal();
+      if (backup && backup.day_id === dayId) {
+        // Ask user if they want to restore
+        toast({
+          title: '📋 Unsaved changes found',
+          description: 'Would you like to restore your previous work?',
+          action: (
+            <ToastAction altText="Restore" onClick={() => {
+              if (backup.thought) setThought(backup.thought);
+              if (backup.feeling) setFeeling(backup.feeling);
+              if (backup.scratch_pad_content) setScratchPadContent(backup.scratch_pad_content);
+              if (backup.scratch_pad_title) setScratchPadTitle(backup.scratch_pad_title);
+              if (backup.deep_mode_notes) setDeepModeNotes(backup.deep_mode_notes);
+              if (backup.top_3_today) setNewTop3Text([
+                backup.top_3_today[0] || '',
+                backup.top_3_today[1] || '',
+                backup.top_3_today[2] || '',
+              ]);
+              toast({ title: '✅ Changes restored!' });
+            }}>
+              Restore
+            </ToastAction>
+          ),
+          duration: 10000,
+        });
+      }
+    };
+    
+    tryRestoreBackup();
+  }, [dayId, loadFromLocal, toast]);
 
   useEffect(() => {
     loadDailyPlan();
@@ -558,7 +654,7 @@ export default function DailyPlan() {
       }
 
       // Use the data protection's saveNow
-      await saveNow();
+      await saveNow(dailyPlanData);
       
       // Reload to get fresh tasks
       await loadDailyPlan();
@@ -786,7 +882,7 @@ export default function DailyPlan() {
         </div>
 
         {/* Save Status Banner for offline/error states */}
-        <SaveStatusBanner status={saveStatus} onRetry={saveNow} />
+        <SaveStatusBanner status={saveStatus} onRetry={() => saveNow(dailyPlanData)} />
 
         {/* Schedule View */}
         {viewMode === 'schedule' && (
@@ -1068,7 +1164,7 @@ export default function DailyPlan() {
               <SmartScratchPad
                 value={scratchPadContent}
                 onChange={setScratchPadContent}
-                onBlur={() => saveNow()}
+                onBlur={() => saveNow(dailyPlanData)}
                 maxLength={5000}
                 placeholder="Brain dump here... Type # for tag suggestions
 
