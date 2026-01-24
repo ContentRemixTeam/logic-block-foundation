@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useArcade } from '@/hooks/useArcade';
 import { useTasks } from '@/hooks/useTasks';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -82,6 +83,7 @@ export function PetGrowthCard() {
   const { user } = useAuth();
   const { pet, refreshPet, selectPet } = useArcade();
   const { data: allTasks = [] } = useTasks();
+  const queryClient = useQueryClient();
   const today = new Date().toISOString().split('T')[0];
   
   // Timer state (inline instead of usePomodoro for custom duration)
@@ -379,6 +381,9 @@ export function PetGrowthCard() {
         { id: `${Date.now()}-2`, text: '', completed: false },
         { id: `${Date.now()}-3`, text: '', completed: false },
       ]);
+      
+      // Invalidate the pets query so the toolbar widget updates immediately
+      queryClient.invalidateQueries({ queryKey: ['hatched-pets'] });
       
       await refreshPet();
       toast.success(`${petName} added to your collection! New egg ready 🥚`);
