@@ -3991,6 +3991,7 @@ export type Database = {
           cycle_summary_questions: Json | null
           daily_anchor_enabled: boolean | null
           daily_review_questions: Json | null
+          dashboard_widgets: Json | null
           delight_intensity: string
           habit_categories_enabled: boolean | null
           has_seen_tour: boolean | null
@@ -4033,6 +4034,7 @@ export type Database = {
           cycle_summary_questions?: Json | null
           daily_anchor_enabled?: boolean | null
           daily_review_questions?: Json | null
+          dashboard_widgets?: Json | null
           delight_intensity?: string
           habit_categories_enabled?: boolean | null
           has_seen_tour?: boolean | null
@@ -4075,6 +4077,7 @@ export type Database = {
           cycle_summary_questions?: Json | null
           daily_anchor_enabled?: boolean | null
           daily_review_questions?: Json | null
+          dashboard_widgets?: Json | null
           delight_intensity?: string
           habit_categories_enabled?: boolean | null
           has_seen_tour?: boolean | null

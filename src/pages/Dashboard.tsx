@@ -36,7 +36,8 @@ import {
   AlertCircle,
   Eye,
   Edit,
-  Rocket
+  Rocket,
+  Settings2
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
@@ -49,11 +50,12 @@ import { MastermindCallWidget } from '@/components/mastermind/MastermindCallWidg
 import { PodcastWidget } from '@/components/podcast/PodcastWidget';
 import { HelpButton } from '@/components/ui/help-button';
 import { PremiumCard, PremiumCardContent, PremiumCardHeader, PremiumCardTitle } from '@/components/ui/premium-card';
-import { TodayStrip, PlanMyWeekButton, QuickActionsPanel, ResourcesPanel, MetricsWidget, WeeklyRoutineReminder, PromotionCountdown, SalesCalendar, First3DaysChecklist, getFirst3DaysCheckedState, saveFirst3DaysCheckedState, WinsCard } from '@/components/dashboard';
+import { TodayStrip, PlanMyWeekButton, QuickActionsPanel, ResourcesPanel, MetricsWidget, WeeklyRoutineReminder, PromotionCountdown, SalesCalendar, First3DaysChecklist, getFirst3DaysCheckedState, saveFirst3DaysCheckedState, WinsCard, DashboardCustomizeModal } from '@/components/dashboard';
 import { DataRecoveredPopup } from '@/components/DataRecoveredPopup';
 import { ChallengeProgressWidget } from '@/components/challenges';
 import { ContinueSetupBanner } from '@/components/cycle/ContinueSetupBanner';
 import { supabase as supabaseClient } from '@/integrations/supabase/client';
+import { useDashboardWidgets } from '@/hooks/useDashboardWidgets';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -80,6 +82,8 @@ export default function Dashboard() {
   const [showRecoveryBanner, setShowRecoveryBanner] = useState(false);
   const [showRecoveryPopup, setShowRecoveryPopup] = useState(false);
   const [recoveredCycleInfo, setRecoveredCycleInfo] = useState<{ id: string; goal: string } | null>(null);
+  const [showCustomizeModal, setShowCustomizeModal] = useState(false);
+  const { isWidgetEnabled } = useDashboardWidgets();
 
   useEffect(() => {
     loadDashboardSummary();
@@ -676,19 +680,36 @@ export default function Dashboard() {
       
       <div className="space-y-6">
         {/* Page Header */}
-        <div>
-          <h1 className="bp-h1 flex items-center gap-3">
-            {isQuestMode ? (
-              <Map className="h-8 w-8 text-primary" />
-            ) : (
-              <Zap className="h-8 w-8 text-primary" />
-            )}
-            {getNavLabel('dashboard')}
-          </h1>
-          <p className="text-foreground-muted mt-1">
-            {isQuestMode ? 'Your adventure awaits, Boss' : 'Your 90-day Becoming Boss journey'}
-          </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="bp-h1 flex items-center gap-3">
+              {isQuestMode ? (
+                <Map className="h-8 w-8 text-primary" />
+              ) : (
+                <Zap className="h-8 w-8 text-primary" />
+              )}
+              {getNavLabel('dashboard')}
+            </h1>
+            <p className="text-foreground-muted mt-1">
+              {isQuestMode ? 'Your adventure awaits, Boss' : 'Your 90-day Becoming Boss journey'}
+            </p>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setShowCustomizeModal(true)}
+            className="gap-2"
+          >
+            <Settings2 className="h-4 w-4" />
+            Customize
+          </Button>
         </div>
+
+        {/* Dashboard Customization Modal */}
+        <DashboardCustomizeModal 
+          open={showCustomizeModal} 
+          onOpenChange={setShowCustomizeModal} 
+        />
 
         {/* Onboarding Checklist - Full Width */}
         <OnboardingChecklist />
@@ -833,7 +854,7 @@ export default function Dashboard() {
             {/* Left Column - Main Content */}
             <div className="flex-1 space-y-6 max-w-3xl">
               {/* Launch Countdowns */}
-              {activeLaunches && activeLaunches.length > 0 && (
+              {isWidgetEnabled('launches') && activeLaunches && activeLaunches.length > 0 && (
                 <div className="space-y-3">
                   {activeLaunches.map(launch => {
                     const countdown = getLaunchCountdown(launch);
@@ -886,15 +907,17 @@ export default function Dashboard() {
               )}
 
               {/* Today Strip */}
-              <TodayStrip 
-                topPriority={topPriority} 
-                officeHoursStart={officeHoursData.start}
-                officeHoursEnd={officeHoursData.end}
-                officeHoursDays={officeHoursData.days}
-              />
+              {isWidgetEnabled('todayStrip') && (
+                <TodayStrip 
+                  topPriority={topPriority} 
+                  officeHoursStart={officeHoursData.start}
+                  officeHoursEnd={officeHoursData.end}
+                  officeHoursDays={officeHoursData.days}
+                />
+              )}
 
               {/* 90-Day Goal Card */}
-              {goal && (
+              {isWidgetEnabled('cycleGoal') && goal && (
                 <>
                   {isQuestMode ? (
                     <PremiumCard category="plan">
@@ -974,7 +997,7 @@ export default function Dashboard() {
               )}
 
               {/* Your First 3 Days Checklist - Only shows in first 5 days */}
-              {first3DaysData && (
+              {isWidgetEnabled('first3Days') && first3DaysData && (
                 <First3DaysChecklist
                   data={first3DaysData}
                   daysRemaining={daysRemaining}
@@ -984,162 +1007,168 @@ export default function Dashboard() {
               )}
 
               {/* Weekly Priorities Card */}
-              <PremiumCard category="plan">
-                <PremiumCardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-foreground-muted" />
-                      <PremiumCardTitle>This Week's Top 3</PremiumCardTitle>
-                    </div>
-                    <Link to="/weekly-plan">
-                      <Button variant="ghost" size="sm" className="text-sm">
-                        Edit <ArrowRight className="h-3 w-3 ml-1" />
-                      </Button>
-                    </Link>
-                  </div>
-                </PremiumCardHeader>
-                <PremiumCardContent>
-                  {weeklyPriorities.length > 0 ? (
-                    <div className="space-y-3">
-                      {weeklyPriorities.map((priority, idx) => (
-                        <div key={idx} className="flex items-start gap-3 p-3 rounded-xl bg-muted/30">
-                          <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold flex-shrink-0">
-                            {idx + 1}
-                          </div>
-                          <span className="text-sm leading-relaxed">{priority}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-6">
-                      <Calendar className="h-10 w-10 text-foreground-muted/30 mx-auto mb-3" />
-                      <p className="font-medium mb-1">Set your Weekly Top 3</p>
-                      <p className="text-sm text-foreground-muted mb-4">
-                        Focus on 3 priorities this week (2 min)
-                      </p>
+              {isWidgetEnabled('weeklyPriorities') && (
+                <PremiumCard category="plan">
+                  <PremiumCardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-foreground-muted" />
+                        <PremiumCardTitle>This Week's Top 3</PremiumCardTitle>
+                      </div>
                       <Link to="/weekly-plan">
-                        <Button>Set Weekly Priorities</Button>
+                        <Button variant="ghost" size="sm" className="text-sm">
+                          Edit <ArrowRight className="h-3 w-3 ml-1" />
+                        </Button>
                       </Link>
                     </div>
-                  )}
-                </PremiumCardContent>
-              </PremiumCard>
+                  </PremiumCardHeader>
+                  <PremiumCardContent>
+                    {weeklyPriorities.length > 0 ? (
+                      <div className="space-y-3">
+                        {weeklyPriorities.map((priority, idx) => (
+                          <div key={idx} className="flex items-start gap-3 p-3 rounded-xl bg-muted/30">
+                            <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                              {idx + 1}
+                            </div>
+                            <span className="text-sm leading-relaxed">{priority}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6">
+                        <Calendar className="h-10 w-10 text-foreground-muted/30 mx-auto mb-3" />
+                        <p className="font-medium mb-1">Set your Weekly Top 3</p>
+                        <p className="text-sm text-foreground-muted mb-4">
+                          Focus on 3 priorities this week (2 min)
+                        </p>
+                        <Link to="/weekly-plan">
+                          <Button>Set Weekly Priorities</Button>
+                        </Link>
+                      </div>
+                    )}
+                  </PremiumCardContent>
+                </PremiumCard>
+              )}
 
               {/* Arcade Intro Card - Shows for new users */}
               <ArcadeIntroCard />
 
               {/* Today's Top 3 Card - Arcade version with coins/pet */}
-              <PetGrowthCard />
+              {isWidgetEnabled('todayTop3') && <PetGrowthCard />}
 
               {/* Habits Status Card */}
-              <PremiumCard category="do">
-                <PremiumCardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-foreground-muted" />
-                      <PremiumCardTitle>Today's Habits</PremiumCardTitle>
+              {isWidgetEnabled('habits') && (
+                <PremiumCard category="do">
+                  <PremiumCardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 text-foreground-muted" />
+                        <PremiumCardTitle>Today's Habits</PremiumCardTitle>
+                      </div>
+                      <Link to="/habits">
+                        <Button variant="ghost" size="sm" className="text-sm">
+                          View All <ArrowRight className="h-3 w-3 ml-1" />
+                        </Button>
+                      </Link>
                     </div>
-                    <Link to="/habits">
-                      <Button variant="ghost" size="sm" className="text-sm">
-                        View All <ArrowRight className="h-3 w-3 ml-1" />
-                      </Button>
-                    </Link>
-                  </div>
-                </PremiumCardHeader>
-                <PremiumCardContent>
-                  <div className="flex items-center gap-3">
-                    {habitStatus === 'green' && (
-                      <Badge className="bp-badge-success gap-1">
-                        <Check className="h-3 w-3" /> Great progress
-                      </Badge>
-                    )}
-                    {habitStatus === 'yellow' && (
-                      <Badge className="bg-warning/10 text-warning border border-warning/20 rounded-full px-3 py-0.5 text-xs font-medium">
-                        Needs work
-                      </Badge>
-                    )}
-                    {habitStatus === 'grey' && (
-                      <Badge className="bg-muted text-foreground-muted rounded-full px-3 py-0.5 text-xs font-medium">
-                        Not started
-                      </Badge>
-                    )}
-                  </div>
-                </PremiumCardContent>
-              </PremiumCard>
+                  </PremiumCardHeader>
+                  <PremiumCardContent>
+                    <div className="flex items-center gap-3">
+                      {habitStatus === 'green' && (
+                        <Badge className="bp-badge-success gap-1">
+                          <Check className="h-3 w-3" /> Great progress
+                        </Badge>
+                      )}
+                      {habitStatus === 'yellow' && (
+                        <Badge className="bg-warning/10 text-warning border border-warning/20 rounded-full px-3 py-0.5 text-xs font-medium">
+                          Needs work
+                        </Badge>
+                      )}
+                      {habitStatus === 'grey' && (
+                        <Badge className="bg-muted text-foreground-muted rounded-full px-3 py-0.5 text-xs font-medium">
+                          Not started
+                        </Badge>
+                      )}
+                    </div>
+                  </PremiumCardContent>
+                </PremiumCard>
+              )}
 
               {/* Reviews Section */}
-              <div className="grid gap-4 md:grid-cols-2">
-                {/* Weekly Review */}
-                <PremiumCard category="review">
-                  <PremiumCardHeader>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-foreground-muted" />
-                      <PremiumCardTitle className="text-base">Weekly Review</PremiumCardTitle>
-                    </div>
-                  </PremiumCardHeader>
-                  <PremiumCardContent>
-                    {weeklyReviewStatus.exists ? (
-                      <div>
-                        <Badge className="bp-badge-success gap-1">
-                          <Check className="h-3 w-3" /> Completed
-                        </Badge>
-                        {weeklyReviewStatus.score !== null && (
-                          <p className="text-2xl font-bold mt-2">Score: {weeklyReviewStatus.score}/10</p>
-                        )}
-                        <Link to="/weekly-review" className="mt-3 block">
-                          <Button variant="ghost" size="sm" className="text-xs">
-                            View Review <ArrowRight className="h-3 w-3 ml-1" />
-                          </Button>
-                        </Link>
+              {isWidgetEnabled('reviews') && (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {/* Weekly Review */}
+                  <PremiumCard category="review">
+                    <PremiumCardHeader>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-foreground-muted" />
+                        <PremiumCardTitle className="text-base">Weekly Review</PremiumCardTitle>
                       </div>
-                    ) : (
-                      <div className="text-center py-4">
-                        <p className="text-sm text-foreground-muted mb-3">Reflect on your week</p>
-                        <Link to="/weekly-review">
-                          <Button variant="outline" size="sm">Complete Review</Button>
-                        </Link>
-                      </div>
-                    )}
-                  </PremiumCardContent>
-                </PremiumCard>
+                    </PremiumCardHeader>
+                    <PremiumCardContent>
+                      {weeklyReviewStatus.exists ? (
+                        <div>
+                          <Badge className="bp-badge-success gap-1">
+                            <Check className="h-3 w-3" /> Completed
+                          </Badge>
+                          {weeklyReviewStatus.score !== null && (
+                            <p className="text-2xl font-bold mt-2">Score: {weeklyReviewStatus.score}/10</p>
+                          )}
+                          <Link to="/weekly-review" className="mt-3 block">
+                            <Button variant="ghost" size="sm" className="text-xs">
+                              View Review <ArrowRight className="h-3 w-3 ml-1" />
+                            </Button>
+                          </Link>
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <p className="text-sm text-foreground-muted mb-3">Reflect on your week</p>
+                          <Link to="/weekly-review">
+                            <Button variant="outline" size="sm">Complete Review</Button>
+                          </Link>
+                        </div>
+                      )}
+                    </PremiumCardContent>
+                  </PremiumCard>
 
-                {/* Monthly Review */}
-                <PremiumCard category="review">
-                  <PremiumCardHeader>
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-foreground-muted" />
-                      <PremiumCardTitle className="text-base">Monthly Review</PremiumCardTitle>
-                    </div>
-                  </PremiumCardHeader>
-                  <PremiumCardContent>
-                    {monthlyReviewStatus.exists ? (
-                      <div>
-                        <Badge className="bp-badge-success gap-1">
-                          <Check className="h-3 w-3" /> Completed
-                        </Badge>
-                        {monthlyReviewStatus.score !== null && (
-                          <p className="text-2xl font-bold mt-2">Score: {monthlyReviewStatus.score}/10</p>
-                        )}
-                        {monthlyReviewStatus.wins_count > 0 && (
-                          <p className="text-xs text-foreground-muted mt-1">{monthlyReviewStatus.wins_count} wins recorded</p>
-                        )}
-                        <Link to="/monthly-review" className="mt-3 block">
-                          <Button variant="ghost" size="sm" className="text-xs">
-                            View Review <ArrowRight className="h-3 w-3 ml-1" />
-                          </Button>
-                        </Link>
+                  {/* Monthly Review */}
+                  <PremiumCard category="review">
+                    <PremiumCardHeader>
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 text-foreground-muted" />
+                        <PremiumCardTitle className="text-base">Monthly Review</PremiumCardTitle>
                       </div>
-                    ) : (
-                      <div className="text-center py-4">
-                        <p className="text-sm text-foreground-muted mb-3">Reflect on the month</p>
-                        <Link to="/monthly-review">
-                          <Button variant="outline" size="sm">Complete Review</Button>
-                        </Link>
-                      </div>
-                    )}
-                  </PremiumCardContent>
-                </PremiumCard>
-              </div>
+                    </PremiumCardHeader>
+                    <PremiumCardContent>
+                      {monthlyReviewStatus.exists ? (
+                        <div>
+                          <Badge className="bp-badge-success gap-1">
+                            <Check className="h-3 w-3" /> Completed
+                          </Badge>
+                          {monthlyReviewStatus.score !== null && (
+                            <p className="text-2xl font-bold mt-2">Score: {monthlyReviewStatus.score}/10</p>
+                          )}
+                          {monthlyReviewStatus.wins_count > 0 && (
+                            <p className="text-xs text-foreground-muted mt-1">{monthlyReviewStatus.wins_count} wins recorded</p>
+                          )}
+                          <Link to="/monthly-review" className="mt-3 block">
+                            <Button variant="ghost" size="sm" className="text-xs">
+                              View Review <ArrowRight className="h-3 w-3 ml-1" />
+                            </Button>
+                          </Link>
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <p className="text-sm text-foreground-muted mb-3">Reflect on the month</p>
+                          <Link to="/monthly-review">
+                            <Button variant="outline" size="sm">Complete Review</Button>
+                          </Link>
+                        </div>
+                      )}
+                    </PremiumCardContent>
+                  </PremiumCard>
+                </div>
+              )}
 
               {/* Cycle Summary (if complete) */}
               {cycleSummaryStatus.is_complete && (
