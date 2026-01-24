@@ -17,10 +17,14 @@ import { WeeklyTimelineView } from '@/components/weekly-plan/WeeklyTimelineView'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { LastWeekPriorities } from '@/components/weekly-plan/LastWeekPriorities';
 import { ArrowLeft, Calendar, Loader2, Save, CheckCircle2, TrendingUp, Brain, Zap, Target, BarChart3, Clock, LayoutList } from 'lucide-react';
-import { useDataProtection } from '@/hooks/useDataProtection';
+import { useLocalStorageSync } from '@/hooks/useLocalStorageSync';
+import { useServerSync, SyncStatus } from '@/hooks/useServerSync';
+import { useBeforeUnload } from '@/hooks/useBeforeUnload';
+import { useMobileProtection } from '@/hooks/useMobileProtection';
 import { SaveStatusIndicator, SaveStatusBanner } from '@/components/SaveStatusIndicator';
 import { PetGrowthCard } from '@/components/arcade';
 import { CycleProgressBanner } from '@/components/cycle/CycleProgressBanner';
+import { ToastAction } from '@/components/ui/toast';
 
 export default function WeeklyPlan() {
   const { user } = useAuth();
@@ -94,15 +98,25 @@ export default function WeeklyPlan() {
     metric3Target,
   }), [weekId, priorities, thought, feeling, challenges, adjustments, metric1Target, metric2Target, metric3Target]);
 
-  // Data protection hook for auto-save, localStorage backup, and offline handling
+  // Track if we have unsaved changes
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const lastDataHashRef = useRef<string | null>(null);
+
+  // 1. Immediate localStorage sync (0ms delay)
+  const localStorageKey = `weekly_plan_backup_${weekId || 'pending'}`;
+  const { save: saveToLocal, load: loadFromLocal, clear: clearLocal } = useLocalStorageSync<typeof worksheetData>({
+    key: localStorageKey,
+    enableIndexDBFallback: true,
+  });
+
+  // 2. Debounced server sync (1 second delay)
   const {
-    register: registerData,
-    saveNow,
-    saveStatus,
-    hasUnsavedChanges,
+    sync: syncToServer,
+    syncNow: saveNow,
+    status: saveStatus,
     isOnline,
-    lastSaved,
-  } = useDataProtection({
+    lastSynced: lastSaved,
+  } = useServerSync<typeof worksheetData>({
     saveFn: async (data) => {
       if (!user || !data.week_id) return;
       
@@ -122,19 +136,97 @@ export default function WeeklyPlan() {
       });
       if (fnError) throw fnError;
     },
-    autoSaveDelay: 2500,
-    localStorageKey: `weekly_plan_backup_${weekId}`,
-    enableLocalBackup: true,
-    enableBeforeUnload: true,
+    delay: 1000,
     maxRetries: 3,
     retryDelay: 5000,
+    onSuccess: () => {
+      clearLocal();
+      setHasUnsavedChanges(false);
+    },
   });
 
-  // Register data changes (only after initial load)
+  // 3. Warn before closing with unsaved changes
+  useBeforeUnload({
+    hasUnsavedChanges,
+    onFinalSave: () => {
+      if (weekId) {
+        const backup = {
+          data: worksheetData,
+          timestamp: new Date().toISOString(),
+          version: '2.0',
+        };
+        try {
+          localStorage.setItem(localStorageKey, JSON.stringify(backup));
+        } catch (e) {
+          console.error('[WeeklyPlan] Final save failed:', e);
+        }
+      }
+    },
+    enabled: true,
+  });
+
+  // 4. Force save on mobile when app is backgrounded
+  useMobileProtection({
+    getData: () => weekId ? worksheetData : null,
+    onSave: (data) => {
+      saveToLocal(data);
+      if (isOnline) {
+        syncToServer(data);
+      }
+    },
+    enabled: worksheetLoaded && !!weekId,
+  });
+
+  // Register data changes - immediate localStorage + debounced server save
   useEffect(() => {
     if (!worksheetLoaded || isInitialLoadRef.current || !weekId) return;
-    registerData(worksheetData);
-  }, [worksheetData, worksheetLoaded, weekId, registerData]);
+    
+    const dataHash = JSON.stringify(worksheetData);
+    if (lastDataHashRef.current === dataHash) return;
+    lastDataHashRef.current = dataHash;
+    
+    setHasUnsavedChanges(true);
+    
+    // Immediate localStorage save (0ms)
+    saveToLocal(worksheetData);
+    
+    // Debounced server save (1s)
+    syncToServer(worksheetData);
+  }, [worksheetData, worksheetLoaded, weekId, saveToLocal, syncToServer]);
+
+  // Try to restore from localStorage on initial load
+  useEffect(() => {
+    const tryRestoreBackup = async () => {
+      if (!weekId || !worksheetLoaded) return;
+      
+      const backup = await loadFromLocal();
+      if (backup && backup.week_id === weekId) {
+        toast({
+          title: '📋 Unsaved changes found',
+          description: 'Would you like to restore your previous work?',
+          action: (
+            <ToastAction altText="Restore" onClick={() => {
+              if (backup.priorities) setPriorities([
+                backup.priorities[0] || '',
+                backup.priorities[1] || '',
+                backup.priorities[2] || '',
+              ]);
+              if (backup.thought) setThought(backup.thought);
+              if (backup.feeling) setFeeling(backup.feeling);
+              if (backup.challenges) setChallenges(backup.challenges);
+              if (backup.adjustments) setAdjustments(backup.adjustments);
+              toast({ title: '✅ Changes restored!' });
+            }}>
+              Restore
+            </ToastAction>
+          ),
+          duration: 10000,
+        });
+      }
+    };
+    
+    tryRestoreBackup();
+  }, [weekId, worksheetLoaded, loadFromLocal, toast]);
   
   // Load worksheet data lazily when tab becomes active
   useEffect(() => {
@@ -370,7 +462,7 @@ export default function WeeklyPlan() {
         {activeTab === 'worksheet' && worksheetLoaded && (
           <div className="space-y-6 max-w-3xl mx-auto">
             {/* Save Status Banner */}
-            <SaveStatusBanner status={saveStatus} onRetry={saveNow} />
+            <SaveStatusBanner status={saveStatus} onRetry={() => saveNow(worksheetData)} />
             
             {/* Save Status Indicator */}
             <div className="flex justify-end">
