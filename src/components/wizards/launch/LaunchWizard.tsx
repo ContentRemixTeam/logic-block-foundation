@@ -10,7 +10,7 @@ import { LaunchRunwayTimeline } from './LaunchRunwayTimeline';
 import { LaunchMessaging } from './LaunchMessaging';
 import { LaunchContentPlan } from './LaunchContentPlan';
 import { LaunchContentReuse } from './LaunchContentReuse';
-import { LaunchPreLaunch } from './LaunchPreLaunch';
+import { LaunchPreLaunchTasks } from './LaunchPreLaunchTasks';
 import { LaunchActivities } from './LaunchActivities';
 import { LaunchVideoStrategy } from './LaunchVideoStrategy';
 import { LaunchSalesAssets } from './LaunchSalesAssets';
@@ -133,7 +133,7 @@ export function LaunchWizard() {
       case 3: return <LaunchMessaging data={data} onChange={handleChange} />;
       case 4: return <LaunchContentPlan data={data} onChange={handleChange} />;
       case 5: return <LaunchContentReuse data={data} onChange={handleChange} />;
-      case 6: return <LaunchPreLaunch data={data} onChange={handleChange} />;
+      case 6: return <LaunchPreLaunchTasks data={data} onChange={handleChange} />;
       case 7: return <LaunchActivities data={data} onChange={handleChange} />;
       case 8: return <LaunchVideoStrategy data={data} onChange={handleChange} />;
       case 9: return <LaunchSalesAssets data={data} onChange={handleChange} />;

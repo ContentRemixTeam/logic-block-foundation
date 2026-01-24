@@ -103,27 +103,41 @@ export function LaunchVisualTimeline({ data }: LaunchVisualTimelineProps) {
     });
   });
 
-  // Add email sequences as milestones
-  data.emailSequences?.forEach(seq => {
-    const weekMap: Record<string, number> = {
-      'pre-launch': -2,
-      'launch': 0,
-      'mid-launch': 0,
-      'urgency': 0,
-      'post-launch': 0,
-    };
-    allTasks.push({
-      id: `email-seq-${seq}`,
-      title: `${seq.replace('-', ' ')} emails`,
-      type: 'email',
-      week: weekMap[seq] ?? 0,
-      source: 'sequences',
-    });
-  });
+  // Add email sequences as milestones from preLaunchTasks
+  if (data.preLaunchTasks?.emailSequences) {
+    const emailTypes = data.preLaunchTasks.emailTypes;
+    if (emailTypes.warmUp) {
+      allTasks.push({
+        id: 'email-seq-warmup',
+        title: 'Warm-up emails',
+        type: 'email',
+        week: -2,
+        source: 'sequences',
+      });
+    }
+    if (emailTypes.launch) {
+      allTasks.push({
+        id: 'email-seq-launch',
+        title: 'Launch emails',
+        type: 'email',
+        week: 0,
+        source: 'sequences',
+      });
+    }
+    if (emailTypes.cartClose) {
+      allTasks.push({
+        id: 'email-seq-urgency',
+        title: 'Cart close emails',
+        type: 'email',
+        week: 0,
+        source: 'sequences',
+      });
+    }
+  }
 
-  // Add milestones
-  if (data.salesPageDeadline) {
-    const week = estimateWeekFromDate(data.salesPageDeadline, data.cartOpens, runwayWeeks);
+  // Add milestones from preLaunchTasks
+  if (data.preLaunchTasks?.salesPage && data.preLaunchTasks.salesPageDeadline) {
+    const week = estimateWeekFromDate(data.preLaunchTasks.salesPageDeadline, data.cartOpens, runwayWeeks);
     allTasks.push({
       id: 'milestone-sales-page',
       title: 'Sales page complete',
@@ -133,8 +147,8 @@ export function LaunchVisualTimeline({ data }: LaunchVisualTimelineProps) {
     });
   }
 
-  if (data.hasWaitlist && data.waitlistOpens) {
-    const week = estimateWeekFromDate(data.waitlistOpens, data.cartOpens, runwayWeeks);
+  if (data.preLaunchTasks?.waitlistPage && data.preLaunchTasks.waitlistDeadline) {
+    const week = estimateWeekFromDate(data.preLaunchTasks.waitlistDeadline, data.cartOpens, runwayWeeks);
     allTasks.push({
       id: 'milestone-waitlist',
       title: 'Waitlist opens',
