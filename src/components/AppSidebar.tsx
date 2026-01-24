@@ -28,6 +28,7 @@ import {
   PanelLeft,
   Gamepad2,
   Smartphone,
+  DollarSign,
   Library,
   Shield,
   Trash2,
@@ -73,6 +74,7 @@ const ORGANIZE_NAV = [
   { name: 'Courses', href: '/courses', icon: GraduationCap, questIcon: '🎓' },
   { name: 'Content Vault', href: '/content-vault', icon: Library, questIcon: '📚' },
   { name: 'SOPs', href: '/sops', icon: ClipboardList, questIcon: '📖' },
+  { name: 'Finances', href: '/finances', icon: DollarSign, questIcon: '💰', settingsKey: 'show_income_tracker' },
 ];
 
 const REVIEW_NAV = [
