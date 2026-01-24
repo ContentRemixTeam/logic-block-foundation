@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -18,13 +19,14 @@ interface HatchedPet {
 
 export function PetCollectionWidget() {
   const { user } = useAuth();
-  const [pets, setPets] = useState<HatchedPet[]>([]);
+  const queryClient = useQueryClient();
   const today = new Date().toISOString().split('T')[0];
 
-  useEffect(() => {
-    const loadTodaysPets = async () => {
-      if (!user) return;
-
+  const { data: pets = [] } = useQuery({
+    queryKey: ['hatched-pets', user?.id, today],
+    queryFn: async () => {
+      if (!user) return [];
+      
       const { data, error } = await supabase
         .from('hatched_pets')
         .select('*')
@@ -32,29 +34,35 @@ export function PetCollectionWidget() {
         .eq('date', today)
         .order('hatched_at', { ascending: true });
 
-      if (!error && data) {
-        setPets(data);
+      if (error) {
+        console.error('Error loading pets:', error);
+        return [];
       }
-    };
+      return (data || []) as HatchedPet[];
+    },
+    enabled: !!user,
+  });
 
-    loadTodaysPets();
-    
-    // Subscribe to changes
+  // Subscribe to realtime changes for this user
+  useEffect(() => {
+    if (!user) return;
+
     const channel = supabase
-      .channel('hatched_pets_changes')
+      .channel(`hatched_pets_${user.id}`)
       .on('postgres_changes', {
-        event: 'INSERT',
+        event: '*',
         schema: 'public',
         table: 'hatched_pets',
+        filter: `user_id=eq.${user.id}`,
       }, () => {
-        loadTodaysPets();
+        queryClient.invalidateQueries({ queryKey: ['hatched-pets', user.id, today] });
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, today]);
+  }, [user, today, queryClient]);
 
   if (pets.length === 0) return null;
 
