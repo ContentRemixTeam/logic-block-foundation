@@ -58,10 +58,10 @@ export interface LaunchWizardData {
   warmUpFrequency: 'daily' | 'every-other-day' | '2x-week' | 'weekly';
 
   // Step 3: Messaging Strategy (NEW)
+  currentMindset: string;
+  beliefShifts: Array<{ from: string; to: string }>;
   transformationPromise: string;
-  keyBenefits: string[];
   objectionsToAddress: string[];
-  socialProofType: string[];
 
   // Step 4: Content Plan (NEW)
   contentPieces: ContentPiece[];
@@ -136,10 +136,14 @@ export const DEFAULT_LAUNCH_WIZARD_DATA: LaunchWizardData = {
   warmUpStrategy: 'email-series',
   warmUpFrequency: '2x-week',
   // Step 3 - Messaging
+  currentMindset: '',
+  beliefShifts: [
+    { from: '', to: '' },
+    { from: '', to: '' },
+    { from: '', to: '' },
+  ],
   transformationPromise: '',
-  keyBenefits: [],
-  objectionsToAddress: [],
-  socialProofType: [],
+  objectionsToAddress: ['', '', ''],
   // Step 4 - Content Plan
   contentPieces: [],
   // Step 5 - Content Reuse
