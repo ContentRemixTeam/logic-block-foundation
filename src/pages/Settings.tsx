@@ -20,7 +20,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTour } from '@/hooks/useTour';
 import { GoogleCalendarPanel } from '@/components/google-calendar/GoogleCalendarPanel';
 import { THEMES, THEME_IDS, ThemeId } from '@/lib/themes';
-import { DelightSettingsCard } from '@/components/settings';
+import { DelightSettingsCard, DataRecoveryCard } from '@/components/settings';
 import { ThemeGallery } from '@/components/themes';
 
 export default function Settings() {
@@ -654,6 +654,9 @@ export default function Settings() {
         </Card>
 
         {/* Mindset Data Management */}
+        {/* Data Recovery - Prompt 10 */}
+        <DataRecoveryCard />
+
         <Card>
           <CardHeader>
             <CardTitle>Mindset Data Management</CardTitle>
