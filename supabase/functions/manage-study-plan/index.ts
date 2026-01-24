@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const body = await req.json();
-    const { action, course_id, plan_id, client_op_id, weeks = 6, ...data } = body;
+    const { action, course_id, plan_id, client_op_id, weeks = 6, project_id, ...data } = body;
 
     // Verify course ownership
     if (course_id) {
@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
           });
         }
 
-        // Upsert study plan
+        // Upsert study plan with new fields
         const { data: plan, error } = await supabase
           .from('course_study_plans')
           .upsert(
@@ -78,6 +78,10 @@ Deno.serve(async (req) => {
               preferred_days: data.preferred_days || [1, 3, 5],
               start_date: data.start_date,
               target_finish_date: data.target_finish_date || null,
+              project_id: data.project_id || null,
+              study_mode: data.study_mode || 'sessions',
+              study_hours_per_week: data.study_hours_per_week || null,
+              study_hours_per_month: data.study_hours_per_month || null,
             },
             { onConflict: 'user_id,course_id' }
           )
@@ -100,6 +104,17 @@ Deno.serve(async (req) => {
           });
         }
 
+        // Get the project_id from the study plan if not provided
+        let effectiveProjectId = project_id;
+        if (!effectiveProjectId) {
+          const { data: studyPlan } = await supabase
+            .from('course_study_plans')
+            .select('project_id')
+            .eq('id', plan_id)
+            .single();
+          effectiveProjectId = studyPlan?.project_id || null;
+        }
+
         // Call the RPC function
         const { data: result, error } = await supabase.rpc('generate_course_study_sessions', {
           p_course_id: course_id,
@@ -110,6 +125,21 @@ Deno.serve(async (req) => {
         });
 
         if (error) throw error;
+
+        // If project_id is set, update all generated tasks to belong to this project
+        if (effectiveProjectId && result?.created_count > 0) {
+          await supabase
+            .from('tasks')
+            .update({ 
+              project_id: effectiveProjectId,
+              project_column: 'todo' as const,
+            })
+            .eq('user_id', userId)
+            .eq('course_id', course_id)
+            .eq('task_type', 'course_session')
+            .eq('is_system_generated', true)
+            .is('project_id', null);
+        }
 
         return new Response(
           JSON.stringify(result),
