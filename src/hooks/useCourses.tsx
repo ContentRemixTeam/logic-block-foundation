@@ -332,7 +332,7 @@ export function useStudyPlanMutations() {
   });
 
   const generateSessions = useMutation({
-    mutationFn: async ({ courseId, planId, weeks = 6 }: { courseId: string; planId: string; weeks?: number }) => {
+    mutationFn: async ({ courseId, planId, weeks = 6, projectId }: { courseId: string; planId: string; weeks?: number; projectId?: string | null }) => {
       if (!user) throw new Error('Not authenticated');
 
       const clientOpId = crypto.randomUUID();
@@ -344,6 +344,7 @@ export function useStudyPlanMutations() {
           plan_id: planId,
           client_op_id: clientOpId,
           weeks,
+          project_id: projectId,
         },
       });
 
@@ -352,6 +353,7 @@ export function useStudyPlanMutations() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
       if (data.created_count > 0) {
         toast.success(`Generated ${data.created_count} study session${data.created_count > 1 ? 's' : ''}`);
       } else {

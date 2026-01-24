@@ -783,9 +783,13 @@ export type Database = {
           id: string
           last_generation_op_id: string | null
           preferred_days: number[]
+          project_id: string | null
           session_minutes: number
           sessions_per_week: number
           start_date: string
+          study_hours_per_month: number | null
+          study_hours_per_week: number | null
+          study_mode: string
           target_finish_date: string | null
           updated_at: string
           user_id: string
@@ -797,9 +801,13 @@ export type Database = {
           id?: string
           last_generation_op_id?: string | null
           preferred_days?: number[]
+          project_id?: string | null
           session_minutes?: number
           sessions_per_week?: number
           start_date: string
+          study_hours_per_month?: number | null
+          study_hours_per_week?: number | null
+          study_mode?: string
           target_finish_date?: string | null
           updated_at?: string
           user_id: string
@@ -811,9 +819,13 @@ export type Database = {
           id?: string
           last_generation_op_id?: string | null
           preferred_days?: number[]
+          project_id?: string | null
           session_minutes?: number
           sessions_per_week?: number
           start_date?: string
+          study_hours_per_month?: number | null
+          study_hours_per_week?: number | null
+          study_mode?: string
           target_finish_date?: string | null
           updated_at?: string
           user_id?: string
@@ -824,6 +836,13 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_study_plans_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]

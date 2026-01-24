@@ -79,6 +79,10 @@ export interface StudyPlanFormData {
   preferred_days: number[];
   start_date: string;
   target_finish_date?: string;
+  project_id?: string | null;
+  study_mode?: 'sessions' | 'hours_weekly' | 'hours_monthly';
+  study_hours_per_week?: number | null;
+  study_hours_per_month?: number | null;
 }
 
 export interface CheckinFormData {
