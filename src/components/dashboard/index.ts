@@ -8,3 +8,4 @@ export { WeeklyRoutineReminder } from './WeeklyRoutineReminder';
 export { PromotionCountdown } from './PromotionCountdown';
 export { SalesCalendar } from './SalesCalendar';
 export { WinsCard } from './WinsCard';
+export { DashboardCustomizeModal } from './DashboardCustomizeModal';
