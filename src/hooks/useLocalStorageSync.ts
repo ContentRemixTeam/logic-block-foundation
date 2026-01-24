@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import {
   getStorageItem,
   setStorageItem,
@@ -16,15 +16,34 @@ import {
 } from '@/lib/offlineDb';
 import { useCrossTabSync } from '@/hooks/useCrossTabSync';
 
-interface LocalStorageSyncConfig {
+export interface ConflictInfo<T = Record<string, unknown>> {
+  local: {
+    data: T;
+    timestamp: number;
+    tabId?: string;
+  };
+  remote: {
+    data: T;
+    timestamp: number;
+    source?: string;
+  };
+  pageType: string;
+  pageId?: string;
+}
+
+interface LocalStorageSyncConfig<T = Record<string, unknown>> {
   key: string;
   enableIndexDBFallback?: boolean;
   /** Enable cross-tab synchronization */
   enableCrossTabSync?: boolean;
   /** Called when another tab updates the data */
-  onRemoteUpdate?: (data: unknown) => void;
-  /** Called when a conflict is detected between tabs */
-  onConflict?: () => void;
+  onRemoteUpdate?: (data: T) => void;
+  /** Called when a conflict is detected between tabs - provides full conflict info */
+  onConflict?: (conflict: ConflictInfo<T>) => void;
+  /** Page type for conflict resolution UI */
+  pageType?: string;
+  /** Conflict threshold in ms - conflicts detected when timestamps differ by more than this */
+  conflictThresholdMs?: number;
 }
 
 interface LocalStorageSyncReturn<T> {
@@ -37,6 +56,8 @@ interface LocalStorageSyncReturn<T> {
   broadcastUpdate: (data: T) => void;
   /** Unique tab ID for conflict detection */
   tabId: string;
+  /** Force resolve a conflict with a chosen version */
+  resolveConflict: (choice: 'local' | 'remote', localData: T, remoteData: T) => Promise<void>;
 }
 
 /**
@@ -52,25 +73,55 @@ interface LocalStorageSyncReturn<T> {
  * 
  * Works on all browsers including Safari private browsing mode.
  */
-export function useLocalStorageSync<T extends Record<string, any>>({
+export function useLocalStorageSync<T extends Record<string, unknown>>({
   key,
   enableIndexDBFallback = true,
   enableCrossTabSync = false,
   onRemoteUpdate,
   onConflict,
-}: LocalStorageSyncConfig): LocalStorageSyncReturn<T> {
+  pageType = 'Unknown',
+  conflictThresholdMs = 5000,
+}: LocalStorageSyncConfig<T>): LocalStorageSyncReturn<T> {
   
   const storageLimited = useMemo(() => isStorageLimited(), []);
+  const lastLocalDataRef = useRef<{ data: T; timestamp: number } | null>(null);
 
   // Cross-tab sync integration
   const { broadcast, broadcastSaveComplete, tabId } = useCrossTabSync<T>({
     key,
     enabled: enableCrossTabSync,
-    onRemoteUpdate: (data) => {
-      onRemoteUpdate?.(data);
+    onRemoteUpdate: (data, timestamp) => {
+      const typedData = data as T;
+      
+      // Check for conflict based on timestamp threshold
+      if (lastLocalDataRef.current) {
+        const timeDiff = Math.abs(timestamp - lastLocalDataRef.current.timestamp);
+        if (timeDiff > conflictThresholdMs) {
+          // Significant time difference - might be a conflict
+          const conflictInfo: ConflictInfo<T> = {
+            local: {
+              data: lastLocalDataRef.current.data,
+              timestamp: lastLocalDataRef.current.timestamp,
+              tabId,
+            },
+            remote: {
+              data: typedData,
+              timestamp,
+              source: 'Other Tab',
+            },
+            pageType,
+          };
+          onConflict?.(conflictInfo);
+          return;
+        }
+      }
+      
+      // No conflict, accept remote update
+      onRemoteUpdate?.(typedData);
     },
-    onConflict: () => {
-      onConflict?.();
+    onConflict: (localTs, remoteTs) => {
+      // Called when cross-tab sync detects timestamp mismatch
+      console.log('[useLocalStorageSync] Cross-tab conflict detected', { localTs, remoteTs });
     },
   });
 
@@ -222,6 +273,24 @@ export function useLocalStorageSync<T extends Record<string, any>>({
     }
   }, [enableCrossTabSync, broadcast]);
 
+  /**
+   * Resolve a conflict by choosing local or remote data
+   */
+  const resolveConflict = useCallback(async (
+    choice: 'local' | 'remote',
+    localData: T,
+    remoteData: T
+  ): Promise<void> => {
+    const dataToSave = choice === 'local' ? localData : remoteData;
+    await save(dataToSave);
+    
+    // Broadcast the resolution to other tabs
+    if (enableCrossTabSync) {
+      broadcast(dataToSave);
+      broadcastSaveComplete();
+    }
+  }, [save, enableCrossTabSync, broadcast, broadcastSaveComplete]);
+
   return {
     save,
     load,
@@ -230,5 +299,6 @@ export function useLocalStorageSync<T extends Record<string, any>>({
     getTimestamp,
     broadcastUpdate,
     tabId,
+    resolveConflict,
   };
 }
