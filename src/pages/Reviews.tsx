@@ -197,9 +197,9 @@ export default function Reviews() {
               <p className="text-xs text-muted-foreground">{weeklyProgress}%</p>
             </div>
 
-            {/* Monthly Review */}
+            {/* 30-Day Review */}
             <div className="text-center p-4 rounded-lg bg-status-backlog/10">
-              <p className="text-sm text-muted-foreground mb-1">Monthly</p>
+              <p className="text-sm text-muted-foreground mb-1">30-Day</p>
               {stats.monthlyReviewExists ? (
                 <CheckCircle2 className="h-8 w-8 mx-auto text-status-backlog" />
               ) : (

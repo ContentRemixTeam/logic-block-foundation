@@ -121,7 +121,7 @@ export function DebriefReminderPopup() {
             ) : (
               <>
                 <TrendingUp className="h-5 w-5 text-primary" />
-                Monthly Review Time! 🎯
+                30-Day Review Time! 🎯
               </>
             )}
           </DialogTitle>
@@ -132,7 +132,7 @@ export function DebriefReminderPopup() {
               </>
             ) : (
               <>
-                The month is wrapping up. Review your progress, identify patterns, and plan your next month for maximum impact.
+                Your 30-day block is wrapping up. Review your progress, identify patterns, and plan your next 30 days for maximum impact.
               </>
             )}
           </DialogDescription>
@@ -146,7 +146,7 @@ export function DebriefReminderPopup() {
           
           <div className="space-y-2">
             <Button onClick={handleGoToDebrief} className="w-full">
-              {reminderType === 'weekly' ? 'Do Weekly Review' : 'Do Monthly Review'}
+              {reminderType === 'weekly' ? 'Do Weekly Review' : 'Do 30-Day Review'}
             </Button>
             <Button variant="ghost" onClick={handleDismiss} className="w-full text-muted-foreground">
               Remind Me Later

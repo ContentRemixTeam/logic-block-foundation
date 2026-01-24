@@ -36,8 +36,8 @@ const planningCards: PlanningCard[] = [
     iconBgClass: 'bg-info/10',
   },
   {
-    title: 'Monthly Planning',
-    description: 'Set your main business focus for this month.',
+    title: '30-Day Planning',
+    description: 'Set your main business focus for the next 30 days.',
     href: '/monthly-review',
     icon: CalendarRange,
     iconColorClass: 'text-primary',
@@ -149,7 +149,7 @@ export default function Planning() {
       {/* Planning Tracker */}
       <Card className="p-6">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
-          This Month's Planning Progress
+          30-Day Planning Progress
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Daily Plans */}
@@ -190,7 +190,7 @@ export default function Planning() {
             </div>
           </div>
 
-          {/* Monthly Plan */}
+          {/* 30-Day Plan */}
           <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
             <div className={cn(
               'w-10 h-10 rounded-full flex items-center justify-center',
@@ -203,7 +203,7 @@ export default function Planning() {
               )}
             </div>
             <div>
-              <p className="text-sm font-medium">Monthly Plan</p>
+              <p className="text-sm font-medium">30-Day Plan</p>
               <p className="text-lg font-bold">
                 {stats.monthlyPlanExists ? 'Complete' : 'Not started'}
               </p>

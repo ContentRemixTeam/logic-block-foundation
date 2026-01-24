@@ -625,15 +625,15 @@ export default function Settings() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Monthly Review Questions</CardTitle>
-            <CardDescription>Custom questions for your monthly reflection</CardDescription>
+            <CardTitle>30-Day Review Questions</CardTitle>
+            <CardDescription>Custom questions for your 30-day reflection</CardDescription>
           </CardHeader>
           <CardContent>
             <ReflectionList
               items={monthlyQuestions}
               onChange={setMonthlyQuestions}
               label="Question"
-              placeholder="What question helps you reflect on your month?"
+              placeholder="What question helps you reflect on your 30 days?"
             />
           </CardContent>
         </Card>
