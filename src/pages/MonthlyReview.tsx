@@ -272,8 +272,8 @@ export default function MonthlyReview() {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Monthly Review</h1>
-            <p className="text-muted-foreground">Month {monthInCycle} of your 90-Day Cycle</p>
+            <h1 className="text-3xl font-bold">30-Day Review</h1>
+            <p className="text-muted-foreground">30-Day Block {monthInCycle} of your 90-Day Cycle</p>
           </div>
           <div className="flex gap-2 items-center">
             <SaveStatusIndicator status={saveStatus} lastSaved={lastSaved} />
@@ -404,18 +404,18 @@ export default function MonthlyReview() {
           </Card>
         )}
 
-        {/* Monthly Wins */}
+        {/* 30-Day Wins */}
         <Card>
           <CardHeader>
-            <CardTitle>Monthly Wins</CardTitle>
-            <CardDescription>Celebrate your accomplishments this month</CardDescription>
+            <CardTitle>Wins This 30-Day Block</CardTitle>
+            <CardDescription>Celebrate your accomplishments</CardDescription>
           </CardHeader>
           <CardContent>
             <ReflectionList
               items={wins}
               onChange={setWins}
               label="Win"
-              placeholder="What went well this month?"
+              placeholder="What went well this 30-day block?"
             />
           </CardContent>
         </Card>
@@ -431,7 +431,7 @@ export default function MonthlyReview() {
               items={challenges}
               onChange={setChallenges}
               label="Challenge"
-              placeholder="What was difficult this month?"
+              placeholder="What was difficult this 30-day block?"
             />
           </CardContent>
         </Card>
@@ -452,10 +452,10 @@ export default function MonthlyReview() {
           </CardContent>
         </Card>
 
-        {/* Priorities for Next Month */}
+        {/* Priorities for Next 30-Day Block */}
         <Card>
           <CardHeader>
-            <CardTitle>Priorities for Next Month</CardTitle>
+            <CardTitle>Priorities for Next 30 Days</CardTitle>
             <CardDescription>What will you focus on moving forward?</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -463,7 +463,7 @@ export default function MonthlyReview() {
               items={priorities}
               onChange={setPriorities}
               label="Priority"
-              placeholder="What's most important next month?"
+              placeholder="What's most important for the next 30 days?"
             />
             
             {priorities.filter(Boolean).length > 0 && (

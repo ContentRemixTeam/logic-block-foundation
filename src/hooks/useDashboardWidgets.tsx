@@ -20,7 +20,7 @@ export const DASHBOARD_WIDGETS: DashboardWidget[] = [
   { id: 'weeklyPriorities', label: 'Weekly Top 3', description: "This week's priorities", category: 'execution', column: 'main', defaultEnabled: true },
   { id: 'todayTop3', label: "Today's Top 3", description: 'Pet growth and daily tasks', category: 'execution', column: 'main', defaultEnabled: true },
   { id: 'habits', label: "Today's Habits", description: 'Habit tracking status', category: 'execution', column: 'main', defaultEnabled: true },
-  { id: 'reviews', label: 'Weekly & Monthly Reviews', description: 'Review completion status', category: 'execution', column: 'main', defaultEnabled: true },
+  { id: 'reviews', label: 'Weekly & 30-Day Reviews', description: 'Review completion status', category: 'execution', column: 'main', defaultEnabled: true },
   
   // Sidebar widgets
   { id: 'routineReminder', label: 'Weekly Routine Reminder', description: 'Planning and debrief day alerts', category: 'strategy', column: 'sidebar', defaultEnabled: true },

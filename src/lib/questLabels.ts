@@ -10,7 +10,7 @@ export const questLabels = {
   // Reflection Section
   dailyReview: "Mission Debrief",
   weeklyReview: "Checkpoint",
-  monthlyReview: "Summit Check",
+  monthlyReview: "30-Day Check",
   progress: "Quest Progress",
   
   // Resources Section
@@ -37,7 +37,7 @@ export const defaultLabels = {
   // Reflection Section
   dailyReview: "Daily Review",
   weeklyReview: "Weekly Review",
-  monthlyReview: "Monthly Review",
+  monthlyReview: "30-Day Review",
   progress: "Progress",
   
   // Resources Section

@@ -1131,12 +1131,12 @@ export default function Dashboard() {
                     </PremiumCardContent>
                   </PremiumCard>
 
-                  {/* Monthly Review */}
+                  {/* 30-Day Review */}
                   <PremiumCard category="review">
                     <PremiumCardHeader>
                       <div className="flex items-center gap-2">
                         <TrendingUp className="h-4 w-4 text-foreground-muted" />
-                        <PremiumCardTitle className="text-base">Monthly Review</PremiumCardTitle>
+                        <PremiumCardTitle className="text-base">30-Day Review</PremiumCardTitle>
                       </div>
                     </PremiumCardHeader>
                     <PremiumCardContent>
