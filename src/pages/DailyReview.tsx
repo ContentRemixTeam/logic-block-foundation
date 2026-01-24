@@ -14,9 +14,14 @@ import { toast } from 'sonner';
 import { CalendarIcon, CheckCircle2, Loader2, ChevronLeft, ChevronRight, Sparkles, Swords, Shield, Skull, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CycleSnapshotCard } from '@/components/cycle/CycleSnapshotCard';
-import { useDataProtection } from '@/hooks/useDataProtection';
 import { SaveStatusIndicator, SaveStatusBanner } from '@/components/SaveStatusIndicator';
 import { LaunchCheckInCard } from '@/components/launch/LaunchCheckInCard';
+// Modular 4-hook data protection system (Prompt 5)
+import { useLocalStorageSync, ConflictInfo } from '@/hooks/useLocalStorageSync';
+import { useServerSync, SyncStatus } from '@/hooks/useServerSync';
+import { useBeforeUnload } from '@/hooks/useBeforeUnload';
+import { useMobileProtection } from '@/hooks/useMobileProtection';
+import { ConflictResolutionModal, ConflictData } from '@/components/data-protection';
 
 export default function DailyReview() {
   const { user } = useAuth();
@@ -39,6 +44,10 @@ export default function DailyReview() {
   const isInitialLoadRef = useRef(true);
   const selectedDateRef = useRef(selectedDate);
 
+  // Conflict resolution state (Prompt 12)
+  const [conflictData, setConflictData] = useState<ConflictData<typeof reviewData> | null>(null);
+  const [showConflictModal, setShowConflictModal] = useState(false);
+
   // Update ref when date changes
   useEffect(() => {
     selectedDateRef.current = selectedDate;
@@ -54,8 +63,41 @@ export default function DailyReview() {
     date: format(selectedDate, 'yyyy-MM-dd'),
   }), [whatWorked, whatDidnt, wins, goalSupport, quickRating, selectedDate]);
 
-  // Save function for data protection
-  const handleAutoSave = useCallback(async (data: typeof reviewData) => {
+  const reviewDataRef = useRef(reviewData);
+  useEffect(() => {
+    reviewDataRef.current = reviewData;
+  }, [reviewData]);
+
+  // Local storage key for this review
+  const storageKey = `daily_review_backup_${format(selectedDate, 'yyyy-MM-dd')}`;
+
+  // ===== HOOK 1: Local Storage Sync (0ms, immediate) =====
+  const { 
+    save: saveLocal, 
+    load: loadLocalBackup,
+    tabId 
+  } = useLocalStorageSync<typeof reviewData>({
+    key: storageKey,
+    enableIndexDBFallback: true,
+    enableCrossTabSync: true,
+    pageType: 'Daily Review',
+    onRemoteUpdate: (data) => {
+      // Another tab updated - refresh local state
+      if (data.whatWorked !== undefined) setWhatWorked(data.whatWorked);
+      if (data.whatDidnt !== undefined) setWhatDidnt(data.whatDidnt);
+      if (data.wins !== undefined) setWins(data.wins);
+      if (data.goalSupport !== undefined) setGoalSupport(data.goalSupport);
+      if (data.quickRating !== undefined) setQuickRating(data.quickRating);
+      toast.info('Updated from another tab');
+    },
+    onConflict: (conflict) => {
+      setConflictData(conflict as ConflictData<typeof reviewData>);
+      setShowConflictModal(true);
+    },
+  });
+
+  // Save function for server sync
+  const handleServerSave = useCallback(async (data: typeof reviewData) => {
     if (!user) return;
 
     const { data: { session } } = await supabase.auth.getSession();
@@ -82,32 +124,96 @@ export default function DailyReview() {
     }
   }, [user]);
 
-  // Data protection hook
-  const { register, saveNow, saveStatus, lastSaved } = useDataProtection({
-    saveFn: handleAutoSave,
-    autoSaveDelay: 2500,
-    localStorageKey: `daily_review_backup_${format(selectedDate, 'yyyy-MM-dd')}`,
-    enableLocalBackup: true,
-    enableBeforeUnload: true,
+  // ===== HOOK 2: Server Sync (1s debounce) =====
+  const { 
+    sync: syncServer, 
+    syncNow: syncServerNow, 
+    status: serverStatus, 
+    lastSynced: lastSaved 
+  } = useServerSync<typeof reviewData>({
+    saveFn: handleServerSave,
+    delay: 1000,
     maxRetries: 3,
     retryDelay: 5000,
-    onSaveSuccess: () => {
-      // Quest mode XP animation and messaging on successful save
+    onSuccess: () => {
+      // Quest mode XP animation on successful save
       if (isQuestMode) {
         setShowXPAnimation(true);
         setTimeout(() => setShowXPAnimation(false), 2000);
-        // Refresh XP and streak data
         Promise.all([refreshXP(), refreshStreak()]);
       }
     },
   });
 
-  // Register changes after initial load
+  // Combined save status
+  const saveStatus: SyncStatus = serverStatus;
+
+  // ===== HOOK 3: Before Unload (desktop warning) =====
+  const hasUnsavedChanges = serverStatus === 'pending' || serverStatus === 'saving';
+  useBeforeUnload({
+    hasUnsavedChanges,
+    onFinalSave: () => { saveLocal(reviewDataRef.current); },
+    emergencyConfig: user ? {
+      userId: user.id,
+      pageType: 'daily_review',
+      pageId: format(selectedDate, 'yyyy-MM-dd'),
+      getData: () => reviewDataRef.current,
+    } : undefined,
+  });
+
+  // ===== HOOK 4: Mobile Protection (visibility/pagehide) =====
+  useMobileProtection({
+    getData: () => reviewDataRef.current,
+    onSave: (data) => { saveLocal(data); },
+    emergencyConfig: user ? {
+      userId: user.id,
+      pageType: 'daily_review',
+      pageId: format(selectedDate, 'yyyy-MM-dd'),
+    } : undefined,
+  });
+
+  // Register changes after initial load - trigger both local and server sync
   useEffect(() => {
     if (!loading && !isInitialLoadRef.current) {
-      register(reviewData);
+      saveLocal(reviewData);
+      syncServer(reviewData);
     }
-  }, [reviewData, loading, register]);
+  }, [reviewData, loading, saveLocal, syncServer]);
+
+  // Manual save function
+  const saveNow = useCallback(async () => {
+    await saveLocal(reviewData);
+    await syncServerNow(reviewData);
+  }, [reviewData, saveLocal, syncServerNow]);
+
+  // Handle conflict resolution
+  const handleConflictResolve = useCallback(async (
+    choice: 'local' | 'remote' | 'merge',
+    mergedData?: typeof reviewData
+  ) => {
+    setShowConflictModal(false);
+    
+    const dataToUse = choice === 'merge' && mergedData 
+      ? mergedData 
+      : choice === 'local' 
+        ? conflictData?.local.data 
+        : conflictData?.remote.data;
+    
+    if (dataToUse) {
+      // Apply the chosen data
+      if (dataToUse.whatWorked !== undefined) setWhatWorked(dataToUse.whatWorked);
+      if (dataToUse.whatDidnt !== undefined) setWhatDidnt(dataToUse.whatDidnt);
+      if (dataToUse.wins !== undefined) setWins(dataToUse.wins);
+      if (dataToUse.goalSupport !== undefined) setGoalSupport(dataToUse.goalSupport);
+      if (dataToUse.quickRating !== undefined) setQuickRating(dataToUse.quickRating);
+      
+      // Save the resolved data
+      await saveLocal(dataToUse);
+      await syncServerNow(dataToUse);
+    }
+    
+    setConflictData(null);
+  }, [conflictData, saveLocal, syncServerNow]);
 
   useEffect(() => {
     if (user) {
@@ -402,6 +508,21 @@ export default function DailyReview() {
             </CardContent>
           </Card>
         )}
+
+        {/* Conflict Resolution Modal (Prompt 12) */}
+        <ConflictResolutionModal
+          open={showConflictModal}
+          onOpenChange={setShowConflictModal}
+          conflict={conflictData}
+          onResolve={handleConflictResolve}
+          fieldLabels={{
+            whatWorked: 'What Worked',
+            whatDidnt: "What Didn't Work",
+            wins: 'Wins',
+            goalSupport: 'Goal Support',
+            quickRating: 'Quick Rating',
+          }}
+        />
       </div>
     </Layout>
   );
