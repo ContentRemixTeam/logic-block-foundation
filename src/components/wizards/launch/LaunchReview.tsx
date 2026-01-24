@@ -62,43 +62,39 @@ export function LaunchReview({ data }: LaunchReviewProps) {
         </div>
       </div>
 
-      {/* Pre-Launch */}
+      {/* Pre-Launch Tasks */}
       <div className="p-4 bg-muted/50 rounded-lg border space-y-4">
         <div className="flex items-center gap-2">
           <Calendar className="h-5 w-5 text-primary" />
-          <h4 className="font-semibold text-lg">PRE-LAUNCH</h4>
+          <h4 className="font-semibold text-lg">PRE-LAUNCH TASKS</h4>
         </div>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <p className="text-muted-foreground">Waitlist:</p>
-            <p className="font-medium">{data.hasWaitlist ? 'Yes' : 'No'}</p>
+            <p className="text-muted-foreground">Runway:</p>
+            <p className="font-medium">{data.runwayWeeks} weeks</p>
           </div>
           <div>
-            <p className="text-muted-foreground">Lead Magnet:</p>
-            <p className="font-medium">
-              {data.hasLeadMagnet === 'skip'
-                ? 'Skipped'
-                : data.hasLeadMagnet
-                ? 'Ready'
-                : data.leadMagnetTopic || 'Needs creation'}
-            </p>
+            <p className="text-muted-foreground">Warm-up Strategy:</p>
+            <p className="font-medium">{data.warmUpStrategy?.replace(/-/g, ' ') || '—'}</p>
           </div>
           <div className="col-span-2">
-            <p className="text-muted-foreground">Email Sequences:</p>
+            <p className="text-muted-foreground">Tasks Selected:</p>
             <div className="flex flex-wrap gap-1 mt-1">
-              {data.emailSequences.length > 0 ? (
-                data.emailSequences.map((seq) => (
-                  <Badge key={seq} variant="secondary">
-                    {seq}
-                  </Badge>
-                ))
-              ) : (
+              {data.preLaunchTasks?.salesPage && <Badge variant="secondary">Sales Page</Badge>}
+              {data.preLaunchTasks?.checkoutFlow && <Badge variant="secondary">Checkout</Badge>}
+              {data.preLaunchTasks?.waitlistPage && <Badge variant="secondary">Waitlist</Badge>}
+              {data.preLaunchTasks?.testimonials && <Badge variant="secondary">Testimonials</Badge>}
+              {data.preLaunchTasks?.emailSequences && <Badge variant="secondary">Email Sequences</Badge>}
+              {data.preLaunchTasks?.liveEventContent && <Badge variant="secondary">Live Event</Badge>}
+              {data.preLaunchTasks?.leadMagnet && <Badge variant="secondary">Lead Magnet</Badge>}
+              {!data.preLaunchTasks?.salesPage && !data.preLaunchTasks?.emailSequences && (
                 <span className="text-muted-foreground">None selected</span>
               )}
             </div>
           </div>
         </div>
       </div>
+
 
       {/* During Launch */}
       <div className="p-4 bg-muted/50 rounded-lg border space-y-4">

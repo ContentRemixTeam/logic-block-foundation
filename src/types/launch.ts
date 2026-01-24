@@ -1,5 +1,43 @@
 // Launch Planner Wizard Types
 
+// Pre-launch task configuration for checklist
+export interface PreLaunchTaskConfig {
+  // Sales Assets
+  salesPage: boolean;
+  salesPageDeadline: string;
+  checkoutFlow: boolean;
+  waitlistPage: boolean;
+  waitlistDeadline: string;
+  orderBumpUpsell: boolean;
+  bonuses: boolean;
+  
+  // Social Proof
+  testimonials: boolean;
+  testimonialGoal: number;
+  testimonialDeadline: string;
+  caseStudies: boolean;
+  videoTestimonials: boolean;
+  resultsScreenshots: boolean;
+  
+  // Tech Setup
+  emailSequences: boolean;
+  emailTypes: {
+    warmUp: boolean;
+    launch: boolean;
+    cartClose: boolean;
+    postPurchase: boolean;
+  };
+  automations: boolean;
+  trackingPixels: boolean;
+  
+  // Content Prep
+  liveEventContent: boolean;
+  liveEventType: 'webinar' | 'workshop' | 'masterclass' | 'challenge' | '';
+  socialContent: boolean;
+  adCreatives: boolean;
+  leadMagnet: boolean;
+}
+
 export interface LaunchLiveEvent {
   type: 'webinar' | 'qa' | 'workshop' | 'challenge' | 'masterclass';
   date: string;
@@ -78,14 +116,8 @@ export interface LaunchWizardData {
   // Step 5: Content Reuse (was Step 2)
   selectedContentIds: string[];
 
-  // Step 6: Pre-Launch Setup (was Step 3)
-  hasWaitlist: boolean;
-  waitlistOpens: string;
-  waitlistIncentive: string;
-  hasLeadMagnet: boolean | 'skip';
-  leadMagnetTopic: string;
-  leadMagnetDueDate: string;
-  emailSequences: string[]; // 'pre-launch', 'launch', 'mid-launch', 'urgency', 'post-launch'
+  // Step 6: Pre-Launch Tasks (comprehensive checklist)
+  preLaunchTasks: PreLaunchTaskConfig;
 
   // Step 7: Launch Activities (was Step 4)
   liveEvents: LaunchLiveEvent[];
@@ -166,14 +198,40 @@ export const DEFAULT_LAUNCH_WIZARD_DATA: LaunchWizardData = {
   contentPieces: [],
   // Step 5 - Content Reuse
   selectedContentIds: [],
-  // Step 6 - Pre-Launch
-  hasWaitlist: false,
-  waitlistOpens: '',
-  waitlistIncentive: '',
-  hasLeadMagnet: false,
-  leadMagnetTopic: '',
-  leadMagnetDueDate: '',
-  emailSequences: [],
+  // Step 6 - Pre-Launch Tasks
+  preLaunchTasks: {
+    // Sales Assets
+    salesPage: false,
+    salesPageDeadline: '',
+    checkoutFlow: false,
+    waitlistPage: false,
+    waitlistDeadline: '',
+    orderBumpUpsell: false,
+    bonuses: false,
+    // Social Proof
+    testimonials: false,
+    testimonialGoal: 5,
+    testimonialDeadline: '',
+    caseStudies: false,
+    videoTestimonials: false,
+    resultsScreenshots: false,
+    // Tech Setup
+    emailSequences: false,
+    emailTypes: {
+      warmUp: true,
+      launch: true,
+      cartClose: true,
+      postPurchase: false,
+    },
+    automations: false,
+    trackingPixels: false,
+    // Content Prep
+    liveEventContent: false,
+    liveEventType: '',
+    socialContent: false,
+    adCreatives: false,
+    leadMagnet: false,
+  },
   // Step 7 - Activities
   liveEvents: [],
   hasAds: false,
