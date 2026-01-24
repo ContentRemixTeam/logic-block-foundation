@@ -13,10 +13,15 @@ import { Layout } from "@/components/Layout";
 import { ReflectionList } from "@/components/ReflectionList";
 import { HabitTrackerCard } from "@/components/habits";
 import { ToastAction } from "@/components/ui/toast";
-import { useDataProtection } from "@/hooks/useDataProtection";
 import { SaveStatusIndicator, SaveStatusBanner } from "@/components/SaveStatusIndicator";
 import { LaunchCheckInCard } from "@/components/launch/LaunchCheckInCard";
 import { LaunchProgressCard } from "@/components/monthly-review/LaunchProgressCard";
+// Modular 4-hook data protection system (Prompt 5)
+import { useLocalStorageSync, ConflictInfo } from "@/hooks/useLocalStorageSync";
+import { useServerSync, SyncStatus } from "@/hooks/useServerSync";
+import { useBeforeUnload } from "@/hooks/useBeforeUnload";
+import { useMobileProtection } from "@/hooks/useMobileProtection";
+import { ConflictResolutionModal, ConflictData } from "@/components/data-protection";
 
 interface ExecutionSummary {
   tasks_scheduled: number;
@@ -55,6 +60,10 @@ export default function MonthlyReview() {
 
   // Track initial load to prevent auto-save on first load
   const isInitialLoadRef = useRef(true);
+  
+  // Conflict resolution state (Prompt 12)
+  const [conflictData, setConflictData] = useState<ConflictData<typeof reviewData> | null>(null);
+  const [showConflictModal, setShowConflictModal] = useState(false);
 
   // Memoize review data for data protection
   const reviewData = useMemo(() => ({
@@ -69,8 +78,42 @@ export default function MonthlyReview() {
     monthScore,
   }), [reviewId, cycleId, month, monthInCycle, wins, challenges, lessons, priorities, monthScore]);
 
-  // Save function for data protection
-  const handleAutoSave = useCallback(async (data: typeof reviewData) => {
+  const reviewDataRef = useRef(reviewData);
+  useEffect(() => {
+    reviewDataRef.current = reviewData;
+  }, [reviewData]);
+
+  // Local storage key for this review
+  const storageKey = `monthly_review_backup_${monthInCycle}`;
+
+  // ===== HOOK 1: Local Storage Sync (0ms, immediate) =====
+  const { 
+    save: saveLocal, 
+    load: loadLocalBackup, 
+    getTimestamp: getLocalTimestamp,
+    tabId 
+  } = useLocalStorageSync<typeof reviewData>({
+    key: storageKey,
+    enableIndexDBFallback: true,
+    enableCrossTabSync: true,
+    pageType: '30-Day Review',
+    onRemoteUpdate: (data) => {
+      // Another tab updated - refresh local state
+      if (data.wins) setWins(data.wins.length ? data.wins : ['']);
+      if (data.challenges) setChallenges(data.challenges.length ? data.challenges : ['']);
+      if (data.lessons) setLessons(data.lessons.length ? data.lessons : ['']);
+      if (data.priorities) setPriorities(data.priorities.length ? data.priorities : ['']);
+      if (data.monthScore) setMonthScore(data.monthScore);
+      toast({ title: 'Updated from another tab' });
+    },
+    onConflict: (conflict) => {
+      setConflictData(conflict as ConflictData<typeof reviewData>);
+      setShowConflictModal(true);
+    },
+  });
+
+  // Save function for server sync
+  const handleServerSave = useCallback(async (data: typeof reviewData) => {
     if (!data.reviewId || !data.cycleId) return;
 
     const { data: { session } } = await supabase.auth.getSession();
@@ -100,23 +143,89 @@ export default function MonthlyReview() {
     }
   }, []);
 
-  // Data protection hook
-  const { register, saveNow, saveStatus, lastSaved } = useDataProtection({
-    saveFn: handleAutoSave,
-    autoSaveDelay: 2500,
-    localStorageKey: `monthly_review_backup_${monthInCycle}`,
-    enableLocalBackup: true,
-    enableBeforeUnload: true,
+  // ===== HOOK 2: Server Sync (1s debounce) =====
+  const { 
+    sync: syncServer, 
+    syncNow: syncServerNow, 
+    status: serverStatus, 
+    lastSynced: lastSaved 
+  } = useServerSync<typeof reviewData>({
+    saveFn: handleServerSave,
+    delay: 1000,
     maxRetries: 3,
     retryDelay: 5000,
   });
 
-  // Register changes after initial load
+  // Combined save status
+  const saveStatus: SyncStatus = serverStatus;
+
+  // ===== HOOK 3: Before Unload (desktop warning) =====
+  const hasUnsavedChanges = serverStatus === 'pending' || serverStatus === 'saving';
+  useBeforeUnload({
+    hasUnsavedChanges,
+    onFinalSave: () => saveLocal(reviewDataRef.current),
+    emergencyConfig: user ? {
+      userId: user.id,
+      pageType: 'monthly_review',
+      pageId: reviewId || undefined,
+      getData: () => reviewDataRef.current,
+    } : undefined,
+  });
+
+  // ===== HOOK 4: Mobile Protection (visibility/pagehide) =====
+  useMobileProtection({
+    getData: () => reviewDataRef.current,
+    onSave: (data) => { saveLocal(data); },
+    emergencyConfig: user ? {
+      userId: user.id,
+      pageType: 'monthly_review',
+      pageId: reviewId || undefined,
+    } : undefined,
+  });
+
+  // Register changes after initial load - trigger both local and server sync
   useEffect(() => {
     if (!loading && !isInitialLoadRef.current && reviewId && cycleId) {
-      register(reviewData);
+      saveLocal(reviewData);
+      syncServer(reviewData);
     }
-  }, [reviewData, loading, register, reviewId, cycleId]);
+  }, [reviewData, loading, reviewId, cycleId, saveLocal, syncServer]);
+
+  // Manual save function
+  const saveNow = useCallback(async () => {
+    await saveLocal(reviewData);
+    await syncServerNow(reviewData);
+  }, [reviewData, saveLocal, syncServerNow]);
+
+  // Handle conflict resolution
+  const handleConflictResolve = useCallback(async (
+    choice: 'local' | 'remote' | 'merge',
+    mergedData?: typeof reviewData
+  ) => {
+    setShowConflictModal(false);
+    
+    const dataToUse = choice === 'merge' && mergedData 
+      ? mergedData 
+      : choice === 'local' 
+        ? conflictData?.local.data 
+        : conflictData?.remote.data;
+    
+    if (dataToUse) {
+      // Apply the chosen data
+      if (dataToUse.wins) setWins(dataToUse.wins.length ? dataToUse.wins : ['']);
+      if (dataToUse.challenges) setChallenges(dataToUse.challenges.length ? dataToUse.challenges : ['']);
+      if (dataToUse.lessons) setLessons(dataToUse.lessons.length ? dataToUse.lessons : ['']);
+      if (dataToUse.priorities) setPriorities(dataToUse.priorities.length ? dataToUse.priorities : ['']);
+      if (dataToUse.monthScore) setMonthScore(dataToUse.monthScore);
+      
+      // Save the resolved data
+      await saveLocal(dataToUse);
+      await syncServerNow(dataToUse);
+    }
+    
+    setConflictData(null);
+  }, [conflictData, saveLocal, syncServerNow]);
+
 
   useEffect(() => {
     if (user) {
@@ -532,6 +641,21 @@ export default function MonthlyReview() {
             )}
           </Button>
         </div>
+
+        {/* Conflict Resolution Modal (Prompt 12) */}
+        <ConflictResolutionModal
+          open={showConflictModal}
+          onOpenChange={setShowConflictModal}
+          conflict={conflictData}
+          onResolve={handleConflictResolve}
+          fieldLabels={{
+            wins: 'Wins',
+            challenges: 'Challenges',
+            lessons: 'Lessons Learned',
+            priorities: 'Next Month Priorities',
+            monthScore: 'Month Score',
+          }}
+        />
       </div>
     </Layout>
   );
