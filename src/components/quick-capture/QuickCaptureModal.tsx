@@ -4,6 +4,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,7 +13,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTaskMutations } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
-import { Zap, ListTodo, Lightbulb, LogIn, Calendar, Plus, Mic, MicOff, FolderKanban, Clock, Hash, X, FileText, Tag } from 'lucide-react';
+import { Zap, ListTodo, Lightbulb, LogIn, Calendar, Plus, Mic, MicOff, FolderKanban, Clock, Hash, X, FileText, Tag, Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { getStorageItem, setStorageItem } from '@/lib/storage';
@@ -84,6 +85,12 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
   const [userOverrodeType, setUserOverrodeType] = useState(false);
   const [newIdeaTag, setNewIdeaTag] = useState('');
   const [contentModalOpen, setContentModalOpen] = useState(false);
+  
+  // Burst mode state for rapid adding
+  const [burstModeActive, setBurstModeActive] = useState(false);
+  const [savedThisSession, setSavedThisSession] = useState(0);
+  const [justSaved, setJustSaved] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Recent tags and projects from localStorage
   const [recentTags, setRecentTags] = useState<string[]>(() => {
@@ -178,9 +185,16 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
       setCaptureType(lastCaptureType);
       setUserOverrodeType(false);
       setShowConvertChips(false);
+      setSavedThisSession(0);
+      setBurstModeActive(false);
+      setJustSaved(false);
       // Small delay to ensure modal is rendered
       setTimeout(() => {
-        inputRef.current?.focus();
+        if (isMobile && textareaRef.current) {
+          textareaRef.current.focus();
+        } else if (inputRef.current) {
+          inputRef.current.focus();
+        }
       }, 100);
     } else {
       // Reset input but preserve mode
@@ -190,11 +204,14 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
       setNewIdeaTag('');
       setShowConvertChips(false);
       setUserOverrodeType(false);
+      setSavedThisSession(0);
+      setBurstModeActive(false);
+      setJustSaved(false);
       if (isListening) {
         stopListening();
       }
     }
-  }, [open, lastCaptureType, isListening, stopListening]);
+  }, [open, lastCaptureType, isListening, stopListening, isMobile]);
 
   // Handle paste to show convert chips
   const handlePaste = useCallback(() => {
@@ -324,18 +341,32 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
     
     if (savedCount > 0) {
       if (isMobile) triggerHaptic();
+      
+      // Update session count
+      setSavedThisSession(prev => prev + savedCount);
+      
+      // Show quick success animation
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 500);
+      
       toast.success(`✅ Saved ${savedCount} task${savedCount > 1 ? 's' : ''}`, {
-        duration: 2000,
+        duration: 1500,
       });
       
       // Update recents
       updateRecents(sharedTags, sharedProjectId || undefined);
       
-      // Reset or close based on stayOpenAfterSave
-      if (stayOpenAfterSave) {
+      // Always stay open in burst mode for rapid adding
+      if (stayOpenAfterSave || burstModeActive) {
         setInput('');
         setParsedTask(null);
-        setTimeout(() => inputRef.current?.focus(), 50);
+        setTimeout(() => {
+          if (isMobile && textareaRef.current) {
+            textareaRef.current.focus();
+          } else if (inputRef.current) {
+            inputRef.current.focus();
+          }
+        }, 50);
       } else {
         onOpenChange(false);
       }
@@ -435,7 +466,7 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
       }
 
       // Handle stay-open mode vs close mode
-      if (stayOpenAfterSave) {
+      if (stayOpenAfterSave || burstModeActive) {
         // Stay open: clear input, keep mode, refocus
         setInput('');
         setParsedTask(null);
@@ -444,17 +475,28 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
         setShowConvertChips(false);
         setUserOverrodeType(false);
         
+        // Update session count
+        setSavedThisSession(prev => prev + 1);
+        
+        // Show quick success animation
+        setJustSaved(true);
+        setTimeout(() => setJustSaved(false), 500);
+        
         // Haptic + toast
         if (isMobile) {
           triggerHaptic();
         }
         toast.success(savedType === 'task' ? '✅ Task saved' : '💡 Idea saved', {
-          duration: 1500,
+          duration: 1000,
         });
         
         // Refocus input after a short delay
         setTimeout(() => {
-          inputRef.current?.focus();
+          if (isMobile && textareaRef.current) {
+            textareaRef.current.focus();
+          } else if (inputRef.current) {
+            inputRef.current.focus();
+          }
         }, 50);
       } else {
         // Close modal and show actionable toast
@@ -932,11 +974,20 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
   const mobileContent = (
     <div className="flex flex-col h-full">
       {/* Scrollable content area */}
-      <div className="flex-1 overflow-y-auto space-y-4">
-        {/* Header */}
+      <div className="flex-1 overflow-y-auto space-y-3">
+        {/* Header with session counter */}
         <div className="flex items-center gap-2">
-          <Zap className="h-5 w-5 text-primary" />
+          <Zap className={cn("h-5 w-5 transition-colors", justSaved ? "text-green-500" : "text-primary")} />
           <h2 className="text-lg font-semibold">Quick Capture</h2>
+          
+          {/* Session counter badge */}
+          {savedThisSession > 0 && (
+            <Badge variant="secondary" className="text-xs animate-in fade-in">
+              <Check className="h-3 w-3 mr-1" />
+              {savedThisSession} saved
+            </Badge>
+          )}
+          
           <Button 
             variant="ghost" 
             size="icon" 
@@ -963,16 +1014,16 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
         {/* Logged in content */}
         {user && (
           <>
-            {/* Type selector - segmented control */}
-            <div className="inline-flex rounded-lg border bg-muted p-1 gap-1">
+            {/* Compact type selector */}
+            <div className="flex gap-1">
               <button
                 type="button"
                 onClick={() => toggleCaptureType('task', true)}
                 className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-all",
+                  "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium rounded-lg transition-all touch-manipulation",
                   captureType === 'task'
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted text-muted-foreground"
                 )}
               >
                 <ListTodo className="h-4 w-4" />
@@ -982,10 +1033,10 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
                 type="button"
                 onClick={() => toggleCaptureType('idea', true)}
                 className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-all",
+                  "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium rounded-lg transition-all touch-manipulation",
                   captureType === 'idea'
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted text-muted-foreground"
                 )}
               >
                 <Lightbulb className="h-4 w-4" />
@@ -995,10 +1046,10 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
                 type="button"
                 onClick={() => toggleCaptureType('content', true)}
                 className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-all",
+                  "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium rounded-lg transition-all touch-manipulation",
                   captureType === 'content'
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted text-muted-foreground"
                 )}
               >
                 <FileText className="h-4 w-4" />
@@ -1006,27 +1057,35 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
               </button>
             </div>
 
-            {/* Input field with mic button */}
+            {/* Multi-line Textarea for bulk entry */}
             <div className="relative">
-              <Input
-                ref={inputRef}
+              <Textarea
+                ref={textareaRef}
                 value={isListening ? input + interimText : input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
+                onKeyDown={(e) => {
+                  // Cmd/Ctrl + Enter to save
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                    handleSave();
+                  }
+                }}
                 onPaste={handlePaste}
                 placeholder={
                   isListening 
                     ? "Listening..."
                     : captureType === 'task'
-                      ? "Add task..."
+                      ? "Add tasks (one per line for bulk)\n\nExamples:\nCall client tomorrow\nReview proposal !high\nTeam sync 30m #meeting"
                       : "Add idea..."
                 }
                 className={cn(
-                  "text-base h-12 pr-12",
-                  isListening && "border-primary ring-2 ring-primary/20"
+                  "text-base min-h-[100px] resize-none pr-12 transition-all",
+                  isListening && "border-primary ring-2 ring-primary/20",
+                  isMultiLine && "min-h-[140px] border-primary/50"
                 )}
                 autoComplete="off"
                 disabled={isListening}
+                rows={isMultiLine ? 5 : 3}
               />
               
               {/* Mic button */}
@@ -1037,7 +1096,7 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
                 onClick={handleMicClick}
                 disabled={!speechSupported}
                 className={cn(
-                  "absolute right-1 top-1/2 -translate-y-1/2 h-10 w-10",
+                  "absolute right-1 top-2 h-10 w-10",
                   isListening && "text-primary animate-pulse"
                 )}
               >
@@ -1060,24 +1119,24 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
               </div>
             )}
 
-            {/* Multi-line indicator */}
+            {/* Multi-line indicator with burst mode toggle */}
             {isMultiLine && (
-              <Badge variant="secondary" className="text-xs w-fit">
-                📝 {lines.length} tasks detected
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="default" className="text-xs bg-primary/10 text-primary border-primary/20">
+                  📝 {lines.length} tasks ready
+                </Badge>
+                <span className="text-xs text-muted-foreground">Will save all at once</span>
+              </div>
             )}
 
-            {/* Quick Chips for tasks - mobile only */}
+            {/* Quick Chips for tasks - compact layout */}
             {captureType === 'task' && (
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground font-medium">Quick add:</p>
-                <QuickChips
-                  parsedTask={parsedTask}
-                  onUpdate={handleQuickChipUpdate}
-                  recentTags={recentTags}
-                  recentProjects={recentProjects}
-                />
-              </div>
+              <QuickChips
+                parsedTask={parsedTask}
+                onUpdate={handleQuickChipUpdate}
+                recentTags={recentTags}
+                recentProjects={recentProjects}
+              />
             )}
 
             {/* Convert chips - shown after dictation or paste */}
@@ -1149,29 +1208,61 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
         )}
       </div>
 
-      {/* Sticky bottom action bar */}
+      {/* Sticky bottom action bar - optimized for rapid adding */}
       {user && (
-        <div className="sticky bottom-0 left-0 right-0 bg-background border-t pt-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] mt-4 -mx-4 px-4">
+        <div className="sticky bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t pt-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] mt-3 -mx-4 px-4">
           <div className="flex gap-2">
+            {/* Primary Save Button */}
             <Button
-              onClick={handleSave}
-              disabled={!input.trim() || saving}
-              className="flex-1 h-12"
-            >
-              {saving ? 'Saving...' : (isMultiLine ? `Save ${lines.length} Tasks` : 'Save')}
-            </Button>
-            <Button
-              variant="outline"
               onClick={() => {
+                setBurstModeActive(false);
                 handleSave();
               }}
               disabled={!input.trim() || saving}
-              className="flex-1 h-12"
+              className={cn(
+                "flex-1 h-12 transition-all",
+                justSaved && "bg-green-600 hover:bg-green-700"
+              )}
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Another
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : justSaved ? (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Saved!
+                </>
+              ) : (
+                isMultiLine ? `Save ${lines.length} Tasks` : 'Save & Close'
+              )}
+            </Button>
+            
+            {/* Keep Adding Button - enables burst mode */}
+            <Button
+              variant={burstModeActive ? "default" : "outline"}
+              onClick={() => {
+                setBurstModeActive(true);
+                handleSave();
+              }}
+              disabled={!input.trim() || saving}
+              className={cn(
+                "flex-1 h-12 transition-all",
+                burstModeActive && "ring-2 ring-primary/50"
+              )}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              {burstModeActive ? 'Adding...' : 'Keep Adding'}
             </Button>
           </div>
+          
+          {/* Hint for burst mode */}
+          {burstModeActive && (
+            <p className="text-xs text-center text-muted-foreground mt-2 animate-in fade-in">
+              ⚡ Burst mode active — tap "Save & Close" when done
+            </p>
+          )}
         </div>
       )}
     </div>
