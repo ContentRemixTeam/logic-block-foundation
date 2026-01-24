@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { getStorageItem, setStorageItem, removeStorageItem } from '@/lib/storage';
 
 const DRAFT_STORAGE_KEY = 'boss-planner-cycle-setup-draft';
 const DRAFT_MAX_AGE_DAYS = 14; // Drafts expire after 14 days
@@ -369,14 +370,14 @@ export function useCycleSetupDraft() {
 
   const saveDraft = useCallback((data: Partial<CycleSetupDraft>) => {
     try {
-      const existingDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+      const existingDraft = getStorageItem(DRAFT_STORAGE_KEY);
       const existing = existingDraft ? JSON.parse(existingDraft) : DEFAULT_DRAFT;
       const updated = {
         ...existing,
         ...data,
         lastSaved: new Date().toISOString(),
       };
-      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(updated));
+      setStorageItem(DRAFT_STORAGE_KEY, JSON.stringify(updated));
       setHasDraft(true);
       setDraftTimestamp(updated.lastSaved);
 
@@ -402,7 +403,7 @@ export function useCycleSetupDraft() {
             // Don't clear yet, check local first
           } else {
             // Check localStorage for potentially newer data
-            const localStored = localStorage.getItem(DRAFT_STORAGE_KEY);
+            const localStored = getStorageItem(DRAFT_STORAGE_KEY);
             if (localStored) {
               const localDraft = JSON.parse(localStored) as CycleSetupDraft;
               const localTimestamp = new Date(localDraft.lastSaved);
@@ -410,14 +411,14 @@ export function useCycleSetupDraft() {
               // Check if local draft is expired
               if (isDraftExpired(localDraft.lastSaved)) {
                 console.log('Local draft expired, clearing...');
-                localStorage.removeItem(DRAFT_STORAGE_KEY);
+                removeStorageItem(DRAFT_STORAGE_KEY);
               } else if (localTimestamp > new Date(serverTimestamp)) {
                 return localDraft;
               }
             }
             
             // Server is newer or no local, save server draft to localStorage
-            localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({
+            setStorageItem(DRAFT_STORAGE_KEY, JSON.stringify({
               ...serverDraft,
               lastSaved: serverTimestamp,
             }));
@@ -430,16 +431,16 @@ export function useCycleSetupDraft() {
       }
     }
 
-    // Fallback to localStorage
+    // Fallback to localStorage (via safe storage)
     try {
-      const stored = localStorage.getItem(DRAFT_STORAGE_KEY);
+      const stored = getStorageItem(DRAFT_STORAGE_KEY);
       if (stored) {
         const localDraft = JSON.parse(stored) as CycleSetupDraft;
         
         // Check if local draft is expired
         if (isDraftExpired(localDraft.lastSaved)) {
           console.log('Local draft expired after', DRAFT_MAX_AGE_DAYS, 'days, clearing...');
-          localStorage.removeItem(DRAFT_STORAGE_KEY);
+          removeStorageItem(DRAFT_STORAGE_KEY);
           setHasDraft(false);
           setDraftTimestamp(null);
           return null;
@@ -454,9 +455,9 @@ export function useCycleSetupDraft() {
   }, [user]);
 
   const clearDraft = useCallback(async () => {
-    // Clear localStorage
+    // Clear localStorage (via safe storage)
     try {
-      localStorage.removeItem(DRAFT_STORAGE_KEY);
+      removeStorageItem(DRAFT_STORAGE_KEY);
       setHasDraft(false);
       setDraftTimestamp(null);
     } catch (e) {

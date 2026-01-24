@@ -179,20 +179,23 @@ export default function Ideas() {
 
   // Restore add draft when modal opens
   useEffect(() => {
-    if (addModalOpen && addDraftProtection.hasDraft && !newContent) {
-      const draft = addDraftProtection.loadDraft();
-      if (draft) {
-        setNewContent(draft.content || '');
-        setNewCategoryId(draft.categoryId || '');
-        setNewPriority(draft.priority || '');
-        setNewTags(draft.tags || []);
-        setNewProjectId(draft.projectId || '');
-        toast({
-          title: 'Draft restored',
-          description: 'Your previous unsaved idea has been restored.',
-        });
+    const restoreDraft = async () => {
+      if (addModalOpen && addDraftProtection.hasDraft && !newContent) {
+        const draft = await addDraftProtection.loadDraft();
+        if (draft) {
+          setNewContent(draft.content || '');
+          setNewCategoryId(draft.categoryId || '');
+          setNewPriority(draft.priority || '');
+          setNewTags(draft.tags || []);
+          setNewProjectId(draft.projectId || '');
+          toast({
+            title: 'Draft restored',
+            description: 'Your previous unsaved idea has been restored.',
+          });
+        }
       }
-    }
+    };
+    restoreDraft();
   }, [addModalOpen]);
 
   // Inline category creation state for Add modal

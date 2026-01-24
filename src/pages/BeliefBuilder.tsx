@@ -63,17 +63,20 @@ export default function BeliefBuilder() {
 
   // Restore draft when dialog opens for new belief
   useEffect(() => {
-    if (isDialogOpen && !editingBelief && beliefDraftProtection.hasDraft && !limitingBelief && !upgradedBelief) {
-      const draft = beliefDraftProtection.loadDraft();
-      if (draft) {
-        setLimitingBelief(draft.limitingBelief || '');
-        setUpgradedBelief(draft.upgradedBelief || '');
-        setConfidenceScore([draft.confidenceScore || 5]);
-        setEvidenceList(draft.evidenceList || []);
-        setCommitmentList(draft.commitmentList || []);
-        toast.success('Draft restored - your previous unsaved belief has been restored');
+    const restoreDraft = async () => {
+      if (isDialogOpen && !editingBelief && beliefDraftProtection.hasDraft && !limitingBelief && !upgradedBelief) {
+        const draft = await beliefDraftProtection.loadDraft();
+        if (draft) {
+          setLimitingBelief(draft.limitingBelief || '');
+          setUpgradedBelief(draft.upgradedBelief || '');
+          setConfidenceScore([draft.confidenceScore || 5]);
+          setEvidenceList(draft.evidenceList || []);
+          setCommitmentList(draft.commitmentList || []);
+          toast.success('Draft restored - your previous unsaved belief has been restored');
+        }
       }
-    }
+    };
+    restoreDraft();
   }, [isDialogOpen, editingBelief]);
 
   const { data: beliefs = [], isLoading } = useQuery({
