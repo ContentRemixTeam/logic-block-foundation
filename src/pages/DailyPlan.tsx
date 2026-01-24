@@ -38,6 +38,7 @@ import { NurtureCheckinCard } from '@/components/nurture';
 import { HabitTrackerCard } from '@/components/habits';
 import { PetGrowthCard, ArcadeIntroCard } from '@/components/arcade';
 import { CalendarReconnectBanner } from '@/components/google-calendar/CalendarReconnectBanner';
+import { CycleProgressBanner } from '@/components/cycle/CycleProgressBanner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -748,6 +749,9 @@ export default function DailyPlan() {
             </Button>
           </div>
         </div>
+
+        {/* 90-Day Cycle Progress */}
+        <CycleProgressBanner compact />
 
         {/* Google Calendar Reconnection Banner */}
         <CalendarReconnectBanner />
