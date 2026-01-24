@@ -31,6 +31,7 @@ export function useFormDraftProtection<T extends Record<string, any>>({
   maxAge = 24 * 60 * 60 * 1000, // 24 hours
 }: DraftProtectionConfig) {
   const [hasDraft, setHasDraft] = useState(false);
+  const [draftTimestamp, setDraftTimestamp] = useState<string | null>(null);
   const dataRef = useRef<T | null>(null);
   const hasUnsavedRef = useRef(false);
 
@@ -59,6 +60,7 @@ export function useFormDraftProtection<T extends Record<string, any>>({
           const age = Date.now() - new Date(parsed.timestamp).getTime();
           if (age < maxAge) {
             setHasDraft(true);
+            setDraftTimestamp(parsed.timestamp);
           } else {
             // Clear stale draft from all layers
             removeStorageItem(localStorageKey);
@@ -127,6 +129,7 @@ export function useFormDraftProtection<T extends Record<string, any>>({
     removeStorageItem(localStorageKey);
     await clearEmergencyBackup(localStorageKey);
     setHasDraft(false);
+    setDraftTimestamp(null);
     hasUnsavedRef.current = false;
     dataRef.current = null;
   }, [localStorageKey, enabled]);
@@ -205,6 +208,7 @@ export function useFormDraftProtection<T extends Record<string, any>>({
 
   return {
     hasDraft,
+    draftTimestamp,
     saveDraft,
     loadDraft,
     clearDraft,

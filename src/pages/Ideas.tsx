@@ -19,6 +19,7 @@ import { useFormDraftProtection } from '@/hooks/useFormDraftProtection';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Zap, Edit, Trash2, Plus, ArrowUpDown, FolderKanban, Clock, Hash, X, Loader2, Search, ChevronDown, Check, AlertCircle } from 'lucide-react';
+import { DraftRestoreBanner, DraftStatusFooter } from '@/components/DraftRestoreBanner';
 import { IdeaFormFields } from '@/components/ideas/IdeaFormFields';
 import { PaginationInfo } from '@/components/ui/pagination-info';
 import { normalizeString } from '@/lib/normalize';
@@ -177,26 +178,39 @@ export default function Ideas() {
     }
   }, [editModalOpen, editingIdea, editContent, editCategoryId, editPriority, editTags, editProjectId]);
 
-  // Restore add draft when modal opens
+  // State to show/hide restore banner (user can dismiss it)
+  const [showAddDraftBanner, setShowAddDraftBanner] = useState(false);
+
+  // Check for draft when modal opens (don't auto-restore)
   useEffect(() => {
-    const restoreDraft = async () => {
-      if (addModalOpen && addDraftProtection.hasDraft && !newContent) {
-        const draft = await addDraftProtection.loadDraft();
-        if (draft) {
-          setNewContent(draft.content || '');
-          setNewCategoryId(draft.categoryId || '');
-          setNewPriority(draft.priority || '');
-          setNewTags(draft.tags || []);
-          setNewProjectId(draft.projectId || '');
-          toast({
-            title: 'Draft restored',
-            description: 'Your previous unsaved idea has been restored.',
-          });
-        }
-      }
-    };
-    restoreDraft();
-  }, [addModalOpen]);
+    if (addModalOpen && addDraftProtection.hasDraft && !newContent) {
+      setShowAddDraftBanner(true);
+    } else if (!addModalOpen) {
+      setShowAddDraftBanner(false);
+    }
+  }, [addModalOpen, addDraftProtection.hasDraft]);
+
+  // Restore add draft when user clicks Restore
+  const handleRestoreAddDraft = async () => {
+    const draft = await addDraftProtection.loadDraft();
+    if (draft) {
+      setNewContent(draft.content || '');
+      setNewCategoryId(draft.categoryId || '');
+      setNewPriority(draft.priority || '');
+      setNewTags(draft.tags || []);
+      setNewProjectId(draft.projectId || '');
+      toast({
+        title: 'Draft restored',
+        description: 'Your previous unsaved idea has been restored.',
+      });
+    }
+    setShowAddDraftBanner(false);
+  };
+
+  const handleDismissAddDraft = async () => {
+    await addDraftProtection.clearDraft();
+    setShowAddDraftBanner(false);
+  };
 
   // Inline category creation state for Add modal
   const [showInlineAddCategory, setShowInlineAddCategory] = useState(false);
@@ -899,6 +913,16 @@ export default function Ideas() {
           <DialogHeader>
             <DialogTitle>Add New Idea</DialogTitle>
           </DialogHeader>
+          
+          {/* Draft Restore Banner */}
+          {showAddDraftBanner && (
+            <DraftRestoreBanner
+              onRestore={handleRestoreAddDraft}
+              onDismiss={handleDismissAddDraft}
+              draftAge={addDraftProtection.draftTimestamp}
+            />
+          )}
+          
           <IdeaFormFields
             isEdit={false}
             content={newContent}
@@ -924,9 +948,14 @@ export default function Ideas() {
             onInlineCategoryColorChange={handleInlineAddCategoryColorChange}
             onInlineCategoryCreate={handleInlineAddCategoryCreate}
           />
-          <Button onClick={handleAddIdea} disabled={actionLoading || !newContent.trim()} className="w-full">
-            {actionLoading ? 'Adding...' : 'Add Idea'}
-          </Button>
+          
+          {/* Footer with draft status */}
+          <div className="flex items-center justify-between">
+            <DraftStatusFooter hasDraft={addDraftProtection.hasDraft && !!newContent} />
+            <Button onClick={handleAddIdea} disabled={actionLoading || !newContent.trim()} className="ml-auto">
+              {actionLoading ? 'Adding...' : 'Add Idea'}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
