@@ -20,6 +20,7 @@ import { ArrowLeft, Calendar, Loader2, Save, CheckCircle2, TrendingUp, Brain, Za
 import { useDataProtection } from '@/hooks/useDataProtection';
 import { SaveStatusIndicator, SaveStatusBanner } from '@/components/SaveStatusIndicator';
 import { PetGrowthCard } from '@/components/arcade';
+import { CycleProgressBanner } from '@/components/cycle/CycleProgressBanner';
 
 export default function WeeklyPlan() {
   const { user } = useAuth();
@@ -350,6 +351,9 @@ export default function WeeklyPlan() {
   return (
     <Layout>
       <div className="mx-auto max-w-7xl space-y-6 px-4">
+        {/* 90-Day Cycle Progress */}
+        <CycleProgressBanner compact />
+
         {/* New Sunsama-style Weekly Planner */}
         <WeekPlannerNew 
           highlightTaskId={highlightTaskId}

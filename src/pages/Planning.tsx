@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, eachWeekOfInterval } from 'date-fns';
+import { CycleProgressBanner } from '@/components/cycle/CycleProgressBanner';
 
 interface PlanningCard {
   title: string;
@@ -141,6 +142,9 @@ export default function Planning() {
           <h1 className="text-2xl font-bold">Planning</h1>
           <p className="text-muted-foreground">Your planning command center</p>
         </div>
+
+        {/* 90-Day Cycle Progress */}
+        <CycleProgressBanner />
 
       {/* Planning Tracker */}
       <Card className="p-6">
