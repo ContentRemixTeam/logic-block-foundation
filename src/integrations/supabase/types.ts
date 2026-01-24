@@ -4018,6 +4018,7 @@ export type Database = {
           longest_debrief_streak: number | null
           minimal_mode: boolean | null
           monthly_review_questions: Json | null
+          planner_preferences: Json | null
           pomodoro_auto_start_break: boolean | null
           pomodoro_break_minutes: number | null
           pomodoro_focus_minutes: number | null
@@ -4061,6 +4062,7 @@ export type Database = {
           longest_debrief_streak?: number | null
           minimal_mode?: boolean | null
           monthly_review_questions?: Json | null
+          planner_preferences?: Json | null
           pomodoro_auto_start_break?: boolean | null
           pomodoro_break_minutes?: number | null
           pomodoro_focus_minutes?: number | null
@@ -4104,6 +4106,7 @@ export type Database = {
           longest_debrief_streak?: number | null
           minimal_mode?: boolean | null
           monthly_review_questions?: Json | null
+          planner_preferences?: Json | null
           pomodoro_auto_start_break?: boolean | null
           pomodoro_break_minutes?: number | null
           pomodoro_focus_minutes?: number | null
