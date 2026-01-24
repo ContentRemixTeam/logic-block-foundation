@@ -3,6 +3,7 @@ import { startOfWeek, addDays, subDays, format, isThisWeek, endOfWeek } from 'da
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { useTasks, useTaskMutations } from '@/hooks/useTasks';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
@@ -23,6 +24,7 @@ import { WeeklyPlannerHeader } from './WeeklyPlannerHeader';
 import { WeeklyPlannerTabs } from './WeeklyPlannerTabs';
 import { AvailableTasksSidebar } from './AvailableTasksSidebar';
 import { WeeklyTimelineBoard } from './WeeklyTimelineBoard';
+import { WeekPlannerMobile } from './WeekPlannerMobile';
 
 interface WeekPlannerNewProps {
   highlightTaskId?: string | null;
@@ -39,6 +41,7 @@ export function WeekPlannerNew({
 }: WeekPlannerNewProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const [isPulling, setIsPulling] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
@@ -436,35 +439,47 @@ export function WeekPlannerNew({
 
       {/* Task Planner Content */}
       {activeTab === 'planner' && (
-        <div className="flex gap-4" style={{ minHeight: '600px' }}>
-          {/* Available Tasks Sidebar */}
-          <div className="w-56 shrink-0 space-y-4">
-            <AvailableTasksSidebar
-              tasks={tasks}
-              onTaskToggle={handleTaskToggle}
-              onPullUnfinished={handlePullUnfinished}
-              onAddTask={(text) => handleQuickAdd(text, null)}
-              onMoveToInbox={handleMoveToInbox}
-              isPulling={isPulling}
-              highlightTaskId={highlightTaskId}
-            />
-            {/* Launch Milestones Card */}
-            <LaunchMilestonesCard />
-          </div>
+        isMobile ? (
+          <WeekPlannerMobile
+            tasks={tasks}
+            calendarEvents={calendarEvents}
+            currentWeekStart={currentWeekStart}
+            onTaskDrop={handleTaskDrop}
+            onTaskToggle={handleTaskToggle}
+            onQuickAdd={handleQuickAdd}
+            onMoveToInbox={handleMoveToInbox}
+          />
+        ) : (
+          <div className="flex gap-4" style={{ minHeight: '600px' }}>
+            {/* Available Tasks Sidebar */}
+            <div className="w-56 shrink-0 space-y-4">
+              <AvailableTasksSidebar
+                tasks={tasks}
+                onTaskToggle={handleTaskToggle}
+                onPullUnfinished={handlePullUnfinished}
+                onAddTask={(text) => handleQuickAdd(text, null)}
+                onMoveToInbox={handleMoveToInbox}
+                isPulling={isPulling}
+                highlightTaskId={highlightTaskId}
+              />
+              {/* Launch Milestones Card */}
+              <LaunchMilestonesCard />
+            </div>
 
-          {/* Timeline Board */}
-          <div className="flex-1 min-w-0">
-            <WeeklyTimelineBoard
-              tasks={tasks}
-              calendarEvents={calendarEvents}
-              currentWeekStart={currentWeekStart}
-              officeHoursBlocks={officeHours}
-              showWeekend={showWeekend}
-              onTaskDrop={handleTaskDrop}
-              onTaskToggle={handleTaskToggle}
-            />
+            {/* Timeline Board */}
+            <div className="flex-1 min-w-0">
+              <WeeklyTimelineBoard
+                tasks={tasks}
+                calendarEvents={calendarEvents}
+                currentWeekStart={currentWeekStart}
+                officeHoursBlocks={officeHours}
+                showWeekend={showWeekend}
+                onTaskDrop={handleTaskDrop}
+                onTaskToggle={handleTaskToggle}
+              />
+            </div>
           </div>
-        </div>
+        )
       )}
 
       {/* Office Hours Editor Modal */}
