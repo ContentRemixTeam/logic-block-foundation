@@ -31,6 +31,7 @@ export const DASHBOARD_WIDGETS: DashboardWidget[] = [
   { id: 'metrics', label: 'Success Metrics', description: 'Track your key numbers', category: 'strategy', column: 'sidebar', defaultEnabled: true },
   { id: 'wins', label: 'Recent Wins', description: 'Celebrate your victories', category: 'mindset', column: 'sidebar', defaultEnabled: true },
   { id: 'revenueGoal', label: '90-Day Revenue Goal', description: 'Revenue target tracker', category: 'strategy', column: 'sidebar', defaultEnabled: true },
+  { id: 'finances', label: 'Financial Summary', description: 'Monthly income, expenses & profit', category: 'strategy', column: 'sidebar', defaultEnabled: false },
   { id: 'reminders', label: 'Key Reminders', description: 'Things to remember', category: 'mindset', column: 'sidebar', defaultEnabled: true },
   { id: 'identity', label: 'Your Identity', description: 'Who you are becoming', category: 'mindset', column: 'sidebar', defaultEnabled: true },
   { id: 'diagnostic', label: 'Business Diagnostic', description: 'Discover, Nurture, Convert scores', category: 'strategy', column: 'sidebar', defaultEnabled: true },

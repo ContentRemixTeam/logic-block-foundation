@@ -73,6 +73,7 @@ const Wizards = lazy(() => import('./pages/Wizards'));
 const LaunchWizardPage = lazy(() => import('./pages/LaunchWizardPage'));
 const HabitWizardPage = lazy(() => import('./pages/HabitWizardPage'));
 const PlannerSettings = lazy(() => import('./pages/PlannerSettings'));
+const FinancialTracker = lazy(() => import('./pages/FinancialTracker'));
 // Configure QueryClient with performance-focused defaults
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -176,6 +177,7 @@ const App = () => (
                       <Route path="/wizards/launch" element={<ProtectedRoute><PageSuspense><LaunchWizardPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/wizards/habits" element={<ProtectedRoute><PageSuspense><HabitWizardPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/settings/planner" element={<ProtectedRoute><PageSuspense><PlannerSettings /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/finances" element={<ProtectedRoute><PageSuspense><FinancialTracker /></PageSuspense></ProtectedRoute>} />
                       
                       {/* Public routes with lazy loading */}
                       <Route path="/capture" element={<PageSuspense><CaptureLaunchPage /></PageSuspense>} />
