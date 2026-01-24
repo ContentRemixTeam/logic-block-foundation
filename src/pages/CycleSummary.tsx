@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,9 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, TrendingUp } from "lucide-react";
+import { Loader2, TrendingUp } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { ReflectionList } from "@/components/ReflectionList";
+import { useDataProtection } from "@/hooks/useDataProtection";
+import { SaveStatusIndicator, SaveStatusBanner } from "@/components/SaveStatusIndicator";
 
 export default function CycleSummary() {
   const { user } = useAuth();
@@ -17,7 +19,6 @@ export default function CycleSummary() {
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [cycleId, setCycleId] = useState<string | null>(null);
   const [cycleGoal, setCycleGoal] = useState("");
 
@@ -30,6 +31,63 @@ export default function CycleSummary() {
   const [cycleScore, setCycleScore] = useState(5);
   const [overallHabitScore, setOverallHabitScore] = useState(0);
 
+  // Track initial load to prevent auto-save on first load
+  const isInitialLoadRef = useRef(true);
+
+  // Memoize summary data for data protection
+  const summaryData = useMemo(() => ({
+    cycleId,
+    identityShifts: identityShifts.filter(Boolean),
+    finalResults: finalResults.filter(Boolean),
+    nextCycleFocus: nextCycleFocus.filter(Boolean),
+    cycleScore,
+  }), [cycleId, identityShifts, finalResults, nextCycleFocus, cycleScore]);
+
+  // Save function for data protection
+  const handleAutoSave = useCallback(async (data: typeof summaryData) => {
+    if (!data.cycleId) return;
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('Not authenticated');
+
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-cycle-summary`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        cycle_id: data.cycleId,
+        identity_shifts: data.identityShifts,
+        final_results: data.finalResults,
+        next_cycle_focus: data.nextCycleFocus,
+        cycle_score: data.cycleScore,
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to save cycle summary: ${res.status}`);
+    }
+  }, []);
+
+  // Data protection hook
+  const { register, saveNow, saveStatus, lastSaved } = useDataProtection({
+    saveFn: handleAutoSave,
+    autoSaveDelay: 2500,
+    localStorageKey: `cycle_summary_backup_${cycleId}`,
+    enableLocalBackup: true,
+    enableBeforeUnload: true,
+    maxRetries: 3,
+    retryDelay: 5000,
+  });
+
+  // Register changes after initial load
+  useEffect(() => {
+    if (!loading && !isInitialLoadRef.current && cycleId) {
+      register(summaryData);
+    }
+  }, [summaryData, loading, register, cycleId]);
+
   useEffect(() => {
     if (user) {
       loadCycleSummary();
@@ -39,6 +97,7 @@ export default function CycleSummary() {
   const loadCycleSummary = async () => {
     try {
       setLoading(true);
+      isInitialLoadRef.current = true;
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -77,51 +136,10 @@ export default function CycleSummary() {
       toast({ title: "Failed to load cycle summary", variant: "destructive" });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!cycleId) {
-      toast({ title: "No cycle to save", variant: "destructive" });
-      return;
-    }
-
-    try {
-      setSaving(true);
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({ title: "Please log in", variant: "destructive" });
-        return;
-      }
-
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-cycle-summary`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          cycle_id: cycleId,
-          identity_shifts: identityShifts.filter(Boolean),
-          final_results: finalResults.filter(Boolean),
-          next_cycle_focus: nextCycleFocus.filter(Boolean),
-          cycle_score: cycleScore,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error(`Failed to save cycle summary: ${res.status}`);
-      }
-
-      toast({ title: "90-Day Cycle Summary Saved!", description: "Your reflection has been saved." });
-      navigate("/dashboard");
-
-    } catch (error) {
-      console.error("Error saving cycle summary:", error);
-      toast({ title: "Failed to save cycle summary", variant: "destructive" });
-    } finally {
-      setSaving(false);
+      // Allow auto-save after a short delay to prevent immediate trigger
+      setTimeout(() => {
+        isInitialLoadRef.current = false;
+      }, 500);
     }
   };
 
@@ -154,13 +172,17 @@ export default function CycleSummary() {
   return (
     <Layout>
       <div className="space-y-6 max-w-4xl mx-auto">
+        {/* Save Status Banner */}
+        <SaveStatusBanner status={saveStatus} onRetry={saveNow} />
+
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold">90-Day Cycle Summary</h1>
             <p className="text-muted-foreground">{cycleGoal}</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <SaveStatusIndicator status={saveStatus} lastSaved={lastSaved} />
             <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
               Dashboard
             </Button>
@@ -303,8 +325,8 @@ export default function CycleSummary() {
             <Button variant="outline" onClick={() => navigate("/dashboard")}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? (
+            <Button onClick={saveNow} disabled={saveStatus === 'saving'}>
+              {saveStatus === 'saving' ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Saving...
