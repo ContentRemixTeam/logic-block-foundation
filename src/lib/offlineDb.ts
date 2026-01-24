@@ -60,10 +60,48 @@ interface OfflineDBSchema extends DBSchema {
     value: any;
     indexes: { 'by-user': string };
   };
+
+  // Form drafts store (Prompt 7)
+  drafts: {
+    key: string;
+    value: {
+      key: string;
+      data: any;
+      timestamp: number;
+      version: string;
+    };
+  };
+
+  // Periodic backup snapshots (Prompt 7)
+  backups: {
+    key: string;
+    value: {
+      id: string;
+      userId: string;
+      pageType: string;
+      pageId: string;
+      data: any;
+      timestamp: number;
+    };
+    indexes: { 'by-user': string; 'by-page': string };
+  };
+
+  // Emergency saves for crash recovery (Prompt 7)
+  emergencySaves: {
+    key: string;
+    value: {
+      id: string;
+      userId: string;
+      pageType: string;
+      data: any;
+      timestamp: number;
+    };
+    indexes: { 'by-user': string };
+  };
 }
 
 const DB_NAME = 'boss-planner-offline';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbInstance: IDBPDatabase<OfflineDBSchema> | null = null;
 let isClosing = false;
@@ -131,6 +169,24 @@ export async function getDb(): Promise<IDBPDatabase<OfflineDBSchema>> {
       if (!db.objectStoreNames.contains('weeklyPlans')) {
         const weeklyStore = db.createObjectStore('weeklyPlans', { keyPath: 'week_id' });
         weeklyStore.createIndex('by-user', 'user_id');
+      }
+
+      // Form drafts store (Prompt 7 - version 2)
+      if (!db.objectStoreNames.contains('drafts')) {
+        db.createObjectStore('drafts', { keyPath: 'key' });
+      }
+
+      // Periodic backups store (Prompt 7 - version 2)
+      if (!db.objectStoreNames.contains('backups')) {
+        const backupsStore = db.createObjectStore('backups', { keyPath: 'id' });
+        backupsStore.createIndex('by-user', 'userId');
+        backupsStore.createIndex('by-page', 'pageType');
+      }
+
+      // Emergency saves store (Prompt 7 - version 2)
+      if (!db.objectStoreNames.contains('emergencySaves')) {
+        const emergencyStore = db.createObjectStore('emergencySaves', { keyPath: 'id' });
+        emergencyStore.createIndex('by-user', 'userId');
       }
     },
     blocked() {
@@ -416,5 +472,265 @@ export async function clearAllOfflineData(): Promise<void> {
     db.clear('tasks'),
     db.clear('dailyPlans'),
     db.clear('weeklyPlans'),
+    db.clear('drafts'),
+    db.clear('backups'),
+    db.clear('emergencySaves'),
   ]);
+}
+
+// ============ Draft Functions (Prompt 7) ============
+
+export interface DraftEntry {
+  key: string;
+  data: any;
+  timestamp: number;
+  version: string;
+}
+
+/**
+ * Save draft to IndexedDB
+ */
+export async function saveDraftToIDB(key: string, data: any): Promise<boolean> {
+  return safeDbOperation(async (db) => {
+    await db.put('drafts', {
+      key,
+      data,
+      timestamp: Date.now(),
+      version: '2.0',
+    });
+    return true;
+  }, false);
+}
+
+/**
+ * Load draft from IndexedDB
+ */
+export async function loadDraftFromIDB(key: string): Promise<any | null> {
+  return safeDbOperation(async (db) => {
+    const draft = await db.get('drafts', key);
+    return draft?.data ?? null;
+  }, null);
+}
+
+/**
+ * Get draft with metadata from IndexedDB
+ */
+export async function getDraftWithMetadata(key: string): Promise<DraftEntry | null> {
+  return safeDbOperation(async (db) => {
+    return await db.get('drafts', key) ?? null;
+  }, null);
+}
+
+/**
+ * Delete draft from IndexedDB
+ */
+export async function deleteDraftFromIDB(key: string): Promise<boolean> {
+  return safeDbOperation(async (db) => {
+    await db.delete('drafts', key);
+    return true;
+  }, false);
+}
+
+/**
+ * Get all drafts
+ */
+export async function getAllDrafts(): Promise<DraftEntry[]> {
+  return safeDbOperation(async (db) => {
+    return await db.getAll('drafts');
+  }, []);
+}
+
+/**
+ * Cleanup old drafts - keep only the most recent N drafts
+ */
+export async function cleanupOldDrafts(keepCount: number = 50): Promise<number> {
+  return safeDbOperation(async (db) => {
+    const allDrafts = await db.getAll('drafts');
+    
+    if (allDrafts.length <= keepCount) return 0;
+    
+    // Sort by timestamp, oldest first
+    allDrafts.sort((a, b) => a.timestamp - b.timestamp);
+    
+    const toDelete = allDrafts.slice(0, allDrafts.length - keepCount);
+    const tx = db.transaction('drafts', 'readwrite');
+    
+    for (const draft of toDelete) {
+      await tx.store.delete(draft.key);
+    }
+    
+    await tx.done;
+    return toDelete.length;
+  }, 0);
+}
+
+// ============ Backup Functions (Prompt 7) ============
+
+export interface BackupEntry {
+  id: string;
+  userId: string;
+  pageType: string;
+  pageId: string;
+  data: any;
+  timestamp: number;
+}
+
+/**
+ * Save a backup snapshot
+ */
+export async function saveBackup(
+  userId: string,
+  pageType: string,
+  pageId: string,
+  data: any
+): Promise<string> {
+  const id = `${pageType}-${pageId}-${Date.now()}`;
+  
+  await safeDbOperation(async (db) => {
+    await db.put('backups', {
+      id,
+      userId,
+      pageType,
+      pageId,
+      data,
+      timestamp: Date.now(),
+    });
+  });
+  
+  return id;
+}
+
+/**
+ * Load backups for a specific page
+ */
+export async function loadBackups(
+  userId: string,
+  pageType: string
+): Promise<BackupEntry[]> {
+  return safeDbOperation(async (db) => {
+    const allBackups = await db.getAllFromIndex('backups', 'by-user', userId);
+    return allBackups
+      .filter(b => b.pageType === pageType)
+      .sort((a, b) => b.timestamp - a.timestamp);
+  }, []);
+}
+
+/**
+ * Get a specific backup by ID
+ */
+export async function getBackupById(id: string): Promise<BackupEntry | null> {
+  return safeDbOperation(async (db) => {
+    return await db.get('backups', id) ?? null;
+  }, null);
+}
+
+/**
+ * Delete a backup
+ */
+export async function deleteBackup(id: string): Promise<boolean> {
+  return safeDbOperation(async (db) => {
+    await db.delete('backups', id);
+    return true;
+  }, false);
+}
+
+/**
+ * Cleanup old backups - keep only the most recent N per user
+ */
+export async function cleanupOldBackups(userId: string, keepCount: number = 20): Promise<number> {
+  return safeDbOperation(async (db) => {
+    const userBackups = await db.getAllFromIndex('backups', 'by-user', userId);
+    
+    if (userBackups.length <= keepCount) return 0;
+    
+    // Sort by timestamp, oldest first
+    userBackups.sort((a, b) => a.timestamp - b.timestamp);
+    
+    const toDelete = userBackups.slice(0, userBackups.length - keepCount);
+    const tx = db.transaction('backups', 'readwrite');
+    
+    for (const backup of toDelete) {
+      await tx.store.delete(backup.id);
+    }
+    
+    await tx.done;
+    return toDelete.length;
+  }, 0);
+}
+
+// ============ Emergency Save Functions (Prompt 7) ============
+
+export interface EmergencySaveEntry {
+  id: string;
+  userId: string;
+  pageType: string;
+  data: any;
+  timestamp: number;
+}
+
+/**
+ * Save emergency data (for crash recovery)
+ */
+export async function saveEmergencyData(
+  userId: string,
+  pageType: string,
+  data: any
+): Promise<string> {
+  const id = `emergency-${pageType}-${Date.now()}`;
+  
+  await safeDbOperation(async (db) => {
+    await db.put('emergencySaves', {
+      id,
+      userId,
+      pageType,
+      data,
+      timestamp: Date.now(),
+    });
+  });
+  
+  return id;
+}
+
+/**
+ * Get emergency saves for a user
+ */
+export async function getEmergencySaves(userId: string): Promise<EmergencySaveEntry[]> {
+  return safeDbOperation(async (db) => {
+    const saves = await db.getAllFromIndex('emergencySaves', 'by-user', userId);
+    return saves.sort((a, b) => b.timestamp - a.timestamp);
+  }, []);
+}
+
+/**
+ * Delete an emergency save
+ */
+export async function deleteEmergencySave(id: string): Promise<boolean> {
+  return safeDbOperation(async (db) => {
+    await db.delete('emergencySaves', id);
+    return true;
+  }, false);
+}
+
+/**
+ * Cleanup old emergency saves - keep only the most recent N per user
+ */
+export async function cleanupEmergencySaves(userId: string, keepCount: number = 50): Promise<number> {
+  return safeDbOperation(async (db) => {
+    const userSaves = await db.getAllFromIndex('emergencySaves', 'by-user', userId);
+    
+    if (userSaves.length <= keepCount) return 0;
+    
+    // Sort by timestamp, oldest first
+    userSaves.sort((a, b) => a.timestamp - b.timestamp);
+    
+    const toDelete = userSaves.slice(0, userSaves.length - keepCount);
+    const tx = db.transaction('emergencySaves', 'readwrite');
+    
+    for (const save of toDelete) {
+      await tx.store.delete(save.id);
+    }
+    
+    await tx.done;
+    return toDelete.length;
+  }, 0);
 }
