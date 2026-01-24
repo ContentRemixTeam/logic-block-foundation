@@ -42,6 +42,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useProjects } from '@/hooks/useProjects';
 import { useFormDraftProtection } from '@/hooks/useFormDraftProtection';
+import { DraftRestoreBanner, DraftStatusFooter } from '@/components/DraftRestoreBanner';
 import { PaginationInfo } from '@/components/ui/pagination-info';
 
 const PAGE_SIZE = 50;
@@ -146,22 +147,35 @@ export default function Notes() {
     }
   }, [pageModalOpen, pageTitle, pageContent, pageProjectId, pageTags]);
 
-  // Restore draft when modal opens for new page
+  // State to show/hide restore banner
+  const [showPageDraftBanner, setShowPageDraftBanner] = useState(false);
+
+  // Check for draft when modal opens (don't auto-restore)
   useEffect(() => {
-    const restoreDraft = async () => {
-      if (pageModalOpen && !editingPage && pageDraftProtection.hasDraft && !pageTitle && !pageContent) {
-        const draft = await pageDraftProtection.loadDraft();
-        if (draft) {
-          setPageTitle(draft.title || '');
-          setPageContent(draft.content || '');
-          setPageProjectId(draft.projectId);
-          setPageTags(draft.tags || []);
-          toast.success('Draft restored - your previous unsaved page has been restored');
-        }
-      }
-    };
-    restoreDraft();
-  }, [pageModalOpen, editingPage]);
+    if (pageModalOpen && !editingPage && pageDraftProtection.hasDraft && !pageTitle && !pageContent) {
+      setShowPageDraftBanner(true);
+    } else if (!pageModalOpen) {
+      setShowPageDraftBanner(false);
+    }
+  }, [pageModalOpen, editingPage, pageDraftProtection.hasDraft]);
+
+  // Restore draft when user clicks Restore
+  const handleRestorePageDraft = async () => {
+    const draft = await pageDraftProtection.loadDraft();
+    if (draft) {
+      setPageTitle(draft.title || '');
+      setPageContent(draft.content || '');
+      setPageProjectId(draft.projectId);
+      setPageTags(draft.tags || []);
+      toast.success('Draft restored - your previous unsaved page has been restored');
+    }
+    setShowPageDraftBanner(false);
+  };
+
+  const handleDismissPageDraft = async () => {
+    await pageDraftProtection.clearDraft();
+    setShowPageDraftBanner(false);
+  };
 
   // Fetch journal entries
   const { data, isLoading } = useQuery({
@@ -962,6 +976,16 @@ export default function Notes() {
                 {editingPage ? 'Edit Page' : 'New Page'}
               </DialogTitle>
             </DialogHeader>
+            
+            {/* Draft Restore Banner */}
+            {showPageDraftBanner && !editingPage && (
+              <DraftRestoreBanner
+                onRestore={handleRestorePageDraft}
+                onDismiss={handleDismissPageDraft}
+                draftAge={pageDraftProtection.draftTimestamp}
+              />
+            )}
+            
             <div className="flex-1 space-y-4 overflow-y-auto py-4">
               <Input
                 placeholder="Page title..."
@@ -1059,23 +1083,26 @@ export default function Notes() {
               />
               <CharacterCounter current={pageContent.length} max={10000} className="mt-1" />
             </div>
-            <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={closePageModal}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleSavePage}
-                disabled={savePageMutation.isPending}
-              >
-                {savePageMutation.isPending ? (
-                  <>
-                    <span className="animate-spin mr-2">⏳</span>
-                    Saving...
-                  </>
-                ) : (
-                  'Save Page'
-                )}
-              </Button>
+            <DialogFooter className="gap-2 sm:justify-between">
+              <DraftStatusFooter hasDraft={pageDraftProtection.hasDraft && (!!pageTitle || !!pageContent)} />
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={closePageModal}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSavePage}
+                  disabled={savePageMutation.isPending}
+                >
+                  {savePageMutation.isPending ? (
+                    <>
+                      <span className="animate-spin mr-2">⏳</span>
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Page'
+                  )}
+                </Button>
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
