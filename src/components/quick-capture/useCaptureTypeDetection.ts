@@ -1,4 +1,4 @@
-export type CaptureType = 'task' | 'idea' | 'content';
+export type CaptureType = 'task' | 'idea' | 'content' | 'income' | 'expense';
 
 export interface ParsedTask {
   text: string;
@@ -31,6 +31,18 @@ const IDEA_PHRASES = [
   'inspiration', 'consider', 'explore', 'potential'
 ];
 
+// Income-related phrases
+const INCOME_PHRASES = [
+  'sold', 'revenue', 'earned', 'payment received', 'income', 'sale',
+  'client paid', 'got paid', 'received', 'deposit', 'refund received'
+];
+
+// Expense-related phrases
+const EXPENSE_PHRASES = [
+  'spent', 'paid', 'bought', 'subscription', 'cost', 'expense',
+  'purchase', 'bill', 'fee', 'charged', 'payment for'
+];
+
 // Time/date patterns that suggest tasks
 const TIME_DATE_PATTERNS = [
   /\btoday\b/i,
@@ -42,15 +54,54 @@ const TIME_DATE_PATTERNS = [
   /!(high|med|medium|low)/i,
 ];
 
+// Currency pattern (e.g., $50, $100.00)
+const CURRENCY_PATTERN = /^\$\d+(\.\d{2})?/;
+
 /**
  * Enhanced detection with confidence scoring
  */
 export function detectCaptureTypeWithConfidence(input: string): DetectionResult {
   const trimmed = input.trim().toLowerCase();
   
-  // Explicit idea markers - high confidence
+  // Explicit markers - high confidence
   if (trimmed.startsWith('#idea') || trimmed.startsWith('idea:')) {
     return { suggestedType: 'idea', confidence: 'high', reason: 'Explicit idea marker' };
+  }
+  
+  if (trimmed.startsWith('#income') || trimmed.startsWith('income:')) {
+    return { suggestedType: 'income', confidence: 'high', reason: 'Explicit income marker' };
+  }
+  
+  if (trimmed.startsWith('#expense') || trimmed.startsWith('expense:')) {
+    return { suggestedType: 'expense', confidence: 'high', reason: 'Explicit expense marker' };
+  }
+  
+  // Check for currency at start (likely financial)
+  if (CURRENCY_PATTERN.test(trimmed)) {
+    // Check context for income vs expense
+    const hasIncomePhrase = INCOME_PHRASES.some(phrase => trimmed.includes(phrase));
+    const hasExpensePhrase = EXPENSE_PHRASES.some(phrase => trimmed.includes(phrase));
+    
+    if (hasIncomePhrase) {
+      return { suggestedType: 'income', confidence: 'high', reason: 'Currency with income context' };
+    }
+    if (hasExpensePhrase) {
+      return { suggestedType: 'expense', confidence: 'high', reason: 'Currency with expense context' };
+    }
+    // Default currency to expense (more common)
+    return { suggestedType: 'expense', confidence: 'medium', reason: 'Currency pattern detected' };
+  }
+  
+  // Check for income phrases
+  const hasIncomePhrase = INCOME_PHRASES.some(phrase => trimmed.includes(phrase));
+  if (hasIncomePhrase) {
+    return { suggestedType: 'income', confidence: 'medium', reason: 'Contains income-related phrase' };
+  }
+  
+  // Check for expense phrases
+  const hasExpensePhrase = EXPENSE_PHRASES.some(phrase => trimmed.includes(phrase));
+  if (hasExpensePhrase) {
+    return { suggestedType: 'expense', confidence: 'medium', reason: 'Contains expense-related phrase' };
   }
   
   // Check for idea phrases

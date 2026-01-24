@@ -13,7 +13,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTaskMutations } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
-import { Zap, ListTodo, Lightbulb, LogIn, Calendar, Plus, Mic, MicOff, FolderKanban, Clock, Hash, X, FileText, Tag, Check, Loader2 } from 'lucide-react';
+import { Zap, ListTodo, Lightbulb, LogIn, Calendar, Plus, Mic, MicOff, FolderKanban, Clock, Hash, X, FileText, Tag, Check, Loader2, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { getStorageItem, setStorageItem } from '@/lib/storage';
@@ -30,6 +30,7 @@ import { QuickChips } from './QuickChips';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ContentSaveModal } from '@/components/content/ContentSaveModal';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface QuickCaptureModalProps {
   open: boolean;
@@ -49,6 +50,21 @@ interface IdeaCategory {
   id: string;
   name: string;
   color: string;
+}
+
+interface FinancialCategory {
+  id: string;
+  name: string;
+  type: 'income' | 'expense';
+  color: string | null;
+  icon: string | null;
+}
+
+interface FinancialData {
+  amount: string;
+  category: string;
+  description: string;
+  date: string;
 }
 
 const PRIORITY_OPTIONS = [
@@ -86,11 +102,21 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
   const [newIdeaTag, setNewIdeaTag] = useState('');
   const [contentModalOpen, setContentModalOpen] = useState(false);
   
+  // Financial capture state
+  const [financialCategories, setFinancialCategories] = useState<FinancialCategory[]>([]);
+  const [financialData, setFinancialData] = useState<FinancialData>({
+    amount: '',
+    category: '',
+    description: '',
+    date: format(new Date(), 'yyyy-MM-dd'),
+  });
+  
   // Burst mode state for rapid adding
   const [burstModeActive, setBurstModeActive] = useState(false);
   const [savedThisSession, setSavedThisSession] = useState(0);
   const [justSaved, setJustSaved] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const amountInputRef = useRef<HTMLInputElement>(null);
 
   // Recent tags and projects from localStorage
   const [recentTags, setRecentTags] = useState<string[]>(() => {
@@ -178,6 +204,28 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
     }
   }, [open, user]);
 
+  // Fetch financial categories
+  useEffect(() => {
+    const fetchFinancialCategories = async () => {
+      if (!user) return;
+      try {
+        const { data, error } = await supabase
+          .from('financial_categories')
+          .select('id, name, type, color, icon')
+          .order('name');
+        
+        if (!error && data) {
+          setFinancialCategories(data as FinancialCategory[]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch financial categories:', err);
+      }
+    };
+    if (open && user) {
+      fetchFinancialCategories();
+    }
+  }, [open, user]);
+
   // Focus input when modal opens
   useEffect(() => {
     if (open) {
@@ -188,9 +236,18 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
       setSavedThisSession(0);
       setBurstModeActive(false);
       setJustSaved(false);
+      // Reset financial data
+      setFinancialData({
+        amount: '',
+        category: '',
+        description: '',
+        date: format(new Date(), 'yyyy-MM-dd'),
+      });
       // Small delay to ensure modal is rendered
       setTimeout(() => {
-        if (isMobile && textareaRef.current) {
+        if (lastCaptureType === 'income' || lastCaptureType === 'expense') {
+          amountInputRef.current?.focus();
+        } else if (isMobile && textareaRef.current) {
           textareaRef.current.focus();
         } else if (inputRef.current) {
           inputRef.current.focus();
@@ -207,6 +264,12 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
       setSavedThisSession(0);
       setBurstModeActive(false);
       setJustSaved(false);
+      setFinancialData({
+        amount: '',
+        category: '',
+        description: '',
+        date: format(new Date(), 'yyyy-MM-dd'),
+      });
       if (isListening) {
         stopListening();
       }
@@ -374,7 +437,20 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
   };
 
   const handleSave = async () => {
-    if (!input.trim()) return;
+    // For financial types, validate amount and category
+    if (captureType === 'income' || captureType === 'expense') {
+      if (!financialData.amount || parseFloat(financialData.amount) <= 0) {
+        toast.error('Please enter an amount');
+        return;
+      }
+      if (!financialData.category) {
+        toast.error('Please select a category');
+        return;
+      }
+    } else {
+      // For task/idea types, validate input
+      if (!input.trim()) return;
+    }
 
     if (!user) {
       toast.error('Not logged in', {
@@ -426,7 +502,52 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
       let savedId = '';
       let savedText = '';
 
-      if (captureType === 'idea') {
+      if (captureType === 'income' || captureType === 'expense') {
+        // Save as financial transaction
+        const amount = parseFloat(financialData.amount);
+        savedText = `$${amount.toFixed(2)} - ${financialData.category}`;
+        
+        const { data, error } = await supabase
+          .from('financial_transactions')
+          .insert({
+            user_id: user.id,
+            type: captureType,
+            amount: amount,
+            category: financialData.category,
+            description: financialData.description || null,
+            date: financialData.date,
+            payment_method: null,
+            is_recurring: false,
+            recurring_frequency: null,
+            tags: null,
+            notes: null,
+          })
+          .select()
+          .single();
+        
+        if (error) throw error;
+        
+        savedId = data?.id || '';
+        queryClient.invalidateQueries({ queryKey: ['financial-transactions'] });
+        
+        // Show success toast with navigation option
+        const emoji = captureType === 'income' ? '💰' : '📝';
+        const label = captureType === 'income' ? 'Income' : 'Expense';
+        
+        if (stayOpenAfterSave || burstModeActive) {
+          if (isMobile) triggerHaptic();
+          toast.success(`${emoji} ${label} added!`, { duration: 1000 });
+        } else {
+          toast.success(`${emoji} ${label} recorded!`, {
+            description: savedText,
+            duration: 5000,
+            action: {
+              label: 'View Finances',
+              onClick: () => navigate('/finances'),
+            },
+          });
+        }
+      } else if (captureType === 'idea') {
         // Save as idea with new fields
         const ideaContent = cleanIdeaInput(input);
         savedText = ideaContent;
@@ -474,6 +595,12 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
         setNewIdeaTag('');
         setShowConvertChips(false);
         setUserOverrodeType(false);
+        setFinancialData({
+          amount: '',
+          category: '',
+          description: '',
+          date: format(new Date(), 'yyyy-MM-dd'),
+        });
         
         // Update session count
         setSavedThisSession(prev => prev + 1);
@@ -482,17 +609,21 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
         setJustSaved(true);
         setTimeout(() => setJustSaved(false), 500);
         
-        // Haptic + toast
-        if (isMobile) {
-          triggerHaptic();
+        // Haptic + toast (financial types already toasted above)
+        if (captureType !== 'income' && captureType !== 'expense') {
+          if (isMobile) {
+            triggerHaptic();
+          }
+          toast.success(savedType === 'task' ? '✅ Task saved' : '💡 Idea saved', {
+            duration: 1000,
+          });
         }
-        toast.success(savedType === 'task' ? '✅ Task saved' : '💡 Idea saved', {
-          duration: 1000,
-        });
         
         // Refocus input after a short delay
         setTimeout(() => {
-          if (isMobile && textareaRef.current) {
+          if (captureType === 'income' || captureType === 'expense') {
+            amountInputRef.current?.focus();
+          } else if (isMobile && textareaRef.current) {
             textareaRef.current.focus();
           } else if (inputRef.current) {
             inputRef.current.focus();
@@ -502,9 +633,11 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
         // Close modal and show actionable toast
         onOpenChange(false);
         
-        setTimeout(() => {
-          showActionableToast(savedText, savedId, savedType);
-        }, 100);
+        if (captureType !== 'income' && captureType !== 'expense') {
+          setTimeout(() => {
+            showActionableToast(savedText, savedId, savedType);
+          }, 100);
+        }
       }
 
     } catch (error: any) {
@@ -603,13 +736,13 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
       {/* Logged in content */}
       {user && (
         <>
-          {/* Type selector - segmented control */}
-          <div className="inline-flex rounded-lg border bg-muted p-1 gap-1">
+          {/* Type selector - segmented control with scroll for overflow */}
+          <div className="inline-flex rounded-lg border bg-muted p-1 gap-1 overflow-x-auto">
             <button
               type="button"
               onClick={() => toggleCaptureType('task', true)}
               className={cn(
-                "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all",
+                "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap",
                 captureType === 'task'
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground hover:bg-background/50"
@@ -622,7 +755,7 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
               type="button"
               onClick={() => toggleCaptureType('idea', true)}
               className={cn(
-                "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all",
+                "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap",
                 captureType === 'idea'
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground hover:bg-background/50"
@@ -635,7 +768,7 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
               type="button"
               onClick={() => toggleCaptureType('content', true)}
               className={cn(
-                "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all",
+                "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap",
                 captureType === 'content'
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground hover:bg-background/50"
@@ -644,64 +777,174 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
               <FileText className="h-4 w-4" />
               Content
             </button>
+            <button
+              type="button"
+              onClick={() => toggleCaptureType('income', true)}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap",
+                captureType === 'income'
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+              )}
+            >
+              <TrendingUp className="h-4 w-4" />
+              Income
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleCaptureType('expense', true)}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap",
+                captureType === 'expense'
+                  ? "bg-rose-600 text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+              )}
+            >
+              <TrendingDown className="h-4 w-4" />
+              Expense
+            </button>
           </div>
 
-          {/* Input field with mic button */}
-          <div className="relative">
-            <Input
-              ref={inputRef}
-              value={isListening ? input + interimText : input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onPaste={handlePaste}
-              placeholder={
-                isListening 
-                  ? "Listening..."
-                  : captureType === 'task'
-                    ? "Call client tomorrow 2pm 30m !high #sales"
-                    : "Start with #idea or idea: for ideas..."
-              }
-              className={cn(
-                "text-base h-12 pr-12",
-                isListening && "border-primary ring-2 ring-primary/20"
-              )}
-              autoComplete="off"
-              disabled={isListening}
-            />
-            
-            {/* Mic button */}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleMicClick}
-                    disabled={!speechSupported}
-                    className={cn(
-                      "absolute right-1 top-1/2 -translate-y-1/2 h-10 w-10",
-                      isListening && "text-primary animate-pulse"
-                    )}
-                  >
-                    {isListening ? (
-                      <MicOff className="h-5 w-5" />
-                    ) : (
-                      <Mic className="h-5 w-5" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {!speechSupported 
-                    ? "Voice capture isn't supported in this browser"
-                    : isListening 
-                      ? "Stop listening" 
-                      : "Start voice capture"
+          {/* Financial form for income/expense */}
+          {(captureType === 'income' || captureType === 'expense') && (
+            <div className="space-y-3">
+              {/* Amount input */}
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                  ref={amountInputRef}
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={financialData.amount}
+                  onChange={(e) => setFinancialData(prev => ({ ...prev, amount: e.target.value }))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSave();
+                    }
+                  }}
+                  placeholder="0.00"
+                  className="text-xl h-14 pl-10 font-semibold"
+                  autoComplete="off"
+                />
+              </div>
+              
+              {/* Category select */}
+              <Select
+                value={financialData.category}
+                onValueChange={(value) => setFinancialData(prev => ({ ...prev, category: value }))}
+              >
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {financialCategories
+                    .filter(cat => cat.type === captureType)
+                    .map(cat => (
+                      <SelectItem key={cat.id} value={cat.name}>
+                        <span className="flex items-center gap-2">
+                          {cat.color && (
+                            <span 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: cat.color }}
+                            />
+                          )}
+                          {cat.name}
+                        </span>
+                      </SelectItem>
+                    ))
                   }
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
+                  {financialCategories.filter(cat => cat.type === captureType).length === 0 && (
+                    <SelectItem value="_none" disabled>
+                      No categories yet
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+              
+              {/* Description (optional) */}
+              <Input
+                value={financialData.description}
+                onChange={(e) => setFinancialData(prev => ({ ...prev, description: e.target.value }))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSave();
+                  }
+                }}
+                placeholder="Description (optional)"
+                className="h-10"
+              />
+              
+              {/* Date */}
+              <Input
+                type="date"
+                value={financialData.date}
+                onChange={(e) => setFinancialData(prev => ({ ...prev, date: e.target.value }))}
+                className="h-10"
+              />
+            </div>
+          )}
+
+          {/* Input field with mic button - only show for task/idea */}
+          {captureType !== 'income' && captureType !== 'expense' && (
+            <div className="relative">
+              <Input
+                ref={inputRef}
+                value={isListening ? input + interimText : input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
+                placeholder={
+                  isListening 
+                    ? "Listening..."
+                    : captureType === 'task'
+                      ? "Call client tomorrow 2pm 30m !high #sales"
+                      : "Start with #idea or idea: for ideas..."
+                }
+                className={cn(
+                  "text-base h-12 pr-12",
+                  isListening && "border-primary ring-2 ring-primary/20"
+                )}
+                autoComplete="off"
+                disabled={isListening}
+              />
+              
+              {/* Mic button */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleMicClick}
+                      disabled={!speechSupported}
+                      className={cn(
+                        "absolute right-1 top-1/2 -translate-y-1/2 h-10 w-10",
+                        isListening && "text-primary animate-pulse"
+                      )}
+                    >
+                      {isListening ? (
+                        <MicOff className="h-5 w-5" />
+                      ) : (
+                        <Mic className="h-5 w-5" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {!speechSupported 
+                      ? "Voice capture isn't supported in this browser"
+                      : isListening 
+                        ? "Stop listening" 
+                        : "Start voice capture"
+                    }
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          )}
 
           {/* Listening indicator */}
           {isListening && (
@@ -955,10 +1198,23 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
           {/* Save button */}
           <Button
             onClick={handleSave}
-            disabled={!input.trim() || saving}
-            className="w-full h-12"
+            disabled={
+              (captureType === 'income' || captureType === 'expense') 
+                ? (!financialData.amount || !financialData.category || saving)
+                : (!input.trim() || saving)
+            }
+            className={cn(
+              "w-full h-12",
+              captureType === 'income' && "bg-emerald-600 hover:bg-emerald-700",
+              captureType === 'expense' && "bg-rose-600 hover:bg-rose-700"
+            )}
           >
-            {saving ? 'Saving...' : `Save ${captureType === 'task' ? (isMultiLine ? `${lines.length} Tasks` : 'Task') : 'Idea'}`}
+            {saving ? 'Saving...' : 
+              captureType === 'income' ? 'Add Income' :
+              captureType === 'expense' ? 'Add Expense' :
+              captureType === 'task' ? (isMultiLine ? `Save ${lines.length} Tasks` : 'Save Task') : 
+              'Save Idea'
+            }
           </Button>
 
           {/* Hint text */}
@@ -1014,13 +1270,13 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
         {/* Logged in content */}
         {user && (
           <>
-            {/* Compact type selector */}
-            <div className="flex gap-1">
+            {/* Compact type selector - scrollable */}
+            <div className="flex gap-1 overflow-x-auto pb-1">
               <button
                 type="button"
                 onClick={() => toggleCaptureType('task', true)}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium rounded-lg transition-all touch-manipulation",
+                  "flex items-center justify-center gap-1 px-3 py-2.5 text-sm font-medium rounded-lg transition-all touch-manipulation whitespace-nowrap",
                   captureType === 'task'
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "bg-muted text-muted-foreground"
@@ -1033,7 +1289,7 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
                 type="button"
                 onClick={() => toggleCaptureType('idea', true)}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium rounded-lg transition-all touch-manipulation",
+                  "flex items-center justify-center gap-1 px-3 py-2.5 text-sm font-medium rounded-lg transition-all touch-manipulation whitespace-nowrap",
                   captureType === 'idea'
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "bg-muted text-muted-foreground"
@@ -1044,69 +1300,120 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
               </button>
               <button
                 type="button"
-                onClick={() => toggleCaptureType('content', true)}
+                onClick={() => toggleCaptureType('income', true)}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium rounded-lg transition-all touch-manipulation",
-                  captureType === 'content'
-                    ? "bg-primary text-primary-foreground shadow-sm"
+                  "flex items-center justify-center gap-1 px-3 py-2.5 text-sm font-medium rounded-lg transition-all touch-manipulation whitespace-nowrap",
+                  captureType === 'income'
+                    ? "bg-emerald-600 text-white shadow-sm"
                     : "bg-muted text-muted-foreground"
                 )}
               >
-                <FileText className="h-4 w-4" />
-                Content
+                <TrendingUp className="h-4 w-4" />
+                Income
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleCaptureType('expense', true)}
+                className={cn(
+                  "flex items-center justify-center gap-1 px-3 py-2.5 text-sm font-medium rounded-lg transition-all touch-manipulation whitespace-nowrap",
+                  captureType === 'expense'
+                    ? "bg-rose-600 text-white shadow-sm"
+                    : "bg-muted text-muted-foreground"
+                )}
+              >
+                <TrendingDown className="h-4 w-4" />
+                Expense
               </button>
             </div>
 
-            {/* Multi-line Textarea for bulk entry */}
-            <div className="relative">
-              <Textarea
-                ref={textareaRef}
-                value={isListening ? input + interimText : input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  // Cmd/Ctrl + Enter to save
-                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                    e.preventDefault();
-                    handleSave();
+            {/* Financial form for income/expense on mobile */}
+            {(captureType === 'income' || captureType === 'expense') && (
+              <div className="space-y-3">
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    ref={amountInputRef}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={financialData.amount}
+                    onChange={(e) => setFinancialData(prev => ({ ...prev, amount: e.target.value }))}
+                    placeholder="0.00"
+                    className="text-xl h-14 pl-10 font-semibold"
+                  />
+                </div>
+                <Select
+                  value={financialData.category}
+                  onValueChange={(value) => setFinancialData(prev => ({ ...prev, category: value }))}
+                >
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {financialCategories
+                      .filter(cat => cat.type === captureType)
+                      .map(cat => (
+                        <SelectItem key={cat.id} value={cat.name}>
+                          {cat.name}
+                        </SelectItem>
+                      ))
+                    }
+                  </SelectContent>
+                </Select>
+                <Input
+                  value={financialData.description}
+                  onChange={(e) => setFinancialData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Description (optional)"
+                  className="h-10"
+                />
+              </div>
+            )}
+
+            {/* Multi-line Textarea for bulk entry - only for task/idea */}
+            {captureType !== 'income' && captureType !== 'expense' && (
+              <div className="relative">
+                <Textarea
+                  ref={textareaRef}
+                  value={isListening ? input + interimText : input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                      e.preventDefault();
+                      handleSave();
+                    }
+                  }}
+                  onPaste={handlePaste}
+                  placeholder={
+                    isListening 
+                      ? "Listening..."
+                      : captureType === 'task'
+                        ? "Add tasks (one per line for bulk)"
+                        : "Add idea..."
                   }
-                }}
-                onPaste={handlePaste}
-                placeholder={
-                  isListening 
-                    ? "Listening..."
-                    : captureType === 'task'
-                      ? "Add tasks (one per line for bulk)\n\nExamples:\nCall client tomorrow\nReview proposal !high\nTeam sync 30m #meeting"
-                      : "Add idea..."
-                }
-                className={cn(
-                  "text-base min-h-[100px] resize-none pr-12 transition-all",
-                  isListening && "border-primary ring-2 ring-primary/20",
-                  isMultiLine && "min-h-[140px] border-primary/50"
-                )}
-                autoComplete="off"
-                disabled={isListening}
-                rows={isMultiLine ? 5 : 3}
-              />
-              
-              {/* Mic button */}
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={handleMicClick}
-                disabled={!speechSupported}
-                className={cn(
-                  "absolute right-1 top-2 h-10 w-10",
-                  isListening && "text-primary animate-pulse"
-                )}
-              >
-                {isListening ? (
-                  <MicOff className="h-5 w-5" />
-                ) : (
-                  <Mic className="h-5 w-5" />
-                )}
-              </Button>
-            </div>
+                  className={cn(
+                    "text-base min-h-[100px] resize-none pr-12 transition-all",
+                    isListening && "border-primary ring-2 ring-primary/20",
+                    isMultiLine && "min-h-[140px] border-primary/50"
+                  )}
+                  autoComplete="off"
+                  disabled={isListening}
+                  rows={isMultiLine ? 5 : 3}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleMicClick}
+                  disabled={!speechSupported}
+                  className={cn(
+                    "absolute right-1 top-2 h-10 w-10",
+                    isListening && "text-primary animate-pulse"
+                  )}
+                >
+                  {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                </Button>
+              </div>
+            )}
 
             {/* Listening indicator */}
             {isListening && (
@@ -1218,10 +1525,16 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
                 setBurstModeActive(false);
                 handleSave();
               }}
-              disabled={!input.trim() || saving}
+              disabled={
+                (captureType === 'income' || captureType === 'expense') 
+                  ? (!financialData.amount || !financialData.category || saving)
+                  : (!input.trim() || saving)
+              }
               className={cn(
                 "flex-1 h-12 transition-all",
-                justSaved && "bg-green-600 hover:bg-green-700"
+                justSaved && "bg-green-600 hover:bg-green-700",
+                captureType === 'income' && !justSaved && "bg-emerald-600 hover:bg-emerald-700",
+                captureType === 'expense' && !justSaved && "bg-rose-600 hover:bg-rose-700"
               )}
             >
               {saving ? (
