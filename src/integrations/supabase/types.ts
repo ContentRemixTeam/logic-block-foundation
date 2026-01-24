@@ -2016,6 +2016,7 @@ export type Database = {
           amount: number
           category: string
           created_at: string
+          cycle_id: string | null
           date: string
           description: string | null
           id: string
@@ -2032,6 +2033,7 @@ export type Database = {
           amount: number
           category: string
           created_at?: string
+          cycle_id?: string | null
           date?: string
           description?: string | null
           id?: string
@@ -2048,6 +2050,7 @@ export type Database = {
           amount?: number
           category?: string
           created_at?: string
+          cycle_id?: string | null
           date?: string
           description?: string | null
           id?: string
@@ -2060,7 +2063,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "financial_transactions_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+        ]
       }
       google_calendar_connection: {
         Row: {
