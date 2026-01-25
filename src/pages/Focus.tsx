@@ -1,16 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { PageHeader } from '@/components/ui/page-header';
 import { CutePomodoro } from '@/components/focus/CutePomodoro';
 import { FocusPetDisplay } from '@/components/focus/FocusPetDisplay';
 import { FocusTaskList } from '@/components/focus/FocusTaskList';
 import { useFocusTasks, FocusTask } from '@/hooks/useFocusTasks';
+import { useArcade } from '@/hooks/useArcade';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function Focus() {
+  const navigate = useNavigate();
+  const { settings: arcadeSettings, isLoading: arcadeLoading } = useArcade();
   const { 
     focusTasks, 
     availableTasks, 
@@ -24,6 +28,13 @@ export default function Focus() {
   } = useFocusTasks();
   const [activeTask, setActiveTask] = useState<FocusTask | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Redirect if arcade/gamification is disabled
+  useEffect(() => {
+    if (!arcadeLoading && !arcadeSettings.arcade_enabled) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [arcadeLoading, arcadeSettings.arcade_enabled, navigate]);
 
   const handleStartTimer = (task: FocusTask) => {
     setActiveTask(task);
@@ -54,7 +65,8 @@ export default function Focus() {
     await refetch();
   };
 
-  if (isLoading) {
+  // Show loading while checking settings or loading data
+  if (arcadeLoading || isLoading) {
     return (
       <Layout>
         <div className="container max-w-4xl mx-auto px-4 py-8 space-y-8">
@@ -64,6 +76,11 @@ export default function Focus() {
         </div>
       </Layout>
     );
+  }
+
+  // Don't render if arcade is disabled (redirect will happen via useEffect)
+  if (!arcadeSettings.arcade_enabled) {
+    return null;
   }
 
   // Fullscreen mode
