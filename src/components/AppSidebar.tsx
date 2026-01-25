@@ -58,6 +58,7 @@ import { cn } from '@/lib/utils';
 import { useQuickCapture } from '@/components/quick-capture';
 import { supabase } from '@/integrations/supabase/client';
 import { useArcade } from '@/hooks/useArcade';
+import { SidebarProjectsDropdown } from '@/components/sidebar/SidebarProjectsDropdown';
 
 const MAIN_NAV = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, questIcon: '🗺️' },
@@ -65,7 +66,6 @@ const MAIN_NAV = [
   { name: 'Smart Wizards', href: '/wizards', icon: Sparkles, questIcon: '🪄' },
   { name: 'Planning', href: '/planning', icon: CalendarDays, questIcon: '🧭' },
   { name: 'Tasks', href: '/tasks', icon: ListTodo, questIcon: '📜' },
-  { name: 'Projects', href: '/projects', icon: FolderKanban, questIcon: '📁' },
 ];
 
 const ORGANIZE_NAV = [
@@ -286,6 +286,7 @@ export function AppSidebar() {
       {/* Navigation */}
       <SidebarContent className="py-2">
         <NavSection items={MAIN_NAV} showLabel={false} />
+        <SidebarProjectsDropdown />
         <NavSection label="Organize" items={ORGANIZE_NAV} />
         <NavSection label="Review" items={REVIEW_NAV} />
         <NavSection label="Mindset" items={MINDSET_NAV} />
