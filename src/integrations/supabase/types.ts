@@ -443,6 +443,7 @@ export type Database = {
           click_rate: number | null
           comments: number | null
           created_at: string
+          creation_task_id: string | null
           cta: string | null
           cycle_id: string | null
           hook: string | null
@@ -452,8 +453,11 @@ export type Database = {
           notes: string | null
           offer: string | null
           open_rate: number | null
+          planned_creation_date: string | null
+          planned_publish_date: string | null
           preview_text: string | null
           project_id: string | null
+          publish_task_id: string | null
           published_at: string | null
           revenue: number | null
           saves: number | null
@@ -475,6 +479,7 @@ export type Database = {
           click_rate?: number | null
           comments?: number | null
           created_at?: string
+          creation_task_id?: string | null
           cta?: string | null
           cycle_id?: string | null
           hook?: string | null
@@ -484,8 +489,11 @@ export type Database = {
           notes?: string | null
           offer?: string | null
           open_rate?: number | null
+          planned_creation_date?: string | null
+          planned_publish_date?: string | null
           preview_text?: string | null
           project_id?: string | null
+          publish_task_id?: string | null
           published_at?: string | null
           revenue?: number | null
           saves?: number | null
@@ -507,6 +515,7 @@ export type Database = {
           click_rate?: number | null
           comments?: number | null
           created_at?: string
+          creation_task_id?: string | null
           cta?: string | null
           cycle_id?: string | null
           hook?: string | null
@@ -516,8 +525,11 @@ export type Database = {
           notes?: string | null
           offer?: string | null
           open_rate?: number | null
+          planned_creation_date?: string | null
+          planned_publish_date?: string | null
           preview_text?: string | null
           project_id?: string | null
+          publish_task_id?: string | null
           published_at?: string | null
           revenue?: number | null
           saves?: number | null

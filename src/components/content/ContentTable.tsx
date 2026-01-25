@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
-import { MoreHorizontal, Copy, Edit, Trash2, CheckCircle2, Send, ExternalLink, FileText } from 'lucide-react';
+import { MoreHorizontal, Copy, Edit, Trash2, CheckCircle2, Send, ExternalLink, FileText, CalendarIcon } from 'lucide-react';
 import { ContentItem, ContentType, ContentStatus } from '@/lib/contentService';
 import { toast } from 'sonner';
 
@@ -53,14 +53,14 @@ export function ContentTable({ items, onEdit, onDuplicate, onDelete, onMarkPubli
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead className="w-[300px]">Title</TableHead>
+            <TableHead className="w-[250px]">Title</TableHead>
             <TableHead className="w-[100px]">Type</TableHead>
-            <TableHead className="w-[100px]">Status</TableHead>
+            <TableHead className="w-[80px]">Status</TableHead>
             <TableHead className="w-[100px]">Channel</TableHead>
-            <TableHead className="w-[120px]">Topic</TableHead>
-            <TableHead className="w-[150px]">Tags</TableHead>
-            <TableHead className="w-[120px]">Published</TableHead>
-            <TableHead className="w-[100px]">Offer</TableHead>
+            <TableHead className="w-[100px]">Create Due</TableHead>
+            <TableHead className="w-[100px]">Publish Due</TableHead>
+            <TableHead className="w-[100px]">Published</TableHead>
+            <TableHead className="w-[80px]">Offer</TableHead>
             <TableHead className="w-[60px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -105,27 +105,28 @@ export function ContentTable({ items, onEdit, onDuplicate, onDelete, onMarkPubli
                   </span>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm text-muted-foreground line-clamp-1">
-                    {item.topic || '—'}
-                  </span>
+                  {item.planned_creation_date ? (
+                    <span className="text-sm flex items-center gap-1">
+                      <CalendarIcon className="h-3 w-3 text-muted-foreground" />
+                      {format(parseISO(item.planned_creation_date), 'MMM d')}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">—</span>
+                  )}
                 </TableCell>
                 <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {item.tags.slice(0, 2).map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                    {item.tags.length > 2 && (
-                      <Badge variant="secondary" className="text-xs">
-                        +{item.tags.length - 2}
-                      </Badge>
-                    )}
-                  </div>
+                  {item.planned_publish_date ? (
+                    <span className="text-sm flex items-center gap-1">
+                      <CalendarIcon className="h-3 w-3 text-muted-foreground" />
+                      {format(parseISO(item.planned_publish_date), 'MMM d')}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">—</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <span className="text-sm text-muted-foreground">
-                    {item.published_at ? format(new Date(item.published_at), 'MMM d, yyyy') : '—'}
+                    {item.published_at ? format(new Date(item.published_at), 'MMM d') : '—'}
                   </span>
                 </TableCell>
                 <TableCell>

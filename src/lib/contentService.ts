@@ -38,6 +38,11 @@ export interface ContentItem {
   saves: number | null;
   subscribers_gained: number | null;
   revenue: number | null;
+  // Task scheduling dates
+  planned_creation_date: string | null;
+  planned_publish_date: string | null;
+  creation_task_id: string | null;
+  publish_task_id: string | null;
 }
 
 export interface ContentSendLog {
@@ -228,6 +233,8 @@ export async function createContentItem(item: Partial<ContentItem>): Promise<Con
     cycle_id: item.cycle_id,
     project_id: item.project_id,
     user_id: user.id,
+    planned_creation_date: item.planned_creation_date || null,
+    planned_publish_date: item.planned_publish_date || null,
   };
 
   const { data, error } = await supabase

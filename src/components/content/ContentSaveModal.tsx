@@ -11,7 +11,9 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
-import { X, Loader2, Save, FileText, Mail, Video, Mic, PenTool, Megaphone, ExternalLink, Clock, Tag, CheckCircle, BarChart3, Eye, MousePointer, Heart, MessageCircle, Share2, Bookmark, Users, DollarSign } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { X, Loader2, Save, FileText, Mail, Video, Mic, PenTool, Megaphone, ExternalLink, Clock, Tag, CheckCircle, BarChart3, Eye, MousePointer, Heart, MessageCircle, Share2, Bookmark, Users, DollarSign, CalendarIcon } from 'lucide-react';
 import { 
   ContentItem, 
   ContentType, 
@@ -22,7 +24,7 @@ import {
   CONTENT_CHANNELS,
 } from '@/lib/contentService';
 import { useContentItemForm } from '@/hooks/useContentItemForm';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 interface ContentSaveModalProps {
@@ -307,6 +309,118 @@ export function ContentSaveModal({
                               </button>
                             </Badge>
                           ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Schedule Tasks Section */}
+                    <Separator className="my-4" />
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-sm font-medium flex items-center gap-2">
+                            <CalendarIcon className="h-4 w-4" />
+                            Schedule Tasks (Optional)
+                          </Label>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Create tasks with due dates for this content
+                          </p>
+                        </div>
+                        <Switch
+                          checked={formData.create_tasks_for_dates}
+                          onCheckedChange={(checked) => updateField('create_tasks_for_dates', checked)}
+                        />
+                      </div>
+                      
+                      {formData.create_tasks_for_dates && (
+                        <div className="grid grid-cols-2 gap-4">
+                          {/* Creation Date Picker */}
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">Creation Due Date</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button 
+                                  variant="outline" 
+                                  className={cn(
+                                    "w-full justify-start h-11",
+                                    !formData.planned_creation_date && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {formData.planned_creation_date 
+                                    ? format(parseISO(formData.planned_creation_date), 'PPP')
+                                    : 'Select date...'}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={formData.planned_creation_date ? parseISO(formData.planned_creation_date) : undefined}
+                                  onSelect={(date) => updateField('planned_creation_date', date ? format(date, 'yyyy-MM-dd') : '')}
+                                  initialFocus
+                                  className={cn("p-3 pointer-events-auto")}
+                                />
+                              </PopoverContent>
+                            </Popover>
+                            <p className="text-xs text-muted-foreground">
+                              Creates a task: "✍️ Create: [Title]"
+                            </p>
+                            {formData.planned_creation_date && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-7 text-xs"
+                                onClick={() => updateField('planned_creation_date', '')}
+                              >
+                                <X className="h-3 w-3 mr-1" />
+                                Clear
+                              </Button>
+                            )}
+                          </div>
+                          
+                          {/* Publish Date Picker */}
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">Publish Due Date</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button 
+                                  variant="outline" 
+                                  className={cn(
+                                    "w-full justify-start h-11",
+                                    !formData.planned_publish_date && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {formData.planned_publish_date 
+                                    ? format(parseISO(formData.planned_publish_date), 'PPP')
+                                    : 'Select date...'}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={formData.planned_publish_date ? parseISO(formData.planned_publish_date) : undefined}
+                                  onSelect={(date) => updateField('planned_publish_date', date ? format(date, 'yyyy-MM-dd') : '')}
+                                  initialFocus
+                                  className={cn("p-3 pointer-events-auto")}
+                                />
+                              </PopoverContent>
+                            </Popover>
+                            <p className="text-xs text-muted-foreground">
+                              Creates a task: "📤 Publish: [Title]"
+                            </p>
+                            {formData.planned_publish_date && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-7 text-xs"
+                                onClick={() => updateField('planned_publish_date', '')}
+                              >
+                                <X className="h-3 w-3 mr-1" />
+                                Clear
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
