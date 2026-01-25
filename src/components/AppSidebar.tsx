@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
+import { useUserSettings } from '@/hooks/useUserSettings';
 import {
   Sidebar,
   SidebarContent,
@@ -99,7 +100,7 @@ const COMMUNITY_NAV = [
 ];
 
 const SETTINGS_NAV = [
-  { name: 'Settings', href: '/settings', icon: Settings, questIcon: '⚙️' },
+  { name: 'Settings', href: '/settings', icon: Settings, questIcon: '⚙️', dataTour: 'settings' },
   { name: 'Trash', href: '/trash', icon: Trash2, questIcon: '🗑️' },
   { name: 'Support', href: '/support', icon: HelpCircle, questIcon: '❓' },
 ];
@@ -111,6 +112,7 @@ export function AppSidebar() {
   const { isQuestMode, themeLoaded, level, currentLevelXP, xpToNextLevel, levelTitle } = useTheme();
   const { openQuickCapture } = useQuickCapture();
   const { settings: arcadeSettings, isLoading: arcadeLoading } = useArcade();
+  const { settings: userSettings } = useUserSettings();
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -161,62 +163,73 @@ export function AppSidebar() {
     showLabel = true,
   }: { 
     label?: string; 
-    items: Array<{ name: string; href: string; icon: any; questIcon: string; isExternal?: boolean; isActiveCheck?: (path: string) => boolean }>;
+    items: Array<{ name: string; href: string; icon: any; questIcon: string; isExternal?: boolean; isActiveCheck?: (path: string) => boolean; settingsKey?: string; dataTour?: string }>;
     showLabel?: boolean;
-  }) => (
-    <SidebarGroup>
-      {showLabel && label && sidebarOpen && (
-        <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold px-3 mb-1">
-          {label}
-        </SidebarGroupLabel>
-      )}
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {items.map((item) => (
-            <SidebarMenuItem key={item.href}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={!item.isExternal && isActive(item)}
-                    className={cn(
-                      "h-9 gap-3 transition-all duration-150",
-                      !item.isExternal && isActive(item) && "bg-primary/10 text-primary font-medium"
-                    )}
-                  >
-                    {item.isExternal ? (
-                      <a href={item.href} target="_blank" rel="noopener noreferrer">
-                        {isQuestMode ? (
-                          <span className="text-base w-5 text-center">{item.questIcon}</span>
-                        ) : (
-                          <item.icon className="h-4 w-4" />
-                        )}
-                        <span className="truncate">{item.name}</span>
-                      </a>
-                    ) : (
-                      <Link to={item.href}>
-                        {isQuestMode ? (
-                          <span className="text-base w-5 text-center">{item.questIcon}</span>
-                        ) : (
-                          <item.icon className="h-4 w-4" />
-                        )}
-                        <span className="truncate">{item.name}</span>
-                      </Link>
-                    )}
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                {!sidebarOpen && (
-                  <TooltipContent side="right" className="font-medium">
-                    {item.name}
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  );
+  }) => {
+    // Filter items based on user settings
+    const visibleItems = items.filter(item => {
+      if (!item.settingsKey) return true; // No setting = always show
+      if (!userSettings) return true; // Settings not loaded = show all
+      return (userSettings as Record<string, unknown>)[item.settingsKey] === true;
+    });
+
+    if (visibleItems.length === 0) return null; // Hide section if empty
+
+    return (
+      <SidebarGroup>
+        {showLabel && label && sidebarOpen && (
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold px-3 mb-1">
+            {label}
+          </SidebarGroupLabel>
+        )}
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {visibleItems.map((item) => (
+              <SidebarMenuItem key={item.href}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={!item.isExternal && isActive(item)}
+                      className={cn(
+                        "h-9 gap-3 transition-all duration-150",
+                        !item.isExternal && isActive(item) && "bg-primary/10 text-primary font-medium"
+                      )}
+                    >
+                      {item.isExternal ? (
+                        <a href={item.href} target="_blank" rel="noopener noreferrer" data-tour={item.dataTour}>
+                          {isQuestMode ? (
+                            <span className="text-base w-5 text-center">{item.questIcon}</span>
+                          ) : (
+                            <item.icon className="h-4 w-4" />
+                          )}
+                          <span className="truncate">{item.name}</span>
+                        </a>
+                      ) : (
+                        <Link to={item.href} data-tour={item.dataTour}>
+                          {isQuestMode ? (
+                            <span className="text-base w-5 text-center">{item.questIcon}</span>
+                          ) : (
+                            <item.icon className="h-4 w-4" />
+                          )}
+                          <span className="truncate">{item.name}</span>
+                        </Link>
+                      )}
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                  {!sidebarOpen && (
+                    <TooltipContent side="right" className="font-medium">
+                      {item.name}
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    );
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">

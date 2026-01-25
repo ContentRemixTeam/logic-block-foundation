@@ -69,6 +69,13 @@ const tourSteps: TourStep[] = [
     placement: 'right',
   },
   {
+    id: 'settings-customize',
+    target: '[data-tour="settings"]',
+    title: 'Customize Your Experience',
+    content: "All features are enabled by default! Visit Settings anytime to turn features on or off – like the Finance Tracker, gamification, and more.",
+    placement: 'right',
+  },
+  {
     id: 'arcade',
     target: '[data-tour="arcade"]',
     title: 'Daily Tasks & Pet Mode 🐣',
