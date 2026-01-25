@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, Calendar, CalendarRange, Target, CheckCircle2 } from 'lucide-react';
+import { CalendarDays, Calendar, CalendarRange, Target, CheckCircle2, Sparkles, FileText, BarChart3 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Layout } from '@/components/Layout';
 import { cn } from '@/lib/utils';
@@ -47,6 +47,41 @@ const planningCards: PlanningCard[] = [
     title: '90-Day Goals',
     description: 'Define your quarterly goal and milestones.',
     href: '/cycle-setup',
+    icon: Target,
+    iconColorClass: 'text-status-waiting',
+    iconBgClass: 'bg-status-waiting/10',
+  },
+];
+
+const reviewCards: PlanningCard[] = [
+  {
+    title: 'Daily Review',
+    description: 'Reflect on your day and celebrate wins.',
+    href: '/daily-review',
+    icon: Sparkles,
+    iconColorClass: 'text-primary',
+    iconBgClass: 'bg-primary/10',
+  },
+  {
+    title: 'Weekly Review',
+    description: 'Review your week and plan ahead.',
+    href: '/weekly-review',
+    icon: FileText,
+    iconColorClass: 'text-status-scheduled',
+    iconBgClass: 'bg-status-scheduled/10',
+  },
+  {
+    title: 'Monthly Review',
+    description: 'Assess your monthly progress and lessons.',
+    href: '/monthly-review',
+    icon: BarChart3,
+    iconColorClass: 'text-status-backlog',
+    iconBgClass: 'bg-status-backlog/10',
+  },
+  {
+    title: '90-Day Summary',
+    description: 'Summarize your quarterly cycle results.',
+    href: '/cycle-summary',
     icon: Target,
     iconColorClass: 'text-status-waiting',
     iconBgClass: 'bg-status-waiting/10',
@@ -219,6 +254,37 @@ export default function Planning() {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {planningCards.map((card) => (
+            <Link key={card.href} to={card.href}>
+              <Card className="p-5 hover:shadow-md hover:border-primary/20 transition-all cursor-pointer group h-full">
+                <div className="flex items-start gap-4">
+                  <div className={cn(
+                    'w-12 h-12 rounded-lg flex items-center justify-center shrink-0',
+                    card.iconBgClass
+                  )}>
+                    <card.icon className={cn('h-6 w-6', card.iconColorClass)} />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-base group-hover:text-primary transition-colors">
+                      {card.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {card.description}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Review Cards */}
+      <div className="space-y-3">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          Reviews
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {reviewCards.map((card) => (
             <Link key={card.href} to={card.href}>
               <Card className="p-5 hover:shadow-md hover:border-primary/20 transition-all cursor-pointer group h-full">
                 <div className="flex items-start gap-4">
