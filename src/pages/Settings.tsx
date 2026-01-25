@@ -12,7 +12,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeArray, normalizeBoolean } from '@/lib/normalize';
-import { Loader2, Save, ArrowLeft, Bug, Trash2, RotateCcw, Crown, Sparkles, Palette, Circle, Gamepad2, Coins, Dog, Timer, GraduationCap } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, Bug, Trash2, RotateCcw, Crown, Sparkles, Palette, Circle, Gamepad2, Coins, Dog, Timer, GraduationCap, DollarSign } from 'lucide-react';
 import { useArcade } from '@/hooks/useArcade';
 import { ReflectionList } from '@/components/ReflectionList';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -454,6 +454,25 @@ export default function Settings() {
                 checked={settings.show_mastermind_calls}
                 onCheckedChange={(checked) =>
                   updateSetting('show_mastermind_calls', checked)
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <div className="space-y-0.5">
+                  <Label htmlFor="showFinance">Finance Tracker</Label>
+                  <div className="text-sm text-muted-foreground">
+                    Show financial tracking in sidebar and dashboard
+                  </div>
+                </div>
+              </div>
+              <Switch
+                id="showFinance"
+                checked={settings.show_income_tracker}
+                onCheckedChange={(checked) =>
+                  updateSetting('show_income_tracker', checked)
                 }
               />
             </div>
