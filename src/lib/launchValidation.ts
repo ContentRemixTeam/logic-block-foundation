@@ -97,25 +97,42 @@ export function validateLaunchStep(step: number, data: Record<string, unknown>):
       return true;
     }
     case 2:
-      // Content reuse is optional
+      // Runway timeline - optional
       return true;
     case 3:
-      // Pre-launch is optional, but if waitlist is on, date is required
-      if (data.hasWaitlist && !data.waitlistOpens) return false;
+      // Messaging - optional
       return true;
     case 4:
-      // Activities - at least one strategy or accept default
+      // Content plan - optional
       return true;
-    case 5: {
+    case 5:
+      // Content reuse - optional
+      return true;
+    case 6:
+      // Content gaps - always valid (auto-analyzed)
+      return true;
+    case 7:
+      // Pre-launch tasks - optional
+      return true;
+    case 8:
+      // Activities - optional
+      return true;
+    case 9:
+      // Video & Podcasts - optional
+      return true;
+    case 10:
+      // Sales Assets - optional
+      return true;
+    case 11: {
       // Offers - goal must be set
       const offerGoal = data.offerGoal as number;
       return offerGoal >= 1;
     }
-    case 6:
-      // Thought work - all optional
+    case 12:
+      // Thought work - optional
       return true;
-    case 7:
-      // Review - always valid
+    case 13:
+      // Timeline Review - always valid
       return true;
     default:
       return true;

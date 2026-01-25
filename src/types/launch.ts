@@ -116,6 +116,19 @@ export interface LaunchWizardData {
   // Step 5: Content Reuse (was Step 2)
   selectedContentIds: string[];
 
+  // Step 5b: Content Gap Analysis (NEW)
+  contentGapAnalysis?: {
+    reusedCount: number;
+    gapsCount: number;
+    estimatedTimeSavedMinutes: number;
+    gaps: Array<{
+      type: string;
+      category: string;
+      count: number;
+    }>;
+  };
+  autoCreateGapTasks: boolean;
+
   // Step 6: Pre-Launch Tasks (comprehensive checklist)
   preLaunchTasks: PreLaunchTaskConfig;
 
@@ -198,6 +211,9 @@ export const DEFAULT_LAUNCH_WIZARD_DATA: LaunchWizardData = {
   contentPieces: [],
   // Step 5 - Content Reuse
   selectedContentIds: [],
+  // Step 5b - Content Gap Analysis
+  contentGapAnalysis: undefined,
+  autoCreateGapTasks: true,
   // Step 6 - Pre-Launch Tasks
   preLaunchTasks: {
     // Sales Assets

@@ -4625,8 +4625,11 @@ export type Database = {
         Row: {
           answers: Json
           completed_at: string | null
+          content_gaps_count: number | null
+          content_reused_count: number | null
           created_at: string | null
           created_cycle_id: string | null
+          estimated_time_saved_minutes: number | null
           id: string
           planning_level: string | null
           template_name: string
@@ -4635,8 +4638,11 @@ export type Database = {
         Insert: {
           answers?: Json
           completed_at?: string | null
+          content_gaps_count?: number | null
+          content_reused_count?: number | null
           created_at?: string | null
           created_cycle_id?: string | null
+          estimated_time_saved_minutes?: number | null
           id?: string
           planning_level?: string | null
           template_name: string
@@ -4645,8 +4651,11 @@ export type Database = {
         Update: {
           answers?: Json
           completed_at?: string | null
+          content_gaps_count?: number | null
+          content_reused_count?: number | null
           created_at?: string | null
           created_cycle_id?: string | null
+          estimated_time_saved_minutes?: number | null
           id?: string
           planning_level?: string | null
           template_name?: string
