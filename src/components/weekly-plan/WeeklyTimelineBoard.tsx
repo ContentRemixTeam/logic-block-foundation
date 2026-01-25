@@ -31,6 +31,7 @@ const HourCell = memo(function HourCell({
   hour,
   isToday: isTodayFlag,
   isOfficeHour,
+  hasOfficeHours,
   isOver,
   isDragging,
   cellTasks,
@@ -46,6 +47,7 @@ const HourCell = memo(function HourCell({
   hour: number;
   isToday: boolean;
   isOfficeHour: boolean;
+  hasOfficeHours: boolean;
   isOver: boolean;
   isDragging: boolean;
   cellTasks: Task[];
@@ -66,7 +68,10 @@ const HourCell = memo(function HourCell({
       className={cn(
         'flex-1 min-w-[120px] border-r last:border-r-0 min-h-[48px] p-0.5 transition-colors',
         isTodayFlag && 'bg-primary/5',
-        isOfficeHour && !isTodayFlag && 'bg-muted/20',
+        // Enhanced office hours highlighting with left border accent
+        isOfficeHour && !isTodayFlag && 'bg-primary/8 border-l-2 border-l-primary/40',
+        // Subtle dimming for non-office hours when office hours are configured
+        !isOfficeHour && hasOfficeHours && !isTodayFlag && 'bg-muted/5',
         isOver && 'bg-primary/10 ring-2 ring-inset ring-primary/40',
         isDragging && !isOver && 'hover:bg-muted/30'
       )}
@@ -398,6 +403,17 @@ function WeeklyTimelineBoardInner({
             })}
           </div>
 
+          {/* Office Hours Legend */}
+          {officeHoursBlocks.length > 0 && (
+            <div className="flex items-center gap-4 text-[10px] text-muted-foreground px-2 py-1.5 border-b bg-card">
+              <div className="w-16 shrink-0" />
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-3 rounded-sm bg-primary/8 border-l-2 border-l-primary/40" />
+                <span>Work hours</span>
+              </div>
+            </div>
+          )}
+
           {/* All Day row with inline task add */}
           <div className="flex border-b">
             <div className="w-16 shrink-0 border-r px-2 py-2 flex items-center">
@@ -503,6 +519,7 @@ function WeeklyTimelineBoardInner({
                     hour={hour}
                     isToday={today}
                     isOfficeHour={isOfficeHour}
+                    hasOfficeHours={officeHoursBlocks.length > 0}
                     isOver={isOver}
                     isDragging={isDragging}
                     cellTasks={cellTasks}
