@@ -849,16 +849,25 @@ export type Database = {
       }
       courses: {
         Row: {
+          add_to_expenses: boolean | null
+          checkin_frequency: string | null
+          cost: number | null
+          cost_currency: string | null
           course_url: string | null
           created_at: string
           id: string
           intention: string | null
           notes: string | null
+          payment_plan_amount: number | null
+          payment_plan_payments: number | null
+          payment_plan_type: string | null
+          payment_schedule: Json | null
           progress_percent: number
           provider: string | null
           purchase_date: string | null
           roi_checkin_date: string | null
           roi_checkin_days: number
+          roi_deadline: string | null
           roi_target: string | null
           roi_type: string | null
           start_date: string | null
@@ -870,16 +879,25 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          add_to_expenses?: boolean | null
+          checkin_frequency?: string | null
+          cost?: number | null
+          cost_currency?: string | null
           course_url?: string | null
           created_at?: string
           id?: string
           intention?: string | null
           notes?: string | null
+          payment_plan_amount?: number | null
+          payment_plan_payments?: number | null
+          payment_plan_type?: string | null
+          payment_schedule?: Json | null
           progress_percent?: number
           provider?: string | null
           purchase_date?: string | null
           roi_checkin_date?: string | null
           roi_checkin_days?: number
+          roi_deadline?: string | null
           roi_target?: string | null
           roi_type?: string | null
           start_date?: string | null
@@ -891,16 +909,25 @@ export type Database = {
           user_id: string
         }
         Update: {
+          add_to_expenses?: boolean | null
+          checkin_frequency?: string | null
+          cost?: number | null
+          cost_currency?: string | null
           course_url?: string | null
           created_at?: string
           id?: string
           intention?: string | null
           notes?: string | null
+          payment_plan_amount?: number | null
+          payment_plan_payments?: number | null
+          payment_plan_type?: string | null
+          payment_schedule?: Json | null
           progress_percent?: number
           provider?: string | null
           purchase_date?: string | null
           roi_checkin_date?: string | null
           roi_checkin_days?: number
+          roi_deadline?: string | null
           roi_target?: string | null
           roi_type?: string | null
           start_date?: string | null
