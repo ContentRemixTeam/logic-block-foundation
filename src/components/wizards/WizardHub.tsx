@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Target, Clock, ArrowRight, RotateCcw, Rocket, Mail, Zap } from 'lucide-react';
+import { Target, ArrowRight, RotateCcw, Rocket, Mail, Zap } from 'lucide-react';
 import { WizardTemplate, WizardCompletion } from '@/types/wizard';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
@@ -73,6 +73,8 @@ export default function WizardHub() {
       navigate('/wizards/launch');
     } else if (templateName === 'habit-planner') {
       navigate('/wizards/habits');
+    } else if (templateName === 'finance-recovery') {
+      navigate('/wizards/finance-recovery');
     } else {
       // Email and Content Sprint wizards coming soon
       toast.info('This wizard is coming soon!');
@@ -113,16 +115,8 @@ export default function WizardHub() {
         return (
           <Card key={template.id} className="flex flex-col">
             <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                  {icon}
-                </div>
-                {template.estimated_time_minutes && (
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {template.estimated_time_minutes} min
-                  </Badge>
-                )}
+              <div className="p-2 rounded-lg bg-primary/10 text-primary w-fit">
+                {icon}
               </div>
               <CardTitle className="mt-3">{template.display_name}</CardTitle>
               <CardDescription>{template.description}</CardDescription>
