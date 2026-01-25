@@ -50,6 +50,12 @@ Deno.serve(async (req) => {
           roiCheckinDate = startDate.toISOString().split('T')[0];
         }
 
+        // Calculate payment amount if payment plan
+        let paymentPlanAmount = null;
+        if (data.cost && data.payment_plan_type === 'monthly' && data.payment_plan_payments) {
+          paymentPlanAmount = data.cost / data.payment_plan_payments;
+        }
+
         const { data: course, error } = await supabase
           .from('courses')
           .insert({
@@ -66,11 +72,93 @@ Deno.serve(async (req) => {
             target_finish_date: data.target_finish_date || null,
             roi_checkin_days: data.roi_checkin_days || 30,
             roi_checkin_date: roiCheckinDate,
+            // Investment fields
+            cost: data.cost || null,
+            cost_currency: data.cost_currency || 'USD',
+            payment_plan_type: data.payment_plan_type || null,
+            payment_plan_payments: data.payment_plan_payments || null,
+            payment_plan_amount: paymentPlanAmount,
+            add_to_expenses: data.add_to_expenses || false,
+            // Check-in fields
+            checkin_frequency: data.checkin_frequency || null,
+            roi_deadline: data.roi_deadline || null,
           })
           .select()
           .single();
 
         if (error) throw error;
+
+        // Create expense transactions if requested
+        if (data.add_to_expenses && data.cost) {
+          const baseDate = data.purchase_date ? new Date(data.purchase_date) : new Date();
+          
+          if (data.payment_plan_type === 'monthly' && data.payment_plan_payments) {
+            // Create multiple transactions for payment plan
+            const transactions = [];
+            for (let i = 0; i < data.payment_plan_payments; i++) {
+              const paymentDate = new Date(baseDate);
+              paymentDate.setMonth(paymentDate.getMonth() + i);
+              
+              transactions.push({
+                user_id: userId,
+                type: 'expense',
+                category: 'Education',
+                amount: paymentPlanAmount,
+                date: paymentDate.toISOString().split('T')[0],
+                description: `Course: ${data.title} (Payment ${i + 1}/${data.payment_plan_payments})`,
+                notes: data.provider ? `Provider: ${data.provider}` : null,
+              });
+            }
+            
+            const { error: txError } = await supabase
+              .from('financial_transactions')
+              .insert(transactions);
+            
+            if (txError) {
+              console.error('Failed to create expense transactions:', txError);
+            }
+          } else {
+            // Create single transaction
+            const { error: txError } = await supabase
+              .from('financial_transactions')
+              .insert({
+                user_id: userId,
+                type: 'expense',
+                category: 'Education',
+                amount: data.cost,
+                date: baseDate.toISOString().split('T')[0],
+                description: `Course: ${data.title}`,
+                notes: data.provider ? `Provider: ${data.provider}` : null,
+              });
+            
+            if (txError) {
+              console.error('Failed to create expense transaction:', txError);
+            }
+          }
+        }
+
+        // Create check-in task if frequency is set
+        if (data.checkin_frequency && course.id) {
+          const taskStartDate = data.start_date || new Date().toISOString().split('T')[0];
+          
+          const { error: taskError } = await supabase
+            .from('tasks')
+            .insert({
+              user_id: userId,
+              task_text: `Check-in: ${data.title} - Am I on track?`,
+              course_id: course.id,
+              task_type: 'course_checkin',
+              recurrence_pattern: data.checkin_frequency,
+              scheduled_date: taskStartDate,
+              is_recurring_parent: true,
+              status: 'scheduled',
+              source: 'course_checkin',
+            });
+          
+          if (taskError) {
+            console.error('Failed to create check-in task:', taskError);
+          }
+        }
 
         return new Response(
           JSON.stringify({ course }),
@@ -86,10 +174,10 @@ Deno.serve(async (req) => {
           });
         }
 
-        // Verify ownership
+        // Verify ownership and get existing data for computing derived fields
         const { data: existing } = await supabase
           .from('courses')
-          .select('id, start_date, roi_checkin_days')
+          .select('id, start_date, roi_checkin_days, cost, payment_plan_payments')
           .eq('id', course_id)
           .eq('user_id', userId)
           .single();
@@ -108,12 +196,26 @@ Deno.serve(async (req) => {
           'title', 'provider', 'course_url', 'purchase_date', 'status',
           'intention', 'roi_type', 'roi_target', 'success_criteria',
           'start_date', 'target_finish_date', 'roi_checkin_days',
-          'progress_percent', 'notes'
+          'progress_percent', 'notes',
+          // Investment fields
+          'cost', 'cost_currency', 'payment_plan_type', 'payment_plan_payments',
+          'add_to_expenses',
+          // Check-in fields
+          'checkin_frequency', 'roi_deadline'
         ];
 
         for (const field of allowedFields) {
           if (data[field] !== undefined) {
             updates[field] = data[field];
+          }
+        }
+
+        // Calculate payment amount if cost and payment plan changed
+        if (updates.cost !== undefined || updates.payment_plan_payments !== undefined) {
+          const finalCost = updates.cost ?? existing.cost;
+          const finalPayments = updates.payment_plan_payments ?? existing.payment_plan_payments;
+          if (finalCost && finalPayments) {
+            updates.payment_plan_amount = finalCost / finalPayments;
           }
         }
 

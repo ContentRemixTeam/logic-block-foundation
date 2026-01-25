@@ -4,6 +4,15 @@ export type ROIType = 'revenue' | 'leads' | 'calls' | 'conversion' | 'time_saved
 
 export type CheckinType = 'weekly' | 'monthly' | 'roi';
 
+export type PaymentPlanType = 'one_time' | 'monthly' | 'custom';
+export type CheckinFrequency = 'daily' | 'weekly' | 'monthly';
+
+export interface PaymentScheduleItem {
+  date: string;
+  amount: number;
+  paid: boolean;
+}
+
 export interface Course {
   id: string;
   user_id: string;
@@ -22,6 +31,17 @@ export interface Course {
   roi_checkin_date: string | null;
   progress_percent: number;
   notes: string | null;
+  // Investment fields
+  cost: number | null;
+  cost_currency: string | null;
+  payment_plan_type: PaymentPlanType | null;
+  payment_plan_payments: number | null;
+  payment_plan_amount: number | null;
+  payment_schedule: PaymentScheduleItem[] | null;
+  add_to_expenses: boolean;
+  // Check-in fields
+  checkin_frequency: CheckinFrequency | null;
+  roi_deadline: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -71,7 +91,28 @@ export interface CourseFormData {
   start_date?: string;
   target_finish_date?: string;
   roi_checkin_days: number;
+  // Investment fields
+  cost?: number;
+  cost_currency?: string;
+  payment_plan_type?: PaymentPlanType;
+  payment_plan_payments?: number;
+  add_to_expenses?: boolean;
+  // Check-in fields
+  checkin_frequency?: CheckinFrequency;
+  roi_deadline?: string;
 }
+
+export const PAYMENT_PLAN_LABELS: Record<PaymentPlanType, string> = {
+  one_time: 'One-Time Payment',
+  monthly: 'Monthly Payments',
+  custom: 'Custom Schedule',
+};
+
+export const CHECKIN_FREQUENCY_LABELS: Record<CheckinFrequency, string> = {
+  daily: 'Daily',
+  weekly: 'Weekly',
+  monthly: 'Monthly',
+};
 
 export interface StudyPlanFormData {
   sessions_per_week: number;

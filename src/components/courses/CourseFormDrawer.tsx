@@ -29,10 +29,12 @@ import {
 } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import type { Course, CourseFormData, ROIType } from '@/types/course';
+import type { Course, CourseFormData, ROIType, PaymentPlanType, CheckinFrequency } from '@/types/course';
 import { ROI_TYPE_LABELS } from '@/types/course';
 import { useCourseMutations, useStudyPlanMutations } from '@/hooks/useCourses';
 import { CourseStudyPlanStep } from './CourseStudyPlanStep';
+import { CourseInvestmentSection } from './CourseInvestmentSection';
+import { CourseCheckinSection } from './CourseCheckinSection';
 import { useProjectMutations } from '@/hooks/useProjects';
 import { PROJECT_COLORS } from '@/types/project';
 
@@ -70,6 +72,16 @@ export function CourseFormDrawer({ open, onOpenChange, course }: CourseFormDrawe
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [targetFinishDate, setTargetFinishDate] = useState<Date | undefined>();
   const [purchaseDate, setPurchaseDate] = useState<Date | undefined>();
+  
+  // Investment fields
+  const [cost, setCost] = useState<number | undefined>();
+  const [addToExpenses, setAddToExpenses] = useState(false);
+  const [paymentPlanType, setPaymentPlanType] = useState<PaymentPlanType | undefined>('one_time');
+  const [paymentPlanPayments, setPaymentPlanPayments] = useState<number | undefined>(2);
+  
+  // Check-in fields
+  const [checkinFrequency, setCheckinFrequency] = useState<CheckinFrequency | undefined>();
+  const [roiDeadline, setRoiDeadline] = useState<Date | undefined>();
 
   // Reset form when drawer opens/closes or course changes
   useEffect(() => {
@@ -93,6 +105,14 @@ export function CourseFormDrawer({ open, onOpenChange, course }: CourseFormDrawe
       setStartDate(course.start_date ? new Date(course.start_date) : undefined);
       setTargetFinishDate(course.target_finish_date ? new Date(course.target_finish_date) : undefined);
       setPurchaseDate(course.purchase_date ? new Date(course.purchase_date) : undefined);
+      // Load investment fields
+      setCost(course.cost ?? undefined);
+      setAddToExpenses(course.add_to_expenses ?? false);
+      setPaymentPlanType(course.payment_plan_type as PaymentPlanType ?? 'one_time');
+      setPaymentPlanPayments(course.payment_plan_payments ?? 2);
+      // Load check-in fields
+      setCheckinFrequency(course.checkin_frequency as CheckinFrequency ?? undefined);
+      setRoiDeadline(course.roi_deadline ? new Date(course.roi_deadline) : undefined);
     } else {
       reset({
         title: '',
@@ -107,6 +127,12 @@ export function CourseFormDrawer({ open, onOpenChange, course }: CourseFormDrawe
       setStartDate(undefined);
       setTargetFinishDate(undefined);
       setPurchaseDate(undefined);
+      setCost(undefined);
+      setAddToExpenses(false);
+      setPaymentPlanType('one_time');
+      setPaymentPlanPayments(2);
+      setCheckinFrequency(undefined);
+      setRoiDeadline(undefined);
     }
   }, [course, reset, open]);
 
@@ -116,6 +142,15 @@ export function CourseFormDrawer({ open, onOpenChange, course }: CourseFormDrawe
       start_date: startDate ? format(startDate, 'yyyy-MM-dd') : undefined,
       target_finish_date: targetFinishDate ? format(targetFinishDate, 'yyyy-MM-dd') : undefined,
       purchase_date: purchaseDate ? format(purchaseDate, 'yyyy-MM-dd') : undefined,
+      // Investment fields
+      cost,
+      cost_currency: 'USD',
+      payment_plan_type: paymentPlanType,
+      payment_plan_payments: paymentPlanType === 'monthly' ? paymentPlanPayments : undefined,
+      add_to_expenses: addToExpenses,
+      // Check-in fields
+      checkin_frequency: checkinFrequency,
+      roi_deadline: roiDeadline ? format(roiDeadline, 'yyyy-MM-dd') : undefined,
     };
 
     if (isEditing && course) {
@@ -422,6 +457,30 @@ export function CourseFormDrawer({ open, onOpenChange, course }: CourseFormDrawe
                   )}
                 </div>
               </div>
+
+              {/* Investment Section */}
+              <CourseInvestmentSection
+                cost={cost}
+                onCostChange={setCost}
+                addToExpenses={addToExpenses}
+                onAddToExpensesChange={setAddToExpenses}
+                paymentPlanType={paymentPlanType}
+                onPaymentPlanTypeChange={setPaymentPlanType}
+                paymentPlanPayments={paymentPlanPayments}
+                onPaymentPlanPaymentsChange={setPaymentPlanPayments}
+                purchaseDate={purchaseDate}
+              />
+
+              {/* Check-in Section */}
+              <CourseCheckinSection
+                checkinFrequency={checkinFrequency}
+                onCheckinFrequencyChange={setCheckinFrequency}
+                roiDeadline={roiDeadline}
+                onRoiDeadlineChange={setRoiDeadline}
+                roiTarget={watch('roi_target')}
+                cost={cost}
+                startDate={startDate}
+              />
             </form>
           )}
 
