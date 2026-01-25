@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, Calendar, CalendarRange, Target, CheckCircle2, Sparkles, FileText, BarChart3 } from 'lucide-react';
+import { CalendarDays, Calendar, CalendarRange, Target, CheckCircle2, Sparkles, FileText, BarChart3, Share2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Layout } from '@/components/Layout';
 import { cn } from '@/lib/utils';
@@ -71,7 +71,15 @@ const reviewCards: PlanningCard[] = [
     iconBgClass: 'bg-status-scheduled/10',
   },
   {
-    title: 'Monthly Review',
+    title: 'Weekly Reflection (Share)',
+    description: 'Share your wins and lessons with the group.',
+    href: '/weekly-reflection',
+    icon: Share2,
+    iconColorClass: 'text-info',
+    iconBgClass: 'bg-info/10',
+  },
+  {
+    title: '30-Day Review',
     description: 'Assess your monthly progress and lessons.',
     href: '/monthly-review',
     icon: BarChart3,
