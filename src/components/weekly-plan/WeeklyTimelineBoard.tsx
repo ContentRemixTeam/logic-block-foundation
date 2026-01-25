@@ -3,6 +3,7 @@ import { addDays, format, isToday, isBefore, startOfDay, parseISO } from 'date-f
 import { Task } from '@/components/tasks/types';
 import { CalendarEvent, CalendarEventBlock } from '@/components/tasks/views/CalendarEventBlock';
 import { WeeklyTaskCard } from './WeeklyTaskCard';
+import { InlineTaskAdd } from './InlineTaskAdd';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -16,6 +17,7 @@ interface WeeklyTimelineBoardProps {
   showWeekend?: boolean;
   onTaskDrop: (taskId: string, fromPlannedDay: string | null, targetDate: string, timeSlot?: string) => void;
   onTaskToggle: (taskId: string, completed: boolean) => void;
+  onQuickAdd?: (text: string, plannedDay: string) => Promise<void>;
 }
 
 // Generate hour slots from 6am to 10pm (configurable)
@@ -92,6 +94,7 @@ function WeeklyTimelineBoardInner({
   showWeekend = true,
   onTaskDrop,
   onTaskToggle,
+  onQuickAdd,
 }: WeeklyTimelineBoardProps) {
   const [dragOverCell, setDragOverCell] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -395,7 +398,7 @@ function WeeklyTimelineBoardInner({
             })}
           </div>
 
-          {/* All Day row */}
+          {/* All Day row with inline task add */}
           <div className="flex border-b">
             <div className="w-16 shrink-0 border-r px-2 py-2 flex items-center">
               <span className="text-xs text-muted-foreground">All Day</span>
@@ -409,21 +412,21 @@ function WeeklyTimelineBoardInner({
               const dayTasks = untimedTasksByDay[dateStr] || [];
               const dayEvents = allDayEventsByDay[dateStr] || [];
               
-                  return (
-                    <div
-                      key={cellKey}
-                      onDragOver={(e) => handleDragOver(e, dateStr)}
-                      onDragEnter={(e) => handleDragEnter(e, dateStr)}
-                      onDragLeave={handleDragLeave}
-                      onDrop={(e) => handleDrop(e, dateStr)}
-                      className={cn(
-                        'flex-1 min-w-[120px] border-r last:border-r-0 p-1.5 min-h-[60px] transition-colors',
-                        today && 'bg-primary/5',
-                        isOver && 'bg-primary/10 ring-2 ring-inset ring-primary/40',
-                        isDragging && !isOver && 'hover:bg-muted/40'
-                      )}
-                    >
-                  <div className="space-y-1">
+              return (
+                <div
+                  key={cellKey}
+                  onDragOver={(e) => handleDragOver(e, dateStr)}
+                  onDragEnter={(e) => handleDragEnter(e, dateStr)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, dateStr)}
+                  className={cn(
+                    'flex-1 min-w-[120px] border-r last:border-r-0 p-1.5 min-h-[80px] transition-colors flex flex-col',
+                    today && 'bg-primary/5',
+                    isOver && 'bg-primary/10 ring-2 ring-inset ring-primary/40',
+                    isDragging && !isOver && 'hover:bg-muted/40'
+                  )}
+                >
+                  <div className="space-y-1 flex-1">
                     {/* All-day calendar events */}
                     {dayEvents.slice(0, 2).map((event) => (
                       <CalendarEventBlock
@@ -457,6 +460,17 @@ function WeeklyTimelineBoardInner({
                       </div>
                     )}
                   </div>
+                  
+                  {/* Inline Add for this day */}
+                  {onQuickAdd && (
+                    <div className="mt-auto pt-1">
+                      <InlineTaskAdd 
+                        onAdd={(text) => onQuickAdd(text, dateStr)}
+                        placeholder="+ Add"
+                        className="text-[11px]"
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}
