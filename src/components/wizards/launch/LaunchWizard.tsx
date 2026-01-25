@@ -10,6 +10,7 @@ import { LaunchRunwayTimeline } from './LaunchRunwayTimeline';
 import { LaunchMessaging } from './LaunchMessaging';
 import { LaunchContentPlan } from './LaunchContentPlan';
 import { LaunchContentReuse } from './LaunchContentReuse';
+import { LaunchContentGaps } from './LaunchContentGaps';
 import { LaunchPreLaunchTasks } from './LaunchPreLaunchTasks';
 import { LaunchActivities } from './LaunchActivities';
 import { LaunchVideoStrategy } from './LaunchVideoStrategy';
@@ -30,13 +31,14 @@ const LAUNCH_WIZARD_STEPS = [
   { number: 3, title: 'Messaging' },
   { number: 4, title: 'Content Plan' },
   { number: 5, title: 'Content Reuse' },
-  { number: 6, title: 'Pre-Launch' },
-  { number: 7, title: 'Activities' },
-  { number: 8, title: 'Video & Podcasts' },
-  { number: 9, title: 'Sales Assets' },
-  { number: 10, title: 'Offers' },
-  { number: 11, title: 'Thought Work' },
-  { number: 12, title: 'Timeline Review' },
+  { number: 6, title: 'Content Gaps' },
+  { number: 7, title: 'Pre-Launch' },
+  { number: 8, title: 'Activities' },
+  { number: 9, title: 'Video & Podcasts' },
+  { number: 10, title: 'Sales Assets' },
+  { number: 11, title: 'Offers' },
+  { number: 12, title: 'Thought Work' },
+  { number: 13, title: 'Timeline Review' },
 ];
 
 export function LaunchWizard() {
@@ -65,7 +67,7 @@ export function LaunchWizard() {
     draftUpdatedAt,
   } = useWizard<LaunchWizardData>({
     templateName: 'launch-planner',
-    totalSteps: 12,
+    totalSteps: 13,
     defaultData: DEFAULT_LAUNCH_WIZARD_DATA,
     validateStep: validateLaunchStep,
   });
@@ -133,13 +135,14 @@ export function LaunchWizard() {
       case 3: return <LaunchMessaging data={data} onChange={handleChange} />;
       case 4: return <LaunchContentPlan data={data} onChange={handleChange} />;
       case 5: return <LaunchContentReuse data={data} onChange={handleChange} />;
-      case 6: return <LaunchPreLaunchTasks data={data} onChange={handleChange} />;
-      case 7: return <LaunchActivities data={data} onChange={handleChange} />;
-      case 8: return <LaunchVideoStrategy data={data} onChange={handleChange} />;
-      case 9: return <LaunchSalesAssets data={data} onChange={handleChange} />;
-      case 10: return <LaunchOffers data={data} onChange={handleChange} />;
-      case 11: return <LaunchThoughtWork data={data} onChange={handleChange} />;
-      case 12: return <LaunchVisualTimeline data={data} />;
+      case 6: return <LaunchContentGaps data={data} onChange={handleChange} />;
+      case 7: return <LaunchPreLaunchTasks data={data} onChange={handleChange} />;
+      case 8: return <LaunchActivities data={data} onChange={handleChange} />;
+      case 9: return <LaunchVideoStrategy data={data} onChange={handleChange} />;
+      case 10: return <LaunchSalesAssets data={data} onChange={handleChange} />;
+      case 11: return <LaunchOffers data={data} onChange={handleChange} />;
+      case 12: return <LaunchThoughtWork data={data} onChange={handleChange} />;
+      case 13: return <LaunchVisualTimeline data={data} />;
       default: return null;
     }
   };

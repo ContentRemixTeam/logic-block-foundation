@@ -61,6 +61,17 @@ interface LaunchWizardData {
   pricePerSale: number | null;
   salesNeeded?: number;
   selectedContentIds?: string[];
+  contentGapAnalysis?: {
+    reusedCount: number;
+    gapsCount: number;
+    estimatedTimeSavedMinutes: number;
+    gaps: Array<{
+      type: string;
+      category: string;
+      count: number;
+    }>;
+  };
+  autoCreateGapTasks?: boolean;
   hasWaitlist: boolean;
   waitlistOpens?: string;
   waitlistIncentive?: string;
@@ -110,6 +121,7 @@ interface TaskToCreate {
   template_key: string;
   context_tags?: string[];
   estimated_minutes?: number;
+  content_topic_id?: string; // Link to original content item
 }
 
 Deno.serve(async (req) => {
@@ -231,6 +243,73 @@ Deno.serve(async (req) => {
     // ==================== GENERATE TASKS ====================
     const tasksToCreate: TaskToCreate[] = [];
     const launchId = launch?.id || projectId;
+
+    // --- Content Repurpose Tasks (from selected content) ---
+    if (wizardData.selectedContentIds && wizardData.selectedContentIds.length > 0) {
+      // Fetch content details
+      const { data: contentItems } = await supabase
+        .from('content_items')
+        .select('id, title, type')
+        .in('id', wizardData.selectedContentIds);
+
+      if (contentItems && contentItems.length > 0) {
+        for (let i = 0; i < contentItems.length; i++) {
+          const content = contentItems[i];
+          tasksToCreate.push({
+            user_id: userId,
+            project_id: projectId,
+            task_text: `♻️ Repurpose: ${content.title}`,
+            task_description: `Adapt this existing ${content.type} for your ${wizardData.name} launch.\n\nReview the original content and update it for your current offer messaging.`,
+            scheduled_date: subtractDays(wizardData.cartOpens, 14 - (i % 7)),
+            priority: 'medium',
+            category: 'Content Repurpose',
+            status: 'todo',
+            is_system_generated: true,
+            system_source: 'launch_wizard',
+            template_key: generateTemplateKey(`repurpose_${content.id}`, launchId),
+            context_tags: ['launch', 'content', 'repurpose'],
+            estimated_minutes: 30,
+            content_topic_id: content.id,
+          });
+        }
+        console.log(`[create-launch-from-wizard] Added ${contentItems.length} repurpose tasks`);
+      }
+    }
+
+    // --- Content Gap Tasks (if auto-create is enabled) ---
+    if (wizardData.autoCreateGapTasks && wizardData.contentGapAnalysis?.gaps) {
+      const timeEstimates: Record<string, number> = {
+        email: 60,
+        social: 15,
+        video: 120,
+        blog: 90,
+        podcast: 60,
+        leadMagnet: 180,
+        salesPage: 240,
+        webinar: 120,
+      };
+
+      for (const gap of wizardData.contentGapAnalysis.gaps) {
+        for (let i = 1; i <= gap.count; i++) {
+          tasksToCreate.push({
+            user_id: userId,
+            project_id: projectId,
+            task_text: `✍️ Create ${gap.category} #${i}`,
+            task_description: `Create new ${gap.type} content for your launch.\n\nThis is part of filling the content gaps identified in your launch plan.`,
+            scheduled_date: subtractDays(wizardData.cartOpens, 21 - (i % 14)),
+            priority: gap.type === 'email' || gap.type === 'salesPage' ? 'high' : 'medium',
+            category: 'Content Creation',
+            status: 'todo',
+            is_system_generated: true,
+            system_source: 'launch_wizard',
+            template_key: generateTemplateKey(`gap_${gap.type}_${i}`, launchId),
+            context_tags: ['launch', 'content', 'creation'],
+            estimated_minutes: timeEstimates[gap.type] || 60,
+          });
+        }
+      }
+      console.log(`[create-launch-from-wizard] Added ${wizardData.contentGapAnalysis.gapsCount} gap tasks`);
+    }
 
     // --- Waitlist Task ---
     if (wizardData.hasWaitlist && wizardData.waitlistOpens) {
@@ -461,6 +540,9 @@ Deno.serve(async (req) => {
           template_name: 'launch-planner',
           completed_data: wizardData,
           is_final: true,
+          content_reused_count: wizardData.selectedContentIds?.length || 0,
+          content_gaps_count: wizardData.contentGapAnalysis?.gapsCount || 0,
+          estimated_time_saved_minutes: wizardData.contentGapAnalysis?.estimatedTimeSavedMinutes || 0,
         });
     } catch (e) {
       console.warn('[create-launch-from-wizard] Could not save wizard completion:', e);
