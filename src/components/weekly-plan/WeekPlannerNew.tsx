@@ -476,6 +476,7 @@ export function WeekPlannerNew({
                 showWeekend={showWeekend}
                 onTaskDrop={handleTaskDrop}
                 onTaskToggle={handleTaskToggle}
+                onQuickAdd={handleQuickAdd}
               />
             </div>
           </div>
