@@ -22,7 +22,7 @@ import { useServerSync, SyncStatus } from '@/hooks/useServerSync';
 import { useBeforeUnload } from '@/hooks/useBeforeUnload';
 import { useMobileProtection } from '@/hooks/useMobileProtection';
 import { SaveStatusIndicator, SaveStatusBanner } from '@/components/SaveStatusIndicator';
-import { PetGrowthCard } from '@/components/arcade';
+
 import { CycleProgressBanner } from '@/components/cycle/CycleProgressBanner';
 import { ToastAction } from '@/components/ui/toast';
 
@@ -469,8 +469,6 @@ export default function WeeklyPlan() {
               <SaveStatusIndicator status={saveStatus} lastSaved={lastSaved} />
             </div>
 
-            {/* Today's Top 3 - Quick access from weekly view */}
-            <PetGrowthCard />
             
             {/* Weekly Summary */}
             <Card>
