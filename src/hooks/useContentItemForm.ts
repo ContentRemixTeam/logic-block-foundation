@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { ContentItem, ContentType, ContentStatus, ContentChannel, createContentItem, updateContentItem } from '@/lib/contentService';
 import { toast } from 'sonner';
 import { useActiveCycle } from '@/hooks/useActiveCycle';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface ContentFormData {
   title: string;
@@ -37,6 +38,10 @@ export interface ContentFormData {
   saves: string;
   subscribers_gained: string;
   revenue: string;
+  // Task scheduling dates
+  planned_creation_date: string;
+  planned_publish_date: string;
+  create_tasks_for_dates: boolean;
 }
 
 const defaultFormData: ContentFormData = {
@@ -70,6 +75,10 @@ const defaultFormData: ContentFormData = {
   saves: '',
   subscribers_gained: '',
   revenue: '',
+  // Task scheduling dates
+  planned_creation_date: '',
+  planned_publish_date: '',
+  create_tasks_for_dates: true,
 };
 
 interface UseContentItemFormOptions {
@@ -129,6 +138,10 @@ export function useContentItemForm({
         saves: item.saves?.toString() || '',
         subscribers_gained: item.subscribers_gained?.toString() || '',
         revenue: item.revenue?.toString() || '',
+        // Task scheduling dates
+        planned_creation_date: item.planned_creation_date || '',
+        planned_publish_date: item.planned_publish_date || '',
+        create_tasks_for_dates: true,
       });
       setIsDirty(false);
     } else {
@@ -265,6 +278,9 @@ export function useContentItemForm({
         saves: formData.saves ? parseInt(formData.saves) : null,
         subscribers_gained: formData.subscribers_gained ? parseInt(formData.subscribers_gained) : null,
         revenue: formData.revenue ? parseFloat(formData.revenue) : null,
+        // Task scheduling dates
+        planned_creation_date: formData.planned_creation_date || null,
+        planned_publish_date: formData.planned_publish_date || null,
       };
 
       let result: ContentItem;
@@ -278,6 +294,53 @@ export function useContentItemForm({
           toast.success('Saved + Published ✅');
         } else {
           toast.success('Content created');
+        }
+      }
+
+      // Create tasks for dates if enabled and not editing (only on new content)
+      if (formData.create_tasks_for_dates && !isEditing) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          const taskPromises: Promise<any>[] = [];
+
+          // Create "Create" task if creation date is set
+          if (formData.planned_creation_date) {
+            taskPromises.push(
+              supabase.functions.invoke('manage-task', {
+                body: {
+                  action: 'create',
+                  task_text: `✍️ Create: ${formData.title}`,
+                  task_description: `Create content for: ${formData.title}\n\nType: ${formData.type}\nChannel: ${formData.channel || 'Not specified'}`,
+                  scheduled_date: formData.planned_creation_date,
+                  status: 'scheduled',
+                  priority: 'medium',
+                  context_tags: ['content', 'create'],
+                },
+              })
+            );
+          }
+
+          // Create "Publish" task if publish date is set
+          if (formData.planned_publish_date) {
+            taskPromises.push(
+              supabase.functions.invoke('manage-task', {
+                body: {
+                  action: 'create',
+                  task_text: `📤 Publish: ${formData.title}`,
+                  task_description: `Publish content: ${formData.title}\n\nType: ${formData.type}\nChannel: ${formData.channel || 'Not specified'}`,
+                  scheduled_date: formData.planned_publish_date,
+                  status: 'scheduled',
+                  priority: 'medium',
+                  context_tags: ['content', 'publish'],
+                },
+              })
+            );
+          }
+
+          if (taskPromises.length > 0) {
+            await Promise.all(taskPromises);
+            toast.success(`Created ${taskPromises.length} task${taskPromises.length > 1 ? 's' : ''} for content dates`);
+          }
         }
       }
 

@@ -1,9 +1,9 @@
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreVertical, Copy, Edit, Trash2, CheckCircle2, Send, ExternalLink, Mail, FileText } from 'lucide-react';
+import { MoreVertical, Copy, Edit, Trash2, CheckCircle2, Send, ExternalLink, Mail, FileText, CalendarIcon } from 'lucide-react';
 import { ContentItem, ContentType, ContentStatus } from '@/lib/contentService';
 import { toast } from 'sonner';
 
@@ -150,6 +150,24 @@ export function ContentCards({ items, onEdit, onDuplicate, onDelete, onMarkPubli
               {item.channel && item.topic && <span>•</span>}
               {item.topic && <span className="line-clamp-1">{item.topic}</span>}
             </div>
+
+            {/* Due Dates */}
+            {(item.planned_creation_date || item.planned_publish_date) && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {item.planned_creation_date && (
+                  <Badge variant="outline" className="text-xs gap-1">
+                    <CalendarIcon className="h-3 w-3" />
+                    ✍️ {format(parseISO(item.planned_creation_date), 'MMM d')}
+                  </Badge>
+                )}
+                {item.planned_publish_date && (
+                  <Badge variant="outline" className="text-xs gap-1">
+                    <CalendarIcon className="h-3 w-3" />
+                    📤 {format(parseISO(item.planned_publish_date), 'MMM d')}
+                  </Badge>
+                )}
+              </div>
+            )}
 
             {/* Tags */}
             {item.tags.length > 0 && (
