@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useActiveCycle } from '@/hooks/useActiveCycle';
+import { useActiveLaunches } from '@/hooks/useActiveLaunches';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
@@ -36,7 +37,10 @@ import {
   CheckCircle2,
   ChevronRight,
   RefreshCw,
-  BarChart3
+  BarChart3,
+  Rocket,
+  Clock,
+  Zap
 } from 'lucide-react';
 
 interface WidgetSectionProps {
@@ -112,10 +116,26 @@ function getProgressColor(score: number, isFocus: boolean) {
   return '';
 }
 
+// Launch state type
+type LaunchState = 'none' | 'far' | 'approaching' | 'imminent' | 'live' | 'closed';
+
+function getLaunchState(daysUntilOpen: number, isLive: boolean, phase: string): LaunchState {
+  if (phase === 'closed') return 'closed';
+  if (isLive) return 'live';
+  if (daysUntilOpen <= 0) return 'live';
+  if (daysUntilOpen <= 6) return 'imminent';
+  if (daysUntilOpen <= 29) return 'approaching';
+  return 'far';
+}
+
 export default function Dashboard() {
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const { data: cycle, isLoading: cycleLoading } = useActiveCycle();
+  const { data: launches = [], isLoading: launchesLoading } = useActiveLaunches();
+  
+  // Get the next upcoming launch (first one since they're ordered by cart_opens)
+  const nextLaunch = launches[0] || null;
   
   // Dialog state for retake diagnostic
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -294,6 +314,22 @@ export default function Dashboard() {
       dayOfCycle,
     };
   }, [diagnosticData, cycle]);
+
+  // Calculate launch display data
+  const launchDisplay = useMemo(() => {
+    if (!nextLaunch) return null;
+    
+    const launchState = getLaunchState(nextLaunch.daysUntilOpen, nextLaunch.isLive, nextLaunch.phase);
+    const cartOpens = parseISO(nextLaunch.cart_opens);
+    const cartCloses = parseISO(nextLaunch.cart_closes);
+    
+    return {
+      ...nextLaunch,
+      launchState,
+      cartOpensFormatted: format(cartOpens, 'MMM d'),
+      cartClosesFormatted: format(cartCloses, 'MMM d'),
+    };
+  }, [nextLaunch]);
 
   // Initialize slider values when dialog opens
   const handleDialogOpen = (open: boolean) => {
@@ -522,11 +558,178 @@ export default function Dashboard() {
           
           <div className="border-t border-border" />
           
+          {/* Launch Countdown Widget */}
+          <WidgetSection 
+            title="Launch Countdown" 
+            icon={<Rocket className="h-5 w-5" />}
+            elevated
+          >
+            {launchesLoading && (
+              <div className="space-y-3">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            )}
+
+            {/* State 1: No Launch */}
+            {!launchesLoading && !launchDisplay && (
+              <div className="text-center py-4">
+                <div className="h-12 w-12 rounded-full bg-muted mx-auto mb-3 flex items-center justify-center">
+                  <Rocket className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground text-sm mb-3">No launches scheduled</p>
+                <Button asChild size="sm">
+                  <Link to="/wizards/launch-planner">
+                    <Rocket className="h-4 w-4 mr-2" />
+                    Plan Launch
+                  </Link>
+                </Button>
+              </div>
+            )}
+
+            {/* State 2: Far (30+ days) */}
+            {!launchesLoading && launchDisplay && launchDisplay.launchState === 'far' && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{launchDisplay.name}</span>
+                  <span className="text-xs bg-muted px-2 py-1 rounded">
+                    {launchDisplay.daysUntilOpen} days away
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Cart opens {launchDisplay.cartOpensFormatted} → closes {launchDisplay.cartClosesFormatted}
+                </p>
+                <div className="flex items-center gap-2 text-sm">
+                  <Compass className="h-4 w-4 text-primary" />
+                  <span>Focus on your cycle goals for now</span>
+                </div>
+                {launchDisplay.taskPercent > 0 && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Prep progress</span>
+                      <span>{launchDisplay.taskPercent}%</span>
+                    </div>
+                    <Progress value={launchDisplay.taskPercent} className="h-2" />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* State 3: Approaching (7-29 days) */}
+            {!launchesLoading && launchDisplay && launchDisplay.launchState === 'approaching' && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{launchDisplay.name}</span>
+                  <span className="text-xs bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 px-2 py-1 rounded">
+                    {launchDisplay.daysUntilOpen} days until launch
+                  </span>
+                </div>
+                <Alert className="border-yellow-500/50 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    <AlertDescription className="font-medium">
+                      Time to finalize launch prep!
+                    </AlertDescription>
+                  </div>
+                </Alert>
+                <p className="text-sm text-muted-foreground">
+                  Cart opens {launchDisplay.cartOpensFormatted}
+                </p>
+                {launchDisplay.taskPercent > 0 && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Tasks complete</span>
+                      <span>{launchDisplay.tasksCompleted}/{launchDisplay.tasksTotal}</span>
+                    </div>
+                    <Progress value={launchDisplay.taskPercent} className="h-2" />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* State 4: Imminent (1-6 days) */}
+            {!launchesLoading && launchDisplay && launchDisplay.launchState === 'imminent' && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{launchDisplay.name}</span>
+                  <span className="text-xs bg-orange-500/10 text-orange-700 dark:text-orange-400 px-2 py-1 rounded font-medium">
+                    {launchDisplay.daysUntilOpen === 1 ? 'TOMORROW!' : `${launchDisplay.daysUntilOpen} days!`}
+                  </span>
+                </div>
+                <Alert className="border-orange-500/50 bg-orange-500/10 text-orange-700 dark:text-orange-400">
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-4 w-4" />
+                    <AlertDescription className="font-medium">
+                      Launch is imminent! Final checks time.
+                    </AlertDescription>
+                  </div>
+                </Alert>
+                <p className="text-sm text-muted-foreground">
+                  Opens {launchDisplay.cartOpensFormatted} • Closes {launchDisplay.cartClosesFormatted}
+                </p>
+              </div>
+            )}
+
+            {/* State 5: Live */}
+            {!launchesLoading && launchDisplay && launchDisplay.launchState === 'live' && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{launchDisplay.name}</span>
+                  <span className="text-xs bg-green-500/10 text-green-700 dark:text-green-400 px-2 py-1 rounded font-medium animate-pulse">
+                    🔴 LIVE
+                  </span>
+                </div>
+                <Alert className="border-green-500/50 bg-green-500/10 text-green-700 dark:text-green-400">
+                  <div className="flex items-center gap-2">
+                    <Flame className="h-4 w-4" />
+                    <AlertDescription className="font-medium">
+                      Cart is open! {launchDisplay.daysUntilClose} days remaining
+                    </AlertDescription>
+                  </div>
+                </Alert>
+                {launchDisplay.revenue_goal && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Revenue Goal</span>
+                      <span>${launchDisplay.revenue_goal.toLocaleString()}</span>
+                    </div>
+                    <Progress value={0} className="h-2" />
+                  </div>
+                )}
+                <p className="text-sm text-muted-foreground">
+                  Closes {launchDisplay.cartClosesFormatted}
+                </p>
+              </div>
+            )}
+
+            {/* State 6: Just Closed */}
+            {!launchesLoading && launchDisplay && launchDisplay.launchState === 'closed' && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{launchDisplay.name}</span>
+                  <span className="text-xs bg-muted px-2 py-1 rounded">
+                    Completed
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Launch closed on {launchDisplay.cartClosesFormatted}
+                </p>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to={`/launches/${launchDisplay.id}/debrief`}>
+                    Complete Debrief
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </WidgetSection>
+          
+          <div className="border-t border-border" />
+          
           {/* Focus Area / Business Diagnostic - Default on */}
           <WidgetSection 
             title="Business Diagnostic" 
             icon={<BarChart3 className="h-5 w-5" />}
-            elevated
           >
             {(cycleLoading || diagnosticLoading) && (
               <div className="space-y-3">
