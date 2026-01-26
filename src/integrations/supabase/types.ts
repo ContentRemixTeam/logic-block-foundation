@@ -562,6 +562,44 @@ export type Database = {
           },
         ]
       }
+      content_log: {
+        Row: {
+          created_at: string
+          cycle_id: string | null
+          date: string
+          id: string
+          platform: string
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          cycle_id?: string | null
+          date?: string
+          id?: string
+          platform: string
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          cycle_id?: string | null
+          date?: string
+          id?: string
+          platform?: string
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_log_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+        ]
+      }
       content_send_log: {
         Row: {
           channel: string

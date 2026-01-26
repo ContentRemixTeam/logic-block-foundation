@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { differenceInDays, format, parseISO, startOfWeek as getStartOfWeek } from 'date-fns';
+import { differenceInDays, format, parseISO, startOfWeek as getStartOfWeek, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter } from 'date-fns';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -9,6 +9,11 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Dialog,
   DialogContent,
@@ -23,6 +28,7 @@ import { useActiveCycle } from '@/hooks/useActiveCycle';
 import { useActiveLaunches } from '@/hooks/useActiveLaunches';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { 
   Settings2, 
   Pencil, 
@@ -40,7 +46,10 @@ import {
   BarChart3,
   Rocket,
   Clock,
-  Zap
+  Zap,
+  FileText,
+  Plus,
+  CalendarIcon
 } from 'lucide-react';
 
 interface WidgetSectionProps {
@@ -983,8 +992,364 @@ export default function Dashboard() {
               </div>
             )}
           </WidgetSection>
+          
+          <div className="border-t border-border" />
+          
+          {/* Content Counter Widget */}
+          <ContentCounterWidget cycleId={cycle?.cycle_id} />
         </Card>
       </div>
     </Layout>
+  );
+}
+
+// ======================
+// Content Counter Widget
+// ======================
+
+const PLATFORM_OPTIONS = [
+  { value: 'instagram', label: 'Instagram' },
+  { value: 'youtube', label: 'YouTube' },
+  { value: 'tiktok', label: 'TikTok' },
+  { value: 'linkedin', label: 'LinkedIn' },
+  { value: 'twitter', label: 'X / Twitter' },
+  { value: 'facebook', label: 'Facebook' },
+  { value: 'podcast', label: 'Podcast' },
+  { value: 'newsletter', label: 'Newsletter' },
+  { value: 'blog', label: 'Blog' },
+  { value: 'other', label: 'Other' },
+];
+
+function ContentCounterWidget({ cycleId }: { cycleId?: string }) {
+  const queryClient = useQueryClient();
+  const [logDialogOpen, setLogDialogOpen] = useState(false);
+  const [logPlatform, setLogPlatform] = useState('');
+  const [logDate, setLogDate] = useState<Date | undefined>(new Date());
+  const [logTitle, setLogTitle] = useState('');
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+
+  // Fetch content counts for this week/month/quarter
+  const { data: contentStats, isLoading } = useQuery({
+    queryKey: ['content-stats', cycleId],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return null;
+
+      const today = new Date();
+      const weekStart = format(startOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      const weekEnd = format(endOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      const monthStart = format(startOfMonth(today), 'yyyy-MM-dd');
+      const monthEnd = format(endOfMonth(today), 'yyyy-MM-dd');
+      const quarterStart = format(startOfQuarter(today), 'yyyy-MM-dd');
+      const quarterEnd = format(endOfQuarter(today), 'yyyy-MM-dd');
+
+      // Get all content logs for the quarter
+      const { data: logs } = await supabase
+        .from('content_log')
+        .select('id, platform, date')
+        .eq('user_id', session.user.id)
+        .gte('date', quarterStart)
+        .lte('date', quarterEnd);
+
+      if (!logs) return { week: {}, month: {}, quarter: {}, weekTotal: 0, monthTotal: 0, quarterTotal: 0 };
+
+      // Count by platform and period
+      const weekCounts: Record<string, number> = {};
+      const monthCounts: Record<string, number> = {};
+      const quarterCounts: Record<string, number> = {};
+      let weekTotal = 0;
+      let monthTotal = 0;
+      let quarterTotal = 0;
+
+      logs.forEach(log => {
+        const logDate = log.date;
+        const platform = log.platform;
+
+        // Quarter
+        quarterCounts[platform] = (quarterCounts[platform] || 0) + 1;
+        quarterTotal++;
+
+        // Month
+        if (logDate >= monthStart && logDate <= monthEnd) {
+          monthCounts[platform] = (monthCounts[platform] || 0) + 1;
+          monthTotal++;
+        }
+
+        // Week
+        if (logDate >= weekStart && logDate <= weekEnd) {
+          weekCounts[platform] = (weekCounts[platform] || 0) + 1;
+          weekTotal++;
+        }
+      });
+
+      return { 
+        week: weekCounts, 
+        month: monthCounts, 
+        quarter: quarterCounts,
+        weekTotal,
+        monthTotal,
+        quarterTotal,
+      };
+    },
+    staleTime: 30 * 1000,
+  });
+
+  // Mutation to log content
+  const logContent = useMutation({
+    mutationFn: async () => {
+      if (!logPlatform || !logDate) throw new Error('Platform and date required');
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('content_log')
+        .insert({
+          user_id: session.user.id,
+          cycle_id: cycleId || null,
+          platform: logPlatform,
+          date: format(logDate, 'yyyy-MM-dd'),
+          title: logTitle || null,
+        });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['content-stats'] });
+      toast.success('Content logged!');
+      setLogDialogOpen(false);
+      setLogPlatform('');
+      setLogDate(new Date());
+      setLogTitle('');
+    },
+    onError: () => {
+      toast.error('Failed to log content');
+    },
+  });
+
+  // Get platforms with counts (sorted by count desc)
+  const platformsWithCounts = useMemo(() => {
+    if (!contentStats?.week) return [];
+    
+    const allPlatforms = new Set([
+      ...Object.keys(contentStats.week || {}),
+      ...Object.keys(contentStats.month || {}),
+      ...Object.keys(contentStats.quarter || {}),
+    ]);
+
+    return Array.from(allPlatforms)
+      .map(platform => ({
+        platform,
+        label: PLATFORM_OPTIONS.find(p => p.value === platform)?.label || platform,
+        weekCount: contentStats.week[platform] || 0,
+      }))
+      .sort((a, b) => b.weekCount - a.weekCount);
+  }, [contentStats]);
+
+  return (
+    <WidgetSection 
+      title="Content Counter" 
+      icon={<FileText className="h-5 w-5" />}
+      elevated
+    >
+      {isLoading && (
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-28" />
+        </div>
+      )}
+
+      {!isLoading && (!contentStats || contentStats.weekTotal === 0) && (
+        <div className="text-center py-4">
+          <div className="h-12 w-12 rounded-full bg-muted mx-auto mb-3 flex items-center justify-center">
+            <FileText className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <p className="text-muted-foreground text-sm mb-3">No content logged this week</p>
+          <Dialog open={logDialogOpen} onOpenChange={setLogDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Log Content
+              </Button>
+            </DialogTrigger>
+            <LogContentDialogContent
+              platform={logPlatform}
+              setPlatform={setLogPlatform}
+              date={logDate}
+              setDate={setLogDate}
+              title={logTitle}
+              setTitle={setLogTitle}
+              datePickerOpen={datePickerOpen}
+              setDatePickerOpen={setDatePickerOpen}
+              onSave={() => logContent.mutate()}
+              isPending={logContent.isPending}
+            />
+          </Dialog>
+        </div>
+      )}
+
+      {!isLoading && contentStats && contentStats.weekTotal > 0 && (
+        <div className="space-y-4">
+          {/* Compact Style - Platform: Count */}
+          <div className="space-y-2">
+            {platformsWithCounts.slice(0, 5).map(({ platform, label, weekCount }) => (
+              <div key={platform} className="flex items-center justify-between text-sm">
+                <span className="capitalize">{label}</span>
+                <span className="font-medium">{weekCount}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Totals */}
+          <div className="pt-2 border-t border-border">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>This week</span>
+              <span className="font-medium text-foreground">{contentStats.weekTotal} pieces</span>
+            </div>
+            <div className="flex items-center justify-between text-sm text-muted-foreground mt-1">
+              <span>This month</span>
+              <span>{contentStats.monthTotal} pieces</span>
+            </div>
+            <div className="flex items-center justify-between text-sm text-muted-foreground mt-1">
+              <span>This quarter</span>
+              <span>{contentStats.quarterTotal} pieces</span>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2 pt-2">
+            <Dialog open={logDialogOpen} onOpenChange={setLogDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Log
+                </Button>
+              </DialogTrigger>
+              <LogContentDialogContent
+                platform={logPlatform}
+                setPlatform={setLogPlatform}
+                date={logDate}
+                setDate={setLogDate}
+                title={logTitle}
+                setTitle={setLogTitle}
+                datePickerOpen={datePickerOpen}
+                setDatePickerOpen={setDatePickerOpen}
+                onSave={() => logContent.mutate()}
+                isPending={logContent.isPending}
+              />
+            </Dialog>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/content-calendar">
+                <Calendar className="h-4 w-4 mr-2" />
+                Calendar
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/cycle-setup">
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit
+              </Link>
+            </Button>
+          </div>
+        </div>
+      )}
+    </WidgetSection>
+  );
+}
+
+// Log Content Dialog Content (extracted for reuse)
+function LogContentDialogContent({
+  platform,
+  setPlatform,
+  date,
+  setDate,
+  title,
+  setTitle,
+  datePickerOpen,
+  setDatePickerOpen,
+  onSave,
+  isPending,
+}: {
+  platform: string;
+  setPlatform: (v: string) => void;
+  date: Date | undefined;
+  setDate: (v: Date | undefined) => void;
+  title: string;
+  setTitle: (v: string) => void;
+  datePickerOpen: boolean;
+  setDatePickerOpen: (v: boolean) => void;
+  onSave: () => void;
+  isPending: boolean;
+}) {
+  return (
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Log Content</DialogTitle>
+      </DialogHeader>
+      <div className="space-y-4 py-4">
+        <div className="space-y-2">
+          <Label>Platform *</Label>
+          <Select value={platform} onValueChange={setPlatform}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select platform" />
+            </SelectTrigger>
+            <SelectContent>
+              {PLATFORM_OPTIONS.map(opt => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Date *</Label>
+          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !date && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date ? format(date, "PPP") : "Pick a date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CalendarComponent
+                mode="single"
+                selected={date}
+                onSelect={(d) => {
+                  setDate(d);
+                  setDatePickerOpen(false);
+                }}
+                initialFocus
+                className="p-3 pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+        <div className="space-y-2">
+          <Label>Title (optional)</Label>
+          <Input 
+            value={title} 
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g., Weekly newsletter #12"
+          />
+        </div>
+      </div>
+      <DialogFooter>
+        <DialogClose asChild>
+          <Button variant="outline">Cancel</Button>
+        </DialogClose>
+        <Button 
+          onClick={onSave}
+          disabled={isPending || !platform || !date}
+        >
+          {isPending ? 'Saving...' : 'Log Content'}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
   );
 }
