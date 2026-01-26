@@ -16,6 +16,10 @@ import { WeekPlannerNew } from '@/components/weekly-plan/WeekPlannerNew';
 import { WeeklyTimelineView } from '@/components/weekly-plan/WeeklyTimelineView';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { LastWeekPriorities } from '@/components/weekly-plan/LastWeekPriorities';
+import { WeeklyScratchPad } from '@/components/weekly-plan/WeeklyScratchPad';
+import { WeeklyCycleCheckIn } from '@/components/weekly-plan/WeeklyCycleCheckIn';
+import { WeeklyCycleAnalytics } from '@/components/weekly-plan/WeeklyCycleAnalytics';
+import { AlignmentCheckSection } from '@/components/weekly-plan/AlignmentCheckSection';
 import { ArrowLeft, Calendar, Loader2, Save, CheckCircle2, TrendingUp, Brain, Zap, Target, BarChart3, Clock, LayoutList } from 'lucide-react';
 import { useLocalStorageSync } from '@/hooks/useLocalStorageSync';
 import { useServerSync, SyncStatus } from '@/hooks/useServerSync';
@@ -85,6 +89,16 @@ export default function WeeklyPlan() {
   const [metric1Target, setMetric1Target] = useState<number | ''>('');
   const [metric2Target, setMetric2Target] = useState<number | ''>('');
   const [metric3Target, setMetric3Target] = useState<number | ''>('');
+  
+  // New worksheet fields
+  const [weeklyScratchPad, setWeeklyScratchPad] = useState('');
+  const [goalCheckinNotes, setGoalCheckinNotes] = useState('');
+  const [alignmentReflection, setAlignmentReflection] = useState('');
+  const [alignmentRating, setAlignmentRating] = useState<number | null>(null);
+  const [cycleData, setCycleData] = useState<any>(null);
+  const [weekNumber, setWeekNumber] = useState(1);
+  const [metricTrends, setMetricTrends] = useState<any>(null);
+  
   // Memoize worksheet data for data protection
   const worksheetData = useMemo(() => ({
     week_id: weekId,
@@ -96,7 +110,11 @@ export default function WeeklyPlan() {
     metric1Target,
     metric2Target,
     metric3Target,
-  }), [weekId, priorities, thought, feeling, challenges, adjustments, metric1Target, metric2Target, metric3Target]);
+    weeklyScratchPad,
+    goalCheckinNotes,
+    alignmentReflection,
+    alignmentRating,
+  }), [weekId, priorities, thought, feeling, challenges, adjustments, metric1Target, metric2Target, metric3Target, weeklyScratchPad, goalCheckinNotes, alignmentReflection, alignmentRating]);
 
   // Track if we have unsaved changes
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -132,6 +150,10 @@ export default function WeeklyPlan() {
           metric_1_target: data.metric1Target === '' ? null : data.metric1Target,
           metric_2_target: data.metric2Target === '' ? null : data.metric2Target,
           metric_3_target: data.metric3Target === '' ? null : data.metric3Target,
+          weekly_scratch_pad: data.weeklyScratchPad,
+          goal_checkin_notes: data.goalCheckinNotes,
+          alignment_reflection: data.alignmentReflection,
+          alignment_rating: data.alignmentRating,
         },
       });
       if (fnError) throw fnError;
@@ -287,6 +309,15 @@ export default function WeeklyPlan() {
         setMetric1Target(weekData.metric_1_target ?? '');
         setMetric2Target(weekData.metric_2_target ?? '');
         setMetric3Target(weekData.metric_3_target ?? '');
+        
+        // New worksheet fields
+        setWeeklyScratchPad(normalizeString(weekData.weekly_scratch_pad));
+        setGoalCheckinNotes(normalizeString(weekData.goal_checkin_notes));
+        setAlignmentReflection(normalizeString(weekData.alignment_reflection));
+        setAlignmentRating(weekData.alignment_rating ?? null);
+        setCycleData(weekData.cycle || null);
+        setWeekNumber(weekData.week_number || 1);
+        setMetricTrends(weekData.metric_trends || null);
       }
 
       // Set identity anchor
@@ -460,7 +491,7 @@ export default function WeeklyPlan() {
           </div>
         )}
         {activeTab === 'worksheet' && worksheetLoaded && (
-          <div className="space-y-6 max-w-3xl mx-auto">
+          <div className="space-y-6">
             {/* Save Status Banner */}
             <SaveStatusBanner status={saveStatus} onRetry={() => saveNow(worksheetData)} />
             
@@ -469,127 +500,227 @@ export default function WeeklyPlan() {
               <SaveStatusIndicator status={saveStatus} lastSaved={lastSaved} />
             </div>
 
-            
-            {/* Weekly Summary */}
-            <Card>
-              <CardHeader>
-                <CardTitle>This Week's Progress</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Daily Plans</p>
-                    <p className="text-2xl font-bold">{weeklySummary.daily_plans_completed} / 7</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Habit Completion</p>
-                    <p className="text-2xl font-bold">{weeklySummary.habit_completion_percent}%</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Weekly Review</p>
-                    <p className="text-2xl font-bold">{weeklySummary.review_completed ? '✓ Complete' : '○ Pending'}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Two-column layout on desktop */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              {/* Left Column - Scratch Pad */}
+              <div className="space-y-6">
+                <WeeklyScratchPad
+                  value={weeklyScratchPad}
+                  onChange={setWeeklyScratchPad}
+                  onBlur={() => saveNow(worksheetData)}
+                  weekId={weekId || ''}
+                  userId={user?.id || ''}
+                />
+              </div>
 
-            {/* Last Week's Priorities for Carry-Over */}
-            <LastWeekPriorities
-              priorities={lastWeekPriorities}
-              onCarryOver={handleCarryOver}
-              onDrop={handleDropPriority}
-              onMarkDone={handleMarkDone}
-            />
+              {/* Right Column - Goal Check-in & Analytics */}
+              <div className="space-y-6">
+                <WeeklyCycleCheckIn
+                  cycle={cycleData}
+                  checkinNotes={goalCheckinNotes}
+                  onCheckinNotesChange={setGoalCheckinNotes}
+                />
+                
+                <WeeklyCycleAnalytics
+                  cycle={cycleData}
+                  weekNumber={weekNumber}
+                  metricTrends={metricTrends}
+                />
+              </div>
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Full Width Sections */}
+            <div className="max-w-4xl mx-auto space-y-6">
+              {/* This Week's Progress Summary */}
               <Card>
                 <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-primary" />
-                    <CardTitle>Top 3 Weekly Priorities</CardTitle>
-                  </div>
-                  <CardDescription>Focus on the most important outcomes for this week</CardDescription>
+                  <CardTitle>This Week's Progress</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {priorities.map((priority, idx) => (
-                    <div key={idx}>
-                      <Label htmlFor={`priority-${idx}`}>Priority {idx + 1}</Label>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Daily Plans</p>
+                      <p className="text-2xl font-bold">{weeklySummary.daily_plans_completed} / 7</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Habit Completion</p>
+                      <p className="text-2xl font-bold">{weeklySummary.habit_completion_percent}%</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Weekly Review</p>
+                      <p className="text-2xl font-bold">{weeklySummary.review_completed ? '✓ Complete' : '○ Pending'}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Last Week's Priorities for Carry-Over */}
+              <LastWeekPriorities
+                priorities={lastWeekPriorities}
+                onCarryOver={handleCarryOver}
+                onDrop={handleDropPriority}
+                onMarkDone={handleMarkDone}
+              />
+
+              {/* This Week's Focus */}
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-5 w-5 text-primary" />
+                      <CardTitle>This Week's Focus</CardTitle>
+                    </div>
+                    <CardDescription>Set your top priorities and metric targets for the week</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Top 3 Priorities */}
+                    <div className="space-y-4">
+                      <Label className="text-base font-semibold">Top 3 Weekly Priorities</Label>
+                      {priorities.map((priority, idx) => (
+                        <div key={idx}>
+                          <Label htmlFor={`priority-${idx}`} className="text-sm text-muted-foreground">
+                            Priority {idx + 1}
+                          </Label>
+                          <Input
+                            id={`priority-${idx}`}
+                            value={priority}
+                            onChange={(e) => updatePriority(idx, e.target.value)}
+                            placeholder="What must you accomplish this week?"
+                            required={idx === 0}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Metric Targets */}
+                    {cycleMetrics && (cycleMetrics.metric_1_name || cycleMetrics.metric_2_name || cycleMetrics.metric_3_name) && (
+                      <div className="space-y-4 pt-4 border-t">
+                        <Label className="text-base font-semibold">Weekly Metric Targets</Label>
+                        <div className="grid gap-4 md:grid-cols-3">
+                          {cycleMetrics.metric_1_name && (
+                            <div>
+                              <Label htmlFor="metric1" className="text-sm text-muted-foreground">
+                                {cycleMetrics.metric_1_name}
+                              </Label>
+                              <Input
+                                id="metric1"
+                                type="number"
+                                value={metric1Target}
+                                onChange={(e) => setMetric1Target(e.target.value ? Number(e.target.value) : '')}
+                                placeholder="Target"
+                              />
+                            </div>
+                          )}
+                          {cycleMetrics.metric_2_name && (
+                            <div>
+                              <Label htmlFor="metric2" className="text-sm text-muted-foreground">
+                                {cycleMetrics.metric_2_name}
+                              </Label>
+                              <Input
+                                id="metric2"
+                                type="number"
+                                value={metric2Target}
+                                onChange={(e) => setMetric2Target(e.target.value ? Number(e.target.value) : '')}
+                                placeholder="Target"
+                              />
+                            </div>
+                          )}
+                          {cycleMetrics.metric_3_name && (
+                            <div>
+                              <Label htmlFor="metric3" className="text-sm text-muted-foreground">
+                                {cycleMetrics.metric_3_name}
+                              </Label>
+                              <Input
+                                id="metric3"
+                                type="number"
+                                value={metric3Target}
+                                onChange={(e) => setMetric3Target(e.target.value ? Number(e.target.value) : '')}
+                                placeholder="Target"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Weekly Reflection */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Weekly Reflection</CardTitle>
+                    <CardDescription>Set your mindset and prepare for the week ahead</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label htmlFor="thought">Key Thought for the Week</Label>
+                        <Button type="button" variant="outline" size="sm" onClick={() => setThoughtsModalOpen(true)}>
+                          <Brain className="h-4 w-4 mr-2" />
+                          Browse Thoughts
+                        </Button>
+                      </div>
                       <Input
-                        id={`priority-${idx}`}
-                        value={priority}
-                        onChange={(e) => updatePriority(idx, e.target.value)}
-                        placeholder="What must you accomplish this week?"
-                        required={idx === 0}
+                        id="thought"
+                        value={thought}
+                        onChange={(e) => setThought(e.target.value)}
+                        placeholder="What mindset will serve you this week?"
                       />
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Weekly Reflection</CardTitle>
-                  <CardDescription>Set your mindset and prepare for the week ahead</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <Label htmlFor="thought">Key Thought for the Week</Label>
-                      <Button type="button" variant="outline" size="sm" onClick={() => setThoughtsModalOpen(true)}>
-                        <Brain className="h-4 w-4 mr-2" />
-                        Browse Thoughts
-                      </Button>
+                    <div>
+                      <Label htmlFor="feeling">How I Want to Feel</Label>
+                      <Input
+                        id="feeling"
+                        value={feeling}
+                        onChange={(e) => setFeeling(e.target.value)}
+                        placeholder="e.g., Focused, Energized, Calm"
+                      />
                     </div>
-                    <Input
-                      id="thought"
-                      value={thought}
-                      onChange={(e) => setThought(e.target.value)}
-                      placeholder="What mindset will serve you this week?"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="feeling">How I Want to Feel</Label>
-                    <Input
-                      id="feeling"
-                      value={feeling}
-                      onChange={(e) => setFeeling(e.target.value)}
-                      placeholder="e.g., Focused, Energized, Calm"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="challenges">Anticipated Challenges</Label>
-                    <Textarea
-                      id="challenges"
-                      value={challenges}
-                      onChange={(e) => setChallenges(e.target.value)}
-                      placeholder="What might get in the way?"
-                      rows={3}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="adjustments">Adjustments Needed</Label>
-                    <Textarea
-                      id="adjustments"
-                      value={adjustments}
-                      onChange={(e) => setAdjustments(e.target.value)}
-                      placeholder="What needs to change from last week?"
-                      rows={3}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+                    <div>
+                      <Label htmlFor="challenges">Anticipated Challenges</Label>
+                      <Textarea
+                        id="challenges"
+                        value={challenges}
+                        onChange={(e) => setChallenges(e.target.value)}
+                        placeholder="What might get in the way?"
+                        rows={3}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="adjustments">Adjustments Needed</Label>
+                      <Textarea
+                        id="adjustments"
+                        value={adjustments}
+                        onChange={(e) => setAdjustments(e.target.value)}
+                        placeholder="What needs to change from last week?"
+                        rows={3}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
 
-              <Button type="submit" size="lg" className="w-full" disabled={saving}>
-                {saving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Save Weekly Plan'
-                )}
-              </Button>
-            </form>
+                {/* 90-Day Alignment Check */}
+                <AlignmentCheckSection
+                  cycleGoal={cycleGoal}
+                  focusArea={cycleData?.focus_area}
+                  alignmentReflection={alignmentReflection}
+                  alignmentRating={alignmentRating}
+                  onReflectionChange={setAlignmentReflection}
+                  onRatingChange={setAlignmentRating}
+                />
+
+                <Button type="submit" size="lg" className="w-full" disabled={saving}>
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Weekly Plan'
+                  )}
+                </Button>
+              </form>
+            </div>
           </div>
         )}
       </div>

@@ -100,10 +100,10 @@ Deno.serve(async (req) => {
       const week = weekData[0];
       console.log('Found existing week:', week.week_id);
 
-      // Fetch full week data including metric targets and goal_rewrite
+      // Fetch full week data including metric targets, goal_rewrite, and new worksheet fields
       const { data: fullWeekData } = await supabaseClient
         .from('weekly_plans')
-        .select('metric_1_target, metric_2_target, metric_3_target, challenges, adjustments, goal_rewrite')
+        .select('metric_1_target, metric_2_target, metric_3_target, challenges, adjustments, goal_rewrite, weekly_scratch_pad, goal_checkin_notes, alignment_reflection, alignment_rating')
         .eq('week_id', week.week_id)
         .maybeSingle();
       
@@ -166,6 +166,44 @@ Deno.serve(async (req) => {
         .eq('week_id', week.week_id)
         .maybeSingle();
       
+      // Fetch metric actuals from recent weekly reviews for trend calculation
+      const { data: recentReviews } = await supabaseClient
+        .from('weekly_reviews')
+        .select('week_id, metric_1_actual, metric_2_actual, metric_3_actual, created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(4);
+      
+      // Get the most recent metric actuals for current values
+      const latestReview = recentReviews?.[0];
+      const previousReview = recentReviews?.[1];
+      
+      // Calculate metric trends
+      const metricTrends = {
+        metric_1: {
+          current: latestReview?.metric_1_actual ?? fullCycleData?.metric_1_start ?? null,
+          previous: previousReview?.metric_1_actual ?? null,
+          start: fullCycleData?.metric_1_start ?? null,
+          goal: fullCycleData?.metric_1_goal ?? null,
+        },
+        metric_2: {
+          current: latestReview?.metric_2_actual ?? fullCycleData?.metric_2_start ?? null,
+          previous: previousReview?.metric_2_actual ?? null,
+          start: fullCycleData?.metric_2_start ?? null,
+          goal: fullCycleData?.metric_2_goal ?? null,
+        },
+        metric_3: {
+          current: latestReview?.metric_3_actual ?? fullCycleData?.metric_3_start ?? null,
+          previous: previousReview?.metric_3_actual ?? null,
+          start: fullCycleData?.metric_3_start ?? null,
+          goal: fullCycleData?.metric_3_goal ?? null,
+        },
+      };
+      
+      // Calculate week number in cycle (1-13)
+      const cycleStart = new Date(fullCycleData?.start_date || '');
+      const weekNumber = Math.floor((weekStart.getTime() - cycleStart.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
+      
       return new Response(
         JSON.stringify({ 
           data: {
@@ -203,11 +241,22 @@ Deno.serve(async (req) => {
               end_date: fullCycleData.end_date,
               metric_1_name: fullCycleData.metric_1_name,
               metric_1_start: fullCycleData.metric_1_start,
+              metric_1_goal: fullCycleData.metric_1_goal,
               metric_2_name: fullCycleData.metric_2_name,
               metric_2_start: fullCycleData.metric_2_start,
+              metric_2_goal: fullCycleData.metric_2_goal,
               metric_3_name: fullCycleData.metric_3_name,
               metric_3_start: fullCycleData.metric_3_start,
+              metric_3_goal: fullCycleData.metric_3_goal,
             } : null,
+            // New worksheet fields
+            weekly_scratch_pad: fullWeekData?.weekly_scratch_pad || '',
+            goal_checkin_notes: fullWeekData?.goal_checkin_notes || '',
+            alignment_reflection: fullWeekData?.alignment_reflection || '',
+            alignment_rating: fullWeekData?.alignment_rating ?? null,
+            // Cycle analytics
+            week_number: weekNumber,
+            metric_trends: metricTrends,
           }
         }), 
         {

@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { week_id, top_3_priorities, weekly_thought, weekly_feeling, challenges, adjustments, metric_1_target, metric_2_target, metric_3_target, goal_rewrite } = body;
+    const { week_id, top_3_priorities, weekly_thought, weekly_feeling, challenges, adjustments, metric_1_target, metric_2_target, metric_3_target, goal_rewrite, weekly_scratch_pad, goal_checkin_notes, alignment_reflection, alignment_rating } = body;
 
     console.log('Saving weekly plan for user:', userId, 'week:', week_id);
 
@@ -157,6 +157,14 @@ Deno.serve(async (req) => {
 
     // Normalize goal_rewrite
     const normalizedGoalRewrite = typeof goal_rewrite === 'string' ? goal_rewrite.substring(0, 1000) : null;
+    
+    // Normalize new worksheet fields
+    const normalizedScratchPad = typeof weekly_scratch_pad === 'string' ? weekly_scratch_pad.substring(0, 10000) : null;
+    const normalizedGoalCheckin = typeof goal_checkin_notes === 'string' ? goal_checkin_notes.substring(0, 2000) : null;
+    const normalizedAlignmentReflection = typeof alignment_reflection === 'string' ? alignment_reflection.substring(0, 2000) : null;
+    const normalizedAlignmentRating = typeof alignment_rating === 'number' && alignment_rating >= 1 && alignment_rating <= 5 
+      ? alignment_rating 
+      : null;
 
     // Update weekly plan
     const { data, error: updateError } = await supabaseClient
@@ -171,6 +179,10 @@ Deno.serve(async (req) => {
         metric_2_target: metric_2_target ?? null,
         metric_3_target: metric_3_target ?? null,
         goal_rewrite: normalizedGoalRewrite,
+        weekly_scratch_pad: normalizedScratchPad,
+        goal_checkin_notes: normalizedGoalCheckin,
+        alignment_reflection: normalizedAlignmentReflection,
+        alignment_rating: normalizedAlignmentRating,
         updated_at: new Date().toISOString(),
       })
       .eq('week_id', week_id)
