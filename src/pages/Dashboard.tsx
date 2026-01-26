@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { differenceInDays, format, parseISO, startOfWeek as getStartOfWeek } from 'date-fns';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -8,9 +8,20 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Slider } from '@/components/ui/slider';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useActiveCycle } from '@/hooks/useActiveCycle';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { 
   Settings2, 
   Pencil, 
@@ -23,7 +34,9 @@ import {
   Flame,
   Calendar,
   CheckCircle2,
-  ChevronRight
+  ChevronRight,
+  RefreshCw,
+  BarChart3
 } from 'lucide-react';
 
 interface WidgetSectionProps {
@@ -84,9 +97,90 @@ function getDynamicAlert(currentDay: number) {
   return null;
 }
 
+function getScoreColor(score: number) {
+  if (score <= 3) return 'text-red-500';
+  if (score <= 6) return 'text-yellow-500';
+  return 'text-green-500';
+}
+
+function getProgressColor(score: number, isFocus: boolean) {
+  if (isFocus) {
+    if (score <= 3) return '[&>div]:bg-red-500';
+    if (score <= 6) return '[&>div]:bg-yellow-500';
+    return '[&>div]:bg-green-500';
+  }
+  return '';
+}
+
 export default function Dashboard() {
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
   const { data: cycle, isLoading: cycleLoading } = useActiveCycle();
+  
+  // Dialog state for retake diagnostic
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [discoverScore, setDiscoverScore] = useState(5);
+  const [nurtureScore, setNurtureScore] = useState(5);
+  const [convertScore, setConvertScore] = useState(5);
+
+  // Fetch diagnostic scores
+  const { data: diagnosticData, isLoading: diagnosticLoading } = useQuery({
+    queryKey: ['diagnostic-scores', cycle?.cycle_id],
+    queryFn: async () => {
+      if (!cycle?.cycle_id) return null;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return null;
+      
+      const { data } = await supabase
+        .from('cycles_90_day')
+        .select('discover_score, nurture_score, convert_score, focus_area, updated_at')
+        .eq('cycle_id', cycle.cycle_id)
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+      
+      return data;
+    },
+    enabled: !!cycle?.cycle_id,
+    staleTime: 60 * 1000,
+  });
+
+  // Mutation to update diagnostic scores
+  const updateDiagnostic = useMutation({
+    mutationFn: async (scores: { discover: number; nurture: number; convert: number }) => {
+      if (!cycle?.cycle_id) throw new Error('No active cycle');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+      
+      // Calculate focus area (lowest score)
+      const lowestScore = Math.min(scores.discover, scores.nurture, scores.convert);
+      let focusArea = 'discover';
+      if (scores.nurture === lowestScore) focusArea = 'nurture';
+      else if (scores.convert === lowestScore) focusArea = 'convert';
+      
+      const { error } = await supabase
+        .from('cycles_90_day')
+        .update({
+          discover_score: scores.discover,
+          nurture_score: scores.nurture,
+          convert_score: scores.convert,
+          focus_area: focusArea,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('cycle_id', cycle.cycle_id)
+        .eq('user_id', session.user.id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['diagnostic-scores'] });
+      queryClient.invalidateQueries({ queryKey: ['active-cycle'] });
+      toast.success('Diagnostic scores updated');
+      setDialogOpen(false);
+    },
+    onError: () => {
+      toast.error('Failed to update scores');
+    },
+  });
 
   // Check for weekly plan for current week
   const { data: weeklyPlan, isLoading: weeklyLoading } = useQuery({
@@ -111,7 +205,7 @@ export default function Dashboard() {
       return data;
     },
     enabled: !!cycle?.cycle_id,
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
   });
 
   // Check for daily plan for today
@@ -132,7 +226,7 @@ export default function Dashboard() {
       
       return data;
     },
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
   });
 
   const cycleStats = useMemo(() => {
@@ -160,6 +254,56 @@ export default function Dashboard() {
       endFormatted: format(end, 'MMMM d, yyyy').toUpperCase(),
     };
   }, [cycle]);
+
+  // Calculate diagnostic display data
+  const diagnosticDisplay = useMemo(() => {
+    if (!diagnosticData || !cycle?.start_date) return null;
+
+    const discover = diagnosticData.discover_score ?? 0;
+    const nurture = diagnosticData.nurture_score ?? 0;
+    const convert = diagnosticData.convert_score ?? 0;
+    
+    // Determine focus area (lowest score)
+    const lowestScore = Math.min(discover, nurture, convert);
+    let focusArea = diagnosticData.focus_area || 'discover';
+    if (!diagnosticData.focus_area) {
+      if (nurture === lowestScore) focusArea = 'nurture';
+      else if (convert === lowestScore) focusArea = 'convert';
+    }
+
+    // Calculate days since last update
+    const updatedAt = diagnosticData.updated_at 
+      ? parseISO(diagnosticData.updated_at) 
+      : parseISO(cycle.start_date);
+    const daysSinceUpdate = differenceInDays(new Date(), updatedAt);
+    const needsRetake = daysSinceUpdate > 30;
+
+    // Calculate week and day of update
+    const start = parseISO(cycle.start_date);
+    const dayOfCycle = Math.max(1, differenceInDays(updatedAt, start) + 1);
+    const weekOfCycle = Math.ceil(dayOfCycle / 7);
+
+    return {
+      discover,
+      nurture,
+      convert,
+      focusArea,
+      daysSinceUpdate,
+      needsRetake,
+      weekOfCycle,
+      dayOfCycle,
+    };
+  }, [diagnosticData, cycle]);
+
+  // Initialize slider values when dialog opens
+  const handleDialogOpen = (open: boolean) => {
+    if (open && diagnosticData) {
+      setDiscoverScore(diagnosticData.discover_score ?? 5);
+      setNurtureScore(diagnosticData.nurture_score ?? 5);
+      setConvertScore(diagnosticData.convert_score ?? 5);
+    }
+    setDialogOpen(open);
+  };
 
   const dynamicAlert = cycleStats ? getDynamicAlert(cycleStats.currentDay) : null;
 
@@ -367,18 +511,274 @@ export default function Dashboard() {
             title="90-Day Goal" 
             icon={<Target className="h-5 w-5" />}
           >
-            <p className="text-muted-foreground text-sm">Your main goal will appear here</p>
+            {cycleLoading && <Skeleton className="h-5 w-3/4" />}
+            {!cycleLoading && !cycle && (
+              <p className="text-muted-foreground text-sm">No active cycle</p>
+            )}
+            {!cycleLoading && cycle && (
+              <p className="text-sm font-medium">{cycle.goal || 'No goal set'}</p>
+            )}
           </WidgetSection>
           
           <div className="border-t border-border" />
           
-          {/* Focus Area - Default on */}
+          {/* Focus Area / Business Diagnostic - Default on */}
           <WidgetSection 
-            title="Focus Area" 
-            icon={<Compass className="h-5 w-5" />}
+            title="Business Diagnostic" 
+            icon={<BarChart3 className="h-5 w-5" />}
             elevated
           >
-            <p className="text-muted-foreground text-sm">Your strategic focus will appear here</p>
+            {(cycleLoading || diagnosticLoading) && (
+              <div className="space-y-3">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-full" />
+              </div>
+            )}
+
+            {!cycleLoading && !diagnosticLoading && !cycle && (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground text-sm mb-2">No active cycle</p>
+                <Link to="/cycle-setup" className="text-primary text-sm hover:underline">
+                  Start your 90-day cycle →
+                </Link>
+              </div>
+            )}
+
+            {!cycleLoading && !diagnosticLoading && cycle && !diagnosticDisplay?.discover && !diagnosticDisplay?.nurture && !diagnosticDisplay?.convert && (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground text-sm mb-3">No diagnostic scores recorded</p>
+                <Dialog open={dialogOpen} onOpenChange={handleDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm">
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Take Diagnostic
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Business Diagnostic</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-6 py-4">
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-sm font-medium">Discover</span>
+                          <span className={`text-sm font-bold ${getScoreColor(discoverScore)}`}>{discoverScore}/10</span>
+                        </div>
+                        <Slider
+                          value={[discoverScore]}
+                          onValueChange={(v) => setDiscoverScore(v[0])}
+                          min={1}
+                          max={10}
+                          step={1}
+                        />
+                        <p className="text-xs text-muted-foreground">How easily do new people find you?</p>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-sm font-medium">Nurture</span>
+                          <span className={`text-sm font-bold ${getScoreColor(nurtureScore)}`}>{nurtureScore}/10</span>
+                        </div>
+                        <Slider
+                          value={[nurtureScore]}
+                          onValueChange={(v) => setNurtureScore(v[0])}
+                          min={1}
+                          max={10}
+                          step={1}
+                        />
+                        <p className="text-xs text-muted-foreground">How well do you build relationships?</p>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-sm font-medium">Convert</span>
+                          <span className={`text-sm font-bold ${getScoreColor(convertScore)}`}>{convertScore}/10</span>
+                        </div>
+                        <Slider
+                          value={[convertScore]}
+                          onValueChange={(v) => setConvertScore(v[0])}
+                          min={1}
+                          max={10}
+                          step={1}
+                        />
+                        <p className="text-xs text-muted-foreground">How effectively do you turn leads into sales?</p>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button variant="outline">Cancel</Button>
+                      </DialogClose>
+                      <Button 
+                        onClick={() => updateDiagnostic.mutate({ 
+                          discover: discoverScore, 
+                          nurture: nurtureScore, 
+                          convert: convertScore 
+                        })}
+                        disabled={updateDiagnostic.isPending}
+                      >
+                        {updateDiagnostic.isPending ? 'Saving...' : 'Save'}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            )}
+
+            {!cycleLoading && !diagnosticLoading && cycle && diagnosticDisplay && (diagnosticDisplay.discover > 0 || diagnosticDisplay.nurture > 0 || diagnosticDisplay.convert > 0) && (
+              <div className="space-y-4">
+                {/* Focus Area Highlight */}
+                <div className="flex items-center gap-2">
+                  <Compass className="h-4 w-4 text-primary" />
+                  <span className="text-sm">
+                    Focus: <span className="font-semibold capitalize">{diagnosticDisplay.focusArea}</span>
+                  </span>
+                </div>
+
+                {/* Score Bars */}
+                <div className="space-y-3">
+                  {/* Discover */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className={diagnosticDisplay.focusArea === 'discover' ? 'font-semibold' : ''}>
+                        Discover {diagnosticDisplay.focusArea === 'discover' && '← Focus'}
+                      </span>
+                      <span className={getScoreColor(diagnosticDisplay.discover)}>{diagnosticDisplay.discover}/10</span>
+                    </div>
+                    <Progress 
+                      value={diagnosticDisplay.discover * 10} 
+                      className={`h-2 ${getProgressColor(diagnosticDisplay.discover, diagnosticDisplay.focusArea === 'discover')}`}
+                    />
+                  </div>
+                  
+                  {/* Nurture */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className={diagnosticDisplay.focusArea === 'nurture' ? 'font-semibold' : ''}>
+                        Nurture {diagnosticDisplay.focusArea === 'nurture' && '← Focus'}
+                      </span>
+                      <span className={getScoreColor(diagnosticDisplay.nurture)}>{diagnosticDisplay.nurture}/10</span>
+                    </div>
+                    <Progress 
+                      value={diagnosticDisplay.nurture * 10} 
+                      className={`h-2 ${getProgressColor(diagnosticDisplay.nurture, diagnosticDisplay.focusArea === 'nurture')}`}
+                    />
+                  </div>
+                  
+                  {/* Convert */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className={diagnosticDisplay.focusArea === 'convert' ? 'font-semibold' : ''}>
+                        Convert {diagnosticDisplay.focusArea === 'convert' && '← Focus'}
+                      </span>
+                      <span className={getScoreColor(diagnosticDisplay.convert)}>{diagnosticDisplay.convert}/10</span>
+                    </div>
+                    <Progress 
+                      value={diagnosticDisplay.convert * 10} 
+                      className={`h-2 ${getProgressColor(diagnosticDisplay.convert, diagnosticDisplay.focusArea === 'convert')}`}
+                    />
+                  </div>
+                </div>
+
+                {/* Last Updated */}
+                <p className="text-xs text-muted-foreground">
+                  Last updated: Week {diagnosticDisplay.weekOfCycle} (Day {diagnosticDisplay.dayOfCycle})
+                </p>
+
+                {/* Retake Warning */}
+                {diagnosticDisplay.needsRetake && (
+                  <Alert className="border-yellow-500/50 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription className="font-medium">
+                        Time to retake diagnostic ({diagnosticDisplay.daysSinceUpdate} days ago)
+                      </AlertDescription>
+                    </div>
+                  </Alert>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-2">
+                  <Dialog open={dialogOpen} onOpenChange={handleDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Retake
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Business Diagnostic</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-6 py-4">
+                        <div className="space-y-3">
+                          <div className="flex justify-between">
+                            <span className="text-sm font-medium">Discover</span>
+                            <span className={`text-sm font-bold ${getScoreColor(discoverScore)}`}>{discoverScore}/10</span>
+                          </div>
+                          <Slider
+                            value={[discoverScore]}
+                            onValueChange={(v) => setDiscoverScore(v[0])}
+                            min={1}
+                            max={10}
+                            step={1}
+                          />
+                          <p className="text-xs text-muted-foreground">How easily do new people find you?</p>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex justify-between">
+                            <span className="text-sm font-medium">Nurture</span>
+                            <span className={`text-sm font-bold ${getScoreColor(nurtureScore)}`}>{nurtureScore}/10</span>
+                          </div>
+                          <Slider
+                            value={[nurtureScore]}
+                            onValueChange={(v) => setNurtureScore(v[0])}
+                            min={1}
+                            max={10}
+                            step={1}
+                          />
+                          <p className="text-xs text-muted-foreground">How well do you build relationships?</p>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex justify-between">
+                            <span className="text-sm font-medium">Convert</span>
+                            <span className={`text-sm font-bold ${getScoreColor(convertScore)}`}>{convertScore}/10</span>
+                          </div>
+                          <Slider
+                            value={[convertScore]}
+                            onValueChange={(v) => setConvertScore(v[0])}
+                            min={1}
+                            max={10}
+                            step={1}
+                          />
+                          <p className="text-xs text-muted-foreground">How effectively do you turn leads into sales?</p>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button variant="outline">Cancel</Button>
+                        </DialogClose>
+                        <Button 
+                          onClick={() => updateDiagnostic.mutate({ 
+                            discover: discoverScore, 
+                            nurture: nurtureScore, 
+                            convert: convertScore 
+                          })}
+                          disabled={updateDiagnostic.isPending}
+                        >
+                          {updateDiagnostic.isPending ? 'Saving...' : 'Save'}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/cycle-setup">
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit Plan
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            )}
           </WidgetSection>
         </Card>
       </div>
