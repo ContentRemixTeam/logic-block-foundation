@@ -9,3 +9,6 @@ export { PromotionCountdown } from './PromotionCountdown';
 export { SalesCalendar } from './SalesCalendar';
 export { WinsCard } from './WinsCard';
 export { DashboardCustomizeModal } from './DashboardCustomizeModal';
+export { SalesGoalTrackerWidget } from './SalesGoalTrackerWidget';
+export { HabitTrackerWidget } from './HabitTrackerWidget';
+export { QuickWinsWidget } from './QuickWinsWidget';

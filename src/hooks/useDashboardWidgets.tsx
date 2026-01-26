@@ -21,6 +21,9 @@ export const DASHBOARD_WIDGETS: DashboardWidget[] = [
   { id: 'todayTop3', label: "Today's Top 3", description: 'Pet growth and daily tasks', category: 'execution', column: 'main', defaultEnabled: true },
   { id: 'habits', label: "Today's Habits", description: 'Habit tracking status', category: 'execution', column: 'main', defaultEnabled: true },
   { id: 'reviews', label: 'Weekly & 30-Day Reviews', description: 'Review completion status', category: 'execution', column: 'main', defaultEnabled: true },
+  { id: 'salesGoal', label: 'Sales Goal Tracker', description: 'Track revenue progress', category: 'execution', column: 'main', defaultEnabled: true },
+  { id: 'habitTracker', label: 'Weekly Habit Grid', description: 'Habit completions this week', category: 'execution', column: 'main', defaultEnabled: true },
+  { id: 'quickWins', label: 'Quick Wins', description: 'Recent achievements', category: 'mindset', column: 'main', defaultEnabled: true },
   
   // Sidebar widgets
   { id: 'routineReminder', label: 'Weekly Routine Reminder', description: 'Planning and debrief day alerts', category: 'strategy', column: 'sidebar', defaultEnabled: true },

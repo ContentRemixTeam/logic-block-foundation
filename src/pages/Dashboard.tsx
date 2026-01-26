@@ -51,6 +51,9 @@ import {
   Plus,
   CalendarIcon
 } from 'lucide-react';
+import { SalesGoalTrackerWidget } from '@/components/dashboard/SalesGoalTrackerWidget';
+import { HabitTrackerWidget } from '@/components/dashboard/HabitTrackerWidget';
+import { QuickWinsWidget } from '@/components/dashboard/QuickWinsWidget';
 
 interface WidgetSectionProps {
   title: string;
@@ -997,6 +1000,28 @@ export default function Dashboard() {
           
           {/* Content Counter Widget */}
           <ContentCounterWidget cycleId={cycle?.cycle_id} />
+          
+          <div className="border-t border-border" />
+          
+          {/* Sales Goal Tracker Widget */}
+          <SalesGoalTrackerWidget 
+            cycleId={cycle?.cycle_id} 
+            cycleStartDate={cycle?.start_date}
+            cycleEndDate={cycle?.end_date}
+          />
+          
+          <div className="border-t border-border" />
+          
+          {/* Habit Tracker Widget */}
+          <HabitTrackerWidget />
+          
+          <div className="border-t border-border" />
+          
+          {/* Quick Wins Widget */}
+          <QuickWinsWidget 
+            cycleId={cycle?.cycle_id} 
+            cycleStartDate={cycle?.start_date}
+          />
         </Card>
       </div>
     </Layout>
