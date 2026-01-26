@@ -52,6 +52,7 @@ Deno.serve(async (req) => {
     const search = url.searchParams.get('search') || '';
     const includeArchived = url.searchParams.get('includeArchived') === 'true';
     const projectId = url.searchParams.get('project_id');
+    const courseId = url.searchParams.get('course_id');
     const tag = url.searchParams.get('tag');
     
     // Pagination params
@@ -73,8 +74,12 @@ Deno.serve(async (req) => {
       countQuery = countQuery.eq('project_id', projectId);
     }
 
+    if (courseId) {
+      countQuery = countQuery.eq('course_id', courseId);
+    }
+
     if (search) {
-      countQuery = countQuery.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
+      countQuery = countQuery.or(`title.ilike.%${search}%,content.ilike.%${search}%,course_title.ilike.%${search}%`);
     }
 
     const { count: totalCount, error: countError } = await countQuery;
@@ -92,7 +97,8 @@ Deno.serve(async (req) => {
       .from('journal_pages')
       .select(`
         *,
-        project:projects(id, name, color)
+        project:projects(id, name, color),
+        course:courses(id, title)
       `)
       .eq('user_id', userId)
       .order('updated_at', { ascending: false });
@@ -105,8 +111,12 @@ Deno.serve(async (req) => {
       query = query.eq('project_id', projectId);
     }
 
+    if (courseId) {
+      query = query.eq('course_id', courseId);
+    }
+
     if (search) {
-      query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
+      query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%,course_title.ilike.%${search}%`);
     }
 
     if (isPaginated) {

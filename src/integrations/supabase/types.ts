@@ -2633,6 +2633,8 @@ export type Database = {
       journal_pages: {
         Row: {
           content: string | null
+          course_id: string | null
+          course_title: string | null
           created_at: string | null
           id: string
           is_archived: boolean | null
@@ -2644,6 +2646,8 @@ export type Database = {
         }
         Insert: {
           content?: string | null
+          course_id?: string | null
+          course_title?: string | null
           created_at?: string | null
           id?: string
           is_archived?: boolean | null
@@ -2655,6 +2659,8 @@ export type Database = {
         }
         Update: {
           content?: string | null
+          course_id?: string | null
+          course_title?: string | null
           created_at?: string | null
           id?: string
           is_archived?: boolean | null
@@ -2665,6 +2671,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "journal_pages_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "journal_pages_project_id_fkey"
             columns: ["project_id"]

@@ -5,3 +5,4 @@ export { CheckinFormModal } from './CheckinFormModal';
 export { CourseProgressPanel } from './CourseProgressPanel';
 export { CourseInvestmentSection } from './CourseInvestmentSection';
 export { CourseCheckinSection } from './CourseCheckinSection';
+export { CourseNotesTab } from './CourseNotesTab';
