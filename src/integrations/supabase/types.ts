@@ -3564,6 +3564,50 @@ export type Database = {
         }
         Relationships: []
       }
+      sales_log: {
+        Row: {
+          amount: number
+          client_name: string | null
+          created_at: string | null
+          cycle_id: string | null
+          date: string
+          id: string
+          notes: string | null
+          offer_name: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          client_name?: string | null
+          created_at?: string | null
+          cycle_id?: string | null
+          date: string
+          id?: string
+          notes?: string | null
+          offer_name?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          client_name?: string | null
+          created_at?: string | null
+          cycle_id?: string | null
+          date?: string
+          id?: string
+          notes?: string | null
+          offer_name?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_log_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+        ]
+      }
       sops: {
         Row: {
           checklist_items: Json | null
@@ -4719,6 +4763,41 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "weekly_plans"
             referencedColumns: ["week_id"]
+          },
+        ]
+      }
+      wins: {
+        Row: {
+          created_at: string | null
+          cycle_id: string
+          id: string
+          user_id: string
+          week_number: number
+          win_text: string
+        }
+        Insert: {
+          created_at?: string | null
+          cycle_id: string
+          id?: string
+          user_id: string
+          week_number: number
+          win_text: string
+        }
+        Update: {
+          created_at?: string | null
+          cycle_id?: string
+          id?: string
+          user_id?: string
+          week_number?: number
+          win_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wins_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
           },
         ]
       }
