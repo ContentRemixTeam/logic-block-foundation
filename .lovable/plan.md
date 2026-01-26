@@ -1,272 +1,235 @@
 
-## New Dashboard Page Foundation
+
+## Quarter Progress Bar Widget Implementation
 
 ### Overview
-Create a simplified, maintainable Dashboard page at `src/pages/Dashboard.tsx` with a clean widget container system. This replaces the current complex 1400+ line implementation with a structured foundation that can be incrementally enhanced.
+Build a fully-featured Quarter Progress Bar widget within `src/pages/Dashboard.tsx` that displays cycle progress with dynamic alerts based on the current day number.
 
 ---
 
-### Architecture
+### Data Flow
 
 ```text
-+-----------------------------------------------+
-|  HEADER                                        |
-|  [Title]           [Customize] [Edit Plan]    |
-+-----------------------------------------------+
-|                                               |
-|  WIDGET CONTAINER (Full Width)                |
-|  +-------------------------------------------+|
-|  | Quarter Progress Bar (always visible)     ||
-|  +-------------------------------------------+|
-|  |------------ Divider Line -----------------|
-|  +-------------------------------------------+|
-|  | Planning Next Steps (always visible)      ||
-|  +-------------------------------------------+|
-|  |------------ Divider Line -----------------|
-|  +-------------------------------------------+|
-|  | 90-Day Goal Card (default on)             ||
-|  +-------------------------------------------+|
-|  |------------ Divider Line -----------------|
-|  +-------------------------------------------+|
-|  | Focus Area Indicator (default on)         ||
-|  +-------------------------------------------+|
-|                                               |
-+-----------------------------------------------+
+useActiveCycle hook
+       ↓
+   cycle data
+(start_date, end_date)
+       ↓
+  useMemo calculations
+       ↓
+┌─────────────────────────────────────────┐
+│  QUARTER PROGRESS WIDGET                │
+│  ─────────────────────────────────────  │
+│  📅 JANUARY 25 - APRIL 25, 2026         │
+│  ━━━━━━━━━━━━━━━━━━━━━━━● 67%           │
+│  Day 60 of 90                           │
+│  Week 9 of 13 • 30 days remaining • 67% │
+│                                         │
+│  ┌─────────────────────────────────┐    │
+│  │ 🔥 Final stretch!               │    │
+│  └─────────────────────────────────┘    │
+└─────────────────────────────────────────┘
 ```
 
 ---
 
 ### Implementation Details
 
-#### 1. Page Structure
+#### 1. Imports to Add
 
-**File:** `src/pages/Dashboard.tsx`
-
-- Import Layout component for consistent page wrapper
-- Use existing `useAuth` hook for user context
-- Use existing `useIsMobile` hook for responsive behavior
-- Import shadcn/ui components: Card, CardHeader, CardTitle, Button, Progress
-
-#### 2. Header Section
-
-- **Desktop:** Full text buttons ("Customize Layout", "Edit Plan")
-- **Mobile:** Icon-only buttons (Settings icon, Pencil icon)
-- "Customize Layout" button: Placeholder for now (can link to `/dashboard/customize` later)
-- "Edit Plan" button: Links to `/cycle-setup`
-
-```tsx
-// Desktop
-<Button variant="outline">Customize Layout</Button>
-<Button variant="outline">Edit Plan</Button>
-
-// Mobile (using useIsMobile)
-<Button variant="outline" size="icon"><Settings2 /></Button>
-<Button variant="outline" size="icon"><Pencil /></Button>
+```typescript
+// Add to existing imports
+import { useMemo } from 'react';
+import { differenceInDays, format, parseISO } from 'date-fns';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useActiveCycle } from '@/hooks/useActiveCycle';
+import { AlertTriangle, PartyPopper, Target, Flame, Calendar } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 ```
 
-#### 3. Widget Container System
+#### 2. Cycle Stats Calculation
 
-Create a reusable pattern for widget sections:
+Add inside the Dashboard component:
 
-```tsx
-interface WidgetSectionProps {
-  title: string;
-  icon?: React.ReactNode;
-  children: React.ReactNode;
-  elevated?: boolean;  // Alternating backgrounds
-  alwaysVisible?: boolean;
-}
+```typescript
+const { data: cycle, isLoading } = useActiveCycle();
+
+const cycleStats = useMemo(() => {
+  if (!cycle?.start_date || !cycle?.end_date) return null;
+
+  const start = parseISO(cycle.start_date);
+  const end = parseISO(cycle.end_date);
+  const today = new Date();
+
+  const totalDays = 90; // Fixed 90-day cycle
+  const daysElapsed = Math.max(0, differenceInDays(today, start));
+  const currentDay = Math.min(daysElapsed + 1, totalDays);
+  const daysRemaining = Math.max(0, totalDays - currentDay + 1);
+  const progress = Math.min(100, Math.max(0, (currentDay / totalDays) * 100));
+  const currentWeek = Math.ceil(currentDay / 7);
+  const totalWeeks = 13;
+
+  return {
+    progress: Math.round(progress),
+    currentDay,
+    daysRemaining,
+    currentWeek,
+    totalWeeks,
+    startFormatted: format(start, 'MMMM d').toUpperCase(),
+    endFormatted: format(end, 'MMMM d, yyyy').toUpperCase(),
+    startYear: format(start, 'yyyy'),
+  };
+}, [cycle]);
 ```
 
-**Visual Features:**
-- Full-width containers
-- Divider lines between sections (using `<Separator />` or border classes)
-- Alternating backgrounds: `bg-card` (surface) vs `bg-muted/30` (surface-elevated)
-- Consistent padding and spacing
+#### 3. Dynamic Alert Logic
 
-#### 4. Placeholder Widget Sections
+Function to determine which alert to show based on current day:
 
-Each section is a Card with just the header for now:
-
-| Widget | Always Visible | Default | Background |
-|--------|----------------|---------|------------|
-| Quarter Progress Bar | Yes | - | surface |
-| Planning Next Steps | Yes | - | surface-elevated |
-| 90-Day Goal Card | No | On | surface |
-| Focus Area Indicator | No | On | surface-elevated |
-
-**Quarter Progress Bar:**
-```tsx
-<Card>
-  <CardHeader>
-    <CardTitle className="flex items-center gap-2">
-      <TrendingUp className="h-5 w-5 text-primary" />
-      Quarter Progress
-    </CardTitle>
-  </CardHeader>
-  <CardContent>
-    <Progress value={0} className="h-3" />
-    <p className="text-sm text-muted-foreground mt-2">Day 0 of 90</p>
-  </CardContent>
-</Card>
+```typescript
+const getDynamicAlert = (currentDay: number) => {
+  if (currentDay >= 15 && currentDay <= 17) {
+    return {
+      icon: <AlertTriangle className="h-4 w-4" />,
+      message: '"THE GAP" approaching',
+      variant: 'warning' as const,
+      className: 'border-yellow-500/50 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
+    };
+  }
+  if (currentDay >= 18 && currentDay <= 28) {
+    return {
+      icon: <AlertTriangle className="h-4 w-4" />,
+      message: "YOU'RE IN THE GAP",
+      variant: 'warning' as const,
+      className: 'border-orange-500/50 bg-orange-500/10 text-orange-700 dark:text-orange-400',
+    };
+  }
+  if (currentDay === 30) {
+    return {
+      icon: <Target className="h-4 w-4" />,
+      message: '30-day check-in today',
+      variant: 'info' as const,
+      className: 'border-blue-500/50 bg-blue-500/10 text-blue-700 dark:text-blue-400',
+    };
+  }
+  if (currentDay === 45) {
+    return {
+      icon: <PartyPopper className="h-4 w-4" />,
+      message: "You're halfway there!",
+      variant: 'success' as const,
+      className: 'border-green-500/50 bg-green-500/10 text-green-700 dark:text-green-400',
+    };
+  }
+  if (currentDay >= 75) {
+    return {
+      icon: <Flame className="h-4 w-4" />,
+      message: 'Final stretch!',
+      variant: 'fire' as const,
+      className: 'border-red-500/50 bg-red-500/10 text-red-700 dark:text-red-400',
+    };
+  }
+  return null;
+};
 ```
 
-**Planning Next Steps:**
+#### 4. Widget Section Content
+
+Replace the Quarter Progress placeholder content:
+
+**Loading State:**
 ```tsx
-<Card>
-  <CardHeader>
-    <CardTitle className="flex items-center gap-2">
-      <ListTodo className="h-5 w-5 text-primary" />
-      Planning Next Steps
-    </CardTitle>
-  </CardHeader>
-  <CardContent>
-    <p className="text-muted-foreground">Your next actions will appear here</p>
-  </CardContent>
-</Card>
+{isLoading && (
+  <div className="space-y-3">
+    <Skeleton className="h-4 w-48" />
+    <Skeleton className="h-3 w-full" />
+    <Skeleton className="h-4 w-32" />
+  </div>
+)}
 ```
 
-#### 5. Responsive Design
-
-Using Tailwind classes:
-
+**No Active Cycle State:**
 ```tsx
-// Container
-<div className="space-y-0">
-  {/* Single column on all screens */}
-  {/* Widgets stack vertically */}
-</div>
-
-// Header buttons
-<div className="flex items-center gap-2">
-  {/* Mobile: icon buttons */}
-  <Button variant="outline" size="icon" className="md:hidden">
-    <Settings2 className="h-4 w-4" />
-  </Button>
-  
-  {/* Desktop: text buttons */}
-  <Button variant="outline" className="hidden md:flex">
-    <Settings2 className="h-4 w-4 mr-2" />
-    Customize Layout
-  </Button>
-</div>
+{!isLoading && !cycleStats && (
+  <div className="text-center py-4">
+    <div className="h-12 w-12 rounded-full bg-muted mx-auto mb-3 flex items-center justify-center">
+      <Calendar className="h-6 w-6 text-muted-foreground" />
+    </div>
+    <p className="text-muted-foreground text-sm mb-2">No active cycle</p>
+    <Link to="/cycle-setup" className="text-primary text-sm hover:underline">
+      Start your 90-day cycle →
+    </Link>
+  </div>
+)}
 ```
 
-#### 6. File Structure
-
-**Modified file:**
-- `src/pages/Dashboard.tsx` - Complete rewrite with new foundation
-
-**Preserved patterns:**
-- Uses `Layout` component wrapper
-- Uses existing auth hooks
-- Uses shadcn/ui components
-- Maintains route at `/dashboard`
-
----
-
-### Code Structure
-
+**Active Cycle Display:**
 ```tsx
-import { Link } from 'react-router-dom';
-import { Layout } from '@/components/Layout';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { 
-  Settings2, 
-  Pencil, 
-  TrendingUp, 
-  ListTodo, 
-  Target, 
-  Compass 
-} from 'lucide-react';
-
-export default function Dashboard() {
-  const isMobile = useIsMobile();
-
-  return (
-    <Layout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground">Your 90-day planning hub</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Mobile: Icon buttons */}
-            {/* Desktop: Text buttons */}
-          </div>
+{!isLoading && cycleStats && (
+  <div className="space-y-3">
+    {/* Date Range */}
+    <p className="text-xs font-medium tracking-wide text-muted-foreground">
+      {cycleStats.startFormatted} - {cycleStats.endFormatted}
+    </p>
+    
+    {/* Progress Bar */}
+    <Progress value={cycleStats.progress} className="h-3" />
+    
+    {/* Day Counter */}
+    <p className="text-sm font-medium">
+      Day {cycleStats.currentDay} of 90
+    </p>
+    
+    {/* Stats Line */}
+    <p className="text-sm text-muted-foreground">
+      Week {cycleStats.currentWeek} of {cycleStats.totalWeeks} • 
+      {cycleStats.daysRemaining} days remaining • 
+      {cycleStats.progress}% complete
+    </p>
+    
+    {/* Dynamic Alert */}
+    {getDynamicAlert(cycleStats.currentDay) && (
+      <Alert className={getDynamicAlert(cycleStats.currentDay)!.className}>
+        <div className="flex items-center gap-2">
+          {getDynamicAlert(cycleStats.currentDay)!.icon}
+          <AlertDescription className="font-medium">
+            {getDynamicAlert(cycleStats.currentDay)!.message}
+          </AlertDescription>
         </div>
-
-        {/* Widget Container */}
-        <div className="space-y-0 rounded-xl border overflow-hidden">
-          {/* Quarter Progress - Always visible */}
-          <WidgetSection title="Quarter Progress" icon={<TrendingUp />}>
-            <Progress value={0} />
-          </WidgetSection>
-          
-          <Separator />
-          
-          {/* Planning Next Steps - Always visible */}
-          <WidgetSection title="Planning Next Steps" icon={<ListTodo />} elevated>
-            <p>Your next actions...</p>
-          </WidgetSection>
-          
-          <Separator />
-          
-          {/* 90-Day Goal - Default on */}
-          <WidgetSection title="90-Day Goal" icon={<Target />}>
-            <p>Your main goal...</p>
-          </WidgetSection>
-          
-          <Separator />
-          
-          {/* Focus Area - Default on */}
-          <WidgetSection title="Focus Area" icon={<Compass />} elevated>
-            <p>Your strategic focus...</p>
-          </WidgetSection>
-        </div>
-      </div>
-    </Layout>
-  );
-}
+      </Alert>
+    )}
+  </div>
+)}
 ```
 
 ---
 
-### Mobile Responsiveness
+### File Changes
 
-| Element | Desktop | Mobile |
-|---------|---------|--------|
-| Header buttons | Text + icon | Icon only |
-| Widget layout | Full width | Full width |
-| Spacing | `space-y-6` | `space-y-4` |
-| Card padding | `p-6` | `p-4` |
+| File | Action |
+|------|--------|
+| `src/pages/Dashboard.tsx` | Modify - Add imports, useActiveCycle hook, useMemo calculations, and update Quarter Progress widget content |
 
 ---
 
 ### Technical Notes
 
-1. **Keep existing route** - `/dashboard` stays the same in App.tsx
-2. **Preserve lazy loading** - Component export remains `export default function Dashboard()`
-3. **Use existing components** - Layout, Card, Button, Progress from shadcn/ui
-4. **Clean foundation** - Remove 1400 lines of complex logic; data integration comes later
-5. **Widget toggle ready** - Structure supports future `isWidgetEnabled()` integration
+1. **Date handling**: Use `parseISO` from date-fns for database date strings to avoid timezone issues
+2. **Format**: Use `MMMM d` format then `.toUpperCase()` to get "JANUARY 25" style
+3. **Progress clamping**: Ensure values stay within 0-100 range with `Math.min/Math.max`
+4. **Week calculation**: `Math.ceil(currentDay / 7)` gives correct week number (day 1-7 = week 1, etc.)
+5. **Existing hook**: Reuse `useActiveCycle` which already fetches cycle data via edge function
+6. **Loading skeleton**: Provide visual feedback while data loads
+7. **Empty state**: Clear CTA to start a cycle if none exists
 
 ---
 
-### What This Does NOT Include (Next Steps)
+### Alert Trigger Map
 
-- Data fetching from edge functions
-- Widget customization modal
-- Actual progress calculations
-- Quest mode theming
-- Recovery banners and popups
-- XP/Streak displays
-- Real content in placeholder sections
+| Day Range | Icon | Message | Color Theme |
+|-----------|------|---------|-------------|
+| 15-17 | ⚠️ AlertTriangle | "THE GAP" approaching | Yellow |
+| 18-28 | ⚠️ AlertTriangle | YOU'RE IN THE GAP | Orange |
+| 30 | 🎯 Target | 30-day check-in today | Blue |
+| 45 | 🎉 PartyPopper | You're halfway there! | Green |
+| 75+ | 🔥 Flame | Final stretch! | Red |
 
-These will be added incrementally in follow-up prompts.
