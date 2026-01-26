@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { differenceInDays, format, parseISO } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
+import { differenceInDays, format, parseISO, startOfWeek as getStartOfWeek } from 'date-fns';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -9,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useActiveCycle } from '@/hooks/useActiveCycle';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Settings2, 
   Pencil, 
@@ -19,7 +21,9 @@ import {
   AlertTriangle,
   PartyPopper,
   Flame,
-  Calendar
+  Calendar,
+  CheckCircle2,
+  ChevronRight
 } from 'lucide-react';
 
 interface WidgetSectionProps {
@@ -82,7 +86,54 @@ function getDynamicAlert(currentDay: number) {
 
 export default function Dashboard() {
   const isMobile = useIsMobile();
-  const { data: cycle, isLoading } = useActiveCycle();
+  const { data: cycle, isLoading: cycleLoading } = useActiveCycle();
+
+  // Check for weekly plan for current week
+  const { data: weeklyPlan, isLoading: weeklyLoading } = useQuery({
+    queryKey: ['weekly-plan-check', cycle?.cycle_id],
+    queryFn: async () => {
+      if (!cycle?.cycle_id) return null;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return null;
+      
+      const today = new Date();
+      const weekStart = getStartOfWeek(today, { weekStartsOn: 1 });
+      const weekStartStr = format(weekStart, 'yyyy-MM-dd');
+      
+      const { data } = await supabase
+        .from('weekly_plans')
+        .select('week_id')
+        .eq('user_id', session.user.id)
+        .eq('cycle_id', cycle.cycle_id)
+        .eq('start_of_week', weekStartStr)
+        .maybeSingle();
+      
+      return data;
+    },
+    enabled: !!cycle?.cycle_id,
+    staleTime: 60 * 1000, // 1 minute
+  });
+
+  // Check for daily plan for today
+  const { data: dailyPlan, isLoading: dailyLoading } = useQuery({
+    queryKey: ['daily-plan-check'],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return null;
+      
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      
+      const { data } = await supabase
+        .from('daily_plans')
+        .select('day_id')
+        .eq('user_id', session.user.id)
+        .eq('date', todayStr)
+        .maybeSingle();
+      
+      return data;
+    },
+    staleTime: 60 * 1000, // 1 minute
+  });
 
   const cycleStats = useMemo(() => {
     if (!cycle?.start_date || !cycle?.end_date) return null;
@@ -111,6 +162,13 @@ export default function Dashboard() {
   }, [cycle]);
 
   const dynamicAlert = cycleStats ? getDynamicAlert(cycleStats.currentDay) : null;
+
+  // Determine planning status
+  const planningLoading = cycleLoading || weeklyLoading || dailyLoading;
+  const hasCycle = !!cycle;
+  const hasWeeklyPlan = !!weeklyPlan;
+  const hasDailyPlan = !!dailyPlan;
+  const allComplete = hasCycle && hasWeeklyPlan && hasDailyPlan;
 
   return (
     <Layout>
@@ -153,7 +211,7 @@ export default function Dashboard() {
             title="Quarter Progress" 
             icon={<TrendingUp className="h-5 w-5" />}
           >
-            {isLoading && (
+            {cycleLoading && (
               <div className="space-y-3">
                 <Skeleton className="h-4 w-48" />
                 <Skeleton className="h-3 w-full" />
@@ -161,7 +219,7 @@ export default function Dashboard() {
               </div>
             )}
 
-            {!isLoading && !cycleStats && (
+            {!cycleLoading && !cycleStats && (
               <div className="text-center py-4">
                 <div className="h-12 w-12 rounded-full bg-muted mx-auto mb-3 flex items-center justify-center">
                   <Calendar className="h-6 w-6 text-muted-foreground" />
@@ -173,7 +231,7 @@ export default function Dashboard() {
               </div>
             )}
 
-            {!isLoading && cycleStats && (
+            {!cycleLoading && cycleStats && (
               <div className="space-y-3">
                 {/* Date Range */}
                 <p className="text-xs font-medium tracking-wide text-muted-foreground">
@@ -216,7 +274,90 @@ export default function Dashboard() {
             icon={<ListTodo className="h-5 w-5" />}
             elevated
           >
-            <p className="text-muted-foreground text-sm">Your next actions will appear here</p>
+            {planningLoading && (
+              <div className="space-y-3">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-4 w-48" />
+              </div>
+            )}
+
+            {!planningLoading && !hasCycle && (
+              <div className="space-y-3">
+                <Button asChild className="w-full justify-between">
+                  <Link to="/cycle-setup">
+                    Plan Your Quarter
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <p className="text-sm text-muted-foreground">
+                  Set your 90-day goal and focus area
+                </p>
+              </div>
+            )}
+
+            {!planningLoading && hasCycle && !hasWeeklyPlan && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <span>Quarter planned</span>
+                </div>
+                <Button asChild className="w-full justify-between">
+                  <Link to="/weekly-plan">
+                    Plan This Week
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <p className="text-sm text-muted-foreground">
+                  Set your weekly priorities and focus
+                </p>
+              </div>
+            )}
+
+            {!planningLoading && hasCycle && hasWeeklyPlan && !hasDailyPlan && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    <span>Quarter</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    <span>Week</span>
+                  </div>
+                </div>
+                <Button asChild className="w-full justify-between">
+                  <Link to="/daily-plan">
+                    Plan Today
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <p className="text-sm text-muted-foreground">
+                  Set your top 3 priorities for today
+                </p>
+              </div>
+            )}
+
+            {!planningLoading && allComplete && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-4 text-sm mb-2">
+                  <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>Quarter</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>Week</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>Day</span>
+                  </div>
+                </div>
+                <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                  ✨ All caught up! Time to execute.
+                </p>
+              </div>
+            )}
           </WidgetSection>
           
           <div className="border-t border-border" />
