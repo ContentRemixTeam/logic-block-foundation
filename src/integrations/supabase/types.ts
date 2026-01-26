@@ -2437,6 +2437,8 @@ export type Database = {
           id: string
           priority: string | null
           project_id: string | null
+          source_note_id: string | null
+          source_note_title: string | null
           tags: string[] | null
           updated_at: string | null
           user_id: string
@@ -2449,6 +2451,8 @@ export type Database = {
           id?: string
           priority?: string | null
           project_id?: string | null
+          source_note_id?: string | null
+          source_note_title?: string | null
           tags?: string[] | null
           updated_at?: string | null
           user_id: string
@@ -2461,6 +2465,8 @@ export type Database = {
           id?: string
           priority?: string | null
           project_id?: string | null
+          source_note_id?: string | null
+          source_note_title?: string | null
           tags?: string[] | null
           updated_at?: string | null
           user_id?: string
@@ -2478,6 +2484,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ideas_source_note_id_fkey"
+            columns: ["source_note_id"]
+            isOneToOne: false
+            referencedRelation: "journal_pages"
             referencedColumns: ["id"]
           },
         ]
@@ -3748,6 +3761,8 @@ export type Database = {
           section_id: string | null
           sop_id: string | null
           source: string | null
+          source_note_id: string | null
+          source_note_title: string | null
           status: string | null
           subtasks: Json | null
           system_source: string | null
@@ -3808,6 +3823,8 @@ export type Database = {
           section_id?: string | null
           sop_id?: string | null
           source?: string | null
+          source_note_id?: string | null
+          source_note_title?: string | null
           status?: string | null
           subtasks?: Json | null
           system_source?: string | null
@@ -3868,6 +3885,8 @@ export type Database = {
           section_id?: string | null
           sop_id?: string | null
           source?: string | null
+          source_note_id?: string | null
+          source_note_title?: string | null
           status?: string | null
           subtasks?: Json | null
           system_source?: string | null
@@ -3940,6 +3959,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sops"
             referencedColumns: ["sop_id"]
+          },
+          {
+            foreignKeyName: "tasks_source_note_id_fkey"
+            columns: ["source_note_id"]
+            isOneToOne: false
+            referencedRelation: "journal_pages"
+            referencedColumns: ["id"]
           },
         ]
       }

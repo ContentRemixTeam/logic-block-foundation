@@ -11,6 +11,7 @@ interface SelectableNoteContentProps {
   className?: string;
   maxHeight?: string;
   sourceNoteId?: string;
+  sourceNoteTitle?: string;
   sourceType?: 'entry' | 'page';
   showHint?: boolean;
 }
@@ -21,6 +22,7 @@ export function SelectableNoteContent({
   className,
   maxHeight = '400px',
   sourceNoteId,
+  sourceNoteTitle,
   sourceType = 'entry',
   showHint = true,
 }: SelectableNoteContentProps) {
@@ -77,6 +79,7 @@ export function SelectableNoteContent({
           type={modalType}
           selectedText={selectedText}
           sourceNoteId={sourceNoteId}
+          sourceNoteTitle={sourceNoteTitle}
           sourceType={sourceType}
         />
       </div>

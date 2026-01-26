@@ -45,6 +45,7 @@ import { useFormDraftProtection } from '@/hooks/useFormDraftProtection';
 import { DraftRestoreBanner, DraftStatusFooter } from '@/components/DraftRestoreBanner';
 import { PaginationInfo } from '@/components/ui/pagination-info';
 import { SelectableNoteContent } from '@/components/notes/SelectableNoteContent';
+import { NoteLinkedItems } from '@/components/notes/NoteLinkedItems';
 
 const PAGE_SIZE = 50;
 
@@ -778,6 +779,7 @@ export default function Notes() {
                                       searchQuery ? highlightText(content, searchQuery) : content
                                     }
                                     sourceNoteId={entry.day_id}
+                                    sourceNoteTitle={entry.scratch_pad_title || format(parseISO(dateStr), 'MMMM d, yyyy')}
                                     sourceType="entry"
                                     maxHeight="400px"
                                   />
@@ -803,6 +805,9 @@ export default function Notes() {
                                     )}
                                   </Button>
                                 </div>
+
+                                {/* Linked items (tasks/ideas created from this note) */}
+                                <NoteLinkedItems noteId={entry.day_id} noteType="entry" />
 
                                 {/* Metadata and actions */}
                                 <div className="flex flex-wrap items-center justify-between gap-4 mt-3">

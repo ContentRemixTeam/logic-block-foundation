@@ -24,6 +24,7 @@ interface CreateFromSelectionModalProps {
   type: ModalType;
   selectedText: string;
   sourceNoteId?: string;
+  sourceNoteTitle?: string;
   sourceType?: 'entry' | 'page';
 }
 
@@ -33,6 +34,7 @@ export function CreateFromSelectionModal({
   type,
   selectedText,
   sourceNoteId,
+  sourceNoteTitle,
   sourceType,
 }: CreateFromSelectionModalProps) {
   const queryClient = useQueryClient();
@@ -81,7 +83,8 @@ export function CreateFromSelectionModal({
           scheduled_date: scheduledDate ? format(scheduledDate, 'yyyy-MM-dd') : null,
           project_id: projectId,
           source: 'manual',
-          notes: sourceNoteId ? `Created from ${sourceType === 'page' ? 'journal page' : 'daily entry'}` : null,
+          source_note_id: sourceNoteId || null,
+          source_note_title: sourceNoteTitle || null,
         },
       });
 
@@ -90,7 +93,7 @@ export function CreateFromSelectionModal({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
-      toast.success('✅ Task created!', {
+      toast.success('✅ Task created from note!', {
         description: taskText.substring(0, 50) + (taskText.length > 50 ? '...' : ''),
       });
       onOpenChange(false);
@@ -113,6 +116,8 @@ export function CreateFromSelectionModal({
           content: ideaContent.trim(),
           project_id: projectId,
           tags: [],
+          source_note_id: sourceNoteId || null,
+          source_note_title: sourceNoteTitle || null,
         },
       });
 
@@ -121,7 +126,7 @@ export function CreateFromSelectionModal({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ideas'] });
-      toast.success('💡 Idea saved!', {
+      toast.success('💡 Idea saved from note!', {
         description: ideaContent.substring(0, 50) + (ideaContent.length > 50 ? '...' : ''),
       });
       onOpenChange(false);

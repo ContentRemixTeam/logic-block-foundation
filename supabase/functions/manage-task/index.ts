@@ -83,6 +83,8 @@ const CreateTaskSchema = z.object({
   priority_order: z.number().min(1).max(3).nullable().optional(),
   daily_plan_id: z.string().uuid().nullable().optional(),
   source: z.enum(['manual', 'scratch_pad', 'top_3']).optional(),
+  source_note_id: z.string().uuid().nullable().optional(),
+  source_note_title: z.string().max(500).nullable().optional(),
 });
 
 const UpdateTaskSchema = OptionalTaskFields.extend({
@@ -309,7 +311,7 @@ Deno.serve(async (req) => {
           actual_minutes, time_block_start, time_block_end, energy_level,
           context_tags, goal_id, status, waiting_on, subtasks, notes,
           position_in_column, planned_day, day_order, project_id,
-          project_column, section_id, cycle_id
+          project_column, section_id, cycle_id, source_note_id, source_note_title
         } = validatedData;
         
         const isRecurringParent = recurrence_pattern && recurrence_pattern !== 'none';
@@ -369,6 +371,8 @@ Deno.serve(async (req) => {
             project_column: project_column || 'todo',
             section_id: section_id || null,
             cycle_id: cycle_id || null,
+            source_note_id: source_note_id || null,
+            source_note_title: source_note_title || null,
           })
           .select()
           .single();
