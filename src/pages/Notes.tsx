@@ -44,6 +44,7 @@ import { useProjects } from '@/hooks/useProjects';
 import { useFormDraftProtection } from '@/hooks/useFormDraftProtection';
 import { DraftRestoreBanner, DraftStatusFooter } from '@/components/DraftRestoreBanner';
 import { PaginationInfo } from '@/components/ui/pagination-info';
+import { SelectableNoteContent } from '@/components/notes/SelectableNoteContent';
 
 const PAGE_SIZE = 50;
 
@@ -769,17 +770,21 @@ export default function Notes() {
                                   </div>
                                 )}
 
-                                {/* Scratch pad content */}
-                                <div className="relative group">
-                                  <ScrollArea className="max-h-[400px]">
-                                    <pre className="whitespace-pre-wrap font-mono text-sm bg-muted/30 rounded-lg p-4 border">
-                                      {searchQuery ? highlightText(entry.scratch_pad_content, searchQuery) : entry.scratch_pad_content}
-                                    </pre>
-                                  </ScrollArea>
+                                {/* Scratch pad content with text selection */}
+                                <div className="relative">
+                                  <SelectableNoteContent
+                                    content={entry.scratch_pad_content}
+                                    renderContent={(content) => 
+                                      searchQuery ? highlightText(content, searchQuery) : content
+                                    }
+                                    sourceNoteId={entry.day_id}
+                                    sourceType="entry"
+                                    maxHeight="400px"
+                                  />
                                   <Button
                                     variant="secondary"
                                     size="sm"
-                                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleCopyContent(entry.scratch_pad_content, entry.day_id);
