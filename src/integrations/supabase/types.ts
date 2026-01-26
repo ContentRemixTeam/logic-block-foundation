@@ -4458,9 +4458,12 @@ export type Database = {
       weekly_plans: {
         Row: {
           adjustments: string | null
+          alignment_rating: number | null
+          alignment_reflection: string | null
           challenges: string | null
           created_at: string | null
           cycle_id: string
+          goal_checkin_notes: string | null
           goal_rewrite: string | null
           metric_1_target: number | null
           metric_2_target: number | null
@@ -4471,13 +4474,17 @@ export type Database = {
           user_id: string
           week_id: string
           weekly_feeling: string | null
+          weekly_scratch_pad: string | null
           weekly_thought: string | null
         }
         Insert: {
           adjustments?: string | null
+          alignment_rating?: number | null
+          alignment_reflection?: string | null
           challenges?: string | null
           created_at?: string | null
           cycle_id: string
+          goal_checkin_notes?: string | null
           goal_rewrite?: string | null
           metric_1_target?: number | null
           metric_2_target?: number | null
@@ -4488,13 +4495,17 @@ export type Database = {
           user_id: string
           week_id?: string
           weekly_feeling?: string | null
+          weekly_scratch_pad?: string | null
           weekly_thought?: string | null
         }
         Update: {
           adjustments?: string | null
+          alignment_rating?: number | null
+          alignment_reflection?: string | null
           challenges?: string | null
           created_at?: string | null
           cycle_id?: string
+          goal_checkin_notes?: string | null
           goal_rewrite?: string | null
           metric_1_target?: number | null
           metric_2_target?: number | null
@@ -4505,6 +4516,7 @@ export type Database = {
           user_id?: string
           week_id?: string
           weekly_feeling?: string | null
+          weekly_scratch_pad?: string | null
           weekly_thought?: string | null
         }
         Relationships: [
