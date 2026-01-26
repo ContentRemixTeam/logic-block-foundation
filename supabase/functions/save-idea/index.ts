@@ -17,6 +17,8 @@ const IdeaSaveSchema = z.object({
   priority: z.enum(['asap', 'next_week', 'next_month', 'someday']).nullable().optional(),
   tags: z.array(z.string().max(50, 'Tag must be under 50 characters')).optional(),
   project_id: z.string().uuid('Invalid project ID').nullable().optional(),
+  source_note_id: z.string().uuid('Invalid note ID').nullable().optional(),
+  source_note_title: z.string().max(500, 'Note title must be under 500 characters').nullable().optional(),
 });
 
 // ==================== VALIDATION ERROR HELPER ====================
@@ -70,7 +72,7 @@ Deno.serve(async (req) => {
     }
 
     const validatedData = parseResult.data;
-    const { id, content, category_id, priority, tags, project_id } = validatedData;
+    const { id, content, category_id, priority, tags, project_id, source_note_id, source_note_title } = validatedData;
 
     const trimmedContent = content.trim();
 
@@ -85,7 +87,8 @@ Deno.serve(async (req) => {
       category_id, 
       priority, 
       tags: normalizedTags, 
-      project_id 
+      project_id,
+      source_note_id
     });
 
     if (id) {
@@ -126,6 +129,8 @@ Deno.serve(async (req) => {
           priority: priority || null,
           tags: normalizedTags,
           project_id: project_id || null,
+          source_note_id: source_note_id || null,
+          source_note_title: source_note_title || null,
         })
         .select()
         .single();
