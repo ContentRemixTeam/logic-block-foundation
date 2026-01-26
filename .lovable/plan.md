@@ -1,235 +1,191 @@
 
+# Dashboard Widgets Implementation Plan
 
-## Quarter Progress Bar Widget Implementation
-
-### Overview
-Build a fully-featured Quarter Progress Bar widget within `src/pages/Dashboard.tsx` that displays cycle progress with dynamic alerts based on the current day number.
+## Overview
+Add three new widgets to the Dashboard after the Content Counter widget: **Sales Goal Tracker**, **Habit Tracker**, and **Quick Wins**. This requires database schema changes and new widget components following existing patterns.
 
 ---
 
-### Data Flow
+## Database Changes
 
+### 1. Create `sales_log` Table
+New table to track sales entries:
 ```text
-useActiveCycle hook
-       ↓
-   cycle data
-(start_date, end_date)
-       ↓
-  useMemo calculations
-       ↓
-┌─────────────────────────────────────────┐
-│  QUARTER PROGRESS WIDGET                │
-│  ─────────────────────────────────────  │
-│  📅 JANUARY 25 - APRIL 25, 2026         │
-│  ━━━━━━━━━━━━━━━━━━━━━━━● 67%           │
-│  Day 60 of 90                           │
-│  Week 9 of 13 • 30 days remaining • 67% │
-│                                         │
-│  ┌─────────────────────────────────┐    │
-│  │ 🔥 Final stretch!               │    │
-│  └─────────────────────────────────┘    │
-└─────────────────────────────────────────┘
+sales_log
+- id: UUID (primary key)
+- user_id: UUID (references auth.users, NOT NULL)
+- cycle_id: UUID (references cycles_90_day, nullable)
+- date: DATE (NOT NULL)
+- amount: DECIMAL (NOT NULL)
+- client_name: TEXT (nullable)
+- offer_name: TEXT (nullable)
+- notes: TEXT (nullable)
+- created_at: TIMESTAMP (default now())
 ```
+- Add RLS policies for user access control
+- Add index on (user_id, cycle_id, date)
+
+### 2. Create `wins` Table
+New table to track achievements:
+```text
+wins
+- id: UUID (primary key)
+- user_id: UUID (references auth.users, NOT NULL)
+- cycle_id: UUID (references cycles_90_day, NOT NULL)
+- week_number: INTEGER (NOT NULL)
+- win_text: TEXT (NOT NULL)
+- created_at: TIMESTAMP (default now())
+```
+- Add RLS policies for user access control
+- Add index on (user_id, cycle_id)
 
 ---
 
-### Implementation Details
+## Widget Implementations
 
-#### 1. Imports to Add
+### Widget 1: Sales Goal Tracker (`SalesGoalTrackerWidget`)
 
-```typescript
-// Add to existing imports
-import { useMemo } from 'react';
-import { differenceInDays, format, parseISO } from 'date-fns';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useActiveCycle } from '@/hooks/useActiveCycle';
-import { AlertTriangle, PartyPopper, Target, Flame, Calendar } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-```
+**Data Sources:**
+- `sales_log` table: Sum amounts for current cycle
+- `cycle_revenue_plan` table: Get revenue_goal (existing table with revenue_goal column)
 
-#### 2. Cycle Stats Calculation
+**Features:**
+- Progress bar showing revenue vs. goal
+- Calculate: total revenue, sales count, average sale, pace indicator
+- Color-coded pace status (green/yellow/red)
+- [Add Sale] dialog with date picker, amount input, client/offer/notes fields
+- [Edit Goal] and [Details] links
 
-Add inside the Dashboard component:
+**Empty States:**
+- No cycle: "No active cycle" message
+- No goal: "Set revenue goal" prompt
+- No sales: Show 0% progress with encouragement
 
-```typescript
-const { data: cycle, isLoading } = useActiveCycle();
+**Styling:** `WidgetSection` with `elevated={true}`
 
-const cycleStats = useMemo(() => {
-  if (!cycle?.start_date || !cycle?.end_date) return null;
+### Widget 2: Habit Tracker (`HabitTrackerWidget`)
 
-  const start = parseISO(cycle.start_date);
-  const end = parseISO(cycle.end_date);
-  const today = new Date();
+**Data Sources:**
+- `habits` table: Active habits (is_active=true, is_archived=false), limit 5
+- `habit_logs` table: Completions for current week (Mon-Sun)
 
-  const totalDays = 90; // Fixed 90-day cycle
-  const daysElapsed = Math.max(0, differenceInDays(today, start));
-  const currentDay = Math.min(daysElapsed + 1, totalDays);
-  const daysRemaining = Math.max(0, totalDays - currentDay + 1);
-  const progress = Math.min(100, Math.max(0, (currentDay / totalDays) * 100));
-  const currentWeek = Math.ceil(currentDay / 7);
-  const totalWeeks = 13;
+**Features:**
+- Weekly grid: Habits (rows) x Days (columns)
+- Cell states: Completed (green check), Not done (gray circle), Today highlighted
+- Click to toggle via existing `toggle_habit` RPC
+- Stats line: "X/Y habits completed today - Z% this week"
+- [Manage Habits] link to /habits
 
-  return {
-    progress: Math.round(progress),
-    currentDay,
-    daysRemaining,
-    currentWeek,
-    totalWeeks,
-    startFormatted: format(start, 'MMMM d').toUpperCase(),
-    endFormatted: format(end, 'MMMM d, yyyy').toUpperCase(),
-    startYear: format(start, 'yyyy'),
-  };
-}, [cycle]);
-```
+**Mobile:** Show only top 3 habits
 
-#### 3. Dynamic Alert Logic
+**Empty State:** "No active habits" with setup button
 
-Function to determine which alert to show based on current day:
+**Styling:** `WidgetSection` (no elevation)
 
-```typescript
-const getDynamicAlert = (currentDay: number) => {
-  if (currentDay >= 15 && currentDay <= 17) {
-    return {
-      icon: <AlertTriangle className="h-4 w-4" />,
-      message: '"THE GAP" approaching',
-      variant: 'warning' as const,
-      className: 'border-yellow-500/50 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
-    };
-  }
-  if (currentDay >= 18 && currentDay <= 28) {
-    return {
-      icon: <AlertTriangle className="h-4 w-4" />,
-      message: "YOU'RE IN THE GAP",
-      variant: 'warning' as const,
-      className: 'border-orange-500/50 bg-orange-500/10 text-orange-700 dark:text-orange-400',
-    };
-  }
-  if (currentDay === 30) {
-    return {
-      icon: <Target className="h-4 w-4" />,
-      message: '30-day check-in today',
-      variant: 'info' as const,
-      className: 'border-blue-500/50 bg-blue-500/10 text-blue-700 dark:text-blue-400',
-    };
-  }
-  if (currentDay === 45) {
-    return {
-      icon: <PartyPopper className="h-4 w-4" />,
-      message: "You're halfway there!",
-      variant: 'success' as const,
-      className: 'border-green-500/50 bg-green-500/10 text-green-700 dark:text-green-400',
-    };
-  }
-  if (currentDay >= 75) {
-    return {
-      icon: <Flame className="h-4 w-4" />,
-      message: 'Final stretch!',
-      variant: 'fire' as const,
-      className: 'border-red-500/50 bg-red-500/10 text-red-700 dark:text-red-400',
-    };
-  }
-  return null;
-};
-```
+### Widget 3: Quick Wins (`QuickWinsWidget`)
 
-#### 4. Widget Section Content
+**Data Sources:**
+- `wins` table: Last 3 wins for current cycle, ordered by created_at DESC
 
-Replace the Quarter Progress placeholder content:
+**Features:**
+- Display last 3 wins as "Week X: [win text]"
+- Auto-calculate week_number from cycle start date
+- [Add Win] dialog with textarea
+- [View All] button (links to future /wins page or shows all in dialog)
 
-**Loading State:**
-```tsx
-{isLoading && (
-  <div className="space-y-3">
-    <Skeleton className="h-4 w-48" />
-    <Skeleton className="h-3 w-full" />
-    <Skeleton className="h-4 w-32" />
-  </div>
-)}
-```
+**Empty State:** Trophy icon + "No wins recorded yet" + add button
 
-**No Active Cycle State:**
-```tsx
-{!isLoading && !cycleStats && (
-  <div className="text-center py-4">
-    <div className="h-12 w-12 rounded-full bg-muted mx-auto mb-3 flex items-center justify-center">
-      <Calendar className="h-6 w-6 text-muted-foreground" />
-    </div>
-    <p className="text-muted-foreground text-sm mb-2">No active cycle</p>
-    <Link to="/cycle-setup" className="text-primary text-sm hover:underline">
-      Start your 90-day cycle →
-    </Link>
-  </div>
-)}
-```
-
-**Active Cycle Display:**
-```tsx
-{!isLoading && cycleStats && (
-  <div className="space-y-3">
-    {/* Date Range */}
-    <p className="text-xs font-medium tracking-wide text-muted-foreground">
-      {cycleStats.startFormatted} - {cycleStats.endFormatted}
-    </p>
-    
-    {/* Progress Bar */}
-    <Progress value={cycleStats.progress} className="h-3" />
-    
-    {/* Day Counter */}
-    <p className="text-sm font-medium">
-      Day {cycleStats.currentDay} of 90
-    </p>
-    
-    {/* Stats Line */}
-    <p className="text-sm text-muted-foreground">
-      Week {cycleStats.currentWeek} of {cycleStats.totalWeeks} • 
-      {cycleStats.daysRemaining} days remaining • 
-      {cycleStats.progress}% complete
-    </p>
-    
-    {/* Dynamic Alert */}
-    {getDynamicAlert(cycleStats.currentDay) && (
-      <Alert className={getDynamicAlert(cycleStats.currentDay)!.className}>
-        <div className="flex items-center gap-2">
-          {getDynamicAlert(cycleStats.currentDay)!.icon}
-          <AlertDescription className="font-medium">
-            {getDynamicAlert(cycleStats.currentDay)!.message}
-          </AlertDescription>
-        </div>
-      </Alert>
-    )}
-  </div>
-)}
-```
+**Styling:** `WidgetSection` with `elevated={true}`
 
 ---
+
+## Technical Details
 
 ### File Changes
 
-| File | Action |
-|------|--------|
-| `src/pages/Dashboard.tsx` | Modify - Add imports, useActiveCycle hook, useMemo calculations, and update Quarter Progress widget content |
+**Database Migration:**
+- Create `sales_log` table with RLS policies
+- Create `wins` table with RLS policies
+- Add performance indexes
+
+**`src/pages/Dashboard.tsx`:**
+1. Add new icon imports: `DollarSign`, `Trophy`, `Circle`
+2. Add Textarea import from shadcn
+3. Add three new widget components after `ContentCounterWidget`:
+   - `SalesGoalTrackerWidget`
+   - `HabitTrackerWidget`  
+   - `QuickWinsWidget`
+4. Insert widgets in render with dividers:
+```text
+<ContentCounterWidget cycleId={cycle?.cycle_id} />
+<div className="border-t border-border" />
+<SalesGoalTrackerWidget cycleId={cycle?.cycle_id} cycleStartDate={cycle?.start_date} />
+<div className="border-t border-border" />
+<HabitTrackerWidget />
+<div className="border-t border-border" />
+<QuickWinsWidget cycleId={cycle?.cycle_id} cycleStartDate={cycle?.start_date} />
+```
+
+### Component Patterns (matching existing code)
+- Use `useQuery` for data fetching
+- Use `useMutation` with `queryClient.invalidateQueries()` after saves
+- Use `toast` from 'sonner' for notifications
+- Use shadcn Dialog, Button, Input, Textarea, Progress, Select, DatePicker
+- Use `useIsMobile` for responsive layouts
+- Handle loading states with `Skeleton` components
+- Handle empty states with helpful messages and action buttons
+
+### Key Calculations
+
+**Sales Tracker Pace:**
+```text
+daysElapsed = differenceInDays(today, cycleStart) + 1
+currentPace = totalRevenue / daysElapsed * 90
+paceNeeded = (goal - totalRevenue) / daysRemaining
+status: 
+  - Green if currentPace >= paceNeeded * 0.9
+  - Yellow if currentPace >= paceNeeded * 0.7
+  - Red if below
+```
+
+**Habit Tracker Weekly Grid:**
+```text
+weekStart = startOfWeek(today, { weekStartsOn: 1 })
+weekEnd = endOfWeek(today, { weekStartsOn: 1 })
+days = [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
+For each habit and day: check if habit_logs has completed=true entry
+```
+
+**Quick Wins Week Number:**
+```text
+weekNumber = Math.ceil((differenceInDays(today, cycleStart) + 1) / 7)
+```
 
 ---
 
-### Technical Notes
+## Final Widget Order
 
-1. **Date handling**: Use `parseISO` from date-fns for database date strings to avoid timezone issues
-2. **Format**: Use `MMMM d` format then `.toUpperCase()` to get "JANUARY 25" style
-3. **Progress clamping**: Ensure values stay within 0-100 range with `Math.min/Math.max`
-4. **Week calculation**: `Math.ceil(currentDay / 7)` gives correct week number (day 1-7 = week 1, etc.)
-5. **Existing hook**: Reuse `useActiveCycle` which already fetches cycle data via edge function
-6. **Loading skeleton**: Provide visual feedback while data loads
-7. **Empty state**: Clear CTA to start a cycle if none exists
+1. Quarter Progress (existing)
+2. Planning Next Steps (existing)
+3. 90-Day Goal (existing)
+4. Launch Countdown (existing)
+5. Business Diagnostic (existing)
+6. Content Counter (existing)
+7. **Sales Goal Tracker** (NEW)
+8. **Habit Tracker** (NEW)
+9. **Quick Wins** (NEW)
 
 ---
 
-### Alert Trigger Map
+## Testing Checklist
 
-| Day Range | Icon | Message | Color Theme |
-|-----------|------|---------|-------------|
-| 15-17 | ⚠️ AlertTriangle | "THE GAP" approaching | Yellow |
-| 18-28 | ⚠️ AlertTriangle | YOU'RE IN THE GAP | Orange |
-| 30 | 🎯 Target | 30-day check-in today | Blue |
-| 45 | 🎉 PartyPopper | You're halfway there! | Green |
-| 75+ | 🔥 Flame | Final stretch! | Red |
-
+- [ ] Database tables created with proper RLS
+- [ ] Sales Goal Tracker displays revenue progress correctly
+- [ ] Add Sale dialog saves to database and updates UI
+- [ ] Habit Tracker shows weekly grid with 5 habits max
+- [ ] Clicking habit cell toggles completion
+- [ ] Quick Wins shows last 3 wins with week numbers
+- [ ] Add Win dialog calculates week number automatically
+- [ ] All widgets responsive on mobile
+- [ ] Empty states display correctly
+- [ ] No console errors
