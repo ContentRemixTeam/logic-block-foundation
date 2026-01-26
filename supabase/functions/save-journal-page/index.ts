@@ -15,6 +15,8 @@ const JournalPageSchema = z.object({
   tags: z.array(z.string().max(50, 'Tag must be under 50 characters')).optional(),
   is_archived: z.boolean().optional().default(false),
   project_id: z.string().uuid('Invalid project ID').nullable().optional(),
+  course_id: z.string().uuid('Invalid course ID').nullable().optional(),
+  course_title: z.string().max(200, 'Course title must be under 200 characters').nullable().optional(),
 });
 
 // ==================== VALIDATION ERROR HELPER ====================
@@ -102,7 +104,7 @@ Deno.serve(async (req) => {
     }
 
     const validatedData = parseResult.data;
-    const { id, title, content, tags, is_archived, project_id } = validatedData;
+    const { id, title, content, tags, is_archived, project_id, course_id, course_title } = validatedData;
 
     // Auto-extract hashtags from content and merge with provided tags
     const extractedTags = extractHashtags(content || '');
@@ -119,13 +121,16 @@ Deno.serve(async (req) => {
           tags: allTags,
           is_archived: is_archived || false,
           project_id: project_id || null,
+          course_id: course_id || null,
+          course_title: course_title || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
         .eq('user_id', userId)
         .select(`
           *,
-          project:projects(id, name, color)
+          project:projects(id, name, color),
+          course:courses(id, title)
         `)
         .single();
 
@@ -150,10 +155,13 @@ Deno.serve(async (req) => {
           content: content || '',
           tags: allTags,
           project_id: project_id || null,
+          course_id: course_id || null,
+          course_title: course_title || null,
         })
         .select(`
           *,
-          project:projects(id, name, color)
+          project:projects(id, name, color),
+          course:courses(id, title)
         `)
         .single();
 

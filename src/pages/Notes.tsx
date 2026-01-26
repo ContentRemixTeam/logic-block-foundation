@@ -36,11 +36,13 @@ import {
   Trash2,
   Pencil,
   FolderOpen,
-  AlertCircle
+  AlertCircle,
+  GraduationCap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useProjects } from '@/hooks/useProjects';
+import { useCourses } from '@/hooks/useCourses';
 import { useFormDraftProtection } from '@/hooks/useFormDraftProtection';
 import { DraftRestoreBanner, DraftStatusFooter } from '@/components/DraftRestoreBanner';
 import { PaginationInfo } from '@/components/ui/pagination-info';
@@ -70,6 +72,9 @@ interface JournalPage {
   is_archived: boolean;
   project_id: string | null;
   project?: { id: string; name: string; color: string } | null;
+  course_id: string | null;
+  course_title: string | null;
+  course?: { id: string; title: string } | null;
   created_at: string;
   updated_at: string;
 }
@@ -108,14 +113,19 @@ const countMatches = (content: string, searchTerm: string): number => {
 export default function Notes() {
   const queryClient = useQueryClient();
   const { data: projects = [] } = useProjects();
+  const { data: coursesData } = useCourses({ page: 1, search: '', status: '' });
   const [activeTab, setActiveTab] = useState<ViewTab>('entries');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [searchQuery, setSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState<DateRange>('all');
   const [hashtagFilter, setHashtagFilter] = useState<string | null>(null);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
+  const [courseFilter, setCourseFilter] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
+  
+  // Get courses list
+  const courses = coursesData?.courses || [];
   
   // Page editor state
   const [pageModalOpen, setPageModalOpen] = useState(false);
@@ -123,6 +133,8 @@ export default function Notes() {
   const [pageTitle, setPageTitle] = useState('');
   const [pageContent, setPageContent] = useState('');
   const [pageProjectId, setPageProjectId] = useState<string | null>(null);
+  const [pageCourseId, setPageCourseId] = useState<string | null>(null);
+  const [pageCourseTitle, setPageCourseTitle] = useState<string | null>(null);
   const [pageTags, setPageTags] = useState<string[]>([]);
   const [newTagInput, setNewTagInput] = useState('');
 
@@ -131,6 +143,8 @@ export default function Notes() {
     title: string;
     content: string;
     projectId: string | null;
+    courseId: string | null;
+    courseTitle: string | null;
     tags: string[];
   }>({
     localStorageKey: `journal_page_draft_${editingPage?.id || 'new'}`,
@@ -144,10 +158,12 @@ export default function Notes() {
         title: pageTitle,
         content: pageContent,
         projectId: pageProjectId,
+        courseId: pageCourseId,
+        courseTitle: pageCourseTitle,
         tags: pageTags,
       });
     }
-  }, [pageModalOpen, pageTitle, pageContent, pageProjectId, pageTags]);
+  }, [pageModalOpen, pageTitle, pageContent, pageProjectId, pageCourseId, pageCourseTitle, pageTags]);
 
   // State to show/hide restore banner
   const [showPageDraftBanner, setShowPageDraftBanner] = useState(false);
@@ -168,6 +184,8 @@ export default function Notes() {
       setPageTitle(draft.title || '');
       setPageContent(draft.content || '');
       setPageProjectId(draft.projectId);
+      setPageCourseId(draft.courseId || null);
+      setPageCourseTitle(draft.courseTitle || null);
       setPageTags(draft.tags || []);
       toast.success('Draft restored - your previous unsaved page has been restored');
     }
@@ -229,6 +247,8 @@ export default function Notes() {
       content: string;
       tags?: string[];
       project_id?: string | null;
+      course_id?: string | null;
+      course_title?: string | null;
     }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
@@ -314,7 +334,7 @@ export default function Notes() {
     return result;
   }, [entries, searchQuery, dateRange, hashtagFilter]);
 
-  // Filter pages based on search, project, and hashtag
+  // Filter pages based on search, project, course, and hashtag
   const { filteredPages, totalPagesCount } = useMemo(() => {
     let result = pages;
     const totalBeforeSearch = pages.length;
@@ -322,6 +342,16 @@ export default function Notes() {
     // Filter by project
     if (projectFilter) {
       result = result.filter(page => page.project_id === projectFilter);
+    }
+
+    // Filter by course
+    if (courseFilter) {
+      if (courseFilter === 'none') {
+        // "General Notes" - no course linked
+        result = result.filter(page => !page.course_id);
+      } else {
+        result = result.filter(page => page.course_id === courseFilter);
+      }
     }
 
     // Filter by hashtag
@@ -332,20 +362,21 @@ export default function Notes() {
       });
     }
 
-    // Filter by search query (includes title, content, and tags)
+    // Filter by search query (includes title, content, tags, and course_title)
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       result = result.filter(page => {
         const matchesTitle = page.title?.toLowerCase().includes(query);
         const matchesContent = page.content?.toLowerCase().includes(query);
+        const matchesCourse = page.course_title?.toLowerCase().includes(query);
         const pageTags = Array.isArray(page.tags) ? page.tags : [];
         const matchesTags = pageTags.some(t => t.toLowerCase().includes(query));
-        return matchesTitle || matchesContent || matchesTags;
+        return matchesTitle || matchesContent || matchesTags || matchesCourse;
       });
     }
 
     return { filteredPages: result, totalPagesCount: totalBeforeSearch };
-  }, [pages, searchQuery, projectFilter, hashtagFilter, activeTab]);
+  }, [pages, searchQuery, projectFilter, courseFilter, hashtagFilter, activeTab]);
 
   // Get filtered entries count for display
   const totalEntriesCount = entries.length;
@@ -391,6 +422,7 @@ export default function Notes() {
     setDateRange('all');
     setHashtagFilter(null);
     setProjectFilter(null);
+    setCourseFilter(null);
   };
 
   const toggleEntry = (id: string) => {
@@ -410,6 +442,8 @@ export default function Notes() {
     setPageTitle('');
     setPageContent('');
     setPageProjectId(null);
+    setPageCourseId(null);
+    setPageCourseTitle(null);
     setPageTags([]);
     setNewTagInput('');
     setPageModalOpen(true);
@@ -420,6 +454,8 @@ export default function Notes() {
     setPageTitle(page.title);
     setPageContent(page.content);
     setPageProjectId(page.project_id);
+    setPageCourseId(page.course_id);
+    setPageCourseTitle(page.course_title || page.course?.title || null);
     setPageTags(Array.isArray(page.tags) ? page.tags : []);
     setNewTagInput('');
     setPageModalOpen(true);
@@ -431,6 +467,8 @@ export default function Notes() {
     setPageTitle('');
     setPageContent('');
     setPageProjectId(null);
+    setPageCourseId(null);
+    setPageCourseTitle(null);
     setPageTags([]);
     setNewTagInput('');
   };
@@ -459,6 +497,8 @@ export default function Notes() {
       content: pageContent,
       tags: pageTags,
       project_id: pageProjectId,
+      course_id: pageCourseId,
+      course_title: pageCourseTitle,
     });
   };
 
@@ -474,7 +514,7 @@ export default function Notes() {
     },
   };
 
-  const hasActiveFilters = selectedDate || searchQuery || dateRange !== 'all' || hashtagFilter || projectFilter;
+  const hasActiveFilters = selectedDate || searchQuery || dateRange !== 'all' || hashtagFilter || projectFilter || courseFilter;
 
   return (
     <Layout>
@@ -626,6 +666,30 @@ export default function Notes() {
                               style={{ backgroundColor: project.color || '#6B7280' }}
                             />
                             {project.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+
+                {/* Course Filter - only for pages */}
+                {activeTab === 'pages' && courses.length > 0 && (
+                  <Select 
+                    value={courseFilter || 'all'} 
+                    onValueChange={(v) => setCourseFilter(v === 'all' ? null : v)}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <GraduationCap className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="All Courses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Courses</SelectItem>
+                      <SelectItem value="none">📝 General Notes</SelectItem>
+                      {courses.map(course => (
+                        <SelectItem key={course.id} value={course.id}>
+                          <div className="flex items-center gap-2">
+                            📚 {course.title}
                           </div>
                         </SelectItem>
                       ))}
@@ -891,14 +955,34 @@ export default function Notes() {
                             {page.project && (
                               <Badge 
                                 variant="outline" 
-                                className="text-xs"
+                                className="text-xs cursor-pointer hover:bg-muted"
                                 style={{ 
                                   borderColor: page.project.color || undefined,
                                   color: page.project.color || undefined,
                                 }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setProjectFilter(page.project!.id);
+                                }}
                               >
                                 <FolderOpen className="h-3 w-3 mr-1" />
                                 {page.project.name}
+                              </Badge>
+                            )}
+                            {(page.course_id || page.course_title) && (
+                              <Badge 
+                                variant="outline" 
+                                className="text-xs cursor-pointer hover:bg-muted border-blue-400 text-blue-600 dark:text-blue-400"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (page.course_id) {
+                                    setCourseFilter(page.course_id);
+                                  }
+                                }}
+                              >
+                                <GraduationCap className="h-3 w-3 mr-1" />
+                                {page.course?.title || page.course_title}
+                                {!page.course_id && page.course_title && ' (deleted)'}
                               </Badge>
                             )}
                           </div>
@@ -1029,6 +1113,41 @@ export default function Notes() {
                             style={{ backgroundColor: project.color || '#6B7280' }}
                           />
                           {project.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Course Selector */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <GraduationCap className="h-4 w-4" />
+                  Course
+                </label>
+                <Select 
+                  value={pageCourseId || 'none'} 
+                  onValueChange={(v) => {
+                    if (v === 'none') {
+                      setPageCourseId(null);
+                      setPageCourseTitle(null);
+                    } else {
+                      const selectedCourse = courses.find(c => c.id === v);
+                      setPageCourseId(v);
+                      setPageCourseTitle(selectedCourse?.title || null);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Link to a course (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No course</SelectItem>
+                    {courses.map(course => (
+                      <SelectItem key={course.id} value={course.id}>
+                        <div className="flex items-center gap-2">
+                          📚 {course.title}
                         </div>
                       </SelectItem>
                     ))}

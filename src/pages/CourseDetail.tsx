@@ -47,9 +47,11 @@ import { Separator } from '@/components/ui/separator';
 import { 
   CourseFormDrawer, 
   StudyPlanForm, 
-  CheckinFormModal 
+  CheckinFormModal,
+  CourseNotesTab,
 } from '@/components/courses';
 import { useCourse, useCourseMutations, useCourseCheckins } from '@/hooks/useCourses';
+import { useCourseNotes } from '@/hooks/useCourseNotes';
 import { 
   COURSE_STATUS_LABELS, 
   ROI_TYPE_LABELS, 
@@ -65,6 +67,8 @@ export default function CourseDetail() {
   const { data: course, isLoading, error } = useCourse(id || '');
   const { deleteCourse, updateProgress, updateStatus, updateNotes } = useCourseMutations();
   const { data: checkinsData } = useCourseCheckins(id || '', 1);
+  const { data: notesData } = useCourseNotes(id || '');
+  const notesCount = notesData?.totalCount || 0;
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isCheckinOpen, setIsCheckinOpen] = useState(false);
@@ -235,9 +239,17 @@ export default function CourseDetail() {
 
         {/* Tabs */}
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="plan">Study Plan</TabsTrigger>
+            <TabsTrigger value="plan">Plan</TabsTrigger>
+            <TabsTrigger value="notes" className="flex items-center gap-1">
+              Notes
+              {notesCount > 0 && (
+                <Badge variant="secondary" className="h-5 px-1.5 text-xs">
+                  {notesCount}
+                </Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="takeaways">Takeaways</TabsTrigger>
             <TabsTrigger value="checkins">Check-ins</TabsTrigger>
           </TabsList>
@@ -330,6 +342,11 @@ export default function CourseDetail() {
           {/* Study Plan Tab */}
           <TabsContent value="plan">
             <StudyPlanForm courseId={course.id} />
+          </TabsContent>
+
+          {/* Notes Tab */}
+          <TabsContent value="notes">
+            <CourseNotesTab courseId={course.id} courseName={course.title} />
           </TabsContent>
 
           {/* Takeaways Tab */}
