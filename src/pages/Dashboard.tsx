@@ -54,6 +54,8 @@ import {
 import { SalesGoalTrackerWidget } from '@/components/dashboard/SalesGoalTrackerWidget';
 import { HabitTrackerWidget } from '@/components/dashboard/HabitTrackerWidget';
 import { QuickWinsWidget } from '@/components/dashboard/QuickWinsWidget';
+import { PodcastWidget } from '@/components/podcast/PodcastWidget';
+import { MastermindCallWidget } from '@/components/mastermind/MastermindCallWidget';
 
 interface WidgetSectionProps {
   title: string;
@@ -1022,6 +1024,20 @@ export default function Dashboard() {
             cycleId={cycle?.cycle_id} 
             cycleStartDate={cycle?.start_date}
           />
+          
+          <div className="border-t border-border" />
+          
+          {/* Mastermind Calls Widget */}
+          <div className="p-4 md:p-6">
+            <MastermindCallWidget />
+          </div>
+          
+          <div className="border-t border-border" />
+          
+          {/* Podcast Widget */}
+          <div className="p-4 md:p-6 bg-muted/30">
+            <PodcastWidget />
+          </div>
         </Card>
       </div>
     </Layout>
