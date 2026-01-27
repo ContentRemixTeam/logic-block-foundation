@@ -71,7 +71,7 @@ const MAIN_NAV = [
 const ORGANIZE_NAV = [
   { name: 'Notes', href: '/notes', icon: BookOpen, questIcon: '📒' },
   { name: 'Ideas', href: '/ideas', icon: Lightbulb, questIcon: '💡' },
-  { name: 'Courses', href: '/courses', icon: GraduationCap, questIcon: '🎓' },
+  { name: 'Learning', href: '/courses', icon: GraduationCap, questIcon: '🎓' },
   { name: 'Content Vault', href: '/content-vault', icon: Library, questIcon: '📚' },
   { name: 'SOPs', href: '/sops', icon: ClipboardList, questIcon: '📖' },
   { name: 'Finances', href: '/finances', icon: DollarSign, questIcon: '💰', settingsKey: 'show_income_tracker' },
