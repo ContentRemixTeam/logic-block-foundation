@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { subDays, format, differenceInDays } from 'date-fns';
 
-interface GapStatus {
+export interface GapStatus {
   shouldShowAlert: boolean;
   missedDaysInRow: number;
   daysSinceLastCheckIn: number;
