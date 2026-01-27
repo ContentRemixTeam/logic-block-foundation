@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback, useRef, useMemo, MutableRefObject } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { format, subDays } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
+import { detectGap, type GapStatus } from '@/utils/gapDetection';
+import { useActiveCycle } from '@/hooks/useActiveCycle';
+import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,9 +62,12 @@ import { SaveStatusIndicator, SaveStatusBanner } from '@/components/SaveStatusIn
 import { UnprocessedTagsWarning } from '@/components/daily-plan/UnprocessedTagsWarning';
 
 export default function DailyPlan() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: activeCycleData } = useActiveCycle();
+  const [gapStatus, setGapStatus] = useState<GapStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deepMode, setDeepMode] = useState(false);
@@ -276,6 +282,13 @@ export default function DailyPlan() {
     loadUserSettings();
     checkYesterdayReview();
   }, [user]);
+
+  // Check for disengagement gap when user loads page
+  useEffect(() => {
+    if (user?.id) {
+      detectGap(user.id).then(setGapStatus);
+    }
+  }, [user?.id]);
 
   const loadUserSettings = async () => {
     if (!user) return;
@@ -852,6 +865,76 @@ export default function DailyPlan() {
         {/* Google Calendar Reconnection Banner */}
         <CalendarReconnectBanner />
 
+        {/* Reconnection Message for Returning Users */}
+        {gapStatus?.shouldShowAlert && activeCycleData && (
+          <Card className={`border-2 ${
+            gapStatus.severity === 'critical' ? 'border-destructive bg-destructive/5' :
+            gapStatus.severity === 'urgent' ? 'border-orange-500 bg-orange-500/5' :
+            'border-primary bg-primary/5'
+          }`}>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                Welcome back! Let's reconnect to your goal
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-background/80 rounded-lg p-4 border border-border">
+                <p className="text-sm text-muted-foreground mb-1">
+                  You're working toward:
+                </p>
+                <p className="text-lg font-semibold">
+                  {activeCycleData.goal}
+                </p>
+                {activeCycleData.identity && (
+                  <p className="text-sm text-muted-foreground italic mt-2">
+                    "{activeCycleData.identity}"
+                  </p>
+                )}
+              </div>
+              
+              <Separator />
+              
+              <div className="space-y-2">
+                <p className="text-sm font-medium">
+                  What would feel good to do today?
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  You don't have to catch up on everything. Just start with ONE thing.
+                </p>
+              </div>
+              
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => {
+                    setGapStatus(null);
+                    // Scroll to ONE Thing section
+                    document.querySelector('[data-section="one-thing"]')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  variant="default"
+                  size="sm"
+                >
+                  Pick My One Thing →
+                </Button>
+                <Button
+                  onClick={() => navigate('/cycle-setup')}
+                  variant="outline"
+                  size="sm"
+                >
+                  Review My Full Plan
+                </Button>
+                <Button
+                  onClick={() => setGapStatus(null)}
+                  variant="ghost"
+                  size="sm"
+                >
+                  Dismiss
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Planning Quick Links */}
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="text-muted-foreground text-xs">Planning:</span>
@@ -1008,7 +1091,7 @@ export default function DailyPlan() {
           <PetGrowthCard />
 
           {/* The ONE Thing */}
-          <Card className="border-accent/30 bg-accent/5">
+          <Card data-section="one-thing" className="border-accent/30 bg-accent/5">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2">
                 <Zap className="h-5 w-5 text-accent" />
