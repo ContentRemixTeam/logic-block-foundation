@@ -141,11 +141,17 @@ export default {
 				blue: 'hsl(var(--quest-blue))'
 			},
 			status: {
+				unscheduled: 'hsl(var(--status-unscheduled))',
+				today: 'hsl(var(--status-today))',
+				'this-week': 'hsl(var(--status-this-week))',
+				'next-week': 'hsl(var(--status-next-week))',
+				'next-quarter': 'hsl(var(--status-next-quarter))',
+				someday: 'hsl(var(--status-someday))',
+				// Legacy
 				focus: 'hsl(var(--status-focus))',
 				scheduled: 'hsl(var(--status-scheduled))',
 				backlog: 'hsl(var(--status-backlog))',
 				waiting: 'hsl(var(--status-waiting))',
-				someday: 'hsl(var(--status-someday))',
 			},
 			priority: {
 				high: 'hsl(var(--priority-high))',

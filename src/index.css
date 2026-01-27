@@ -137,11 +137,17 @@
     --quest-blue: 217 91% 60%;
 
     /* === SEMANTIC STATUS COLORS === */
+    --status-unscheduled: 220 9% 56%;
+    --status-today: 330 81% 54%;
+    --status-this-week: 217 91% 60%;
+    --status-next-week: 173 80% 40%;
+    --status-next-quarter: 262 83% 58%;
+    --status-someday: 38 92% 50%;
+    /* Legacy status colors for backwards compatibility */
     --status-focus: 330 81% 54%;
     --status-scheduled: 217 91% 60%;
     --status-backlog: 38 92% 50%;
     --status-waiting: 262 83% 58%;
-    --status-someday: 220 9% 46%;
     
     /* === SEMANTIC PRIORITY COLORS === */
     --priority-high: 0 72% 50%;
