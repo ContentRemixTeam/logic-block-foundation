@@ -1601,6 +1601,8 @@ export type Database = {
       }
       daily_plans: {
         Row: {
+          alignment_score: number | null
+          brain_dump: string | null
           created_at: string | null
           custom_reflections: Json | null
           cycle_id: string | null
@@ -1608,6 +1610,7 @@ export type Database = {
           date: string
           day_id: string
           deep_mode_notes: Json | null
+          end_of_day_reflection: string | null
           feeling: string | null
           goal_rewrite: string | null
           made_offer: boolean | null
@@ -1623,6 +1626,8 @@ export type Database = {
           week_id: string | null
         }
         Insert: {
+          alignment_score?: number | null
+          brain_dump?: string | null
           created_at?: string | null
           custom_reflections?: Json | null
           cycle_id?: string | null
@@ -1630,6 +1635,7 @@ export type Database = {
           date: string
           day_id?: string
           deep_mode_notes?: Json | null
+          end_of_day_reflection?: string | null
           feeling?: string | null
           goal_rewrite?: string | null
           made_offer?: boolean | null
@@ -1645,6 +1651,8 @@ export type Database = {
           week_id?: string | null
         }
         Update: {
+          alignment_score?: number | null
+          brain_dump?: string | null
           created_at?: string | null
           custom_reflections?: Json | null
           cycle_id?: string | null
@@ -1652,6 +1660,7 @@ export type Database = {
           date?: string
           day_id?: string
           deep_mode_notes?: Json | null
+          end_of_day_reflection?: string | null
           feeling?: string | null
           goal_rewrite?: string | null
           made_offer?: boolean | null
@@ -4311,6 +4320,7 @@ export type Database = {
           default_planning_level: string | null
           email: string | null
           id: string
+          last_activity_date: string | null
           membership_status: string | null
           membership_tier: string | null
           trial_expires_at: string | null
@@ -4325,6 +4335,7 @@ export type Database = {
           default_planning_level?: string | null
           email?: string | null
           id: string
+          last_activity_date?: string | null
           membership_status?: string | null
           membership_tier?: string | null
           trial_expires_at?: string | null
@@ -4339,6 +4350,7 @@ export type Database = {
           default_planning_level?: string | null
           email?: string | null
           id?: string
+          last_activity_date?: string | null
           membership_status?: string | null
           membership_tier?: string | null
           trial_expires_at?: string | null
