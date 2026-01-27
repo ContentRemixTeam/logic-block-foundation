@@ -200,6 +200,10 @@ Deno.serve(async (req) => {
           // Goal rewrite fields
           goal_rewrite: plan.goal_rewrite || '',
           previous_goal_rewrite: yesterdayPlan?.goal_rewrite || '',
+          // New planning fields
+          alignment_score: plan.alignment_score ?? null,
+          brain_dump: plan.brain_dump || '',
+          end_of_day_reflection: plan.end_of_day_reflection || '',
           // Full cycle data for CycleSnapshotCard
           cycle: fullCycleData ? {
             cycle_id: fullCycleData.cycle_id,

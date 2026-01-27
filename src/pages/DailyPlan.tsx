@@ -31,7 +31,8 @@ import { GoalRewritePrompt } from '@/components/cycle/GoalRewritePrompt';
 import { DailyTimelineView } from '@/components/daily-plan/DailyTimelineView';
 import { DailyScheduleView } from '@/components/daily-plan/DailyScheduleView';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, LayoutList, CalendarDays, Calendar, CalendarRange } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, LayoutList, CalendarDays, Calendar, CalendarRange, Moon, AlertCircle } from 'lucide-react';
 import { DailyAgendaCard } from '@/components/daily-plan/DailyAgendaCard';
 import { PostingSlotCard } from '@/components/daily-plan/PostingSlotCard';
 
@@ -126,6 +127,11 @@ export default function DailyPlan() {
   // Monthly focus
   const [monthlyFocus, setMonthlyFocus] = useState<string | null>(null);
   
+  // NEW: Weekly alignment, brain dump, end of day reflection
+  const [alignmentScore, setAlignmentScore] = useState<number | null>(null);
+  const [brainDump, setBrainDump] = useState('');
+  const [endOfDayReflection, setEndOfDayReflection] = useState('');
+  
   // Track initial load to prevent auto-save during data population
   const isInitialLoadRef = useRef(true);
   
@@ -144,7 +150,10 @@ export default function DailyPlan() {
     scratch_pad_title: scratchPadTitle,
     one_thing: oneThing,
     goal_rewrite: goalRewrite,
-  }), [dayId, newTop3Text, selectedPriorities, thought, feeling, deepModeNotes, scratchPadContent, scratchPadTitle, oneThing, goalRewrite]);
+    alignment_score: alignmentScore,
+    brain_dump: brainDump,
+    end_of_day_reflection: endOfDayReflection,
+  }), [dayId, newTop3Text, selectedPriorities, thought, feeling, deepModeNotes, scratchPadContent, scratchPadTitle, oneThing, goalRewrite, alignmentScore, brainDump, endOfDayReflection]);
 
   // Track if we have unsaved changes
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -258,6 +267,9 @@ export default function DailyPlan() {
               if (backup.scratch_pad_content) setScratchPadContent(backup.scratch_pad_content);
               if (backup.scratch_pad_title) setScratchPadTitle(backup.scratch_pad_title);
               if (backup.deep_mode_notes) setDeepModeNotes(backup.deep_mode_notes);
+              if (backup.alignment_score !== undefined) setAlignmentScore(backup.alignment_score);
+              if (backup.brain_dump) setBrainDump(backup.brain_dump);
+              if (backup.end_of_day_reflection) setEndOfDayReflection(backup.end_of_day_reflection);
               if (backup.top_3_today) setNewTop3Text([
                 backup.top_3_today[0] || '',
                 backup.top_3_today[1] || '',
@@ -423,6 +435,11 @@ export default function DailyPlan() {
         setGoalRewrite(plan.goal_rewrite || '');
         setPreviousGoalRewrite(plan.previous_goal_rewrite || '');
         setCycleData(plan.cycle || null);
+        
+        // NEW: Set alignment, brain dump, reflection fields
+        setAlignmentScore(plan.alignment_score ?? null);
+        setBrainDump(plan.brain_dump || '');
+        setEndOfDayReflection(plan.end_of_day_reflection || '');
         
         // Load monthly focus if we have a cycle
         if (plan.cycle?.cycle_id) {
@@ -935,6 +952,95 @@ export default function DailyPlan() {
           </Card>
         )}
 
+        {/* Weekly Focus Section - Monday Only */}
+        {(() => {
+          const isMonday = new Date().getDay() === 1;
+          if (!isMonday || weeklyPriorities.length === 0) return null;
+          
+          return (
+            <Card className="border-primary/30 bg-primary/5">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  📅 Weekly Focus Check
+                </CardTitle>
+                <CardDescription>
+                  Start your week with clarity - how aligned are you with this week's priorities?
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-background/80 rounded-lg p-4 border border-border">
+                  <p className="text-sm font-medium text-muted-foreground mb-2">This week's priorities:</p>
+                  <div className="space-y-2">
+                    {weeklyPriorities.map((priority, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <div className="flex items-center justify-center h-5 w-5 rounded-full bg-primary/20 text-primary font-bold text-xs">
+                          {idx + 1}
+                        </div>
+                        <span className="text-sm">{priority}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">
+                    Alignment Check: How aligned do you feel with these priorities?
+                  </Label>
+                  <div className="px-2">
+                    <Slider
+                      value={alignmentScore ? [alignmentScore] : [5]}
+                      onValueChange={(value) => setAlignmentScore(value[0])}
+                      min={1}
+                      max={10}
+                      step={1}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                      <span>1 - Not aligned</span>
+                      <span className="font-medium text-primary text-sm">{alignmentScore ?? 5}</span>
+                      <span>10 - Fully aligned</span>
+                    </div>
+                  </div>
+                  
+                  {alignmentScore !== null && alignmentScore <= 6 && (
+                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mt-3">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5" />
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                            Feeling misaligned? Let's work through it.
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              onClick={() => navigate('/tools/ctfar')}
+                              variant="outline"
+                              size="sm"
+                              className="border-amber-500/50 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10"
+                            >
+                              <Brain className="h-3.5 w-3.5 mr-1.5" />
+                              Self-Coach Now
+                            </Button>
+                            <Button
+                              onClick={() => navigate('/weekly-plan')}
+                              variant="outline"
+                              size="sm"
+                            >
+                              Review Weekly Plan
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         {/* Planning Quick Links */}
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="text-muted-foreground text-xs">Planning:</span>
@@ -1109,6 +1215,29 @@ export default function DailyPlan() {
                 className="text-lg font-medium"
                 maxLength={500}
               />
+            </CardContent>
+          </Card>
+
+          {/* Daily Brain Dump */}
+          <Card className="border-dashed">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-muted-foreground" />
+                🧠 Daily Brain Dump
+              </CardTitle>
+              <CardDescription>
+                Quick thoughts, ideas, what's on your mind... Let it all out.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Textarea
+                value={brainDump}
+                onChange={(e) => setBrainDump(e.target.value)}
+                placeholder="Just start typing... no structure needed. Capture thoughts, worries, ideas, anything that's taking up mental space."
+                className="min-h-[200px] resize-y"
+                maxLength={10000}
+              />
+              <CharacterCounter current={brainDump.length} max={10000} />
             </CardContent>
           </Card>
 
@@ -1416,6 +1545,36 @@ Revenue grows with retention #thought"
 
           {/* Habits - Using new HabitTrackerCard */}
           <HabitTrackerCard view="daily" />
+
+          {/* End of Day Reflection - Only show after 5pm */}
+          {(() => {
+            const currentHour = new Date().getHours();
+            if (currentHour < 17) return null;
+            
+            return (
+              <Card className="border-accent/20 bg-gradient-to-r from-accent/5 to-primary/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2">
+                    <Moon className="h-5 w-5 text-accent" />
+                    🌙 End of Day Reflection
+                  </CardTitle>
+                  <CardDescription>
+                    Take a moment to reflect on your day before wrapping up
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Textarea
+                    value={endOfDayReflection}
+                    onChange={(e) => setEndOfDayReflection(e.target.value)}
+                    placeholder="How did today go? What are you grateful for? What will you do differently tomorrow?"
+                    className="min-h-[150px] resize-y"
+                    maxLength={1000}
+                  />
+                  <CharacterCounter current={endOfDayReflection.length} max={1000} />
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* Deep Mode Toggle */}
           <Button
