@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -16,30 +17,11 @@ import {
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Trophy, Plus } from 'lucide-react';
+import { Trophy, Plus, Sparkles } from 'lucide-react';
 
 interface QuickWinsWidgetProps {
   cycleId?: string;
   cycleStartDate?: string;
-}
-
-interface WidgetSectionProps {
-  title: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-  elevated?: boolean;
-}
-
-function WidgetSection({ title, icon, children, elevated }: WidgetSectionProps) {
-  return (
-    <div className={`p-4 md:p-6 ${elevated ? 'bg-muted/30' : 'bg-card'}`}>
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-primary">{icon}</span>
-        <h3 className="font-semibold text-base md:text-lg">{title}</h3>
-      </div>
-      {children}
-    </div>
-  );
 }
 
 interface Win {
@@ -127,70 +109,42 @@ export function QuickWinsWidget({ cycleId, cycleStartDate }: QuickWinsWidgetProp
   }
 
   return (
-    <WidgetSection title="Recent Wins" icon={<Trophy className="h-5 w-5" />} elevated>
-      {isLoading && (
-        <div className="space-y-3">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-        </div>
-      )}
-
-      {!isLoading && recentWins.length === 0 && (
-        <div className="text-center py-4">
-          <div className="h-12 w-12 rounded-full bg-muted mx-auto mb-3 flex items-center justify-center">
-            <Trophy className="h-6 w-6 text-muted-foreground" />
+    <Card className="overflow-hidden border-border/40 hover:shadow-lg transition-all duration-300 hover:border-primary/20">
+      <CardHeader className="bg-gradient-to-r from-yellow-500/5 to-transparent pb-3">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Trophy className="h-5 w-5 text-primary" />
           </div>
-          <p className="text-muted-foreground text-sm mb-1">No wins recorded yet</p>
-          <p className="text-muted-foreground text-xs mb-3">Track your achievements to stay motivated!</p>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Your First Win
-              </Button>
-            </DialogTrigger>
-            <AddWinDialogContent
-              winText={winText}
-              setWinText={setWinText}
-              onSave={() => addWin.mutate()}
-              isPending={addWin.isPending}
-              weekNumber={getCurrentWeekNumber()}
-            />
-          </Dialog>
+          <CardTitle className="text-lg">Recent Wins</CardTitle>
         </div>
-      )}
+      </CardHeader>
+      <CardContent className="pt-4">
+        {isLoading && (
+          <div className="space-y-3">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        )}
 
-      {!isLoading && recentWins.length > 0 && (
-        <div className="space-y-4">
-          {/* Recent Wins List */}
-          <div className="space-y-2">
-            {recentWins.map((win) => (
-              <div 
-                key={win.id}
-                className="p-3 rounded-md bg-background border border-border"
-              >
-                <div className="flex items-start gap-2">
-                  <span className="text-lg">🏆</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-muted-foreground mb-1">
-                      Week {win.week_number}
-                    </p>
-                    <p className="text-sm break-words">
-                      {win.win_text}
-                    </p>
-                  </div>
-                </div>
+        {!isLoading && recentWins.length === 0 && (
+          <div className="text-center py-6">
+            <div className="relative mb-4">
+              <div className="h-16 w-16 rounded-full bg-gradient-to-br from-yellow-500/20 to-yellow-500/5 mx-auto flex items-center justify-center">
+                <Trophy className="h-8 w-8 text-yellow-500/60" />
               </div>
-            ))}
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-2 pt-2">
+              <div className="absolute -top-1 -right-1 h-6 w-6 bg-yellow-400 rounded-full flex items-center justify-center">
+                <Sparkles className="h-4 w-4 text-yellow-900" />
+              </div>
+            </div>
+            <h3 className="font-semibold text-base mb-2">No wins recorded yet</h3>
+            <p className="text-sm text-muted-foreground mb-4 max-w-xs mx-auto">
+              Track your achievements to stay motivated!
+            </p>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Win
+                <Button size="sm" className="gap-2 shadow-lg shadow-primary/20">
+                  <Plus className="h-4 w-4" />
+                  Add Your First Win
                 </Button>
               </DialogTrigger>
               <AddWinDialogContent
@@ -201,45 +155,90 @@ export function QuickWinsWidget({ cycleId, cycleStartDate }: QuickWinsWidgetProp
                 weekNumber={getCurrentWeekNumber()}
               />
             </Dialog>
-            
-            {allWins.length > 3 && (
-              <Dialog open={viewAllOpen} onOpenChange={setViewAllOpen}>
+          </div>
+        )}
+
+        {!isLoading && recentWins.length > 0 && (
+          <div className="space-y-4">
+            {/* Recent Wins List */}
+            <div className="space-y-2">
+              {recentWins.map((win) => (
+                <div 
+                  key={win.id}
+                  className="p-3 rounded-lg bg-gradient-to-r from-yellow-500/5 to-transparent border border-border/50 hover:border-yellow-500/30 transition-colors"
+                >
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg">🏆</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Week {win.week_number}
+                      </p>
+                      <p className="text-sm break-words">
+                        {win.win_text}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    View All ({allWins.length})
+                  <Button size="sm" className="gap-2 shadow-lg shadow-primary/20">
+                    <Plus className="h-4 w-4" />
+                    Add Win
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>All Wins This Quarter</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-2 py-4">
-                    {allWins.map((win) => (
-                      <div 
-                        key={win.id}
-                        className="p-3 rounded-md bg-muted/50 border border-border"
-                      >
-                        <div className="flex items-start gap-2">
-                          <span className="text-lg">🏆</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs text-muted-foreground mb-1">
-                              Week {win.week_number} • {format(parseISO(win.created_at), 'MMM d')}
-                            </p>
-                            <p className="text-sm break-words">
-                              {win.win_text}
-                            </p>
+                <AddWinDialogContent
+                  winText={winText}
+                  setWinText={setWinText}
+                  onSave={() => addWin.mutate()}
+                  isPending={addWin.isPending}
+                  weekNumber={getCurrentWeekNumber()}
+                />
+              </Dialog>
+              
+              {allWins.length > 3 && (
+                <Dialog open={viewAllOpen} onOpenChange={setViewAllOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      View All ({allWins.length})
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>All Wins This Quarter</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-2 py-4">
+                      {allWins.map((win) => (
+                        <div 
+                          key={win.id}
+                          className="p-3 rounded-lg bg-gradient-to-r from-yellow-500/5 to-transparent border border-border/50"
+                        >
+                          <div className="flex items-start gap-2">
+                            <span className="text-lg">🏆</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs text-muted-foreground mb-1">
+                                Week {win.week_number} • {format(parseISO(win.created_at), 'MMM d')}
+                              </p>
+                              <p className="text-sm break-words">
+                                {win.win_text}
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </DialogContent>
-              </Dialog>
-            )}
+                      ))}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-    </WidgetSection>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
