@@ -7,7 +7,6 @@ import { useAllCycles } from '@/hooks/useActiveCycle';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
 import { QuickCaptureButton } from '@/components/quick-capture';
-import { SmartActionButton } from '@/components/SmartActionButton';
 import { TrialBanner, TrialExpiredScreen } from '@/components/trial';
 import { useArcade } from '@/hooks/useArcade';
 import { OfflineBanner, OfflineIndicator } from '@/components/OfflineIndicator';
@@ -135,7 +134,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Floating Actions */}
-        <SmartActionButton />
         <QuickCaptureButton />
         
         {/* Arcade Drawer - lazy loaded */}
