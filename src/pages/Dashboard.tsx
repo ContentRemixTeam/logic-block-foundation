@@ -59,6 +59,7 @@ import { WeekTop3Widget } from '@/components/dashboard/WeekTop3Widget';
 import { DueTodayWidget } from '@/components/dashboard/DueTodayWidget';
 import { PodcastWidget } from '@/components/podcast/PodcastWidget';
 import { MastermindCallWidget } from '@/components/mastermind/MastermindCallWidget';
+import { SmartActionButton } from '@/components/SmartActionButton';
 
 function getDynamicAlert(currentDay: number) {
   if (currentDay >= 15 && currentDay <= 17) {
@@ -412,6 +413,7 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex gap-2">
+            <SmartActionButton variant="inline" size="sm" />
             <Button variant="outline" size="sm" className="gap-2 hover:bg-muted/50">
               <Settings2 className="h-4 w-4" />
               <span className="hidden sm:inline">Customize</span>

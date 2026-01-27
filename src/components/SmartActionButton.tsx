@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Target, Calendar, Sun, Moon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface PlanningState {
   hasCycle: boolean;
@@ -11,7 +12,17 @@ interface PlanningState {
   hasDailyPlan: boolean;
 }
 
-export function SmartActionButton() {
+interface SmartActionButtonProps {
+  variant?: 'floating' | 'inline';
+  size?: 'default' | 'sm' | 'lg';
+  className?: string;
+}
+
+export function SmartActionButton({ 
+  variant = 'inline', 
+  size = 'default',
+  className 
+}: SmartActionButtonProps) {
   const { user } = useAuth();
   const location = useLocation();
   const [state, setState] = useState<PlanningState>({
@@ -101,6 +112,27 @@ export function SmartActionButton() {
   // Don't show if already on the target page
   if (location.pathname === to) return null;
 
+  // Inline variant (for toolbars)
+  if (variant === 'inline') {
+    return (
+      <Button 
+        size={size}
+        className={cn(
+          "gap-2 font-semibold bg-gradient-to-r from-primary to-primary/85",
+          "hover:from-primary/90 hover:to-primary/75 shadow-lg",
+          className
+        )}
+        asChild
+      >
+        <Link to={to}>
+          <Icon className="h-4 w-4" />
+          {label}
+        </Link>
+      </Button>
+    );
+  }
+
+  // Floating variant (legacy - kept for backwards compatibility but no longer used)
   return (
     <Link to={to} className="fixed top-20 right-4 z-30 md:top-16 md:right-6">
       <Button 
