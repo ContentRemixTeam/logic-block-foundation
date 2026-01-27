@@ -47,10 +47,10 @@ export default function Courses() {
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <BookOpen className="h-6 w-6 text-primary" />
-              Courses
+              Learning
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Track your learning and implementation
+              Track your courses and implementation
             </p>
           </div>
           <Button onClick={() => setIsFormOpen(true)}>
@@ -91,16 +91,16 @@ export default function Courses() {
             ))
           ) : error ? (
             <div className="text-center py-12 text-destructive">
-              Failed to load courses. Please try again.
+              Failed to load learning items. Please try again.
             </div>
           ) : data?.courses.length === 0 ? (
             // Empty state
             <div className="text-center py-12">
               <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No courses yet</h3>
+              <h3 className="text-lg font-medium mb-2">No learning items yet</h3>
               <p className="text-muted-foreground mb-4">
                 {search || statusFilter 
-                  ? 'No courses match your filters'
+                  ? 'No learning items match your filters'
                   : 'Add your first course to start tracking your learning'}
               </p>
               {!search && !statusFilter && (
