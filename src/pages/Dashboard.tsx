@@ -55,6 +55,8 @@ import {
 import { SalesGoalTrackerWidget } from '@/components/dashboard/SalesGoalTrackerWidget';
 import { HabitTrackerWidget } from '@/components/dashboard/HabitTrackerWidget';
 import { QuickWinsWidget } from '@/components/dashboard/QuickWinsWidget';
+import { WeekTop3Widget } from '@/components/dashboard/WeekTop3Widget';
+import { DueTodayWidget } from '@/components/dashboard/DueTodayWidget';
 import { PodcastWidget } from '@/components/podcast/PodcastWidget';
 import { MastermindCallWidget } from '@/components/mastermind/MastermindCallWidget';
 
@@ -1074,6 +1076,24 @@ export default function Dashboard() {
               gradientClass="from-pink-500/5"
             >
               <PodcastWidget />
+            </WidgetCard>
+
+            {/* Week's Top 3 */}
+            <WidgetCard
+              title="This Week's Top 3"
+              icon={<ListTodo className="h-5 w-5 text-primary" />}
+              gradientClass="from-violet-500/5"
+            >
+              <WeekTop3Widget />
+            </WidgetCard>
+
+            {/* Due Today */}
+            <WidgetCard
+              title="Due Today"
+              icon={<CalendarIcon className="h-5 w-5 text-primary" />}
+              gradientClass="from-orange-500/5"
+            >
+              <DueTodayWidget />
             </WidgetCard>
           </div>
         </div>
