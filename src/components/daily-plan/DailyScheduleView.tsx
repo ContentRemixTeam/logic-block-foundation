@@ -1,5 +1,17 @@
-import { useState, useEffect, useMemo } from 'react';
-import { format, parseISO, isToday, isBefore, startOfDay, startOfToday } from 'date-fns';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { format, parseISO, isBefore, startOfDay, startOfToday } from 'date-fns';
+import { 
+  DndContext, 
+  DragOverlay, 
+  DragStartEvent, 
+  DragEndEvent,
+  DragOverEvent,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +19,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CalendarEventBlock, CalendarEvent } from '@/components/tasks/views/CalendarEventBlock';
 import { CurrentTimeIndicator } from '@/components/tasks/views/CurrentTimeIndicator';
-import { TimelineTaskBlock } from './TimelineTaskBlock';
+import { TasksPool } from './TasksPool';
+import { TimeSlot } from './TimeSlot';
 import { Task } from '@/components/tasks/types';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,37 +30,81 @@ import { toast } from 'sonner';
 import { 
   Calendar, 
   RefreshCw, 
-  Clock, 
-  CheckCircle2,
-  ListTodo,
-  AlertTriangle,
   CalendarDays,
-  Inbox
+  AlertTriangle,
+  GripVertical,
 } from 'lucide-react';
 
 interface DailyScheduleViewProps {
   onTaskToggle?: (taskId: string, currentStatus: boolean) => void;
   onTaskClick?: (task: Task) => void;
+  officeHoursStart?: number;
+  officeHoursEnd?: number;
 }
 
-const START_HOUR = 6;
-const END_HOUR = 22;
-const HOUR_HEIGHT = 60;
+const DEFAULT_START_HOUR = 9;
+const DEFAULT_END_HOUR = 17;
 
-export function DailyScheduleView({ onTaskToggle, onTaskClick }: DailyScheduleViewProps) {
+// Dragging task overlay component
+function DraggedTaskOverlay({ task }: { task: Task }) {
+  return (
+    <div className="flex items-center gap-2 p-2 bg-card border-2 border-primary rounded-lg shadow-lg opacity-90">
+      <GripVertical className="h-4 w-4 text-muted-foreground" />
+      <span className="text-sm font-medium truncate max-w-[200px]">
+        {task.task_text}
+      </span>
+      {task.estimated_minutes && (
+        <Badge variant="secondary" className="text-xs shrink-0">
+          {task.estimated_minutes}m
+        </Badge>
+      )}
+    </div>
+  );
+}
+
+export function DailyScheduleView({ 
+  onTaskToggle, 
+  onTaskClick,
+  officeHoursStart = DEFAULT_START_HOUR,
+  officeHoursEnd = DEFAULT_END_HOUR,
+}: DailyScheduleViewProps) {
   const { user } = useAuth();
   const { status: calendarStatus, syncing, syncNow, connect } = useGoogleCalendar();
   
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [allInboxTasks, setAllInboxTasks] = useState<Task[]>([]);
   const [overdueTasks, setOverdueTasks] = useState<Task[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [loadingTasks, setLoadingTasks] = useState(true);
-  const [dragOverHour, setDragOverHour] = useState<number | null>(null);
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [overDropZone, setOverDropZone] = useState<string | null>(null);
 
   const today = useMemo(() => startOfToday(), []);
   const todayStr = format(today, 'yyyy-MM-dd');
+
+  // Configure sensors for better touch/mouse handling
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // 8px movement before drag starts
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200, // 200ms delay for touch
+        tolerance: 5,
+      },
+    })
+  );
+
+  // Generate time slots based on office hours
+  const timeSlots = useMemo(() => {
+    const slots: string[] = [];
+    for (let hour = officeHoursStart; hour <= officeHoursEnd; hour++) {
+      slots.push(`${String(hour).padStart(2, '0')}:00`);
+    }
+    return slots;
+  }, [officeHoursStart, officeHoursEnd]);
 
   // Fetch calendar events
   useEffect(() => {
@@ -77,7 +134,7 @@ export function DailyScheduleView({ onTaskToggle, onTaskClick }: DailyScheduleVi
     fetchCalendarEvents();
   }, [calendarStatus.connected, calendarStatus.calendarSelected, todayStr, syncing]);
 
-  // Fetch all tasks
+  // Fetch all tasks for today
   useEffect(() => {
     const fetchTasks = async () => {
       if (!user) {
@@ -92,14 +149,14 @@ export function DailyScheduleView({ onTaskToggle, onTaskClick }: DailyScheduleVi
 
         const allTasks = (data?.data || []).filter((task: Task) => !task.is_recurring_parent);
         
-        // Filter tasks for today
+        // Filter tasks for today (scheduled or planned for today)
         const todayTasks = allTasks.filter((task: Task) => {
           const isScheduledToday = task.scheduled_date === todayStr;
           const isPlannedToday = task.planned_day === todayStr;
           return isScheduledToday || isPlannedToday;
         });
 
-        // Find overdue tasks (scheduled before today and not completed)
+        // Find overdue tasks
         const overdue = allTasks.filter((task: Task) => {
           if (task.is_completed) return false;
           
@@ -109,16 +166,8 @@ export function DailyScheduleView({ onTaskToggle, onTaskClick }: DailyScheduleVi
           return isBefore(parseISO(scheduledDate), startOfDay(today));
         });
 
-        // Find all unscheduled inbox tasks (no date or time assigned)
-        const inboxTasks = allTasks.filter((task: Task) => {
-          if (task.is_completed) return false;
-          // No scheduled date and no planned day = inbox task
-          return !task.scheduled_date && !task.planned_day && !task.time_block_start;
-        });
-
         setTasks(todayTasks);
         setOverdueTasks(overdue);
-        setAllInboxTasks(inboxTasks);
       } catch (error) {
         console.error('Error fetching tasks:', error);
       } finally {
@@ -129,74 +178,47 @@ export function DailyScheduleView({ onTaskToggle, onTaskClick }: DailyScheduleVi
     fetchTasks();
   }, [user, todayStr, today]);
 
-  // Separate scheduled and unscheduled tasks
-  const { scheduledTasks, unscheduledTasks } = useMemo(() => {
-    const scheduled: Task[] = [];
-    const unscheduled: Task[] = [];
+  // Separate tasks by scheduled time
+  const { scheduledByTime, poolTasks } = useMemo(() => {
+    const byTime: Record<string, Task[]> = {};
+    const pool: Task[] = [];
+
+    // Initialize time slots
+    timeSlots.forEach(time => {
+      byTime[time] = [];
+    });
 
     tasks.forEach(task => {
-      if (task.time_block_start) {
-        scheduled.push(task);
+      if (task.is_completed) return; // Skip completed tasks
+      
+      if (task.scheduled_time) {
+        // Extract hour from scheduled_time
+        const timeKey = task.scheduled_time.substring(0, 5);
+        if (byTime[timeKey]) {
+          byTime[timeKey].push(task);
+        } else {
+          // If outside office hours, add to pool
+          pool.push(task);
+        }
       } else {
-        unscheduled.push(task);
+        // No scheduled time = pool task
+        pool.push(task);
       }
     });
 
-    return { scheduledTasks: scheduled, unscheduledTasks: unscheduled };
-  }, [tasks]);
+    return { scheduledByTime: byTime, poolTasks: pool };
+  }, [tasks, timeSlots]);
 
   // All-day calendar events
   const allDayEvents = useMemo(() => {
     return calendarEvents.filter(event => event.start.date && !event.start.dateTime);
   }, [calendarEvents]);
 
-  // Group events and tasks by hour
-  const timelineItems = useMemo(() => {
-    const items: Record<number, { events: CalendarEvent[]; tasks: Task[] }> = {};
-
-    // Initialize hours
-    for (let hour = START_HOUR; hour <= END_HOUR; hour++) {
-      items[hour] = { events: [], tasks: [] };
-    }
-
-    // Add calendar events (not all-day ones)
-    calendarEvents.forEach(event => {
-      if (event.start.dateTime) {
-        const startHour = parseISO(event.start.dateTime).getHours();
-        if (startHour >= START_HOUR && startHour <= END_HOUR) {
-          items[startHour].events.push(event);
-        }
-      }
-    });
-
-    // Add scheduled tasks
-    scheduledTasks.forEach(task => {
-      if (task.time_block_start) {
-        // Parse time - handle both full timestamps and time-only strings
-        let startHour: number;
-        if (task.time_block_start.includes('T')) {
-          startHour = parseISO(task.time_block_start).getHours();
-        } else {
-          startHour = parseInt(task.time_block_start.split(':')[0], 10);
-        }
-        
-        if (startHour >= START_HOUR && startHour <= END_HOUR) {
-          items[startHour].tasks.push(task);
-        }
-      }
-    });
-
-    return items;
-  }, [calendarEvents, scheduledTasks]);
-
-  const handleTaskToggle = async (taskId: string, currentStatus: boolean) => {
-    // Optimistic update for regular tasks
+  // Task toggle handler
+  const handleTaskToggle = useCallback(async (taskId: string, completed: boolean) => {
+    // Optimistic update
     setTasks(prev => prev.map(t => 
-      t.task_id === taskId ? { ...t, is_completed: !currentStatus } : t
-    ));
-    // Also update overdue tasks
-    setOverdueTasks(prev => prev.map(t => 
-      t.task_id === taskId ? { ...t, is_completed: !currentStatus } : t
+      t.task_id === taskId ? { ...t, is_completed: completed } : t
     ));
 
     try {
@@ -204,97 +226,200 @@ export function DailyScheduleView({ onTaskToggle, onTaskClick }: DailyScheduleVi
         body: {
           action: 'update',
           task_id: taskId,
-          is_completed: !currentStatus,
+          is_completed: completed,
         },
       });
       
-      onTaskToggle?.(taskId, currentStatus);
-      
-      // Remove completed overdue task from list
-      if (!currentStatus) {
-        setOverdueTasks(prev => prev.filter(t => t.task_id !== taskId));
-      }
+      onTaskToggle?.(taskId, !completed);
     } catch (error) {
       // Revert on error
       setTasks(prev => prev.map(t => 
-        t.task_id === taskId ? { ...t, is_completed: currentStatus } : t
-      ));
-      setOverdueTasks(prev => prev.map(t => 
-        t.task_id === taskId ? { ...t, is_completed: currentStatus } : t
+        t.task_id === taskId ? { ...t, is_completed: !completed } : t
       ));
       console.error('Error toggling task:', error);
+      toast.error('Failed to update task');
     }
-  };
+  }, [onTaskToggle]);
 
-  // Drag-and-drop handlers
-  const handleDragStart = (e: React.DragEvent, taskId: string) => {
-    e.dataTransfer.setData('taskId', taskId);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragOver = (e: React.DragEvent, hour: number) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    setDragOverHour(hour);
-  };
-
-  const handleDragLeave = () => {
-    setDragOverHour(null);
-  };
-
-  const handleDrop = async (e: React.DragEvent, hour: number) => {
-    e.preventDefault();
-    setDragOverHour(null);
-    
-    const taskId = e.dataTransfer.getData('taskId');
-    if (!taskId) return;
-
-    // Build the time_block_start timestamp
-    const timeBlockStart = `${todayStr}T${String(hour).padStart(2, '0')}:00:00`;
-    
-    // Find the task being dropped
-    const droppedTask = [...tasks, ...allInboxTasks, ...overdueTasks].find(t => t.task_id === taskId);
-    
+  // Task update handler for scheduling
+  const handleTaskUpdate = useCallback(async (taskId: string, updates: Partial<Task>) => {
     // Optimistic update
-    if (droppedTask) {
-      const updatedTask = { 
-        ...droppedTask, 
-        time_block_start: timeBlockStart,
-        scheduled_date: todayStr,
-        planned_day: todayStr
-      };
-      
-      // Remove from inbox if it was there
-      setAllInboxTasks(prev => prev.filter(t => t.task_id !== taskId));
-      
-      // Add or update in today's tasks
-      setTasks(prev => {
-        const exists = prev.some(t => t.task_id === taskId);
-        if (exists) {
-          return prev.map(t => t.task_id === taskId ? updatedTask : t);
-        }
-        return [...prev, updatedTask];
-      });
-    }
+    setTasks(prev => prev.map(t => 
+      t.task_id === taskId ? { ...t, ...updates } : t
+    ));
 
     try {
       await supabase.functions.invoke('manage-task', {
         body: {
           action: 'update',
           task_id: taskId,
-          time_block_start: timeBlockStart,
-          scheduled_date: todayStr,
+          ...updates,
+        },
+      });
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast.error('Failed to update task');
+      // Refresh to get correct state
+      handleRefresh();
+    }
+  }, []);
+
+  // Remove task from time slot
+  const handleTaskRemove = useCallback(async (taskId: string) => {
+    // Find the task
+    const task = tasks.find(t => t.task_id === taskId);
+    if (!task) return;
+
+    // Optimistic update - clear scheduled_time
+    setTasks(prev => prev.map(t => 
+      t.task_id === taskId ? { ...t, scheduled_time: null } : t
+    ));
+
+    try {
+      await supabase.functions.invoke('manage-task', {
+        body: {
+          action: 'update',
+          task_id: taskId,
+          scheduled_time: null,
         },
       });
       
-      toast.success(`Task scheduled for ${format(new Date().setHours(hour, 0), 'h:mm a')}`);
+      toast.success('Task moved to pool');
     } catch (error) {
-      console.error('Error scheduling task:', error);
-      toast.error('Failed to schedule task');
-      // Revert optimistic update
-      handleRefresh();
+      // Revert on error
+      setTasks(prev => prev.map(t => 
+        t.task_id === taskId ? { ...t, scheduled_time: task.scheduled_time } : t
+      ));
+      console.error('Error removing task from time slot:', error);
+      toast.error('Failed to update task');
     }
-  };
+  }, [tasks]);
+
+  // Drag handlers
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const { active } = event;
+    const taskId = active.id as string;
+    
+    // Find the task being dragged
+    const task = tasks.find(t => t.task_id === taskId) || 
+                 overdueTasks.find(t => t.task_id === taskId);
+    
+    if (task) {
+      setActiveTask(task);
+    }
+  }, [tasks, overdueTasks]);
+
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    const { over } = event;
+    
+    if (over) {
+      setOverDropZone(over.id as string);
+    } else {
+      setOverDropZone(null);
+    }
+  }, []);
+
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    setActiveTask(null);
+    setOverDropZone(null);
+
+    if (!over) return;
+
+    const taskId = active.id as string;
+    const dropId = over.id as string;
+
+    // Find the dragged task
+    const task = tasks.find(t => t.task_id === taskId) || 
+                 overdueTasks.find(t => t.task_id === taskId);
+    
+    if (!task) return;
+
+    // Determine what we dropped on
+    if (dropId === 'tasks-pool') {
+      // Dropped on pool - clear scheduled_time
+      if (task.scheduled_time) {
+        // Optimistic update
+        setTasks(prev => prev.map(t => 
+          t.task_id === taskId ? { ...t, scheduled_time: null } : t
+        ));
+
+        try {
+          await supabase.functions.invoke('manage-task', {
+            body: {
+              action: 'update',
+              task_id: taskId,
+              scheduled_time: null,
+            },
+          });
+          
+          toast.success('Task moved to pool');
+        } catch (error) {
+          // Revert
+          setTasks(prev => prev.map(t => 
+            t.task_id === taskId ? { ...t, scheduled_time: task.scheduled_time } : t
+          ));
+          console.error('Error updating task:', error);
+          toast.error('Failed to move task to pool');
+        }
+      }
+    } else if (dropId.startsWith('time-slot-')) {
+      // Dropped on a time slot
+      const time = dropId.replace('time-slot-', '');
+      
+      // Already in this slot?
+      if (task.scheduled_time?.startsWith(time)) return;
+
+      // Optimistic update
+      const previousTime = task.scheduled_time;
+      const previousDate = task.scheduled_date;
+      
+      setTasks(prev => {
+        // Check if task is already in today's tasks
+        const exists = prev.some(t => t.task_id === taskId);
+        const updatedTask = { 
+          ...task, 
+          scheduled_time: time,
+          scheduled_date: todayStr,
+        };
+        
+        if (exists) {
+          return prev.map(t => t.task_id === taskId ? updatedTask : t);
+        } else {
+          // Add from overdue to today
+          return [...prev, updatedTask];
+        }
+      });
+      
+      // Remove from overdue if it was there
+      setOverdueTasks(prev => prev.filter(t => t.task_id !== taskId));
+
+      try {
+        await supabase.functions.invoke('manage-task', {
+          body: {
+            action: 'update',
+            task_id: taskId,
+            scheduled_time: time,
+            scheduled_date: todayStr,
+          },
+        });
+        
+        // Format time for toast
+        const hour = parseInt(time.split(':')[0], 10);
+        const period = hour >= 12 ? 'PM' : 'AM';
+        const hour12 = hour % 12 || 12;
+        toast.success(`Scheduled for ${hour12}:00 ${period}`);
+      } catch (error) {
+        // Revert
+        setTasks(prev => prev.map(t => 
+          t.task_id === taskId ? { ...t, scheduled_time: previousTime, scheduled_date: previousDate } : t
+        ));
+        console.error('Error scheduling task:', error);
+        toast.error('Failed to schedule task');
+      }
+    }
+  }, [tasks, overdueTasks, todayStr]);
 
   const handleRefresh = async () => {
     setLoadingTasks(true);
@@ -334,292 +459,206 @@ export function DailyScheduleView({ onTaskToggle, onTaskClick }: DailyScheduleVi
     setLoadingEvents(false);
   };
 
-  const hours = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i);
   const completedCount = tasks.filter(t => t.is_completed).length;
   const totalCount = tasks.length;
-
   const isLoading = loadingEvents || loadingTasks;
+  const currentHour = new Date().getHours();
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <CalendarDays className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-semibold">Today's Schedule</h3>
-          <Badge variant="secondary">
-            {completedCount}/{totalCount} tasks
-          </Badge>
-        </div>
-        <div className="flex items-center gap-2">
-          {calendarStatus.connected && calendarStatus.calendarName && (
-            <Badge variant="outline" className="text-xs">
-              📅 {calendarStatus.calendarName}
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold">Today's Schedule</h3>
+            <Badge variant="secondary">
+              {completedCount}/{totalCount} tasks
             </Badge>
-          )}
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={handleRefresh}
-            disabled={isLoading || syncing}
-          >
-            <RefreshCw className={cn("h-4 w-4", (isLoading || syncing) && "animate-spin")} />
-          </Button>
-        </div>
-      </div>
-
-      {/* Connect Calendar CTA */}
-      {!calendarStatus.connected && (
-        <Card className="border-dashed border-2 border-primary/30 bg-primary/5">
-          <CardContent className="py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Calendar className="h-8 w-8 text-primary" />
-              <div>
-                <h4 className="font-medium text-sm">Connect Google Calendar</h4>
-                <p className="text-xs text-muted-foreground">
-                  See your events alongside your tasks
-                </p>
-              </div>
-            </div>
-            <Button size="sm" onClick={() => connect()}>
-              Connect
+          </div>
+          <div className="flex items-center gap-2">
+            {calendarStatus.connected && calendarStatus.calendarName && (
+              <Badge variant="outline" className="text-xs">
+                📅 {calendarStatus.calendarName}
+              </Badge>
+            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleRefresh}
+              disabled={isLoading || syncing}
+            >
+              <RefreshCw className={cn("h-4 w-4", (isLoading || syncing) && "animate-spin")} />
             </Button>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </div>
 
-      {/* Overdue Tasks Alert */}
-      {overdueTasks.length > 0 && (
-        <Card className="border-destructive/30 bg-destructive/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm text-destructive">
-              <AlertTriangle className="h-4 w-4" />
-              Overdue Tasks ({overdueTasks.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-2">
-            <ScrollArea className={overdueTasks.length > 3 ? "h-[120px]" : undefined}>
-              <div className="space-y-1">
-                {overdueTasks.map(task => (
-                  <TimelineTaskBlock
-                    key={task.task_id}
-                    task={task}
-                    compact
-                    draggable
-                    onDragStart={handleDragStart}
-                    onToggle={handleTaskToggle}
-                    onClick={() => onTaskClick?.(task)}
-                  />
-                ))}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        {/* Main Timeline */}
-        <Card className="lg:col-span-3">
-          <CardContent className="p-0">
-            {/* All Day Events */}
-            {allDayEvents.length > 0 && (
-              <div className="border-b px-4 py-2 bg-muted/30">
-                <div className="text-xs font-medium text-muted-foreground mb-1">All Day</div>
-                <div className="flex flex-wrap gap-1">
-                  {allDayEvents.map(event => (
-                    <CalendarEventBlock
-                      key={event.id}
-                      event={event}
-                      compact
-                    />
-                  ))}
+        {/* Connect Calendar CTA */}
+        {!calendarStatus.connected && (
+          <Card className="border-dashed border-2 border-primary/30 bg-primary/5">
+            <CardContent className="py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Calendar className="h-8 w-8 text-primary" />
+                <div>
+                  <h4 className="font-medium text-sm">Connect Google Calendar</h4>
+                  <p className="text-xs text-muted-foreground">
+                    See your events alongside your tasks
+                  </p>
                 </div>
               </div>
-            )}
-            
-            <ScrollArea className="h-[500px]">
-              <div className="relative" style={{ minHeight: `${(END_HOUR - START_HOUR + 1) * HOUR_HEIGHT}px` }}>
-                {/* Current time indicator */}
-                <CurrentTimeIndicator
-                  selectedDate={today}
-                  startHour={START_HOUR}
-                  hourHeight={HOUR_HEIGHT}
-                />
+              <Button size="sm" onClick={() => connect()}>
+                Connect
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
-                {/* Hour rows */}
-                {hours.map((hour) => {
-                  const items = timelineItems[hour];
-                  const hasItems = items.events.length > 0 || items.tasks.length > 0;
-                  const isCurrentHour = new Date().getHours() === hour;
-
-                  return (
-                    <div
-                      key={hour}
-                      onDragOver={(e) => handleDragOver(e, hour)}
-                      onDragLeave={handleDragLeave}
-                      onDrop={(e) => handleDrop(e, hour)}
-                      className={cn(
-                        "flex border-t border-border/50 transition-colors",
-                        isCurrentHour && "bg-primary/5",
-                        dragOverHour === hour && "ring-2 ring-inset ring-primary bg-primary/10"
-                      )}
-                      style={{ minHeight: `${HOUR_HEIGHT}px` }}
-                    >
-                      {/* Hour label */}
-                      <div className="w-16 shrink-0 py-1 px-2 text-xs text-muted-foreground text-right border-r border-border/50">
-                        {format(new Date().setHours(hour, 0), 'h a')}
-                      </div>
-
-                      {/* Content area */}
-                      <div className="flex-1 p-1 space-y-1">
-                        {isLoading ? (
-                          hour === 9 && <Skeleton className="h-12 w-full" />
-                        ) : (
-                          <>
-                            {/* Calendar events */}
-                            {items.events.map(event => (
-                              <CalendarEventBlock
-                                key={event.id}
-                                event={event}
-                                compact
-                              />
-                            ))}
-
-                            {/* Scheduled tasks */}
-                            {items.tasks.map(task => (
-                              <TimelineTaskBlock
-                                key={task.task_id}
-                                task={task}
-                                compact
-                                draggable
-                                onDragStart={handleDragStart}
-                                onToggle={handleTaskToggle}
-                                onClick={() => onTaskClick?.(task)}
-                              />
-                            ))}
-                            
-                            {/* Drop hint when empty and dragging */}
-                            {dragOverHour === hour && items.events.length === 0 && items.tasks.length === 0 && (
-                              <div className="text-xs text-primary font-medium py-2 text-center">
-                                Drop here to schedule
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-
-        {/* Sidebar - Unscheduled Tasks */}
-        <div className="space-y-4">
-          {/* Today's Unscheduled Tasks */}
-          <Card>
+        {/* Overdue Tasks Alert */}
+        {overdueTasks.length > 0 && (
+          <Card className="border-destructive/30 bg-destructive/5">
             <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <ListTodo className="h-4 w-4" />
-                Today (Unscheduled)
-                <Badge variant="secondary" className="ml-auto">
-                  {unscheduledTasks.filter(t => !t.is_completed).length}
-                </Badge>
+              <CardTitle className="flex items-center gap-2 text-sm text-destructive">
+                <AlertTriangle className="h-4 w-4" />
+                Overdue Tasks ({overdueTasks.length})
               </CardTitle>
             </CardHeader>
             <CardContent className="p-2">
-              {isLoading ? (
-                <div className="space-y-2">
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
+              <p className="text-xs text-muted-foreground mb-2">
+                Drag to a time slot to reschedule
+              </p>
+              <ScrollArea className={overdueTasks.length > 3 ? "h-[100px]" : undefined}>
+                <div className="space-y-1">
+                  {overdueTasks.map(task => (
+                    <div
+                      key={task.task_id}
+                      className="flex items-center gap-2 p-2 bg-card border border-border rounded-md text-sm"
+                    >
+                      <span className="flex-1 truncate">{task.task_text}</span>
+                      <Badge variant="destructive" className="text-xs shrink-0">
+                        {task.scheduled_date || task.planned_day}
+                      </Badge>
+                    </div>
+                  ))}
                 </div>
-              ) : unscheduledTasks.filter(t => !t.is_completed).length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-2">
-                  All tasks scheduled!
-                </p>
-              ) : (
-                <ScrollArea className={unscheduledTasks.length > 4 ? "h-[150px]" : undefined}>
-                  <div className="space-y-1.5">
-                    {unscheduledTasks.filter(t => !t.is_completed).map(task => (
-                      <TimelineTaskBlock
-                        key={task.task_id}
-                        task={task}
-                        compact
-                        draggable
-                        onDragStart={handleDragStart}
-                        onToggle={handleTaskToggle}
-                        onClick={() => onTaskClick?.(task)}
-                      />
-                    ))}
-                  </div>
-                </ScrollArea>
-              )}
+              </ScrollArea>
             </CardContent>
           </Card>
+        )}
 
-          {/* Task Inbox (no date assigned) */}
-          {allInboxTasks.length > 0 && (
+        {/* All Day Events */}
+        {allDayEvents.length > 0 && (
+          <div className="border rounded-lg px-4 py-2 bg-muted/30">
+            <div className="text-xs font-medium text-muted-foreground mb-1">All Day</div>
+            <div className="flex flex-wrap gap-1">
+              {allDayEvents.map(event => (
+                <CalendarEventBlock
+                  key={event.id}
+                  event={event}
+                  compact
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Main Layout: Time Slots + Tasks Pool */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Time Slots (Calendar View) */}
+          <div className="lg:col-span-2">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <Inbox className="h-4 w-4" />
-                  Task Inbox
-                  <Badge variant="outline" className="ml-auto">
-                    {allInboxTasks.length}
-                  </Badge>
-                </CardTitle>
+                <CardTitle className="text-sm">Schedule</CardTitle>
               </CardHeader>
               <CardContent className="p-2">
-                <p className="text-xs text-muted-foreground mb-2">
-                  Drag tasks to schedule them
-                </p>
-                <ScrollArea className={allInboxTasks.length > 4 ? "h-[150px]" : undefined}>
-                  <div className="space-y-1.5">
-                    {allInboxTasks.map(task => (
-                      <TimelineTaskBlock
-                        key={task.task_id}
-                        task={task}
-                        compact
-                        draggable
-                        onDragStart={handleDragStart}
-                        onToggle={handleTaskToggle}
-                        onClick={() => onTaskClick?.(task)}
-                      />
+                {isLoading ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3, 4].map(i => (
+                      <Skeleton key={i} className="h-20 w-full" />
                     ))}
                   </div>
-                </ScrollArea>
+                ) : (
+                  <ScrollArea className="h-[500px] pr-2">
+                    <div className="space-y-1 relative">
+                      {/* Current time indicator */}
+                      <CurrentTimeIndicator
+                        selectedDate={today}
+                        startHour={officeHoursStart}
+                        hourHeight={88}
+                      />
+                      
+                      {timeSlots.map((time) => {
+                        const hour = parseInt(time.split(':')[0], 10);
+                        const tasksInSlot = scheduledByTime[time] || [];
+                        
+                        return (
+                          <TimeSlot
+                            key={time}
+                            time={time}
+                            tasks={tasksInSlot}
+                            onTaskDrop={(taskId, time) => {
+                              // This is handled by DndContext onDragEnd
+                            }}
+                            onTaskRemove={handleTaskRemove}
+                            isCurrentHour={hour === currentHour}
+                          />
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                )}
               </CardContent>
             </Card>
-          )}
+          </div>
 
-          {/* Quick Stats */}
-          <Card>
-            <CardContent className="py-3 space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Calendar Events</span>
-                <Badge variant="outline">{calendarEvents.length}</Badge>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Scheduled Tasks</span>
-                <Badge variant="outline">{scheduledTasks.length}</Badge>
-              </div>
-              {overdueTasks.length > 0 && (
+          {/* Tasks Pool (Right Side) */}
+          <div className="lg:col-span-1">
+            <TasksPool
+              tasks={poolTasks}
+              onTaskToggle={handleTaskToggle}
+              onTaskUpdate={handleTaskUpdate}
+            />
+
+            {/* Quick Stats */}
+            <Card className="mt-4">
+              <CardContent className="py-3 space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-destructive">Overdue</span>
-                  <Badge variant="destructive">{overdueTasks.length}</Badge>
+                  <span className="text-muted-foreground">Scheduled</span>
+                  <Badge variant="outline">
+                    {Object.values(scheduledByTime).flat().length}
+                  </Badge>
                 </div>
-              )}
-              {allInboxTasks.length > 0 && (
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">In Inbox</span>
-                  <Badge variant="outline">{allInboxTasks.length}</Badge>
+                  <span className="text-muted-foreground">Unscheduled</span>
+                  <Badge variant="outline">{poolTasks.length}</Badge>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                {calendarEvents.length > 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Calendar Events</span>
+                    <Badge variant="outline">{calendarEvents.length}</Badge>
+                  </div>
+                )}
+                {overdueTasks.length > 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-destructive">Overdue</span>
+                    <Badge variant="destructive">{overdueTasks.length}</Badge>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Drag Overlay - shows the dragged task */}
+      <DragOverlay dropAnimation={null}>
+        {activeTask ? <DraggedTaskOverlay task={activeTask} /> : null}
+      </DragOverlay>
+    </DndContext>
   );
 }
