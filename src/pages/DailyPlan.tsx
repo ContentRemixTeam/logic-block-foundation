@@ -97,6 +97,7 @@ export default function DailyPlan() {
   const [scratchPadContent, setScratchPadContent] = useState('');
   const [scratchPadTitle, setScratchPadTitle] = useState('');
   const [processingTags, setProcessingTags] = useState(false);
+  const [processingBrainDump, setProcessingBrainDump] = useState(false);
   const scratchPadRef = useRef<HTMLTextAreaElement>(null);
   
   // Weekly priorities
@@ -862,6 +863,91 @@ export default function DailyPlan() {
     });
   };
 
+  const handleProcessBrainDump = async () => {
+    if (!user || !dayId || !brainDump.trim()) return;
+    
+    setProcessingBrainDump(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('process-scratch-pad-tags', {
+        body: {
+          daily_plan_id: dayId,
+          scratch_pad_content: brainDump,
+          context: 'brain_dump',
+        },
+      });
+
+      if (error) throw error;
+
+      const processed = data?.processed || {};
+      const total = (processed.tasks || 0) + (processed.ideas || 0) + (processed.thoughts || 0) + (processed.offers || 0) + (processed.wins || 0);
+      
+      if (total > 0) {
+        const parts = [];
+        if (processed.tasks > 0) parts.push(`${processed.tasks} task${processed.tasks > 1 ? 's' : ''}`);
+        if (processed.ideas > 0) parts.push(`${processed.ideas} idea${processed.ideas > 1 ? 's' : ''}`);
+        if (processed.thoughts > 0) parts.push(`${processed.thoughts} thought${processed.thoughts > 1 ? 's' : ''}`);
+        if (processed.offers > 0) parts.push(`${processed.offers} offer${processed.offers > 1 ? 's' : ''}`);
+        if (processed.wins > 0) parts.push(`${processed.wins} win${processed.wins > 1 ? 's' : ''}`);
+
+        // Invalidate caches so items appear immediately in their destinations
+        queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
+        queryClient.invalidateQueries({ queryKey: ['ideas'] });
+        queryClient.invalidateQueries({ queryKey: ['useful-thoughts'] });
+        queryClient.invalidateQueries({ queryKey: ['daily-plan'] });
+
+        // Store processed data for organize modal
+        setProcessedData(data);
+        
+        // Check if we should show organize modal
+        if (scratchPadReviewMode === 'organize_now') {
+          setOrganizeModalOpen(true);
+        } else {
+          // Show enhanced toast with organize option
+          toast({
+            title: "✅ Brain Dump Processed!",
+            description: (
+              <div className="space-y-2">
+                <p>Created:</p>
+                <ul className="text-sm space-y-1">
+                  {processed.tasks > 0 && <li className="flex items-center gap-1"><ListTodo className="h-3 w-3" /> {processed.tasks} task{processed.tasks > 1 ? 's' : ''}</li>}
+                  {processed.ideas > 0 && <li className="flex items-center gap-1"><Lightbulb className="h-3 w-3" /> {processed.ideas} idea{processed.ideas > 1 ? 's' : ''}</li>}
+                  {processed.thoughts > 0 && <li className="flex items-center gap-1"><Brain className="h-3 w-3" /> {processed.thoughts} thought{processed.thoughts > 1 ? 's' : ''}</li>}
+                  {processed.wins > 0 && <li>🏆 {processed.wins} win{processed.wins > 1 ? 's' : ''}</li>}
+                </ul>
+              </div>
+            ),
+            action: (processed.tasks > 0 || processed.ideas > 0) ? (
+              <ToastAction altText="Organize now" onClick={() => setOrganizeModalOpen(true)}>
+                Organize →
+              </ToastAction>
+            ) : undefined,
+            duration: 8000,
+          });
+        }
+      } else {
+        toast({
+          title: "No tags found",
+          description: "Use #task, #idea, #thought, or #win to tag items",
+        });
+      }
+    } catch (error: any) {
+      console.error('Process brain dump tags error:', error);
+      
+      const errorMessage = error?.message || "Something went wrong";
+      const isAuthError = errorMessage.toLowerCase().includes('token') || 
+                          errorMessage.toLowerCase().includes('auth') ||
+                          errorMessage.toLowerCase().includes('unauthorized');
+      
+      toast({
+        title: isAuthError ? "Session expired" : "Error processing tags",
+        description: isAuthError ? "Please refresh the page and try again" : errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingBrainDump(false);
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -1275,39 +1361,50 @@ export default function DailyPlan() {
 
           {/* Daily Brain Dump */}
           <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
                 <Brain className="h-5 w-5 text-primary" />
-                Daily Brain Dump
-              </CardTitle>
+                <CardTitle className="text-lg">Daily Brain Dump</CardTitle>
+              </div>
               <CardDescription>
-                Quick thoughts, ideas, what's on your mind... No formatting, no structure, just let it flow.
+                Capture everything on your mind. Use #task, #idea, #thought, or #win to tag items.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Textarea
+            <CardContent className="space-y-3">
+              <SmartScratchPad
                 value={brainDump}
-                onChange={(e) => setBrainDump(e.target.value)}
-                placeholder="Let it all out... random thoughts, ideas, worries, wins, whatever is running through your mind right now."
+                onChange={(value) => {
+                  setBrainDump(value);
+                }}
                 maxLength={10000}
-                className="min-h-[250px] resize-y font-mono text-sm"
+                placeholder={`Dump your daily thoughts here...
+
+Example:
+Follow up with client about proposal #task
+Try batching emails in morning only #idea
+Feeling more productive this week #thought
+Closed the big deal! #win`}
               />
-              <div className="flex justify-between items-center mt-2">
-                <span className="text-xs text-muted-foreground">
-                  {brainDump.length.toLocaleString()}/10,000 characters
-                </span>
-                {saveStatus === 'saved' && (
-                  <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
-                    <Check className="h-3 w-3" />
-                    Auto-saved
-                  </span>
-                )}
-                {saveStatus === 'saving' && (
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Saving...
-                  </span>
-                )}
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  onClick={handleProcessBrainDump}
+                  disabled={processingBrainDump || !brainDump.trim()}
+                  variant="outline"
+                  size="sm"
+                >
+                  {processingBrainDump ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Process Tags
+                    </>
+                  )}
+                </Button>
               </div>
             </CardContent>
           </Card>
