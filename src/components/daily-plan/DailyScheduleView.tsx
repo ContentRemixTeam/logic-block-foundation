@@ -38,6 +38,8 @@ import {
 interface DailyScheduleViewProps {
   onTaskToggle?: (taskId: string, currentStatus: boolean) => void;
   onTaskClick?: (task: Task) => void;
+  onTaskSchedule?: (taskId: string, time: string) => void;
+  onTaskUnschedule?: (taskId: string) => void;
   officeHoursStart?: number;
   officeHoursEnd?: number;
 }
@@ -65,6 +67,8 @@ function DraggedTaskOverlay({ task }: { task: Task }) {
 export function DailyScheduleView({ 
   onTaskToggle, 
   onTaskClick,
+  onTaskSchedule,
+  onTaskUnschedule,
   officeHoursStart = DEFAULT_START_HOUR,
   officeHoursEnd = DEFAULT_END_HOUR,
 }: DailyScheduleViewProps) {
@@ -355,6 +359,7 @@ export function DailyScheduleView({
           });
           
           toast.success('Task moved to pool');
+          onTaskUnschedule?.(taskId);
         } catch (error) {
           // Revert
           setTasks(prev => prev.map(t => 
@@ -410,6 +415,7 @@ export function DailyScheduleView({
         const period = hour >= 12 ? 'PM' : 'AM';
         const hour12 = hour % 12 || 12;
         toast.success(`Scheduled for ${hour12}:00 ${period}`);
+        onTaskSchedule?.(taskId, time);
       } catch (error) {
         // Revert
         setTasks(prev => prev.map(t => 
@@ -419,7 +425,7 @@ export function DailyScheduleView({
         toast.error('Failed to schedule task');
       }
     }
-  }, [tasks, overdueTasks, todayStr]);
+  }, [tasks, overdueTasks, todayStr, onTaskSchedule, onTaskUnschedule]);
 
   const handleRefresh = async () => {
     setLoadingTasks(true);
