@@ -1119,7 +1119,16 @@ export default function DailyPlan() {
         {viewMode === 'schedule' && (
           <DailyScheduleView
             onTaskToggle={(taskId, currentStatus) => {
-              // Refresh tasks after toggle
+              // Toggle task completion and refresh
+              toggleOtherTask(taskId, currentStatus);
+              loadDailyPlan();
+            }}
+            onTaskSchedule={(taskId, time) => {
+              // Task scheduled to time slot - reload to reflect changes
+              loadDailyPlan();
+            }}
+            onTaskUnschedule={(taskId) => {
+              // Task returned to pool - reload to reflect changes
               loadDailyPlan();
             }}
           />
