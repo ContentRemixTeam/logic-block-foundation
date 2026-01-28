@@ -39,6 +39,8 @@ export interface Task {
   is_completed: boolean;
   completed_at: string | null;
   scheduled_date: string | null;
+  scheduled_time: string | null;
+  time_slot_duration: number | null;
   priority: string | null;
   source: string | null;
   created_at: string;
