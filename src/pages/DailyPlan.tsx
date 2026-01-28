@@ -29,6 +29,7 @@ import { YesterdayReviewPopup } from '@/components/YesterdayReviewPopup';
 import { CycleSnapshotCard } from '@/components/cycle/CycleSnapshotCard';
 import { GoalRewritePrompt } from '@/components/cycle/GoalRewritePrompt';
 import { DailyTimelineView } from '@/components/daily-plan/DailyTimelineView';
+import { InlineCalendarAgenda } from '@/components/daily-plan/InlineCalendarAgenda';
 import { Slider } from '@/components/ui/slider';
 import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, Calendar, CalendarRange, Moon, AlertCircle, Rocket, Diamond, Check } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -1344,6 +1345,13 @@ Closed the big deal! #win"
               </div>
             </CardContent>
           </Card>
+
+          {/* Inline Calendar Agenda with Tasks Pool */}
+          <InlineCalendarAgenda
+            officeHoursStart={cycleData?.office_hours_start ? parseInt(cycleData.office_hours_start.split(':')[0], 10) : 9}
+            officeHoursEnd={cycleData?.office_hours_end ? parseInt(cycleData.office_hours_end.split(':')[0], 10) : 17}
+            onTaskUpdate={loadDailyPlan}
+          />
 
           {/* Top 3 Priorities - Unified with Tasks */}
           <Card>
