@@ -32,7 +32,7 @@ import { DailyTimelineView } from '@/components/daily-plan/DailyTimelineView';
 import { DailyScheduleView } from '@/components/daily-plan/DailyScheduleView';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Slider } from '@/components/ui/slider';
-import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, LayoutList, CalendarDays, Calendar, CalendarRange, Moon, AlertCircle, Rocket } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, LayoutList, CalendarDays, Calendar, CalendarRange, Moon, AlertCircle, Rocket, Diamond, Check } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DailyAgendaCard } from '@/components/daily-plan/DailyAgendaCard';
 import { PostingSlotCard } from '@/components/daily-plan/PostingSlotCard';
@@ -1235,24 +1235,41 @@ export default function DailyPlan() {
           <PetGrowthCard />
 
           {/* The ONE Thing */}
-          <Card data-section="one-thing" className="border-accent/30 bg-accent/5">
-            <CardHeader className="pb-3">
+          <Card data-section="one-thing" className="mb-6">
+            <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-accent" />
-                ⚡ Your ONE Thing
+                <Diamond className="h-5 w-5 text-primary" />
+                Your ONE Thing
               </CardTitle>
               <CardDescription>
-                What's the ONE thing that will make today a success?
+                What's the ONE thing that, if you do it today, everything else will be easier or unnecessary?
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Input
+              <Textarea
                 value={oneThing}
                 onChange={(e) => setOneThing(e.target.value)}
-                placeholder="The single most important focus for today..."
-                className="text-lg font-medium"
-                maxLength={500}
+                placeholder="Your single most important priority for today..."
+                maxLength={200}
+                className="min-h-[100px] resize-none"
               />
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-xs text-muted-foreground">
+                  {oneThing.length}/200 characters
+                </span>
+                {saveStatus === 'saved' && (
+                  <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                    <Check className="h-3 w-3" />
+                    Auto-saved
+                  </span>
+                )}
+                {saveStatus === 'saving' && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Saving...
+                  </span>
+                )}
+              </div>
             </CardContent>
           </Card>
 
