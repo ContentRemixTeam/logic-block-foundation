@@ -62,6 +62,7 @@ import { useBeforeUnload } from '@/hooks/useBeforeUnload';
 import { useMobileProtection } from '@/hooks/useMobileProtection';
 import { SaveStatusIndicator, SaveStatusBanner } from '@/components/SaveStatusIndicator';
 import { UnprocessedTagsWarning } from '@/components/daily-plan/UnprocessedTagsWarning';
+import { InfoCards } from '@/components/daily/InfoCards';
 
 export default function DailyPlan() {
   const navigate = useNavigate();
@@ -1408,6 +1409,9 @@ Closed the big deal! #win`}
               </div>
             </CardContent>
           </Card>
+
+          {/* Info Cards Row */}
+          <InfoCards />
 
           {/* Top 3 Priorities - Unified with Tasks */}
           <Card>
