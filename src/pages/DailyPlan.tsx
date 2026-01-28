@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, MutableRefObject } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { format, subDays } from 'date-fns';
-import { useQueryClient } from '@tanstack/react-query';
+import { format, subDays, startOfWeek } from 'date-fns';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { detectGap, type GapStatus } from '@/utils/gapDetection';
 import { useActiveCycle } from '@/hooks/useActiveCycle';
 import { Separator } from '@/components/ui/separator';
@@ -32,7 +32,8 @@ import { DailyTimelineView } from '@/components/daily-plan/DailyTimelineView';
 import { DailyScheduleView } from '@/components/daily-plan/DailyScheduleView';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Slider } from '@/components/ui/slider';
-import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, LayoutList, CalendarDays, Calendar, CalendarRange, Moon, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, LayoutList, CalendarDays, Calendar, CalendarRange, Moon, AlertCircle, Rocket } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DailyAgendaCard } from '@/components/daily-plan/DailyAgendaCard';
 import { PostingSlotCard } from '@/components/daily-plan/PostingSlotCard';
 
@@ -128,7 +129,7 @@ export default function DailyPlan() {
   const [monthlyFocus, setMonthlyFocus] = useState<string | null>(null);
   
   // NEW: Weekly alignment, brain dump, end of day reflection
-  const [alignmentScore, setAlignmentScore] = useState<number | null>(null);
+  const [alignmentScore, setAlignmentScore] = useState<number>(5);
   const [brainDump, setBrainDump] = useState('');
   const [endOfDayReflection, setEndOfDayReflection] = useState('');
   
@@ -137,6 +138,66 @@ export default function DailyPlan() {
   
   // View mode toggle
   const [viewMode, setViewMode] = useState<'planning' | 'schedule'>('planning');
+  
+  // Query: Check if this is user's first day of the week (no alignment set yet this week)
+  const { data: weeklyActivity } = useQuery({
+    queryKey: ['weekly-activity-check', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      // Get start of this week (Sunday)
+      const today = new Date();
+      const weekStart = startOfWeek(today, { weekStartsOn: 0 });
+      const weekStartStr = format(weekStart, 'yyyy-MM-dd');
+      
+      // Check if they've set alignment_score ANY day this week
+      const { data } = await supabase
+        .from('daily_plans')
+        .select('alignment_score, date')
+        .eq('user_id', user.id)
+        .gte('date', weekStartStr)
+        .not('alignment_score', 'is', null);
+      
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+  
+  // Query: Get current weekly plan priorities
+  const { data: currentWeeklyPlan } = useQuery({
+    queryKey: ['current-weekly-plan', user?.id, activeCycleData?.cycle_id],
+    queryFn: async (): Promise<{ top_3_priorities: string[] } | null> => {
+      if (!user?.id || !activeCycleData) return null;
+      
+      // Get start of this week (Sunday)
+      const today = new Date();
+      const weekStart = startOfWeek(today, { weekStartsOn: 0 });
+      const weekStartStr = format(weekStart, 'yyyy-MM-dd');
+      
+      const { data } = await supabase
+        .from('weekly_plans')
+        .select('top_3_priorities')
+        .eq('user_id', user.id)
+        .eq('cycle_id', activeCycleData.cycle_id)
+        .eq('start_of_week', weekStartStr)
+        .maybeSingle();
+      
+      if (!data) return null;
+      
+      // Normalize top_3_priorities from Json to string[]
+      const priorities = Array.isArray(data.top_3_priorities) 
+        ? data.top_3_priorities.map(String).filter(Boolean)
+        : [];
+      
+      return { top_3_priorities: priorities };
+    },
+    enabled: !!user?.id && !!activeCycleData,
+  });
+  
+  // Derived: Determine if this is first day of week (no alignment set this week)
+  const isFirstDayOfWeek = useMemo(() => {
+    return !weeklyActivity || weeklyActivity.length === 0;
+  }, [weeklyActivity]);
 
   // Build the data object for protection
   const dailyPlanData = useMemo(() => ({
@@ -437,7 +498,7 @@ export default function DailyPlan() {
         setCycleData(plan.cycle || null);
         
         // NEW: Set alignment, brain dump, reflection fields
-        setAlignmentScore(plan.alignment_score ?? null);
+        setAlignmentScore(plan.alignment_score ?? 5);
         setBrainDump(plan.brain_dump || '');
         setEndOfDayReflection(plan.end_of_day_reflection || '');
         
@@ -952,94 +1013,71 @@ export default function DailyPlan() {
           </Card>
         )}
 
-        {/* Weekly Focus Section - Monday Only */}
-        {(() => {
-          const isMonday = new Date().getDay() === 1;
-          if (!isMonday || weeklyPriorities.length === 0) return null;
-          
-          return (
-            <Card className="border-primary/30 bg-primary/5">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-primary" />
-                  📅 Weekly Focus Check
-                </CardTitle>
-                <CardDescription>
-                  Start your week with clarity - how aligned are you with this week's priorities?
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="bg-background/80 rounded-lg p-4 border border-border">
-                  <p className="text-sm font-medium text-muted-foreground mb-2">This week's priorities:</p>
-                  <div className="space-y-2">
-                    {weeklyPriorities.map((priority, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <div className="flex items-center justify-center h-5 w-5 rounded-full bg-primary/20 text-primary font-bold text-xs">
-                          {idx + 1}
-                        </div>
-                        <span className="text-sm">{priority}</span>
-                      </div>
-                    ))}
+        {/* Weekly Focus Launch - First Day of Week Only */}
+        {isFirstDayOfWeek && currentWeeklyPlan && currentWeeklyPlan.top_3_priorities.length > 0 && (
+          <Card className="mb-6 border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Rocket className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                Weekly Focus Launch
+              </CardTitle>
+              <CardDescription>
+                Here's what you're focusing on this week
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                {currentWeeklyPlan.top_3_priorities.map((priority, idx) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    <span className="font-semibold text-blue-600 dark:text-blue-400">{idx + 1}.</span>
+                    <p className="font-medium">{priority}</p>
                   </div>
+                ))}
+              </div>
+              
+              <Separator />
+              
+              <div className="space-y-3">
+                <Label className="text-base font-medium">
+                  Alignment Check: How aligned do you feel with this week's focus?
+                </Label>
+                <Slider
+                  value={[alignmentScore]}
+                  onValueChange={([value]) => {
+                    setAlignmentScore(value);
+                  }}
+                  min={1}
+                  max={10}
+                  step={1}
+                  className="mt-2"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Not aligned</span>
+                  <span className="font-semibold text-base">{alignmentScore}/10</span>
+                  <span>Fully aligned</span>
                 </div>
                 
-                <Separator />
-                
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">
-                    Alignment Check: How aligned do you feel with these priorities?
-                  </Label>
-                  <div className="px-2">
-                    <Slider
-                      value={alignmentScore ? [alignmentScore] : [5]}
-                      onValueChange={(value) => setAlignmentScore(value[0])}
-                      min={1}
-                      max={10}
-                      step={1}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                      <span>1 - Not aligned</span>
-                      <span className="font-medium text-primary text-sm">{alignmentScore ?? 5}</span>
-                      <span>10 - Fully aligned</span>
-                    </div>
-                  </div>
-                  
-                  {alignmentScore !== null && alignmentScore <= 6 && (
-                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mt-3">
-                      <div className="flex items-start gap-2">
-                        <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5" />
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-                            Feeling misaligned? Let's work through it.
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            <Button
-                              onClick={() => navigate('/tools/ctfar')}
-                              variant="outline"
-                              size="sm"
-                              className="border-amber-500/50 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10"
-                            >
-                              <Brain className="h-3.5 w-3.5 mr-1.5" />
-                              Self-Coach Now
-                            </Button>
-                            <Button
-                              onClick={() => navigate('/weekly-plan')}
-                              variant="outline"
-                              size="sm"
-                            >
-                              Review Weekly Plan
-                            </Button>
-                          </div>
-                        </div>
+                {alignmentScore <= 6 && (
+                  <Alert className="mt-4 border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800">
+                    <Lightbulb className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    <AlertDescription className="text-sm">
+                      Feeling misaligned? Take a few minutes to work through what's creating the gap.
+                      <div className="flex gap-2 mt-3">
+                        <Button 
+                          onClick={() => navigate('/tools/ctfar')}
+                          variant="outline"
+                          size="sm"
+                        >
+                          Self-Coach Now
+                        </Button>
                       </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })()}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Planning Quick Links */}
         <div className="flex flex-wrap items-center gap-2 text-sm">
