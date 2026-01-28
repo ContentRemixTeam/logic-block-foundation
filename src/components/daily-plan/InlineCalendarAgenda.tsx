@@ -17,13 +17,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { GripVertical, X, Clock, Calendar, Check, Loader2 } from 'lucide-react';
+import { GripVertical, X, Clock, Calendar, Check, Loader2, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Task } from '@/components/tasks/types';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { getPriorityBadgeClasses } from '@/lib/themeColors';
+import { OfficeHoursEditorModal } from '@/components/office-hours/OfficeHoursEditorModal';
 
 interface InlineCalendarAgendaProps {
   officeHoursStart?: number;
@@ -210,6 +211,7 @@ export function InlineCalendarAgenda({
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [showOfficeHoursModal, setShowOfficeHoursModal] = useState(false);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -379,16 +381,28 @@ export function InlineCalendarAgenda({
   const poolTaskIds = poolTasks.map(t => t.task_id);
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-primary" />
-          Daily Agenda & Tasks
-        </CardTitle>
-        <CardDescription>
-          Drag tasks to schedule them. Office hours: {formatTime(`${officeHoursStart}:00`)} - {formatTime(`${officeHoursEnd}:00`)}
-        </CardDescription>
-      </CardHeader>
+    <>
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              Daily Agenda & Tasks
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowOfficeHoursModal(true)}
+              className="text-muted-foreground hover:text-foreground h-8 gap-1.5"
+            >
+              <Settings2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Edit Hours</span>
+            </Button>
+          </div>
+          <CardDescription>
+            Drag tasks to schedule them. Office hours: {formatTime(`${officeHoursStart}:00`)} - {formatTime(`${officeHoursEnd}:00`)}
+          </CardDescription>
+        </CardHeader>
       <CardContent>
         {loading ? (
           <div className="flex items-center justify-center py-8">
@@ -475,6 +489,12 @@ export function InlineCalendarAgenda({
         )}
       </CardContent>
     </Card>
+    
+    <OfficeHoursEditorModal
+      open={showOfficeHoursModal}
+      onOpenChange={setShowOfficeHoursModal}
+    />
+  </>
   );
 }
 
