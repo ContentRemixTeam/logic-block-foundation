@@ -3862,6 +3862,7 @@ export type Database = {
           reschedule_loop_active: boolean
           reschedule_nudge_dismissed_until: string | null
           scheduled_date: string | null
+          scheduled_time: string | null
           section_id: string | null
           sop_id: string | null
           source: string | null
@@ -3878,6 +3879,7 @@ export type Database = {
           template_key: string | null
           time_block_end: string | null
           time_block_start: string | null
+          time_slot_duration: number | null
           updated_at: string | null
           user_id: string
           waiting_on: string | null
@@ -3924,6 +3926,7 @@ export type Database = {
           reschedule_loop_active?: boolean
           reschedule_nudge_dismissed_until?: string | null
           scheduled_date?: string | null
+          scheduled_time?: string | null
           section_id?: string | null
           sop_id?: string | null
           source?: string | null
@@ -3940,6 +3943,7 @@ export type Database = {
           template_key?: string | null
           time_block_end?: string | null
           time_block_start?: string | null
+          time_slot_duration?: number | null
           updated_at?: string | null
           user_id: string
           waiting_on?: string | null
@@ -3986,6 +3990,7 @@ export type Database = {
           reschedule_loop_active?: boolean
           reschedule_nudge_dismissed_until?: string | null
           scheduled_date?: string | null
+          scheduled_time?: string | null
           section_id?: string | null
           sop_id?: string | null
           source?: string | null
@@ -4002,6 +4007,7 @@ export type Database = {
           template_key?: string | null
           time_block_end?: string | null
           time_block_start?: string | null
+          time_slot_duration?: number | null
           updated_at?: string | null
           user_id?: string
           waiting_on?: string | null
