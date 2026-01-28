@@ -33,7 +33,6 @@ import { InlineCalendarAgenda } from '@/components/daily-plan/InlineCalendarAgen
 import { Slider } from '@/components/ui/slider';
 import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, Calendar, CalendarRange, Moon, AlertCircle, Rocket, Diamond, Check } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { DailyAgendaCard } from '@/components/daily-plan/DailyAgendaCard';
 import { PostingSlotCard } from '@/components/daily-plan/PostingSlotCard';
 
 
@@ -1141,8 +1140,12 @@ export default function DailyPlan() {
             {/* Info Cards Row */}
             <InfoCards />
 
-            {/* Today's Agenda from Weekly Plan */}
-            <DailyAgendaCard onTaskToggle={() => loadDailyPlan()} />
+            {/* Inline Calendar Agenda with Google Calendar */}
+            <InlineCalendarAgenda
+              officeHoursStart={cycleData?.office_hours_start ? parseInt(cycleData.office_hours_start.split(':')[0], 10) : 9}
+              officeHoursEnd={cycleData?.office_hours_end ? parseInt(cycleData.office_hours_end.split(':')[0], 10) : 17}
+              onTaskUpdate={loadDailyPlan}
+            />
 
             {/* Focus Area Reminder */}
             {focusArea && (
