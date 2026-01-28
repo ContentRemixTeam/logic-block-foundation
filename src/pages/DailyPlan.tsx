@@ -28,7 +28,6 @@ import { ScratchPadOrganizeModal } from '@/components/ScratchPadOrganizeModal';
 import { YesterdayReviewPopup } from '@/components/YesterdayReviewPopup';
 import { CycleSnapshotCard } from '@/components/cycle/CycleSnapshotCard';
 import { GoalRewritePrompt } from '@/components/cycle/GoalRewritePrompt';
-import { DailyTimelineView } from '@/components/daily-plan/DailyTimelineView';
 import { InlineCalendarAgenda } from '@/components/daily-plan/InlineCalendarAgenda';
 import { Slider } from '@/components/ui/slider';
 import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, Calendar, CalendarRange, Moon, AlertCircle, Rocket, Diamond, Check } from 'lucide-react';
