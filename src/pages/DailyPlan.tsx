@@ -29,10 +29,8 @@ import { YesterdayReviewPopup } from '@/components/YesterdayReviewPopup';
 import { CycleSnapshotCard } from '@/components/cycle/CycleSnapshotCard';
 import { GoalRewritePrompt } from '@/components/cycle/GoalRewritePrompt';
 import { DailyTimelineView } from '@/components/daily-plan/DailyTimelineView';
-import { DailyScheduleView } from '@/components/daily-plan/DailyScheduleView';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Slider } from '@/components/ui/slider';
-import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, LayoutList, CalendarDays, Calendar, CalendarRange, Moon, AlertCircle, Rocket, Diamond, Check } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, Calendar, CalendarRange, Moon, AlertCircle, Rocket, Diamond, Check } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DailyAgendaCard } from '@/components/daily-plan/DailyAgendaCard';
 import { PostingSlotCard } from '@/components/daily-plan/PostingSlotCard';
@@ -137,7 +135,7 @@ export default function DailyPlan() {
   const isInitialLoadRef = useRef(true);
   
   // View mode toggle
-  const [viewMode, setViewMode] = useState<'planning' | 'schedule'>('planning');
+  // View mode removed - single scrollable page
   
   // Query: Check if this is user's first day of the week (no alignment set yet this week)
   const { data: weeklyActivity } = useQuery({
@@ -895,7 +893,7 @@ export default function DailyPlan() {
 
   return (
     <Layout>
-      <div className={viewMode === 'schedule' ? 'mx-auto max-w-6xl space-y-6' : 'mx-auto max-w-3xl space-y-8'}>
+      <div className="mx-auto max-w-3xl space-y-8">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold">Daily Plan</h1>
@@ -913,23 +911,6 @@ export default function DailyPlan() {
             </div>
           </div>
           <div className="flex gap-2 items-center">
-            {/* View Toggle */}
-            <ToggleGroup 
-              type="single" 
-              value={viewMode} 
-              onValueChange={(value) => value && setViewMode(value as 'planning' | 'schedule')}
-              className="bg-muted rounded-lg p-0.5"
-            >
-              <ToggleGroupItem value="planning" aria-label="Planning view" className="px-3 py-1.5 text-xs data-[state=on]:bg-background">
-                <LayoutList className="h-3.5 w-3.5 mr-1.5" />
-                Plan
-              </ToggleGroupItem>
-              <ToggleGroupItem value="schedule" aria-label="Schedule view" className="px-3 py-1.5 text-xs data-[state=on]:bg-background">
-                <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
-                Schedule
-              </ToggleGroupItem>
-            </ToggleGroup>
-            
             {/* Save Status Indicator */}
             <SaveStatusIndicator status={saveStatus} lastSaved={lastSaved} />
             <Button variant="outline" size="sm" asChild>
@@ -1088,7 +1069,7 @@ export default function DailyPlan() {
           <span className="text-muted-foreground text-xs">Planning:</span>
           <Link to="/daily-plan">
             <Badge variant="secondary" className="cursor-pointer">
-              <CalendarDays className="h-3 w-3 mr-1" />
+              <Calendar className="h-3 w-3 mr-1" />
               Daily
             </Badge>
           </Link>
@@ -1115,32 +1096,10 @@ export default function DailyPlan() {
         {/* Save Status Banner for offline/error states */}
         <SaveStatusBanner status={saveStatus} onRetry={() => saveNow(dailyPlanData)} />
 
-        {/* Schedule View */}
-        {viewMode === 'schedule' && (
-          <DailyScheduleView
-            onTaskToggle={(taskId, currentStatus) => {
-              // Toggle task completion and refresh
-              toggleOtherTask(taskId, currentStatus);
-              loadDailyPlan();
-            }}
-            onTaskSchedule={(taskId, time) => {
-              // Task scheduled to time slot - reload to reflect changes
-              loadDailyPlan();
-            }}
-            onTaskUnschedule={(taskId) => {
-              // Task returned to pool - reload to reflect changes
-              loadDailyPlan();
-            }}
-          />
+        {/* 90-Day Cycle Snapshot */}
+        {cycleData && (
+          <CycleSnapshotCard />
         )}
-
-        {/* Planning View */}
-        {viewMode === 'planning' && (
-          <>
-            {/* 90-Day Cycle Snapshot */}
-            {cycleData && (
-              <CycleSnapshotCard />
-            )}
 
             {/* Goal Rewrite Prompt */}
             {cycleData && (
@@ -1728,8 +1687,6 @@ Closed the big deal! #win"
             </Link>
           </CardContent>
         </Card>
-          </>
-        )}
       </div>
       
       <UsefulThoughtsModal
