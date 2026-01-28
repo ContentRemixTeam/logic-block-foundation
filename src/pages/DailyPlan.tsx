@@ -1274,25 +1274,41 @@ export default function DailyPlan() {
           </Card>
 
           {/* Daily Brain Dump */}
-          <Card className="border-dashed">
-            <CardHeader className="pb-3">
+          <Card className="mb-6">
+            <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Brain className="h-5 w-5 text-muted-foreground" />
-                🧠 Daily Brain Dump
+                <Brain className="h-5 w-5 text-primary" />
+                Daily Brain Dump
               </CardTitle>
               <CardDescription>
-                Quick thoughts, ideas, what's on your mind... Let it all out.
+                Quick thoughts, ideas, what's on your mind... No formatting, no structure, just let it flow.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent>
               <Textarea
                 value={brainDump}
                 onChange={(e) => setBrainDump(e.target.value)}
-                placeholder="Just start typing... no structure needed. Capture thoughts, worries, ideas, anything that's taking up mental space."
-                className="min-h-[200px] resize-y"
+                placeholder="Let it all out... random thoughts, ideas, worries, wins, whatever is running through your mind right now."
                 maxLength={10000}
+                className="min-h-[250px] resize-y font-mono text-sm"
               />
-              <CharacterCounter current={brainDump.length} max={10000} />
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-xs text-muted-foreground">
+                  {brainDump.length.toLocaleString()}/10,000 characters
+                </span>
+                {saveStatus === 'saved' && (
+                  <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                    <Check className="h-3 w-3" />
+                    Auto-saved
+                  </span>
+                )}
+                {saveStatus === 'saving' && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Saving...
+                  </span>
+                )}
+              </div>
             </CardContent>
           </Card>
 
