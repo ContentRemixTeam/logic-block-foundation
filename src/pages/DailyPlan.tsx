@@ -41,7 +41,7 @@ import { PostingSlotCard } from '@/components/daily-plan/PostingSlotCard';
 import { QuickLogCard } from '@/components/content';
 import { NurtureCheckinCard } from '@/components/nurture';
 import { HabitTrackerCard } from '@/components/habits';
-import { PetGrowthCard, ArcadeIntroCard } from '@/components/arcade';
+import { ArcadeIntroCard } from '@/components/arcade';
 import { CalendarReconnectBanner } from '@/components/google-calendar/CalendarReconnectBanner';
 import { CycleProgressBanner } from '@/components/cycle/CycleProgressBanner';
 import {
@@ -94,11 +94,10 @@ export default function DailyPlan() {
   const [newTop3Text, setNewTop3Text] = useState(['', '', '']);
   const [savingTop3, setSavingTop3] = useState(false);
   
-  // Scratch pad
+  // Scratch pad (unified brain dump)
   const [scratchPadContent, setScratchPadContent] = useState('');
   const [scratchPadTitle, setScratchPadTitle] = useState('');
   const [processingTags, setProcessingTags] = useState(false);
-  const [processingBrainDump, setProcessingBrainDump] = useState(false);
   const scratchPadRef = useRef<HTMLTextAreaElement>(null);
   
   // Weekly priorities
@@ -130,9 +129,8 @@ export default function DailyPlan() {
   // Monthly focus
   const [monthlyFocus, setMonthlyFocus] = useState<string | null>(null);
   
-  // NEW: Weekly alignment, brain dump, end of day reflection
+  // NEW: Weekly alignment, end of day reflection
   const [alignmentScore, setAlignmentScore] = useState<number>(5);
-  const [brainDump, setBrainDump] = useState('');
   const [endOfDayReflection, setEndOfDayReflection] = useState('');
   
   // Track initial load to prevent auto-save during data population
@@ -214,9 +212,9 @@ export default function DailyPlan() {
     one_thing: oneThing,
     goal_rewrite: goalRewrite,
     alignment_score: alignmentScore,
-    brain_dump: brainDump,
+    brain_dump: scratchPadContent, // Map scratch pad to brain_dump for server sync
     end_of_day_reflection: endOfDayReflection,
-  }), [dayId, newTop3Text, selectedPriorities, thought, feeling, deepModeNotes, scratchPadContent, scratchPadTitle, oneThing, goalRewrite, alignmentScore, brainDump, endOfDayReflection]);
+  }), [dayId, newTop3Text, selectedPriorities, thought, feeling, deepModeNotes, scratchPadContent, scratchPadTitle, oneThing, goalRewrite, alignmentScore, endOfDayReflection]);
 
   // Track if we have unsaved changes
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -331,7 +329,7 @@ export default function DailyPlan() {
               if (backup.scratch_pad_title) setScratchPadTitle(backup.scratch_pad_title);
               if (backup.deep_mode_notes) setDeepModeNotes(backup.deep_mode_notes);
               if (backup.alignment_score !== undefined) setAlignmentScore(backup.alignment_score);
-              if (backup.brain_dump) setBrainDump(backup.brain_dump);
+              if (backup.brain_dump) setScratchPadContent(backup.brain_dump); // Restore brain_dump to scratch pad
               if (backup.end_of_day_reflection) setEndOfDayReflection(backup.end_of_day_reflection);
               if (backup.top_3_today) setNewTop3Text([
                 backup.top_3_today[0] || '',
@@ -499,9 +497,12 @@ export default function DailyPlan() {
         setPreviousGoalRewrite(plan.previous_goal_rewrite || '');
         setCycleData(plan.cycle || null);
         
-        // NEW: Set alignment, brain dump, reflection fields
+        // NEW: Set alignment, reflection fields - brain_dump maps to scratchPadContent
         setAlignmentScore(plan.alignment_score ?? 5);
-        setBrainDump(plan.brain_dump || '');
+        // If scratch_pad_content is empty but brain_dump has content, use brain_dump
+        if (!plan.scratch_pad_content && plan.brain_dump) {
+          setScratchPadContent(plan.brain_dump);
+        }
         setEndOfDayReflection(plan.end_of_day_reflection || '');
         
         // Load monthly focus if we have a cycle
@@ -864,90 +865,6 @@ export default function DailyPlan() {
     });
   };
 
-  const handleProcessBrainDump = async () => {
-    if (!user || !dayId || !brainDump.trim()) return;
-    
-    setProcessingBrainDump(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('process-scratch-pad-tags', {
-        body: {
-          daily_plan_id: dayId,
-          scratch_pad_content: brainDump,
-          context: 'brain_dump',
-        },
-      });
-
-      if (error) throw error;
-
-      const processed = data?.processed || {};
-      const total = (processed.tasks || 0) + (processed.ideas || 0) + (processed.thoughts || 0) + (processed.offers || 0) + (processed.wins || 0);
-      
-      if (total > 0) {
-        const parts = [];
-        if (processed.tasks > 0) parts.push(`${processed.tasks} task${processed.tasks > 1 ? 's' : ''}`);
-        if (processed.ideas > 0) parts.push(`${processed.ideas} idea${processed.ideas > 1 ? 's' : ''}`);
-        if (processed.thoughts > 0) parts.push(`${processed.thoughts} thought${processed.thoughts > 1 ? 's' : ''}`);
-        if (processed.offers > 0) parts.push(`${processed.offers} offer${processed.offers > 1 ? 's' : ''}`);
-        if (processed.wins > 0) parts.push(`${processed.wins} win${processed.wins > 1 ? 's' : ''}`);
-
-        // Invalidate caches so items appear immediately in their destinations
-        queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
-        queryClient.invalidateQueries({ queryKey: ['ideas'] });
-        queryClient.invalidateQueries({ queryKey: ['useful-thoughts'] });
-        queryClient.invalidateQueries({ queryKey: ['daily-plan'] });
-
-        // Store processed data for organize modal
-        setProcessedData(data);
-        
-        // Check if we should show organize modal
-        if (scratchPadReviewMode === 'organize_now') {
-          setOrganizeModalOpen(true);
-        } else {
-          // Show enhanced toast with organize option
-          toast({
-            title: "✅ Brain Dump Processed!",
-            description: (
-              <div className="space-y-2">
-                <p>Created:</p>
-                <ul className="text-sm space-y-1">
-                  {processed.tasks > 0 && <li className="flex items-center gap-1"><ListTodo className="h-3 w-3" /> {processed.tasks} task{processed.tasks > 1 ? 's' : ''}</li>}
-                  {processed.ideas > 0 && <li className="flex items-center gap-1"><Lightbulb className="h-3 w-3" /> {processed.ideas} idea{processed.ideas > 1 ? 's' : ''}</li>}
-                  {processed.thoughts > 0 && <li className="flex items-center gap-1"><Brain className="h-3 w-3" /> {processed.thoughts} thought{processed.thoughts > 1 ? 's' : ''}</li>}
-                  {processed.wins > 0 && <li>🏆 {processed.wins} win{processed.wins > 1 ? 's' : ''}</li>}
-                </ul>
-              </div>
-            ),
-            action: (processed.tasks > 0 || processed.ideas > 0) ? (
-              <ToastAction altText="Organize now" onClick={() => setOrganizeModalOpen(true)}>
-                Organize →
-              </ToastAction>
-            ) : undefined,
-            duration: 8000,
-          });
-        }
-      } else {
-        toast({
-          title: "No tags found",
-          description: "Use #task, #idea, #thought, or #win to tag items",
-        });
-      }
-    } catch (error: any) {
-      console.error('Process brain dump tags error:', error);
-      
-      const errorMessage = error?.message || "Something went wrong";
-      const isAuthError = errorMessage.toLowerCase().includes('token') || 
-                          errorMessage.toLowerCase().includes('auth') ||
-                          errorMessage.toLowerCase().includes('unauthorized');
-      
-      toast({
-        title: isAuthError ? "Session expired" : "Error processing tags",
-        description: isAuthError ? "Please refresh the page and try again" : errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setProcessingBrainDump(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -1252,6 +1169,8 @@ export default function DailyPlan() {
             {/* Nurture Log Card */}
             <QuickLogCard />
 
+            {/* Info Cards Row */}
+            <InfoCards />
 
             {/* Today's Agenda from Weekly Plan */}
             <DailyAgendaCard onTaskToggle={() => loadDailyPlan()} />
@@ -1318,9 +1237,6 @@ export default function DailyPlan() {
           {/* Arcade Intro Card - Shows for new users who haven't engaged */}
           <ArcadeIntroCard />
 
-          {/* Today's Top 3 - Arcade Version (gamified with coins/pet) */}
-          <PetGrowthCard />
-
           {/* The ONE Thing */}
           <Card data-section="one-thing" className="mb-6">
             <CardHeader>
@@ -1360,41 +1276,55 @@ export default function DailyPlan() {
             </CardContent>
           </Card>
 
-          {/* Daily Brain Dump */}
-          <Card className="mb-6">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <Brain className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">Daily Brain Dump</CardTitle>
+          {/* Brain Dump & Scratch Pad */}
+          <Card className="bg-gradient-to-br from-muted/30 to-muted/10 border-dashed">
+            <CardHeader>
+              <div className="flex flex-col gap-1">
+                <CardTitle className="flex items-center gap-2">
+                  <Brain className="h-5 w-5 text-primary" />
+                  Brain Dump & Scratch Pad
+                </CardTitle>
+                <p className="text-sm font-medium text-primary">{today}</p>
               </div>
               <CardDescription>
                 Capture everything on your mind. Use #task, #idea, #thought, or #win to tag items.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="scratch-title" className="text-sm text-muted-foreground">
+                  Entry Title (optional)
+                </Label>
+                <Input
+                  id="scratch-title"
+                  value={scratchPadTitle}
+                  onChange={(e) => setScratchPadTitle(e.target.value)}
+                  placeholder="e.g., Planning Q1 Launch, Morning Thoughts, Weekly Wins"
+                  className="mt-1"
+                  maxLength={200}
+                />
+              </div>
               <SmartScratchPad
-                value={brainDump}
-                onChange={(value) => {
-                  setBrainDump(value);
-                }}
+                value={scratchPadContent}
+                onChange={setScratchPadContent}
+                onBlur={() => saveNow(dailyPlanData)}
                 maxLength={10000}
-                placeholder={`Dump your daily thoughts here...
+                placeholder="Brain dump here... Type # for tag suggestions
 
 Example:
-Follow up with client about proposal #task
-Try batching emails in morning only #idea
-Feeling more productive this week #thought
-Closed the big deal! #win`}
+Record podcast #task
+New ad funnel #task  
+Maybe pivot to B2B? #idea
+Revenue grows with retention #thought
+Closed the big deal! #win"
               />
-              <div className="flex justify-end">
+              <div className="flex gap-2">
                 <Button
                   type="button"
-                  onClick={handleProcessBrainDump}
-                  disabled={processingBrainDump || !brainDump.trim()}
-                  variant="outline"
-                  size="sm"
+                  onClick={handleProcessTags}
+                  disabled={processingTags || !scratchPadContent.trim()}
                 >
-                  {processingBrainDump ? (
+                  {processingTags ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Processing...
@@ -1406,12 +1336,46 @@ Closed the big deal! #win`}
                     </>
                   )}
                 </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={!scratchPadContent.trim()}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Clear Pad
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Clear scratch pad?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will clear all content from your scratch pad. Make sure you have processed any tags you want to save first.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleClearPad}>Clear</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  asChild
+                >
+                  <Link to="/journal">
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    Past Entries
+                  </Link>
+                </Button>
               </div>
             </CardContent>
           </Card>
-
-          {/* Info Cards Row */}
-          <InfoCards />
 
           {/* Top 3 Priorities - Unified with Tasks */}
           <Card>
@@ -1516,106 +1480,6 @@ Closed the big deal! #win`}
               </Card>
             );
           })()}
-
-          {/* Daily Scratch Pad */}
-          <Card className="bg-gradient-to-br from-muted/30 to-muted/10 border-dashed">
-            <CardHeader>
-              <div className="flex flex-col gap-1">
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                  ☀️ Daily Scratch Pad
-                </CardTitle>
-                <p className="text-sm font-medium text-primary">{today}</p>
-              </div>
-              <CardDescription>
-                Brain dump, capture ideas, work through thoughts
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="scratch-title" className="text-sm text-muted-foreground">
-                  Entry Title (optional)
-                </Label>
-                <Input
-                  id="scratch-title"
-                  value={scratchPadTitle}
-                  onChange={(e) => setScratchPadTitle(e.target.value)}
-                  placeholder="e.g., Planning Q1 Launch, Morning Thoughts, Weekly Wins"
-                  className="mt-1"
-                  maxLength={200}
-                />
-              </div>
-              <SmartScratchPad
-                value={scratchPadContent}
-                onChange={setScratchPadContent}
-                onBlur={() => saveNow(dailyPlanData)}
-                maxLength={5000}
-                placeholder="Brain dump here... Type # for tag suggestions
-
-Example:
-Record podcast #task
-New ad funnel #task  
-Maybe pivot to B2B? #idea
-Revenue grows with retention #thought"
-              />
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  onClick={handleProcessTags}
-                  disabled={processingTags || !scratchPadContent.trim()}
-                >
-                  {processingTags ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Process Tags
-                    </>
-                  )}
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      disabled={!scratchPadContent.trim()}
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Clear Pad
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Clear scratch pad?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will clear all content from your scratch pad. Make sure you have processed any tags you want to save first.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleClearPad}>Clear</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  asChild
-                >
-                  <Link to="/journal">
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    Past Entries
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Daily Mindset */}
           <Card>
