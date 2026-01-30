@@ -188,7 +188,21 @@ export default function DailyPageSettings() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => {
+                if (hasChanges) {
+                  if (window.confirm('You have unsaved changes. Save before leaving?')) {
+                    handleSave().then(() => navigate(-1));
+                  } else {
+                    navigate(-1);
+                  }
+                } else {
+                  navigate(-1);
+                }
+              }}
+            >
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
@@ -201,9 +215,16 @@ export default function DailyPageSettings() {
               </p>
             </div>
           </div>
-          <Badge variant="secondary">
-            {visibleCount} of {DEFAULT_SECTION_ORDER.length} visible
-          </Badge>
+          <div className="flex items-center gap-2">
+            {hasChanges && (
+              <Badge variant="outline" className="text-amber-600 border-amber-600">
+                Unsaved changes
+              </Badge>
+            )}
+            <Badge variant="secondary">
+              {visibleCount} of {DEFAULT_SECTION_ORDER.length} visible
+            </Badge>
+          </div>
         </div>
 
         {/* Section Categories */}
