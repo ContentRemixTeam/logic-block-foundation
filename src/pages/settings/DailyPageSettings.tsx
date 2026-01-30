@@ -31,7 +31,7 @@ import {
   Focus,
   Info
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useDailyPageLayout } from '@/hooks/useDailyPageLayout';
 import { 
@@ -109,6 +109,7 @@ const getSectionsByCategory = (): Record<SectionZone, SectionId[]> => {
 };
 
 export default function DailyPageSettings() {
+  const navigate = useNavigate();
   const { layout, isLoading, updateLayout, resetToDefault, isUpdating, isResetting } = useDailyPageLayout();
   const [localHiddenSections, setLocalHiddenSections] = useState<Set<SectionId>>(new Set());
   const [hasChanges, setHasChanges] = useState(false);
@@ -187,11 +188,9 @@ export default function DailyPageSettings() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/settings">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
             <div>
               <h1 className="text-2xl font-bold flex items-center gap-2">
                 <Settings className="h-6 w-6" />
