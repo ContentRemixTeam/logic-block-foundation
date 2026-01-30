@@ -160,6 +160,24 @@ export function useDailyPageLayout() {
     return Array.from(currentHidden);
   };
 
+  // Helper to check if a section is visible
+  const isSectionVisible = (sectionId: SectionId): boolean => {
+    if (!layout) return true; // Default to visible while loading
+    return !layout.hidden_sections.includes(sectionId);
+  };
+
+  // Helper to get ordered sections (only visible ones)
+  const getSectionOrder = (): SectionId[] => {
+    if (!layout) return DEFAULT_SECTION_ORDER;
+    return layout.section_order.filter(id => !layout.hidden_sections.includes(id));
+  };
+
+  // Helper to get all sections in order (including hidden)
+  const getAllSectionsInOrder = (): SectionId[] => {
+    if (!layout) return DEFAULT_SECTION_ORDER;
+    return layout.section_order;
+  };
+
   return {
     layout,
     isLoading,
@@ -169,5 +187,9 @@ export function useDailyPageLayout() {
     isUpdating: updateLayoutMutation.isPending,
     isResetting: resetToDefaultMutation.isPending,
     toggleSection,
+    isSectionVisible,
+    getSectionOrder,
+    getAllSectionsInOrder,
+    refetch: queryClient.invalidateQueries.bind(queryClient, { queryKey: [LAYOUT_QUERY_KEY] }),
   };
 }
