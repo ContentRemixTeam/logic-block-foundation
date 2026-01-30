@@ -99,13 +99,13 @@ export function useDailyPageLayout() {
         updated_at: new Date().toISOString(),
       };
 
-      if (updates.section_order) {
+      if (updates.section_order !== undefined) {
         dbUpdates.section_order = updates.section_order as unknown as Json;
       }
-      if (updates.hidden_sections) {
+      if (updates.hidden_sections !== undefined) {
         dbUpdates.hidden_sections = updates.hidden_sections as unknown as Json;
       }
-      if (updates.custom_questions) {
+      if (updates.custom_questions !== undefined) {
         dbUpdates.custom_questions = updates.custom_questions as unknown as Json;
       }
 
