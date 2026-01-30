@@ -29,7 +29,8 @@ import {
   CheckCircle,
   Moon,
   Focus,
-  Info
+  Info,
+  GripVertical
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -54,6 +55,23 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { SortableSectionItem } from '@/components/settings/SortableSectionItem';
 
 // Icon mapping
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -112,13 +130,33 @@ export default function DailyPageSettings() {
   const navigate = useNavigate();
   const { layout, isLoading, updateLayout, resetToDefault, isUpdating, isResetting } = useDailyPageLayout();
   const [localHiddenSections, setLocalHiddenSections] = useState<Set<SectionId>>(new Set());
+  const [localSectionOrder, setLocalSectionOrder] = useState<SectionId[]>(DEFAULT_SECTION_ORDER);
   const [hasChanges, setHasChanges] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+
+  // DnD sensors with touch support
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // Sync local state when layout loads
   useEffect(() => {
     if (layout) {
       setLocalHiddenSections(new Set(layout.hidden_sections));
+      setLocalSectionOrder(layout.section_order);
       setHasChanges(false);
     }
   }, [layout]);
@@ -145,7 +183,10 @@ export default function DailyPageSettings() {
 
   const handleSave = async () => {
     try {
-      await updateLayout({ hidden_sections: Array.from(localHiddenSections) });
+      await updateLayout({ 
+        hidden_sections: Array.from(localHiddenSections),
+        section_order: localSectionOrder,
+      });
       setHasChanges(false);
       toast.success('Daily page layout saved');
     } catch (error) {
@@ -157,14 +198,48 @@ export default function DailyPageSettings() {
     try {
       await resetToDefault();
       setLocalHiddenSections(new Set());
+      setLocalSectionOrder(DEFAULT_SECTION_ORDER);
       setHasChanges(false);
     } catch (error) {
       // Error already handled in hook
     }
   };
 
+  // Handle drag end for reordering
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = localSectionOrder.indexOf(active.id as SectionId);
+      const newIndex = localSectionOrder.indexOf(over.id as SectionId);
+
+      const newOrder = arrayMove(localSectionOrder, oldIndex, newIndex);
+      setLocalSectionOrder(newOrder);
+      setHasChanges(true);
+    }
+  };
+
+  // Handle arrow button reordering
+  const handleMoveSection = (sectionId: SectionId, direction: 'up' | 'down') => {
+    const visibleSections = localSectionOrder.filter(id => !localHiddenSections.has(id));
+    const currentIndex = visibleSections.indexOf(sectionId);
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+
+    if (newIndex < 0 || newIndex >= visibleSections.length) return;
+
+    // Find the actual indices in the full order
+    const fullOldIndex = localSectionOrder.indexOf(sectionId);
+    const targetSectionId = visibleSections[newIndex];
+    const fullNewIndex = localSectionOrder.indexOf(targetSectionId);
+
+    const newOrder = arrayMove(localSectionOrder, fullOldIndex, fullNewIndex);
+    setLocalSectionOrder(newOrder);
+    setHasChanges(true);
+  };
+
   const sectionsByCategory = getSectionsByCategory();
   const visibleCount = DEFAULT_SECTION_ORDER.length - localHiddenSections.size;
+  const visibleSections = localSectionOrder.filter(id => !localHiddenSections.has(id));
 
   if (isLoading) {
     return (
@@ -314,7 +389,52 @@ export default function DailyPageSettings() {
           })}
         </div>
 
-        {/* Actions */}
+        {/* Section Reordering */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2">
+              <GripVertical className="h-5 w-5" />
+              Reorder Sections
+            </CardTitle>
+            <CardDescription>
+              Drag to change the order sections appear on your daily page, or use the arrow buttons
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {visibleSections.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No visible sections to reorder. Enable some sections above first.
+              </p>
+            ) : (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={visibleSections}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-2">
+                    {visibleSections.map((sectionId, index) => (
+                      <SortableSectionItem
+                        key={sectionId}
+                        id={sectionId}
+                        index={index}
+                        totalItems={visibleSections.length}
+                        onMoveUp={() => handleMoveSection(sectionId, 'up')}
+                        onMoveDown={() => handleMoveSection(sectionId, 'down')}
+                        zoneConfig={CATEGORY_CONFIG[SECTION_DEFINITIONS[sectionId].zone]}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            )}
+          </CardContent>
+        </Card>
+
+
         <div className="flex items-center justify-between pt-4 border-t">
           <div className="flex items-center gap-2">
             <Button 
@@ -341,7 +461,7 @@ export default function DailyPageSettings() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-2 mt-4">
-                  {DEFAULT_SECTION_ORDER.filter(id => !localHiddenSections.has(id)).map(sectionId => {
+                  {localSectionOrder.filter(id => !localHiddenSections.has(id)).map((sectionId, index) => {
                     const section = SECTION_DEFINITIONS[sectionId];
                     const Icon = ICON_MAP[section.icon] || CheckSquare;
                     const zoneConfig = CATEGORY_CONFIG[section.zone];
