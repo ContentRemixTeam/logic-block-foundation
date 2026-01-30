@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, ComponentType } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,58 +23,84 @@ import Auth from "./pages/Auth";
 import LoginHelp from "./pages/LoginHelp";
 import NotFound from "./pages/NotFound";
 
-// Lazy load all other pages for code splitting
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Onboarding = lazy(() => import('./pages/Onboarding'));
-const Planning = lazy(() => import('./pages/Planning'));
-const Reviews = lazy(() => import('./pages/Reviews'));
-const Mindset = lazy(() => import('./pages/Mindset'));
-const CycleSetup = lazy(() => import('./pages/CycleSetup'));
-const CycleManagement = lazy(() => import('./pages/CycleManagement'));
-const CycleView = lazy(() => import('./pages/CycleView'));
-const WeeklyPlan = lazy(() => import('./pages/WeeklyPlan'));
-const WeeklyReview = lazy(() => import('./pages/WeeklyReview'));
-const WeeklyReflection = lazy(() => import('./pages/WeeklyReflection'));
-const MonthlyReview = lazy(() => import('./pages/MonthlyReview'));
-const CycleSummary = lazy(() => import('./pages/CycleSummary'));
-const DailyPlan = lazy(() => import('./pages/DailyPlan'));
-const DailyReview = lazy(() => import('./pages/DailyReview'));
-const Habits = lazy(() => import('./pages/Habits'));
-const Ideas = lazy(() => import('./pages/Ideas'));
-const UsefulThoughts = lazy(() => import('./pages/UsefulThoughts'));
-const BeliefBuilder = lazy(() => import('./pages/BeliefBuilder'));
-const IdentityAnchors = lazy(() => import('./pages/IdentityAnchors'));
-const SelfCoaching = lazy(() => import('./pages/SelfCoaching'));
-const Settings = lazy(() => import('./pages/Settings'));
-const Progress = lazy(() => import('./pages/Progress'));
-const Tasks = lazy(() => import('./pages/Tasks'));
-const Notes = lazy(() => import('./pages/Notes'));
-const SOPs = lazy(() => import('./pages/SOPs'));
-const Wins = lazy(() => import('./pages/Wins'));
-const Support = lazy(() => import('./pages/Support'));
-const CaptureLaunchPage = lazy(() => import('./pages/CaptureLaunchPage'));
-const InstallApp = lazy(() => import('./pages/InstallApp'));
-const Projects = lazy(() => import('./pages/Projects'));
-const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
-const MastermindHub = lazy(() => import('./pages/MastermindHub'));
-const MastermindRosterImport = lazy(() => import('./pages/MastermindRosterImport'));
-const WorkshopPlanner = lazy(() => import('./pages/WorkshopPlanner'));
-const TrialSignup = lazy(() => import('./pages/TrialSignup'));
-const Admin = lazy(() => import('./pages/Admin'));
-const CoachingLog = lazy(() => import('./pages/CoachingLog'));
-const ContentVault = lazy(() => import('./pages/ContentVault'));
-const MemberSignup = lazy(() => import('./pages/MemberSignup'));
-const Trash = lazy(() => import('./pages/Trash'));
-const Arcade = lazy(() => import('./pages/Arcade'));
-const Focus = lazy(() => import('./pages/Focus'));
-const Courses = lazy(() => import('./pages/Courses'));
-const CourseDetail = lazy(() => import('./pages/CourseDetail'));
-const Wizards = lazy(() => import('./pages/Wizards'));
-const LaunchWizardPage = lazy(() => import('./pages/LaunchWizardPage'));
-const HabitWizardPage = lazy(() => import('./pages/HabitWizardPage'));
-const PlannerSettings = lazy(() => import('./pages/PlannerSettings'));
-const FinancialTracker = lazy(() => import('./pages/FinancialTracker'));
-const LaunchDebrief = lazy(() => import('./pages/LaunchDebrief'));
+// Retry function for lazy imports that handles stale chunk errors
+function lazyWithRetry<T extends ComponentType<any>>(
+  componentImport: () => Promise<{ default: T }>
+) {
+  return lazy(async () => {
+    try {
+      return await componentImport();
+    } catch (error: any) {
+      // Check if it's a chunk loading error
+      if (
+        error?.message?.includes('Failed to fetch dynamically imported module') ||
+        error?.message?.includes('Importing a module script failed') ||
+        error?.message?.includes('Load failed')
+      ) {
+        // Clear cache and reload once
+        const hasReloaded = sessionStorage.getItem('chunk_reload_attempted');
+        if (!hasReloaded) {
+          sessionStorage.setItem('chunk_reload_attempted', 'true');
+          window.location.reload();
+        }
+      }
+      throw error;
+    }
+  });
+}
+
+// Lazy load all other pages for code splitting with retry logic
+const Dashboard = lazyWithRetry(() => import('./pages/Dashboard'));
+const Onboarding = lazyWithRetry(() => import('./pages/Onboarding'));
+const Planning = lazyWithRetry(() => import('./pages/Planning'));
+const Reviews = lazyWithRetry(() => import('./pages/Reviews'));
+const Mindset = lazyWithRetry(() => import('./pages/Mindset'));
+const CycleSetup = lazyWithRetry(() => import('./pages/CycleSetup'));
+const CycleManagement = lazyWithRetry(() => import('./pages/CycleManagement'));
+const CycleView = lazyWithRetry(() => import('./pages/CycleView'));
+const WeeklyPlan = lazyWithRetry(() => import('./pages/WeeklyPlan'));
+const WeeklyReview = lazyWithRetry(() => import('./pages/WeeklyReview'));
+const WeeklyReflection = lazyWithRetry(() => import('./pages/WeeklyReflection'));
+const MonthlyReview = lazyWithRetry(() => import('./pages/MonthlyReview'));
+const CycleSummary = lazyWithRetry(() => import('./pages/CycleSummary'));
+const DailyPlan = lazyWithRetry(() => import('./pages/DailyPlan'));
+const DailyReview = lazyWithRetry(() => import('./pages/DailyReview'));
+const Habits = lazyWithRetry(() => import('./pages/Habits'));
+const Ideas = lazyWithRetry(() => import('./pages/Ideas'));
+const UsefulThoughts = lazyWithRetry(() => import('./pages/UsefulThoughts'));
+const BeliefBuilder = lazyWithRetry(() => import('./pages/BeliefBuilder'));
+const IdentityAnchors = lazyWithRetry(() => import('./pages/IdentityAnchors'));
+const SelfCoaching = lazyWithRetry(() => import('./pages/SelfCoaching'));
+const Settings = lazyWithRetry(() => import('./pages/Settings'));
+const Progress = lazyWithRetry(() => import('./pages/Progress'));
+const Tasks = lazyWithRetry(() => import('./pages/Tasks'));
+const Notes = lazyWithRetry(() => import('./pages/Notes'));
+const SOPs = lazyWithRetry(() => import('./pages/SOPs'));
+const Wins = lazyWithRetry(() => import('./pages/Wins'));
+const Support = lazyWithRetry(() => import('./pages/Support'));
+const CaptureLaunchPage = lazyWithRetry(() => import('./pages/CaptureLaunchPage'));
+const InstallApp = lazyWithRetry(() => import('./pages/InstallApp'));
+const Projects = lazyWithRetry(() => import('./pages/Projects'));
+const ProjectDetail = lazyWithRetry(() => import('./pages/ProjectDetail'));
+const MastermindHub = lazyWithRetry(() => import('./pages/MastermindHub'));
+const MastermindRosterImport = lazyWithRetry(() => import('./pages/MastermindRosterImport'));
+const WorkshopPlanner = lazyWithRetry(() => import('./pages/WorkshopPlanner'));
+const TrialSignup = lazyWithRetry(() => import('./pages/TrialSignup'));
+const Admin = lazyWithRetry(() => import('./pages/Admin'));
+const CoachingLog = lazyWithRetry(() => import('./pages/CoachingLog'));
+const ContentVault = lazyWithRetry(() => import('./pages/ContentVault'));
+const MemberSignup = lazyWithRetry(() => import('./pages/MemberSignup'));
+const Trash = lazyWithRetry(() => import('./pages/Trash'));
+const Arcade = lazyWithRetry(() => import('./pages/Arcade'));
+const Focus = lazyWithRetry(() => import('./pages/Focus'));
+const Courses = lazyWithRetry(() => import('./pages/Courses'));
+const CourseDetail = lazyWithRetry(() => import('./pages/CourseDetail'));
+const Wizards = lazyWithRetry(() => import('./pages/Wizards'));
+const LaunchWizardPage = lazyWithRetry(() => import('./pages/LaunchWizardPage'));
+const HabitWizardPage = lazyWithRetry(() => import('./pages/HabitWizardPage'));
+const PlannerSettings = lazyWithRetry(() => import('./pages/PlannerSettings'));
+const FinancialTracker = lazyWithRetry(() => import('./pages/FinancialTracker'));
+const LaunchDebrief = lazyWithRetry(() => import('./pages/LaunchDebrief'));
 // Configure QueryClient with performance-focused defaults
 export const queryClient = new QueryClient({
   defaultOptions: {
