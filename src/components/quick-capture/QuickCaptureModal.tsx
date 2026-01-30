@@ -737,7 +737,7 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
       {user && (
         <>
           {/* Type selector - segmented control with scroll for overflow */}
-          <div className="inline-flex rounded-lg border bg-muted p-1 gap-1 overflow-x-auto">
+          <div className="flex flex-wrap rounded-lg border bg-muted p-1 gap-1 w-full">
             <button
               type="button"
               onClick={() => toggleCaptureType('task', true)}
@@ -1604,7 +1604,7 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
           {desktopContent}
         </DialogContent>
       </Dialog>
