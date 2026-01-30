@@ -38,7 +38,7 @@ import { PostingSlotCard } from '@/components/daily-plan/PostingSlotCard';
 import { QuickLogCard } from '@/components/content';
 import { NurtureCheckinCard } from '@/components/nurture';
 import { HabitTrackerCard } from '@/components/habits';
-import { ArcadeIntroCard } from '@/components/arcade';
+// ArcadeIntroCard removed - moved to onboarding
 import { CalendarReconnectBanner } from '@/components/google-calendar/CalendarReconnectBanner';
 import { CycleProgressBanner } from '@/components/cycle/CycleProgressBanner';
 import {
@@ -893,6 +893,7 @@ export default function DailyPlan() {
   return (
     <Layout>
       <div className="mx-auto max-w-3xl space-y-8">
+        {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold">Daily Plan</h1>
@@ -921,13 +922,17 @@ export default function DailyPlan() {
           </div>
         </div>
 
-        {/* 90-Day Cycle Progress */}
+        {/* ============================================ */}
+        {/* BANNERS ZONE (always visible at top)        */}
+        {/* ============================================ */}
+
+        {/* 1. Cycle Progress Banner */}
         <CycleProgressBanner compact />
 
-        {/* Google Calendar Reconnection Banner */}
+        {/* 2. Calendar Reconnect Banner */}
         <CalendarReconnectBanner />
 
-        {/* Reconnection Message for Returning Users */}
+        {/* 3. GAP Reconnection Message (conditional) */}
         {gapStatus?.shouldShowAlert && activeCycleData && (
           <Card className={`border-2 ${
             gapStatus.severity === 'critical' ? 'border-destructive bg-destructive/5' :
@@ -970,7 +975,6 @@ export default function DailyPlan() {
                 <Button
                   onClick={() => {
                     setGapStatus(null);
-                    // Scroll to ONE Thing section
                     document.querySelector('[data-section="one-thing"]')?.scrollIntoView({ behavior: 'smooth' });
                   }}
                   variant="default"
@@ -997,9 +1001,9 @@ export default function DailyPlan() {
           </Card>
         )}
 
-        {/* Weekly Focus Launch - First Day of Week Only */}
+        {/* 4. Weekly Focus Launch (conditional - first day of week) */}
         {isFirstDayOfWeek && currentWeeklyPlan && currentWeeklyPlan.top_3_priorities.length > 0 && (
-          <Card className="mb-6 border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
+          <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Rocket className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -1063,191 +1067,60 @@ export default function DailyPlan() {
           </Card>
         )}
 
-        {/* Planning Quick Links */}
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="text-muted-foreground text-xs">Planning:</span>
-          <Link to="/daily-plan">
-            <Badge variant="secondary" className="cursor-pointer">
-              <Calendar className="h-3 w-3 mr-1" />
-              Daily
-            </Badge>
-          </Link>
-          <Link to="/weekly-plan">
-            <Badge variant="outline" className="cursor-pointer hover:bg-muted">
-              <Calendar className="h-3 w-3 mr-1" />
-              Weekly
-            </Badge>
-          </Link>
-          <Link to="/monthly-review">
-            <Badge variant="outline" className="cursor-pointer hover:bg-muted">
-              <CalendarRange className="h-3 w-3 mr-1" />
-              Monthly
-            </Badge>
-          </Link>
-          <Link to="/cycle-summary">
-            <Badge variant="outline" className="cursor-pointer hover:bg-muted">
-              <Target className="h-3 w-3 mr-1" />
-              90-Day
-            </Badge>
-          </Link>
-        </div>
-
-        {/* Save Status Banner for offline/error states */}
+        {/* 5. Save Status Banner for offline/error states */}
         <SaveStatusBanner status={saveStatus} onRetry={() => saveNow(dailyPlanData)} />
 
-        {/* 90-Day Cycle Snapshot */}
-        {cycleData && (
-          <CycleSnapshotCard />
-        )}
-
-            {/* Goal Rewrite Prompt */}
-            {cycleData && (
-              <GoalRewritePrompt
-                context="daily"
-                currentRewrite={goalRewrite}
-                previousRewrite={previousGoalRewrite}
-                cycleGoal={cycleData?.goal || ''}
-                onSave={(text) => {
-                  setGoalRewrite(text);
-                  toast({ title: 'Goal saved!' });
-                }}
-                saving={savingGoalRewrite}
-              />
-            )}
-
-            {/* Monthly Focus Reminder */}
-            {monthlyFocus && (
-              <Card className="border-accent/20 bg-accent/5">
-                <CardContent className="py-3 flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-accent" />
-                  <span className="text-sm font-medium">
-                    📅 This Month: <span className="text-accent font-bold">{monthlyFocus}</span>
-                  </span>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Posting Slot Card - shows if today is a posting day */}
-            <PostingSlotCard />
-
-            {/* Nurture Check-in Card - shows if there's a pending checkin */}
-            <NurtureCheckinCard />
-
-            {/* Nurture Log Card */}
-            <QuickLogCard />
-
-            {/* Info Cards Row */}
-            <InfoCards />
-
-            {/* Inline Calendar Agenda with Google Calendar */}
-            <InlineCalendarAgenda
-              officeHoursStart={cycleData?.office_hours_start ? parseInt(cycleData.office_hours_start.split(':')[0], 10) : 9}
-              officeHoursEnd={cycleData?.office_hours_end ? parseInt(cycleData.office_hours_end.split(':')[0], 10) : 17}
-              onTaskUpdate={loadDailyPlan}
-            />
-
-            {/* Focus Area Reminder */}
-            {focusArea && (
-              <Card className="border-primary/20 bg-primary/5">
-                <CardContent className="py-3 flex items-center gap-2">
-                  <Target className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium">🎯 This quarter: <span className="text-primary font-bold">{focusArea}</span></span>
-                </CardContent>
-              </Card>
-            )}
-
-        {/* Weekly Priorities Display - Prominent at top */}
-        {weeklyPriorities.length > 0 && (
-          <Card className="border-accent/30 bg-gradient-to-r from-accent/10 to-primary/5">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <TrendingUp className="h-5 w-5 text-accent" />
-                📅 This Week's 3 Priorities
-              </CardTitle>
-              <CardDescription>
-                Your focus areas for the week - align your daily tasks to these
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {weeklyPriorities.map((priority, idx) => (
-                  <div 
-                    key={idx} 
-                    className={`flex items-start gap-3 p-3 rounded-lg transition-colors ${
-                      selectedPriorities.includes(priority) 
-                        ? 'bg-accent/20 border border-accent/40' 
-                        : 'bg-muted/30 hover:bg-muted/50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-center h-6 w-6 rounded-full bg-accent/20 text-accent font-bold text-sm shrink-0">
-                      {idx + 1}
-                    </div>
-                    <span className="text-sm font-medium flex-1">{priority}</span>
-                    <Checkbox
-                      checked={selectedPriorities.includes(priority)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedPriorities([...selectedPriorities, priority]);
-                        } else {
-                          setSelectedPriorities(selectedPriorities.filter((p) => p !== priority));
-                        }
-                      }}
-                      className="shrink-0"
-                    />
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground mt-3">
-                ✓ Check the priorities you're working on today
-              </p>
-            </CardContent>
-          </Card>
-        )}
+        {/* ============================================ */}
+        {/* MORNING ZONE (High Energy)                  */}
+        {/* ============================================ */}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Arcade Intro Card - Shows for new users who haven't engaged */}
-          <ArcadeIntroCard />
+          {/* 6. Habits Tracker Card */}
+          <HabitTrackerCard view="daily" />
 
-          {/* The ONE Thing */}
-          <Card data-section="one-thing" className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Diamond className="h-5 w-5 text-primary" />
-                Your ONE Thing
-              </CardTitle>
-              <CardDescription>
-                What's the ONE thing that, if you do it today, everything else will be easier or unnecessary?
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                value={oneThing}
-                onChange={(e) => setOneThing(e.target.value)}
-                placeholder="Your single most important priority for today..."
-                maxLength={200}
-                className="min-h-[100px] resize-none"
-              />
-              <div className="flex justify-between items-center mt-2">
-                <span className="text-xs text-muted-foreground">
-                  {oneThing.length}/200 characters
-                </span>
-                {saveStatus === 'saved' && (
-                  <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
-                    <Check className="h-3 w-3" />
-                    Auto-saved
-                  </span>
+          {/* 7. Identity Anchor (if exists) */}
+          {identityAnchor && (
+            <Card className="border-primary/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-primary" />
+                  Today's Identity Anchor
+                </CardTitle>
+                <CardDescription>
+                  Remember who you are and what you stand for
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-lg font-semibold mb-4">{identityAnchor.identity_statement}</p>
+                {(normalizeArray(identityAnchor.supporting_habits).length > 0 || normalizeArray(identityAnchor.supporting_actions).length > 0) && (
+                  <div className="grid md:grid-cols-2 gap-4 text-sm text-muted-foreground">
+                    {normalizeArray(identityAnchor.supporting_habits).length > 0 && (
+                      <div>
+                        <p className="font-semibold mb-1">Key Habits:</p>
+                        <ul className="list-disc list-inside space-y-1">
+                          {normalizeArray(identityAnchor.supporting_habits).slice(0, 3).map((habit: string, idx: number) => (
+                            <li key={idx}>{habit}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {normalizeArray(identityAnchor.supporting_actions).length > 0 && (
+                      <div>
+                        <p className="font-semibold mb-1">Key Actions:</p>
+                        <ul className="list-disc list-inside space-y-1">
+                          {normalizeArray(identityAnchor.supporting_actions).slice(0, 3).map((action: string, idx: number) => (
+                            <li key={idx}>{action}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 )}
-                {saveStatus === 'saving' && (
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Saving...
-                  </span>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Brain Dump & Scratch Pad */}
+          {/* 8. Brain Dump & Scratch Pad */}
           <Card className="bg-gradient-to-br from-muted/30 to-muted/10 border-dashed">
             <CardHeader>
               <div className="flex flex-col gap-1">
@@ -1348,7 +1221,46 @@ Closed the big deal! #win"
             </CardContent>
           </Card>
 
-          {/* Top 3 Priorities - Unified with Tasks */}
+          {/* 9. ONE Thing */}
+          <Card data-section="one-thing">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Diamond className="h-5 w-5 text-primary" />
+                Your ONE Thing
+              </CardTitle>
+              <CardDescription>
+                What's the ONE thing that, if you do it today, everything else will be easier or unnecessary?
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={oneThing}
+                onChange={(e) => setOneThing(e.target.value)}
+                placeholder="Your single most important priority for today..."
+                maxLength={200}
+                className="min-h-[100px] resize-none"
+              />
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-xs text-muted-foreground">
+                  {oneThing.length}/200 characters
+                </span>
+                {saveStatus === 'saved' && (
+                  <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                    <Check className="h-3 w-3" />
+                    Auto-saved
+                  </span>
+                )}
+                {saveStatus === 'saving' && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Saving...
+                  </span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 10. Top 3 Priorities */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -1410,49 +1322,7 @@ Closed the big deal! #win"
             </CardContent>
           </Card>
 
-
-          {/* Completed Today */}
-          {(() => {
-            const completedTop3 = top3Tasks.filter(t => t.is_completed);
-            const completedOther = otherTasks.filter(t => t.is_completed);
-            const totalCompleted = completedTop3.length + completedOther.length;
-            
-            if (totalCompleted === 0) return null;
-            
-            return (
-              <Card className="border-primary/20 bg-primary/5">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base text-primary">
-                    <CheckCircle2 className="h-4 w-4" />
-                    ✅ Completed Today ({totalCompleted})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {completedTop3.map((task) => (
-                    <div key={task.task_id} className="flex items-center gap-3">
-                      <Checkbox
-                        checked={true}
-                        onCheckedChange={() => toggleTop3Task(task.task_id, true)}
-                      />
-                      <span className="text-sm line-through text-muted-foreground">{task.task_text}</span>
-                      <Badge variant="outline" className="text-xs">Top 3</Badge>
-                    </div>
-                  ))}
-                  {completedOther.map((task) => (
-                    <div key={task.task_id} className="flex items-center gap-3">
-                      <Checkbox
-                        checked={true}
-                        onCheckedChange={() => toggleOtherTask(task.task_id, true)}
-                      />
-                      <span className="text-sm line-through text-muted-foreground">{task.task_text}</span>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            );
-          })()}
-
-          {/* Daily Mindset */}
+          {/* 11. Daily Mindset */}
           <Card>
             <CardHeader>
               <CardTitle>Daily Mindset</CardTitle>
@@ -1508,52 +1378,159 @@ Closed the big deal! #win"
             </CardContent>
           </Card>
 
-          {/* Identity Anchor */}
-          {identityAnchor && (
-            <Card className="border-primary/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-primary" />
-                  Today's Identity Anchor
+          {/* ============================================ */}
+          {/* CONTEXT ZONE (Alignment)                    */}
+          {/* ============================================ */}
+
+          {/* 12. Weekly Priorities Display */}
+          {weeklyPriorities.length > 0 && (
+            <Card className="border-accent/30 bg-gradient-to-r from-accent/10 to-primary/5">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <TrendingUp className="h-5 w-5 text-accent" />
+                  📅 This Week's 3 Priorities
                 </CardTitle>
                 <CardDescription>
-                  Remember who you are and what you stand for
+                  Your focus areas for the week - align your daily tasks to these
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-lg font-semibold mb-4">{identityAnchor.identity_statement}</p>
-                {(normalizeArray(identityAnchor.supporting_habits).length > 0 || normalizeArray(identityAnchor.supporting_actions).length > 0) && (
-                  <div className="grid md:grid-cols-2 gap-4 text-sm text-muted-foreground">
-                    {normalizeArray(identityAnchor.supporting_habits).length > 0 && (
-                      <div>
-                        <p className="font-semibold mb-1">Key Habits:</p>
-                        <ul className="list-disc list-inside space-y-1">
-                          {normalizeArray(identityAnchor.supporting_habits).slice(0, 3).map((habit: string, idx: number) => (
-                            <li key={idx}>{habit}</li>
-                          ))}
-                        </ul>
+                <div className="space-y-2">
+                  {weeklyPriorities.map((priority, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`flex items-start gap-3 p-3 rounded-lg transition-colors ${
+                        selectedPriorities.includes(priority) 
+                          ? 'bg-accent/20 border border-accent/40' 
+                          : 'bg-muted/30 hover:bg-muted/50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center h-6 w-6 rounded-full bg-accent/20 text-accent font-bold text-sm shrink-0">
+                        {idx + 1}
                       </div>
-                    )}
-                    {normalizeArray(identityAnchor.supporting_actions).length > 0 && (
-                      <div>
-                        <p className="font-semibold mb-1">Key Actions:</p>
-                        <ul className="list-disc list-inside space-y-1">
-                          {normalizeArray(identityAnchor.supporting_actions).slice(0, 3).map((action: string, idx: number) => (
-                            <li key={idx}>{action}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      <span className="text-sm font-medium flex-1">{priority}</span>
+                      <Checkbox
+                        checked={selectedPriorities.includes(priority)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedPriorities([...selectedPriorities, priority]);
+                          } else {
+                            setSelectedPriorities(selectedPriorities.filter((p) => p !== priority));
+                          }
+                        }}
+                        className="shrink-0"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-3">
+                  ✓ Check the priorities you're working on today
+                </p>
               </CardContent>
             </Card>
           )}
 
-          {/* Habits - Using new HabitTrackerCard */}
-          <HabitTrackerCard view="daily" />
+          {/* 13. Monthly Focus Reminder */}
+          {monthlyFocus && (
+            <Card className="border-accent/20 bg-accent/5">
+              <CardContent className="py-3 flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-accent" />
+                <span className="text-sm font-medium">
+                  📅 This Month: <span className="text-accent font-bold">{monthlyFocus}</span>
+                </span>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* End of Day Reflection - Only show after 5pm */}
+          {/* 14. Cycle Snapshot Card */}
+          {cycleData && (
+            <CycleSnapshotCard />
+          )}
+
+          {/* 15. Goal Rewrite Prompt */}
+          {cycleData && (
+            <GoalRewritePrompt
+              context="daily"
+              currentRewrite={goalRewrite}
+              previousRewrite={previousGoalRewrite}
+              cycleGoal={cycleData?.goal || ''}
+              onSave={(text) => {
+                setGoalRewrite(text);
+                toast({ title: 'Goal saved!' });
+              }}
+              saving={savingGoalRewrite}
+            />
+          )}
+
+          {/* ============================================ */}
+          {/* EXECUTION ZONE (During Day)                 */}
+          {/* ============================================ */}
+
+          {/* 16. Calendar Agenda + Tasks Pool (inline, side-by-side) */}
+          <InlineCalendarAgenda
+            officeHoursStart={cycleData?.office_hours_start ? parseInt(cycleData.office_hours_start.split(':')[0], 10) : 9}
+            officeHoursEnd={cycleData?.office_hours_end ? parseInt(cycleData.office_hours_end.split(':')[0], 10) : 17}
+            onTaskUpdate={loadDailyPlan}
+          />
+
+          {/* 17. Info Cards Row */}
+          <InfoCards />
+
+          {/* 18. Posting Slot Card */}
+          <PostingSlotCard />
+
+          {/* 19. Nurture Checkin Card */}
+          <NurtureCheckinCard />
+
+          {/* 20. Quick Log Card */}
+          <QuickLogCard />
+
+          {/* 21. Completed Today (dynamic - only shows if tasks completed) */}
+          {(() => {
+            const completedTop3 = top3Tasks.filter(t => t.is_completed);
+            const completedOther = otherTasks.filter(t => t.is_completed);
+            const totalCompleted = completedTop3.length + completedOther.length;
+            
+            if (totalCompleted === 0) return null;
+            
+            return (
+              <Card className="border-primary/20 bg-primary/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base text-primary">
+                    <CheckCircle2 className="h-4 w-4" />
+                    ✅ Completed Today ({totalCompleted})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {completedTop3.map((task) => (
+                    <div key={task.task_id} className="flex items-center gap-3">
+                      <Checkbox
+                        checked={true}
+                        onCheckedChange={() => toggleTop3Task(task.task_id, true)}
+                      />
+                      <span className="text-sm line-through text-muted-foreground">{task.task_text}</span>
+                      <Badge variant="outline" className="text-xs">Top 3</Badge>
+                    </div>
+                  ))}
+                  {completedOther.map((task) => (
+                    <div key={task.task_id} className="flex items-center gap-3">
+                      <Checkbox
+                        checked={true}
+                        onCheckedChange={() => toggleOtherTask(task.task_id, true)}
+                      />
+                      <span className="text-sm line-through text-muted-foreground">{task.task_text}</span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            );
+          })()}
+
+          {/* ============================================ */}
+          {/* EVENING ZONE (Reflection)                   */}
+          {/* ============================================ */}
+
+          {/* 22. End of Day Reflection (only after 5pm) */}
           {(() => {
             const currentHour = new Date().getHours();
             if (currentHour < 17) return null;
@@ -1583,7 +1560,7 @@ Closed the big deal! #win"
             );
           })()}
 
-          {/* Deep Mode Toggle */}
+          {/* 23. Deep Mode toggle */}
           <Button
             type="button"
             variant="outline"
@@ -1662,7 +1639,11 @@ Closed the big deal! #win"
           </Button>
         </form>
 
-        {/* Navigation Links */}
+        {/* ============================================ */}
+        {/* BOTTOM (Navigation)                         */}
+        {/* ============================================ */}
+
+        {/* 24. Quick Actions links */}
         <Card>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
