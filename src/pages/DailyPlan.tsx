@@ -4,6 +4,7 @@ import { format, subDays, startOfWeek } from 'date-fns';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { detectGap, type GapStatus } from '@/utils/gapDetection';
 import { useActiveCycle } from '@/hooks/useActiveCycle';
+import { useDailyPageLayout } from '@/hooks/useDailyPageLayout';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,9 +31,10 @@ import { CycleSnapshotCard } from '@/components/cycle/CycleSnapshotCard';
 import { GoalRewritePrompt } from '@/components/cycle/GoalRewritePrompt';
 import { InlineCalendarAgenda } from '@/components/daily-plan/InlineCalendarAgenda';
 import { Slider } from '@/components/ui/slider';
-import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, Calendar, CalendarRange, Moon, AlertCircle, Rocket, Diamond, Check } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, Calendar, CalendarRange, Moon, AlertCircle, Rocket, Diamond, Check, Settings } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PostingSlotCard } from '@/components/daily-plan/PostingSlotCard';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 import { QuickLogCard } from '@/components/content';
@@ -67,6 +69,10 @@ export default function DailyPlan() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: activeCycleData } = useActiveCycle();
+  
+  // Layout preferences
+  const { layout, isSectionVisible, isLoading: layoutLoading } = useDailyPageLayout();
+  
   const [gapStatus, setGapStatus] = useState<GapStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -863,7 +869,8 @@ export default function DailyPlan() {
   };
 
 
-  if (loading) {
+  // Show loading while both layout and daily plan data load
+  if (loading || layoutLoading) {
     return (
       <Layout>
         <LoadingState message="Loading daily plan..." />
@@ -913,6 +920,18 @@ export default function DailyPlan() {
           <div className="flex gap-2 items-center">
             {/* Save Status Indicator */}
             <SaveStatusIndicator status={saveStatus} lastSaved={lastSaved} />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" asChild>
+                  <Link to="/settings/daily-page">
+                    <Settings className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Customize this page</p>
+              </TooltipContent>
+            </Tooltip>
             <Button variant="outline" size="sm" asChild>
               <Link to="/dashboard">Dashboard</Link>
             </Button>
@@ -1076,10 +1095,12 @@ export default function DailyPlan() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* 6. Habits Tracker Card */}
-          <HabitTrackerCard view="daily" />
+          {isSectionVisible('habits_tracker') && (
+            <HabitTrackerCard view="daily" />
+          )}
 
           {/* 7. Identity Anchor (if exists) */}
-          {identityAnchor && (
+          {isSectionVisible('identity_anchor') && identityAnchor && (
             <Card className="border-primary/20">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -1121,39 +1142,40 @@ export default function DailyPlan() {
           )}
 
           {/* 8. Brain Dump & Scratch Pad */}
-          <Card className="bg-gradient-to-br from-muted/30 to-muted/10 border-dashed">
-            <CardHeader>
-              <div className="flex flex-col gap-1">
-                <CardTitle className="flex items-center gap-2">
-                  <Brain className="h-5 w-5 text-primary" />
-                  Brain Dump & Scratch Pad
-                </CardTitle>
-                <p className="text-sm font-medium text-primary">{today}</p>
-              </div>
-              <CardDescription>
-                Capture everything on your mind. Use #task, #idea, #thought, or #win to tag items.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="scratch-title" className="text-sm text-muted-foreground">
-                  Entry Title (optional)
-                </Label>
-                <Input
-                  id="scratch-title"
-                  value={scratchPadTitle}
-                  onChange={(e) => setScratchPadTitle(e.target.value)}
-                  placeholder="e.g., Planning Q1 Launch, Morning Thoughts, Weekly Wins"
-                  className="mt-1"
-                  maxLength={200}
-                />
-              </div>
-              <SmartScratchPad
-                value={scratchPadContent}
-                onChange={setScratchPadContent}
-                onBlur={() => saveNow(dailyPlanData)}
-                maxLength={10000}
-                placeholder="Brain dump here... Type # for tag suggestions
+          {isSectionVisible('brain_dump') && (
+            <Card className="bg-gradient-to-br from-muted/30 to-muted/10 border-dashed">
+              <CardHeader>
+                <div className="flex flex-col gap-1">
+                  <CardTitle className="flex items-center gap-2">
+                    <Brain className="h-5 w-5 text-primary" />
+                    Brain Dump & Scratch Pad
+                  </CardTitle>
+                  <p className="text-sm font-medium text-primary">{today}</p>
+                </div>
+                <CardDescription>
+                  Capture everything on your mind. Use #task, #idea, #thought, or #win to tag items.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="scratch-title" className="text-sm text-muted-foreground">
+                    Entry Title (optional)
+                  </Label>
+                  <Input
+                    id="scratch-title"
+                    value={scratchPadTitle}
+                    onChange={(e) => setScratchPadTitle(e.target.value)}
+                    placeholder="e.g., Planning Q1 Launch, Morning Thoughts, Weekly Wins"
+                    className="mt-1"
+                    maxLength={200}
+                  />
+                </div>
+                <SmartScratchPad
+                  value={scratchPadContent}
+                  onChange={setScratchPadContent}
+                  onBlur={() => saveNow(dailyPlanData)}
+                  maxLength={10000}
+                  placeholder="Brain dump here... Type # for tag suggestions
 
 Example:
 Record podcast #task
@@ -1161,229 +1183,236 @@ New ad funnel #task
 Maybe pivot to B2B? #idea
 Revenue grows with retention #thought
 Closed the big deal! #win"
-              />
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  onClick={handleProcessTags}
-                  disabled={processingTags || !scratchPadContent.trim()}
-                >
-                  {processingTags ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Process Tags
-                    </>
-                  )}
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      disabled={!scratchPadContent.trim()}
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Clear Pad
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Clear scratch pad?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will clear all content from your scratch pad. Make sure you have processed any tags you want to save first.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleClearPad}>Clear</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  asChild
-                >
-                  <Link to="/journal">
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    Past Entries
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 9. ONE Thing */}
-          <Card data-section="one-thing">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Diamond className="h-5 w-5 text-primary" />
-                Your ONE Thing
-              </CardTitle>
-              <CardDescription>
-                What's the ONE thing that, if you do it today, everything else will be easier or unnecessary?
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                value={oneThing}
-                onChange={(e) => setOneThing(e.target.value)}
-                placeholder="Your single most important priority for today..."
-                maxLength={200}
-                className="min-h-[100px] resize-none"
-              />
-              <div className="flex justify-between items-center mt-2">
-                <span className="text-xs text-muted-foreground">
-                  {oneThing.length}/200 characters
-                </span>
-                {saveStatus === 'saved' && (
-                  <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
-                    <Check className="h-3 w-3" />
-                    Auto-saved
-                  </span>
-                )}
-                {saveStatus === 'saving' && (
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Saving...
-                  </span>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 10. Top 3 Priorities */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5" />
-                🎯 Top 3 Priorities
-              </CardTitle>
-              <CardDescription>
-                Your most important tasks today (should support your ONE thing)
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {[1, 2, 3].map((priorityNum) => {
-                const existingTask = top3Tasks.find(t => t.priority_order === priorityNum);
-                const inputValue = newTop3Text[priorityNum - 1];
-                
-                return (
-                  <div key={priorityNum} className="flex items-center gap-3">
-                    {existingTask ? (
+                />
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={handleProcessTags}
+                    disabled={processingTags || !scratchPadContent.trim()}
+                  >
+                    {processingTags ? (
                       <>
-                        <Checkbox
-                          checked={existingTask.is_completed}
-                          onCheckedChange={() => toggleTop3Task(existingTask.task_id, existingTask.is_completed)}
-                        />
-                        <div className="flex-1">
-                          <Input
-                            value={inputValue}
-                            onChange={(e) => updateTop3(priorityNum - 1, e.target.value)}
-                            onBlur={() => saveTop3Task(priorityNum, inputValue)}
-                            placeholder={`Priority ${priorityNum}`}
-                            className={existingTask.is_completed ? 'line-through text-muted-foreground' : ''}
-                            maxLength={200}
-                          />
-                        </div>
-                        <Badge variant="outline" className="text-xs">
-                          {priorityNum === 1 ? 'HIGH' : priorityNum === 2 ? 'MED' : 'LOW'}
-                        </Badge>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
                       </>
                     ) : (
                       <>
-                        <Checkbox disabled className="opacity-30" />
-                        <div className="flex-1">
-                          <Input
-                            value={inputValue}
-                            onChange={(e) => updateTop3(priorityNum - 1, e.target.value)}
-                            onBlur={() => saveTop3Task(priorityNum, inputValue)}
-                            placeholder={`Priority ${priorityNum} - What must you accomplish?`}
-                            required={priorityNum === 1}
-                            maxLength={200}
-                          />
-                        </div>
-                        <Badge variant="outline" className="text-xs opacity-50">
-                          {priorityNum === 1 ? 'HIGH' : priorityNum === 2 ? 'MED' : 'LOW'}
-                        </Badge>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Process Tags
                       </>
                     )}
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={!scratchPadContent.trim()}
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Clear Pad
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Clear scratch pad?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will clear all content from your scratch pad. Make sure you have processed any tags you want to save first.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleClearPad}>Clear</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    asChild
+                  >
+                    <Link to="/journal">
+                      <BookOpen className="mr-2 h-4 w-4" />
+                      Past Entries
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 9. ONE Thing */}
+          {isSectionVisible('one_thing') && (
+            <Card data-section="one-thing">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Diamond className="h-5 w-5 text-primary" />
+                  Your ONE Thing
+                </CardTitle>
+                <CardDescription>
+                  What's the ONE thing that, if you do it today, everything else will be easier or unnecessary?
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={oneThing}
+                  onChange={(e) => setOneThing(e.target.value)}
+                  placeholder="Your single most important priority for today..."
+                  maxLength={200}
+                  className="min-h-[100px] resize-none"
+                />
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-xs text-muted-foreground">
+                    {oneThing.length}/200 characters
+                  </span>
+                  {saveStatus === 'saved' && (
+                    <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                      <Check className="h-3 w-3" />
+                      Auto-saved
+                    </span>
+                  )}
+                  {saveStatus === 'saving' && (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Saving...
+                    </span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 10. Top 3 Priorities */}
+          {isSectionVisible('top_3_priorities') && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  🎯 Top 3 Priorities
+                </CardTitle>
+                <CardDescription>
+                  Your most important tasks today (should support your ONE thing)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {[1, 2, 3].map((priorityNum) => {
+                  const existingTask = top3Tasks.find(t => t.priority_order === priorityNum);
+                  const inputValue = newTop3Text[priorityNum - 1];
+                  
+                  return (
+                    <div key={priorityNum} className="flex items-center gap-3">
+                      {existingTask ? (
+                        <>
+                          <Checkbox
+                            checked={existingTask.is_completed}
+                            onCheckedChange={() => toggleTop3Task(existingTask.task_id, existingTask.is_completed)}
+                          />
+                          <div className="flex-1">
+                            <Input
+                              value={inputValue}
+                              onChange={(e) => updateTop3(priorityNum - 1, e.target.value)}
+                              onBlur={() => saveTop3Task(priorityNum, inputValue)}
+                              placeholder={`Priority ${priorityNum}`}
+                              className={existingTask.is_completed ? 'line-through text-muted-foreground' : ''}
+                              maxLength={200}
+                            />
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {priorityNum === 1 ? 'HIGH' : priorityNum === 2 ? 'MED' : 'LOW'}
+                          </Badge>
+                        </>
+                      ) : (
+                        <>
+                          <Checkbox disabled className="opacity-30" />
+                          <div className="flex-1">
+                            <Input
+                              value={inputValue}
+                              onChange={(e) => updateTop3(priorityNum - 1, e.target.value)}
+                              onBlur={() => saveTop3Task(priorityNum, inputValue)}
+                              placeholder={`Priority ${priorityNum} - What must you accomplish?`}
+                              required={priorityNum === 1}
+                              maxLength={200}
+                            />
+                          </div>
+                          <Badge variant="outline" className="text-xs opacity-50">
+                            {priorityNum === 1 ? 'HIGH' : priorityNum === 2 ? 'MED' : 'LOW'}
+                          </Badge>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
 
           {/* 11. Daily Mindset */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Daily Mindset</CardTitle>
-              <CardDescription>
-                Set your intention and energy for today
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label htmlFor="thought">Today's Key Thought</Label>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setThoughtsModalOpen(true)}
-                    >
-                      <Brain className="h-4 w-4 mr-2" />
-                      Browse Thoughts
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setBeliefsModalOpen(true)}
-                    >
-                      <TrendingUp className="h-4 w-4 mr-2" />
-                      Insert Belief
-                    </Button>
+          {isSectionVisible('daily_mindset') && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Daily Mindset</CardTitle>
+                <CardDescription>
+                  Set your intention and energy for today
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label htmlFor="thought">Today's Key Thought</Label>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setThoughtsModalOpen(true)}
+                      >
+                        <Brain className="h-4 w-4 mr-2" />
+                        Browse Thoughts
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setBeliefsModalOpen(true)}
+                      >
+                        <TrendingUp className="h-4 w-4 mr-2" />
+                        Insert Belief
+                      </Button>
+                    </div>
                   </div>
+                  <Input
+                    id="thought"
+                    value={thought}
+                    onChange={(e) => setThought(e.target.value)}
+                    placeholder="What's your focus today?"
+                    maxLength={300}
+                  />
+                  <CharacterCounter current={thought.length} max={300} className="mt-1" />
                 </div>
-                <Input
-                  id="thought"
-                  value={thought}
-                  onChange={(e) => setThought(e.target.value)}
-                  placeholder="What's your focus today?"
-                  maxLength={300}
-                />
-                <CharacterCounter current={thought.length} max={300} className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="feeling">How I Want to Feel</Label>
-                <Input
-                  id="feeling"
-                  value={feeling}
-                  onChange={(e) => setFeeling(e.target.value)}
-                  placeholder="e.g., Energized, Calm, Productive"
-                  maxLength={300}
-                />
-                <CharacterCounter current={feeling.length} max={300} className="mt-1" />
-              </div>
-            </CardContent>
-          </Card>
+                <div>
+                  <Label htmlFor="feeling">How I Want to Feel</Label>
+                  <Input
+                    id="feeling"
+                    value={feeling}
+                    onChange={(e) => setFeeling(e.target.value)}
+                    placeholder="e.g., Energized, Calm, Productive"
+                    maxLength={300}
+                  />
+                  <CharacterCounter current={feeling.length} max={300} className="mt-1" />
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* ============================================ */}
           {/* CONTEXT ZONE (Alignment)                    */}
           {/* ============================================ */}
 
           {/* 12. Weekly Priorities Display */}
-          {weeklyPriorities.length > 0 && (
+          {isSectionVisible('weekly_priorities') && weeklyPriorities.length > 0 && (
             <Card className="border-accent/30 bg-gradient-to-r from-accent/10 to-primary/5">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -1431,7 +1460,7 @@ Closed the big deal! #win"
           )}
 
           {/* 13. Monthly Focus Reminder */}
-          {monthlyFocus && (
+          {isSectionVisible('monthly_focus') && monthlyFocus && (
             <Card className="border-accent/20 bg-accent/5">
               <CardContent className="py-3 flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-accent" />
@@ -1443,12 +1472,12 @@ Closed the big deal! #win"
           )}
 
           {/* 14. Cycle Snapshot Card */}
-          {cycleData && (
+          {isSectionVisible('cycle_snapshot') && cycleData && (
             <CycleSnapshotCard />
           )}
 
           {/* 15. Goal Rewrite Prompt */}
-          {cycleData && (
+          {isSectionVisible('goal_rewrite') && cycleData && (
             <GoalRewritePrompt
               context="daily"
               currentRewrite={goalRewrite}
@@ -1467,26 +1496,36 @@ Closed the big deal! #win"
           {/* ============================================ */}
 
           {/* 16. Calendar Agenda + Tasks Pool (inline, side-by-side) */}
-          <InlineCalendarAgenda
-            officeHoursStart={cycleData?.office_hours_start ? parseInt(cycleData.office_hours_start.split(':')[0], 10) : 9}
-            officeHoursEnd={cycleData?.office_hours_end ? parseInt(cycleData.office_hours_end.split(':')[0], 10) : 17}
-            onTaskUpdate={loadDailyPlan}
-          />
+          {isSectionVisible('calendar_agenda') && (
+            <InlineCalendarAgenda
+              officeHoursStart={cycleData?.office_hours_start ? parseInt(cycleData.office_hours_start.split(':')[0], 10) : 9}
+              officeHoursEnd={cycleData?.office_hours_end ? parseInt(cycleData.office_hours_end.split(':')[0], 10) : 17}
+              onTaskUpdate={loadDailyPlan}
+            />
+          )}
 
           {/* 17. Info Cards Row */}
-          <InfoCards />
+          {isSectionVisible('info_cards') && (
+            <InfoCards />
+          )}
 
           {/* 18. Posting Slot Card */}
-          <PostingSlotCard />
+          {isSectionVisible('posting_slot') && (
+            <PostingSlotCard />
+          )}
 
           {/* 19. Nurture Checkin Card */}
-          <NurtureCheckinCard />
+          {isSectionVisible('nurture_checkin') && (
+            <NurtureCheckinCard />
+          )}
 
           {/* 20. Quick Log Card */}
-          <QuickLogCard />
+          {isSectionVisible('quick_log') && (
+            <QuickLogCard />
+          )}
 
           {/* 21. Completed Today (dynamic - only shows if tasks completed) */}
-          {(() => {
+          {isSectionVisible('completed_today') && (() => {
             const completedTop3 = top3Tasks.filter(t => t.is_completed);
             const completedOther = otherTasks.filter(t => t.is_completed);
             const totalCompleted = completedTop3.length + completedOther.length;
@@ -1531,7 +1570,7 @@ Closed the big deal! #win"
           {/* ============================================ */}
 
           {/* 22. End of Day Reflection (only after 5pm) */}
-          {(() => {
+          {isSectionVisible('end_of_day_reflection') && (() => {
             const currentHour = new Date().getHours();
             if (currentHour < 17) return null;
             
@@ -1561,70 +1600,74 @@ Closed the big deal! #win"
           })()}
 
           {/* 23. Deep Mode toggle */}
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={() => setDeepMode(!deepMode)}
-          >
-            {deepMode ? (
-              <>
-                <ChevronUp className="mr-2 h-4 w-4" />
-                Back to Quick Mode
-              </>
-            ) : (
-              <>
-                <ChevronDown className="mr-2 h-4 w-4" />
-                Switch to Deep Mode
-              </>
-            )}
-          </Button>
+          {isSectionVisible('deep_mode') && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => setDeepMode(!deepMode)}
+              >
+                {deepMode ? (
+                  <>
+                    <ChevronUp className="mr-2 h-4 w-4" />
+                    Back to Quick Mode
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="mr-2 h-4 w-4" />
+                    Switch to Deep Mode
+                  </>
+                )}
+              </Button>
 
-          {/* Deep Mode Content */}
-          {deepMode && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Deep Mode</CardTitle>
-                <CardDescription>
-                  Dig deeper into your planning and reflection
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="win">What would make today a win?</Label>
-                  <Textarea
-                    id="win"
-                    value={deepModeNotes.win}
-                    onChange={(e) => setDeepModeNotes({ ...deepModeNotes, win: e.target.value })}
-                    placeholder="Define success for today..."
-                    rows={3}
-                    maxLength={500}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="obstacles">Obstacles & Solutions</Label>
-                  <Textarea
-                    id="obstacles"
-                    value={deepModeNotes.obstacles}
-                    onChange={(e) => setDeepModeNotes({ ...deepModeNotes, obstacles: e.target.value })}
-                    placeholder="What might get in the way? How will you handle it?"
-                    rows={4}
-                    maxLength={500}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="show_up">How do I want to show up?</Label>
-                  <Textarea
-                    id="show_up"
-                    value={deepModeNotes.show_up}
-                    onChange={(e) => setDeepModeNotes({ ...deepModeNotes, show_up: e.target.value })}
-                    placeholder="What energy and presence do you want to bring?"
-                    rows={3}
-                    maxLength={500}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+              {/* Deep Mode Content */}
+              {deepMode && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Deep Mode</CardTitle>
+                    <CardDescription>
+                      Dig deeper into your planning and reflection
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label htmlFor="win">What would make today a win?</Label>
+                      <Textarea
+                        id="win"
+                        value={deepModeNotes.win}
+                        onChange={(e) => setDeepModeNotes({ ...deepModeNotes, win: e.target.value })}
+                        placeholder="Define success for today..."
+                        rows={3}
+                        maxLength={500}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="obstacles">Obstacles & Solutions</Label>
+                      <Textarea
+                        id="obstacles"
+                        value={deepModeNotes.obstacles}
+                        onChange={(e) => setDeepModeNotes({ ...deepModeNotes, obstacles: e.target.value })}
+                        placeholder="What might get in the way? How will you handle it?"
+                        rows={4}
+                        maxLength={500}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="show_up">How do I want to show up?</Label>
+                      <Textarea
+                        id="show_up"
+                        value={deepModeNotes.show_up}
+                        onChange={(e) => setDeepModeNotes({ ...deepModeNotes, show_up: e.target.value })}
+                        placeholder="What energy and presence do you want to bring?"
+                        rows={3}
+                        maxLength={500}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
 
           <Button type="submit" size="lg" className="w-full" disabled={manualSaving || saveStatus === 'saving'}>
