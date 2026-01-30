@@ -99,6 +99,7 @@ const Wizards = lazyWithRetry(() => import('./pages/Wizards'));
 const LaunchWizardPage = lazyWithRetry(() => import('./pages/LaunchWizardPage'));
 const HabitWizardPage = lazyWithRetry(() => import('./pages/HabitWizardPage'));
 const PlannerSettings = lazyWithRetry(() => import('./pages/PlannerSettings'));
+const DailyPageSettings = lazyWithRetry(() => import('./pages/settings/DailyPageSettings'));
 const FinancialTracker = lazyWithRetry(() => import('./pages/FinancialTracker'));
 const LaunchDebrief = lazyWithRetry(() => import('./pages/LaunchDebrief'));
 // Configure QueryClient with performance-focused defaults
@@ -204,6 +205,7 @@ const App = () => (
                       <Route path="/wizards/launch" element={<ProtectedRoute><PageSuspense><LaunchWizardPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/wizards/habits" element={<ProtectedRoute><PageSuspense><HabitWizardPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/settings/planner" element={<ProtectedRoute><PageSuspense><PlannerSettings /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/settings/daily-page" element={<ProtectedRoute><PageSuspense><DailyPageSettings /></PageSuspense></ProtectedRoute>} />
                       <Route path="/finances" element={<ProtectedRoute><PageSuspense><FinancialTracker /></PageSuspense></ProtectedRoute>} />
                       <Route path="/launch-debrief/:launchId" element={<ProtectedRoute><PageSuspense><LaunchDebrief /></PageSuspense></ProtectedRoute>} />
                       
