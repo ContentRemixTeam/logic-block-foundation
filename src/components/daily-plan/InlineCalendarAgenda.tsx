@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -28,6 +28,8 @@ import { OfficeHoursEditorModal } from '@/components/office-hours/OfficeHoursEdi
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { CalendarEventBlock, CalendarEvent } from '@/components/tasks/views/CalendarEventBlock';
 import { CurrentTimeIndicator } from '@/components/tasks/views/CurrentTimeIndicator';
+import { ScheduleTimeModal } from '@/components/mobile/ScheduleTimeModal';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { format, parseISO, startOfDay } from 'date-fns';
 
 interface InlineCalendarAgendaProps {
@@ -43,6 +45,7 @@ interface TimeSlotProps {
   events: CalendarEvent[];
   onTaskRemove: (taskId: string) => void;
   onTaskToggle: (taskId: string, completed: boolean) => void;
+  isMobile?: boolean;
 }
 
 // Format time to 12-hour format
@@ -53,8 +56,18 @@ function formatTime(time: string): string {
   return `${hour12}:00 ${period}`;
 }
 
-// Draggable task in pool
-function DraggablePoolTask({ task, onToggle }: { task: Task; onToggle: (taskId: string, completed: boolean) => void }) {
+// Draggable task in pool with mobile Schedule button
+function DraggablePoolTask({ 
+  task, 
+  onToggle, 
+  isMobile = false,
+  onScheduleClick 
+}: { 
+  task: Task; 
+  onToggle: (taskId: string, completed: boolean) => void;
+  isMobile?: boolean;
+  onScheduleClick?: (task: Task) => void;
+}) {
   const {
     attributes,
     listeners,
@@ -79,7 +92,8 @@ function DraggablePoolTask({ task, onToggle }: { task: Task; onToggle: (taskId: 
       ref={setNodeRef}
       style={style}
       className={cn(
-        "flex items-center gap-2 p-2 bg-card border border-border rounded-lg min-h-[44px]",
+        "flex items-center gap-2 bg-card border border-border rounded-lg",
+        isMobile ? "p-3 min-h-[56px]" : "p-2 min-h-[44px]",
         "hover:border-primary/30 transition-colors group touch-manipulation",
         isDragging && "opacity-50 shadow-lg ring-2 ring-primary/20"
       )}
@@ -87,7 +101,10 @@ function DraggablePoolTask({ task, onToggle }: { task: Task; onToggle: (taskId: 
       <button
         {...attributes}
         {...listeners}
-        className="p-1 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
+        className={cn(
+          "cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none",
+          isMobile ? "p-2" : "p-1"
+        )}
         aria-label="Drag to schedule"
       >
         <GripVertical className="h-4 w-4" />
@@ -96,15 +113,23 @@ function DraggablePoolTask({ task, onToggle }: { task: Task; onToggle: (taskId: 
       <Checkbox
         checked={task.is_completed}
         onCheckedChange={(checked) => onToggle(task.task_id, checked as boolean)}
-        className="h-5 w-5"
+        className={isMobile ? "h-5 w-5" : "h-5 w-5"}
       />
 
-      <span className={cn(
-        "flex-1 text-sm truncate",
-        task.is_completed && "line-through text-muted-foreground"
-      )}>
-        {task.task_text}
-      </span>
+      <div className="flex-1 min-w-0">
+        <span className={cn(
+          "truncate block",
+          isMobile ? "text-base" : "text-sm",
+          task.is_completed && "line-through text-muted-foreground"
+        )}>
+          {task.task_text}
+        </span>
+        {task.estimated_minutes && (
+          <span className="text-xs text-muted-foreground">
+            {task.estimated_minutes}m
+          </span>
+        )}
+      </div>
 
       {priorityLabel && (
         <Badge 
@@ -115,17 +140,27 @@ function DraggablePoolTask({ task, onToggle }: { task: Task; onToggle: (taskId: 
         </Badge>
       )}
 
-      {task.estimated_minutes && (
-        <span className="text-xs text-muted-foreground">
-          {task.estimated_minutes}m
-        </span>
+      {/* Mobile: Show Schedule button instead of just drag */}
+      {isMobile && onScheduleClick && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 px-3 shrink-0 touch-manipulation"
+          onClick={(e) => {
+            e.stopPropagation();
+            onScheduleClick(task);
+          }}
+        >
+          <Clock className="h-4 w-4 mr-1" />
+          Schedule
+        </Button>
       )}
     </div>
   );
 }
 
 // Time slot component with calendar events
-function TimeSlot({ time, hour, tasks, events, onTaskRemove, onTaskToggle }: TimeSlotProps) {
+function TimeSlot({ time, hour, tasks, events, onTaskRemove, onTaskToggle, isMobile = false }: TimeSlotProps) {
   const { setNodeRef, isOver, active } = useDroppable({
     id: `time-slot-${time}`,
     data: { type: 'time-slot', time }
@@ -140,13 +175,18 @@ function TimeSlot({ time, hour, tasks, events, onTaskRemove, onTaskToggle }: Tim
     <div
       ref={setNodeRef}
       className={cn(
-        "min-h-[48px] p-1.5 rounded-lg border transition-all flex",
+        "p-2 rounded-lg border transition-all flex",
+        // Larger touch targets on mobile
+        isMobile ? "min-h-[80px]" : "min-h-[48px]",
         hasContent ? "border-solid border-border bg-card" : "border-dashed border-muted-foreground/20",
         isOver && "ring-2 ring-primary/30 bg-primary/5 border-primary/30",
         isDragging && !isOver && !hasContent && "bg-muted/20"
       )}
     >
-      <span className="text-xs font-medium text-muted-foreground w-14 shrink-0 pt-1">
+      <span className={cn(
+        "font-medium text-muted-foreground shrink-0 pt-1",
+        isMobile ? "text-sm w-16" : "text-xs w-14"
+      )}>
         {format(new Date().setHours(hour, 0), 'h a')}
       </span>
       
@@ -160,15 +200,19 @@ function TimeSlot({ time, hour, tasks, events, onTaskRemove, onTaskToggle }: Tim
         {tasks.map((task) => (
           <div
             key={task.task_id}
-            className="flex items-center gap-2 p-1.5 bg-muted/50 rounded border border-border/50 min-h-[36px]"
+            className={cn(
+              "flex items-center gap-2 bg-muted/50 rounded border border-border/50",
+              isMobile ? "p-2 min-h-[44px]" : "p-1.5 min-h-[36px]"
+            )}
           >
             <Checkbox
               checked={task.is_completed}
               onCheckedChange={(checked) => onTaskToggle(task.task_id, checked as boolean)}
-              className="h-4 w-4"
+              className={isMobile ? "h-5 w-5" : "h-4 w-4"}
             />
             <span className={cn(
-              "flex-1 text-sm truncate",
+              "flex-1 truncate",
+              isMobile ? "text-base" : "text-sm",
               task.is_completed && "line-through text-muted-foreground"
             )}>
               {task.task_text}
@@ -179,17 +223,23 @@ function TimeSlot({ time, hour, tasks, events, onTaskRemove, onTaskToggle }: Tim
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 text-muted-foreground hover:text-destructive"
+              className={cn(
+                "text-muted-foreground hover:text-destructive",
+                isMobile ? "h-8 w-8" : "h-6 w-6"
+              )}
               onClick={() => onTaskRemove(task.task_id)}
             >
-              <X className="h-3 w-3" />
+              <X className={isMobile ? "h-4 w-4" : "h-3 w-3"} />
             </Button>
           </div>
         ))}
         
         {/* Drop hint when dragging */}
         {isDragging && !hasContent && (
-          <div className="text-xs text-muted-foreground py-2 text-center">
+          <div className={cn(
+            "text-muted-foreground text-center",
+            isMobile ? "text-sm py-4" : "text-xs py-2"
+          )}>
             Drop here
           </div>
         )}
@@ -219,6 +269,8 @@ export function InlineCalendarAgenda({
   onTaskUpdate,
 }: InlineCalendarAgendaProps) {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
+  const scheduleRef = useRef<HTMLDivElement>(null);
   const { status: calendarStatus, syncing, syncNow, connect } = useGoogleCalendar();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
@@ -226,9 +278,16 @@ export function InlineCalendarAgenda({
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [showOfficeHoursModal, setShowOfficeHoursModal] = useState(false);
+  
+  // Mobile scheduling state
+  const [selectedTaskForSchedule, setSelectedTaskForSchedule] = useState<Task | null>(null);
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
 
   const today = useMemo(() => startOfDay(new Date()), []);
   const todayStr = format(today, 'yyyy-MM-dd');
+  
+  // Calculate time slot height based on device
+  const TIME_SLOT_HEIGHT = isMobile ? 80 : 48;
 
   // Extract primitive values to avoid re-render loops
   const isConnected = calendarStatus.connected;
@@ -305,6 +364,42 @@ export function InlineCalendarAgenda({
   useEffect(() => {
     fetchTasks();
   }, [fetchTasks]);
+
+  // Auto-scroll to current time on mobile
+  useEffect(() => {
+    if (isMobile && scheduleRef.current && !loading) {
+      const currentHour = new Date().getHours();
+      if (currentHour >= officeHoursStart && currentHour < officeHoursEnd) {
+        const scrollPosition = (currentHour - officeHoursStart) * TIME_SLOT_HEIGHT;
+        setTimeout(() => {
+          scheduleRef.current?.scrollTo({ top: Math.max(0, scrollPosition - 40), behavior: 'smooth' });
+        }, 100);
+      }
+    }
+  }, [isMobile, loading, officeHoursStart, officeHoursEnd, TIME_SLOT_HEIGHT]);
+
+  // Handle mobile schedule from modal
+  const handleMobileSchedule = async (taskId: string, time: string) => {
+    const task = tasks.find(t => t.task_id === taskId);
+    if (!task) return;
+
+    const previousTime = task.scheduled_time;
+    setTasks(prev => prev.map(t => 
+      t.task_id === taskId ? { ...t, scheduled_time: time } : t
+    ));
+
+    try {
+      await supabase.functions.invoke('manage-task', {
+        body: { action: 'update', task_id: taskId, scheduled_time: time, scheduled_date: todayStr },
+      });
+      onTaskUpdate?.();
+    } catch (error) {
+      setTasks(prev => prev.map(t => 
+        t.task_id === taskId ? { ...t, scheduled_time: previousTime } : t
+      ));
+      toast.error('Failed to schedule task');
+    }
+  };
 
   // Get tasks for a specific time slot
   const getTasksForSlot = (time: string) => {
@@ -534,19 +629,26 @@ export function InlineCalendarAgenda({
                 </div>
               )}
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Mobile: stacked layout, Desktop: grid */}
+              <div className={cn(
+                "gap-4",
+                isMobile ? "flex flex-col" : "grid grid-cols-1 lg:grid-cols-2"
+              )}>
                 {/* Time Slots - Calendar View */}
                 <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-1.5 mb-3">
+                  <h4 className={cn(
+                    "font-medium text-muted-foreground flex items-center gap-1.5 mb-3",
+                    isMobile ? "text-base" : "text-sm"
+                  )}>
                     <Clock className="h-4 w-4" />
                     Schedule
                   </h4>
-                  <ScrollArea className="max-h-[400px] pr-2">
-                    <div className="space-y-1 relative">
+                  <ScrollArea className={cn("pr-2", isMobile ? "max-h-[350px]" : "max-h-[400px]")}>
+                    <div ref={scheduleRef} className="space-y-1 relative">
                       <CurrentTimeIndicator
                         selectedDate={today}
                         startHour={officeHoursStart}
-                        hourHeight={48}
+                        hourHeight={TIME_SLOT_HEIGHT}
                       />
                       {timeSlots.map(({ time, hour }) => (
                         <TimeSlot
@@ -557,6 +659,7 @@ export function InlineCalendarAgenda({
                           events={getEventsForHour(hour)}
                           onTaskRemove={handleTaskRemove}
                           onTaskToggle={handleTaskToggle}
+                          isMobile={isMobile}
                         />
                       ))}
                     </div>
@@ -566,12 +669,16 @@ export function InlineCalendarAgenda({
                 {/* Tasks Pool */}
                 <div 
                   className={cn(
-                    "space-y-2 p-3 rounded-lg border transition-colors",
+                    "space-y-2 rounded-lg border transition-colors",
+                    isMobile ? "p-4" : "p-3",
                     activeTask && "ring-2 ring-primary/20 bg-primary/5"
                   )}
                 >
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium text-muted-foreground">
+                    <h4 className={cn(
+                      "font-medium text-muted-foreground",
+                      isMobile ? "text-base" : "text-sm"
+                    )}>
                       Unscheduled Tasks
                     </h4>
                     {poolTasks.length > 0 && (
@@ -584,10 +691,13 @@ export function InlineCalendarAgenda({
                   <TasksPoolDropZone>
                     {poolTasks.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-6 text-center">
-                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-2">
-                          <Check className="h-5 w-5 text-muted-foreground" />
+                        <div className={cn(
+                          "rounded-full bg-muted flex items-center justify-center mb-2",
+                          isMobile ? "w-12 h-12" : "w-10 h-10"
+                        )}>
+                          <Check className={isMobile ? "h-6 w-6 text-muted-foreground" : "h-5 w-5 text-muted-foreground"} />
                         </div>
-                        <p className="text-sm text-muted-foreground">
+                        <p className={cn("text-muted-foreground", isMobile ? "text-base" : "text-sm")}>
                           No unscheduled tasks for today
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
@@ -596,12 +706,17 @@ export function InlineCalendarAgenda({
                       </div>
                     ) : (
                       <SortableContext items={poolTaskIds} strategy={verticalListSortingStrategy}>
-                        <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                        <div className={cn("space-y-2 overflow-y-auto", isMobile ? "max-h-[300px]" : "max-h-[400px]")}>
                           {poolTasks.map((task) => (
                             <DraggablePoolTask
                               key={task.task_id}
                               task={task}
                               onToggle={handleTaskToggle}
+                              isMobile={isMobile}
+                              onScheduleClick={isMobile ? (t) => {
+                                setSelectedTaskForSchedule(t);
+                                setScheduleModalOpen(true);
+                              } : undefined}
                             />
                           ))}
                         </div>
@@ -622,6 +737,16 @@ export function InlineCalendarAgenda({
       <OfficeHoursEditorModal
         open={showOfficeHoursModal}
         onOpenChange={setShowOfficeHoursModal}
+      />
+      
+      {/* Mobile Schedule Modal */}
+      <ScheduleTimeModal
+        task={selectedTaskForSchedule}
+        open={scheduleModalOpen}
+        onOpenChange={setScheduleModalOpen}
+        onSchedule={handleMobileSchedule}
+        officeHoursStart={officeHoursStart}
+        officeHoursEnd={officeHoursEnd}
       />
     </>
   );
