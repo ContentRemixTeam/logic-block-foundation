@@ -19,13 +19,33 @@ export type SectionId =
   | 'end_of_day_reflection'
   | 'deep_mode';
 
+// Custom question types
+export type CustomQuestionType = 
+  | 'checkbox' 
+  | 'text' 
+  | 'number' 
+  | 'rating' 
+  | 'time' 
+  | 'dropdown';
+
 // Custom question for daily reflections
 export interface CustomQuestion {
   id: string;
+  section_id: string; // Unique section_id for layout ordering
   question: string;
+  type: CustomQuestionType;
   placeholder?: string;
-  section: 'morning' | 'evening' | 'mindset';
+  icon?: string; // Lucide icon name
   isRequired?: boolean;
+  showInDashboard?: boolean;
+  // Type-specific fields
+  maxLength?: number; // For text type
+  minValue?: number; // For number/rating types
+  maxValue?: number; // For number/rating types
+  minLabel?: string; // For rating type
+  maxLabel?: string; // For rating type
+  options?: string[]; // For dropdown type
+  createdAt?: string;
 }
 
 // Daily page layout configuration
