@@ -63,6 +63,7 @@ import { useMobileProtection } from '@/hooks/useMobileProtection';
 import { SaveStatusIndicator, SaveStatusBanner } from '@/components/SaveStatusIndicator';
 import { UnprocessedTagsWarning } from '@/components/daily-plan/UnprocessedTagsWarning';
 import { InfoCards } from '@/components/daily/InfoCards';
+import { CustomizeTip } from '@/components/daily-plan/CustomizeTip';
 
 export default function DailyPlan() {
   const navigate = useNavigate();
@@ -971,6 +972,9 @@ export default function DailyPlan() {
             </Button>
           </div>
         </div>
+
+        {/* Customize Tip (dismissible onboarding) */}
+        <CustomizeTip />
 
         {/* ============================================ */}
         {/* BANNERS ZONE (always visible at top)        */}

@@ -57,6 +57,7 @@ import { HabitTrackerWidget } from '@/components/dashboard/HabitTrackerWidget';
 import { QuickWinsWidget } from '@/components/dashboard/QuickWinsWidget';
 import { WeekTop3Widget } from '@/components/dashboard/WeekTop3Widget';
 import { DueTodayWidget } from '@/components/dashboard/DueTodayWidget';
+import { CustomizePromoWidget } from '@/components/dashboard/CustomizePromoWidget';
 import { PodcastWidget } from '@/components/podcast/PodcastWidget';
 import { MastermindCallWidget } from '@/components/mastermind/MastermindCallWidget';
 import { SmartActionButton } from '@/components/SmartActionButton';
@@ -1052,6 +1053,9 @@ export default function Dashboard() {
                 </div>
               )}
             </WidgetCard>
+
+            {/* Customize Daily Page Promo */}
+            <CustomizePromoWidget />
 
             {/* Habit Tracker */}
             <HabitTrackerWidget />
