@@ -2843,112 +2843,214 @@ export type Database = {
           ads_budget: number | null
           ads_platform: string[] | null
           belief: string | null
+          biggest_fears: string[] | null
           cart_closes: string
           cart_opens: string
+          combination_details: string | null
+          content_creation_status: string | null
+          content_volume: string | null
           created_at: string | null
           cycle_id: string | null
           debrief_date: string | null
+          email_list_status: string | null
           email_sequences: string[] | null
+          follow_up_willingness: string | null
+          gap_acknowledged: boolean | null
+          gap_overlap_detected: boolean | null
+          gap_support_type: string | null
           has_ads: string | null
           has_lead_magnet: boolean | null
+          has_limitations: string | null
+          has_payment_plan: boolean | null
           has_waitlist: boolean | null
           id: string
+          ideal_customer: string | null
           launch_duration: string | null
+          launch_experience: string | null
+          launch_method: string | null
+          launch_timeline: string | null
           lead_magnet_due_date: string | null
           lead_magnet_topic: string | null
+          limitation_details: string | null
           limiting_thought: string | null
+          live_component: string | null
           live_events: Json | null
+          main_bonus: string | null
+          main_reach_method: string | null
           name: string
           non_buyer_followup: string | null
           offer_breakdown: Json | null
+          offer_frequency: string | null
           offer_goal: number | null
+          offer_type: string | null
+          other_offer_type: string | null
+          payment_plan_details: string | null
           post_purchase_flow: string[] | null
+          previous_launch_learnings: string | null
           price_per_sale: number | null
+          promotion_duration: string | null
+          readiness_score: number | null
           revenue_goal: number | null
+          revenue_goal_tier: string | null
           sales_needed: number | null
           selected_content_ids: string[] | null
+          social_platform: string | null
           social_posts_per_day: number | null
           social_strategy: string[] | null
+          spot_limit: number | null
           status: string | null
           updated_at: string | null
           useful_thought: string | null
           user_id: string
           waitlist_incentive: string | null
           waitlist_opens: string | null
+          what_they_need: string | null
+          what_to_improve: string | null
+          what_went_well: string | null
+          zero_sales_meaning: string | null
+          zero_sales_plan: string | null
         }
         Insert: {
           ads_budget?: number | null
           ads_platform?: string[] | null
           belief?: string | null
+          biggest_fears?: string[] | null
           cart_closes: string
           cart_opens: string
+          combination_details?: string | null
+          content_creation_status?: string | null
+          content_volume?: string | null
           created_at?: string | null
           cycle_id?: string | null
           debrief_date?: string | null
+          email_list_status?: string | null
           email_sequences?: string[] | null
+          follow_up_willingness?: string | null
+          gap_acknowledged?: boolean | null
+          gap_overlap_detected?: boolean | null
+          gap_support_type?: string | null
           has_ads?: string | null
           has_lead_magnet?: boolean | null
+          has_limitations?: string | null
+          has_payment_plan?: boolean | null
           has_waitlist?: boolean | null
           id?: string
+          ideal_customer?: string | null
           launch_duration?: string | null
+          launch_experience?: string | null
+          launch_method?: string | null
+          launch_timeline?: string | null
           lead_magnet_due_date?: string | null
           lead_magnet_topic?: string | null
+          limitation_details?: string | null
           limiting_thought?: string | null
+          live_component?: string | null
           live_events?: Json | null
+          main_bonus?: string | null
+          main_reach_method?: string | null
           name: string
           non_buyer_followup?: string | null
           offer_breakdown?: Json | null
+          offer_frequency?: string | null
           offer_goal?: number | null
+          offer_type?: string | null
+          other_offer_type?: string | null
+          payment_plan_details?: string | null
           post_purchase_flow?: string[] | null
+          previous_launch_learnings?: string | null
           price_per_sale?: number | null
+          promotion_duration?: string | null
+          readiness_score?: number | null
           revenue_goal?: number | null
+          revenue_goal_tier?: string | null
           sales_needed?: number | null
           selected_content_ids?: string[] | null
+          social_platform?: string | null
           social_posts_per_day?: number | null
           social_strategy?: string[] | null
+          spot_limit?: number | null
           status?: string | null
           updated_at?: string | null
           useful_thought?: string | null
           user_id: string
           waitlist_incentive?: string | null
           waitlist_opens?: string | null
+          what_they_need?: string | null
+          what_to_improve?: string | null
+          what_went_well?: string | null
+          zero_sales_meaning?: string | null
+          zero_sales_plan?: string | null
         }
         Update: {
           ads_budget?: number | null
           ads_platform?: string[] | null
           belief?: string | null
+          biggest_fears?: string[] | null
           cart_closes?: string
           cart_opens?: string
+          combination_details?: string | null
+          content_creation_status?: string | null
+          content_volume?: string | null
           created_at?: string | null
           cycle_id?: string | null
           debrief_date?: string | null
+          email_list_status?: string | null
           email_sequences?: string[] | null
+          follow_up_willingness?: string | null
+          gap_acknowledged?: boolean | null
+          gap_overlap_detected?: boolean | null
+          gap_support_type?: string | null
           has_ads?: string | null
           has_lead_magnet?: boolean | null
+          has_limitations?: string | null
+          has_payment_plan?: boolean | null
           has_waitlist?: boolean | null
           id?: string
+          ideal_customer?: string | null
           launch_duration?: string | null
+          launch_experience?: string | null
+          launch_method?: string | null
+          launch_timeline?: string | null
           lead_magnet_due_date?: string | null
           lead_magnet_topic?: string | null
+          limitation_details?: string | null
           limiting_thought?: string | null
+          live_component?: string | null
           live_events?: Json | null
+          main_bonus?: string | null
+          main_reach_method?: string | null
           name?: string
           non_buyer_followup?: string | null
           offer_breakdown?: Json | null
+          offer_frequency?: string | null
           offer_goal?: number | null
+          offer_type?: string | null
+          other_offer_type?: string | null
+          payment_plan_details?: string | null
           post_purchase_flow?: string[] | null
+          previous_launch_learnings?: string | null
           price_per_sale?: number | null
+          promotion_duration?: string | null
+          readiness_score?: number | null
           revenue_goal?: number | null
+          revenue_goal_tier?: string | null
           sales_needed?: number | null
           selected_content_ids?: string[] | null
+          social_platform?: string | null
           social_posts_per_day?: number | null
           social_strategy?: string[] | null
+          spot_limit?: number | null
           status?: string | null
           updated_at?: string | null
           useful_thought?: string | null
           user_id?: string
           waitlist_incentive?: string | null
           waitlist_opens?: string | null
+          what_they_need?: string | null
+          what_to_improve?: string | null
+          what_went_well?: string | null
+          zero_sales_meaning?: string | null
+          zero_sales_plan?: string | null
         }
         Relationships: [
           {
