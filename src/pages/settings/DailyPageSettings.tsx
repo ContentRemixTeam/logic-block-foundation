@@ -45,14 +45,7 @@ import {
   CustomQuestion 
 } from '@/types/dailyPage';
 import { DAILY_PAGE_TEMPLATES, DailyPageTemplate } from '@/data/dailyPageTemplates';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { DailyPagePreview } from '@/components/settings/DailyPagePreview';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -662,69 +655,18 @@ export default function DailyPageSettings() {
               Reset to Default
             </Button>
             
-            <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <Eye className="mr-2 h-4 w-4" />
-                  Preview
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Daily Page Preview</DialogTitle>
-                  <DialogDescription>
-                    Sections that will appear on your daily planning page
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-2 mt-4">
-                  {localSectionOrder.filter(id => !localHiddenSections.has(id)).map((sectionId) => {
-                    // Check if it's a custom question
-                    const isCustomQuestion = sectionId.startsWith('custom_question_');
-                    
-                    if (isCustomQuestion) {
-                      const customQuestion = localCustomQuestions.find(q => q.section_id === sectionId);
-                      if (!customQuestion) return null;
-                      
-                      return (
-                        <div
-                          key={sectionId}
-                          className="flex items-center gap-3 p-2 rounded-md bg-muted/50"
-                        >
-                          <CheckSquare className="h-4 w-4 text-muted-foreground" />
-                          <span className="flex-1 text-sm">{customQuestion.question}</span>
-                          <Badge className="bg-violet-500/10 text-violet-600 text-xs">
-                            Custom
-                          </Badge>
-                        </div>
-                      );
-                    }
-
-                    const section = SECTION_DEFINITIONS[sectionId];
-                    if (!section) return null;
-                    const Icon = ICON_MAP[section.icon] || CheckSquare;
-                    const zoneConfig = CATEGORY_CONFIG[section.zone];
-
-                    return (
-                      <div
-                        key={sectionId}
-                        className="flex items-center gap-3 p-2 rounded-md bg-muted/50"
-                      >
-                        <Icon className="h-4 w-4 text-muted-foreground" />
-                        <span className="flex-1 text-sm">{section.label}</span>
-                        <Badge className={`${zoneConfig.color} text-xs`}>
-                          {zoneConfig.label}
-                        </Badge>
-                      </div>
-                    );
-                  })}
-                  {localHiddenSections.size > 0 && (
-                    <p className="text-xs text-muted-foreground pt-2 border-t mt-4">
-                      {localHiddenSections.size} section{localHiddenSections.size !== 1 ? 's' : ''} hidden
-                    </p>
-                  )}
-                </div>
-              </DialogContent>
-            </Dialog>
+            <Button variant="outline" onClick={() => setPreviewOpen(true)}>
+              <Eye className="mr-2 h-4 w-4" />
+              Preview
+            </Button>
+            
+            <DailyPagePreview
+              open={previewOpen}
+              onOpenChange={setPreviewOpen}
+              sectionOrder={localSectionOrder}
+              hiddenSections={localHiddenSections}
+              customQuestions={localCustomQuestions}
+            />
           </div>
 
           <Button 
