@@ -178,6 +178,20 @@ export function useDailyPageLayout() {
     return layout.section_order;
   };
 
+  // Check if layout is still default (not customized)
+  const isDefaultLayout = (): boolean => {
+    if (!layout) return true;
+    
+    const hiddenMatch = layout.hidden_sections.length === 0;
+    const orderMatch = layout.section_order.length === DEFAULT_SECTION_ORDER.length &&
+      layout.section_order
+        .filter(id => !id.startsWith('custom_question_'))
+        .every((id, i) => id === DEFAULT_SECTION_ORDER[i]);
+    const noCustomQuestions = !layout.custom_questions || layout.custom_questions.length === 0;
+    
+    return hiddenMatch && orderMatch && noCustomQuestions;
+  };
+
   return {
     layout,
     isLoading,
@@ -190,6 +204,7 @@ export function useDailyPageLayout() {
     isSectionVisible,
     getSectionOrder,
     getAllSectionsInOrder,
+    isDefaultLayout,
     refetch: queryClient.invalidateQueries.bind(queryClient, { queryKey: [LAYOUT_QUERY_KEY] }),
   };
 }

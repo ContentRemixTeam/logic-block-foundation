@@ -12,7 +12,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeArray, normalizeBoolean } from '@/lib/normalize';
-import { Loader2, Save, ArrowLeft, Bug, Trash2, RotateCcw, Crown, Sparkles, Palette, Circle, Gamepad2, Coins, Dog, Timer, GraduationCap, DollarSign } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, Bug, Trash2, RotateCcw, Crown, Sparkles, Palette, Circle, Gamepad2, Coins, Dog, Timer, GraduationCap, DollarSign, LayoutGrid, ChevronRight } from 'lucide-react';
 import { useArcade } from '@/hooks/useArcade';
 import { ReflectionList } from '@/components/ReflectionList';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -476,6 +476,32 @@ export default function Settings() {
                 }
               />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Daily Page Layout */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <LayoutGrid className="h-5 w-5" />
+              Daily Page Layout
+            </CardTitle>
+            <CardDescription>
+              Customize sections and add custom check-ins
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              variant="outline" 
+              className="w-full justify-between group"
+              onClick={() => navigate('/settings/daily-page')}
+            >
+              <span>Customize Daily Page</span>
+              <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2">
+              Hide sections you don't use, reorder your workflow, add custom daily questions
+            </p>
           </CardContent>
         </Card>
 

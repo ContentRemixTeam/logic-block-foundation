@@ -35,6 +35,7 @@ import {
   Wand2
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { toast } from 'sonner';
 import { useDailyPageLayout } from '@/hooks/useDailyPageLayout';
 import { 
@@ -356,6 +357,21 @@ export default function DailyPageSettings() {
   return (
     <Layout>
       <div className="container max-w-3xl py-8 space-y-6">
+        {/* Breadcrumb Navigation */}
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/settings">Settings</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Daily Page</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -365,12 +381,12 @@ export default function DailyPageSettings() {
               onClick={() => {
                 if (hasChanges) {
                   if (window.confirm('You have unsaved changes. Save before leaving?')) {
-                    handleSave().then(() => navigate(-1));
+                    handleSave().then(() => navigate('/settings'));
                   } else {
-                    navigate(-1);
+                    navigate('/settings');
                   }
                 } else {
-                  navigate(-1);
+                  navigate('/settings');
                 }
               }}
             >
