@@ -109,6 +109,21 @@ const faqData: FAQItem[] = [
   // Features
   {
     category: 'Features',
+    question: 'How do I install the mobile app?',
+    answer: 'Go to Settings → Mobile App or tap "Install App" in the sidebar. On iPhone, open the page in Safari, tap the Share button, and select "Add to Home Screen". On Android with Chrome, tap the menu (three dots) and select "Install app" or "Add to Home screen". The app will appear on your home screen like a native app.'
+  },
+  {
+    category: 'Features',
+    question: 'What mobile features are optimized for touch?',
+    answer: 'The app includes several mobile-optimized features: Tap-to-schedule lets you assign times to tasks with a single tap instead of dragging. The weekly planner has a swipeable day selector. All buttons and checkboxes have 44px minimum touch targets for easy one-handed use. The agenda view auto-scrolls to the current time when you open it.'
+  },
+  {
+    category: 'Features',
+    question: 'Does the app work offline?',
+    answer: 'Yes! Once installed, the app works offline for capturing tasks and ideas. Your captures sync automatically when you\'re back online. Core pages are cached for fast loading even with poor connectivity.'
+  },
+  {
+    category: 'Features',
     question: 'What is Pet Mode?',
     answer: 'Pet Mode is a gamified daily task experience. Each day, choose a virtual pet (like a unicorn, dragon, or panda) and complete 3 tasks to grow it from an egg to an adult. Use the optional Pomodoro timer for focused work sessions. When you complete all 3 tasks, your pet hatches and joins your collection—then you can start fresh with a new egg!'
   },
@@ -167,6 +182,11 @@ const faqData: FAQItem[] = [
     category: 'Troubleshooting',
     question: 'How do I see the question mark help buttons throughout the app?',
     answer: 'Look for small question mark icons (?) next to feature labels like Quick Add, Capacity Indicator, and the 90-Day Goal card. Click them to see a popup with tips and explanations. They\'re there to help you understand features at a glance without leaving the page you\'re on.'
+  },
+  {
+    category: 'Troubleshooting',
+    question: 'Why can\'t I install the app on my iPhone?',
+    answer: 'On iPhone and iPad, you MUST use Safari to install the app - Chrome and other browsers don\'t support installation on iOS. Open the Install App page in Safari, tap the Share button (square with arrow) at the bottom, scroll down, and tap "Add to Home Screen".'
   }
 ];
 
