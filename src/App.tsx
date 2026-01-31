@@ -97,6 +97,7 @@ const Focus = lazyWithRetry(() => import('./pages/Focus'));
 const Courses = lazyWithRetry(() => import('./pages/Courses'));
 const CourseDetail = lazyWithRetry(() => import('./pages/CourseDetail'));
 const Wizards = lazyWithRetry(() => import('./pages/Wizards'));
+const CycleWizard = lazyWithRetry(() => import('./pages/CycleWizard'));
 const LaunchWizardPage = lazyWithRetry(() => import('./pages/LaunchWizardPage'));
 const HabitWizardPage = lazyWithRetry(() => import('./pages/HabitWizardPage'));
 const PlannerSettings = lazyWithRetry(() => import('./pages/PlannerSettings'));
@@ -205,6 +206,7 @@ const App = () => (
                       <Route path="/courses" element={<ProtectedRoute><PageSuspense><Courses /></PageSuspense></ProtectedRoute>} />
                       <Route path="/courses/:id" element={<ProtectedRoute><PageSuspense><CourseDetail /></PageSuspense></ProtectedRoute>} />
                       <Route path="/wizards" element={<ProtectedRoute><PageSuspense><Wizards /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/cycle-wizard" element={<ProtectedRoute><PageSuspense><CycleWizard /></PageSuspense></ProtectedRoute>} />
                       <Route path="/wizards/launch" element={<ProtectedRoute><PageSuspense><LaunchWizardPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/wizards/habits" element={<ProtectedRoute><PageSuspense><HabitWizardPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/settings/planner" element={<ProtectedRoute><PageSuspense><PlannerSettings /></PageSuspense></ProtectedRoute>} />

@@ -420,7 +420,7 @@ export default function Dashboard() {
               <span className="hidden sm:inline">Customize</span>
             </Button>
             <Button variant="outline" size="sm" className="gap-2 hover:bg-muted/50 group" asChild>
-              <Link to="/cycle-setup">
+              <Link to={cycle?.cycle_id ? `/cycle-wizard?edit=${cycle.cycle_id}` : '/cycle-wizard'}>
                 <Pencil className="h-4 w-4" />
                 <span className="hidden sm:inline">Edit Plan</span>
                 <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -463,7 +463,7 @@ export default function Dashboard() {
                     Start your 90-day journey to achieve your biggest goals
                   </p>
                   <Button size="lg" className="gap-2 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all" asChild>
-                    <Link to="/cycle-setup">
+                    <Link to="/cycle-wizard">
                       <Rocket className="h-4 w-4" />
                       Start Your 90-Day Cycle
                     </Link>
