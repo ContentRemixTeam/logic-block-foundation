@@ -1428,6 +1428,7 @@ export type Database = {
           end_date: string
           fear_response: string | null
           focus_area: string | null
+          gap_strategy: string | null
           goal: string
           identity: string | null
           limiting_thought: string | null
@@ -1484,6 +1485,7 @@ export type Database = {
           end_date: string
           fear_response?: string | null
           focus_area?: string | null
+          gap_strategy?: string | null
           goal: string
           identity?: string | null
           limiting_thought?: string | null
@@ -1540,6 +1542,7 @@ export type Database = {
           end_date?: string
           fear_response?: string | null
           focus_area?: string | null
+          gap_strategy?: string | null
           goal?: string
           identity?: string | null
           limiting_thought?: string | null
