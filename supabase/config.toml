@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.create-launch-from-wizard]
 verify_jwt = false
+
+[functions.create-launch-v2]
+verify_jwt = false

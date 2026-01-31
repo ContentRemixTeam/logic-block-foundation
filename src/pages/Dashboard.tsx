@@ -716,7 +716,7 @@ export default function Dashboard() {
                     Planning a launch? Let's create a timeline and track your progress
                   </p>
                   <Button size="lg" className="gap-2 shadow-lg shadow-primary/20" asChild>
-                    <Link to="/wizards/launch-planner">
+                    <Link to="/wizards/launch">
                       <Rocket className="h-4 w-4" />
                       Plan Your First Launch
                     </Link>
