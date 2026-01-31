@@ -5,6 +5,7 @@ import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { detectGap, type GapStatus } from '@/utils/gapDetection';
 import { useActiveCycle } from '@/hooks/useActiveCycle';
 import { useDailyPageLayout } from '@/hooks/useDailyPageLayout';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,8 @@ import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PostingSlotCard } from '@/components/daily-plan/PostingSlotCard';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 
 
 import { QuickLogCard } from '@/components/content';
@@ -71,6 +74,7 @@ export default function DailyPlan() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: activeCycleData } = useActiveCycle();
+  const isMobile = useIsMobile();
   
   // Layout preferences
   const { layout, isSectionVisible, getAllSectionsInOrder, isLoading: layoutLoading } = useDailyPageLayout();
@@ -931,15 +935,18 @@ export default function DailyPlan() {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-3xl space-y-8">
+      <div className={cn(
+        "mx-auto",
+        isMobile ? "max-w-full px-4 space-y-4" : "max-w-3xl space-y-8"
+      )}>
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Daily Plan</h1>
-            <div className="flex items-center gap-3 mt-1">
-              <p className="text-muted-foreground">{today}</p>
+            <h1 className={cn("font-bold", isMobile ? "text-2xl" : "text-3xl")}>Daily Plan</h1>
+            <div className="flex items-center gap-3 mt-1 flex-wrap">
+              <p className={cn("text-muted-foreground", isMobile && "text-sm")}>{today}</p>
               {/* Office Hours Display */}
-              {cycleData?.office_hours_start && (
+              {cycleData?.office_hours_start && !isMobile && (
                 <OfficeHoursDisplay
                   officeHoursStart={cycleData.office_hours_start}
                   officeHoursEnd={cycleData.office_hours_end}

@@ -114,22 +114,22 @@ export function WeekPlannerMobile({
                 key={i}
                 onClick={() => setSelectedDayIndex(i)}
                 className={cn(
-                  'flex flex-col items-center px-2.5 py-1.5 rounded-lg min-w-[44px] touch-manipulation transition-colors',
+                  'flex flex-col items-center px-3 py-2 rounded-lg min-w-[48px] min-h-[56px] touch-manipulation transition-colors',
                   isSelected && 'bg-primary text-primary-foreground',
                   !isSelected && dayIsToday && 'bg-primary/10 text-primary',
                   !isSelected && dayIsPast && 'text-muted-foreground',
                   !isSelected && !dayIsToday && !dayIsPast && 'text-foreground hover:bg-muted'
                 )}
               >
-                <span className="text-[10px] font-medium uppercase">
+                <span className="text-[11px] font-medium uppercase">
                   {format(date, 'EEE')}
                 </span>
-                <span className={cn('text-lg font-semibold', dayIsToday && !isSelected && 'text-primary')}>
+                <span className={cn('text-xl font-semibold', dayIsToday && !isSelected && 'text-primary')}>
                   {format(date, 'd')}
                 </span>
                 {dayTaskCount > 0 && (
                   <span className={cn(
-                    'text-[9px] font-medium',
+                    'text-[10px] font-medium',
                     isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground'
                   )}>
                     {dayTaskCount}
@@ -207,33 +207,33 @@ export function WeekPlannerMobile({
                   <div
                     key={task.task_id}
                     className={cn(
-                      'flex items-start gap-3 p-3 rounded-lg border bg-card transition-colors',
+                      'flex items-start gap-3 p-4 rounded-lg border bg-card transition-colors min-h-[64px]',
                       task.is_completed && 'opacity-60'
                     )}
                   >
                     <button
                       onClick={() => handleTaskToggle(task.task_id, task.is_completed)}
-                      className="mt-0.5 touch-manipulation"
+                      className="mt-0.5 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center -ml-2"
                     >
                       {task.is_completed ? (
-                        <CheckCircle2 className="h-5 w-5 text-primary" />
+                        <CheckCircle2 className="h-6 w-6 text-primary" />
                       ) : (
-                        <Circle className="h-5 w-5 text-muted-foreground hover:text-primary" />
+                        <Circle className="h-6 w-6 text-muted-foreground hover:text-primary" />
                       )}
                     </button>
                     <div className="flex-1 min-w-0">
-                      <p className={cn('text-sm font-medium', task.is_completed && 'line-through')}>
+                      <p className={cn('text-base font-medium', task.is_completed && 'line-through')}>
                         {task.task_text}
                       </p>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                         {task.time_block_start && (
-                          <Badge variant="outline" className="text-[10px] gap-1">
-                            <Clock className="h-2.5 w-2.5" />
+                          <Badge variant="outline" className="text-xs gap-1">
+                            <Clock className="h-3 w-3" />
                             {task.time_block_start.substring(0, 5)}
                           </Badge>
                         )}
                         {task.estimated_minutes && (
-                          <Badge variant="secondary" className="text-[10px]">
+                          <Badge variant="secondary" className="text-xs">
                             {task.estimated_minutes}m
                           </Badge>
                         )}
@@ -241,7 +241,7 @@ export function WeekPlannerMobile({
                           <Badge 
                             variant="secondary" 
                             className={cn(
-                              'text-[10px]',
+                              'text-xs',
                               task.priority === 'high' && 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
                               task.priority === 'medium' && 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
                             )}
@@ -255,10 +255,10 @@ export function WeekPlannerMobile({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 shrink-0 text-muted-foreground"
+                        className="h-10 w-10 shrink-0 text-muted-foreground touch-manipulation"
                         onClick={() => onMoveToInbox(task.task_id)}
                       >
-                        <GripVertical className="h-4 w-4" />
+                        <GripVertical className="h-5 w-5" />
                       </Button>
                     )}
                   </div>
@@ -283,14 +283,14 @@ export function WeekPlannerMobile({
                 <span className="text-[10px] font-normal">Tap to schedule</span>
               </h3>
               <div className="space-y-1">
-                {inboxTasks.slice(0, 5).map(task => (
+              {inboxTasks.slice(0, 5).map(task => (
                   <button
                     key={task.task_id}
                     onClick={() => handleScheduleFromInbox(task.task_id)}
-                    className="w-full flex items-center gap-2 p-2 rounded-lg border border-dashed hover:border-primary hover:bg-primary/5 transition-colors text-left touch-manipulation"
+                    className="w-full flex items-center gap-3 p-3 rounded-lg border border-dashed hover:border-primary hover:bg-primary/5 transition-colors text-left touch-manipulation min-h-[48px]"
                   >
-                    <Plus className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="text-sm truncate">{task.task_text}</span>
+                    <Plus className="h-5 w-5 text-muted-foreground shrink-0" />
+                    <span className="text-base truncate">{task.task_text}</span>
                   </button>
                 ))}
                 {inboxTasks.length > 5 && (

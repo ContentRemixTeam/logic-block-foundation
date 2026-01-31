@@ -57,9 +57,9 @@ export function CurrentTimeIndicator({
       )}
       style={{ top: `${position}px` }}
     >
-      <div className="relative w-full h-0.5 bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.6)]">
-        {/* Circle indicator */}
-        <div className="absolute -left-1.5 -top-1.5 w-4 h-4 bg-destructive rounded-full shadow-lg" />
+    <div className="relative w-full h-0.5 bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.6)]">
+        {/* Circle indicator with pulse animation */}
+        <div className="absolute -left-1.5 -top-1.5 w-4 h-4 bg-destructive rounded-full shadow-lg animate-pulse" />
       </div>
     </div>
   );

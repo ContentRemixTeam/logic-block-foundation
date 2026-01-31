@@ -1155,6 +1155,81 @@ html.theme-transitioning * {
   min-width: 44px;
 }
 
+/* =====================================================
+   MOBILE OPTIMIZATION UTILITIES
+   ===================================================== */
+
+/* Mobile touch target minimum sizes */
+.touch-target-min {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Mobile typography scale */
+@media (max-width: 767px) {
+  .mobile-h1 { 
+    font-size: 24px; 
+    line-height: 1.2; 
+  }
+  .mobile-h2 { 
+    font-size: 20px; 
+    line-height: 1.3; 
+  }
+  .mobile-h3 {
+    font-size: 18px;
+    line-height: 1.4;
+  }
+  .mobile-body { 
+    font-size: 16px; 
+    line-height: 1.5;
+  }
+  .mobile-label { 
+    font-size: 14px; 
+    line-height: 1.4;
+  }
+  .mobile-small {
+    font-size: 12px;
+    line-height: 1.3;
+  }
+}
+
+/* Prevent horizontal scroll on mobile */
+.mobile-container {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* Mobile card spacing */
+@media (max-width: 767px) {
+  .mobile-card {
+    padding: 12px;
+  }
+  .mobile-section-gap {
+    gap: 16px;
+  }
+  
+  /* Reduce card padding on mobile */
+  .mobile-compact-card [data-slot="card-content"] {
+    padding: 12px;
+  }
+}
+
+/* Mobile-optimized time slot heights */
+@media (max-width: 767px) {
+  .mobile-time-slot {
+    min-height: 80px;
+  }
+}
+
+/* Touch manipulation for better mobile interactions */
+.touch-action-pan-y {
+  touch-action: pan-y;
+}
+
+.touch-action-none {
+  touch-action: none;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
