@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,7 +30,9 @@ import {
   Moon,
   Focus,
   Info,
-  GripVertical
+  GripVertical,
+  LayoutTemplate,
+  Wand2
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -42,6 +44,7 @@ import {
   DEFAULT_SECTION_ORDER,
   CustomQuestion 
 } from '@/types/dailyPage';
+import { DAILY_PAGE_TEMPLATES, DailyPageTemplate } from '@/data/dailyPageTemplates';
 import {
   Dialog,
   DialogContent,
@@ -50,6 +53,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Tooltip,
   TooltipContent,
@@ -136,6 +149,8 @@ export default function DailyPageSettings() {
   const [localCustomQuestions, setLocalCustomQuestions] = useState<CustomQuestion[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [templateConfirmOpen, setTemplateConfirmOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<DailyPageTemplate | null>(null);
 
   // DnD sensors with touch support
   const sensors = useSensors(
@@ -262,6 +277,69 @@ export default function DailyPageSettings() {
     setHasChanges(true);
   };
 
+  // Check if current layout matches a template
+  const currentTemplateMatch = useMemo(() => {
+    const currentHiddenArray = Array.from(localHiddenSections).sort();
+    const currentOrderArray = localSectionOrder.filter(id => !id.startsWith('custom_question_'));
+    
+    return DAILY_PAGE_TEMPLATES.find(template => {
+      const templateHiddenArray = [...template.hidden_sections].sort();
+      const templateOrderArray = template.section_order;
+      
+      // Check if hidden sections match
+      if (currentHiddenArray.length !== templateHiddenArray.length) return false;
+      if (!currentHiddenArray.every((id, i) => id === templateHiddenArray[i])) return false;
+      
+      // Check if visible order matches (just the built-in sections)
+      if (currentOrderArray.length !== templateOrderArray.length) return false;
+      return currentOrderArray.every((id, i) => id === templateOrderArray[i]);
+    });
+  }, [localHiddenSections, localSectionOrder]);
+
+  // Apply a template
+  const handleApplyTemplate = async (template: DailyPageTemplate, includeCustomQuestions: boolean) => {
+    try {
+      // Update local state
+      setLocalSectionOrder([...template.section_order]);
+      setLocalHiddenSections(new Set(template.hidden_sections));
+      
+      // Optionally add template's custom questions
+      if (includeCustomQuestions && template.custom_questions && template.custom_questions.length > 0) {
+        // Merge with existing custom questions (avoid duplicates by id)
+        const existingIds = new Set(localCustomQuestions.map(q => q.id));
+        const newQuestions = template.custom_questions.filter(q => !existingIds.has(q.id));
+        
+        if (newQuestions.length > 0) {
+          const mergedQuestions = [...localCustomQuestions, ...newQuestions];
+          setLocalCustomQuestions(mergedQuestions);
+          
+          // Add new custom question section_ids to section order
+          const newSectionOrder = [...template.section_order];
+          newQuestions.forEach(q => {
+            newSectionOrder.push(q.section_id as SectionId);
+          });
+          setLocalSectionOrder(newSectionOrder);
+        }
+      }
+      
+      // Save immediately
+      await updateLayout({
+        section_order: includeCustomQuestions && template.custom_questions?.length 
+          ? [...template.section_order, ...template.custom_questions.filter(q => !localCustomQuestions.find(lq => lq.id === q.id)).map(q => q.section_id as SectionId)]
+          : [...template.section_order],
+        hidden_sections: [...template.hidden_sections],
+        custom_questions: includeCustomQuestions && template.custom_questions?.length
+          ? [...localCustomQuestions, ...template.custom_questions.filter(q => !localCustomQuestions.find(lq => lq.id === q.id))]
+          : localCustomQuestions,
+      });
+      
+      setHasChanges(false);
+      toast.success(`Template applied! You can customize further below.`);
+    } catch (error) {
+      toast.error('Failed to apply template');
+    }
+  };
+
   const sectionsByCategory = getSectionsByCategory();
   const visibleCount = DEFAULT_SECTION_ORDER.length - localHiddenSections.size;
   const visibleSections = localSectionOrder.filter(id => !localHiddenSections.has(id));
@@ -326,6 +404,106 @@ export default function DailyPageSettings() {
             </Badge>
           </div>
         </div>
+
+        {/* Quick Start Templates */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2">
+              <LayoutTemplate className="h-5 w-5" />
+              Quick Start Templates
+            </CardTitle>
+            <CardDescription>
+              Choose a pre-configured layout, then customize further
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {DAILY_PAGE_TEMPLATES.map(template => {
+                const isActive = currentTemplateMatch?.id === template.id;
+                const visibleSectionsInTemplate = template.section_order.filter(
+                  id => !template.hidden_sections.includes(id)
+                );
+                
+                return (
+                  <Card 
+                    key={template.id}
+                    className={`relative transition-colors ${
+                      isActive ? 'border-primary bg-primary/5' : 'hover:border-muted-foreground/50'
+                    }`}
+                  >
+                    {isActive && (
+                      <Badge className="absolute top-2 right-2 bg-primary text-primary-foreground">
+                        <Check className="mr-1 h-3 w-3" />
+                        Current
+                      </Badge>
+                    )}
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">{template.name}</CardTitle>
+                      <CardDescription className="text-xs">
+                        {template.description}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {/* Preview of included sections */}
+                      <div className="flex flex-wrap gap-1">
+                        {visibleSectionsInTemplate.slice(0, 5).map(sectionId => {
+                          const section = SECTION_DEFINITIONS[sectionId];
+                          if (!section) return null;
+                          return (
+                            <Badge 
+                              key={sectionId}
+                              variant="outline" 
+                              className="text-xs py-0.5"
+                            >
+                              {section.label}
+                            </Badge>
+                          );
+                        })}
+                        {visibleSectionsInTemplate.length > 5 && (
+                          <Badge variant="outline" className="text-xs py-0.5">
+                            +{visibleSectionsInTemplate.length - 5} more
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      {/* Custom questions indicator */}
+                      {template.custom_questions && template.custom_questions.length > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          + {template.custom_questions.length} custom question{template.custom_questions.length !== 1 ? 's' : ''}
+                        </p>
+                      )}
+                      
+                      <Button
+                        size="sm"
+                        variant={isActive ? "outline" : "default"}
+                        className="w-full"
+                        onClick={() => {
+                          if (!isActive) {
+                            setSelectedTemplate(template);
+                            setTemplateConfirmOpen(true);
+                          }
+                        }}
+                        disabled={isActive}
+                      >
+                        {isActive ? (
+                          <>
+                            <Check className="mr-2 h-4 w-4" />
+                            Applied
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="mr-2 h-4 w-4" />
+                            Use This Template
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Section Categories */}
         <div className="space-y-6">
@@ -566,6 +744,43 @@ export default function DailyPageSettings() {
           </Button>
         </div>
       </div>
+
+      {/* Template Confirmation Dialog */}
+      <AlertDialog open={templateConfirmOpen} onOpenChange={setTemplateConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apply "{selectedTemplate?.name}" Template?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will replace your current layout with the template's section order and visibility settings. 
+              Your existing custom questions will be preserved.
+              {selectedTemplate?.custom_questions && selectedTemplate.custom_questions.length > 0 && (
+                <span className="block mt-2">
+                  This template includes {selectedTemplate.custom_questions.length} custom question{selectedTemplate.custom_questions.length !== 1 ? 's' : ''} that will be added to your layout.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSelectedTemplate(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (selectedTemplate) {
+                  handleApplyTemplate(
+                    selectedTemplate, 
+                    (selectedTemplate.custom_questions?.length ?? 0) > 0
+                  );
+                }
+                setTemplateConfirmOpen(false);
+                setSelectedTemplate(null);
+              }}
+            >
+              Apply Template
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }
