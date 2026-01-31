@@ -1115,92 +1115,90 @@ export default function DailyPlan() {
         {/* ============================================ */}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {getAllSectionsInOrder()
-            .filter(sectionId => isSectionVisible(sectionId))
-            .map(sectionId => {
-              // Section component map with conditional logic preserved
-              switch (sectionId) {
-                case 'habits_tracker':
-                  return <HabitTrackerCard key={sectionId} view="daily" />;
+          {(() => {
+            // Component map - each section ID maps to a render function
+            // Render functions return JSX or null for conditional sections
+            const sectionComponents: Record<string, () => React.ReactNode> = {
+              habits_tracker: () => <HabitTrackerCard view="daily" />,
 
-                case 'identity_anchor':
-                  if (!identityAnchor) return null;
-                  return (
-                    <Card key={sectionId} className="border-primary/20">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Zap className="h-5 w-5 text-primary" />
-                          Today's Identity Anchor
-                        </CardTitle>
-                        <CardDescription>
-                          Remember who you are and what you stand for
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-lg font-semibold mb-4">{identityAnchor.identity_statement}</p>
-                        {(normalizeArray(identityAnchor.supporting_habits).length > 0 || normalizeArray(identityAnchor.supporting_actions).length > 0) && (
-                          <div className="grid md:grid-cols-2 gap-4 text-sm text-muted-foreground">
-                            {normalizeArray(identityAnchor.supporting_habits).length > 0 && (
-                              <div>
-                                <p className="font-semibold mb-1">Key Habits:</p>
-                                <ul className="list-disc list-inside space-y-1">
-                                  {normalizeArray(identityAnchor.supporting_habits).slice(0, 3).map((habit: string, idx: number) => (
-                                    <li key={idx}>{habit}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            {normalizeArray(identityAnchor.supporting_actions).length > 0 && (
-                              <div>
-                                <p className="font-semibold mb-1">Key Actions:</p>
-                                <ul className="list-disc list-inside space-y-1">
-                                  {normalizeArray(identityAnchor.supporting_actions).slice(0, 3).map((action: string, idx: number) => (
-                                    <li key={idx}>{action}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
+              identity_anchor: () => {
+                if (!identityAnchor) return null;
+                return (
+                  <Card className="border-primary/20">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Zap className="h-5 w-5 text-primary" />
+                        Today's Identity Anchor
+                      </CardTitle>
+                      <CardDescription>
+                        Remember who you are and what you stand for
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-lg font-semibold mb-4">{identityAnchor.identity_statement}</p>
+                      {(normalizeArray(identityAnchor.supporting_habits).length > 0 || normalizeArray(identityAnchor.supporting_actions).length > 0) && (
+                        <div className="grid md:grid-cols-2 gap-4 text-sm text-muted-foreground">
+                          {normalizeArray(identityAnchor.supporting_habits).length > 0 && (
+                            <div>
+                              <p className="font-semibold mb-1">Key Habits:</p>
+                              <ul className="list-disc list-inside space-y-1">
+                                {normalizeArray(identityAnchor.supporting_habits).slice(0, 3).map((habit: string, idx: number) => (
+                                  <li key={idx}>{habit}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {normalizeArray(identityAnchor.supporting_actions).length > 0 && (
+                            <div>
+                              <p className="font-semibold mb-1">Key Actions:</p>
+                              <ul className="list-disc list-inside space-y-1">
+                                {normalizeArray(identityAnchor.supporting_actions).slice(0, 3).map((action: string, idx: number) => (
+                                  <li key={idx}>{action}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              },
 
-                case 'brain_dump':
-                  return (
-                    <Card key={sectionId} className="bg-gradient-to-br from-muted/30 to-muted/10 border-dashed">
-                      <CardHeader>
-                        <div className="flex flex-col gap-1">
-                          <CardTitle className="flex items-center gap-2">
-                            <Brain className="h-5 w-5 text-primary" />
-                            Brain Dump & Scratch Pad
-                          </CardTitle>
-                          <p className="text-sm font-medium text-primary">{today}</p>
-                        </div>
-                        <CardDescription>
-                          Capture everything on your mind. Use #task, #idea, #thought, or #win to tag items.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div>
-                          <Label htmlFor="scratch-title" className="text-sm text-muted-foreground">
-                            Entry Title (optional)
-                          </Label>
-                          <Input
-                            id="scratch-title"
-                            value={scratchPadTitle}
-                            onChange={(e) => setScratchPadTitle(e.target.value)}
-                            placeholder="e.g., Planning Q1 Launch, Morning Thoughts, Weekly Wins"
-                            className="mt-1"
-                            maxLength={200}
-                          />
-                        </div>
-                        <SmartScratchPad
-                          value={scratchPadContent}
-                          onChange={setScratchPadContent}
-                          onBlur={() => saveNow(dailyPlanData)}
-                          maxLength={10000}
-                          placeholder="Brain dump here... Type # for tag suggestions
+              brain_dump: () => (
+                <Card className="bg-gradient-to-br from-muted/30 to-muted/10 border-dashed">
+                  <CardHeader>
+                    <div className="flex flex-col gap-1">
+                      <CardTitle className="flex items-center gap-2">
+                        <Brain className="h-5 w-5 text-primary" />
+                        Brain Dump & Scratch Pad
+                      </CardTitle>
+                      <p className="text-sm font-medium text-primary">{today}</p>
+                    </div>
+                    <CardDescription>
+                      Capture everything on your mind. Use #task, #idea, #thought, or #win to tag items.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label htmlFor="scratch-title" className="text-sm text-muted-foreground">
+                        Entry Title (optional)
+                      </Label>
+                      <Input
+                        id="scratch-title"
+                        value={scratchPadTitle}
+                        onChange={(e) => setScratchPadTitle(e.target.value)}
+                        placeholder="e.g., Planning Q1 Launch, Morning Thoughts, Weekly Wins"
+                        className="mt-1"
+                        maxLength={200}
+                      />
+                    </div>
+                    <SmartScratchPad
+                      value={scratchPadContent}
+                      onChange={setScratchPadContent}
+                      onBlur={() => saveNow(dailyPlanData)}
+                      maxLength={10000}
+                      placeholder="Brain dump here... Type # for tag suggestions
 
 Example:
 Record podcast #task
@@ -1208,502 +1206,509 @@ New ad funnel #task
 Maybe pivot to B2B? #idea
 Revenue grows with retention #thought
 Closed the big deal! #win"
-                        />
-                        <div className="flex gap-2">
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        onClick={handleProcessTags}
+                        disabled={processingTags || !scratchPadContent.trim()}
+                      >
+                        {processingTags ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Process Tags
+                          </>
+                        )}
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
                           <Button
                             type="button"
-                            onClick={handleProcessTags}
-                            disabled={processingTags || !scratchPadContent.trim()}
+                            variant="ghost"
+                            size="sm"
+                            disabled={!scratchPadContent.trim()}
+                            className="text-muted-foreground hover:text-destructive"
                           >
-                            {processingTags ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Processing...
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="mr-2 h-4 w-4" />
-                                Process Tags
-                              </>
-                            )}
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Clear Pad
                           </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Clear scratch pad?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will clear all content from your scratch pad. Make sure you have processed any tags you want to save first.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleClearPad}>Clear</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        asChild
+                      >
+                        <Link to="/journal">
+                          <BookOpen className="mr-2 h-4 w-4" />
+                          Past Entries
+                        </Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ),
+
+              one_thing: () => (
+                <Card data-section="one-thing">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Diamond className="h-5 w-5 text-primary" />
+                      Your ONE Thing
+                    </CardTitle>
+                    <CardDescription>
+                      What's the ONE thing that, if you do it today, everything else will be easier or unnecessary?
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea
+                      value={oneThing}
+                      onChange={(e) => setOneThing(e.target.value)}
+                      placeholder="Your single most important priority for today..."
+                      maxLength={200}
+                      className="min-h-[100px] resize-none"
+                    />
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-xs text-muted-foreground">
+                        {oneThing.length}/200 characters
+                      </span>
+                      {saveStatus === 'saved' && (
+                        <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                          <Check className="h-3 w-3" />
+                          Auto-saved
+                        </span>
+                      )}
+                      {saveStatus === 'saving' && (
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Saving...
+                        </span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ),
+
+              top_3_priorities: () => (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Target className="h-5 w-5" />
+                      🎯 Top 3 Priorities
+                    </CardTitle>
+                    <CardDescription>
+                      Your most important tasks today (should support your ONE thing)
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {[1, 2, 3].map((priorityNum) => {
+                      const existingTask = top3Tasks.find(t => t.priority_order === priorityNum);
+                      const inputValue = newTop3Text[priorityNum - 1];
+                      
+                      return (
+                        <div key={priorityNum} className="flex items-center gap-3">
+                          {existingTask ? (
+                            <>
+                              <Checkbox
+                                checked={existingTask.is_completed}
+                                onCheckedChange={() => toggleTop3Task(existingTask.task_id, existingTask.is_completed)}
+                              />
+                              <span className={`flex-1 ${existingTask.is_completed ? 'line-through text-muted-foreground' : ''}`}>
+                                {existingTask.task_text}
+                              </span>
+                              <Badge variant="outline">#{priorityNum}</Badge>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Remove this priority?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will remove the task from your Top 3 priorities for today.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => deleteTop3Task(existingTask.task_id)}>
+                                      Remove
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </>
+                          ) : (
+                            <>
+                              <Badge variant="outline" className="shrink-0">#{priorityNum}</Badge>
+                              <Input
+                                value={inputValue}
+                                onChange={(e) => {
+                                  const updated = [...newTop3Text];
+                                  updated[priorityNum - 1] = e.target.value;
+                                  setNewTop3Text(updated);
+                                }}
+                                placeholder={`Priority ${priorityNum}...`}
+                                className="flex-1"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && inputValue.trim()) {
+                                    e.preventDefault();
+                                    saveTop3Task(priorityNum, inputValue);
+                                  }
+                                }}
+                              />
                               <Button
                                 type="button"
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
-                                disabled={!scratchPadContent.trim()}
-                                className="text-muted-foreground hover:text-destructive"
+                                onClick={() => saveTop3Task(priorityNum, inputValue)}
+                                disabled={!inputValue.trim() || savingTop3}
                               >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Clear Pad
+                                Add
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Clear scratch pad?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will clear all content from your scratch pad. Make sure you have processed any tags you want to save first.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleClearPad}>Clear</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              ),
+
+              daily_mindset: () => (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Daily Mindset</CardTitle>
+                    <CardDescription>
+                      Set your intention and energy for today
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label htmlFor="thought">Today's Key Thought</Label>
+                        <div className="flex gap-2">
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            asChild
+                            onClick={() => setThoughtsModalOpen(true)}
                           >
-                            <Link to="/journal">
-                              <BookOpen className="mr-2 h-4 w-4" />
-                              Past Entries
-                            </Link>
+                            <Brain className="h-4 w-4 mr-2" />
+                            Browse Thoughts
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setBeliefsModalOpen(true)}
+                          >
+                            <TrendingUp className="h-4 w-4 mr-2" />
+                            Insert Belief
                           </Button>
                         </div>
-                      </CardContent>
-                    </Card>
-                  );
+                      </div>
+                      <Input
+                        id="thought"
+                        value={thought}
+                        onChange={(e) => setThought(e.target.value)}
+                        placeholder="What's your focus today?"
+                        maxLength={300}
+                      />
+                      <CharacterCounter current={thought.length} max={300} className="mt-1" />
+                    </div>
+                    <div>
+                      <Label htmlFor="feeling">How I Want to Feel</Label>
+                      <Input
+                        id="feeling"
+                        value={feeling}
+                        onChange={(e) => setFeeling(e.target.value)}
+                        placeholder="e.g., Energized, Calm, Productive"
+                        maxLength={300}
+                      />
+                      <CharacterCounter current={feeling.length} max={300} className="mt-1" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ),
 
-                case 'one_thing':
-                  return (
-                    <Card key={sectionId} data-section="one-thing">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Diamond className="h-5 w-5 text-primary" />
-                          Your ONE Thing
-                        </CardTitle>
-                        <CardDescription>
-                          What's the ONE thing that, if you do it today, everything else will be easier or unnecessary?
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <Textarea
-                          value={oneThing}
-                          onChange={(e) => setOneThing(e.target.value)}
-                          placeholder="Your single most important priority for today..."
-                          maxLength={200}
-                          className="min-h-[100px] resize-none"
-                        />
-                        <div className="flex justify-between items-center mt-2">
-                          <span className="text-xs text-muted-foreground">
-                            {oneThing.length}/200 characters
-                          </span>
-                          {saveStatus === 'saved' && (
-                            <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
-                              <Check className="h-3 w-3" />
-                              Auto-saved
-                            </span>
-                          )}
-                          {saveStatus === 'saving' && (
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                              Saving...
-                            </span>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-
-                case 'top_3_priorities':
-                  return (
-                    <Card key={sectionId}>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Target className="h-5 w-5" />
-                          🎯 Top 3 Priorities
-                        </CardTitle>
-                        <CardDescription>
-                          Your most important tasks today (should support your ONE thing)
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        {[1, 2, 3].map((priorityNum) => {
-                          const existingTask = top3Tasks.find(t => t.priority_order === priorityNum);
-                          const inputValue = newTop3Text[priorityNum - 1];
-                          
-                          return (
-                            <div key={priorityNum} className="flex items-center gap-3">
-                              {existingTask ? (
-                                <>
-                                  <Checkbox
-                                    checked={existingTask.is_completed}
-                                    onCheckedChange={() => toggleTop3Task(existingTask.task_id, existingTask.is_completed)}
-                                  />
-                                  <span className={`flex-1 ${existingTask.is_completed ? 'line-through text-muted-foreground' : ''}`}>
-                                    {existingTask.task_text}
-                                  </span>
-                                  <Badge variant="outline">#{priorityNum}</Badge>
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button variant="ghost" size="sm">
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>Remove this priority?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          This will remove the task from your Top 3 priorities for today.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => deleteTop3Task(existingTask.task_id)}>
-                                          Remove
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                </>
-                              ) : (
-                                <>
-                                  <Badge variant="outline" className="shrink-0">#{priorityNum}</Badge>
-                                  <Input
-                                    value={inputValue}
-                                    onChange={(e) => {
-                                      const updated = [...newTop3Text];
-                                      updated[priorityNum - 1] = e.target.value;
-                                      setNewTop3Text(updated);
-                                    }}
-                                    placeholder={`Priority ${priorityNum}...`}
-                                    className="flex-1"
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter' && inputValue.trim()) {
-                                        e.preventDefault();
-                                        saveTop3Task(priorityNum, inputValue);
-                                      }
-                                    }}
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => saveTop3Task(priorityNum, inputValue)}
-                                    disabled={!inputValue.trim() || savingTop3}
-                                  >
-                                    Add
-                                  </Button>
-                                </>
-                              )}
+              weekly_priorities: () => {
+                if (weeklyPriorities.length === 0) return null;
+                return (
+                  <Card className="border-accent/30 bg-gradient-to-r from-accent/10 to-primary/5">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <TrendingUp className="h-5 w-5 text-accent" />
+                        📅 This Week's 3 Priorities
+                      </CardTitle>
+                      <CardDescription>
+                        Your focus areas for the week - align your daily tasks to these
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {weeklyPriorities.map((priority, idx) => (
+                          <div 
+                            key={idx} 
+                            className={`flex items-start gap-3 p-3 rounded-lg transition-colors ${
+                              selectedPriorities.includes(priority) 
+                                ? 'bg-accent/20 border border-accent/40' 
+                                : 'bg-muted/30 hover:bg-muted/50'
+                            }`}
+                          >
+                            <div className="flex items-center justify-center h-6 w-6 rounded-full bg-accent/20 text-accent font-bold text-sm shrink-0">
+                              {idx + 1}
                             </div>
-                          );
-                        })}
-                      </CardContent>
-                    </Card>
-                  );
+                            <span className="text-sm font-medium flex-1">{priority}</span>
+                            <Checkbox
+                              checked={selectedPriorities.includes(priority)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedPriorities([...selectedPriorities, priority]);
+                                } else {
+                                  setSelectedPriorities(selectedPriorities.filter((p) => p !== priority));
+                                }
+                              }}
+                              className="shrink-0"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-3">
+                        ✓ Check the priorities you're working on today
+                      </p>
+                    </CardContent>
+                  </Card>
+                );
+              },
 
-                case 'daily_mindset':
-                  return (
-                    <Card key={sectionId}>
+              monthly_focus: () => {
+                if (!monthlyFocus) return null;
+                return (
+                  <Card className="border-accent/20 bg-accent/5">
+                    <CardContent className="py-3 flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-accent" />
+                      <span className="text-sm font-medium">
+                        📅 This Month: <span className="text-accent font-bold">{monthlyFocus}</span>
+                      </span>
+                    </CardContent>
+                  </Card>
+                );
+              },
+
+              cycle_snapshot: () => {
+                if (!cycleData) return null;
+                return <CycleSnapshotCard />;
+              },
+
+              goal_rewrite: () => {
+                if (!cycleData) return null;
+                return (
+                  <GoalRewritePrompt
+                    context="daily"
+                    currentRewrite={goalRewrite}
+                    previousRewrite={previousGoalRewrite}
+                    cycleGoal={cycleData?.goal || ''}
+                    onSave={(text) => {
+                      setGoalRewrite(text);
+                      toast({ title: 'Goal saved!' });
+                    }}
+                    saving={savingGoalRewrite}
+                  />
+                );
+              },
+
+              calendar_agenda: () => (
+                <InlineCalendarAgenda
+                  officeHoursStart={cycleData?.office_hours_start ? parseInt(cycleData.office_hours_start.split(':')[0], 10) : 9}
+                  officeHoursEnd={cycleData?.office_hours_end ? parseInt(cycleData.office_hours_end.split(':')[0], 10) : 17}
+                  onTaskUpdate={loadDailyPlan}
+                />
+              ),
+
+              info_cards: () => <InfoCards />,
+
+              posting_slot: () => <PostingSlotCard />,
+
+              nurture_checkin: () => <NurtureCheckinCard />,
+
+              quick_log: () => <QuickLogCard />,
+
+              completed_today: () => {
+                const completedTop3 = top3Tasks.filter(t => t.is_completed);
+                const completedOther = otherTasks.filter(t => t.is_completed);
+                const totalCompleted = completedTop3.length + completedOther.length;
+                
+                if (totalCompleted === 0) return null;
+                
+                return (
+                  <Card className="border-primary/20 bg-primary/5">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-base text-primary">
+                        <CheckCircle2 className="h-4 w-4" />
+                        ✅ Completed Today ({totalCompleted})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {completedTop3.map((task) => (
+                        <div key={task.task_id} className="flex items-center gap-3">
+                          <Checkbox
+                            checked={true}
+                            onCheckedChange={() => toggleTop3Task(task.task_id, true)}
+                          />
+                          <span className="text-sm line-through text-muted-foreground">{task.task_text}</span>
+                          <Badge variant="outline" className="text-xs">Top 3</Badge>
+                        </div>
+                      ))}
+                      {completedOther.map((task) => (
+                        <div key={task.task_id} className="flex items-center gap-3">
+                          <Checkbox
+                            checked={true}
+                            onCheckedChange={() => toggleOtherTask(task.task_id, true)}
+                          />
+                          <span className="text-sm line-through text-muted-foreground">{task.task_text}</span>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                );
+              },
+
+              end_of_day_reflection: () => {
+                const currentHour = new Date().getHours();
+                if (currentHour < 17) return null;
+                
+                return (
+                  <Card className="border-accent/20 bg-gradient-to-r from-accent/5 to-primary/5">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2">
+                        <Moon className="h-5 w-5 text-accent" />
+                        🌙 End of Day Reflection
+                      </CardTitle>
+                      <CardDescription>
+                        Take a moment to reflect on your day before wrapping up
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <Textarea
+                        value={endOfDayReflection}
+                        onChange={(e) => setEndOfDayReflection(e.target.value)}
+                        placeholder="How did today go? What are you grateful for? What will you do differently tomorrow?"
+                        className="min-h-[150px] resize-y"
+                        maxLength={1000}
+                      />
+                      <CharacterCounter current={endOfDayReflection.length} max={1000} />
+                    </CardContent>
+                  </Card>
+                );
+              },
+
+              deep_mode: () => (
+                <div className="space-y-6">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setDeepMode(!deepMode)}
+                  >
+                    {deepMode ? (
+                      <>
+                        <ChevronUp className="mr-2 h-4 w-4" />
+                        Back to Quick Mode
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="mr-2 h-4 w-4" />
+                        Switch to Deep Mode
+                      </>
+                    )}
+                  </Button>
+
+                  {deepMode && (
+                    <Card>
                       <CardHeader>
-                        <CardTitle>Daily Mindset</CardTitle>
+                        <CardTitle>Deep Mode</CardTitle>
                         <CardDescription>
-                          Set your intention and energy for today
+                          Dig deeper into your planning and reflection
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <Label htmlFor="thought">Today's Key Thought</Label>
-                            <div className="flex gap-2">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setThoughtsModalOpen(true)}
-                              >
-                                <Brain className="h-4 w-4 mr-2" />
-                                Browse Thoughts
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setBeliefsModalOpen(true)}
-                              >
-                                <TrendingUp className="h-4 w-4 mr-2" />
-                                Insert Belief
-                              </Button>
-                            </div>
-                          </div>
-                          <Input
-                            id="thought"
-                            value={thought}
-                            onChange={(e) => setThought(e.target.value)}
-                            placeholder="What's your focus today?"
-                            maxLength={300}
+                          <Label htmlFor="win">What would make today a win?</Label>
+                          <Textarea
+                            id="win"
+                            value={deepModeNotes.win}
+                            onChange={(e) => setDeepModeNotes({ ...deepModeNotes, win: e.target.value })}
+                            placeholder="Define success for today..."
+                            rows={3}
+                            maxLength={500}
                           />
-                          <CharacterCounter current={thought.length} max={300} className="mt-1" />
                         </div>
                         <div>
-                          <Label htmlFor="feeling">How I Want to Feel</Label>
-                          <Input
-                            id="feeling"
-                            value={feeling}
-                            onChange={(e) => setFeeling(e.target.value)}
-                            placeholder="e.g., Energized, Calm, Productive"
-                            maxLength={300}
+                          <Label htmlFor="obstacles">Obstacles & Solutions</Label>
+                          <Textarea
+                            id="obstacles"
+                            value={deepModeNotes.obstacles}
+                            onChange={(e) => setDeepModeNotes({ ...deepModeNotes, obstacles: e.target.value })}
+                            placeholder="What might get in the way? How will you handle it?"
+                            rows={4}
+                            maxLength={500}
                           />
-                          <CharacterCounter current={feeling.length} max={300} className="mt-1" />
+                        </div>
+                        <div>
+                          <Label htmlFor="show_up">How do I want to show up?</Label>
+                          <Textarea
+                            id="show_up"
+                            value={deepModeNotes.show_up}
+                            onChange={(e) => setDeepModeNotes({ ...deepModeNotes, show_up: e.target.value })}
+                            placeholder="What energy and presence do you want to bring?"
+                            rows={3}
+                            maxLength={500}
+                          />
                         </div>
                       </CardContent>
                     </Card>
-                  );
+                  )}
+                </div>
+              ),
+            };
 
-                case 'weekly_priorities':
-                  if (weeklyPriorities.length === 0) return null;
-                  return (
-                    <Card key={sectionId} className="border-accent/30 bg-gradient-to-r from-accent/10 to-primary/5">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <TrendingUp className="h-5 w-5 text-accent" />
-                          📅 This Week's 3 Priorities
-                        </CardTitle>
-                        <CardDescription>
-                          Your focus areas for the week - align your daily tasks to these
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          {weeklyPriorities.map((priority, idx) => (
-                            <div 
-                              key={idx} 
-                              className={`flex items-start gap-3 p-3 rounded-lg transition-colors ${
-                                selectedPriorities.includes(priority) 
-                                  ? 'bg-accent/20 border border-accent/40' 
-                                  : 'bg-muted/30 hover:bg-muted/50'
-                              }`}
-                            >
-                              <div className="flex items-center justify-center h-6 w-6 rounded-full bg-accent/20 text-accent font-bold text-sm shrink-0">
-                                {idx + 1}
-                              </div>
-                              <span className="text-sm font-medium flex-1">{priority}</span>
-                              <Checkbox
-                                checked={selectedPriorities.includes(priority)}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    setSelectedPriorities([...selectedPriorities, priority]);
-                                  } else {
-                                    setSelectedPriorities(selectedPriorities.filter((p) => p !== priority));
-                                  }
-                                }}
-                                className="shrink-0"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-3">
-                          ✓ Check the priorities you're working on today
-                        </p>
-                      </CardContent>
-                    </Card>
-                  );
-
-                case 'monthly_focus':
-                  if (!monthlyFocus) return null;
-                  return (
-                    <Card key={sectionId} className="border-accent/20 bg-accent/5">
-                      <CardContent className="py-3 flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-accent" />
-                        <span className="text-sm font-medium">
-                          📅 This Month: <span className="text-accent font-bold">{monthlyFocus}</span>
-                        </span>
-                      </CardContent>
-                    </Card>
-                  );
-
-                case 'cycle_snapshot':
-                  if (!cycleData) return null;
-                  return <CycleSnapshotCard key={sectionId} />;
-
-                case 'goal_rewrite':
-                  if (!cycleData) return null;
-                  return (
-                    <GoalRewritePrompt
-                      key={sectionId}
-                      context="daily"
-                      currentRewrite={goalRewrite}
-                      previousRewrite={previousGoalRewrite}
-                      cycleGoal={cycleData?.goal || ''}
-                      onSave={(text) => {
-                        setGoalRewrite(text);
-                        toast({ title: 'Goal saved!' });
-                      }}
-                      saving={savingGoalRewrite}
-                    />
-                  );
-
-                case 'calendar_agenda':
-                  return (
-                    <InlineCalendarAgenda
-                      key={sectionId}
-                      officeHoursStart={cycleData?.office_hours_start ? parseInt(cycleData.office_hours_start.split(':')[0], 10) : 9}
-                      officeHoursEnd={cycleData?.office_hours_end ? parseInt(cycleData.office_hours_end.split(':')[0], 10) : 17}
-                      onTaskUpdate={loadDailyPlan}
-                    />
-                  );
-
-                case 'info_cards':
-                  return <InfoCards key={sectionId} />;
-
-                case 'posting_slot':
-                  return <PostingSlotCard key={sectionId} />;
-
-                case 'nurture_checkin':
-                  return <NurtureCheckinCard key={sectionId} />;
-
-                case 'quick_log':
-                  return <QuickLogCard key={sectionId} />;
-
-                case 'completed_today': {
-                  const completedTop3 = top3Tasks.filter(t => t.is_completed);
-                  const completedOther = otherTasks.filter(t => t.is_completed);
-                  const totalCompleted = completedTop3.length + completedOther.length;
-                  
-                  if (totalCompleted === 0) return null;
-                  
-                  return (
-                    <Card key={sectionId} className="border-primary/20 bg-primary/5">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base text-primary">
-                          <CheckCircle2 className="h-4 w-4" />
-                          ✅ Completed Today ({totalCompleted})
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        {completedTop3.map((task) => (
-                          <div key={task.task_id} className="flex items-center gap-3">
-                            <Checkbox
-                              checked={true}
-                              onCheckedChange={() => toggleTop3Task(task.task_id, true)}
-                            />
-                            <span className="text-sm line-through text-muted-foreground">{task.task_text}</span>
-                            <Badge variant="outline" className="text-xs">Top 3</Badge>
-                          </div>
-                        ))}
-                        {completedOther.map((task) => (
-                          <div key={task.task_id} className="flex items-center gap-3">
-                            <Checkbox
-                              checked={true}
-                              onCheckedChange={() => toggleOtherTask(task.task_id, true)}
-                            />
-                            <span className="text-sm line-through text-muted-foreground">{task.task_text}</span>
-                          </div>
-                        ))}
-                      </CardContent>
-                    </Card>
-                  );
-                }
-
-                case 'end_of_day_reflection': {
-                  const currentHour = new Date().getHours();
-                  if (currentHour < 17) return null;
-                  
-                  return (
-                    <Card key={sectionId} className="border-accent/20 bg-gradient-to-r from-accent/5 to-primary/5">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2">
-                          <Moon className="h-5 w-5 text-accent" />
-                          🌙 End of Day Reflection
-                        </CardTitle>
-                        <CardDescription>
-                          Take a moment to reflect on your day before wrapping up
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        <Textarea
-                          value={endOfDayReflection}
-                          onChange={(e) => setEndOfDayReflection(e.target.value)}
-                          placeholder="How did today go? What are you grateful for? What will you do differently tomorrow?"
-                          className="min-h-[150px] resize-y"
-                          maxLength={1000}
-                        />
-                        <CharacterCounter current={endOfDayReflection.length} max={1000} />
-                      </CardContent>
-                    </Card>
-                  );
-                }
-
-                case 'deep_mode':
-                  return (
-                    <div key={sectionId} className="space-y-6">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => setDeepMode(!deepMode)}
-                      >
-                        {deepMode ? (
-                          <>
-                            <ChevronUp className="mr-2 h-4 w-4" />
-                            Back to Quick Mode
-                          </>
-                        ) : (
-                          <>
-                            <ChevronDown className="mr-2 h-4 w-4" />
-                            Switch to Deep Mode
-                          </>
-                        )}
-                      </Button>
-
-                      {deepMode && (
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>Deep Mode</CardTitle>
-                            <CardDescription>
-                              Dig deeper into your planning and reflection
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent className="space-y-4">
-                            <div>
-                              <Label htmlFor="win">What would make today a win?</Label>
-                              <Textarea
-                                id="win"
-                                value={deepModeNotes.win}
-                                onChange={(e) => setDeepModeNotes({ ...deepModeNotes, win: e.target.value })}
-                                placeholder="Define success for today..."
-                                rows={3}
-                                maxLength={500}
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="obstacles">Obstacles & Solutions</Label>
-                              <Textarea
-                                id="obstacles"
-                                value={deepModeNotes.obstacles}
-                                onChange={(e) => setDeepModeNotes({ ...deepModeNotes, obstacles: e.target.value })}
-                                placeholder="What might get in the way? How will you handle it?"
-                                rows={4}
-                                maxLength={500}
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="show_up">How do I want to show up?</Label>
-                              <Textarea
-                                id="show_up"
-                                value={deepModeNotes.show_up}
-                                onChange={(e) => setDeepModeNotes({ ...deepModeNotes, show_up: e.target.value })}
-                                placeholder="What energy and presence do you want to bring?"
-                                rows={3}
-                                maxLength={500}
-                              />
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </div>
-                  );
-
-                default:
-                  return null;
-              }
-            })}
+            // Render sections in user's custom order
+            return getAllSectionsInOrder()
+              .filter(sectionId => isSectionVisible(sectionId))
+              .map(sectionId => {
+                const renderSection = sectionComponents[sectionId];
+                if (!renderSection) return null;
+                
+                const content = renderSection();
+                if (!content) return null;
+                
+                return (
+                  <div key={sectionId}>
+                    {content}
+                  </div>
+                );
+              });
+          })()}
 
           <Button type="submit" size="lg" className="w-full" disabled={manualSaving || saveStatus === 'saving'}>
             {manualSaving || saveStatus === 'saving' ? (
