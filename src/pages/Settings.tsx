@@ -12,7 +12,8 @@ import { useTheme } from '@/hooks/useTheme';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeArray, normalizeBoolean } from '@/lib/normalize';
-import { Loader2, Save, ArrowLeft, Bug, Trash2, RotateCcw, Crown, Sparkles, Palette, Circle, Gamepad2, Coins, Dog, Timer, GraduationCap, DollarSign, LayoutGrid, ChevronRight } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, Bug, Trash2, RotateCcw, Crown, Sparkles, Palette, Circle, Gamepad2, Coins, Dog, Timer, GraduationCap, DollarSign, LayoutGrid, ChevronRight, Smartphone } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useArcade } from '@/hooks/useArcade';
 import { ReflectionList } from '@/components/ReflectionList';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -502,6 +503,38 @@ export default function Settings() {
             <p className="text-xs text-muted-foreground mt-2">
               Hide sections you don't use, reorder your workflow, add custom daily questions
             </p>
+          </CardContent>
+        </Card>
+
+        {/* Mobile App */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Smartphone className="h-5 w-5" />
+              Mobile App
+            </CardTitle>
+            <CardDescription>
+              Install Boss Planner on your phone for the best mobile experience
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Get instant access from your home screen with mobile-optimized features:
+              </p>
+              <ul className="text-sm space-y-1 text-muted-foreground">
+                <li>• Tap-to-schedule task scheduling</li>
+                <li>• Larger touch targets for easy navigation</li>
+                <li>• Swipeable day selector in weekly planner</li>
+                <li>• Works offline for capturing ideas anywhere</li>
+              </ul>
+            </div>
+            <Button asChild>
+              <Link to="/install">
+                <Smartphone className="h-4 w-4 mr-2" />
+                Install App
+              </Link>
+            </Button>
           </CardContent>
         </Card>
 

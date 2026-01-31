@@ -6,7 +6,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { 
   Search, Target, Calendar, CheckSquare, RefreshCw, ClipboardList, 
   BarChart3, Brain, Lightbulb, Zap, Clock, LayoutList, Columns,
-  Trophy, Repeat, FileText, Sparkles
+  Trophy, Repeat, FileText, Sparkles, Smartphone
 } from 'lucide-react';
 
 interface FeatureSection {
@@ -451,6 +451,29 @@ const featuresData: FeatureSection[] = [
       'Use for content that doesn\'t fit in plans or reviews',
       'Review notes during monthly reviews for insights',
       'Link back to notes in your task descriptions if relevant'
+    ]
+  },
+  {
+    id: 'mobile-app',
+    category: 'Other Features',
+    title: 'Mobile App (Install to Home Screen)',
+    icon: Smartphone,
+    description: 'Install Boss Planner as an app on your phone for the best mobile experience with touch-optimized features.',
+    details: [
+      'Install from your browser - no app store download required',
+      'Works on iPhone (via Safari), Android (via Chrome), and Desktop',
+      'Optimized touch targets (44px minimum) for easy one-handed use',
+      'Tap-to-schedule: quickly assign times to tasks without dragging',
+      'Swipeable day navigation in the weekly planner',
+      'Auto-scrolls to current time in agenda view',
+      'Full offline support - capture ideas anywhere',
+      'Fast loading with cached assets'
+    ],
+    tips: [
+      'On iPhone, you MUST use Safari - Chrome does not support installation on iOS',
+      'Look for "Add to Home Screen" in your browser\'s share or menu options',
+      'The app updates automatically when you\'re online',
+      'Use the mobile bottom navigation bar for quick access to all sections'
     ]
   }
 ];

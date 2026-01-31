@@ -122,7 +122,7 @@ export default function InstallApp() {
           </div>
           <h1 className="text-3xl font-bold mb-2">Install Boss Planner</h1>
           <p className="text-muted-foreground">
-            Get instant access to Quick Capture right from your home screen
+            Get the full mobile-optimized planning experience from your home screen
           </p>
         </div>
 
@@ -135,6 +135,10 @@ export default function InstallApp() {
             <ul className="space-y-3">
               {[
                 'Launch Quick Capture instantly from your home screen',
+                'Mobile-optimized daily planning with tap-to-schedule',
+                'Larger touch targets designed for one-handed use',
+                'Swipeable day navigation in weekly planner',
+                'Auto-scroll to current time in agenda view',
                 'Works offline - capture ideas anytime',
                 'Full-screen experience without browser UI',
                 'Faster loading - cached for speed',
