@@ -1,417 +1,577 @@
 
-# 90-Day Planner Wizard - Phase 1 Implementation Plan
+# Launch Planner Integration Plan
 
-## Executive Summary
+## Overview
 
-This plan implements a new, streamlined 90-Day Planner Wizard with teaching-aligned structure, "THE GAP" mindset preparation, and modern wizard UX patterns. The wizard takes approximately 10 minutes to complete and creates the `cycles_90_day` record that unlocks the full app.
-
----
-
-## User Choices (Confirmed)
-
-| Feature | Selected Option |
-|---------|-----------------|
-| Auto-save | Yes - Auto-save each step (3-second debounce) |
-| Edit from dashboard | Yes - Add 'Edit Plan' button on dashboard |
-| Metric templates | Both combined (Focus-based + Platform-specific) |
-| Mobile-first design | Yes - 375px first, scale up |
-| PDF export | Yes - Download button on final screen |
-| Progress resume | Yes - "Continue where you left off" dialog |
+This plan restructures the existing 13-step Launch Planner into a streamlined, questionnaire-based wizard aligned with your 25-question document. The new wizard will be experience-adaptive, deeply integrated with the app's task, reminder, CTFAR, and GAP systems, and will auto-generate personalized execution plans.
 
 ---
 
-## Wizard Structure (9 Steps - ~10 minutes)
+## Questionnaire to Wizard Step Mapping
 
-### Step 1: The Big Goal (1 min)
-**Purpose**: Capture the ONE clear goal for the next 90 days
+| Questionnaire Section | Questions | New Wizard Step | Integration Points |
+|----------------------|-----------|-----------------|---------------------|
+| Section 1: Launch Context | Q1-Q3 | Step 1: Launch Context | Branches UI complexity, determines task density |
+| Section 2: Goal & Timeline | Q4-Q6 | Step 2: Goal & Timeline | Creates project dates, revenue tracking |
+| Section 3: Offer Details | Q7-Q10 | Step 3: Offer Details | Sales page tasks, scarcity messaging |
+| Section 4: Pre-Launch Strategy | Q11-Q13 | Step 4: Pre-Launch Strategy | Content creation tasks, visibility tasks |
+| Section 5: Launch Week Strategy | Q14-Q16 | Step 5: Launch Week | Daily offer tasks, live event prep |
+| Section 6: Post-Launch Strategy | Q17-Q18 | Step 6: Post-Launch | Follow-up tasks, debrief scheduling |
+| Section 7: Contingency Planning | Q19-Q21 | Step 7: Contingency | CTFAR prompts, mindset reminders |
+| Section 8: THE GAP | Q22-Q23 | Step 8: THE GAP Check | Cycle linkage, support tasks |
+| Section 9: Final Check | Q24-Q25 | Step 9: Review & Complete | Personalized messaging, PDF export |
+
+---
+
+## New Wizard Structure (9 Steps)
+
+### Step 1: Launch Context (Q1-Q3)
 
 **Fields**:
-- `goal` (text, required, max 200 chars) - "What is your ONE big goal?"
-- `whyItMatters` (text, optional, max 500 chars) - "Why does this goal matter to you?"
-
-**Teaching**: Brief explanation that successful quarters have ONE clear priority
-
----
-
-### Step 2: Business Diagnostic (2 min)
-**Purpose**: Identify where in the business funnel the user should focus
-
-**Fields**:
-- `discoverScore` (1-10 slider) - "How easily do people find you?"
-- `nurtureScore` (1-10 slider) - "How well do you convert followers to fans?"
-- `convertScore` (1-10 slider) - "How confidently do you make offers?"
-- `focusArea` (auto-calculated) - Lowest score becomes focus
-
-**Teaching**: Explain Discover → Nurture → Convert funnel briefly
-**Component**: Use existing `BusinessDiagnostic.tsx` pattern
-
----
-
-### Step 3: Your Identity (1 min)
-**Purpose**: Anchoring to the person they're becoming
-
-**Fields**:
-- `identity` (text, optional) - "Who do you need to become to achieve this goal?"
-- `feeling` (text, optional) - "How do you want to feel at the end of 90 days?"
-
-**Teaching**: Identity-based goal achievement (Atomic Habits concept)
-
----
-
-### Step 4: Success Metrics (2 min)
-**Purpose**: Define measurable progress indicators
-
-**Fields**:
-- `metric1_name`, `metric1_start`, `metric1_goal` (required)
-- `metric2_name`, `metric2_start`, `metric2_goal` (optional)
-- `metric3_name`, `metric3_start`, `metric3_goal` (optional)
-
-**UI Features**:
-- Focus-based suggestions from `SUGGESTED_METRICS`
-- Platform-specific suggestions (Instagram followers, Email list size, etc.)
-- Quick-add buttons for common metrics
-
-**Platform Suggestions**:
 ```typescript
-const PLATFORM_METRICS = {
-  instagram: ['Followers', 'Engagement rate', 'Story views', 'DMs received'],
-  email: ['List size', 'Open rate', 'Click rate', 'Unsubscribe rate'],
-  podcast: ['Downloads', 'Reviews', 'Subscribers'],
-  youtube: ['Subscribers', 'Watch time', 'Views'],
-  linkedin: ['Connections', 'Post impressions', 'Profile views'],
+launchExperience: 'first-time' | 'launched-before' | 'launched-recently';
+previousLaunchLearnings?: string; // For non-first-timers
+whatWentWell?: string;
+whatToImprove?: string;
+offerType: 'course' | 'coaching' | 'product' | 'membership' | 'other';
+otherOfferType?: string;
+emailListStatus: 'comfortable' | 'small-nervous' | 'starting-zero' | 'building';
+```
+
+**UI Behavior**:
+- First-timers see more teaching content throughout wizard
+- Non-first-timers get quick reflection prompts about previous launch
+- List status determines visibility tasks vs. conversion focus
+
+**Teaching Content** (first-timers):
+> "Your first launch is about LEARNING, not revenue. Success = you launched."
+
+---
+
+### Step 2: Goal & Timeline (Q4-Q6)
+
+**Fields**:
+```typescript
+launchTimeline: '2-weeks' | '3-4-weeks' | '5-6-weeks';
+cartOpensDate: string;
+cartClosesDate: string; // Auto-calculated from timeline
+revenueGoalTier: 'first-sale' | '500-1000' | '1000-2500' | '2500-plus' | 'testing';
+customRevenueGoal?: number; // Derived from tier
+```
+
+**Auto-Calculations**:
+- Cart close = Cart open + timeline duration
+- GAP overlap detection against active 90-day cycle
+- Sales needed = revenue goal / price (calculated in Step 3)
+
+**Teaching** (based on tier):
+- "First sale" → Focus on learning, reduce pressure
+- "Testing" → Emphasis on collecting feedback, not sales
+- "$2500+" → Requires strong email list or direct outreach strategy
+
+---
+
+### Step 3: Offer Details (Q7-Q10)
+
+**Fields**:
+```typescript
+pricePoint: number;
+hasPaymentPlan: boolean;
+paymentPlanDetails?: string; // e.g., "3 payments of $197"
+idealCustomer: string; // Max 200 chars
+mainBonus: string; // Max 150 chars
+hasLimitations: 'none' | 'existing-clients' | 'limited-spots';
+limitationDetails?: string;
+spotLimit?: number;
+```
+
+**Auto-Calculations**:
+- `salesNeeded = revenueGoal / pricePoint`
+- Scarcity messaging type based on limitations
+
+**Generated Tasks**:
+- "Finalize pricing" (if price seems uncertain)
+- "Create bonus description" (if bonus provided)
+- "Set up limited spots counter" (if limited spots)
+
+---
+
+### Step 4: Pre-Launch Strategy (Q11-Q13)
+
+**Fields**:
+```typescript
+mainReachMethod: 'email' | 'social' | 'direct-outreach' | 'combination' | 'unsure';
+socialPlatform?: string; // If social selected
+combinationDetails?: string;
+contentCreationStatus: 'ready' | 'partial' | 'from-scratch';
+contentVolume: 'light' | 'medium' | 'heavy'; // 3-5, 5-10, 10+ pieces
+```
+
+**Task Generation Logic**:
+- `mainReachMethod === 'unsure'` → Add visibility assessment tasks
+- `contentCreationStatus === 'from-scratch'` → Heavy content creation tasks
+- `contentCreationStatus === 'ready'` → Promotion/scheduling tasks only
+- `contentVolume` → Determines quantity of email/post tasks
+
+**Generated Tasks Examples**:
+| Status | Content Volume | Tasks Generated |
+|--------|---------------|-----------------|
+| From scratch | Light (3-5) | 5 content creation tasks |
+| From scratch | Heavy (10+) | 12 content creation tasks |
+| Partial | Medium | 3 creation + 5 scheduling tasks |
+| Ready | Any | Scheduling/promotion only |
+
+---
+
+### Step 5: Launch Week Strategy (Q14-Q16)
+
+**Fields**:
+```typescript
+launchMethod: 'email-only' | 'social-email' | 'outreach-email' | 'in-person' | 'combination';
+offerFrequency: 'once' | 'daily' | 'multiple-daily' | 'every-other-day' | 'unsure';
+liveComponent: 'none' | 'one' | 'multiple' | 'considering';
+liveEventDetails?: LaunchLiveEvent[]; // Reuse existing type
+```
+
+**Task Density Calculation**:
+```typescript
+const dailyTasks = {
+  'once': 1,
+  'daily': 1,
+  'multiple-daily': 3,
+  'every-other-day': 0.5,
+  'unsure': 1, // Default with guidance task
 };
 ```
 
+**Generated Tasks**:
+- Daily offer reminder tasks based on frequency
+- Live event prep tasks (2 days before each)
+- Live event host tasks (day of)
+- "Guidance needed" task if frequency = 'unsure'
+
 ---
 
-### Step 5: Weekly Rhythm (1 min)
-**Purpose**: Establish when they'll plan and review
+### Step 6: Post-Launch Strategy (Q17-Q18)
 
 **Fields**:
-- `weeklyPlanningDay` (dropdown, Mon-Sun, required)
-- `weeklyDebriefDay` (dropdown, Mon-Sun, required)
-- `officeHoursStart` (time picker)
-- `officeHoursEnd` (time picker)
-- `officeHoursDays` (multi-select)
+```typescript
+promotionDuration: '1-week' | '2-weeks' | 'until-goal' | 'ongoing' | 'unsure';
+followUpWillingness: 'one-email' | 'multiple-emails' | 'personal-outreach' | 'simple' | 'unsure';
+```
 
-**Teaching**: Consistency > intensity
+**Generated Tasks**:
+| Follow-up Type | Tasks |
+|---------------|-------|
+| one-email | 1 follow-up email task (cart close + 1 day) |
+| multiple-emails | 3-5 follow-up email tasks spread over 5 days |
+| personal-outreach | Daily outreach tasks + warm lead list review |
+| simple | Single "Close out launch" task |
+| unsure | "Review follow-up strategy" guidance task |
+
+**Additional Tasks**:
+- Debrief task (cart close + 3 days or custom)
+- "What's next?" planning task (cart close + 7 days)
 
 ---
 
-### Step 6: Bottleneck & Fear (1 min)
-**Purpose**: Name what might stop them
+### Step 7: Contingency Planning (Q19-Q21)
 
 **Fields**:
-- `biggestBottleneck` (text) - "What's the main thing that could hold you back?"
-- `biggestFear` (text) - "What are you most afraid of?"
-- `fearResponse` (text) - "How will you handle it when it comes up?"
+```typescript
+biggestFears: string[]; // Multi-select from predefined list
+zeroSalesMeaning: 'offer-problem' | 'not-enough-promotion' | 'nobody-wants' | 'unsure' | 'just-data';
+zeroSalesPlan: 'figure-out-retry' | 'adjust-relaunch' | 'take-break' | 'no-plan' | 'unsure';
+```
 
-**Teaching**: Naming fears reduces their power
+**Fear Options** (from Q19):
+```typescript
+const FEAR_OPTIONS = [
+  { value: 'zero-sales', label: 'Nobody will buy / I\'ll get zero sales' },
+  { value: 'waste-time', label: 'I\'ll lose money or waste time' },
+  { value: 'judgment', label: 'People will judge my offer/pricing' },
+  { value: 'not-ready', label: 'I\'m not ready / there\'s something I\'m missing' },
+  { value: 'too-much-demand', label: 'I won\'t be able to keep up with demand' },
+  { value: 'audience-small', label: 'My audience is too small' },
+  { value: 'too-salesy', label: 'I\'ll seem too salesy/pushy' },
+  { value: 'no-fear', label: 'I have no fear - bring it on!' },
+];
+```
+
+**CTFAR Integration**:
+For each selected fear, auto-generate a CTFAR prompt:
+
+```typescript
+// When completing wizard, create ctfar entries
+const ctfarPrompts = selectedFears.map(fear => ({
+  user_id: userId,
+  cycle_id: activeCycleId,
+  circumstance: `I'm launching ${launchName}`,
+  thought: FEAR_THOUGHTS[fear], // Pre-written thought for each fear
+  feeling: FEAR_FEELINGS[fear],
+  action: '', // User fills in
+  result: '', // User fills in
+  tags: ['launch', 'mindset', launchName],
+}));
+```
+
+**Pre-written Fear Prompts**:
+```typescript
+const FEAR_THOUGHTS = {
+  'zero-sales': 'Nobody is going to buy and I\'ll embarrass myself',
+  'waste-time': 'I\'ll spend all this time and have nothing to show for it',
+  'judgment': 'People will think my price is too high or my offer is bad',
+  'not-ready': 'I\'m missing something important and I\'ll fail because of it',
+  'audience-small': 'My audience is too small to make any meaningful sales',
+  'too-salesy': 'I\'ll annoy people and they\'ll unsubscribe or unfollow me',
+};
+```
+
+**Teaching Content** (zeroSalesMeaning):
+- `offer-problem` → "Your offer can be improved. That's learnable."
+- `not-enough-promotion` → "Most launches under-promote. You can fix that."
+- `nobody-wants` → "This belief is almost never true. Let's reframe it."
+- `just-data` → "Great mindset! You're ready."
 
 ---
 
-### Step 7: THE GAP Preparation (1 min)
-**Purpose**: Critical mindset training for weeks 3-4
+### Step 8: THE GAP Check (Q22-Q23)
 
-**Content Display** (not captured, just shown):
-- Explain what THE GAP is (18-28 days)
-- Why energy dips are normal
-- How to push through without quitting
+**Conditional Display**: Only shown if:
+1. User has an active 90-day cycle
+2. Launch dates overlap with days 15-30 of cycle
+
+**Auto-Detection Logic**:
+```typescript
+function detectGapOverlap(
+  launchStart: Date, 
+  launchEnd: Date, 
+  cycleStart: Date
+): { overlaps: boolean; overlapWeeks: number[] } {
+  const gapStart = addDays(cycleStart, 14); // Day 15
+  const gapEnd = addDays(cycleStart, 30);   // Day 30
+  
+  const overlaps = (launchStart <= gapEnd && launchEnd >= gapStart);
+  const overlapWeeks = overlaps ? [3, 4] : [];
+  
+  return { overlaps, overlapWeeks };
+}
+```
+
+**Fields** (if GAP detected):
+```typescript
+gapAcknowledged: boolean;
+gapSupportType: 'daily-motivation' | 'mid-week-check' | 'thought-work' | 'keep-tasks' | 'decide-later';
+```
+
+**Generated Support**:
+| Support Type | Generated Items |
+|-------------|-----------------|
+| daily-motivation | Daily mindset reminder tasks during weeks 3-4 |
+| mid-week-check | Accountability call/check-in task mid-launch |
+| thought-work | Link to CTFAR + pre-populated limiting belief |
+| keep-tasks | Standard tasks, no extra support |
+| decide-later | "Check in about GAP support" task at week 3 start |
+
+**Cycle Linkage**:
+- Pull existing GAP strategy from Cycle Wizard if available
+- Display: "You previously said you'd handle THE GAP by: [strategy]"
+- Option to use same strategy or set launch-specific one
+
+---
+
+### Step 9: Review & Complete (Q24-Q25)
 
 **Fields**:
-- `gapStrategy` (text) - "What will you do when you feel like quitting in weeks 3-4?"
-- `accountabilityPerson` (text) - "Who will you text when things get hard?"
+```typescript
+readinessScore: number; // 1-10 slider
+whatYouNeed: 'task-list' | 'offer-help' | 'confidence' | 'accountability' | 'nothing';
+```
 
-**UI**: Distinctive styling - warning colors, emphasis on importance
+**Readiness-Based Messaging**:
+```typescript
+const READINESS_MESSAGES = {
+  low: "You don't have to feel ready. You're going to do this anyway. Let's make a plan.",
+  medium: "You're in the zone. Let's do this.",
+  high: "Let's go. You've got this.",
+};
+```
 
----
+**Personalization Based on "What You Need"**:
+| Selection | Extra Output |
+|-----------|-------------|
+| task-list | Emphasize task view, daily checklist |
+| offer-help | Add "Review offer positioning" task, flag for coaching |
+| confidence | Add daily mindset/affirmation tasks |
+| accountability | Add mid-launch check-in reminders |
+| nothing | Standard output |
 
-### Step 8: Mindset Anchors (1 min)
-**Purpose**: Useful beliefs and thoughts
-
-**Fields**:
-- `usefulBelief` (text) - "What belief will serve you this quarter?"
-- `limitingThought` (text) - "What unhelpful thought might come up?"
-- `usefulThought` (text) - "What will you think instead?"
-- `thingsToRemember` (array) - "What do you want to be reminded of?"
-
-**Teaching**: Thought work connection
-
----
-
-### Step 9: Review & Complete
-**Purpose**: See the complete plan, confirm, export
-
-**UI Features**:
-- Read-only summary of all answers
-- "Edit" buttons to jump back to any section
-- PDF Export button (prominent)
-- "Create My 90-Day Cycle" button
-
-**Actions on Complete**:
-1. Save to `cycles_90_day` table
-2. Mark wizard as completed
-3. Clear draft
-4. Navigate to Dashboard with celebration toast
-5. Show "Edit Plan" button on dashboard
+**Final Output Summary**:
+- Task count by category
+- Timeline visualization
+- Revenue goal tracker
+- Key milestone dates
+- PDF export button
 
 ---
 
-## Technical Architecture
+## Database Schema Changes
 
-### New Files to Create
+### New Columns for `launches` Table
+
+```sql
+ALTER TABLE public.launches ADD COLUMN IF NOT EXISTS
+  -- Context
+  launch_experience TEXT CHECK (launch_experience IN ('first-time', 'launched-before', 'launched-recently')),
+  previous_launch_learnings TEXT,
+  what_went_well TEXT,
+  what_to_improve TEXT,
+  email_list_status TEXT,
+  
+  -- Offer Details (expanded)
+  ideal_customer TEXT,
+  main_bonus TEXT,
+  has_limitations TEXT,
+  limitation_details TEXT,
+  spot_limit INTEGER,
+  has_payment_plan BOOLEAN DEFAULT false,
+  payment_plan_details TEXT,
+  
+  -- Strategy
+  main_reach_method TEXT,
+  content_creation_status TEXT,
+  content_volume TEXT,
+  launch_method TEXT,
+  offer_frequency TEXT,
+  live_component TEXT,
+  promotion_duration TEXT,
+  follow_up_willingness TEXT,
+  
+  -- Contingency
+  biggest_fears TEXT[],
+  zero_sales_meaning TEXT,
+  zero_sales_plan TEXT,
+  
+  -- GAP
+  gap_overlap_detected BOOLEAN DEFAULT false,
+  gap_acknowledged BOOLEAN DEFAULT false,
+  gap_support_type TEXT,
+  
+  -- Final
+  readiness_score INTEGER CHECK (readiness_score >= 1 AND readiness_score <= 10),
+  what_they_need TEXT;
+```
+
+---
+
+## Task Generation Matrix
+
+The edge function will generate tasks based on questionnaire answers:
+
+### Pre-Launch Tasks
+
+| Condition | Tasks Generated |
+|-----------|-----------------|
+| `contentCreationStatus = 'from-scratch'` | Content creation tasks (quantity = contentVolume mapping) |
+| `mainReachMethod = 'unsure'` | "Define your visibility strategy" task |
+| `emailListStatus = 'starting-zero'` | "Build initial email list" task series |
+| `hasPaymentPlan = true` | "Set up payment plan in checkout" task |
+
+### Launch Week Tasks
+
+| Condition | Tasks Generated |
+|-----------|-----------------|
+| `offerFrequency = 'daily'` | Daily "Make an offer" task for each launch day |
+| `offerFrequency = 'multiple-daily'` | 3x daily offer reminder tasks |
+| `liveComponent = 'one' or 'multiple'` | Prep task (day-2), Host task (day of) |
+| `launchMethod = 'outreach-email'` | Daily "Personal outreach" task |
+
+### Post-Launch Tasks
+
+| Condition | Tasks Generated |
+|-----------|-----------------|
+| `followUpWillingness = 'multiple-emails'` | 3-5 follow-up email tasks |
+| `followUpWillingness = 'personal-outreach'` | Daily outreach tasks for 5 days |
+| Always | Launch debrief task |
+
+### Mindset Tasks
+
+| Condition | Tasks Generated |
+|-----------|-----------------|
+| `biggestFears.length > 0` | CTFAR entries for each fear |
+| `readinessScore <= 5` | Daily mindset affirmation tasks |
+| `whatYouNeed = 'accountability'` | Mid-launch check-in reminders |
+| `gapOverlapDetected = true` | GAP-specific support tasks |
+
+---
+
+## App Integration Points
+
+### 1. Daily Plan Integration
+
+**Launch Countdown Card** (already exists in InfoCards.tsx):
+- Shows days until cart opens/closes
+- Progress toward sales goal
+- Today's launch tasks highlighted
+
+**New Additions**:
+- "Offer made today?" quick checkbox
+- Mindset prompt for GAP days
+- Fear reframe tip based on biggest_fears
+
+### 2. Weekly Plan Integration
+
+**Launch Week Detection**:
+```typescript
+// In WeeklyPlan.tsx
+const isLaunchWeek = activeLaunch && 
+  isWithinInterval(currentWeekStart, {
+    start: parseISO(activeLaunch.cart_opens),
+    end: parseISO(activeLaunch.cart_closes),
+  });
+```
+
+**Launch Week Mode**:
+- Automatic focus on launch tasks
+- Daily offer tracking summary
+- Mid-week mindset check
+
+### 3. CTFAR Integration
+
+**Auto-Generated Entries**:
+When wizard completes, create CTFAR entries for each selected fear:
+
+```typescript
+// In edge function
+if (wizardData.biggestFears?.length > 0) {
+  const ctfarEntries = wizardData.biggestFears.map(fear => ({
+    user_id: userId,
+    cycle_id: activeCycleId,
+    circumstance: `Launching ${wizardData.name}`,
+    thought: FEAR_THOUGHT_MAP[fear],
+    feeling: '',
+    action: '',
+    result: '',
+    tags: ['launch', 'auto-generated'],
+  }));
+  
+  await supabase.from('ctfar').insert(ctfarEntries);
+}
+```
+
+### 4. Reminders Integration
+
+**Launch-Specific Reminders**:
+```typescript
+// Create reminders for key dates
+const remindersToCreate = [
+  {
+    user_id: userId,
+    type: 'launch_cart_opens',
+    delivery_method: 'in_app',
+    active: true,
+  },
+  {
+    user_id: userId,
+    type: 'launch_daily_offer',
+    delivery_method: 'in_app',
+    active: wizardData.offerFrequency !== 'once',
+  },
+];
+```
+
+### 5. Dashboard Integration
+
+**Active Launch Widget**:
+- Revenue progress bar
+- Days remaining
+- Quick "Make an offer" button
+- Mindset tip of the day
+
+**Post-Launch**:
+- Launch summary card
+- "View Debrief" button
+- Next launch suggestion
+
+---
+
+## Files to Create/Modify
+
+### New Files (9 Step Components)
 
 ```text
-src/pages/CycleWizard.tsx                          # Main wizard page
-src/components/cycle-wizard/                        # Component folder
-  ├── CycleWizardTypes.ts                          # TypeScript types
-  ├── CycleWizardData.ts                           # Default data & constants
+src/components/wizards/launch-v2/
+  ├── LaunchWizardV2.tsx           # Main wizard component
+  ├── LaunchWizardTypes.ts         # New types
+  ├── LaunchWizardValidation.ts    # Validation rules
   ├── steps/
-  │   ├── StepBigGoal.tsx                          # Step 1
-  │   ├── StepDiagnostic.tsx                       # Step 2
-  │   ├── StepIdentity.tsx                         # Step 3
-  │   ├── StepMetrics.tsx                          # Step 4
-  │   ├── StepWeeklyRhythm.tsx                     # Step 5
-  │   ├── StepBottleneck.tsx                       # Step 6
-  │   ├── StepTheGap.tsx                           # Step 7
-  │   ├── StepMindset.tsx                          # Step 8
-  │   └── StepReview.tsx                           # Step 9
-  ├── CycleWizardReviewCard.tsx                    # Reusable review section
-  └── CycleWizardPDFExport.ts                      # PDF generation
+  │   ├── StepLaunchContext.tsx    # Q1-Q3
+  │   ├── StepGoalTimeline.tsx     # Q4-Q6
+  │   ├── StepOfferDetails.tsx     # Q7-Q10
+  │   ├── StepPreLaunchStrategy.tsx # Q11-Q13
+  │   ├── StepLaunchWeek.tsx       # Q14-Q16
+  │   ├── StepPostLaunch.tsx       # Q17-Q18
+  │   ├── StepContingency.tsx      # Q19-Q21
+  │   ├── StepTheGap.tsx           # Q22-Q23
+  │   └── StepReviewComplete.tsx   # Q24-Q25
+  └── utils/
+      ├── fearPrompts.ts           # CTFAR templates
+      ├── taskGenerator.ts         # Task generation logic
+      └── gapDetection.ts          # GAP overlap detection
 ```
 
-### Existing Components to Reuse
+### Modified Files
 
-| Component | Usage |
-|-----------|-------|
-| `useWizard.ts` | Draft persistence, auto-save, progress resume |
-| `WizardLayout.tsx` | Header, progress bar, navigation buttons |
-| `WizardSaveStatus.tsx` | Cloud sync indicator |
-| `ResumeDraftDialog.tsx` | Draft recovery prompt |
-| `BusinessDiagnostic.tsx` | Reference for Step 2 sliders |
-| `pdfGenerator.ts` | Extend for new wizard PDF format |
-
-### Database Integration
-
-**Table**: `cycles_90_day` (existing)
-
-**Fields Used by Wizard**:
-```sql
--- Step 1
-goal, why
-
--- Step 2 (Diagnostic)
-discover_score, nurture_score, convert_score, focus_area
-
--- Step 3 (Identity)
-identity, target_feeling
-
--- Step 4 (Metrics)
-metric_1_name, metric_1_start, metric_1_goal,
-metric_2_name, metric_2_start, metric_2_goal,
-metric_3_name, metric_3_start, metric_3_goal
-
--- Step 5 (Rhythm)
-weekly_planning_day, weekly_debrief_day,
-office_hours_start, office_hours_end, office_hours_days
-
--- Step 6 (Bottleneck)
-biggest_bottleneck, biggest_fear, fear_response
-
--- Step 7 (Gap Strategy) - NEW COLUMN NEEDED
-gap_strategy
-
--- Step 8 (Mindset)
-useful_belief, limiting_thought, useful_thought,
-accountability_person, things_to_remember
-
--- Dates (auto-calculated)
-start_date (today), end_date (today + 90)
-```
-
-### New Database Column
-
-```sql
-ALTER TABLE cycles_90_day 
-ADD COLUMN gap_strategy text;
-```
+| File | Changes |
+|------|---------|
+| `src/types/launch.ts` | Add new field types |
+| `supabase/functions/create-launch-from-wizard/index.ts` | Update task generation |
+| `src/components/daily/InfoCards.tsx` | Enhanced launch card |
+| `src/pages/WeeklyPlan.tsx` | Launch week mode |
+| `src/components/wizards/WizardHub.tsx` | Route to new wizard |
+| `src/App.tsx` | Add new route |
 
 ---
 
-## Dashboard Edit Integration
+## Implementation Phases
 
-**File**: `src/pages/Dashboard.tsx`
+### Phase 1: New Wizard Structure (Week 1)
+1. Database migration for new columns
+2. Create new wizard types and validation
+3. Build Steps 1-3 (Context, Timeline, Offer)
+4. Test wizard flow with mock data
 
-Add "Edit Plan" button to the cycle summary card:
+### Phase 2: Strategy Steps (Week 2)
+5. Build Steps 4-6 (Pre-launch, Launch Week, Post-launch)
+6. Implement task generation logic
+7. Test task creation with various answer combinations
 
-```tsx
-<Button
-  variant="ghost"
-  size="sm"
-  onClick={() => navigate(`/cycle-wizard?edit=${cycleId}`)}
->
-  <Pencil className="h-4 w-4 mr-1" />
-  Edit Plan
-</Button>
-```
+### Phase 3: Mindset Integration (Week 3)
+8. Build Steps 7-8 (Contingency, GAP)
+9. Implement CTFAR auto-generation
+10. GAP detection and cycle linkage
+11. Update edge function with new task types
 
-The wizard page will detect `?edit=cycleId` and load existing data for editing.
-
----
-
-## Routing
-
-**New Route**: `/cycle-wizard`
-
-```tsx
-// In App.tsx routes
-{ path: '/cycle-wizard', element: <CycleWizard /> }
-```
-
-**Update WizardHub.tsx** to route to new wizard:
-```tsx
-if (templateName === 'cycle-90-day') {
-  navigate('/cycle-wizard');  // Changed from /cycle-setup
-}
-```
-
----
-
-## PDF Export Implementation
-
-Extend `src/lib/pdfGenerator.ts` with a lighter format for the new wizard:
-
-```typescript
-export async function generateCycleWizardPDF(data: CycleWizardFormData): Promise<PDFGenerationResult> {
-  // Simplified PDF with:
-  // - One-page summary
-  // - Goal + Identity + Metrics
-  // - Weekly rhythm
-  // - GAP strategy
-  // - Mindset anchors
-}
-```
-
----
-
-## Mobile-First Design Patterns
-
-All step components will follow:
-
-```tsx
-// Single column layout, stacked cards
-<div className="space-y-4">
-  {/* Full-width inputs on mobile */}
-  <div className="space-y-2">
-    <Label className="text-base">Your Goal</Label>
-    <Textarea 
-      className="min-h-[120px] text-base" 
-      placeholder="..."
-    />
-  </div>
-</div>
-
-// Slider touch targets
-<Slider 
-  className="touch-action-manipulation"
-  thumbClassName="h-6 w-6" // 24px minimum
-/>
-```
-
-Desktop expands to 2-column layouts where appropriate.
-
----
-
-## Data Flow
-
-```text
-1. User opens /cycle-wizard
-2. useWizard hook checks for draft
-   - If draft exists: Show ResumeDraftDialog
-   - If no draft: Start fresh with defaults
-3. Each step change triggers auto-save (3s debounce)
-4. On final "Create" click:
-   a. Call edge function or direct insert to cycles_90_day
-   b. Mark wizard_completions as completed_at = now()
-   c. Clear local draft
-   d. Navigate to dashboard
-   e. Show success toast
-```
-
----
-
-## Implementation Sequence
-
-### Phase 1A: Core Structure (First)
-1. Create `CycleWizardTypes.ts` with form data interface
-2. Create `CycleWizardData.ts` with defaults and constants
-3. Create `CycleWizard.tsx` main page with useWizard hook
-4. Add route to App.tsx
-
-### Phase 1B: Step Components
-5. Build Step 1: StepBigGoal
-6. Build Step 2: StepDiagnostic (with sliders)
-7. Build Step 3: StepIdentity
-8. Build Step 4: StepMetrics (with suggestions)
-9. Build Step 5: StepWeeklyRhythm
-10. Build Step 6: StepBottleneck
-11. Build Step 7: StepTheGap (distinctive styling)
-12. Build Step 8: StepMindset
-13. Build Step 9: StepReview
-
-### Phase 1C: Integration
-14. Database migration for `gap_strategy` column
-15. Save logic to `cycles_90_day`
-16. PDF export function
-17. Dashboard edit button
-18. Update WizardHub routing
-
-### Phase 1D: Polish
-19. Mobile responsive testing
-20. Draft resume flow testing
-21. Edit mode (loading existing cycle)
-22. Edge cases (missing data, validation)
-
----
-
-## Validation Rules
-
-| Step | Validation |
-|------|------------|
-| 1 | Goal required, max 200 chars |
-| 2 | All 3 scores required (1-10) |
-| 3 | Optional |
-| 4 | At least metric 1 required |
-| 5 | Planning day + Debrief day required |
-| 6 | Optional |
-| 7 | Optional (but encouraged) |
-| 8 | Optional |
-| 9 | N/A (review) |
-
-```typescript
-function validateStep(step: number, data: CycleWizardFormData): boolean {
-  switch (step) {
-    case 1: return data.goal.trim().length > 0 && data.goal.length <= 200;
-    case 2: return data.discoverScore >= 1 && data.nurtureScore >= 1 && data.convertScore >= 1;
-    case 4: return !!data.metric1_name && data.metric1_start !== null;
-    case 5: return !!data.weeklyPlanningDay && !!data.weeklyDebriefDay;
-    default: return true;
-  }
-}
-```
+### Phase 4: Polish & Integration (Week 4)
+12. Build Step 9 (Review & Complete)
+13. Dashboard launch widget
+14. Weekly plan launch mode
+15. PDF export
+16. Mobile testing
+17. Migrate existing wizard route
 
 ---
 
 ## Success Criteria
 
-1. User can complete wizard in ~10 minutes
-2. Draft auto-saves and can be resumed
-3. Creates valid `cycles_90_day` record
-4. PDF exports cleanly on mobile and desktop
-5. Edit button on dashboard works
-6. THE GAP step is visually distinctive
-7. Metric suggestions appear based on focus area + platforms
-8. Mobile experience is smooth (single column, large touch targets)
+1. Wizard completes in ~10 minutes
+2. Experience-based branching reduces overwhelm for first-timers
+3. Tasks auto-generate based on answers (not one-size-fits-all)
+4. CTFAR entries created for selected fears
+5. GAP detection and support for launches in weeks 3-4
+6. Clear visibility into what's being generated before completion
+7. Works on mobile (375px first)
+8. Integrates with existing Daily/Weekly plan views
 
 ---
 
@@ -419,47 +579,8 @@ function validateStep(step: number, data: CycleWizardFormData): boolean {
 
 | Risk | Mitigation |
 |------|------------|
-| Existing CycleSetup users | Keep old route working, redirect to new wizard |
-| Data migration | New column only, no breaking changes |
-| PDF on mobile Safari | Use jsPDF (already working) |
-| Large form state | useWizard already handles efficiently |
-
----
-
-## Files Summary
-
-### New Files (15)
-- `src/pages/CycleWizard.tsx`
-- `src/components/cycle-wizard/CycleWizardTypes.ts`
-- `src/components/cycle-wizard/CycleWizardData.ts`
-- `src/components/cycle-wizard/CycleWizardPDFExport.ts`
-- `src/components/cycle-wizard/CycleWizardReviewCard.tsx`
-- `src/components/cycle-wizard/steps/StepBigGoal.tsx`
-- `src/components/cycle-wizard/steps/StepDiagnostic.tsx`
-- `src/components/cycle-wizard/steps/StepIdentity.tsx`
-- `src/components/cycle-wizard/steps/StepMetrics.tsx`
-- `src/components/cycle-wizard/steps/StepWeeklyRhythm.tsx`
-- `src/components/cycle-wizard/steps/StepBottleneck.tsx`
-- `src/components/cycle-wizard/steps/StepTheGap.tsx`
-- `src/components/cycle-wizard/steps/StepMindset.tsx`
-- `src/components/cycle-wizard/steps/StepReview.tsx`
-- `src/components/cycle-wizard/steps/index.ts`
-
-### Modified Files (5)
-- `src/App.tsx` - Add route
-- `src/pages/Dashboard.tsx` - Add edit button
-- `src/components/wizards/WizardHub.tsx` - Update routing
-- `src/lib/pdfGenerator.ts` - Add new export function
-- Database migration for `gap_strategy` column
-
----
-
-## Next Steps After Approval
-
-1. Create database migration for `gap_strategy` column
-2. Build core wizard structure with Steps 1-3
-3. Build Steps 4-6
-4. Build Steps 7-9 (including THE GAP)
-5. Add save logic and PDF export
-6. Dashboard integration
-7. Mobile testing
+| Wizard too long (9 steps) | Most steps are 3-4 questions; quick multi-select |
+| Task overload | Show task count preview; allow bulk defer |
+| GAP detection edge cases | Manual override option; "I'm not sure" choice |
+| Existing launch wizard users | Keep old wizard at `/launch-wizard-old`, migrate gradually |
+| CTFAR overwhelm | Generate max 3 CTFAR entries; prioritize top fears |
