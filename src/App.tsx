@@ -15,6 +15,7 @@ import { TourOverlay } from "@/components/tour/TourOverlay";
 import { TourWelcome } from "@/components/tour/TourWelcome";
 import { TourKeyboardHandler } from "@/components/tour/TourKeyboardHandler";
 import { QuickCaptureProvider } from "@/components/quick-capture";
+import { ManifestSwitcher } from "@/components/pwa/ManifestSwitcher";
 import { DevDebugPanel } from "@/components/dev/DevDebugPanel";
 import { LoadingState } from "@/components/system/LoadingState";
 
@@ -102,7 +103,8 @@ const PlannerSettings = lazyWithRetry(() => import('./pages/PlannerSettings'));
 const DailyPageSettings = lazyWithRetry(() => import('./pages/settings/DailyPageSettings'));
 const FinancialTracker = lazyWithRetry(() => import('./pages/FinancialTracker'));
 const LaunchDebrief = lazyWithRetry(() => import('./pages/LaunchDebrief'));
-// Configure QueryClient with performance-focused defaults
+const QuickAddApp = lazyWithRetry(() => import('./pages/QuickAddApp'));
+const InstallQuickAdd = lazyWithRetry(() => import('./pages/InstallQuickAdd'));
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -152,6 +154,7 @@ const App = () => (
                 <ArcadeProvider>
                   <QuickCaptureProvider>
                     <OnlineStatusMonitor />
+                    <ManifestSwitcher />
                     <TourOverlay />
                     <TourWelcome />
                     <TourKeyboardHandler />
@@ -216,6 +219,8 @@ const App = () => (
                       <Route path="/workshop-planner/create" element={<PageSuspense><WorkshopPlanner /></PageSuspense>} />
                       <Route path="/trial" element={<PageSuspense><TrialSignup /></PageSuspense>} />
                       <Route path="/join" element={<PageSuspense><MemberSignup /></PageSuspense>} />
+                      <Route path="/quick-add" element={<PageSuspense><QuickAddApp /></PageSuspense>} />
+                      <Route path="/install-quick-add" element={<PageSuspense><InstallQuickAdd /></PageSuspense>} />
                       
                       <Route path="*" element={<NotFound />} />
                     </Routes>
