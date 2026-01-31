@@ -72,10 +72,10 @@ Deno.serve(async (req) => {
     const currentCycle = cycleData[0];
     console.log('Current cycle:', currentCycle.cycle_id);
 
-    // Fetch full cycle data to get metric names
+    // Fetch full cycle data to get metric names and additional data
     const { data: cycleMetricsData } = await supabaseClient
       .from('cycles_90_day')
-      .select('metric_1_name, metric_2_name, metric_3_name')
+      .select('*, biggest_bottleneck, discover_score, nurture_score, convert_score')
       .eq('cycle_id', currentCycle.cycle_id)
       .maybeSingle();
 
@@ -130,6 +130,8 @@ Deno.serve(async (req) => {
       const weekStart = new Date(week.start_of_week);
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekEnd.getDate() + 6);
+      const weekStartStr = week.start_of_week;
+      const weekEndStr = weekEnd.toISOString().split('T')[0];
       
       // Count daily plans for this week
       const { count: dailyPlansCount } = await supabaseClient
@@ -141,7 +143,7 @@ Deno.serve(async (req) => {
       // Calculate habit completion for this week
       const { data: habits } = await supabaseClient
         .from('habits')
-        .select('habit_id')
+        .select('habit_id, habit_name')
         .eq('user_id', userId)
         .eq('is_active', true);
       
@@ -149,13 +151,12 @@ Deno.serve(async (req) => {
       
       const { data: habitLogs } = await supabaseClient
         .from('habit_logs')
-        .select('log_id')
+        .select('log_id, habit_id, date, completed')
         .eq('user_id', userId)
-        .eq('completed', true)
-        .gte('date', week.start_of_week)
-        .lte('date', weekEnd.toISOString().split('T')[0]);
+        .gte('date', weekStartStr)
+        .lte('date', weekEndStr);
       
-      const completedHabits = habitLogs?.length || 0;
+      const completedHabits = habitLogs?.filter(h => h.completed)?.length || 0;
       const habitPercent = totalHabits > 0 ? Math.round((completedHabits / totalHabits) * 100) : 0;
       
       // Check if review exists
@@ -172,7 +173,7 @@ Deno.serve(async (req) => {
         .select('week_id, metric_1_actual, metric_2_actual, metric_3_actual, created_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
-        .limit(4);
+        .limit(7);
       
       // Get the most recent metric actuals for current values
       const latestReview = recentReviews?.[0];
@@ -185,24 +186,191 @@ Deno.serve(async (req) => {
           previous: previousReview?.metric_1_actual ?? null,
           start: fullCycleData?.metric_1_start ?? null,
           goal: fullCycleData?.metric_1_goal ?? null,
+          history: recentReviews?.map(r => r.metric_1_actual).reverse() ?? [],
         },
         metric_2: {
           current: latestReview?.metric_2_actual ?? fullCycleData?.metric_2_start ?? null,
           previous: previousReview?.metric_2_actual ?? null,
           start: fullCycleData?.metric_2_start ?? null,
           goal: fullCycleData?.metric_2_goal ?? null,
+          history: recentReviews?.map(r => r.metric_2_actual).reverse() ?? [],
         },
         metric_3: {
           current: latestReview?.metric_3_actual ?? fullCycleData?.metric_3_start ?? null,
           previous: previousReview?.metric_3_actual ?? null,
           start: fullCycleData?.metric_3_start ?? null,
           goal: fullCycleData?.metric_3_goal ?? null,
+          history: recentReviews?.map(r => r.metric_3_actual).reverse() ?? [],
         },
       };
       
       // Calculate week number in cycle (1-13)
       const cycleStart = new Date(fullCycleData?.start_date || '');
       const weekNumber = Math.floor((weekStart.getTime() - cycleStart.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
+      
+      // ============ NEW: Enhanced Data for Context Pull & Execution Summary ============
+      
+      // 1. Get content created this week
+      const { data: contentData } = await supabaseClient
+        .from('content_log')
+        .select('platform')
+        .eq('user_id', userId)
+        .gte('date', weekStartStr)
+        .lte('date', weekEndStr);
+      
+      // Aggregate content by platform
+      const contentByPlatform: { platform: string; count: number }[] = [];
+      if (contentData) {
+        const platformCounts = contentData.reduce((acc, item) => {
+          acc[item.platform] = (acc[item.platform] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        Object.entries(platformCounts).forEach(([platform, count]) => {
+          contentByPlatform.push({ platform, count });
+        });
+      }
+      
+      // 2. Get offers and sales this week
+      const { data: salesData } = await supabaseClient
+        .from('sales_log')
+        .select('amount, date')
+        .eq('user_id', userId)
+        .gte('date', weekStartStr)
+        .lte('date', weekEndStr);
+      
+      // Count offers from daily_plans (made_offer flag)
+      const { data: dailyOffersData } = await supabaseClient
+        .from('daily_plans')
+        .select('date, made_offer')
+        .eq('user_id', userId)
+        .gte('date', weekStartStr)
+        .lte('date', weekEndStr);
+      
+      const offersCount = dailyOffersData?.filter(d => d.made_offer)?.length || 0;
+      const salesCount = salesData?.length || 0;
+      const revenue = salesData?.reduce((sum, s) => sum + (s.amount || 0), 0) || 0;
+      
+      // Calculate offer streak (consecutive days with offer)
+      let streak = 0;
+      if (dailyOffersData) {
+        const sortedDays = [...dailyOffersData]
+          .filter(d => d.made_offer)
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
+        const today = new Date();
+        for (let i = 0; i < sortedDays.length; i++) {
+          const dayDate = new Date(sortedDays[i].date);
+          const expectedDate = new Date(today);
+          expectedDate.setDate(expectedDate.getDate() - i);
+          
+          if (dayDate.toISOString().split('T')[0] === expectedDate.toISOString().split('T')[0]) {
+            streak++;
+          } else {
+            break;
+          }
+        }
+      }
+      
+      // 3. Get task execution stats for this week
+      const { data: taskStats } = await supabaseClient
+        .from('tasks')
+        .select('priority, status')
+        .eq('user_id', userId)
+        .gte('scheduled_date', weekStartStr)
+        .lte('scheduled_date', weekEndStr);
+      
+      // Priority tasks (priority = true or priority 1-3)
+      const priorityTasks = taskStats?.filter(t => t.priority === true || (typeof t.priority === 'number' && t.priority <= 3)) || [];
+      const priorityCompleted = priorityTasks.filter(t => t.status === 'done').length;
+      const priorityTotal = priorityTasks.length;
+      
+      // Strategic tasks (non-priority)
+      const strategicTasks = taskStats?.filter(t => t.priority !== true && (typeof t.priority !== 'number' || t.priority > 3)) || [];
+      const strategicCompleted = strategicTasks.filter(t => t.status === 'done').length;
+      const strategicTotal = strategicTasks.length;
+      
+      // 4. Get daily alignment scores for the week
+      const { data: alignmentData } = await supabaseClient
+        .from('daily_plans')
+        .select('alignment_score, date')
+        .eq('user_id', userId)
+        .gte('date', weekStartStr)
+        .lte('date', weekEndStr)
+        .not('alignment_score', 'is', null);
+      
+      const alignmentScores = alignmentData?.map(d => d.alignment_score).filter((s): s is number => s !== null) || [];
+      const weeklyAlignmentAverage = alignmentScores.length > 0 
+        ? Math.round((alignmentScores.reduce((a, b) => a + b, 0) / alignmentScores.length) * 10) / 10 
+        : null;
+      
+      // 5. Get CTFAR sessions from this week
+      const { data: ctfarData } = await supabaseClient
+        .from('ctfar')
+        .select('thought, date, circumstance')
+        .eq('user_id', userId)
+        .gte('date', weekStartStr)
+        .lte('date', weekEndStr)
+        .order('date', { ascending: false })
+        .limit(1);
+      
+      const previousCTFAR = ctfarData?.[0] ? {
+        thought: ctfarData[0].thought,
+        date: ctfarData[0].date,
+        circumstance: ctfarData[0].circumstance,
+      } : null;
+      
+      // 6. Build habit grid data
+      const habitGrid: { habitName: string; habitId: string; days: boolean[] }[] = [];
+      if (habits && habitLogs) {
+        habits.forEach(habit => {
+          const days: boolean[] = [];
+          for (let i = 0; i < 7; i++) {
+            const dayDate = new Date(weekStart);
+            dayDate.setDate(dayDate.getDate() + i);
+            const dayStr = dayDate.toISOString().split('T')[0];
+            const log = habitLogs.find(l => l.habit_id === habit.habit_id && l.date === dayStr);
+            days.push(log?.completed || false);
+          }
+          habitGrid.push({
+            habitName: habit.habit_name,
+            habitId: habit.habit_id,
+            days,
+          });
+        });
+      }
+      
+      // 7. Get revenue plan for quarterly targets
+      const { data: revenuePlan } = await supabaseClient
+        .from('cycle_revenue_plan')
+        .select('revenue_goal, sales_needed, price_per_sale')
+        .eq('cycle_id', currentCycle.cycle_id)
+        .maybeSingle();
+      
+      // 8. Get quarterly actuals (sales/revenue for whole cycle)
+      const cycleStartStr = fullCycleData?.start_date;
+      const cycleEndStr = fullCycleData?.end_date;
+      
+      const { data: cycleSalesData } = await supabaseClient
+        .from('sales_log')
+        .select('amount')
+        .eq('user_id', userId)
+        .gte('date', cycleStartStr)
+        .lte('date', cycleEndStr);
+      
+      const cycleRevenue = cycleSalesData?.reduce((sum, s) => sum + (s.amount || 0), 0) || 0;
+      const cycleSalesCount = cycleSalesData?.length || 0;
+      
+      // Count offers for the cycle
+      const { data: cycleOffersData } = await supabaseClient
+        .from('daily_plans')
+        .select('made_offer')
+        .eq('user_id', userId)
+        .gte('date', cycleStartStr)
+        .lte('date', cycleEndStr);
+      
+      const cycleOffersCount = cycleOffersData?.filter(d => d.made_offer)?.length || 0;
+      
+      // ============ END: Enhanced Data ============
       
       return new Response(
         JSON.stringify({ 
@@ -248,6 +416,10 @@ Deno.serve(async (req) => {
               metric_3_name: fullCycleData.metric_3_name,
               metric_3_start: fullCycleData.metric_3_start,
               metric_3_goal: fullCycleData.metric_3_goal,
+              biggest_bottleneck: fullCycleData.biggest_bottleneck,
+              discover_score: fullCycleData.discover_score,
+              nurture_score: fullCycleData.nurture_score,
+              convert_score: fullCycleData.convert_score,
             } : null,
             // New worksheet fields
             weekly_scratch_pad: fullWeekData?.weekly_scratch_pad || '',
@@ -257,6 +429,47 @@ Deno.serve(async (req) => {
             // Cycle analytics
             week_number: weekNumber,
             metric_trends: metricTrends,
+            
+            // ============ NEW: Enhanced Data ============
+            // Context Pull data
+            context_pull: {
+              quarter_stats: {
+                revenue_goal: revenuePlan?.revenue_goal ?? null,
+                revenue_actual: cycleRevenue,
+                sales_goal: revenuePlan?.sales_needed ?? null,
+                sales_actual: cycleSalesCount,
+                offers_goal: 90, // Default target
+                offers_actual: cycleOffersCount,
+              },
+              execution_stats: {
+                tasks_completed: priorityCompleted + strategicCompleted,
+                tasks_total: priorityTotal + strategicTotal,
+                habit_percent: habitPercent,
+                alignment_average: weeklyAlignmentAverage,
+              },
+              bottleneck: fullCycleData?.biggest_bottleneck ?? null,
+              launch_status: 'none' as const, // TODO: Implement launch tracking
+            },
+            // Execution Summary data
+            execution_summary: {
+              content_by_platform: contentByPlatform,
+              offers_sales: {
+                offers_count: offersCount,
+                sales_count: salesCount,
+                revenue: revenue,
+                streak: streak,
+              },
+              task_execution: {
+                priority_completed: priorityCompleted,
+                priority_total: priorityTotal,
+                strategic_completed: strategicCompleted,
+                strategic_total: strategicTotal,
+              },
+              habit_grid: habitGrid,
+            },
+            // CTFAR data
+            previous_ctfar: previousCTFAR,
+            weekly_alignment_average: weeklyAlignmentAverage,
           }
         }), 
         {
@@ -348,6 +561,21 @@ Deno.serve(async (req) => {
           metric_1_target: null,
           metric_2_target: null,
           metric_3_target: null,
+          // Default empty enhanced data for new week
+          context_pull: {
+            quarter_stats: { revenue_goal: null, revenue_actual: 0, sales_goal: null, sales_actual: 0, offers_goal: 90, offers_actual: 0 },
+            execution_stats: { tasks_completed: 0, tasks_total: 0, habit_percent: 0, alignment_average: null },
+            bottleneck: null,
+            launch_status: 'none',
+          },
+          execution_summary: {
+            content_by_platform: [],
+            offers_sales: { offers_count: 0, sales_count: 0, revenue: 0, streak: 0 },
+            task_execution: { priority_completed: 0, priority_total: 0, strategic_completed: 0, strategic_total: 0 },
+            habit_grid: [],
+          },
+          previous_ctfar: null,
+          weekly_alignment_average: null,
         }
       }), 
       {
