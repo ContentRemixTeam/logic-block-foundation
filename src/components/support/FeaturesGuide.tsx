@@ -106,12 +106,35 @@ const featuresData: FeatureSection[] = [
       'Pick your Top 3 tasks for the day from weekly priorities or new items',
       'Check in with how you\'re feeling to build self-awareness',
       'Use the Scratch Pad for brain dumps and quick captures',
-      'Note your "One Thing" – the single most important task if you could only do one'
+      'Note your "One Thing" – the single most important task if you could only do one',
+      'Customize which sections appear and their order via Settings → Daily Page Layout'
     ],
     tips: [
       'Spend 5-10 minutes on this each morning',
       'Front-load your most important work when energy is highest',
-      'The Scratch Pad gets processed at the end of the day'
+      'The Scratch Pad gets processed at the end of the day',
+      'Use Daily Page settings to hide sections you don\'t use regularly'
+    ]
+  },
+  {
+    id: 'daily-page-customization',
+    category: 'Core Planning',
+    title: 'Daily Page Customization',
+    icon: LayoutList,
+    description: 'Personalize your Daily Planning page by showing/hiding sections, reordering them, and adding custom check-in questions.',
+    details: [
+      'Access via Settings → Daily Page Layout or the gear icon on your Daily Plan page',
+      'Toggle visibility for 18+ sections to streamline your planning workflow',
+      'Drag-and-drop (or use arrows on mobile) to reorder sections to your preference',
+      'Add custom check-in questions: checkbox, text, number, rating, time, or dropdown types',
+      'Apply pre-built templates: Minimalist, Entrepreneur, Creator, Wellness, or Student',
+      'Preview your layout before saving to see exactly how it will look'
+    ],
+    tips: [
+      'Start with a template that matches your work style, then customize from there',
+      'Hide sections you rarely use to reduce cognitive load',
+      'Custom questions are great for tracking mood, energy, specific habits, or daily ratings',
+      'Your custom question responses are saved with each day\'s plan for later review'
     ]
   },
 

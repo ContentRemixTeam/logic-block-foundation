@@ -33,6 +33,11 @@ const faqData: FAQItem[] = [
     question: 'What\'s the best way to use this app daily?',
     answer: 'Start each day with your Daily Plan (5-10 minutes)—set your intentions, check in with your mood, and pick your top 3 priorities. End each day with your Daily Review (5 minutes)—note what worked, what didn\'t, and any wins. This simple ritual creates powerful momentum over time.'
   },
+  {
+    category: 'Getting Started',
+    question: 'How do I customize my Daily Planning page?',
+    answer: 'Go to Settings → Daily Page Layout (or click the gear icon on your Daily Plan page). From there you can: 1) Toggle sections on/off to show only what you need, 2) Drag sections to reorder them, 3) Add custom check-in questions (checkbox, text, rating, etc.), 4) Apply pre-built templates like Minimalist, Entrepreneur, or Wellness. Preview your layout before saving to see exactly how it will look.'
+  },
   // Task Management
   {
     category: 'Task Management',
@@ -131,6 +136,16 @@ const faqData: FAQItem[] = [
     category: 'Features',
     question: 'How does the Ideas Capture work?',
     answer: 'Ideas Capture is a dedicated space for inspiration that doesn\'t belong on your task list. Quickly save ideas as they come, organize into categories, and review during weekly planning. When you\'re ready to act on an idea, convert it into a task. This keeps ideas alive without cluttering your workflow.'
+  },
+  {
+    category: 'Features',
+    question: 'What are Daily Page Templates?',
+    answer: 'Templates are pre-configured Daily Page layouts designed for different work styles. Minimalist shows only essentials. Entrepreneur focuses on business priorities. Creator emphasizes content workflow. Wellness includes health tracking with starter questions. Student prioritizes study blocks. Apply a template as a starting point, then customize further to match your exact needs.'
+  },
+  {
+    category: 'Features',
+    question: 'How do Custom Check-in Questions work?',
+    answer: 'Custom questions let you add personal check-ins to your Daily Page. Create questions with different input types: Checkbox (yes/no), Text (notes), Number (quantities), Rating (1-10 slider), Time (timestamps), or Dropdown (select options). Set questions as required, add validation (character limits, min/max), and your responses are saved with each day\'s plan for tracking over time.'
   },
   // Troubleshooting
   {
