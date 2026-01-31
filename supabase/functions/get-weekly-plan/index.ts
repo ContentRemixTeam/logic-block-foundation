@@ -167,19 +167,25 @@ Deno.serve(async (req) => {
         .eq('week_id', week.week_id)
         .maybeSingle();
       
-      // Fetch metric actuals from recent weekly reviews for trend calculation
+      // Fetch metric actuals from recent weekly reviews for trend calculation (13 weeks for full cycle)
       const { data: recentReviews } = await supabaseClient
         .from('weekly_reviews')
         .select('week_id, metric_1_actual, metric_2_actual, metric_3_actual, created_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
-        .limit(7);
+        .limit(13);
       
       // Get the most recent metric actuals for current values
       const latestReview = recentReviews?.[0];
       const previousReview = recentReviews?.[1];
       
-      // Calculate metric trends
+      // Helper function to calculate percent change
+      const calculatePercentChange = (current: number | null, previous: number | null): number | null => {
+        if (current === null || previous === null || previous === 0) return null;
+        return Math.round(((current - previous) / previous) * 100);
+      };
+      
+      // Calculate metric trends with percent change
       const metricTrends = {
         metric_1: {
           current: latestReview?.metric_1_actual ?? fullCycleData?.metric_1_start ?? null,
@@ -187,6 +193,10 @@ Deno.serve(async (req) => {
           start: fullCycleData?.metric_1_start ?? null,
           goal: fullCycleData?.metric_1_goal ?? null,
           history: recentReviews?.map(r => r.metric_1_actual).reverse() ?? [],
+          percentChange: calculatePercentChange(
+            latestReview?.metric_1_actual ?? null,
+            previousReview?.metric_1_actual ?? null
+          ),
         },
         metric_2: {
           current: latestReview?.metric_2_actual ?? fullCycleData?.metric_2_start ?? null,
@@ -194,6 +204,10 @@ Deno.serve(async (req) => {
           start: fullCycleData?.metric_2_start ?? null,
           goal: fullCycleData?.metric_2_goal ?? null,
           history: recentReviews?.map(r => r.metric_2_actual).reverse() ?? [],
+          percentChange: calculatePercentChange(
+            latestReview?.metric_2_actual ?? null,
+            previousReview?.metric_2_actual ?? null
+          ),
         },
         metric_3: {
           current: latestReview?.metric_3_actual ?? fullCycleData?.metric_3_start ?? null,
@@ -201,6 +215,10 @@ Deno.serve(async (req) => {
           start: fullCycleData?.metric_3_start ?? null,
           goal: fullCycleData?.metric_3_goal ?? null,
           history: recentReviews?.map(r => r.metric_3_actual).reverse() ?? [],
+          percentChange: calculatePercentChange(
+            latestReview?.metric_3_actual ?? null,
+            previousReview?.metric_3_actual ?? null
+          ),
         },
       };
       
@@ -217,6 +235,62 @@ Deno.serve(async (req) => {
         .eq('user_id', userId)
         .gte('date', weekStartStr)
         .lte('date', weekEndStr);
+      
+      // 1b. Query launches for this cycle to determine launch status
+      const { data: launchesData } = await supabaseClient
+        .from('launches')
+        .select('id, name, cart_opens, cart_closes, status')
+        .eq('user_id', userId)
+        .eq('cycle_id', currentCycle.cycle_id)
+        .gte('cart_closes', weekStartStr)
+        .order('cart_opens', { ascending: true });
+      
+      // Determine launch status dynamically
+      let launchStatus: 'none' | 'approaching' | 'this_week' = 'none';
+      if (launchesData && launchesData.length > 0) {
+        const weekEndDate = weekEnd;
+        
+        for (const launch of launchesData) {
+          const cartOpens = new Date(launch.cart_opens);
+          const cartCloses = new Date(launch.cart_closes);
+          
+          // Check if cart opens this week or is currently open
+          if ((cartOpens >= weekStart && cartOpens <= weekEndDate) || 
+              (cartOpens <= weekEndDate && cartCloses >= weekStart)) {
+            launchStatus = 'this_week';
+            break;
+          } else if (cartOpens > weekEndDate && cartOpens <= new Date(weekEndDate.getTime() + 14 * 24 * 60 * 60 * 1000)) {
+            // Within 2 weeks approaching
+            launchStatus = 'approaching';
+          }
+        }
+      }
+      
+      // 1c. Query focus area actions (tasks tagged with focus area)
+      const focusArea = fullCycleData?.focus_area?.toLowerCase() || '';
+      const { data: focusAreaTasks } = await supabaseClient
+        .from('tasks')
+        .select('id, task_text, status, tags, category')
+        .eq('user_id', userId)
+        .gte('scheduled_date', weekStartStr)
+        .lte('scheduled_date', weekEndStr);
+      
+      // Filter tasks by focus area (check tags or category)
+      const focusActions = focusAreaTasks
+        ?.filter(task => {
+          if (!focusArea) return false;
+          const taskTags = (task.tags || []).map((t: string) => String(t).toLowerCase());
+          const taskCategory = (task.category || '').toLowerCase();
+          return taskTags.includes(focusArea) || 
+                 taskTags.includes('discover') || 
+                 taskTags.includes('nurture') || 
+                 taskTags.includes('convert') ||
+                 taskCategory.includes(focusArea);
+        })
+        .map(task => ({
+          title: task.task_text,
+          completed: task.status === 'done',
+        })) || [];
       
       // Aggregate content by platform
       const contentByPlatform: { platform: string; count: number }[] = [];
@@ -438,7 +512,7 @@ Deno.serve(async (req) => {
                 revenue_actual: cycleRevenue,
                 sales_goal: revenuePlan?.sales_needed ?? null,
                 sales_actual: cycleSalesCount,
-                offers_goal: 90, // Default target
+                offers_goal: revenuePlan?.sales_needed ?? 90, // Use sales_needed as offers goal, fallback to 90
                 offers_actual: cycleOffersCount,
               },
               execution_stats: {
@@ -448,7 +522,7 @@ Deno.serve(async (req) => {
                 alignment_average: weeklyAlignmentAverage,
               },
               bottleneck: fullCycleData?.biggest_bottleneck ?? null,
-              launch_status: 'none' as const, // TODO: Implement launch tracking
+              launch_status: launchStatus,
             },
             // Execution Summary data
             execution_summary: {
@@ -466,6 +540,10 @@ Deno.serve(async (req) => {
                 strategic_total: strategicTotal,
               },
               habit_grid: habitGrid,
+            },
+            // Focus area data (NEW)
+            focus_area_data: {
+              focus_actions: focusActions,
             },
             // CTFAR data
             previous_ctfar: previousCTFAR,
@@ -574,8 +652,12 @@ Deno.serve(async (req) => {
             task_execution: { priority_completed: 0, priority_total: 0, strategic_completed: 0, strategic_total: 0 },
             habit_grid: [],
           },
+          focus_area_data: {
+            focus_actions: [],
+          },
           previous_ctfar: null,
           weekly_alignment_average: null,
+          metric_trends: null,
         }
       }), 
       {

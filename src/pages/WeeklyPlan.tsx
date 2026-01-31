@@ -108,6 +108,7 @@ export default function WeeklyPlan() {
   const [executionSummary, setExecutionSummary] = useState<any>(null);
   const [previousCTFAR, setPreviousCTFAR] = useState<any>(null);
   const [weeklyAlignmentAverage, setWeeklyAlignmentAverage] = useState<number | null>(null);
+  const [focusAreaData, setFocusAreaData] = useState<any>(null);
   const [focusProgressRating, setFocusProgressRating] = useState<number | null>(null);
   const [focusConfidenceRating, setFocusConfidenceRating] = useState<number | null>(null);
   const [focusProgressWhy, setFocusProgressWhy] = useState('');
@@ -337,6 +338,7 @@ export default function WeeklyPlan() {
         setExecutionSummary(weekData.execution_summary || null);
         setPreviousCTFAR(weekData.previous_ctfar || null);
         setWeeklyAlignmentAverage(weekData.weekly_alignment_average ?? null);
+        setFocusAreaData(weekData.focus_area_data || null);
       }
 
       // Set identity anchor
@@ -736,7 +738,7 @@ export default function WeeklyPlan() {
                   <FocusAreaDeepDiveSection
                     focusArea={cycleData.focus_area}
                     weekNumber={weekNumber}
-                    focusActions={[]}
+                    focusActions={focusAreaData?.focus_actions || []}
                     focusMetrics={metricTrends ? [
                       { name: cycleData.metric_1_name, current: metricTrends.metric_1?.current, previous: metricTrends.metric_1?.previous, trend: (metricTrends.metric_1?.current > metricTrends.metric_1?.previous ? 'up' : metricTrends.metric_1?.current < metricTrends.metric_1?.previous ? 'down' : 'stable') as 'up' | 'down' | 'stable' },
                       { name: cycleData.metric_2_name, current: metricTrends.metric_2?.current, previous: metricTrends.metric_2?.previous, trend: (metricTrends.metric_2?.current > metricTrends.metric_2?.previous ? 'up' : metricTrends.metric_2?.current < metricTrends.metric_2?.previous ? 'down' : 'stable') as 'up' | 'down' | 'stable' },
@@ -756,9 +758,9 @@ export default function WeeklyPlan() {
                   <EnhancedMetricsSection
                     weekNumber={weekNumber}
                     metrics={[
-                      { name: cycleData.metric_1_name, start: metricTrends.metric_1?.start, goal: metricTrends.metric_1?.goal, target: null, actual: metric1Target, previousWeek: metricTrends.metric_1?.previous, current: metricTrends.metric_1?.current, trend: metricTrends.metric_1?.current > metricTrends.metric_1?.previous ? 'up' : metricTrends.metric_1?.current < metricTrends.metric_1?.previous ? 'down' : 'stable', percentChange: null, history: metricTrends.metric_1?.history || [] },
-                      { name: cycleData.metric_2_name, start: metricTrends.metric_2?.start, goal: metricTrends.metric_2?.goal, target: null, actual: metric2Target, previousWeek: metricTrends.metric_2?.previous, current: metricTrends.metric_2?.current, trend: metricTrends.metric_2?.current > metricTrends.metric_2?.previous ? 'up' : metricTrends.metric_2?.current < metricTrends.metric_2?.previous ? 'down' : 'stable', percentChange: null, history: metricTrends.metric_2?.history || [] },
-                      { name: cycleData.metric_3_name, start: metricTrends.metric_3?.start, goal: metricTrends.metric_3?.goal, target: null, actual: metric3Target, previousWeek: metricTrends.metric_3?.previous, current: metricTrends.metric_3?.current, trend: metricTrends.metric_3?.current > metricTrends.metric_3?.previous ? 'up' : metricTrends.metric_3?.current < metricTrends.metric_3?.previous ? 'down' : 'stable', percentChange: null, history: metricTrends.metric_3?.history || [] },
+                      { name: cycleData.metric_1_name, start: metricTrends.metric_1?.start, goal: metricTrends.metric_1?.goal, target: null, actual: metric1Target, previousWeek: metricTrends.metric_1?.previous, current: metricTrends.metric_1?.current, trend: metricTrends.metric_1?.current > metricTrends.metric_1?.previous ? 'up' : metricTrends.metric_1?.current < metricTrends.metric_1?.previous ? 'down' : 'stable', percentChange: metricTrends.metric_1?.percentChange ?? null, history: metricTrends.metric_1?.history || [] },
+                      { name: cycleData.metric_2_name, start: metricTrends.metric_2?.start, goal: metricTrends.metric_2?.goal, target: null, actual: metric2Target, previousWeek: metricTrends.metric_2?.previous, current: metricTrends.metric_2?.current, trend: metricTrends.metric_2?.current > metricTrends.metric_2?.previous ? 'up' : metricTrends.metric_2?.current < metricTrends.metric_2?.previous ? 'down' : 'stable', percentChange: metricTrends.metric_2?.percentChange ?? null, history: metricTrends.metric_2?.history || [] },
+                      { name: cycleData.metric_3_name, start: metricTrends.metric_3?.start, goal: metricTrends.metric_3?.goal, target: null, actual: metric3Target, previousWeek: metricTrends.metric_3?.previous, current: metricTrends.metric_3?.current, trend: metricTrends.metric_3?.current > metricTrends.metric_3?.previous ? 'up' : metricTrends.metric_3?.current < metricTrends.metric_3?.previous ? 'down' : 'stable', percentChange: metricTrends.metric_3?.percentChange ?? null, history: metricTrends.metric_3?.history || [] },
                     ]}
                     onMetricChange={(idx, value) => {
                       if (idx === 0) setMetric1Target(value);
