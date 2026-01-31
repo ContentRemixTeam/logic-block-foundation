@@ -97,16 +97,8 @@ export function LaunchWizardV2() {
     
     setIsCreating(true);
     try {
-      // TODO: Create new edge function for V2 wizard
-      const { data: result, error } = await supabase.functions.invoke('create-launch-from-wizard', { 
-        body: {
-          ...data,
-          // Map V2 fields to existing edge function format
-          cartOpens: data.cartOpensDate,
-          cartCloses: data.cartClosesDate,
-          revenueGoal: data.customRevenueGoal,
-          pricePerSale: data.pricePoint,
-        }
+      const { data: result, error } = await supabase.functions.invoke('create-launch-v2', { 
+        body: data
       });
       if (error) throw error;
       if (result?.success) {

@@ -9,7 +9,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { format, differenceInDays, startOfWeek } from 'date-fns';
+import { format, differenceInDays, differenceInHours, startOfWeek } from 'date-fns';
+import { cn } from '@/lib/utils';
 import { Rocket, Target, TrendingUp, Zap, ChevronRight, Loader2, ListTodo, StickyNote } from 'lucide-react';
 
 export function InfoCards() {
@@ -221,24 +222,63 @@ export function InfoCards() {
     }
   };
 
+  // Launch phase calculation
+  const launchPhase = upcomingLaunch ? (() => {
+    const start = new Date(upcomingLaunch.launch_start_date);
+    const end = new Date(upcomingLaunch.launch_end_date);
+    const today = new Date();
+    
+    if (today < start) return 'pre_launch';
+    if (today > end) return 'closed';
+    
+    const hoursUntilClose = differenceInHours(end, today);
+    if (hoursUntilClose <= 48) return 'last_48h';
+    return 'live';
+  })() : 'none';
+
+  const hoursUntilClose = upcomingLaunch 
+    ? differenceInHours(new Date(upcomingLaunch.launch_end_date), new Date())
+    : 0;
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
       {/* Launch Countdown Card */}
-      <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => upcomingLaunch && navigate(`/projects/${upcomingLaunch.id}`)}>
+      <Card className={cn(
+        "hover:shadow-md transition-shadow cursor-pointer",
+        launchPhase === 'last_48h' && "border-red-500/50 animate-pulse",
+        launchPhase === 'live' && "border-green-500/50"
+      )} onClick={() => upcomingLaunch && navigate(`/projects/${upcomingLaunch.id}`)}>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Rocket className="h-4 w-4 text-orange-500" />
-            Launch Countdown
+            <Rocket className={cn(
+              "h-4 w-4",
+              launchPhase === 'last_48h' ? "text-red-500" :
+              launchPhase === 'live' ? "text-green-500" : "text-orange-500"
+            )} />
+            {launchPhase === 'live' || launchPhase === 'last_48h' ? 'Launch Active' : 'Launch Countdown'}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {upcomingLaunch ? (
             <div className="space-y-2">
               <p className="font-semibold text-sm truncate">{upcomingLaunch.name}</p>
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>{daysUntilLaunch > 0 ? `${daysUntilLaunch} days until launch` : 'Launching now!'}</span>
+              <div className="flex items-center justify-between text-xs">
+                {launchPhase === 'last_48h' ? (
+                  <span className="text-red-500 font-bold">Cart closes in {hoursUntilClose}h!</span>
+                ) : launchPhase === 'live' ? (
+                  <span className="text-green-500 font-medium">LIVE NOW</span>
+                ) : (
+                  <span className="text-muted-foreground">{daysUntilLaunch > 0 ? `${daysUntilLaunch} days until launch` : 'Launching now!'}</span>
+                )}
               </div>
-              <Progress value={launchProgress} className="h-2" />
+              <Progress 
+                value={launchProgress} 
+                className={cn(
+                  "h-2",
+                  launchPhase === 'last_48h' && "[&>div]:bg-red-500",
+                  launchPhase === 'live' && "[&>div]:bg-green-500"
+                )} 
+              />
             </div>
           ) : (
             <div className="text-sm text-muted-foreground">
@@ -249,7 +289,7 @@ export function InfoCards() {
                 className="p-0 h-auto text-xs"
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate('/projects');
+                  navigate('/wizards/launch');
                 }}
               >
                 Plan a launch →
