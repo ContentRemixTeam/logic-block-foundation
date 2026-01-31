@@ -39,7 +39,8 @@ import {
   SectionId, 
   SectionZone,
   SECTION_DEFINITIONS, 
-  DEFAULT_SECTION_ORDER 
+  DEFAULT_SECTION_ORDER,
+  CustomQuestion 
 } from '@/types/dailyPage';
 import {
   Dialog,
@@ -72,6 +73,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { SortableSectionItem } from '@/components/settings/SortableSectionItem';
+import { CustomQuestionBuilder } from '@/components/settings/CustomQuestionBuilder';
 
 // Icon mapping
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -131,6 +133,7 @@ export default function DailyPageSettings() {
   const { layout, isLoading, updateLayout, resetToDefault, isUpdating, isResetting } = useDailyPageLayout();
   const [localHiddenSections, setLocalHiddenSections] = useState<Set<SectionId>>(new Set());
   const [localSectionOrder, setLocalSectionOrder] = useState<SectionId[]>(DEFAULT_SECTION_ORDER);
+  const [localCustomQuestions, setLocalCustomQuestions] = useState<CustomQuestion[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -157,6 +160,7 @@ export default function DailyPageSettings() {
     if (layout) {
       setLocalHiddenSections(new Set(layout.hidden_sections));
       setLocalSectionOrder(layout.section_order);
+      setLocalCustomQuestions(layout.custom_questions || []);
       setHasChanges(false);
     }
   }, [layout]);
@@ -186,6 +190,7 @@ export default function DailyPageSettings() {
       await updateLayout({ 
         hidden_sections: Array.from(localHiddenSections),
         section_order: localSectionOrder,
+        custom_questions: localCustomQuestions,
       });
       setHasChanges(false);
       toast.success('Daily page layout saved');
@@ -199,6 +204,7 @@ export default function DailyPageSettings() {
       await resetToDefault();
       setLocalHiddenSections(new Set());
       setLocalSectionOrder(DEFAULT_SECTION_ORDER);
+      setLocalCustomQuestions([]);
       setHasChanges(false);
     } catch (error) {
       // Error already handled in hook
@@ -234,6 +240,25 @@ export default function DailyPageSettings() {
 
     const newOrder = arrayMove(localSectionOrder, fullOldIndex, fullNewIndex);
     setLocalSectionOrder(newOrder);
+    setHasChanges(true);
+  };
+
+  // Handle custom questions changes
+  const handleCustomQuestionsChange = (questions: CustomQuestion[]) => {
+    setLocalCustomQuestions(questions);
+    setHasChanges(true);
+  };
+
+  // Add custom question section_id to section order
+  const handleAddCustomQuestionToOrder = (sectionId: string) => {
+    // Add at the end of the section order (user can reorder later)
+    setLocalSectionOrder(prev => [...prev, sectionId as SectionId]);
+    setHasChanges(true);
+  };
+
+  // Remove custom question section_id from section order
+  const handleRemoveCustomQuestionFromOrder = (sectionId: string) => {
+    setLocalSectionOrder(prev => prev.filter(id => id !== sectionId));
     setHasChanges(true);
   };
 
@@ -401,39 +426,52 @@ export default function DailyPageSettings() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {visibleSections.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No visible sections to reorder. Enable some sections above first.
-              </p>
-            ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={visibleSections}
-                  strategy={verticalListSortingStrategy}
+            {(() => {
+              const builtInVisibleSections = visibleSections.filter(id => !id.startsWith('custom_question_'));
+              
+              return builtInVisibleSections.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No visible sections to reorder. Enable some sections above first.
+                </p>
+              ) : (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
                 >
+                  <SortableContext
+                    items={builtInVisibleSections}
+                    strategy={verticalListSortingStrategy}
+                  >
                   <div className="space-y-2">
-                    {visibleSections.map((sectionId, index) => (
-                      <SortableSectionItem
-                        key={sectionId}
-                        id={sectionId}
-                        index={index}
-                        totalItems={visibleSections.length}
-                        onMoveUp={() => handleMoveSection(sectionId, 'up')}
-                        onMoveDown={() => handleMoveSection(sectionId, 'down')}
-                        zoneConfig={CATEGORY_CONFIG[SECTION_DEFINITIONS[sectionId].zone]}
-                      />
-                    ))}
+                    {visibleSections
+                      .filter(sectionId => !sectionId.startsWith('custom_question_'))
+                      .map((sectionId, index, filteredSections) => (
+                        <SortableSectionItem
+                          key={sectionId}
+                          id={sectionId}
+                          index={index}
+                          totalItems={filteredSections.length}
+                          onMoveUp={() => handleMoveSection(sectionId, 'up')}
+                          onMoveDown={() => handleMoveSection(sectionId, 'down')}
+                          zoneConfig={CATEGORY_CONFIG[SECTION_DEFINITIONS[sectionId]?.zone || 'execution']}
+                        />
+                      ))}
                   </div>
                 </SortableContext>
               </DndContext>
-            )}
+              );
+            })()}
           </CardContent>
         </Card>
 
+        {/* Custom Check-in Questions */}
+        <CustomQuestionBuilder
+          customQuestions={localCustomQuestions}
+          onQuestionsChange={handleCustomQuestionsChange}
+          onSectionOrderChange={handleAddCustomQuestionToOrder}
+          onRemoveSectionFromOrder={handleRemoveCustomQuestionFromOrder}
+        />
 
         <div className="flex items-center justify-between pt-4 border-t">
           <div className="flex items-center gap-2">
@@ -461,8 +499,30 @@ export default function DailyPageSettings() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-2 mt-4">
-                  {localSectionOrder.filter(id => !localHiddenSections.has(id)).map((sectionId, index) => {
+                  {localSectionOrder.filter(id => !localHiddenSections.has(id)).map((sectionId) => {
+                    // Check if it's a custom question
+                    const isCustomQuestion = sectionId.startsWith('custom_question_');
+                    
+                    if (isCustomQuestion) {
+                      const customQuestion = localCustomQuestions.find(q => q.section_id === sectionId);
+                      if (!customQuestion) return null;
+                      
+                      return (
+                        <div
+                          key={sectionId}
+                          className="flex items-center gap-3 p-2 rounded-md bg-muted/50"
+                        >
+                          <CheckSquare className="h-4 w-4 text-muted-foreground" />
+                          <span className="flex-1 text-sm">{customQuestion.question}</span>
+                          <Badge className="bg-violet-500/10 text-violet-600 text-xs">
+                            Custom
+                          </Badge>
+                        </div>
+                      );
+                    }
+
                     const section = SECTION_DEFINITIONS[sectionId];
+                    if (!section) return null;
                     const Icon = ICON_MAP[section.icon] || CheckSquare;
                     const zoneConfig = CATEGORY_CONFIG[section.zone];
 
