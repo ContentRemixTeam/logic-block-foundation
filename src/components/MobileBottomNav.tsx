@@ -9,7 +9,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { AppSidebar } from '@/components/AppSidebar';
+import { MobileSidebarContent } from '@/components/sidebar/MobileSidebarContent';
 
 const navItems = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
@@ -71,7 +71,7 @@ export function MobileBottomNav() {
               <SheetTitle>Navigation Menu</SheetTitle>
             </SheetHeader>
             <div className="h-full overflow-y-auto" onClick={() => setMenuOpen(false)}>
-              <AppSidebar />
+              <MobileSidebarContent />
             </div>
           </SheetContent>
         </Sheet>
