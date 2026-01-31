@@ -204,6 +204,7 @@ Deno.serve(async (req) => {
           alignment_score: plan.alignment_score ?? null,
           brain_dump: plan.brain_dump || '',
           end_of_day_reflection: plan.end_of_day_reflection || '',
+          custom_reflections: plan.custom_reflections || {},
           // Full cycle data for CycleSnapshotCard
           cycle: fullCycleData ? {
             cycle_id: fullCycleData.cycle_id,

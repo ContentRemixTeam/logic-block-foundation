@@ -22,6 +22,7 @@ const DailyPlanSchema = z.object({
   alignment_score: z.number().int().min(1, 'Alignment score must be at least 1').max(10, 'Alignment score must be at most 10').nullable().optional(),
   brain_dump: z.string().max(10000, 'Brain dump must be under 10000 characters').nullable().optional(),
   end_of_day_reflection: z.string().max(1000, 'End of day reflection must be under 1000 characters').nullable().optional(),
+  custom_reflections: z.record(z.union([z.string(), z.number(), z.boolean()])).nullable().optional(),
 });
 
 // ==================== VALIDATION ERROR HELPER ====================
@@ -200,7 +201,8 @@ Deno.serve(async (req) => {
     const { 
       day_id, top_3_today, selected_weekly_priorities, thought, 
       feeling, deep_mode_notes, scratch_pad_content, scratch_pad_title, 
-      one_thing, goal_rewrite, alignment_score, brain_dump, end_of_day_reflection
+      one_thing, goal_rewrite, alignment_score, brain_dump, end_of_day_reflection,
+      custom_reflections
     } = validatedData;
 
     console.log('Saving daily plan:', { userId, day_id });
@@ -230,6 +232,7 @@ Deno.serve(async (req) => {
         alignment_score: alignment_score ?? null,
         brain_dump: brain_dump ? brain_dump.substring(0, 10000) : null,
         end_of_day_reflection: end_of_day_reflection ? end_of_day_reflection.substring(0, 1000) : null,
+        custom_reflections: custom_reflections ?? {},
         updated_at: new Date().toISOString(),
       })
       .eq('day_id', day_id)

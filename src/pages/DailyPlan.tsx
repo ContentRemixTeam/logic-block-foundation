@@ -30,6 +30,7 @@ import { YesterdayReviewPopup } from '@/components/YesterdayReviewPopup';
 import { CycleSnapshotCard } from '@/components/cycle/CycleSnapshotCard';
 import { GoalRewritePrompt } from '@/components/cycle/GoalRewritePrompt';
 import { InlineCalendarAgenda } from '@/components/daily-plan/InlineCalendarAgenda';
+import { CustomQuestion } from '@/components/daily-plan/CustomQuestion';
 import { Slider } from '@/components/ui/slider';
 import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, Calendar, CalendarRange, Moon, AlertCircle, Rocket, Diamond, Check, Settings } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -136,6 +137,9 @@ export default function DailyPlan() {
   const [alignmentScore, setAlignmentScore] = useState<number>(5);
   const [endOfDayReflection, setEndOfDayReflection] = useState('');
   
+  // Custom question responses
+  const [customResponses, setCustomResponses] = useState<Record<string, string | number | boolean>>({});
+  
   // Track initial load to prevent auto-save during data population
   const isInitialLoadRef = useRef(true);
   
@@ -217,7 +221,8 @@ export default function DailyPlan() {
     alignment_score: alignmentScore,
     brain_dump: scratchPadContent, // Map scratch pad to brain_dump for server sync
     end_of_day_reflection: endOfDayReflection,
-  }), [dayId, newTop3Text, selectedPriorities, thought, feeling, deepModeNotes, scratchPadContent, scratchPadTitle, oneThing, goalRewrite, alignmentScore, endOfDayReflection]);
+    custom_reflections: customResponses,
+  }), [dayId, newTop3Text, selectedPriorities, thought, feeling, deepModeNotes, scratchPadContent, scratchPadTitle, oneThing, goalRewrite, alignmentScore, endOfDayReflection, customResponses]);
 
   // Track if we have unsaved changes
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -334,6 +339,7 @@ export default function DailyPlan() {
               if (backup.alignment_score !== undefined) setAlignmentScore(backup.alignment_score);
               if (backup.brain_dump) setScratchPadContent(backup.brain_dump); // Restore brain_dump to scratch pad
               if (backup.end_of_day_reflection) setEndOfDayReflection(backup.end_of_day_reflection);
+              if (backup.custom_reflections) setCustomResponses(backup.custom_reflections);
               if (backup.top_3_today) setNewTop3Text([
                 backup.top_3_today[0] || '',
                 backup.top_3_today[1] || '',
@@ -507,6 +513,10 @@ export default function DailyPlan() {
           setScratchPadContent(plan.brain_dump);
         }
         setEndOfDayReflection(plan.end_of_day_reflection || '');
+        
+        // Load custom question responses
+        const responses = normalizeObject(plan.custom_reflections, {} as Record<string, string | number | boolean>);
+        setCustomResponses(responses);
         
         // Load monthly focus if we have a cycle
         if (plan.cycle?.cycle_id) {
@@ -1696,6 +1706,30 @@ Closed the big deal! #win"
             return getAllSectionsInOrder()
               .filter(sectionId => isSectionVisible(sectionId))
               .map(sectionId => {
+                // Handle custom question sections
+                if (sectionId.startsWith('custom_question_')) {
+                  const customQuestion = layout?.custom_questions?.find(q => q.section_id === sectionId);
+                  if (!customQuestion) return null;
+                  
+                  return (
+                    <div key={sectionId}>
+                      <CustomQuestion
+                        question={customQuestion}
+                        value={customResponses[customQuestion.id]}
+                        onChange={(newValue) => {
+                          setCustomResponses(prev => ({
+                            ...prev,
+                            [customQuestion.id]: newValue,
+                          }));
+                        }}
+                        onBlur={() => {
+                          // Auto-save is already handled by the data protection hooks
+                        }}
+                      />
+                    </div>
+                  );
+                }
+                
                 const renderSection = sectionComponents[sectionId];
                 if (!renderSection) return null;
                 
