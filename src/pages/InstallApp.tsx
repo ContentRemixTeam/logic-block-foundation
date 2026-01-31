@@ -76,20 +76,20 @@ export default function InstallApp() {
             </div>
             <CardTitle>Already Installed!</CardTitle>
             <CardDescription>
-              Boss Planner is installed on your device. You can access it from your home screen.
+              Boss Planner is installed on your device. You can also install Quick Add for faster capture.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Button asChild className="w-full">
-              <Link to="/capture">
-                <Zap className="h-4 w-4 mr-2" />
-                Open Quick Capture
-              </Link>
-            </Button>
-            <Button variant="outline" asChild className="w-full">
               <Link to="/dashboard">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Go to Dashboard
+              </Link>
+            </Button>
+            <Button variant="outline" asChild className="w-full">
+              <Link to="/install-quick-add">
+                <Zap className="h-4 w-4 mr-2" />
+                Install Quick Add App
               </Link>
             </Button>
           </CardContent>
@@ -117,13 +117,95 @@ export default function InstallApp() {
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         {/* Hero */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary text-primary-foreground mb-4 shadow-lg">
-            <Zap className="h-10 w-10" />
-          </div>
-          <h1 className="text-3xl font-bold mb-2">Install Boss Planner</h1>
+          <h1 className="text-3xl font-bold mb-2">Install Boss Planner Apps</h1>
           <p className="text-muted-foreground">
-            Get the full mobile-optimized planning experience from your home screen
+            Two apps for different needs - install one or both
           </p>
+        </div>
+
+        {/* App Options */}
+        <div className="grid gap-4 mb-8">
+          {/* Full App Card */}
+          <Card className="border-2 hover:border-primary/50 transition-colors">
+            <CardHeader>
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+                  <Smartphone className="h-7 w-7" />
+                </div>
+                <div className="flex-1">
+                  <CardTitle className="text-xl mb-1">Boss Planner</CardTitle>
+                  <CardDescription>
+                    Complete planning experience with dashboard, weekly planner, tasks, habits, and more.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 mb-4">
+                {[
+                  'Full dashboard and analytics',
+                  'Weekly & daily planning',
+                  'Task management',
+                  'Habit tracking',
+                  'Goal setting & reviews',
+                ].map((feature, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm">
+                    <Check className="h-4 w-4 text-success shrink-0" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+              {deferredPrompt ? (
+                <Button onClick={handleInstallClick} size="lg" className="w-full">
+                  <Download className="h-4 w-4 mr-2" />
+                  Install Boss Planner
+                </Button>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center">
+                  See installation instructions below
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Quick Add Card */}
+          <Card className="border-2 hover:border-primary/50 transition-colors">
+            <CardHeader>
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground flex items-center justify-center shrink-0">
+                  <Zap className="h-7 w-7" />
+                </div>
+                <div className="flex-1">
+                  <CardTitle className="text-xl mb-1">Quick Add</CardTitle>
+                  <CardDescription>
+                    Lightning-fast capture for tasks, ideas, expenses, and income. Perfect for on-the-go.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 mb-4">
+                {[
+                  'Instant launch from home screen',
+                  'Add tasks in seconds',
+                  'Capture ideas quickly',
+                  'Log expenses & income',
+                  'Minimal, focused interface',
+                ].map((feature, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm">
+                    <Check className="h-4 w-4 text-success shrink-0" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+              <Button variant="outline" asChild size="lg" className="w-full">
+                <Link to="/install-quick-add">
+                  <Zap className="h-4 w-4 mr-2" />
+                  Install Quick Add
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Benefits */}

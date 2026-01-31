@@ -351,6 +351,51 @@ export default function Settings() {
           </CardContent>
         </Card>
 
+        {/* Install Apps */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Smartphone className="h-5 w-5" />
+              Install Apps
+            </CardTitle>
+            <CardDescription>
+              Install Boss Planner apps on your home screen
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Link 
+              to="/install" 
+              className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <LayoutGrid className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <div className="font-medium">Boss Planner</div>
+                  <div className="text-sm text-muted-foreground">Full planning experience</div>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </Link>
+            <Link 
+              to="/install-quick-add" 
+              className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                  <Sparkles className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <div className="font-medium">Quick Add</div>
+                  <div className="text-sm text-muted-foreground">Fast capture for tasks & ideas</div>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </Link>
+          </CardContent>
+        </Card>
+
         {/* Google Calendar Integration */}
         <GoogleCalendarPanel />
 

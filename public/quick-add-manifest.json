@@ -1,0 +1,33 @@
+{
+  "id": "boss-planner-quick-add",
+  "name": "Quick Add",
+  "short_name": "Quick Add",
+  "description": "Quickly capture tasks, ideas, expenses and income",
+  "start_url": "/quick-add",
+  "scope": "/quick-add",
+  "display": "standalone",
+  "background_color": "#0077b6",
+  "theme_color": "#0077b6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/quick-add-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/quick-add-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/quick-add-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["productivity", "finance"]
+}
