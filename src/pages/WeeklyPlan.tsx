@@ -20,6 +20,10 @@ import { WeeklyScratchPad } from '@/components/weekly-plan/WeeklyScratchPad';
 import { WeeklyCycleCheckIn } from '@/components/weekly-plan/WeeklyCycleCheckIn';
 import { WeeklyCycleAnalytics } from '@/components/weekly-plan/WeeklyCycleAnalytics';
 import { AlignmentCheckSection } from '@/components/weekly-plan/AlignmentCheckSection';
+import { ContextPullSection } from '@/components/weekly-plan/ContextPullSection';
+import { ExecutionSummarySection } from '@/components/weekly-plan/ExecutionSummarySection';
+import { FocusAreaDeepDiveSection } from '@/components/weekly-plan/FocusAreaDeepDiveSection';
+import { EnhancedMetricsSection } from '@/components/weekly-plan/EnhancedMetricsSection';
 import { ArrowLeft, Calendar, Loader2, Save, CheckCircle2, TrendingUp, Brain, Zap, Target, BarChart3, Clock, LayoutList } from 'lucide-react';
 import { useLocalStorageSync } from '@/hooks/useLocalStorageSync';
 import { useServerSync, SyncStatus } from '@/hooks/useServerSync';
@@ -98,6 +102,15 @@ export default function WeeklyPlan() {
   const [cycleData, setCycleData] = useState<any>(null);
   const [weekNumber, setWeekNumber] = useState(1);
   const [metricTrends, setMetricTrends] = useState<any>(null);
+  
+  // New enhanced section data
+  const [contextPull, setContextPull] = useState<any>(null);
+  const [executionSummary, setExecutionSummary] = useState<any>(null);
+  const [previousCTFAR, setPreviousCTFAR] = useState<any>(null);
+  const [weeklyAlignmentAverage, setWeeklyAlignmentAverage] = useState<number | null>(null);
+  const [focusProgressRating, setFocusProgressRating] = useState<number | null>(null);
+  const [focusConfidenceRating, setFocusConfidenceRating] = useState<number | null>(null);
+  const [focusProgressWhy, setFocusProgressWhy] = useState('');
   
   // Memoize worksheet data for data protection
   const worksheetData = useMemo(() => ({
@@ -318,6 +331,12 @@ export default function WeeklyPlan() {
         setCycleData(weekData.cycle || null);
         setWeekNumber(weekData.week_number || 1);
         setMetricTrends(weekData.metric_trends || null);
+        
+        // Set enhanced section data
+        setContextPull(weekData.context_pull || null);
+        setExecutionSummary(weekData.execution_summary || null);
+        setPreviousCTFAR(weekData.previous_ctfar || null);
+        setWeeklyAlignmentAverage(weekData.weekly_alignment_average ?? null);
       }
 
       // Set identity anchor
@@ -531,28 +550,29 @@ export default function WeeklyPlan() {
 
             {/* Full Width Sections */}
             <div className="max-w-4xl mx-auto space-y-6">
-              {/* This Week's Progress Summary */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>This Week's Progress</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Daily Plans</p>
-                      <p className="text-2xl font-bold">{weeklySummary.daily_plans_completed} / 7</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Habit Completion</p>
-                      <p className="text-2xl font-bold">{weeklySummary.habit_completion_percent}%</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Weekly Review</p>
-                      <p className="text-2xl font-bold">{weeklySummary.review_completed ? '✓ Complete' : '○ Pending'}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* NEW: Context Pull Section */}
+              {contextPull && (
+                <ContextPullSection
+                  cycle={cycleData}
+                  weekNumber={weekNumber}
+                  quarterStats={contextPull.quarter_stats}
+                  executionStats={contextPull.execution_stats}
+                  bottleneck={contextPull.bottleneck}
+                  launchStatus={contextPull.launch_status}
+                />
+              )}
+
+              {/* NEW: Execution Summary Section */}
+              {executionSummary && (
+                <ExecutionSummarySection
+                  weekStart={cycleData?.start_date || ''}
+                  weekEnd={cycleData?.end_date || ''}
+                  contentCreated={executionSummary.content_by_platform || []}
+                  offersAndSales={executionSummary.offers_sales || { offers_count: 0, sales_count: 0, revenue: 0, streak: 0 }}
+                  taskExecution={executionSummary.task_execution || { priority_completed: 0, priority_total: 0, strategic_completed: 0, strategic_total: 0 }}
+                  habitGrid={executionSummary.habit_grid || []}
+                />
+              )}
 
               {/* Last Week's Priorities for Carry-Over */}
               <LastWeekPriorities
@@ -699,7 +719,7 @@ export default function WeeklyPlan() {
                   </CardContent>
                 </Card>
 
-                {/* 90-Day Alignment Check */}
+                {/* 90-Day Alignment Check (Enhanced) */}
                 <AlignmentCheckSection
                   cycleGoal={cycleGoal}
                   focusArea={cycleData?.focus_area}
@@ -707,7 +727,46 @@ export default function WeeklyPlan() {
                   alignmentRating={alignmentRating}
                   onReflectionChange={setAlignmentReflection}
                   onRatingChange={setAlignmentRating}
+                  previousCTFARSession={previousCTFAR}
+                  weeklyAlignmentAverage={weeklyAlignmentAverage}
                 />
+
+                {/* NEW: Focus Area Deep Dive */}
+                {cycleData?.focus_area && (
+                  <FocusAreaDeepDiveSection
+                    focusArea={cycleData.focus_area}
+                    weekNumber={weekNumber}
+                    focusActions={[]}
+                    focusMetrics={metricTrends ? [
+                      { name: cycleData.metric_1_name, current: metricTrends.metric_1?.current, previous: metricTrends.metric_1?.previous, trend: (metricTrends.metric_1?.current > metricTrends.metric_1?.previous ? 'up' : metricTrends.metric_1?.current < metricTrends.metric_1?.previous ? 'down' : 'stable') as 'up' | 'down' | 'stable' },
+                      { name: cycleData.metric_2_name, current: metricTrends.metric_2?.current, previous: metricTrends.metric_2?.previous, trend: (metricTrends.metric_2?.current > metricTrends.metric_2?.previous ? 'up' : metricTrends.metric_2?.current < metricTrends.metric_2?.previous ? 'down' : 'stable') as 'up' | 'down' | 'stable' },
+                      { name: cycleData.metric_3_name, current: metricTrends.metric_3?.current, previous: metricTrends.metric_3?.previous, trend: (metricTrends.metric_3?.current > metricTrends.metric_3?.previous ? 'up' : metricTrends.metric_3?.current < metricTrends.metric_3?.previous ? 'down' : 'stable') as 'up' | 'down' | 'stable' },
+                    ].filter(m => m.name) : []}
+                    progressRating={focusProgressRating}
+                    confidenceRating={focusConfidenceRating}
+                    progressWhy={focusProgressWhy}
+                    onProgressRatingChange={setFocusProgressRating}
+                    onConfidenceRatingChange={setFocusConfidenceRating}
+                    onProgressWhyChange={setFocusProgressWhy}
+                  />
+                )}
+
+                {/* NEW: Enhanced Metrics Section */}
+                {metricTrends && cycleData && (
+                  <EnhancedMetricsSection
+                    weekNumber={weekNumber}
+                    metrics={[
+                      { name: cycleData.metric_1_name, start: metricTrends.metric_1?.start, goal: metricTrends.metric_1?.goal, target: null, actual: metric1Target, previousWeek: metricTrends.metric_1?.previous, current: metricTrends.metric_1?.current, trend: metricTrends.metric_1?.current > metricTrends.metric_1?.previous ? 'up' : metricTrends.metric_1?.current < metricTrends.metric_1?.previous ? 'down' : 'stable', percentChange: null, history: metricTrends.metric_1?.history || [] },
+                      { name: cycleData.metric_2_name, start: metricTrends.metric_2?.start, goal: metricTrends.metric_2?.goal, target: null, actual: metric2Target, previousWeek: metricTrends.metric_2?.previous, current: metricTrends.metric_2?.current, trend: metricTrends.metric_2?.current > metricTrends.metric_2?.previous ? 'up' : metricTrends.metric_2?.current < metricTrends.metric_2?.previous ? 'down' : 'stable', percentChange: null, history: metricTrends.metric_2?.history || [] },
+                      { name: cycleData.metric_3_name, start: metricTrends.metric_3?.start, goal: metricTrends.metric_3?.goal, target: null, actual: metric3Target, previousWeek: metricTrends.metric_3?.previous, current: metricTrends.metric_3?.current, trend: metricTrends.metric_3?.current > metricTrends.metric_3?.previous ? 'up' : metricTrends.metric_3?.current < metricTrends.metric_3?.previous ? 'down' : 'stable', percentChange: null, history: metricTrends.metric_3?.history || [] },
+                    ]}
+                    onMetricChange={(idx, value) => {
+                      if (idx === 0) setMetric1Target(value);
+                      else if (idx === 1) setMetric2Target(value);
+                      else if (idx === 2) setMetric3Target(value);
+                    }}
+                  />
+                )}
 
                 <Button type="submit" size="lg" className="w-full" disabled={saving}>
                   {saving ? (
