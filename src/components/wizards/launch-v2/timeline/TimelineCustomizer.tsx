@@ -28,7 +28,7 @@ interface TimelineCustomizerProps {
   data: LaunchWizardV2Data;
   onChange: (updates: Partial<LaunchWizardV2Data>) => void;
   onCollapse: () => void;
-  gapResult: GapOverlapResult | null;
+  gapResult?: GapOverlapResult | null;
   isOpen?: boolean;
 }
 
@@ -36,7 +36,7 @@ export function TimelineCustomizer({
   data,
   onChange,
   onCollapse,
-  gapResult,
+  gapResult = null,
   isOpen = true,
 }: TimelineCustomizerProps) {
   const isMobile = useIsMobile();
