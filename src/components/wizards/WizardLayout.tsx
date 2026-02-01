@@ -103,12 +103,10 @@ export function WizardLayout({
 
             <Button
               onClick={onNext}
-              disabled={!canProceed || isSaving}
+              disabled={!canProceed}
               className="min-h-[48px] order-1 sm:order-3"
             >
-              {isSaving ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : isLastStep ? (
+              {isLastStep ? (
                 lastStepButtonText
               ) : (
                 <>
