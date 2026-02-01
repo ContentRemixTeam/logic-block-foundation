@@ -1,7 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Calendar, Lightbulb, Rocket } from 'lucide-react';
 import { 
@@ -18,15 +17,25 @@ interface LaunchRunwayTimelineProps {
   onChange: (updates: Partial<LaunchWizardData>) => void;
 }
 
+// Helper to get the effective runway weeks as a number
+function getEffectiveRunwayWeeks(data: LaunchWizardData): number {
+  if (data.runwayWeeks === 'custom') {
+    return data.customRunwayWeeks || 4;
+  }
+  return data.runwayWeeks || 4;
+}
+
 export function LaunchRunwayTimeline({ data, onChange }: LaunchRunwayTimelineProps) {
+  const effectiveWeeks = getEffectiveRunwayWeeks(data);
+
   // Auto-calculate runway start date when cartOpens or runwayWeeks changes
   useEffect(() => {
-    if (data.cartOpens && data.runwayWeeks) {
+    if (data.cartOpens && effectiveWeeks) {
       const cartOpenDate = parseISO(data.cartOpens);
-      const runwayStart = subWeeks(cartOpenDate, data.runwayWeeks);
+      const runwayStart = subWeeks(cartOpenDate, effectiveWeeks);
       onChange({ runwayStartDate: format(runwayStart, 'yyyy-MM-dd') });
     }
-  }, [data.cartOpens, data.runwayWeeks]);
+  }, [data.cartOpens, effectiveWeeks]);
 
   const formatDisplayDate = (dateStr: string) => {
     if (!dateStr) return '—';
@@ -71,7 +80,13 @@ export function LaunchRunwayTimeline({ data, onChange }: LaunchRunwayTimelinePro
         
         <RadioGroup
           value={String(data.runwayWeeks)}
-          onValueChange={(value) => onChange({ runwayWeeks: Number(value) as 2 | 4 | 6 | 8 })}
+          onValueChange={(value) => {
+            if (value === 'custom') {
+              onChange({ runwayWeeks: 'custom' });
+            } else {
+              onChange({ runwayWeeks: Number(value) as 2 | 4 | 6 | 8 });
+            }
+          }}
           className="grid gap-3"
         >
           {RUNWAY_WEEKS_OPTIONS.map((option) => (
@@ -90,12 +105,29 @@ export function LaunchRunwayTimeline({ data, onChange }: LaunchRunwayTimelinePro
                 </Label>
                 <p className="text-sm text-muted-foreground">{option.description}</p>
               </div>
-              {option.value === 4 && (
-                <Badge variant="secondary" className="text-xs">Recommended</Badge>
-              )}
             </div>
           ))}
         </RadioGroup>
+
+        {/* Custom runway weeks input */}
+        {data.runwayWeeks === 'custom' && (
+          <div className="mt-3 ml-7">
+            <Label htmlFor="custom-weeks" className="text-sm">How many weeks?</Label>
+            <div className="flex items-center gap-2 mt-1">
+              <Input
+                id="custom-weeks"
+                type="number"
+                min={1}
+                max={52}
+                value={data.customRunwayWeeks || ''}
+                onChange={(e) => onChange({ customRunwayWeeks: Number(e.target.value) || 4 })}
+                placeholder="e.g., 10"
+                className="w-24"
+              />
+              <span className="text-sm text-muted-foreground">weeks before cart opens</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Why runway matters */}
