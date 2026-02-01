@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Calendar, Lightbulb, Rocket } from 'lucide-react';
 import { 
   LaunchWizardData, 
@@ -152,6 +153,20 @@ export function LaunchRunwayTimeline({ data, onChange }: LaunchRunwayTimelinePro
             </div>
           ))}
         </RadioGroup>
+
+        {/* Custom strategy input for "Other" */}
+        {data.warmUpStrategy === 'other' && (
+          <div className="mt-3 ml-7">
+            <Label htmlFor="warmup-other" className="text-sm">Describe your strategy</Label>
+            <Input
+              id="warmup-other"
+              value={data.warmUpStrategyOther || ''}
+              onChange={(e) => onChange({ warmUpStrategyOther: e.target.value })}
+              placeholder="e.g., Podcast tour, Affiliate partnerships, Community challenges..."
+              className="mt-1"
+            />
+          </div>
+        )}
       </div>
 
       {/* Frequency */}

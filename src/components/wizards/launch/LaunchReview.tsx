@@ -75,7 +75,11 @@ export function LaunchReview({ data }: LaunchReviewProps) {
           </div>
           <div>
             <p className="text-muted-foreground">Warm-up Strategy:</p>
-            <p className="font-medium">{data.warmUpStrategy?.replace(/-/g, ' ') || '—'}</p>
+            <p className="font-medium">
+              {data.warmUpStrategy === 'other' 
+                ? data.warmUpStrategyOther || 'Other' 
+                : data.warmUpStrategy?.replace(/-/g, ' ') || '—'}
+            </p>
           </div>
           <div className="col-span-2">
             <p className="text-muted-foreground">Tasks Selected:</p>
