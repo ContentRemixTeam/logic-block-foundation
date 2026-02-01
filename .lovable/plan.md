@@ -1,49 +1,98 @@
 
-# Deepen Launch Planner V2 - Comprehensive Launch Decision Planning
+# Flexibility Audit & Fix: Launch Planner V2
 
-## Current Gaps Identified
+## The Problem
 
-After reviewing the Launch Planner V2, the following critical planning elements are missing or too shallow:
+The Launch Planner V2 needs to work for businesses at various levels - from first-time launchers with no testimonials to established businesses with complex offer stacks. Currently, several sections force assumptions that don't fit all business models.
 
-### 1. Pricing Structure (Step 3: Offer Details)
-**Current state:**
-- Single price point input
-- Simple yes/no payment plan toggle
-- Single text field for payment plan details
+---
 
-**Missing:**
-- Full price (pay-in-full)
-- Multiple payment plan options (e.g., 2-pay, 3-pay, 6-pay)
-- Payment plan pricing for each option
-- Waitlist/early bird pricing option
-- VIP/premium tier pricing
-- Price anchoring (original value vs. price)
+## Flexibility Issues Identified
 
-### 2. Live Event Deep Planning (Step 2 + Step 5)
-**Current state:**
-- Basic free event toggle with type, date, time
-- "Are you doing a live component?" (yes/no/considering)
+### 1. Testimonials Section (Step 4: Pre-Launch Strategy)
+**Current options:**
+- "I have enough testimonials"
+- "I need to collect more"
+- "I don't have any yet"
 
-**Missing:**
-- Event NAME (what are you calling this webinar/challenge?)
-- Event TOPIC/HOOK (what are you teaching?)
-- Event SPECIAL OFFER (attendee-only bonus or pricing?)
-- Event OFFER DEADLINE (when does the special offer expire?)
-- Registration goal (how many signups?)
-- Show-up strategy (reminder emails?)
-- For challenges: daily topics, duration, Facebook group, daily emails
+**Missing option:**
+- "I don't have any AND I don't want to collect any this time"
 
-### 3. Offer Stack / Sales Strategy
-**Current state:**
-- Bonuses captured with status
-- Limitations captured
+**Why it matters:** Some users are launching for the first time, testing an offer, or have an audience that doesn't respond to testimonials. Forcing them to set a "testimonial goal" creates unnecessary friction.
+
+---
+
+### 2. Revenue Goal (Step 2: Goal & Timeline)
+**Current state:** Good options exist including "testing mode" and "first sale"
 
 **Missing:**
-- Order bumps (what, price)
-- Upsells (what, price)
-- Downsells for non-buyers
-- Bundle options
-- Guarantee details (what type, duration)
+- "I don't have a specific revenue goal"
+- "I'm focused on something other than revenue (feedback, list-building, etc.)"
+
+---
+
+### 3. Email List Status (Step 1: Launch Context)
+**Current state:** Options exist but could be clearer
+
+**Missing:**
+- "I'm not using email for this launch" (some launches are purely social or DM-based)
+
+---
+
+### 4. Offer Pricing (Step 3: Offer Details)
+**Current state:** Requires a price to be entered
+
+**Missing:**
+- "I haven't decided on pricing yet"
+- "This is a free offer / lead magnet launch"
+- "Pay what you want / sliding scale"
+
+---
+
+### 5. Email Sequences (Step 4: Pre-Launch Strategy)
+**Current state:** Shows checkboxes for warm-up, launch, cart close, post-purchase sequences
+
+**Missing:**
+- "I'm not using email sequences for this launch"
+- Clear skip option for users who don't do email marketing
+
+---
+
+### 6. Bonuses (Step 3: Offer Details)
+**Current state:** Allows adding bonuses
+
+**Missing:**
+- Explicit "No bonuses" option (currently users just leave it empty, but that feels incomplete)
+
+---
+
+### 7. Order Bumps & Upsells (Step 3: Offer Details)
+**Current state:** Collapsible section for adding them
+
+**Missing:**
+- Clearer "Not offering any" indicator
+
+---
+
+### 8. Live Component (Step 5: Launch Week)
+**Current state:** Has options including "No live element" and "Other"
+
+**Status:** Good - already flexible
+
+---
+
+### 9. Follow-Up Strategy (Step 6: Post-Launch)
+**Current state:** Has options including "Simple" and "Unsure"
+
+**Missing:**
+- "No follow-up planned" (some launches are one-and-done)
+
+---
+
+### 10. Free Event (Step 2: Goal & Timeline / FreeEventConfig)
+**Current state:** Has yes/no toggle
+
+**Status:** Good - already flexible
 
 ---
 
@@ -51,277 +100,174 @@ After reviewing the Launch Planner V2, the following critical planning elements 
 
 ### File: `src/types/launchV2.ts`
 
-#### A. Enhanced Pricing Structure
+#### A. Add new type values
 ```typescript
-// NEW Types
-export interface PaymentPlanOption {
-  id: string;
-  installments: number;      // e.g., 2, 3, 4, 6, 12
-  installmentAmount: number; // e.g., 349
-  totalAmount?: number;      // Auto-calculated
-}
+// Update TestimonialStatus
+export type TestimonialStatus = 'have-enough' | 'need-more' | 'none' | 'skip-this-launch';
 
-export interface OfferPricing {
-  fullPrice: number | null;           // Pay-in-full price
-  originalValue: number | null;       // "Value" for anchoring
-  hasEarlyBirdPrice: boolean;
-  earlyBirdPrice: number | null;
-  earlyBirdDeadline: string;          // When early bird expires
-  hasWaitlistPrice: boolean;
-  waitlistPrice: number | null;       // Special price for waitlist
-  paymentPlans: PaymentPlanOption[];  // Multiple payment plans
-  hasVipTier: boolean;
-  vipPrice: number | null;
-  vipIncludes: string;                // What's included in VIP
-}
+// Update EmailListStatus  
+export type EmailListStatus = 'comfortable' | 'small-nervous' | 'starting-zero' | 'building' | 'not-using-email';
+
+// Update RevenueGoalTier
+export type RevenueGoalTier = 'first-sale' | '500-1000' | '1000-2500' | '2500-plus' | 'testing' | 'custom' | 'no-goal';
+
+// Update FollowUpWillingness
+export type FollowUpWillingness = 'one-email' | 'multiple-emails' | 'personal-outreach' | 'simple' | 'unsure' | 'none-planned' | 'other';
+
+// Add pricing flexibility
+export type PricingStatus = 'set' | 'undecided' | 'free' | 'pay-what-you-want';
 ```
 
-#### B. Enhanced Live Event (Free Event)
+#### B. Add new option arrays
 ```typescript
-export interface FreeEventDetails {
-  // Basic info (existing)
-  type: FreeEventType;
-  date: string;
-  time: string;
-  phase: FreeEventPhase | '';
-  
-  // NEW: Deep planning
-  name: string;                        // "The 5-Day Content Challenge"
-  hook: string;                        // "Learn to create a month of content in 5 days"
-  teachingTopics: string[];            // What you're teaching (for webinar: 3 points, for challenge: daily topics)
-  
-  // NEW: Registration & Show-up
-  registrationGoal: number | null;     // How many signups?
-  sendReminders: boolean;              // Will you send reminder emails?
-  
-  // NEW: Special Offer
-  hasEventOnlyOffer: boolean;          // Special deal for attendees?
-  eventOfferDescription: string;       // What's the offer?
-  eventOfferDeadline: string;          // When does it expire? (e.g., "24 hours after")
-  eventOfferDiscount: string;          // e.g., "$200 off", "Bonus XYZ"
-  
-  // NEW: Challenge-specific
-  challengeDuration?: number;          // 3, 5, 7 days
-  hasFacebookGroup?: boolean;
-  dailyEmails?: boolean;
-}
+export const TESTIMONIAL_STATUS_OPTIONS = [
+  { value: 'have-enough', label: 'I have enough testimonials' },
+  { value: 'need-more', label: 'I need to collect more' },
+  { value: 'none', label: "I don't have any yet (but want to collect)" },
+  { value: 'skip-this-launch', label: "I don't have any and don't plan to collect for this launch" },
+] as const;
 ```
 
-#### C. Offer Stack
-```typescript
-export interface OrderBump {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-}
+---
 
-export interface Upsell {
-  id: string;
-  name: string;
-  price: number;
-  showWhen: 'checkout' | 'post-purchase' | 'both';
-}
+### File: `src/components/wizards/launch-v2/steps/StepPreLaunchStrategy.tsx`
 
-export type GuaranteeType = 'money-back' | 'results' | 'satisfaction' | 'none' | 'other';
+#### Update Testimonials Section (~lines 365-427)
 
-export interface OfferStack {
-  orderBumps: OrderBump[];
-  upsells: Upsell[];
-  hasDownsell: boolean;
-  downsellDetails: string;
-  guaranteeType: GuaranteeType;
-  guaranteeDuration: string;           // "30 days", "60 days", "Lifetime"
-  guaranteeDetails: string;
-}
+**Before:**
+```
+Radio options: have-enough, need-more, none
+If need-more or none → show goal + deadline
 ```
 
-#### D. Update LaunchWizardV2Data
+**After:**
+```
+Radio options: have-enough, need-more, none, skip-this-launch
+If need-more → show goal + deadline  
+If none → show goal + deadline
+If skip-this-launch → show reassurance message
+If have-enough → show "ready" message
+```
+
+#### Add "Skip Email Sequences" Option (~lines 429+)
+
+Add a toggle or option for "I'm not using email for this launch" that collapses the email sequences section.
+
+---
+
+### File: `src/components/wizards/launch-v2/steps/StepLaunchContext.tsx`
+
+#### Update Email List Status Options (~lines 175-213)
+
+Add "not-using-email" option:
 ```typescript
-// Replace/enhance existing fields in LaunchWizardV2Data:
+{ value: 'not-using-email', label: "I'm not using email for this launch", color: 'gray' }
+```
 
-// Step 3: Offer Details - ENHANCED
-offerPricing: OfferPricing;          // NEW - replaces simple pricePoint
-offerStack: OfferStack;              // NEW - order bumps, upsells, guarantee
+Show contextual guidance when selected.
 
-// Step 2: Free Event - ENHANCED  
-freeEventDetails: FreeEventDetails;  // NEW - replaces shallow fields
+---
+
+### File: `src/components/wizards/launch-v2/steps/StepGoalTimeline.tsx`
+
+#### Update Revenue Goal Options (~lines 268-358)
+
+Add "no-goal" option:
+```typescript
+{ value: 'no-goal', label: "I don't have a specific revenue goal for this launch", color: 'gray' }
 ```
 
 ---
 
 ### File: `src/components/wizards/launch-v2/steps/StepOfferDetails.tsx`
 
-#### Restructure into sections:
+#### Add Pricing Status Toggle (~lines 196-275)
 
-**Section 1: Core Pricing**
-- Full price (pay-in-full)
-- Original value (optional - for anchoring)
-- "Show price comparison?" toggle
-
-**Section 2: Payment Plans**
-- "Offer payment plans?" toggle
-- If yes: Add multiple payment plan options
-  - Each has: # of installments, amount per installment
-  - Auto-calculate total and compare to full price
-  - Show savings for pay-in-full
-
-**Section 3: Special Pricing (Collapsible)**
-- Early bird pricing (with deadline)
-- Waitlist-only pricing
-- VIP tier (with what's included)
-
-**Section 4: Offer Stack (Collapsible)**
-- Order bumps (add multiple)
-- Upsells (add multiple)
-- Downsell for non-buyers
-- Guarantee type and duration
-
----
-
-### File: `src/components/wizards/launch-v2/timeline/FreeEventConfig.tsx`
-
-#### Enhanced to include:
-
-**Section 1: Event Basics** (existing, enhanced)
-- Event type (webinar, challenge, workshop, masterclass)
-- Event NAME (new input)
-- Event HOOK/TOPIC (new input)
-- Date & Time
-
-**Section 2: What You're Teaching** (NEW)
-- For webinar: "3 key points you'll cover"
-- For challenge: "Daily topics" (dynamic based on duration)
-- For workshop: "Main outcome + exercises"
-
-**Section 3: Registration & Attendance** (NEW)
-- Registration goal
-- Will you send reminder emails?
-- Show-up optimization tips
-
-**Section 4: Event-Only Offer** (NEW)
-- "Special offer for attendees?" toggle
-- If yes:
-  - What's the offer? (e.g., "Bonus coaching call")
-  - Discount amount (e.g., "$200 off for 48 hours")
-  - When does the offer expire?
-
-**Section 5: Challenge-Specific** (conditional, NEW)
-- Duration (3, 5, 7 days)
-- Facebook group?
-- Daily emails?
-- Daily prize/incentive?
-
----
-
-### UI/UX Approach
-
-To avoid overwhelming users, use progressive disclosure:
-
-1. **Collapsible sections** - Advanced options hidden by default
-2. **Smart defaults** - Pre-fill common patterns
-3. **Contextual tips** - Show guidance based on choices
-4. **Visual summary** - Show "Your offer at a glance" card updated in real-time
-
----
-
-## Files to Create/Modify
-
-| File | Action | Description |
-|------|--------|-------------|
-| `src/types/launchV2.ts` | Modify | Add new interfaces for pricing, events, offer stack |
-| `src/components/wizards/launch-v2/steps/StepOfferDetails.tsx` | Major rewrite | Add pricing sections, payment plans, offer stack |
-| `src/components/wizards/launch-v2/timeline/FreeEventConfig.tsx` | Major rewrite | Add event name, teaching topics, special offers |
-| `src/components/wizards/launch-v2/shared/PaymentPlanBuilder.tsx` | Create | Reusable component for adding payment plans |
-| `src/components/wizards/launch-v2/shared/OrderBumpCard.tsx` | Create | Reusable component for order bump entry |
-| `src/components/wizards/launch-v2/shared/UpsellCard.tsx` | Create | Reusable component for upsell entry |
-| `src/lib/launchV2Validation.ts` | Modify | Add validation for new fields |
-
----
-
-## Implementation Phases
-
-### Phase 1: Enhanced Pricing (Priority)
-- Multiple payment plans
-- Early bird / waitlist pricing
-- Price anchoring
-
-### Phase 2: Enhanced Free Events
-- Event name and hook
-- Teaching topics
-- Special attendee offers
-- Challenge-specific fields
-
-### Phase 3: Offer Stack
-- Order bumps
-- Upsells
-- Downsells
-- Guarantees
-
----
-
-## Example: Enhanced Pricing UI
-
+Before the Full Price input, add:
 ```
-Pricing Structure
------------------
-Full Price (Pay-in-Full): $________
+Do you have pricing set?
+[ ] Yes, I know my price
+[ ] Not decided yet
+[ ] This is free (lead magnet, etc.)
+[ ] Pay what you want / sliding scale
+```
 
-Payment Plans
-[+] Add Payment Plan
-  ┌──────────────────────────────────────┐
-  │ 2 payments of $549  (Total: $1,098)  │ [Remove]
-  └──────────────────────────────────────┘
-  ┌──────────────────────────────────────┐
-  │ 3 payments of $397  (Total: $1,191)  │ [Remove]
-  └──────────────────────────────────────┘
+If "Not decided yet" or "Free" → collapse/hide pricing inputs.
 
-Early Bird Pricing (optional)
-[ ] Offer early bird pricing
-    Price: $______  Expires: [date picker]
+#### Add "No Bonuses" Indicator (~line 451+)
 
-Waitlist Pricing (optional)  
-[ ] Special price for waitlist
-    Price: $______
+Add a clearer "I'm not offering bonuses" option instead of just leaving the section empty.
+
+---
+
+### File: `src/components/wizards/launch-v2/steps/StepPostLaunch.tsx`
+
+#### Add "No Follow-Up" Option (~lines 127-195)
+
+Add to FOLLOW_UP_WILLINGNESS_OPTIONS:
+```typescript
+{ value: 'none-planned', label: "No follow-up planned for this launch" }
 ```
 
 ---
 
-## Example: Enhanced Free Event UI
+## Implementation Summary
+
+| File | Changes |
+|------|---------|
+| `src/types/launchV2.ts` | Add `skip-this-launch` to TestimonialStatus, `not-using-email` to EmailListStatus, `no-goal` to RevenueGoalTier, `none-planned` to FollowUpWillingness, add `PricingStatus` type |
+| `src/components/wizards/launch-v2/steps/StepPreLaunchStrategy.tsx` | Add "skip this launch" testimonial option with guidance, add email skip option |
+| `src/components/wizards/launch-v2/steps/StepLaunchContext.tsx` | Add "not using email" option |
+| `src/components/wizards/launch-v2/steps/StepGoalTimeline.tsx` | Add "no specific goal" option |
+| `src/components/wizards/launch-v2/steps/StepOfferDetails.tsx` | Add pricing status toggle, add "no bonuses" indicator |
+| `src/components/wizards/launch-v2/steps/StepPostLaunch.tsx` | Add "no follow-up" option |
+
+---
+
+## UI/UX Approach
+
+1. **Non-judgmental language** - Options should not make users feel like they're doing something wrong
+2. **Contextual guidance** - When users select "skip" options, show supportive messaging explaining that's okay
+3. **Clean conditionals** - Hide irrelevant follow-up fields when skip options are selected
+4. **Visual consistency** - Skip options should look like valid choices, not afterthoughts
+
+---
+
+## Example: Testimonials Section (After)
 
 ```
-Free Event Details
-------------------
-Event Type: [Webinar ▼]
+Testimonials
+------------
+Social proof dramatically increases conversions.
 
-Event Name: [The Content Creator Accelerator Masterclass]
-
-What's the hook? (What will they learn?)
-[How to create 30 days of content in just 2 hours per week]
-
-What are you teaching? (3 key points)
-1. [The Content Batching System]
-2. [Repurposing Framework]  
-3. [The 30-Day Content Calendar]
-
-Registration Goal: [500] signups
-
-Special Offer for Attendees
-[✓] Yes, I'm offering something special
-    What's the offer? [Free 1:1 Strategy Call for first 20 buyers]
-    Discount: [$200 off + bonus coaching package]
-    Offer expires: [24 hours after webinar]
+( ) I have enough testimonials  ✓ Testimonials ready
+( ) I need to collect more      → [Goal: __] [Deadline: ____]  
+( ) I don't have any yet        → [Goal: __] [Deadline: ____]
+(•) Skip testimonials this time → That's okay! First launches often don't have 
+                                   testimonials. Focus on getting results 
+                                   you can share later.
 ```
 
 ---
 
-## Summary
+## Files to Modify
 
-This enhancement transforms the Launch Planner V2 from a "what dates" tool into a comprehensive "plan every decision" tool. Users will:
+| File | Lines to Update |
+|------|-----------------|
+| `src/types/launchV2.ts` | Lines 20, 25-30, 29, 109-111 + new option arrays |
+| `src/components/wizards/launch-v2/steps/StepPreLaunchStrategy.tsx` | Lines 365-427 (testimonials), 429+ (email skip) |
+| `src/components/wizards/launch-v2/steps/StepLaunchContext.tsx` | Lines 175-213 (email list options) |
+| `src/components/wizards/launch-v2/steps/StepGoalTimeline.tsx` | Lines 268-358 (revenue goal options) |
+| `src/components/wizards/launch-v2/steps/StepOfferDetails.tsx` | Lines 196-275 (pricing status) |
+| `src/components/wizards/launch-v2/steps/StepPostLaunch.tsx` | Lines 127-161 (follow-up options) |
 
-1. **Define complete pricing** - full price, payment plans, early bird, VIP
-2. **Plan live events deeply** - name, hook, teaching points, special offers
-3. **Build their offer stack** - order bumps, upsells, guarantees
-4. **See everything at a glance** - visual summary cards
+---
 
-The implementation uses collapsible sections to maintain simplicity while enabling depth for those who need it.
+## Priority Order
+
+1. **Testimonials** (user's specific request) - highest priority
+2. **Email Skip** - affects workflow significantly
+3. **Revenue Goal** - helps first-time launchers
+4. **Pricing Status** - helps undecided users
+5. **Follow-Up** - lower impact
+6. **Bonuses indicator** - cosmetic improvement
