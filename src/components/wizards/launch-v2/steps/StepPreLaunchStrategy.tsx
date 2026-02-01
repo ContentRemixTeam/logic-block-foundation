@@ -1,5 +1,5 @@
 // Step 4: Pre-Launch Strategy (Q11-Q13)
-// Captures reach method, content creation status, and volume
+// Captures reach method, email sequences, automations, content status, and volume
 
 import { useState } from 'react';
 import { Label } from '@/components/ui/label';
@@ -8,15 +8,21 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Megaphone, PenTool, Layers, Plus, X, ListChecks } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Megaphone, PenTool, Layers, Plus, X, ListChecks, Mail, Zap, FileText, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import {
   LaunchWizardV2Data,
   MainReachMethod,
   ContentCreationStatus,
   ContentVolume,
+  EmailSequenceTypes,
+  AutomationTypes,
   MAIN_REACH_METHOD_OPTIONS,
   CONTENT_CREATION_STATUS_OPTIONS,
   CONTENT_VOLUME_OPTIONS,
+  EMAIL_SEQUENCE_TYPE_OPTIONS,
+  AUTOMATION_TYPE_OPTIONS,
 } from '@/types/launchV2';
 
 interface StepPreLaunchStrategyProps {
@@ -26,6 +32,8 @@ interface StepPreLaunchStrategyProps {
 
 export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyProps) {
   const [newItem, setNewItem] = useState('');
+  const [newEmailSequence, setNewEmailSequence] = useState('');
+  const [newAutomation, setNewAutomation] = useState('');
 
   const getContentTaskEstimate = (): string => {
     if (!data.contentCreationStatus || !data.contentVolume) return '';
@@ -40,6 +48,7 @@ export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyP
     return `~${taskCount} content tasks`;
   };
 
+  // Custom pre-launch items handlers
   const handleAddItem = () => {
     if (!newItem.trim()) return;
     const currentItems = data.customPreLaunchItems || [];
@@ -56,6 +65,78 @@ export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyP
     if (e.key === 'Enter') {
       e.preventDefault();
       handleAddItem();
+    }
+  };
+
+  // Email sequence handlers
+  const toggleEmailSequenceType = (key: keyof EmailSequenceTypes) => {
+    const current = data.emailSequenceTypes || {
+      warmUp: false,
+      launch: false,
+      cartClose: false,
+      postPurchase: false,
+    };
+    onChange({
+      emailSequenceTypes: {
+        ...current,
+        [key]: !current[key],
+      },
+    });
+  };
+
+  const handleAddCustomEmailSequence = () => {
+    if (!newEmailSequence.trim()) return;
+    const current = data.customEmailSequences || [];
+    onChange({ customEmailSequences: [...current, newEmailSequence.trim()] });
+    setNewEmailSequence('');
+  };
+
+  const handleRemoveCustomEmailSequence = (index: number) => {
+    const current = data.customEmailSequences || [];
+    onChange({ customEmailSequences: current.filter((_, i) => i !== index) });
+  };
+
+  const handleEmailSequenceKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddCustomEmailSequence();
+    }
+  };
+
+  // Automation handlers
+  const toggleAutomationType = (key: keyof AutomationTypes) => {
+    const current = data.automationTypes || {
+      tagging: false,
+      abandonedCart: false,
+      purchaseConfirmation: false,
+      waitlistToSales: false,
+      deadlineUrgency: false,
+      leadMagnetDelivery: false,
+    };
+    onChange({
+      automationTypes: {
+        ...current,
+        [key]: !current[key],
+      },
+    });
+  };
+
+  const handleAddCustomAutomation = () => {
+    if (!newAutomation.trim()) return;
+    const current = data.customAutomations || [];
+    onChange({ customAutomations: [...current, newAutomation.trim()] });
+    setNewAutomation('');
+  };
+
+  const handleRemoveCustomAutomation = (index: number) => {
+    const current = data.customAutomations || [];
+    onChange({ customAutomations: current.filter((_, i) => i !== index) });
+  };
+
+  const handleAutomationKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddCustomAutomation();
     }
   };
 
@@ -131,6 +212,166 @@ export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyP
             </p>
           </div>
         )}
+      </div>
+
+      {/* Email Sequences Section */}
+      <div className="space-y-4">
+        <Label className="text-lg font-semibold flex items-center gap-2">
+          <Mail className="h-5 w-5" />
+          Which email sequences do you need to write?
+        </Label>
+        <p className="text-sm text-muted-foreground -mt-2">
+          Select all that apply. We'll create tasks for each sequence.
+        </p>
+
+        <div className="space-y-3">
+          {EMAIL_SEQUENCE_TYPE_OPTIONS.map((option) => (
+            <div
+              key={option.key}
+              className="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors cursor-pointer"
+              onClick={() => toggleEmailSequenceType(option.key as keyof EmailSequenceTypes)}
+            >
+              <Checkbox
+                id={`email-seq-${option.key}`}
+                checked={data.emailSequenceTypes?.[option.key as keyof EmailSequenceTypes] || false}
+                onCheckedChange={() => toggleEmailSequenceType(option.key as keyof EmailSequenceTypes)}
+                className="mt-0.5"
+              />
+              <div className="flex-1">
+                <Label htmlFor={`email-seq-${option.key}`} className="cursor-pointer font-medium">
+                  {option.label}
+                </Label>
+                <p className="text-sm text-muted-foreground">{option.description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Custom email sequences */}
+        <div className="mt-4 space-y-3">
+          <Label className="text-sm text-muted-foreground">Add custom sequence:</Label>
+          <div className="flex gap-2">
+            <Input
+              value={newEmailSequence}
+              onChange={(e) => setNewEmailSequence(e.target.value)}
+              onKeyDown={handleEmailSequenceKeyDown}
+              placeholder="e.g., VIP early access series..."
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={handleAddCustomEmailSequence}
+              disabled={!newEmailSequence.trim()}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {(data.customEmailSequences?.length ?? 0) > 0 && (
+            <div className="space-y-2 mt-2">
+              {data.customEmailSequences?.map((item, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg border group"
+                >
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm flex-1">{item}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => handleRemoveCustomEmailSequence(index)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Automations Section */}
+      <div className="space-y-4">
+        <Label className="text-lg font-semibold flex items-center gap-2">
+          <Zap className="h-5 w-5" />
+          Which automations do you need to set up?
+        </Label>
+        <p className="text-sm text-muted-foreground -mt-2">
+          These are tech tasks we'll add to your pre-launch checklist.
+        </p>
+
+        <div className="space-y-3">
+          {AUTOMATION_TYPE_OPTIONS.map((option) => (
+            <div
+              key={option.key}
+              className="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors cursor-pointer"
+              onClick={() => toggleAutomationType(option.key as keyof AutomationTypes)}
+            >
+              <Checkbox
+                id={`automation-${option.key}`}
+                checked={data.automationTypes?.[option.key as keyof AutomationTypes] || false}
+                onCheckedChange={() => toggleAutomationType(option.key as keyof AutomationTypes)}
+                className="mt-0.5"
+              />
+              <div className="flex-1">
+                <Label htmlFor={`automation-${option.key}`} className="cursor-pointer font-medium">
+                  {option.label}
+                </Label>
+                <p className="text-sm text-muted-foreground">{option.description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Custom automations */}
+        <div className="mt-4 space-y-3">
+          <Label className="text-sm text-muted-foreground">Add custom automation:</Label>
+          <div className="flex gap-2">
+            <Input
+              value={newAutomation}
+              onChange={(e) => setNewAutomation(e.target.value)}
+              onKeyDown={handleAutomationKeyDown}
+              placeholder="e.g., Webinar replay sequence..."
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={handleAddCustomAutomation}
+              disabled={!newAutomation.trim()}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {(data.customAutomations?.length ?? 0) > 0 && (
+            <div className="space-y-2 mt-2">
+              {data.customAutomations?.map((item, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg border group"
+                >
+                  <Zap className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm flex-1">{item}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => handleRemoveCustomAutomation(index)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Q12: Content Creation Status */}
@@ -227,6 +468,36 @@ export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyP
           </div>
         )}
       </div>
+
+      {/* Content Prep Integration Note */}
+      <Card className="border-dashed border-2 border-muted-foreground/30">
+        <CardContent className="p-5">
+          <div className="flex items-start gap-4">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <FileText className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 space-y-2">
+              <h4 className="font-semibold">Content Prep</h4>
+              <p className="text-sm text-muted-foreground">
+                Based on your choices above, we'll generate content creation tasks. 
+                After completing this wizard, you can use the <strong>Content Planner</strong> to:
+              </p>
+              <ul className="text-sm text-muted-foreground space-y-1 ml-4 list-disc">
+                <li>Define your messaging framework</li>
+                <li>Plan specific content pieces</li>
+                <li>Repurpose existing content</li>
+                <li>Schedule creation tasks by launch phase</li>
+              </ul>
+              <Link 
+                to="/wizards/content-planner" 
+                className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-2"
+              >
+                Go to Content Planner <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Custom Pre-Launch Checklist Items */}
       <div className="space-y-4">

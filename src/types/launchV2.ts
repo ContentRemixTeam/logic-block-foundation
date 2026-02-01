@@ -18,6 +18,24 @@ export type MainReachMethod = 'email' | 'social' | 'direct-outreach' | 'combinat
 export type ContentCreationStatus = 'ready' | 'partial' | 'from-scratch';
 export type ContentVolume = 'light' | 'medium' | 'heavy';
 
+// Email Sequence Types
+export interface EmailSequenceTypes {
+  warmUp: boolean;
+  launch: boolean;
+  cartClose: boolean;
+  postPurchase: boolean;
+}
+
+// Automation Types
+export interface AutomationTypes {
+  tagging: boolean;
+  abandonedCart: boolean;
+  purchaseConfirmation: boolean;
+  waitlistToSales: boolean;
+  deadlineUrgency: boolean;
+  leadMagnetDelivery: boolean;
+}
+
 // ============== Step 5: Launch Week Strategy ==============
 export type LaunchMethod = 'email-only' | 'social-email' | 'outreach-email' | 'in-person' | 'combination';
 export type OfferFrequency = 'once' | 'daily' | 'multiple-daily' | 'every-other-day' | 'unsure';
@@ -112,6 +130,12 @@ export interface LaunchWizardV2Data {
   contentVolume: ContentVolume | '';
   customPreLaunchItems: string[]; // User's custom checklist items
   
+  // Email Sequences & Automations
+  emailSequenceTypes: EmailSequenceTypes;
+  customEmailSequences: string[];
+  automationTypes: AutomationTypes;
+  customAutomations: string[];
+  
   // Step 5: Launch Week Strategy (Q14-Q16)
   launchMethod: LaunchMethod | '';
   offerFrequency: OfferFrequency | '';
@@ -197,6 +221,24 @@ export const DEFAULT_LAUNCH_V2_DATA: LaunchWizardV2Data = {
   contentCreationStatus: '',
   customPreLaunchItems: [],
   contentVolume: '',
+  
+  // Email Sequences & Automations
+  emailSequenceTypes: {
+    warmUp: false,
+    launch: false,
+    cartClose: false,
+    postPurchase: false,
+  },
+  customEmailSequences: [],
+  automationTypes: {
+    tagging: false,
+    abandonedCart: false,
+    purchaseConfirmation: false,
+    waitlistToSales: false,
+    deadlineUrgency: false,
+    leadMagnetDelivery: false,
+  },
+  customAutomations: [],
   
   // Step 5
   launchMethod: '',
@@ -289,6 +331,22 @@ export const CONTENT_VOLUME_OPTIONS = [
   { value: 'light', label: 'Light touch (3-5 pieces)', description: 'Minimal but focused' },
   { value: 'medium', label: 'Medium (5-10 pieces)', description: 'Good coverage' },
   { value: 'heavy', label: 'Heavy nurture (10+ pieces)', description: 'Maximum engagement' },
+] as const;
+
+export const EMAIL_SEQUENCE_TYPE_OPTIONS = [
+  { key: 'warmUp', label: 'Warm-up sequence', description: '3-7 emails to build anticipation' },
+  { key: 'launch', label: 'Launch week', description: '5-7 emails announcing your offer' },
+  { key: 'cartClose', label: 'Cart close urgency', description: '3 emails for final push' },
+  { key: 'postPurchase', label: 'Post-purchase onboarding', description: 'Welcome new buyers' },
+] as const;
+
+export const AUTOMATION_TYPE_OPTIONS = [
+  { key: 'tagging', label: 'Tagging/segmentation', description: 'Tag buyers, non-buyers, engaged leads' },
+  { key: 'abandonedCart', label: 'Abandoned cart sequence', description: 'Follow up on incomplete purchases' },
+  { key: 'purchaseConfirmation', label: 'Purchase confirmation sequence', description: 'Order + onboarding emails' },
+  { key: 'waitlistToSales', label: 'Waitlist to sales sequence', description: 'Move waitlist to cart open' },
+  { key: 'deadlineUrgency', label: 'Deadline/urgency automations', description: 'Cart closing countdown' },
+  { key: 'leadMagnetDelivery', label: 'Lead magnet delivery', description: 'Auto-deliver free resources' },
 ] as const;
 
 export const LAUNCH_METHOD_OPTIONS = [
