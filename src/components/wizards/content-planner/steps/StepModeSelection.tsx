@@ -28,9 +28,9 @@ export function StepModeSelection({ data, onChange }: StepModeSelectionProps) {
   const [launches, setLaunches] = useState<Launch[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch user's launches for launch mode
+  // Fetch user's launches for launch mode - only if not already loaded
   useEffect(() => {
-    if (!user) return;
+    if (!user || launches.length > 0) return;
     
     const fetchLaunches = async () => {
       setIsLoading(true);
