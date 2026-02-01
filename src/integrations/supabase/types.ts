@@ -1640,6 +1640,7 @@ export type Database = {
       }
       daily_plans: {
         Row: {
+          active_launch_id: string | null
           alignment_score: number | null
           brain_dump: string | null
           created_at: string | null
@@ -1665,6 +1666,7 @@ export type Database = {
           week_id: string | null
         }
         Insert: {
+          active_launch_id?: string | null
           alignment_score?: number | null
           brain_dump?: string | null
           created_at?: string | null
@@ -1690,6 +1692,7 @@ export type Database = {
           week_id?: string | null
         }
         Update: {
+          active_launch_id?: string | null
           alignment_score?: number | null
           brain_dump?: string | null
           created_at?: string | null
@@ -1715,6 +1718,13 @@ export type Database = {
           week_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "daily_plans_active_launch_id_fkey"
+            columns: ["active_launch_id"]
+            isOneToOne: false
+            referencedRelation: "launches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "daily_plans_cycle_id_fkey"
             columns: ["cycle_id"]
@@ -2855,10 +2865,15 @@ export type Database = {
           email_list_status: string | null
           email_sequences: string[] | null
           follow_up_willingness: string | null
+          free_event_date: string | null
+          free_event_phase: string | null
+          free_event_time: string | null
+          free_event_type: string | null
           gap_acknowledged: boolean | null
           gap_overlap_detected: boolean | null
           gap_support_type: string | null
           has_ads: string | null
+          has_free_event: boolean | null
           has_lead_magnet: boolean | null
           has_limitations: string | null
           has_payment_plan: boolean | null
@@ -2885,13 +2900,18 @@ export type Database = {
           offer_type: string | null
           other_offer_type: string | null
           payment_plan_details: string | null
+          post_launch_end_date: string | null
           post_purchase_flow: string[] | null
+          pre_launch_end_date: string | null
+          pre_launch_start_date: string | null
           previous_launch_learnings: string | null
           price_per_sale: number | null
           promotion_duration: string | null
           readiness_score: number | null
           revenue_goal: number | null
           revenue_goal_tier: string | null
+          runway_end_date: string | null
+          runway_start_date: string | null
           sales_needed: number | null
           selected_content_ids: string[] | null
           social_platform: string | null
@@ -2900,6 +2920,7 @@ export type Database = {
           spot_limit: number | null
           status: string | null
           updated_at: string | null
+          use_custom_timeline: boolean | null
           useful_thought: string | null
           user_id: string
           waitlist_incentive: string | null
@@ -2926,10 +2947,15 @@ export type Database = {
           email_list_status?: string | null
           email_sequences?: string[] | null
           follow_up_willingness?: string | null
+          free_event_date?: string | null
+          free_event_phase?: string | null
+          free_event_time?: string | null
+          free_event_type?: string | null
           gap_acknowledged?: boolean | null
           gap_overlap_detected?: boolean | null
           gap_support_type?: string | null
           has_ads?: string | null
+          has_free_event?: boolean | null
           has_lead_magnet?: boolean | null
           has_limitations?: string | null
           has_payment_plan?: boolean | null
@@ -2956,13 +2982,18 @@ export type Database = {
           offer_type?: string | null
           other_offer_type?: string | null
           payment_plan_details?: string | null
+          post_launch_end_date?: string | null
           post_purchase_flow?: string[] | null
+          pre_launch_end_date?: string | null
+          pre_launch_start_date?: string | null
           previous_launch_learnings?: string | null
           price_per_sale?: number | null
           promotion_duration?: string | null
           readiness_score?: number | null
           revenue_goal?: number | null
           revenue_goal_tier?: string | null
+          runway_end_date?: string | null
+          runway_start_date?: string | null
           sales_needed?: number | null
           selected_content_ids?: string[] | null
           social_platform?: string | null
@@ -2971,6 +3002,7 @@ export type Database = {
           spot_limit?: number | null
           status?: string | null
           updated_at?: string | null
+          use_custom_timeline?: boolean | null
           useful_thought?: string | null
           user_id: string
           waitlist_incentive?: string | null
@@ -2997,10 +3029,15 @@ export type Database = {
           email_list_status?: string | null
           email_sequences?: string[] | null
           follow_up_willingness?: string | null
+          free_event_date?: string | null
+          free_event_phase?: string | null
+          free_event_time?: string | null
+          free_event_type?: string | null
           gap_acknowledged?: boolean | null
           gap_overlap_detected?: boolean | null
           gap_support_type?: string | null
           has_ads?: string | null
+          has_free_event?: boolean | null
           has_lead_magnet?: boolean | null
           has_limitations?: string | null
           has_payment_plan?: boolean | null
@@ -3027,13 +3064,18 @@ export type Database = {
           offer_type?: string | null
           other_offer_type?: string | null
           payment_plan_details?: string | null
+          post_launch_end_date?: string | null
           post_purchase_flow?: string[] | null
+          pre_launch_end_date?: string | null
+          pre_launch_start_date?: string | null
           previous_launch_learnings?: string | null
           price_per_sale?: number | null
           promotion_duration?: string | null
           readiness_score?: number | null
           revenue_goal?: number | null
           revenue_goal_tier?: string | null
+          runway_end_date?: string | null
+          runway_start_date?: string | null
           sales_needed?: number | null
           selected_content_ids?: string[] | null
           social_platform?: string | null
@@ -3042,6 +3084,7 @@ export type Database = {
           spot_limit?: number | null
           status?: string | null
           updated_at?: string | null
+          use_custom_timeline?: boolean | null
           useful_thought?: string | null
           user_id?: string
           waitlist_incentive?: string | null
@@ -3983,6 +4026,7 @@ export type Database = {
           is_recurring_parent: boolean | null
           is_system_generated: boolean | null
           last_rescheduled_at: string | null
+          launch_id: string | null
           month_in_cycle: number | null
           notes: string | null
           original_due_date: string | null
@@ -4047,6 +4091,7 @@ export type Database = {
           is_recurring_parent?: boolean | null
           is_system_generated?: boolean | null
           last_rescheduled_at?: string | null
+          launch_id?: string | null
           month_in_cycle?: number | null
           notes?: string | null
           original_due_date?: string | null
@@ -4111,6 +4156,7 @@ export type Database = {
           is_recurring_parent?: boolean | null
           is_system_generated?: boolean | null
           last_rescheduled_at?: string | null
+          launch_id?: string | null
           month_in_cycle?: number | null
           notes?: string | null
           original_due_date?: string | null
@@ -4182,6 +4228,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "daily_plans"
             referencedColumns: ["day_id"]
+          },
+          {
+            foreignKeyName: "tasks_launch_id_fkey"
+            columns: ["launch_id"]
+            isOneToOne: false
+            referencedRelation: "launches"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "tasks_parent_task_id_fkey"
@@ -4737,6 +4790,7 @@ export type Database = {
       }
       weekly_plans: {
         Row: {
+          active_launch_id: string | null
           adjustments: string | null
           alignment_rating: number | null
           alignment_reflection: string | null
@@ -4745,6 +4799,13 @@ export type Database = {
           cycle_id: string
           goal_checkin_notes: string | null
           goal_rewrite: string | null
+          launch_confidence_rating: number | null
+          launch_conversion_percent: number | null
+          launch_offers_made: number | null
+          launch_phase_this_week: string | null
+          launch_revenue_logged: number | null
+          launch_sales_count: number | null
+          launch_week_reflection: string | null
           metric_1_target: number | null
           metric_2_target: number | null
           metric_3_target: number | null
@@ -4758,6 +4819,7 @@ export type Database = {
           weekly_thought: string | null
         }
         Insert: {
+          active_launch_id?: string | null
           adjustments?: string | null
           alignment_rating?: number | null
           alignment_reflection?: string | null
@@ -4766,6 +4828,13 @@ export type Database = {
           cycle_id: string
           goal_checkin_notes?: string | null
           goal_rewrite?: string | null
+          launch_confidence_rating?: number | null
+          launch_conversion_percent?: number | null
+          launch_offers_made?: number | null
+          launch_phase_this_week?: string | null
+          launch_revenue_logged?: number | null
+          launch_sales_count?: number | null
+          launch_week_reflection?: string | null
           metric_1_target?: number | null
           metric_2_target?: number | null
           metric_3_target?: number | null
@@ -4779,6 +4848,7 @@ export type Database = {
           weekly_thought?: string | null
         }
         Update: {
+          active_launch_id?: string | null
           adjustments?: string | null
           alignment_rating?: number | null
           alignment_reflection?: string | null
@@ -4787,6 +4857,13 @@ export type Database = {
           cycle_id?: string
           goal_checkin_notes?: string | null
           goal_rewrite?: string | null
+          launch_confidence_rating?: number | null
+          launch_conversion_percent?: number | null
+          launch_offers_made?: number | null
+          launch_phase_this_week?: string | null
+          launch_revenue_logged?: number | null
+          launch_sales_count?: number | null
+          launch_week_reflection?: string | null
           metric_1_target?: number | null
           metric_2_target?: number | null
           metric_3_target?: number | null
@@ -4800,6 +4877,13 @@ export type Database = {
           weekly_thought?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "weekly_plans_active_launch_id_fkey"
+            columns: ["active_launch_id"]
+            isOneToOne: false
+            referencedRelation: "launches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "weekly_plans_cycle_id_fkey"
             columns: ["cycle_id"]

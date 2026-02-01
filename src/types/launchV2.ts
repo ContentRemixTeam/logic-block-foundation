@@ -55,6 +55,10 @@ export interface LaunchLiveEvent {
   topic: string;
 }
 
+// ============== Free Event Types ==============
+export type FreeEventType = 'webinar' | 'workshop' | 'challenge' | 'masterclass' | '';
+export type FreeEventPhase = 'runway' | 'pre-launch' | 'cart-open';
+
 // ============== Main Wizard Data Type ==============
 export interface LaunchWizardV2Data {
   // Step 1: Launch Context (Q1-Q3)
@@ -73,6 +77,21 @@ export interface LaunchWizardV2Data {
   revenueGoalTier: RevenueGoalTier | '';
   customRevenueGoal: number | null;
   
+  // Step 2b: Phase Timeline (NEW - 4-phase system)
+  runwayStartDate: string;
+  runwayEndDate: string;
+  preLaunchStartDate: string;
+  preLaunchEndDate: string;
+  postLaunchEndDate: string;
+  useCustomTimeline: boolean;
+  
+  // Step 2c: Free Event (NEW - structured)
+  hasFreeEvent: boolean;
+  freeEventType: FreeEventType;
+  freeEventDate: string;
+  freeEventTime: string;
+  freeEventPhase: FreeEventPhase | '';
+  
   // Step 3: Offer Details (Q7-Q10)
   name: string;
   pricePoint: number | null;
@@ -83,6 +102,7 @@ export interface LaunchWizardV2Data {
   hasLimitations: HasLimitations | '';
   limitationDetails: string;
   spotLimit: number | null;
+  offerGoal: number | null; // NEW - total offers to make during cart open
   
   // Step 4: Pre-Launch Strategy (Q11-Q13)
   mainReachMethod: MainReachMethod | '';
@@ -111,6 +131,7 @@ export interface LaunchWizardV2Data {
   gapOverlapDetected: boolean;
   gapAcknowledged: boolean;
   gapSupportType: GapSupportType | '';
+  gapResponse: 'continue' | 'adjust-dates' | 'add-support' | ''; // NEW - user's GAP choice
   
   // Step 9: Review & Complete (Q24-Q25)
   readinessScore: number;
@@ -141,6 +162,21 @@ export const DEFAULT_LAUNCH_V2_DATA: LaunchWizardV2Data = {
   revenueGoalTier: '',
   customRevenueGoal: null,
   
+  // Step 2b: Phase Timeline (NEW)
+  runwayStartDate: '',
+  runwayEndDate: '',
+  preLaunchStartDate: '',
+  preLaunchEndDate: '',
+  postLaunchEndDate: '',
+  useCustomTimeline: false,
+  
+  // Step 2c: Free Event (NEW)
+  hasFreeEvent: false,
+  freeEventType: '',
+  freeEventDate: '',
+  freeEventTime: '',
+  freeEventPhase: '',
+  
   // Step 3
   name: '',
   pricePoint: null,
@@ -151,6 +187,7 @@ export const DEFAULT_LAUNCH_V2_DATA: LaunchWizardV2Data = {
   hasLimitations: '',
   limitationDetails: '',
   spotLimit: null,
+  offerGoal: null,
   
   // Step 4
   mainReachMethod: '',
@@ -179,6 +216,7 @@ export const DEFAULT_LAUNCH_V2_DATA: LaunchWizardV2Data = {
   gapOverlapDetected: false,
   gapAcknowledged: false,
   gapSupportType: '',
+  gapResponse: '',
   
   // Step 9
   readinessScore: 5,
@@ -318,11 +356,17 @@ export const ZERO_SALES_PLAN_OPTIONS = [
 ] as const;
 
 export const GAP_SUPPORT_TYPE_OPTIONS = [
-  { value: 'daily-motivation', label: 'Daily motivation + accountability' },
-  { value: 'mid-week-check', label: 'Mid-week coaching call/check-in' },
-  { value: 'thought-work', label: 'Thought work on limiting beliefs' },
-  { value: 'keep-tasks', label: 'Just keep the tasks coming, I can do this' },
-  { value: 'decide-later', label: 'I\'ll let you know when I get there' },
+  { value: 'daily-motivation', label: 'Daily motivation + accountability', description: 'Daily mindset check-in tasks added to your plan' },
+  { value: 'mid-week-check', label: 'Mid-week coaching call/check-in', description: 'Reminders to pause and assess how you\'re doing' },
+  { value: 'thought-work', label: 'Thought work on limiting beliefs', description: 'CTFAR exercises scheduled during GAP weeks' },
+  { value: 'keep-tasks', label: 'Just keep the tasks coming, I can do this', description: 'Standard tasks with no extra support' },
+  { value: 'decide-later', label: 'I\'ll let you know when I get there', description: 'We\'ll check in when you reach THE GAP' },
+] as const;
+
+export const GAP_RESPONSE_OPTIONS = [
+  { value: 'continue', label: 'I understand the risk - continue with these dates', icon: '✓' },
+  { value: 'adjust-dates', label: 'Adjust my timeline to avoid THE GAP', icon: '📅' },
+  { value: 'add-support', label: 'Add extra support tasks (daily mindset check-ins)', icon: '💪' },
 ] as const;
 
 export const WHAT_YOU_NEED_OPTIONS = [
@@ -331,6 +375,20 @@ export const WHAT_YOU_NEED_OPTIONS = [
   { value: 'confidence', label: 'Confidence that this will work', icon: '💪' },
   { value: 'accountability', label: 'Just hold me accountable', icon: '🤝' },
   { value: 'nothing', label: 'Nothing - I\'m ready to go', icon: '🚀' },
+] as const;
+
+// ============== Free Event Options (NEW) ==============
+export const FREE_EVENT_TYPE_OPTIONS = [
+  { value: 'webinar', label: 'Webinar', icon: '🎥', description: 'Live presentation with Q&A' },
+  { value: 'workshop', label: 'Workshop', icon: '🛠️', description: 'Hands-on training session' },
+  { value: 'challenge', label: 'Challenge', icon: '🎯', description: 'Multi-day challenge event' },
+  { value: 'masterclass', label: 'Masterclass', icon: '🎓', description: 'Deep-dive teaching session' },
+] as const;
+
+export const FREE_EVENT_PHASE_OPTIONS = [
+  { value: 'runway', label: 'During Runway', description: 'Warm them up early (before you announce)' },
+  { value: 'pre-launch', label: 'During Pre-Launch', description: 'Final push before cart opens (recommended)' },
+  { value: 'cart-open', label: 'During Cart Open', description: 'Maximize attendance while cart is open' },
 ] as const;
 
 // ============== Fear to CTFAR Prompts ==============
