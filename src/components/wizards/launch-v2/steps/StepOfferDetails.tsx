@@ -1,6 +1,7 @@
 // Step 3: Offer Details (Q7-Q10)
 // Captures pricing, ideal customer, bonuses, and limitations
 
+import { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,13 +9,17 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, Users, Gift, Lock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { DollarSign, Users, Gift, Lock, Plus, AlertTriangle } from 'lucide-react';
 import {
   LaunchWizardV2Data,
   HasLimitations,
   HAS_LIMITATIONS_OPTIONS,
+  BonusItem,
 } from '@/types/launchV2';
 import { calculateSalesNeeded } from '@/lib/launchV2Validation';
+import { BonusItemCard } from '@/components/wizards/shared/BonusItemCard';
+import { parseISO, isAfter } from 'date-fns';
 
 interface StepOfferDetailsProps {
   data: LaunchWizardV2Data;
@@ -22,6 +27,8 @@ interface StepOfferDetailsProps {
 }
 
 export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
+  const [newBonusName, setNewBonusName] = useState('');
+
   const handlePriceChange = (value: string) => {
     const price = value ? parseFloat(value) : null;
     onChange({
@@ -33,6 +40,40 @@ export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
   const offerTypeLabel = data.offerType === 'other' 
     ? data.otherOfferType || 'your offer'
     : data.offerType || 'your offer';
+
+  // Bonus handlers
+  const handleAddBonus = () => {
+    if (!newBonusName.trim()) return;
+    const newBonus: BonusItem = {
+      id: crypto.randomUUID(),
+      name: newBonusName.trim(),
+      status: 'existing', // Default to existing
+    };
+    onChange({ bonusStack: [...(data.bonusStack || []), newBonus] });
+    setNewBonusName('');
+  };
+
+  const handleUpdateBonus = (id: string, updates: Partial<BonusItem>) => {
+    const updated = (data.bonusStack || []).map(b => 
+      b.id === id ? { ...b, ...updates } : b
+    );
+    onChange({ bonusStack: updated });
+  };
+
+  const handleRemoveBonus = (id: string) => {
+    onChange({ bonusStack: (data.bonusStack || []).filter(b => b.id !== id) });
+  };
+
+  // Check for bonuses that need creation with deadlines after cart opens
+  const bonusesNeedingCreation = (data.bonusStack || []).filter(b => b.status === 'needs-creation');
+  const bonusesWithLateDeadlines = bonusesNeedingCreation.filter(b => {
+    if (!b.deadline || !data.cartOpensDate) return false;
+    try {
+      return isAfter(parseISO(b.deadline), parseISO(data.cartOpensDate));
+    } catch {
+      return false;
+    }
+  });
 
   return (
     <div className="space-y-8">
@@ -143,23 +184,71 @@ export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
         </p>
       </div>
 
-      {/* Q9: Main Bonus */}
-      <div className="space-y-3">
-        <Label htmlFor="main-bonus" className="text-lg font-semibold flex items-center gap-2">
+      {/* Q9: Bonus Stack */}
+      <div className="space-y-4">
+        <Label className="text-lg font-semibold flex items-center gap-2">
           <Gift className="h-5 w-5" />
-          What's your ONE main bonus or incentive?
+          Bonus Stack
         </Label>
         <p className="text-sm text-muted-foreground -mt-1">
-          Keep it simple. What's the reason to buy NOW vs. later?
+          Add bonuses to increase value. For each, tell us if it's ready or needs to be created.
         </p>
-        <Input
-          id="main-bonus"
-          value={data.mainBonus}
-          onChange={(e) => onChange({ mainBonus: e.target.value.slice(0, 150) })}
-          placeholder="e.g., Free 1:1 call with me (first 10 buyers only)"
-          maxLength={150}
-        />
-        {!data.mainBonus && (
+
+        {/* Add new bonus */}
+        <div className="flex gap-2">
+          <Input
+            value={newBonusName}
+            onChange={(e) => setNewBonusName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddBonus()}
+            placeholder="Bonus name (e.g., 'Private Q&A calls')"
+            className="flex-1"
+          />
+          <Button 
+            type="button"
+            onClick={handleAddBonus} 
+            disabled={!newBonusName.trim()}
+            variant="outline"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Bonus list */}
+        {(data.bonusStack?.length ?? 0) > 0 && (
+          <div className="space-y-3">
+            {data.bonusStack?.map((bonus) => (
+              <BonusItemCard
+                key={bonus.id}
+                bonus={bonus}
+                onUpdate={(updates) => handleUpdateBonus(bonus.id, updates)}
+                onRemove={() => handleRemoveBonus(bonus.id)}
+                maxDeadline={data.cartOpensDate}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Warning for late deadlines */}
+        {bonusesWithLateDeadlines.length > 0 && (
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+            <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+            <p className="text-sm text-amber-800 dark:text-amber-200">
+              {bonusesWithLateDeadlines.length} bonus{bonusesWithLateDeadlines.length > 1 ? 'es' : ''} ha{bonusesWithLateDeadlines.length > 1 ? 've' : 's'} a deadline after cart opens. 
+              Consider adjusting the deadline to have everything ready before launch.
+            </p>
+          </div>
+        )}
+
+        {/* Summary of bonuses needing creation */}
+        {bonusesNeedingCreation.length > 0 && (
+          <div className="p-3 rounded-lg bg-muted/50 border">
+            <p className="text-sm">
+              📋 <strong>{bonusesNeedingCreation.length}</strong> bonus{bonusesNeedingCreation.length > 1 ? 'es' : ''} to create before launch
+            </p>
+          </div>
+        )}
+
+        {!data.bonusStack?.length && (
           <p className="text-xs text-muted-foreground">
             💡 Don't have a bonus? That's okay. Scarcity (limited time/spots) works too.
           </p>
@@ -262,9 +351,9 @@ export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
                   {data.spotLimit} spots
                 </Badge>
               )}
-              {data.mainBonus && (
+              {(data.bonusStack?.length ?? 0) > 0 && (
                 <Badge variant="outline" className="border-purple-500 text-purple-600">
-                  + Bonus
+                  + {data.bonusStack?.length} bonus{(data.bonusStack?.length ?? 0) > 1 ? 'es' : ''}
                 </Badge>
               )}
             </div>
