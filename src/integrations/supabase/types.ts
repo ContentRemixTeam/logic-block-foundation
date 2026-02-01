@@ -448,19 +448,24 @@ export type Database = {
           cycle_id: string | null
           hook: string | null
           id: string
+          is_template: boolean | null
           likes: number | null
           link_url: string | null
+          messaging_angle: string | null
           notes: string | null
           offer: string | null
           open_rate: number | null
+          performance_score: number | null
           planned_creation_date: string | null
           planned_publish_date: string | null
           preview_text: string | null
           project_id: string | null
           publish_task_id: string | null
           published_at: string | null
+          repurposed_from_id: string | null
           revenue: number | null
           saves: number | null
+          selling_point_ids: string[] | null
           shares: number | null
           status: string
           subject_line: string | null
@@ -484,19 +489,24 @@ export type Database = {
           cycle_id?: string | null
           hook?: string | null
           id?: string
+          is_template?: boolean | null
           likes?: number | null
           link_url?: string | null
+          messaging_angle?: string | null
           notes?: string | null
           offer?: string | null
           open_rate?: number | null
+          performance_score?: number | null
           planned_creation_date?: string | null
           planned_publish_date?: string | null
           preview_text?: string | null
           project_id?: string | null
           publish_task_id?: string | null
           published_at?: string | null
+          repurposed_from_id?: string | null
           revenue?: number | null
           saves?: number | null
+          selling_point_ids?: string[] | null
           shares?: number | null
           status?: string
           subject_line?: string | null
@@ -520,19 +530,24 @@ export type Database = {
           cycle_id?: string | null
           hook?: string | null
           id?: string
+          is_template?: boolean | null
           likes?: number | null
           link_url?: string | null
+          messaging_angle?: string | null
           notes?: string | null
           offer?: string | null
           open_rate?: number | null
+          performance_score?: number | null
           planned_creation_date?: string | null
           planned_publish_date?: string | null
           preview_text?: string | null
           project_id?: string | null
           publish_task_id?: string | null
           published_at?: string | null
+          repurposed_from_id?: string | null
           revenue?: number | null
           saves?: number | null
+          selling_point_ids?: string[] | null
           shares?: number | null
           status?: string
           subject_line?: string | null
@@ -558,6 +573,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_items_repurposed_from_id_fkey"
+            columns: ["repurposed_from_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
             referencedColumns: ["id"]
           },
         ]
@@ -597,6 +619,168 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cycles_90_day"
             referencedColumns: ["cycle_id"]
+          },
+        ]
+      }
+      content_plan_items: {
+        Row: {
+          channel: string | null
+          content_item_id: string | null
+          content_type: string
+          created_at: string | null
+          id: string
+          is_repurposed: boolean | null
+          messaging_angle: string | null
+          phase: string | null
+          plan_id: string
+          planned_date: string | null
+          repurposed_from_id: string | null
+          selling_point_ids: string[] | null
+          sort_order: number | null
+          status: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          channel?: string | null
+          content_item_id?: string | null
+          content_type: string
+          created_at?: string | null
+          id?: string
+          is_repurposed?: boolean | null
+          messaging_angle?: string | null
+          phase?: string | null
+          plan_id: string
+          planned_date?: string | null
+          repurposed_from_id?: string | null
+          selling_point_ids?: string[] | null
+          sort_order?: number | null
+          status?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          channel?: string | null
+          content_item_id?: string | null
+          content_type?: string
+          created_at?: string | null
+          id?: string
+          is_repurposed?: boolean | null
+          messaging_angle?: string | null
+          phase?: string | null
+          plan_id?: string
+          planned_date?: string | null
+          repurposed_from_id?: string | null
+          selling_point_ids?: string[] | null
+          sort_order?: number | null
+          status?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_plan_items_content_item_id_fkey"
+            columns: ["content_item_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_plan_items_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "content_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_plan_items_repurposed_from_id_fkey"
+            columns: ["repurposed_from_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_plans: {
+        Row: {
+          batching_enabled: boolean | null
+          core_content_id: string | null
+          created_at: string | null
+          cycle_id: string | null
+          end_date: string | null
+          framework_id: string | null
+          id: string
+          launch_id: string | null
+          mode: string
+          name: string
+          selected_formats: string[] | null
+          start_date: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          batching_enabled?: boolean | null
+          core_content_id?: string | null
+          created_at?: string | null
+          cycle_id?: string | null
+          end_date?: string | null
+          framework_id?: string | null
+          id?: string
+          launch_id?: string | null
+          mode: string
+          name: string
+          selected_formats?: string[] | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          batching_enabled?: boolean | null
+          core_content_id?: string | null
+          created_at?: string | null
+          cycle_id?: string | null
+          end_date?: string | null
+          framework_id?: string | null
+          id?: string
+          launch_id?: string | null
+          mode?: string
+          name?: string
+          selected_formats?: string[] | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_plans_core_content_id_fkey"
+            columns: ["core_content_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_plans_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+          {
+            foreignKeyName: "content_plans_framework_id_fkey"
+            columns: ["framework_id"]
+            isOneToOne: false
+            referencedRelation: "messaging_frameworks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_plans_launch_id_fkey"
+            columns: ["launch_id"]
+            isOneToOne: false
+            referencedRelation: "launches"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3105,6 +3289,63 @@ export type Database = {
           },
         ]
       }
+      messaging_frameworks: {
+        Row: {
+          core_narrative: string | null
+          core_problem: string | null
+          created_at: string | null
+          cycle_id: string | null
+          id: string
+          launch_id: string | null
+          name: string
+          target_customer: string | null
+          unique_solution: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          core_narrative?: string | null
+          core_problem?: string | null
+          created_at?: string | null
+          cycle_id?: string | null
+          id?: string
+          launch_id?: string | null
+          name: string
+          target_customer?: string | null
+          unique_solution?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          core_narrative?: string | null
+          core_problem?: string | null
+          created_at?: string | null
+          cycle_id?: string | null
+          id?: string
+          launch_id?: string | null
+          name?: string
+          target_customer?: string | null
+          unique_solution?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messaging_frameworks_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+          {
+            foreignKeyName: "messaging_frameworks_launch_id_fkey"
+            columns: ["launch_id"]
+            isOneToOne: false
+            referencedRelation: "launches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mindset_categories: {
         Row: {
           color: string
@@ -3798,6 +4039,56 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cycles_90_day"
             referencedColumns: ["cycle_id"]
+          },
+        ]
+      }
+      selling_points: {
+        Row: {
+          best_format: string | null
+          conversion_rate: number | null
+          created_at: string | null
+          description: string | null
+          framework_id: string
+          id: string
+          is_core: boolean | null
+          label: string
+          sort_order: number | null
+          total_uses: number | null
+          user_id: string
+        }
+        Insert: {
+          best_format?: string | null
+          conversion_rate?: number | null
+          created_at?: string | null
+          description?: string | null
+          framework_id: string
+          id?: string
+          is_core?: boolean | null
+          label: string
+          sort_order?: number | null
+          total_uses?: number | null
+          user_id: string
+        }
+        Update: {
+          best_format?: string | null
+          conversion_rate?: number | null
+          created_at?: string | null
+          description?: string | null
+          framework_id?: string
+          id?: string
+          is_core?: boolean | null
+          label?: string
+          sort_order?: number | null
+          total_uses?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "selling_points_framework_id_fkey"
+            columns: ["framework_id"]
+            isOneToOne: false
+            referencedRelation: "messaging_frameworks"
+            referencedColumns: ["id"]
           },
         ]
       }
