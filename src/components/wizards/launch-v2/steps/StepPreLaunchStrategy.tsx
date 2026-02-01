@@ -1,12 +1,14 @@
 // Step 4: Pre-Launch Strategy (Q11-Q13)
 // Captures reach method, content creation status, and volume
 
+import { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Megaphone, PenTool, Layers } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Megaphone, PenTool, Layers, Plus, X, ListChecks } from 'lucide-react';
 import {
   LaunchWizardV2Data,
   MainReachMethod,
@@ -23,6 +25,8 @@ interface StepPreLaunchStrategyProps {
 }
 
 export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyProps) {
+  const [newItem, setNewItem] = useState('');
+
   const getContentTaskEstimate = (): string => {
     if (!data.contentCreationStatus || !data.contentVolume) return '';
     
@@ -34,6 +38,25 @@ export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyP
     const taskCount = Math.ceil(baseCount * multiplier);
     
     return `~${taskCount} content tasks`;
+  };
+
+  const handleAddItem = () => {
+    if (!newItem.trim()) return;
+    const currentItems = data.customPreLaunchItems || [];
+    onChange({ customPreLaunchItems: [...currentItems, newItem.trim()] });
+    setNewItem('');
+  };
+
+  const handleRemoveItem = (index: number) => {
+    const currentItems = data.customPreLaunchItems || [];
+    onChange({ customPreLaunchItems: currentItems.filter((_, i) => i !== index) });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddItem();
+    }
   };
 
   return (
@@ -201,6 +224,60 @@ export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyP
             <p className="text-sm">
               📋 Estimated pre-launch tasks: <strong>{getContentTaskEstimate()}</strong>
             </p>
+          </div>
+        )}
+      </div>
+
+      {/* Custom Pre-Launch Checklist Items */}
+      <div className="space-y-4">
+        <Label className="text-lg font-semibold flex items-center gap-2">
+          <ListChecks className="h-5 w-5" />
+          Anything else you need to do before launch?
+        </Label>
+        <p className="text-sm text-muted-foreground -mt-2">
+          Add your own checklist items (e.g., "Update sales page", "Test checkout flow")
+        </p>
+
+        {/* Input for new item */}
+        <div className="flex gap-2">
+          <Input
+            value={newItem}
+            onChange={(e) => setNewItem(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Type a task and press Enter..."
+            className="flex-1"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={handleAddItem}
+            disabled={!newItem.trim()}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* List of custom items */}
+        {(data.customPreLaunchItems?.length ?? 0) > 0 && (
+          <div className="space-y-2">
+            {data.customPreLaunchItems?.map((item, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg border group"
+              >
+                <span className="text-sm flex-1">{item}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => handleRemoveItem(index)}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
           </div>
         )}
       </div>

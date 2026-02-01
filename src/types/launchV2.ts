@@ -110,6 +110,7 @@ export interface LaunchWizardV2Data {
   combinationDetails: string;
   contentCreationStatus: ContentCreationStatus | '';
   contentVolume: ContentVolume | '';
+  customPreLaunchItems: string[]; // User's custom checklist items
   
   // Step 5: Launch Week Strategy (Q14-Q16)
   launchMethod: LaunchMethod | '';
@@ -194,6 +195,7 @@ export const DEFAULT_LAUNCH_V2_DATA: LaunchWizardV2Data = {
   socialPlatform: '',
   combinationDetails: '',
   contentCreationStatus: '',
+  customPreLaunchItems: [],
   contentVolume: '',
   
   // Step 5
