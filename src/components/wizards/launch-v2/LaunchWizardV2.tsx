@@ -1,5 +1,5 @@
 // Launch Planner V2 - Main Wizard Component
-// Streamlined 9-step wizard with questionnaire-based flow
+// Streamlined 8-step wizard with questionnaire-based flow
 
 import { WizardLayout } from '@/components/wizards/WizardLayout';
 import { WizardProgress } from '@/components/wizards/WizardProgress';
@@ -16,7 +16,6 @@ import {
   StepLaunchWeek,
   StepPostLaunch,
   StepContingency,
-  StepTheGap,
   StepReviewComplete,
 } from './steps';
 import { useNavigate } from 'react-router-dom';
@@ -34,8 +33,7 @@ const WIZARD_STEPS = [
   { number: 5, title: 'Launch Week' },
   { number: 6, title: 'Post-Launch' },
   { number: 7, title: 'Contingency' },
-  { number: 8, title: 'THE GAP' },
-  { number: 9, title: 'Review & Complete' },
+  { number: 8, title: 'Review & Complete' },
 ];
 
 export function LaunchWizardV2() {
@@ -64,7 +62,7 @@ export function LaunchWizardV2() {
     draftUpdatedAt,
   } = useWizard<LaunchWizardV2Data>({
     templateName: 'launch-planner-v2',
-    totalSteps: 9,
+    totalSteps: 8,
     defaultData: DEFAULT_LAUNCH_V2_DATA,
     validateStep: validateLaunchV2Step,
   });
@@ -136,8 +134,7 @@ export function LaunchWizardV2() {
       case 5: return <StepLaunchWeek data={data} onChange={handleChange} />;
       case 6: return <StepPostLaunch data={data} onChange={handleChange} />;
       case 7: return <StepContingency data={data} onChange={handleChange} />;
-      case 8: return <StepTheGap data={data} onChange={handleChange} />;
-      case 9: return <StepReviewComplete data={data} onChange={handleChange} />;
+      case 8: return <StepReviewComplete data={data} onChange={handleChange} />;
       default: return null;
     }
   };
