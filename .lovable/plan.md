@@ -1,229 +1,337 @@
 
-
-# Launch Planner Pre-Launch Step Enhancements
+# Bonus & Asset Creation Status with Deadlines
 
 ## Overview
 
-This plan adds three enhancements to **Step 4: Pre-Launch Strategy** in the Launch Wizard V2:
-
-1. **Email Sequences with "Other" option** - Add customizable email types beyond the standard set
-2. **Automation Selector** - Let users pick which specific automations they need to set up
-3. **Content Prep Integration Note** - Clarify that detailed content planning happens in the separate Content Planner
+This plan adds "already created vs. need to create" status tracking with deadlines for items that require preparation before launch. This ensures users get appropriately scheduled tasks and don't overlook creation work.
 
 ---
 
-## Current State
+## Items Requiring Status Tracking
 
-The V2 Launch Wizard's Pre-Launch step (Step 4) currently asks about:
-- Main reach method (email, social, etc.)
-- Content creation status (ready, partial, from scratch)
-- Content volume (light, medium, heavy)
-- Custom checklist items (just added)
+After reviewing the entire Launch Wizard, here are items that need "already have" vs. "need to create" tracking:
 
-The **V1 wizard** had more detail: specific email sequence types (warm-up, launch, cart close, post-purchase) and automation checkboxes. V2 simplified this too much.
+| Item | Current State | Location |
+|------|---------------|----------|
+| **Bonus Stack** | No status tracking, just list | V1: LaunchSalesAssets, V2: StepOfferDetails |
+| **Sales Page** | Has deadline, no status | V1: LaunchSalesAssets |
+| **Testimonials** | Toggle + goal, no status | V1: LaunchSalesAssets |
+| **Email Sequences** | Selected, no status | V2: StepPreLaunchStrategy |
+| **Lead Magnet** | Referenced in preLaunchTasks | V1: preLaunchTasks |
+| **Live Event Content** | Referenced in preLaunchTasks | V1: preLaunchTasks |
 
 ---
 
 ## Changes
 
-### 1. Email Sequence Types with "Other" Option
+### 1. Enhanced Bonus Item Structure
 
-Add a section where users can select which email sequences they need and add their own.
+Replace simple string bonus list with a structured bonus object:
+
+```typescript
+export interface BonusItem {
+  id: string;
+  name: string;
+  status: 'existing' | 'needs-creation';
+  deadline?: string;  // Required only if needs-creation
+}
+```
+
+**V2 Offer Details Step UI:**
 
 ```text
 ┌─────────────────────────────────────────────────────────┐
-│ 📧 Which email sequences do you need to write?          │
+│ 🎁 Bonus Stack                                          │
 │                                                         │
-│ ☑ Warm-up sequence (3-7 emails to build anticipation)  │
-│ ☑ Launch week (5-7 emails announcing your offer)       │
-│ ☑ Cart close urgency (3 emails for final push)         │
-│ ☐ Post-purchase onboarding                              │
+│ + Add bonus: [________________] [+]                     │
 │                                                         │
-│ + Add custom sequence: [________________] [+]           │
-│                                                         │
-│ ┌─ Custom sequences ────────────────────────────────┐  │
-│ │ "VIP early access series"                    [X]  │  │
-│ │ "FAQ response emails"                        [X]  │  │
+│ ┌─ Your bonuses ────────────────────────────────────┐  │
+│ │ 🎁 Private Q&A Calls                              │  │
+│ │    ○ Already created  ● Need to create            │  │
+│ │    [📅 Deadline: Feb 15, 2026]              [X]   │  │
+│ ├───────────────────────────────────────────────────│  │
+│ │ 🎁 Templates Bundle                               │  │
+│ │    ● Already created  ○ Need to create            │  │
+│ │    ✓ Ready to use                           [X]   │  │
 │ └───────────────────────────────────────────────────┘  │
+│                                                         │
+│ ⚠️ 1 bonus needs creation before Feb 20 (cart opens)   │
 └─────────────────────────────────────────────────────────┘
 ```
 
-### 2. Automation Selector
+### 2. Sales Page Status
 
-Replace the simple "set up automations" checkbox with a multi-select for specific automations.
+Add status tracking to sales page:
 
-```text
-┌─────────────────────────────────────────────────────────┐
-│ ⚡ Which automations do you need to set up?             │
-│                                                         │
-│ ☑ Tagging/segmentation (tag buyers, non-buyers)        │
-│ ☐ Abandoned cart sequence                               │
-│ ☑ Purchase confirmation sequence                        │
-│ ☐ Waitlist to sales sequence                            │
-│ ☐ Deadline/urgency automations                          │
-│ ☐ Lead magnet delivery                                  │
-│                                                         │
-│ + Add custom: [________________] [+]                    │
-│                                                         │
-│ ┌─ Custom automations ──────────────────────────────┐  │
-│ │ "Webinar replay sequence"                    [X]  │  │
-│ └───────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────┘
+```typescript
+salesPageStatus: 'existing' | 'needs-creation' | 'in-progress';
+salesPageDeadline: string;  // Already exists
 ```
 
-### 3. Content Prep Integration Note
+### 3. Testimonials Status
 
-Add a note explaining that detailed content planning is done in the Content Planner:
+```typescript
+testimonialStatus: 'have-enough' | 'need-more' | 'none';
+testimonialGoal: number;
+testimonialDeadline?: string;  // If need-more or none
+```
 
-```text
-┌─────────────────────────────────────────────────────────┐
-│ 📝 Content Prep                                         │
-│                                                         │
-│ Based on your choices above, we'll generate content     │
-│ creation tasks. After completing this wizard, you can   │
-│ use the Content Planner to:                             │
-│                                                         │
-│ • Define your messaging framework                       │
-│ • Plan specific content pieces                          │
-│ • Repurpose existing content                            │
-│ • Schedule creation tasks by launch phase               │
-│                                                         │
-│ [Go to Content Planner] ← (shown after wizard complete) │
-└─────────────────────────────────────────────────────────┘
+### 4. Email Sequence Status
+
+Each selected sequence gets a status:
+
+```typescript
+export interface EmailSequenceItem {
+  type: 'warmUp' | 'launch' | 'cartClose' | 'postPurchase' | 'custom';
+  customName?: string;
+  status: 'existing' | 'needs-creation';
+  deadline?: string;
+}
+```
+
+### 5. Lead Magnet Status (V1 only, referenced in preLaunchTasks)
+
+```typescript
+leadMagnetStatus: 'existing' | 'needs-creation' | 'not-needed';
+leadMagnetDeadline?: string;
 ```
 
 ---
 
 ## Technical Changes
 
-### 1. Types Update (`src/types/launchV2.ts`)
+### File: `src/types/launchV2.ts`
 
-Add new fields to `LaunchWizardV2Data`:
+**Add new interfaces:**
 
 ```typescript
-// Step 4: Pre-Launch Strategy additions
-emailSequenceTypes: {
-  warmUp: boolean;
-  launch: boolean;
-  cartClose: boolean;
-  postPurchase: boolean;
-};
-customEmailSequences: string[];  // User-added sequences
+export interface BonusItem {
+  id: string;
+  name: string;
+  status: 'existing' | 'needs-creation';
+  deadline?: string;
+}
 
-automationTypes: {
-  tagging: boolean;
-  abandonedCart: boolean;
-  purchaseConfirmation: boolean;
-  waitlistToSales: boolean;
-  deadlineUrgency: boolean;
-  leadMagnetDelivery: boolean;
-};
-customAutomations: string[];  // User-added automations
+export interface EmailSequenceItem {
+  type: 'warmUp' | 'launch' | 'cartClose' | 'postPurchase' | 'custom';
+  customName?: string;
+  status: 'existing' | 'needs-creation';
+  deadline?: string;
+}
+
+export type SalesPageStatus = 'existing' | 'needs-creation' | 'in-progress';
+export type TestimonialStatus = 'have-enough' | 'need-more' | 'none';
 ```
 
-Add option arrays:
+**Update `LaunchWizardV2Data`:**
 
 ```typescript
-export const EMAIL_SEQUENCE_TYPE_OPTIONS = [
-  { key: 'warmUp', label: 'Warm-up sequence', description: '3-7 emails to build anticipation' },
-  { key: 'launch', label: 'Launch week', description: '5-7 emails announcing your offer' },
-  { key: 'cartClose', label: 'Cart close urgency', description: '3 emails for final push' },
-  { key: 'postPurchase', label: 'Post-purchase onboarding', description: 'Welcome new buyers' },
-] as const;
+// Step 3: Offer Details - Replace mainBonus with bonusStack
+bonusStack: BonusItem[];
 
-export const AUTOMATION_TYPE_OPTIONS = [
-  { key: 'tagging', label: 'Tagging/segmentation', description: 'Tag buyers, non-buyers, engaged leads' },
-  { key: 'abandonedCart', label: 'Abandoned cart sequence', description: 'Follow up on incomplete purchases' },
-  { key: 'purchaseConfirmation', label: 'Purchase confirmation sequence', description: 'Order + onboarding emails' },
-  { key: 'waitlistToSales', label: 'Waitlist to sales sequence', description: 'Move waitlist to cart open' },
-  { key: 'deadlineUrgency', label: 'Deadline/urgency automations', description: 'Cart closing countdown' },
-  { key: 'leadMagnetDelivery', label: 'Lead magnet delivery', description: 'Auto-deliver free resources' },
-] as const;
+// Step 4: Pre-Launch Strategy - Replace emailSequenceTypes
+emailSequences: EmailSequenceItem[];
+customEmailSequences: EmailSequenceItem[];  // With full structure
+
+// Sales Page (could add to Step 4)
+salesPageStatus: SalesPageStatus;
+salesPageDeadline: string;
+
+// Testimonials (could add to Step 4)
+testimonialStatus: TestimonialStatus;
+testimonialGoal: number;
+testimonialDeadline: string;
 ```
 
-Update default data:
+**Update defaults:**
 
 ```typescript
-export const DEFAULT_LAUNCH_V2_DATA: LaunchWizardV2Data = {
-  // ... existing fields ...
-  
-  // New Step 4 fields
-  emailSequenceTypes: {
-    warmUp: false,
-    launch: false,
-    cartClose: false,
-    postPurchase: false,
-  },
-  customEmailSequences: [],
-  
-  automationTypes: {
-    tagging: false,
-    abandonedCart: false,
-    purchaseConfirmation: false,
-    waitlistToSales: false,
-    deadlineUrgency: false,
-    leadMagnetDelivery: false,
-  },
-  customAutomations: [],
-};
+bonusStack: [],
+emailSequences: [],
+salesPageStatus: 'needs-creation',
+salesPageDeadline: '',
+testimonialStatus: 'none',
+testimonialGoal: 5,
+testimonialDeadline: '',
 ```
 
-### 2. Step Component Update (`StepPreLaunchStrategy.tsx`)
+### File: `src/components/wizards/launch-v2/steps/StepOfferDetails.tsx`
 
-Add three new sections to the step:
+**Replace simple bonus input with structured bonus builder:**
 
-**Section 1: Email Sequences**
-- Checkbox list of standard email sequence types
-- Input field to add custom sequences
-- List of custom sequences with delete buttons
+1. Add local state for new bonus name
+2. Add bonus with initial status dialog
+3. For each bonus, show:
+   - Name with icon
+   - Status toggle (existing/needs-creation)
+   - Deadline picker (conditional on status)
+   - Remove button
+4. Add validation warning if any bonus deadline is after cart opens
 
-**Section 2: Automations**
-- Checkbox list of standard automation types
-- Input field to add custom automations
-- List of custom automations with delete buttons
+### File: `src/components/wizards/launch-v2/steps/StepPreLaunchStrategy.tsx`
 
-**Section 3: Content Prep Note**
-- Informational card explaining the Content Planner integration
-- Link to Content Planner (shown only in review step or after completion)
+**Add Sales Page section:**
+- Status selector (existing/in-progress/needs-creation)
+- Deadline picker (if not existing)
+- Suggested deadline calculation (3 days before cart opens)
 
-### 3. Component Structure
+**Add Testimonials section:**
+- Status selector
+- Goal number (if need-more or none)
+- Deadline picker (if need-more or none)
 
-New helper functions in StepPreLaunchStrategy:
+**Enhance Email Sequences section:**
+- When user selects a sequence type, also ask status
+- Show deadline picker for sequences that need creation
+- Same for custom sequences
+
+### File: `src/types/launch.ts` (V1)
+
+**Same pattern for V1 wizard:**
 
 ```typescript
-// Email sequence handlers
-const toggleEmailSequenceType = (key: keyof EmailSequenceTypes) => {
-  onChange({
-    emailSequenceTypes: {
-      ...data.emailSequenceTypes,
-      [key]: !data.emailSequenceTypes[key],
-    },
-  });
-};
+// In LaunchWizardData
+bonuses: BonusItem[];  // Replace string[]
+salesPageStatus: 'existing' | 'needs-creation' | 'in-progress';
+testimonialStatus: 'have-enough' | 'need-more' | 'none';
+testimonialDeadline: string;
+leadMagnetStatus: 'existing' | 'needs-creation' | 'not-needed';
+leadMagnetDeadline: string;
+```
 
-const addCustomEmailSequence = () => { /* ... */ };
-const removeCustomEmailSequence = (index: number) => { /* ... */ };
+### File: `src/components/wizards/launch/LaunchSalesAssets.tsx` (V1)
 
-// Automation handlers
-const toggleAutomationType = (key: keyof AutomationTypes) => { /* ... */ };
-const addCustomAutomation = () => { /* ... */ };
-const removeCustomAutomation = (index: number) => { /* ... */ };
+**Update to use new bonus structure with status and deadlines.**
+
+---
+
+## UI Component: BonusItemCard
+
+Create a reusable component for bonus items:
+
+```typescript
+interface BonusItemCardProps {
+  bonus: BonusItem;
+  onUpdate: (updates: Partial<BonusItem>) => void;
+  onRemove: () => void;
+  maxDeadline?: string;  // Cart opens date for validation
+}
+
+function BonusItemCard({ bonus, onUpdate, onRemove, maxDeadline }: BonusItemCardProps) {
+  return (
+    <div className="p-4 rounded-lg border space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Gift className="h-4 w-4 text-primary" />
+          <span className="font-medium">{bonus.name}</span>
+        </div>
+        <Button variant="ghost" size="icon" onClick={onRemove}>
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+      
+      <RadioGroup
+        value={bonus.status}
+        onValueChange={(v) => onUpdate({ status: v as 'existing' | 'needs-creation' })}
+        className="flex gap-4"
+      >
+        <div className="flex items-center space-x-2">
+          <RadioGroupItem value="existing" />
+          <Label>Already created</Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <RadioGroupItem value="needs-creation" />
+          <Label>Need to create</Label>
+        </div>
+      </RadioGroup>
+      
+      {bonus.status === 'needs-creation' && (
+        <div className="space-y-2">
+          <Label className="text-sm">When will it be ready?</Label>
+          <Input
+            type="date"
+            value={bonus.deadline || ''}
+            onChange={(e) => onUpdate({ deadline: e.target.value })}
+            max={maxDeadline}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
 ```
 
 ---
 
-## UI Layout
+## Validation Updates
 
-The step will now have these sections in order:
+### File: `src/lib/launchV2Validation.ts`
 
-1. **Main Reach Method** (existing)
-2. **Email Sequences** (new)
-3. **Automations** (new)
-4. **Content Creation Status** (existing)
-5. **Content Volume** (existing)
-6. **Content Prep Integration** (new info card)
-7. **Custom Checklist Items** (existing)
-8. **Strategy Summary** (existing)
+Add validation for deadlines:
+
+```typescript
+// Check that all creation deadlines are before cart opens
+function validateCreationDeadlines(data: LaunchWizardV2Data): string[] {
+  const warnings: string[] = [];
+  const cartOpens = data.cartOpensDate ? parseISO(data.cartOpensDate) : null;
+  
+  if (!cartOpens) return warnings;
+  
+  // Check bonuses
+  data.bonusStack?.forEach(bonus => {
+    if (bonus.status === 'needs-creation' && bonus.deadline) {
+      if (isAfter(parseISO(bonus.deadline), cartOpens)) {
+        warnings.push(`Bonus "${bonus.name}" deadline is after cart opens`);
+      }
+    }
+  });
+  
+  // Check sales page
+  if (data.salesPageStatus !== 'existing' && data.salesPageDeadline) {
+    if (isAfter(parseISO(data.salesPageDeadline), cartOpens)) {
+      warnings.push('Sales page deadline is after cart opens');
+    }
+  }
+  
+  return warnings;
+}
+```
+
+---
+
+## Step Placement
+
+The new sections fit into existing steps:
+
+| Section | Step | Rationale |
+|---------|------|-----------|
+| Bonus Stack (enhanced) | Step 3: Offer Details | Already asks about bonuses |
+| Sales Page Status | Step 4: Pre-Launch Strategy | Part of prep work |
+| Testimonials | Step 4: Pre-Launch Strategy | Part of social proof prep |
+| Email Sequences (enhanced) | Step 4: Pre-Launch Strategy | Already there |
+
+---
+
+## Summary Card Enhancement
+
+The existing summary cards should show creation workload:
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│ 📋 Creation To-Do Summary                               │
+│                                                         │
+│ Needs Creation:                                         │
+│ • 2 bonuses (deadlines: Feb 10, Feb 12)                 │
+│ • Sales page (deadline: Feb 15)                         │
+│ • 3 email sequences (deadlines: Feb 8, Feb 10, Feb 12)  │
+│                                                         │
+│ Already Ready:                                          │
+│ • 1 bonus                                               │
+│ • 5 testimonials collected                              │
+│                                                         │
+│ ⚡ Total creation tasks: ~8                              │
+└─────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -231,16 +339,39 @@ The step will now have these sections in order:
 
 | File | Changes |
 |------|---------|
-| `src/types/launchV2.ts` | Add email sequence types, automation types, custom arrays, and option arrays |
-| `src/components/wizards/launch-v2/steps/StepPreLaunchStrategy.tsx` | Add email sequence section, automation section, content prep info card |
+| `src/types/launchV2.ts` | Add BonusItem, EmailSequenceItem interfaces; update LaunchWizardV2Data |
+| `src/types/launch.ts` | Same updates for V1 wizard |
+| `src/components/wizards/launch-v2/steps/StepOfferDetails.tsx` | Replace mainBonus with bonusStack builder |
+| `src/components/wizards/launch-v2/steps/StepPreLaunchStrategy.tsx` | Add sales page status, testimonials, enhance email sequences |
+| `src/components/wizards/launch/LaunchSalesAssets.tsx` | Update bonus section for V1 |
+| `src/lib/launchV2Validation.ts` | Add deadline validation |
+
+---
+
+## Migration Consideration
+
+Since `mainBonus` (string) is being replaced with `bonusStack` (array), the default data handles new launches. Existing drafts with `mainBonus` would need migration logic:
+
+```typescript
+// In useWizard or data loading
+if (data.mainBonus && !data.bonusStack?.length) {
+  data.bonusStack = [{
+    id: crypto.randomUUID(),
+    name: data.mainBonus,
+    status: 'existing',  // Assume existing if from old format
+  }];
+}
+```
 
 ---
 
 ## Task Estimate
 
-- Types update: ~15 minutes
-- Step component update: ~30 minutes
-- Testing: ~15 minutes
+- Types update: ~20 minutes
+- StepOfferDetails bonus builder: ~45 minutes
+- StepPreLaunchStrategy additions: ~45 minutes
+- V1 LaunchSalesAssets update: ~30 minutes
+- Validation updates: ~15 minutes
+- Testing: ~30 minutes
 
-**Total: ~1 hour**
-
+**Total: ~3 hours**
