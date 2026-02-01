@@ -1,91 +1,177 @@
 
-# Add Consistent Content Topic Planning
+# Add Deadlines to Pre-Launch Tasks & Generate Actual Tasks
 
 ## The Problem
 
-Currently, only Podcast has topic planning inputs while Video and Blog do not. This is inconsistent since all three are "pillar content" formats that require upfront planning of specific topics.
+The V1 Launch Planner has a pre-launch checklist where users can select tasks like "Set Up Checkout," "Create Case Studies," "Design Ad Creatives," etc. However:
+
+1. **Most checklist items have no deadline input** - only 3 of 15 items have deadline fields
+2. **These tasks are never actually created** - the edge function doesn't process the `preLaunchTasks` data at all
+
+This means users are planning tasks that never get added to their task board.
+
+---
 
 ## Solution
 
-Add topic planning inputs for Video and Blog when selected, matching the Podcast pattern. Keep Email and Social without topic inputs since:
-- **Email subjects** are derived from the suggested topics already shown
-- **Social posts** are typically ongoing, daily content repurposed from pillar content
+### Part 1: Add Deadline Fields to All Pre-Launch Tasks
+
+Each task in the checklist should have an optional deadline date picker that appears when the task is selected.
+
+**Tasks needing deadline fields added:**
+
+| Tab | Task | New Field |
+|-----|------|-----------|
+| Sales Assets | Checkout Flow | `checkoutFlowDeadline` |
+| Sales Assets | Order Bump/Upsell | `orderBumpDeadline` |
+| Sales Assets | Bonuses | `bonusesDeadline` |
+| Social Proof | Case Studies | `caseStudiesDeadline` |
+| Social Proof | Video Testimonials | `videoTestimonialsDeadline` |
+| Social Proof | Results Screenshots | `resultsScreenshotsDeadline` |
+| Tech Setup | Email Sequences | `emailSequencesDeadline` |
+| Tech Setup | Automations | `automationsDeadline` |
+| Tech Setup | Tracking Pixels | `trackingPixelsDeadline` |
+| Content Prep | Live Event Content | `liveEventContentDeadline` |
+| Content Prep | Social Content | `socialContentDeadline` |
+| Content Prep | Ad Creatives | `adCreativesDeadline` |
+| Content Prep | Lead Magnet | `leadMagnetDeadline` |
+
+### Part 2: Update Edge Function to Generate These Tasks
+
+The `create-launch-from-wizard` edge function needs a new section to process `preLaunchTasks` and create tasks for each selected item.
+
+**Task generation logic:**
+- If user provided a deadline → use that date
+- If no deadline → auto-calculate based on runway (e.g., 2 weeks before cart opens for most items, 1 week for tech setup)
 
 ---
 
-## Changes
+## Implementation Details
 
 ### File: `src/types/launch.ts`
 
-Add new fields for video and blog topics:
+Add 13 new deadline fields to `PreLaunchTaskConfig`:
 
 ```typescript
-// In LaunchWizardData
-videoTopics: string[];   // Add alongside podcastTopics
-blogTopics: string[];    // Add alongside podcastTopics
+interface PreLaunchTaskConfig {
+  // Sales Assets
+  salesPage: boolean;
+  salesPageDeadline: string;
+  checkoutFlow: boolean;
+  checkoutFlowDeadline: string;  // NEW
+  waitlistPage: boolean;
+  waitlistDeadline: string;
+  orderBumpUpsell: boolean;
+  orderBumpDeadline: string;     // NEW
+  bonuses: boolean;
+  bonusesDeadline: string;       // NEW
+  
+  // Social Proof
+  testimonials: boolean;
+  testimonialGoal: number;
+  testimonialDeadline: string;
+  caseStudies: boolean;
+  caseStudiesDeadline: string;   // NEW
+  videoTestimonials: boolean;
+  videoTestimonialsDeadline: string; // NEW
+  resultsScreenshots: boolean;
+  resultsScreenshotsDeadline: string; // NEW
+  
+  // Tech Setup
+  emailSequences: boolean;
+  emailSequencesDeadline: string;    // NEW
+  // ... emailTypes stays the same
+  automations: boolean;
+  automationsDeadline: string;       // NEW
+  trackingPixels: boolean;
+  trackingPixelsDeadline: string;    // NEW
+  
+  // Content Prep
+  liveEventContent: boolean;
+  liveEventType: '...' | '';
+  liveEventContentDeadline: string;  // NEW
+  socialContent: boolean;
+  socialContentDeadline: string;     // NEW
+  adCreatives: boolean;
+  adCreativesDeadline: string;       // NEW
+  leadMagnet: boolean;
+  leadMagnetDeadline: string;        // NEW
+}
 ```
 
-### File: `src/components/wizards/launch/LaunchContentPlan.tsx`
+### File: `src/components/wizards/launch/LaunchPreLaunchTasks.tsx`
 
-**1. Add state handlers for video and blog topics:**
+Add deadline inputs to each TaskItem that currently lacks one:
+
+```text
+Example for Checkout Flow:
+┌─────────────────────────────────────────────────────┐
+│ [✓] Set Up Checkout & Payment Processing            │
+│     Test purchase flow, payment gateway, etc.       │
+│                                                     │
+│     Deadline: [__________] (date picker)            │
+└─────────────────────────────────────────────────────┘
+```
+
+### File: `supabase/functions/create-launch-from-wizard/index.ts`
+
+Add new section after existing task generation (~line 463):
 
 ```typescript
-const videoTopics = data.videoTopics || ['', '', '', ''];
-const blogTopics = data.blogTopics || ['', '', ''];
+// --- Pre-Launch Checklist Tasks ---
+const preLaunchTasks = wizardData.preLaunchTasks;
+if (preLaunchTasks) {
+  const preLaunchTaskDefinitions = [
+    { 
+      key: 'salesPage', 
+      deadlineKey: 'salesPageDeadline',
+      emoji: '📄',
+      text: 'Build Sales Page',
+      defaultDays: -14,
+      priority: 'high',
+      minutes: 240
+    },
+    { 
+      key: 'checkoutFlow', 
+      deadlineKey: 'checkoutFlowDeadline',
+      emoji: '💳',
+      text: 'Set Up Checkout & Payment',
+      defaultDays: -7,
+      priority: 'high',
+      minutes: 90
+    },
+    // ... all 15 tasks with their configs
+  ];
 
-const updateVideoTopic = (index: number, value: string) => {
-  const newTopics = [...videoTopics];
-  newTopics[index] = value;
-  onChange({ videoTopics: newTopics });
-};
-
-const updateBlogTopic = (index: number, value: string) => {
-  const newTopics = [...blogTopics];
-  newTopics[index] = value;
-  onChange({ blogTopics: newTopics });
-};
+  for (const taskDef of preLaunchTaskDefinitions) {
+    if (preLaunchTasks[taskDef.key]) {
+      const deadline = preLaunchTasks[taskDef.deadlineKey] 
+        || addDays(wizardData.cartOpens, taskDef.defaultDays);
+      
+      tasksToCreate.push({
+        user_id: userId,
+        project_id: projectId,
+        task_text: `${taskDef.emoji} ${taskDef.text}`,
+        scheduled_date: deadline,
+        priority: taskDef.priority,
+        category: 'Pre-Launch',
+        // ... other fields
+      });
+    }
+  }
+}
 ```
-
-**2. Add topic inputs under Video section (after the stats callout):**
-
-```text
-Video Topics section:
-┌────────────────────────────────────────────────┐
-│ Video episode topics:                          │
-│ [Video 1: Problem awareness            ]       │
-│ [Video 2: Solution introduction        ]       │
-│ [Video 3: Objection handling           ]       │
-│ [Video 4: Social proof                 ]       │
-└────────────────────────────────────────────────┘
-```
-
-**3. Add topic inputs under Blog section:**
-
-```text
-Blog Topics section:
-┌────────────────────────────────────────────────┐
-│ Blog post topics:                              │
-│ [Post 1: Deep dive on the problem      ]       │
-│ [Post 2: How the solution works        ]       │
-│ [Post 3: Case study / success story    ]       │
-└────────────────────────────────────────────────┘
-```
-
-**4. Update suggestions to be format-aware:**
-
-The "Suggested Content Topics" section could optionally show how these topics translate to each selected format, but that may be overkill. The simpler approach is to just add the inputs.
 
 ---
 
-## Why This Logic
+## Default Deadline Logic (when user doesn't specify)
 
-| Format | Topic Planning | Reasoning |
-|--------|---------------|-----------|
-| Email | No | Topics come from the "Suggested Topics" section - each email addresses one suggested topic |
-| Video | Yes (4) | Episodic pillar content - each video needs a clear topic |
-| Podcast | Yes (4) | Episodic pillar content - each episode needs a clear topic |
-| Blog | Yes (3) | Pillar content pieces - each post needs planning (fewer than video/podcast since blog takes longer) |
-| Social | No | Daily/ongoing content that repurposes other content - too granular to plan here |
+| Priority | Tasks | Default Deadline |
+|----------|-------|------------------|
+| **High (-14 days)** | Sales Page, Checkout Flow | Must be ready 2 weeks early |
+| **Medium (-10 days)** | Testimonials, Case Studies, Bonuses | Social proof ready early |
+| **Medium (-7 days)** | Email Sequences, Automations, Live Event Content | Tech & content week before |
+| **Low (-5 days)** | Tracking, Ad Creatives, Social Content | Final polish items |
 
 ---
 
@@ -93,15 +179,16 @@ The "Suggested Content Topics" section could optionally show how these topics tr
 
 | File | Changes |
 |------|---------|
-| `src/types/launch.ts` | Add `videoTopics: string[]` and `blogTopics: string[]` to `LaunchWizardData` |
-| `src/components/wizards/launch/LaunchContentPlan.tsx` | Add topic input sections for Video and Blog, matching Podcast pattern |
+| `src/types/launch.ts` | Add 13 deadline fields to `PreLaunchTaskConfig` |
+| `src/components/wizards/launch/LaunchPreLaunchTasks.tsx` | Add deadline date pickers to all task items |
+| `supabase/functions/create-launch-from-wizard/index.ts` | Add pre-launch task generation section |
 
 ---
 
-## Implementation Time
+## Summary
 
-- Types update: ~5 minutes
-- LaunchContentPlan updates: ~15 minutes
-- Testing: ~10 minutes
-
-**Total: ~30 minutes**
+This fix ensures:
+1. Users can set specific deadlines for every pre-launch task
+2. All selected pre-launch tasks actually get created in the project
+3. Smart defaults are used when users don't specify deadlines
+4. Tasks are properly categorized and prioritized
