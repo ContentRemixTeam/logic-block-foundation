@@ -22,6 +22,14 @@ export function validateLaunchV2Step(step: number, data: Record<string, unknown>
       if (!d.launchTimeline) return false;
       if (!d.cartOpensDate) return false;
       if (!d.revenueGoalTier) return false;
+      // If custom timeline enabled, require all phase dates
+      if (d.useCustomTimeline) {
+        if (!d.runwayStartDate || !d.runwayEndDate) return false;
+        if (!d.preLaunchStartDate || !d.preLaunchEndDate) return false;
+        if (!d.postLaunchEndDate) return false;
+      }
+      // If GAP overlap detected, require acknowledgment
+      if (d.gapOverlapDetected && !d.gapAcknowledged) return false;
       return true;
       
     case 3: // Offer Details
@@ -101,6 +109,20 @@ export function getStepValidationErrors(step: number, data: LaunchWizardV2Data):
       if (!data.launchTimeline) errors.push('Select your launch timeline');
       if (!data.cartOpensDate) errors.push('Select when your cart opens');
       if (!data.revenueGoalTier) errors.push('Select your revenue goal tier');
+      if (data.useCustomTimeline) {
+        if (!data.runwayStartDate || !data.runwayEndDate) {
+          errors.push('Set your runway dates');
+        }
+        if (!data.preLaunchStartDate || !data.preLaunchEndDate) {
+          errors.push('Set your pre-launch dates');
+        }
+        if (!data.postLaunchEndDate) {
+          errors.push('Set your post-launch end date');
+        }
+      }
+      if (data.gapOverlapDetected && !data.gapAcknowledged) {
+        errors.push('Acknowledge THE GAP overlap to continue');
+      }
       break;
       
     case 3:
