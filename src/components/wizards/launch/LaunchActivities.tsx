@@ -22,17 +22,22 @@ export function LaunchActivities({ data, onChange }: LaunchActivitiesProps) {
   const [newEventType, setNewEventType] = useState<LaunchLiveEvent['type']>('webinar');
   const [newEventDate, setNewEventDate] = useState('');
   const [newEventTopic, setNewEventTopic] = useState('');
+  const [newEventCustomType, setNewEventCustomType] = useState('');
 
   const addLiveEvent = () => {
     if (!newEventDate || !newEventTopic) return;
+    if (newEventType === 'other' && !newEventCustomType.trim()) return;
+    
     const event: LaunchLiveEvent = {
       type: newEventType,
       date: newEventDate,
       topic: newEventTopic,
+      ...(newEventType === 'other' && { customType: newEventCustomType.trim() }),
     };
     onChange({ liveEvents: [...(data.liveEvents || []), event] });
     setNewEventDate('');
     setNewEventTopic('');
+    setNewEventCustomType('');
   };
 
   const removeLiveEvent = (index: number) => {
@@ -79,7 +84,7 @@ export function LaunchActivities({ data, onChange }: LaunchActivitiesProps) {
                 <div className="flex-1">
                   <p className="font-medium">{event.topic}</p>
                   <p className="text-sm text-muted-foreground">
-                    {event.type} • {event.date}
+                    {event.type === 'other' ? event.customType || 'Other' : event.type} • {event.date}
                   </p>
                 </div>
                 <Button
@@ -96,7 +101,7 @@ export function LaunchActivities({ data, onChange }: LaunchActivitiesProps) {
 
         {/* Add new event */}
         <div className="p-4 border rounded-lg space-y-3">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Type</Label>
               <select
@@ -128,11 +133,24 @@ export function LaunchActivities({ data, onChange }: LaunchActivitiesProps) {
               />
             </div>
           </div>
+          
+          {/* Custom type input for "Other" */}
+          {newEventType === 'other' && (
+            <div className="space-y-1">
+              <Label className="text-xs">What type of event?</Label>
+              <Input
+                value={newEventCustomType}
+                onChange={(e) => setNewEventCustomType(e.target.value)}
+                placeholder="e.g., AMA, Live Demo, Office Hours..."
+              />
+            </div>
+          )}
+          
           <Button
             onClick={addLiveEvent}
             variant="outline"
             size="sm"
-            disabled={!newEventDate || !newEventTopic}
+            disabled={!newEventDate || !newEventTopic || (newEventType === 'other' && !newEventCustomType.trim())}
           >
             <Plus className="h-4 w-4 mr-1" /> Add Event
           </Button>

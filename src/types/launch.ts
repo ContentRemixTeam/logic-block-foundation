@@ -32,17 +32,18 @@ export interface PreLaunchTaskConfig {
   
   // Content Prep
   liveEventContent: boolean;
-  liveEventType: 'webinar' | 'workshop' | 'masterclass' | 'challenge' | '';
+  liveEventType: 'webinar' | 'workshop' | 'masterclass' | 'challenge' | 'other' | '';
   socialContent: boolean;
   adCreatives: boolean;
   leadMagnet: boolean;
 }
 
 export interface LaunchLiveEvent {
-  type: 'webinar' | 'qa' | 'workshop' | 'challenge' | 'masterclass';
+  type: 'webinar' | 'qa' | 'workshop' | 'challenge' | 'masterclass' | 'other';
   date: string;
   time?: string;
   topic: string;
+  customType?: string; // For 'other' type
 }
 
 // NEW: Content pieces for pre-launch planning
@@ -350,6 +351,7 @@ export const LIVE_EVENT_OPTIONS = [
   { value: 'workshop', label: 'Workshop' },
   { value: 'challenge', label: 'Challenge' },
   { value: 'masterclass', label: 'Masterclass' },
+  { value: 'other', label: 'Other' },
 ] as const;
 
 export const AD_PLATFORM_OPTIONS = [
