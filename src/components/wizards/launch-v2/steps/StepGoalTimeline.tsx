@@ -192,6 +192,23 @@ export function StepGoalTimeline({ data, onChange }: StepGoalTimelineProps) {
             </div>
           ))}
         </RadioGroup>
+
+        {/* Custom timeline input */}
+        {data.launchTimeline === 'other' && (
+          <div className="mt-3">
+            <Label htmlFor="other-timeline" className="text-sm">
+              Describe your timeline
+            </Label>
+            <input
+              id="other-timeline"
+              type="text"
+              value={data.otherLaunchTimeline || ''}
+              onChange={(e) => onChange({ otherLaunchTimeline: e.target.value })}
+              placeholder="e.g., 8 weeks, 10 days..."
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 mt-1"
+            />
+          </div>
+        )}
       </div>
 
       {/* Q5: Cart Opens Date */}
@@ -283,6 +300,28 @@ export function StepGoalTimeline({ data, onChange }: StepGoalTimelineProps) {
             </div>
           ))}
         </RadioGroup>
+
+        {/* Custom revenue goal input */}
+        {data.revenueGoalTier === 'custom' && (
+          <div className="mt-3">
+            <Label htmlFor="custom-revenue" className="text-sm">
+              Your specific revenue goal ($)
+            </Label>
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+              <input
+                id="custom-revenue"
+                type="number"
+                min="0"
+                step="100"
+                value={data.customRevenueGoal ?? ''}
+                onChange={(e) => onChange({ customRevenueGoal: e.target.value ? parseInt(e.target.value) : null })}
+                placeholder="e.g., 5000"
+                className="flex h-10 w-full max-w-[200px] rounded-md border border-input bg-background pl-7 pr-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Teaching content based on tier */}
         {data.revenueGoalTier === 'first-sale' && (

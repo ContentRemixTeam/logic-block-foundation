@@ -90,6 +90,23 @@ export function StepLaunchWeek({ data, onChange }: StepLaunchWeekProps) {
           ))}
         </RadioGroup>
 
+        {/* Other launch method input */}
+        {data.launchMethod === 'other' && (
+          <div className="mt-3">
+            <Label htmlFor="other-method" className="text-sm">
+              Describe your launch method
+            </Label>
+            <input
+              id="other-method"
+              type="text"
+              value={data.otherLaunchMethod || ''}
+              onChange={(e) => onChange({ otherLaunchMethod: e.target.value })}
+              placeholder="e.g., Podcast tour, partnerships..."
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 mt-1"
+            />
+          </div>
+        )}
+
         {data.launchMethod === 'outreach-email' && (
           <div className="mt-4 p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-200 dark:border-purple-800">
             <p className="text-sm text-purple-800 dark:text-purple-200">
@@ -138,6 +155,23 @@ export function StepLaunchWeek({ data, onChange }: StepLaunchWeekProps) {
             </div>
           ))}
         </RadioGroup>
+
+        {/* Other frequency input */}
+        {data.offerFrequency === 'other' && (
+          <div className="mt-3">
+            <Label htmlFor="other-frequency" className="text-sm">
+              Describe your offer frequency
+            </Label>
+            <input
+              id="other-frequency"
+              type="text"
+              value={data.otherOfferFrequency || ''}
+              onChange={(e) => onChange({ otherOfferFrequency: e.target.value })}
+              placeholder="e.g., 3 times per week, first and last day only..."
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 mt-1"
+            />
+          </div>
+        )}
 
         {data.offerFrequency === 'once' && (
           <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
@@ -188,6 +222,23 @@ export function StepLaunchWeek({ data, onChange }: StepLaunchWeekProps) {
             </div>
           ))}
         </RadioGroup>
+
+        {/* Other live component input */}
+        {data.liveComponent === 'other' && (
+          <div className="mt-3">
+            <Label htmlFor="other-live" className="text-sm">
+              Describe your live component
+            </Label>
+            <input
+              id="other-live"
+              type="text"
+              value={data.otherLiveComponent || ''}
+              onChange={(e) => onChange({ otherLiveComponent: e.target.value })}
+              placeholder="e.g., Office hours, AMA sessions, pop-up calls..."
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 mt-1"
+            />
+          </div>
+        )}
 
         {(data.liveComponent === 'one' || data.liveComponent === 'multiple') && (
           <div className="mt-4 p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
