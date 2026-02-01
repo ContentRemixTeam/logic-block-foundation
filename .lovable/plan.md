@@ -1,355 +1,852 @@
 
-# Phase 3: Dashboard Integration
+# Content Planner System - Comprehensive Implementation Plan
 
-## Overview
+## Executive Summary
 
-This phase adds launch visibility to the Dashboard with a new **LaunchZone** container that groups three widgets:
-1. **LaunchCountdownWidget** - Days/hours until cart opens or closes
-2. **LaunchPhaseReminderWidget** - Phase-specific tips and daily actions
-3. **Enhanced ActiveLaunchWidget** - Already exists, needs phase integration
+This plan introduces a **Content Planner Wizard** that integrates with the existing Launch Planner and 90-Day Cycle. The system provides:
 
-## Current State Analysis
+1. **Dual-mode operation**: Regular content planning OR launch-specific content planning
+2. **Messaging Framework**: Define core messages, selling points, and angles before creating content
+3. **Content Vault Enhancement**: Smart repurposing suggestions from existing content
+4. **Content Batching**: Turn 1 core piece into multiple formats
+5. **Selling Points Mapping**: Track which messages drive conversions
 
-### What Already Exists
-- `useActiveLaunches()` hook fetches launches with computed fields (daysUntilOpen, daysUntilClose, phase)
-- `ActiveLaunchWidget` component handles task progress, revenue tracking, offer logging
-- Dashboard already imports `useActiveLaunches` and has a "Launch Countdown" WidgetCard (lines 690-875)
-- `launchHelpers.ts` provides `getCurrentLaunchPhase()`, `getDailyOfferGoal()`, and related utilities
-
-### What's Missing
-- No phase-aware display using the new 4-phase system (runway, pre-launch, cart-open, post-launch)
-- No grouped "Launch Zone" container
-- No phase-specific reminder widget
-- Current dashboard widget doesn't use `getCurrentLaunchPhase()` from launchHelpers
+The wizard follows the established patterns from LaunchWizardV2 and the useWizard hook.
 
 ---
 
-## Implementation Plan
+## User Journey
 
-### 1. Create LaunchZone.tsx Container
+### Entry Point 1: Post-Launch Wizard
+When user completes Launch Planner:
+```text
+✅ Launch Created Successfully!
 
-**Purpose**: Groups all launch widgets into a cohesive section that appears/disappears based on active launch status.
+Your launch "Spring Mastermind" is ready with 45 tasks.
 
-**File**: `src/components/dashboard/LaunchZone.tsx`
+Would you like to plan your content now?
+[Plan Launch Content] [Skip for Now]
+```
+
+### Entry Point 2: Wizard Hub
+New card in `/wizards`:
+```text
+📝 Content Planner
+Plan and batch your content with smart repurposing
+
+[Start] [Create Another]
+```
+
+### Entry Point 3: Content Vault
+From existing ContentVault page:
+```text
+[+ Create Content] [📋 Plan Content Sprint]
+```
+
+---
+
+## Wizard Flow Overview
 
 ```text
-Props:
-- children: React.ReactNode
-- launch: ActiveLaunch (from useActiveLaunches)
+CONTENT PLANNER WIZARD (7 Steps)
 
-Layout:
-┌─────────────────────────────────────────────────────────────┐
-│ 🚀 ACTIVE LAUNCH ZONE                                       │
-│                                                              │
-│ ┌─────────────────────┐ ┌─────────────────────────────────┐ │
-│ │ LaunchCountdownWidget│ │ LaunchPhaseReminderWidget       │ │
-│ └─────────────────────┘ └─────────────────────────────────┘ │
-│                                                              │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ ActiveLaunchWidget (enhanced)                            │ │
-│ └─────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
+Step 1: Mode Selection
+├─ "Regular content" vs "Launch content"
+├─ If launch: Select which launch
+└─ Time period (this week/month/custom)
 
-Mobile: Stacks vertically with full-width cards
+Step 2: Messaging Framework
+├─ Core problem you solve
+├─ Your unique solution
+├─ Top 3 selling points
+└─ Messaging angles to test
+
+Step 3: Format Selection
+├─ Which formats will you create?
+├─ Email, social, video, podcast, events, etc.
+└─ Recommended based on past performance
+
+Step 4: Content Vault Review
+├─ Smart suggestions for repurposing
+├─ Performance-ranked recommendations
+├─ Time savings estimates
+└─ Select what to reuse
+
+Step 5: Content Batching
+├─ Pick 1 core piece to batch
+├─ Select repurposing formats
+├─ Preview generated outlines
+└─ Accept or skip batching
+
+Step 6: Calendar & Scheduling
+├─ Timeline of creation + publishing
+├─ Mapped to launch phases (if applicable)
+├─ Drag/drop reordering
+└─ Link to task generation
+
+Step 7: Review & Create
+├─ Summary of content plan
+├─ Selling points coverage check
+├─ Task generation estimate
+└─ [Create Content Plan]
 ```
 
 ---
 
-### 2. Create LaunchCountdownWidget.tsx
+## Database Schema Updates
 
-**Purpose**: Shows countdown to key launch milestones with urgency indicators.
+### New Tables
 
-**File**: `src/components/dashboard/LaunchCountdownWidget.tsx`
+#### 1. messaging_frameworks
+Stores user's messaging strategy per launch or cycle.
 
-```typescript
-interface LaunchCountdownWidgetProps {
-  launch: ActiveLaunch;  // From useActiveLaunches hook
-}
-```
-
-**Display States**:
-
-| State | Condition | Display |
-|-------|-----------|---------|
-| Pre-Runway | `runwayStart > today` | "Runway starts in X days" |
-| Runway | Phase = 'runway' | "X days until pre-launch" |
-| Pre-Launch | Phase = 'pre-launch' | "X days until CART OPENS" |
-| Cart Open | Phase = 'cart-open' | "X days/hours until CART CLOSES" |
-| Last 48h | `hoursUntilClose <= 48` | Urgent pulsing "CART CLOSES IN X HOURS" |
-| Post-Launch | Phase = 'post-launch' | "Post-launch: X days remaining" |
-
-**Visual Design**:
-```text
-┌─────────────────────────────────┐
-│ 🚀 LAUNCH COUNTDOWN             │
-│ Spring Mastermind               │
-│                                 │
-│ ┌─────────────────────────────┐ │
-│ │         4 DAYS              │ │
-│ │   until cart closes         │ │
-│ │   📅 Mar 8, 2025            │ │
-│ └─────────────────────────────┘ │
-│                                 │
-│ [View Launch Dashboard]         │
-└─────────────────────────────────┘
-```
-
-**Last 48h Urgency Mode**:
-- Pulsing red border
-- Large hour countdown
-- Animated flame icon
-- Urgent messaging
-
----
-
-### 3. Create LaunchPhaseReminderWidget.tsx
-
-**Purpose**: Phase-specific coaching and daily action prompts.
-
-**File**: `src/components/dashboard/LaunchPhaseReminderWidget.tsx`
-
-```typescript
-interface LaunchPhaseReminderWidgetProps {
-  launch: ActiveLaunch;
-  phaseInfo: PhaseInfo | null;  // From getCurrentLaunchPhase()
-}
-```
-
-**Phase Content**:
-
-| Phase | Icon | Title | Focus | Actions |
-|-------|------|-------|-------|---------|
-| Runway | 🎯 | BUILD BUZZ QUIETLY | Segment list, prep content | "View Tasks" |
-| Pre-Launch | 📣 | ANNOUNCE & PROMOTE | Heavy promo, free event | "View Tasks" |
-| Cart-Open | 💰 | YOU'RE LIVE - MAKE OFFERS | Daily offers, personal outreach | "Log Offer", "Go to Daily Plan" |
-| Post-Launch | 📩 | FOLLOW UP & DEBRIEF | Final emails, nurture, debrief | "Complete Debrief" |
-
-**Layout**:
-```text
-┌─────────────────────────────────┐
-│ 💰 YOU'RE LIVE - MAKE OFFERS   │
-│ Cart Open Phase (Day 3 of 7)    │
-├─────────────────────────────────┤
-│                                 │
-│ Focus: Daily offers, handle     │
-│ objections, personal outreach   │
-│                                 │
-│ Time commitment: ~2 hrs/day     │
-│                                 │
-│ Today's offers: ○○○ (0 of 3)   │
-│                                 │
-│ [Log Offer] [Go to Daily Plan] │
-└─────────────────────────────────┘
-```
-
-**Cart-Open Special Features**:
-- Shows daily offer goal from `getDailyOfferGoal()`
-- Visual progress dots for offers
-- Quick "Log Offer" action button
-
----
-
-### 4. Enhance ActiveLaunchWidget.tsx
-
-**File**: `src/components/dashboard/ActiveLaunchWidget.tsx`
-
-**Current Features** (keep):
-- Task progress bar
-- Revenue progress (when live)
-- "Made offer today?" checkbox
-- Log Sale button
-
-**New Enhancements**:
-1. Add phase name badge: "RUNWAY (Day 3 of 9)"
-2. Use `getCurrentLaunchPhase()` for accurate phase detection
-3. Phase-specific color theming
-4. Show offers progress bar (not just revenue)
-
-**Updated Header**:
-```text
-Before:
-│ Spring Mastermind                               [LIVE NOW]│
-
-After:
-│ Spring Mastermind                 [CART OPEN - Day 3 of 7]│
-│ Phase intensity: HIGH                                     │
-```
-
-**New Offers Section**:
-```text
-│ Offers: 23 / 35 (66%)                                    │
-│ ████████████████░░░░░░░░                                 │
-```
-
----
-
-### 5. Update Dashboard.tsx Integration
-
-**File**: `src/pages/Dashboard.tsx`
-
-**Changes**:
-1. Import new components: `LaunchZone`, `LaunchCountdownWidget`, `LaunchPhaseReminderWidget`
-2. Import `getCurrentLaunchPhase` from launchHelpers
-3. Add LaunchZone between "Planning Next Steps" and "90-Day Goal" widgets
-4. Remove existing "Launch Countdown" WidgetCard (lines 690-875) - replaced by LaunchZone
-
-**New Code Block** (after Planning Next Steps):
-```tsx
-{/* Active Launch Zone - shows when user has active launch */}
-{nextLaunch && (
-  <LaunchZone launch={nextLaunch}>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <LaunchCountdownWidget launch={nextLaunch} />
-      <LaunchPhaseReminderWidget 
-        launch={nextLaunch} 
-        phaseInfo={getCurrentLaunchPhase(nextLaunch)}
-      />
-    </div>
-    <ActiveLaunchWidget 
-      launch={launchDisplay!}
-      gradientClass="from-orange-500/5"
-    />
-  </LaunchZone>
-)}
-```
-
----
-
-### 6. Update useActiveLaunches Hook
-
-**File**: `src/hooks/useActiveLaunches.ts`
-
-**Current**: Returns launches with basic computed fields (daysUntilOpen, daysUntilClose, phase)
-
-**Enhancement**: Add phase-related fields from database:
-```typescript
-interface ActiveLaunch {
-  // Existing fields...
+```sql
+CREATE TABLE public.messaging_frameworks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   
-  // NEW: Phase dates from database
-  runway_start_date?: string | null;
-  runway_end_date?: string | null;
-  pre_launch_start_date?: string | null;
-  pre_launch_end_date?: string | null;
-  post_launch_end_date?: string | null;
-  offer_goal?: number | null;
+  -- Optional associations
+  launch_id UUID REFERENCES public.launches(id) ON DELETE CASCADE,
+  cycle_id UUID REFERENCES public.cycles_90_day(cycle_id) ON DELETE SET NULL,
   
-  // NEW: Computed phase info
-  phaseInfo?: PhaseInfo | null;
-  hoursUntilClose: number;
+  -- Core messaging
+  name TEXT NOT NULL,
+  core_problem TEXT,
+  unique_solution TEXT,
+  target_customer TEXT,
+  core_narrative TEXT,
+  
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Enable RLS
+ALTER TABLE public.messaging_frameworks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage own frameworks"
+ON public.messaging_frameworks FOR ALL
+USING (auth.uid() = user_id);
+```
+
+#### 2. selling_points
+Individual selling points linked to messaging framework.
+
+```sql
+CREATE TABLE public.selling_points (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  framework_id UUID NOT NULL REFERENCES public.messaging_frameworks(id) ON DELETE CASCADE,
+  
+  label TEXT NOT NULL,
+  description TEXT,
+  is_core BOOLEAN DEFAULT false,
+  sort_order INTEGER DEFAULT 0,
+  
+  -- Performance tracking
+  total_uses INTEGER DEFAULT 0,
+  conversion_rate DECIMAL,
+  best_format TEXT,
+  
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.selling_points ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage own selling points"
+ON public.selling_points FOR ALL
+USING (auth.uid() = user_id);
+```
+
+#### 3. content_plans
+Main content plan record created by wizard.
+
+```sql
+CREATE TABLE public.content_plans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  
+  -- Optional associations
+  launch_id UUID REFERENCES public.launches(id) ON DELETE CASCADE,
+  cycle_id UUID REFERENCES public.cycles_90_day(cycle_id) ON DELETE SET NULL,
+  framework_id UUID REFERENCES public.messaging_frameworks(id) ON DELETE SET NULL,
+  
+  -- Plan details
+  name TEXT NOT NULL,
+  mode TEXT NOT NULL CHECK (mode IN ('regular', 'launch')),
+  start_date DATE,
+  end_date DATE,
+  
+  -- Selected formats
+  selected_formats TEXT[] DEFAULT '{}',
+  
+  -- Batching
+  core_content_id UUID REFERENCES public.content_items(id),
+  batching_enabled BOOLEAN DEFAULT false,
+  
+  -- Meta
+  status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'completed')),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.content_plans ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage own plans"
+ON public.content_plans FOR ALL
+USING (auth.uid() = user_id);
+```
+
+#### 4. content_plan_items
+Individual content pieces within a plan.
+
+```sql
+CREATE TABLE public.content_plan_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  plan_id UUID NOT NULL REFERENCES public.content_plans(id) ON DELETE CASCADE,
+  
+  -- Content reference (existing or new)
+  content_item_id UUID REFERENCES public.content_items(id) ON DELETE SET NULL,
+  
+  -- Plan-specific fields
+  title TEXT NOT NULL,
+  content_type TEXT NOT NULL,
+  channel TEXT,
+  
+  -- Scheduling
+  planned_date DATE,
+  phase TEXT,  -- 'runway', 'pre-launch', 'cart-open', 'post-launch'
+  
+  -- Messaging
+  selling_point_ids UUID[],
+  messaging_angle TEXT,
+  
+  -- Repurposing
+  is_repurposed BOOLEAN DEFAULT false,
+  repurposed_from_id UUID REFERENCES public.content_items(id),
+  
+  -- Status
+  status TEXT DEFAULT 'planned' CHECK (status IN ('planned', 'in_progress', 'created', 'published')),
+  sort_order INTEGER DEFAULT 0,
+  
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.content_plan_items ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage own plan items"
+ON public.content_plan_items FOR ALL
+USING (auth.uid() = user_id);
+```
+
+### content_items Table Updates
+
+Add columns to existing content_items for vault enhancement:
+
+```sql
+ALTER TABLE public.content_items ADD COLUMN IF NOT EXISTS 
+  messaging_angle TEXT,
+  selling_point_ids UUID[],
+  performance_score DECIMAL,
+  is_template BOOLEAN DEFAULT false,
+  repurposed_from_id UUID REFERENCES public.content_items(id);
+```
+
+---
+
+## New Type Definitions
+
+### src/types/contentPlanner.ts
+
+```typescript
+// Content Planner Wizard Types
+
+// Step 1: Mode Selection
+export type ContentPlanMode = 'regular' | 'launch';
+export type PlanningPeriod = 'this-week' | 'next-week' | 'this-month' | 'custom';
+
+// Step 2: Messaging Framework
+export type MessagingAngle = 'fear' | 'aspiration' | 'logic' | 'social-proof';
+
+export interface SellingPoint {
+  id: string;
+  label: string;
+  description: string;
+  isCore: boolean;
+}
+
+// Step 3: Format Selection (comprehensive list)
+export type ContentFormat = 
+  // Email & Text
+  | 'email-sequence' | 'email-single' | 'blog-post' | 'linkedin-post' 
+  | 'twitter-thread' | 'newsletter'
+  // Video
+  | 'youtube-video' | 'youtube-short' | 'instagram-reel' | 'tiktok'
+  | 'live-stream' | 'sales-video' | 'testimonial-video' | 'tutorial-video'
+  // Audio
+  | 'podcast-episode' | 'podcast-guest' | 'audio-course'
+  // Events
+  | 'webinar' | 'workshop' | 'challenge' | 'masterclass' | 'group-call'
+  // Documents
+  | 'case-study' | 'pdf-guide' | 'workbook' | 'checklist'
+  // Visual
+  | 'infographic' | 'carousel' | 'quote-graphic'
+  // Social
+  | 'instagram-post' | 'facebook-post' | 'community-post';
+
+// Main Wizard Data
+export interface ContentPlannerData {
+  // Step 1: Mode
+  mode: ContentPlanMode | '';
+  launchId: string | null;
+  planningPeriod: PlanningPeriod | '';
+  customStartDate: string;
+  customEndDate: string;
+  
+  // Step 2: Messaging
+  coreProblem: string;
+  uniqueSolution: string;
+  targetCustomer: string;
+  sellingPoints: SellingPoint[];
+  messagingAngles: MessagingAngle[];
+  coreNarrative: string;
+  
+  // Step 3: Formats
+  selectedFormats: ContentFormat[];
+  
+  // Step 4: Vault
+  selectedRepurposeIds: string[];
+  repurposeTargetFormats: Record<string, ContentFormat[]>;
+  
+  // Step 5: Batching
+  batchingEnabled: boolean;
+  coreContentTitle: string;
+  coreContentType: ContentFormat | '';
+  batchTargetFormats: ContentFormat[];
+  
+  // Step 6: Calendar
+  plannedItems: PlannedContentItem[];
+  
+  // Step 7: Review
+  generateTasks: boolean;
+  
+  // Index signature
+  [key: string]: unknown;
+}
+
+export interface PlannedContentItem {
+  id: string;
+  title: string;
+  type: ContentFormat;
+  date: string;
+  phase?: string;
+  sellingPointIds: string[];
+  messagingAngle: MessagingAngle | '';
+  isRepurposed: boolean;
+  sourceId?: string;
 }
 ```
 
-**Updated Query**:
+---
+
+## Component Architecture
+
+### New Directory Structure
+
+```text
+src/components/wizards/content-planner/
+├── ContentPlannerWizard.tsx       # Main wizard component
+├── steps/
+│   ├── index.ts
+│   ├── StepModeSelection.tsx      # Regular vs Launch mode
+│   ├── StepMessagingFramework.tsx # Core messaging
+│   ├── StepFormatSelection.tsx    # Which formats
+│   ├── StepVaultReview.tsx        # Smart repurposing
+│   ├── StepBatching.tsx           # Content batching
+│   ├── StepCalendar.tsx           # Scheduling
+│   └── StepReviewCreate.tsx       # Summary & create
+├── components/
+│   ├── FormatCard.tsx             # Selectable format card
+│   ├── SellingPointEditor.tsx     # Add/edit selling points
+│   ├── RepurposeSuggestion.tsx    # Vault suggestion card
+│   ├── BatchingPreview.tsx        # Show batching output
+│   ├── ContentCalendar.tsx        # Drag/drop calendar
+│   └── SellingPointCoverage.tsx   # Coverage visualization
+└── utils/
+    ├── formatHelpers.ts           # Format metadata
+    └── repurposeEngine.ts         # Smart suggestions
+```
+
+### src/hooks/useContentPlanner.ts
+
+New hook for content planning utilities:
+
 ```typescript
-const { data: launches, error } = await supabase
-  .from('launches')
-  .select(`
-    *,
-    runway_start_date,
-    runway_end_date,
-    pre_launch_start_date,
-    pre_launch_end_date,
-    post_launch_end_date,
-    offer_goal
-  `)
-  .eq('user_id', user.id)
-  .gte('cart_closes', today)
-  .order('cart_opens');
+export function useContentPlanner() {
+  // Get smart repurposing suggestions
+  const getRepurposeSuggestions = async (
+    formats: ContentFormat[],
+    launchId?: string
+  ): Promise<RepurposeSuggestion[]>;
+  
+  // Calculate time savings
+  const calculateTimeSavings = (
+    newCount: number,
+    repurposedCount: number
+  ): { hours: number; percentSaved: number };
+  
+  // Get format performance
+  const getFormatPerformance = async (): Promise<FormatPerformance[]>;
+  
+  // Generate batched content outlines
+  const generateBatchOutlines = (
+    coreTitle: string,
+    coreType: ContentFormat,
+    targetFormats: ContentFormat[]
+  ): BatchedOutline[];
+}
 ```
 
 ---
 
-## File Changes Summary
+## Step-by-Step Implementation
 
-### New Files (3)
-| File | Description |
-|------|-------------|
-| `src/components/dashboard/LaunchZone.tsx` | Container grouping launch widgets |
-| `src/components/dashboard/LaunchCountdownWidget.tsx` | Countdown timer with urgency |
-| `src/components/dashboard/LaunchPhaseReminderWidget.tsx` | Phase-specific reminders |
+### Step 1: Mode Selection UI
 
-### Modified Files (3)
-| File | Changes |
-|------|---------|
-| `src/components/dashboard/ActiveLaunchWidget.tsx` | Add phase badge, offers progress, use launchHelpers |
-| `src/hooks/useActiveLaunches.ts` | Add phase date fields, hoursUntilClose, compute phaseInfo |
-| `src/pages/Dashboard.tsx` | Replace Launch Countdown widget with LaunchZone |
+```text
+┌─────────────────────────────────────────────────────────┐
+│ WHAT ARE YOU PLANNING?                                  │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│ ┌─────────────────────┐ ┌─────────────────────────────┐│
+│ │ 📝 REGULAR CONTENT  │ │ 🚀 LAUNCH CONTENT          ││
+│ │                     │ │                             ││
+│ │ Weekly/monthly      │ │ Content for an upcoming    ││
+│ │ content for         │ │ or active launch           ││
+│ │ audience nurturing  │ │                             ││
+│ │                     │ │ [Select Launch ▾]           ││
+│ │ [Selected ✓]        │ │ Spring Mastermind (Active) ││
+│ └─────────────────────┘ └─────────────────────────────┘│
+│                                                         │
+│ TIME PERIOD:                                            │
+│ ○ This week  ○ Next week  ○ This month  ○ Custom       │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
 
-### Exports Update (1)
-| File | Changes |
-|------|---------|
-| `src/components/dashboard/index.ts` | Export new LaunchZone, LaunchCountdownWidget, LaunchPhaseReminderWidget |
+### Step 2: Messaging Framework UI
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│ YOUR MESSAGING FRAMEWORK                                │
+│ Define what you're going to say before creating content │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│ CORE PROBLEM YOU SOLVE:                                 │
+│ ┌─────────────────────────────────────────────────────┐│
+│ │ Entrepreneurs hit THE GAP (week 3-4 belief drop)... ││
+│ └─────────────────────────────────────────────────────┘│
+│                                                         │
+│ YOUR UNIQUE SOLUTION:                                   │
+│ ┌─────────────────────────────────────────────────────┐│
+│ │ The 90-Day Planner with daily mindset check-ins... ││
+│ └─────────────────────────────────────────────────────┘│
+│                                                         │
+│ TOP 3 SELLING POINTS: (drag to reorder)                │
+│ ┌───┐ ┌─────────────────────────────────────────────┐ │
+│ │ 1 │ │ Gets you across THE GAP       [Edit] [X]   │ │
+│ └───┘ └─────────────────────────────────────────────┘ │
+│ ┌───┐ ┌─────────────────────────────────────────────┐ │
+│ │ 2 │ │ Proven 90-day methodology     [Edit] [X]   │ │
+│ └───┘ └─────────────────────────────────────────────┘ │
+│ ┌───┐ ┌─────────────────────────────────────────────┐ │
+│ │ 3 │ │ Daily accountability          [Edit] [X]   │ │
+│ └───┘ └─────────────────────────────────────────────┘ │
+│ [+ Add Selling Point]                                  │
+│                                                         │
+│ MESSAGING ANGLES TO TEST:                               │
+│ ☑ Fear-based (avoid the gap, avoid failure)            │
+│ ☐ Aspiration (reach your goal, celebrate)              │
+│ ☑ Logic-based (here's how it works)                    │
+│ ☑ Social proof (50 entrepreneurs succeeded)            │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Step 3: Format Selection UI
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│ WHICH CONTENT FORMATS WILL YOU USE?                     │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│ 📧 EMAIL & TEXT                                         │
+│ ☑ Email sequences    ☑ Single sends    ☐ Blog posts    │
+│ ☐ LinkedIn posts     ☐ Newsletter                      │
+│                                                         │
+│ 🎬 VIDEO                                                │
+│ ☐ YouTube videos     ☑ YouTube shorts  ☑ Reels/TikTok │
+│ ☐ Live stream        ☐ Sales video     ☐ Testimonials  │
+│                                                         │
+│ 🎙️ AUDIO                                                │
+│ ☐ Podcast episodes   ☐ Guest appearances               │
+│                                                         │
+│ 🎯 EVENTS                                               │
+│ ☑ Webinar           ☐ Workshop        ☐ Challenge      │
+│                                                         │
+│ 📄 DOCUMENTS                                            │
+│ ☐ Case studies       ☐ PDF guides     ☐ Checklists    │
+│                                                         │
+│ ┌─────────────────────────────────────────────────────┐│
+│ │ 💡 RECOMMENDED FOR YOU:                              ││
+│ │ Based on your past launches, these work best:       ││
+│ │ • Email sequences (2.3% conversion)                  ││
+│ │ • Webinars (18% attendee conversion)                ││
+│ │ • LinkedIn posts (0.8% click rate)                  ││
+│ └─────────────────────────────────────────────────────┘│
+│                                                         │
+│ [Use Recommended]                                       │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Step 4: Vault Review UI
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│ SMART REPURPOSING SUGGESTIONS                           │
+│ We found 12 pieces from your vault to reuse            │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│ ✨ TOP RECOMMENDATIONS                                  │
+│                                                         │
+│ ┌─────────────────────────────────────────────────────┐│
+│ │ 📧 "THE GAP Framework Email" (Spring Launch)        ││
+│ │ 40% open rate, 2.3% conversion - Your best email   ││
+│ │                                                     ││
+│ │ Can repurpose as:                                   ││
+│ │ ☑ LinkedIn posts (3-post series)                   ││
+│ │ ☐ Blog post (expand with examples)                 ││
+│ │ ☐ YouTube script                                   ││
+│ │                                                     ││
+│ │ Time saved: 2 hours                                ││
+│ │ [Select] [View Content] [Skip]                     ││
+│ └─────────────────────────────────────────────────────┘│
+│                                                         │
+│ ┌─────────────────────────────────────────────────────┐│
+│ │ 🎥 "Student Success Story" - Testimonial Video      ││
+│ │ 12% engagement - Your best video                   ││
+│ │                                                     ││
+│ │ Can repurpose as:                                   ││
+│ │ ☑ Email intro (story email)                        ││
+│ │ ☑ Instagram reel                                   ││
+│ │ ☐ LinkedIn video post                              ││
+│ │                                                     ││
+│ │ [Select] [View Content] [Skip]                     ││
+│ └─────────────────────────────────────────────────────┘│
+│                                                         │
+│ VAULT STATS:                                            │
+│ • 47 total items | 12 recommended | 62% time savings   │
+│                                                         │
+│ [Skip Repurposing] [Browse Full Vault]                 │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Step 5: Batching UI
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│ CONTENT BATCHING                                        │
+│ Turn 1 core piece into 10 formats                      │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│ Do you want to batch content?                           │
+│ ○ Yes - create 1 piece, repurpose into many            │
+│ ● No - I'll create each piece separately               │
+│                                                         │
+│ ─────────────────────────────────────────────────────   │
+│ (When "Yes" is selected):                               │
+│                                                         │
+│ CORE CONTENT:                                           │
+│ Title: [How to Survive THE GAP____________]            │
+│ Type:  [Blog Post ▾]                                   │
+│                                                         │
+│ BATCH INTO THESE FORMATS:                               │
+│ ☑ Email sequence (5 emails from sections)              │
+│ ☑ LinkedIn posts (10 key points, 1 each)               │
+│ ☐ YouTube script                                        │
+│ ☐ Podcast episode                                       │
+│ ☑ Infographic (5 key points)                           │
+│                                                         │
+│ PREVIEW:                                                │
+│ ┌─────────────────────────────────────────────────────┐│
+│ │ From "How to Survive THE GAP" you'll get:           ││
+│ │ • 5 emails (est. 15 min each to edit)               ││
+│ │ • 10 LinkedIn posts (est. 5 min each)               ││
+│ │ • 1 infographic (est. 30 min to design)             ││
+│ │                                                     ││
+│ │ Total: 16 pieces | ~4 hours vs 20+ hours            ││
+│ └─────────────────────────────────────────────────────┘│
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Step 6: Calendar UI
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│ CONTENT CALENDAR                                        │
+│ Schedule your content by phase                          │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│ RUNWAY (Feb 15-23)          9 days | LOW intensity     │
+│ ┌─────────────────────────────────────────────────────┐│
+│ │ Feb 15: LinkedIn post - "Week 3 belief drop..."     ││
+│ │ Feb 17: Email #1 - "Are you ready for this?"        ││
+│ │ Feb 20: LinkedIn post - "1,000 entrepreneurs..."    ││
+│ │ [+ Add Content]                                      ││
+│ └─────────────────────────────────────────────────────┘│
+│                                                         │
+│ PRE-LAUNCH (Feb 24 - Mar 1)  6 days | MEDIUM intensity │
+│ ┌─────────────────────────────────────────────────────┐│
+│ │ Feb 24: Email #2 - "Here's what's coming..."        ││
+│ │ Feb 26: Webinar - "The Gap Framework"               ││
+│ │ Feb 28: Email #3 - "Last chance to join webinar"    ││
+│ │ Mar 1:  Email #4 - "Cart opens tomorrow..."         ││
+│ │ [+ Add Content]                                      ││
+│ └─────────────────────────────────────────────────────┘│
+│                                                         │
+│ CART OPEN (Mar 2-8)          7 days | HIGH intensity   │
+│ ┌─────────────────────────────────────────────────────┐│
+│ │ Mar 2: Email #5 - "Cart is OPEN"                    ││
+│ │ Mar 3: Instagram reel - Testimonial video           ││
+│ │ Mar 5: Email #6 - "48 hours left..."                ││
+│ │ Mar 8: Email #7 - "Final hours" + closing           ││
+│ │ [+ Add Content]                                      ││
+│ └─────────────────────────────────────────────────────┘│
+│                                                         │
+│ SELLING POINTS COVERAGE:                                │
+│ ████████████ SP #1: 8 pieces (covered)                 │
+│ ██████░░░░░░ SP #2: 4 pieces (needs more)              │
+│ ████████████ SP #3: 7 pieces (covered)                 │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Step 7: Review UI
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│ CONTENT PLAN SUMMARY                                    │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│ 📋 PLAN: Spring Mastermind Launch Content               │
+│ 📅 Period: Feb 15 - Mar 8 (22 days)                    │
+│                                                         │
+│ CONTENT BREAKDOWN:                                      │
+│ • 7 emails (sequence)                                   │
+│ • 10 LinkedIn posts                                     │
+│ • 1 webinar                                             │
+│ • 2 Instagram reels                                     │
+│ • 1 infographic                                         │
+│ Total: 21 pieces                                        │
+│                                                         │
+│ REPURPOSING:                                            │
+│ • 5 pieces from vault (24%)                            │
+│ • Time saved: ~6 hours                                 │
+│                                                         │
+│ MESSAGING COVERAGE:                                     │
+│ ✓ All 3 selling points covered                         │
+│ ✓ Fear + Logic + Social proof angles used              │
+│                                                         │
+│ TASK GENERATION:                                        │
+│ ☑ Generate tasks for each content piece                │
+│ • Est. 21 creation tasks                               │
+│ • Est. 21 publish tasks                                │
+│                                                         │
+│ [Create Content Plan]                                   │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Implementation Order
+## Post-Launch Wizard Integration
 
-### Day 1: Core Widgets
-1. Create `LaunchCountdownWidget.tsx` with all display states
-2. Create `LaunchPhaseReminderWidget.tsx` with phase content
-3. Test both widgets in isolation
+### Modify LaunchWizardV2.tsx
 
-### Day 2: Container & Integration
-4. Create `LaunchZone.tsx` container
-5. Update `useActiveLaunches.ts` to include phase fields
-6. Enhance `ActiveLaunchWidget.tsx` with phase badge
+After successful launch creation, show content planning prompt:
 
-### Day 3: Dashboard Integration & Polish
-7. Update `Dashboard.tsx` to use new components
-8. Remove old Launch Countdown code (lines 690-875)
-9. Update `dashboard/index.ts` exports
-10. Mobile testing and responsive adjustments
+```typescript
+// In handleCreateLaunch success handler:
+if (result?.success) {
+  await clearDraft();
+  toast.success(result.message);
+  
+  // Show content planning prompt
+  setShowContentPlanPrompt(true);
+  setCreatedLaunchId(result.launch_id);
+}
+
+// New dialog component:
+<ContentPlanPromptDialog
+  isOpen={showContentPlanPrompt}
+  launchId={createdLaunchId}
+  launchName={data.name}
+  onPlanContent={() => navigate(`/wizards/content?launchId=${createdLaunchId}`)}
+  onSkip={() => navigate(`/projects/${result.project_id}`)}
+/>
+```
 
 ---
 
-## Mobile Responsiveness
+## Files to Create/Modify
 
-**LaunchZone**:
-- Full width on mobile
-- Countdown and Reminder stack vertically (grid-cols-1)
-- Desktop: side-by-side (grid-cols-2)
+### New Files (21)
 
-**LaunchCountdownWidget**:
-- Centered countdown number
-- Compact date display
-- Full-width button
+**Types:**
+- `src/types/contentPlanner.ts` - Type definitions
 
-**LaunchPhaseReminderWidget**:
-- Phase title on single line
-- Collapsible focus description
-- Offer dots wrap if needed
-- Buttons stack on small screens
+**Wizard Components:**
+- `src/components/wizards/content-planner/ContentPlannerWizard.tsx`
+- `src/components/wizards/content-planner/steps/index.ts`
+- `src/components/wizards/content-planner/steps/StepModeSelection.tsx`
+- `src/components/wizards/content-planner/steps/StepMessagingFramework.tsx`
+- `src/components/wizards/content-planner/steps/StepFormatSelection.tsx`
+- `src/components/wizards/content-planner/steps/StepVaultReview.tsx`
+- `src/components/wizards/content-planner/steps/StepBatching.tsx`
+- `src/components/wizards/content-planner/steps/StepCalendar.tsx`
+- `src/components/wizards/content-planner/steps/StepReviewCreate.tsx`
 
-**Touch Targets**:
-- All buttons 44px minimum height
-- Adequate spacing between interactive elements
+**Supporting Components:**
+- `src/components/wizards/content-planner/components/FormatCard.tsx`
+- `src/components/wizards/content-planner/components/SellingPointEditor.tsx`
+- `src/components/wizards/content-planner/components/RepurposeSuggestion.tsx`
+- `src/components/wizards/content-planner/components/BatchingPreview.tsx`
+- `src/components/wizards/content-planner/components/ContentCalendar.tsx`
+- `src/components/wizards/content-planner/components/SellingPointCoverage.tsx`
+- `src/components/wizards/content-planner/components/ContentPlanPromptDialog.tsx`
+
+**Utilities:**
+- `src/components/wizards/content-planner/utils/formatHelpers.ts`
+- `src/components/wizards/content-planner/utils/repurposeEngine.ts`
+
+**Hooks:**
+- `src/hooks/useContentPlanner.ts`
+
+**Page:**
+- `src/pages/ContentPlannerPage.tsx`
+
+### Modified Files (5)
+
+- `src/components/wizards/launch-v2/LaunchWizardV2.tsx` - Add content plan prompt
+- `src/components/wizards/WizardHub.tsx` - Add content planner card
+- `src/App.tsx` - Add route
+- `src/lib/contentService.ts` - Add performance scoring
+- Database migration for new tables
+
+---
+
+## Implementation Phases
+
+### Phase 1: Foundation (Week 1)
+1. Database migration - Create new tables
+2. Type definitions - `contentPlanner.ts`
+3. Basic wizard structure - `ContentPlannerWizard.tsx`
+4. Mode selection step - `StepModeSelection.tsx`
+5. Route and page setup
+
+### Phase 2: Messaging Framework (Week 1-2)
+6. Selling point editor component
+7. Messaging framework step
+8. Persist to `messaging_frameworks` table
+9. Link to launch/cycle
+
+### Phase 3: Format Selection & Vault (Week 2)
+10. Format card component
+11. Format selection step
+12. Repurpose suggestion component
+13. Vault review step with smart suggestions
+14. `repurposeEngine.ts` utility
+
+### Phase 4: Batching & Calendar (Week 2-3)
+15. Batching preview component
+16. Batching step
+17. Content calendar component (drag/drop)
+18. Calendar step
+19. Selling point coverage visualization
+
+### Phase 5: Review & Integration (Week 3)
+20. Review step with summary
+21. Edge function for plan creation
+22. Task generation integration
+23. Launch wizard integration (prompt)
+24. Wizard Hub card
+
+### Phase 6: Analytics (Week 3-4)
+25. Add `useContentPlanner` hook
+26. Performance scoring in content service
+27. Format performance recommendations
+28. Selling point conversion tracking
+
+---
+
+## Technical Considerations
+
+### Existing Patterns to Follow
+
+1. **Wizard Hook**: Use existing `useWizard<T>` hook pattern
+2. **Draft Persistence**: 3-second debounced server sync + localStorage
+3. **Validation**: Step-by-step validation like `launchV2Validation.ts`
+4. **Mobile UX**: Vaul drawers for complex editing, 44px touch targets
+5. **Component Structure**: Match LaunchWizardV2 directory structure
+
+### Performance Optimizations
+
+1. **Vault Suggestions**: Lazy load, limit to 20 suggestions
+2. **Calendar Rendering**: Use `@tanstack/react-virtual` for long lists
+3. **Batching Preview**: Generate outlines client-side, not AI
+4. **Format Icons**: Lazy load Lucide icons
+
+### Mobile Considerations
+
+1. Format selection: 2-column grid on mobile
+2. Calendar: Vertical list view on mobile
+3. Selling point editor: Bottom drawer on mobile
+4. Vault review: Swipeable cards on mobile
 
 ---
 
 ## Verification Checklist
 
-- [ ] LaunchZone appears when user has active launch
-- [ ] LaunchZone hidden when no active launches
-- [ ] LaunchCountdownWidget shows correct countdown for each phase
-- [ ] Last 48 hours shows urgency animation
-- [ ] LaunchPhaseReminderWidget shows phase-specific content
-- [ ] Cart-open phase shows daily offer goal
-- [ ] ActiveLaunchWidget shows phase badge (e.g., "CART OPEN - Day 3 of 7")
-- [ ] Offers progress bar displays correctly
-- [ ] Mobile layout stacks properly
-- [ ] All buttons have 44px touch targets
-- [ ] "View Launch Dashboard" navigates to `/projects/:id`
-- [ ] "Log Offer" functionality works
+### Phase 1
+- [ ] Database tables created with RLS
+- [ ] Types compile without errors
+- [ ] Wizard navigates between steps
+- [ ] Mode selection saves correctly
 
----
+### Phase 2
+- [ ] Selling points can be added/edited/deleted
+- [ ] Messaging framework persists to database
+- [ ] Framework links to launch correctly
 
-## Technical Dependencies
+### Phase 3
+- [ ] Format cards display all 25+ formats
+- [ ] Vault suggestions rank by performance
+- [ ] Repurposing selections save correctly
 
-All dependencies already installed:
-- `date-fns` - Date calculations
-- `lucide-react` - Icons
-- Existing UI components (Card, Badge, Progress, Button)
-- `launchHelpers.ts` utilities already in place
+### Phase 4
+- [ ] Batching generates preview correctly
+- [ ] Calendar displays by phase (launch mode)
+- [ ] Selling point coverage calculates correctly
 
-No database migrations needed - Phase 1 already added required columns.
+### Phase 5
+- [ ] Plan creates successfully
+- [ ] Tasks generate if enabled
+- [ ] Launch wizard shows prompt after creation
+
+### Phase 6
+- [ ] Format recommendations appear
+- [ ] Performance scoring updates
+- [ ] Analytics display correctly
