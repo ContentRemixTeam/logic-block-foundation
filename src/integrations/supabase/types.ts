@@ -3032,6 +3032,86 @@ export type Database = {
           },
         ]
       }
+      launch_templates: {
+        Row: {
+          created_at: string | null
+          custom_revenue_goal: number | null
+          id: string
+          last_used_at: string | null
+          launch_week_config: Json | null
+          lessons_energy_rating: number | null
+          lessons_what_to_improve: string | null
+          lessons_what_worked: string | null
+          lessons_would_do_differently: string | null
+          name: string
+          offer_name: string | null
+          offer_type: string | null
+          post_launch_config: Json | null
+          pre_launch_config: Json | null
+          price_point: number | null
+          revenue_goal_tier: string | null
+          source_launch_id: string | null
+          timeline_duration: string | null
+          times_used: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          custom_revenue_goal?: number | null
+          id?: string
+          last_used_at?: string | null
+          launch_week_config?: Json | null
+          lessons_energy_rating?: number | null
+          lessons_what_to_improve?: string | null
+          lessons_what_worked?: string | null
+          lessons_would_do_differently?: string | null
+          name: string
+          offer_name?: string | null
+          offer_type?: string | null
+          post_launch_config?: Json | null
+          pre_launch_config?: Json | null
+          price_point?: number | null
+          revenue_goal_tier?: string | null
+          source_launch_id?: string | null
+          timeline_duration?: string | null
+          times_used?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          custom_revenue_goal?: number | null
+          id?: string
+          last_used_at?: string | null
+          launch_week_config?: Json | null
+          lessons_energy_rating?: number | null
+          lessons_what_to_improve?: string | null
+          lessons_what_worked?: string | null
+          lessons_would_do_differently?: string | null
+          name?: string
+          offer_name?: string | null
+          offer_type?: string | null
+          post_launch_config?: Json | null
+          pre_launch_config?: Json | null
+          price_point?: number | null
+          revenue_goal_tier?: string | null
+          source_launch_id?: string | null
+          timeline_duration?: string | null
+          times_used?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "launch_templates_source_launch_id_fkey"
+            columns: ["source_launch_id"]
+            isOneToOne: false
+            referencedRelation: "launches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       launches: {
         Row: {
           ads_budget: number | null
@@ -3103,6 +3183,7 @@ export type Database = {
           social_strategy: string[] | null
           spot_limit: number | null
           status: string | null
+          template_id: string | null
           updated_at: string | null
           use_custom_timeline: boolean | null
           useful_thought: string | null
@@ -3185,6 +3266,7 @@ export type Database = {
           social_strategy?: string[] | null
           spot_limit?: number | null
           status?: string | null
+          template_id?: string | null
           updated_at?: string | null
           use_custom_timeline?: boolean | null
           useful_thought?: string | null
@@ -3267,6 +3349,7 @@ export type Database = {
           social_strategy?: string[] | null
           spot_limit?: number | null
           status?: string | null
+          template_id?: string | null
           updated_at?: string | null
           use_custom_timeline?: boolean | null
           useful_thought?: string | null
@@ -3286,6 +3369,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cycles_90_day"
             referencedColumns: ["cycle_id"]
+          },
+          {
+            foreignKeyName: "launches_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "launch_templates"
+            referencedColumns: ["id"]
           },
         ]
       }

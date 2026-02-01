@@ -67,23 +67,8 @@ import { MastermindCallWidget } from '@/components/mastermind/MastermindCallWidg
 import { SmartActionButton } from '@/components/SmartActionButton';
 import { getCurrentLaunchPhase } from '@/lib/launchHelpers';
 
+// Dynamic alerts based on cycle day (excluding GAP alerts)
 function getDynamicAlert(currentDay: number) {
-  if (currentDay >= 15 && currentDay <= 17) {
-    return {
-      icon: <AlertTriangle className="h-4 w-4" />,
-      message: '"THE GAP" approaching',
-      subtext: 'Energy dips are normal. Push through!',
-      className: 'border-yellow-500/50 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
-    };
-  }
-  if (currentDay >= 18 && currentDay <= 28) {
-    return {
-      icon: <AlertTriangle className="h-4 w-4" />,
-      message: "YOU'RE IN THE GAP",
-      subtext: 'This is where most people quit. Not you.',
-      className: 'border-orange-500/50 bg-orange-500/10 text-orange-700 dark:text-orange-400',
-    };
-  }
   if (currentDay === 30) {
     return {
       icon: <Target className="h-4 w-4" />,
@@ -710,20 +695,8 @@ export default function Dashboard() {
               <LaunchZone hasLaunch={false} />
             )}
 
-            {!launchesLoading && nextLaunch && launchDisplay && (
-              <LaunchZone hasLaunch={true} launchName={nextLaunch.name}>
-                {/* Two-column grid for Countdown + Phase Reminder */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <LaunchCountdownWidget launch={nextLaunch} />
-                  <LaunchPhaseReminderWidget launch={nextLaunch} />
-                </div>
-                
-                {/* Full-width Active Launch Widget */}
-                <ActiveLaunchWidget 
-                  launch={launchDisplay}
-                  gradientClass="from-orange-500/5"
-                />
-              </LaunchZone>
+            {!launchesLoading && nextLaunch && (
+              <LaunchZone hasLaunch={true} launchName={nextLaunch.name} launch={nextLaunch} />
             )}
 
             {/* Sales Goal Tracker */}

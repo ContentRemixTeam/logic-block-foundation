@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Target, TrendingUp } from 'lucide-react';
 import {
@@ -26,13 +26,11 @@ import {
   TimelineDuration,
 } from '@/lib/launchHelpers';
 import { useActiveCycle } from '@/hooks/useActiveCycle';
-import { detectGapOverlap, GapOverlapResult } from '../utils/gapDetection';
 import { formatCurrency } from '@/lib/wizardHelpers';
 import {
   TimelineQuickSetup,
   TimelineCustomizer,
   FreeEventConfig,
-  GapAcknowledgmentPrompt,
 } from '../timeline';
 
 interface StepGoalTimelineProps {
@@ -43,7 +41,6 @@ interface StepGoalTimelineProps {
 export function StepGoalTimeline({ data, onChange }: StepGoalTimelineProps) {
   const { data: activeCycle } = useActiveCycle();
   const [isCustomizing, setIsCustomizing] = useState(data.useCustomTimeline);
-  const [showGapPrompt, setShowGapPrompt] = useState(false);
 
   // Auto-calculate cart close when timeline or cart opens changes
   useEffect(() => {
@@ -54,25 +51,6 @@ export function StepGoalTimeline({ data, onChange }: StepGoalTimelineProps) {
       }
     }
   }, [data.cartOpensDate, data.launchTimeline]);
-
-  // Auto-detect GAP overlap when dates change
-  const gapResult: GapOverlapResult | null = 
-    data.cartOpensDate && data.cartClosesDate && activeCycle?.start_date
-      ? detectGapOverlap(data.cartOpensDate, data.cartClosesDate, activeCycle.start_date)
-      : null;
-
-  // Update GAP detection state
-  useEffect(() => {
-    if (gapResult) {
-      if (gapResult.overlaps !== data.gapOverlapDetected) {
-        onChange({ gapOverlapDetected: gapResult.overlaps });
-      }
-      // Show GAP prompt if overlap detected and not yet acknowledged
-      if (gapResult.overlaps && !data.gapAcknowledged && data.cartOpensDate) {
-        setShowGapPrompt(true);
-      }
-    }
-  }, [gapResult?.overlaps, data.cartOpensDate]);
 
   // Set revenue goal when tier changes
   const handleRevenueGoalTierChange = (tier: RevenueGoalTier) => {
@@ -120,11 +98,6 @@ export function StepGoalTimeline({ data, onChange }: StepGoalTimelineProps) {
   // Handle collapsing customizer
   const handleCollapseCustomizer = () => {
     setIsCustomizing(false);
-  };
-
-  // Handle GAP acknowledgment
-  const handleGapContinue = () => {
-    setShowGapPrompt(false);
   };
 
   // Calculate launch percentage of quarterly goal
@@ -239,8 +212,6 @@ export function StepGoalTimeline({ data, onChange }: StepGoalTimelineProps) {
           timeline={data.launchTimeline as TimelineDuration}
           onAccept={handleAcceptSuggestedTimeline}
           onCustomize={handleCustomize}
-          gapStart={gapResult?.gapStartDate ? new Date(gapResult.gapStartDate) : null}
-          gapEnd={gapResult?.gapEndDate ? new Date(gapResult.gapEndDate) : null}
         />
       )}
 
@@ -249,19 +220,7 @@ export function StepGoalTimeline({ data, onChange }: StepGoalTimelineProps) {
           data={data}
           onChange={onChange}
           onCollapse={handleCollapseCustomizer}
-          gapResult={gapResult}
           isOpen={isCustomizing}
-        />
-      )}
-
-      {/* GAP Acknowledgment Prompt (blocking) */}
-      {showGapPrompt && gapResult?.overlaps && activeCycle?.start_date && (
-        <GapAcknowledgmentPrompt
-          gapResult={gapResult}
-          data={data}
-          onChange={onChange}
-          cycleStartDate={activeCycle.start_date}
-          onContinue={handleGapContinue}
         />
       )}
 
