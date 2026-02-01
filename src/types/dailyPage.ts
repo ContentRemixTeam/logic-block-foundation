@@ -16,6 +16,7 @@ export type SectionId =
   | 'nurture_checkin'
   | 'quick_log'
   | 'completed_today'
+  | 'launch_reflection'
   | 'end_of_day_reflection'
   | 'deep_mode';
 
@@ -95,6 +96,7 @@ export const DEFAULT_SECTION_ORDER: SectionId[] = [
   'nurture_checkin',
   'quick_log',
   'completed_today',
+  'launch_reflection',
   'end_of_day_reflection',
   'deep_mode',
 ];
@@ -263,6 +265,17 @@ export const SECTION_DEFINITIONS: Record<SectionId, SectionDefinition> = {
     icon: 'Moon',
     isConditional: true,
     conditionDescription: 'Only shows after 5pm',
+    canHide: true,
+    canReorder: true,
+  },
+  launch_reflection: {
+    id: 'launch_reflection',
+    label: 'Launch Reflection',
+    description: 'Quick wins & lessons for active launch',
+    zone: 'evening',
+    icon: 'Rocket',
+    isConditional: true,
+    conditionDescription: 'Only shows during active launches',
     canHide: true,
     canReorder: true,
   },

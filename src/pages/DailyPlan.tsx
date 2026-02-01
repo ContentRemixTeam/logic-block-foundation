@@ -47,6 +47,9 @@ import { HabitTrackerCard } from '@/components/habits';
 // ArcadeIntroCard removed - moved to onboarding
 import { CalendarReconnectBanner } from '@/components/google-calendar/CalendarReconnectBanner';
 import { CycleProgressBanner } from '@/components/cycle/CycleProgressBanner';
+import { LaunchModeSection } from '@/components/daily-plan/LaunchModeSection';
+import { QuickLaunchReflectionCard } from '@/components/daily-plan/QuickLaunchReflectionCard';
+import { useActiveLaunches } from '@/hooks/useActiveLaunches';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -74,7 +77,11 @@ export default function DailyPlan() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: activeCycleData } = useActiveCycle();
+  const { data: activeLaunches = [] } = useActiveLaunches();
   const isMobile = useIsMobile();
+  
+  // Get the primary active launch (first one if multiple)
+  const activeLaunch = activeLaunches.length > 0 ? activeLaunches[0] : null;
   
   // Layout preferences
   const { layout, isSectionVisible, getAllSectionsInOrder, isLoading: layoutLoading } = useDailyPageLayout();
@@ -993,6 +1000,11 @@ export default function DailyPlan() {
         {/* 2. Calendar Reconnect Banner */}
         <CalendarReconnectBanner />
 
+        {/* 2.5 Launch Mode Section (during active launches) */}
+        {activeLaunch && (
+          <LaunchModeSection launch={activeLaunch} />
+        )}
+
         {/* 3. GAP Reconnection Message (conditional) */}
         {gapStatus?.shouldShowAlert && activeCycleData && (
           <Card className={`border-2 ${
@@ -1640,6 +1652,18 @@ Closed the big deal! #win"
                       <CharacterCounter current={endOfDayReflection.length} max={1000} />
                     </CardContent>
                   </Card>
+                );
+              },
+
+              launch_reflection: () => {
+                // Only show if there's an active launch
+                if (!activeLaunch) return null;
+                
+                return (
+                  <QuickLaunchReflectionCard 
+                    launch={activeLaunch} 
+                    showMetrics={activeLaunch.isLive}
+                  />
                 );
               },
 
