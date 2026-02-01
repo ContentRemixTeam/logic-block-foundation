@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLaunchDebrief, LaunchDebrief as LaunchDebriefType } from '@/hooks/useLaunchDebrief';
+import { useLaunchReflectionsCompiled } from '@/hooks/useDailyLaunchReflection';
+import { CompiledInsightsCard } from '@/components/launch/CompiledInsightsCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,6 +17,7 @@ export default function LaunchDebrief() {
   const { launchId } = useParams<{ launchId: string }>();
   const navigate = useNavigate();
   const { launch, debrief, isLoading, saveDebrief } = useLaunchDebrief(launchId);
+  const { data: compiledInsights, isLoading: insightsLoading } = useLaunchReflectionsCompiled(launchId);
   
   const [formData, setFormData] = useState<Partial<LaunchDebriefType>>({
     actual_revenue: null,
@@ -158,6 +161,21 @@ export default function LaunchDebrief() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Compiled Daily Insights */}
+      {compiledInsights && compiledInsights.totalEntries > 0 && (
+        <CompiledInsightsCard 
+          insights={compiledInsights}
+          onPrefillWhatWorked={(text) => setFormData(prev => ({ 
+            ...prev, 
+            what_worked: text 
+          }))}
+          onPrefillWhatToImprove={(text) => setFormData(prev => ({ 
+            ...prev, 
+            what_to_improve: text 
+          }))}
+        />
+      )}
 
       {/* Results Section */}
       <Card>

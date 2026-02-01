@@ -1786,6 +1786,65 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_launch_reflections: {
+        Row: {
+          created_at: string | null
+          date: string
+          energy_level: number | null
+          id: string
+          launch_id: string
+          offers_made: number | null
+          phase: string
+          quick_note: string | null
+          revenue_today: number | null
+          sales_today: number | null
+          updated_at: string | null
+          user_id: string
+          what_didnt_work: Json | null
+          what_worked: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          energy_level?: number | null
+          id?: string
+          launch_id: string
+          offers_made?: number | null
+          phase: string
+          quick_note?: string | null
+          revenue_today?: number | null
+          sales_today?: number | null
+          updated_at?: string | null
+          user_id: string
+          what_didnt_work?: Json | null
+          what_worked?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          energy_level?: number | null
+          id?: string
+          launch_id?: string
+          offers_made?: number | null
+          phase?: string
+          quick_note?: string | null
+          revenue_today?: number | null
+          sales_today?: number | null
+          updated_at?: string | null
+          user_id?: string
+          what_didnt_work?: Json | null
+          what_worked?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_launch_reflections_launch_id_fkey"
+            columns: ["launch_id"]
+            isOneToOne: false
+            referencedRelation: "launches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_page_layouts: {
         Row: {
           created_at: string
