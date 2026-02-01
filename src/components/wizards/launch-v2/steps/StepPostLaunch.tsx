@@ -30,6 +30,7 @@ export function StepPostLaunch({ data, onChange }: StepPostLaunchProps) {
       'personal-outreach': 7,
       'simple': 1,
       'unsure': 2,
+      'none-planned': 0,
     };
     
     return taskMap[data.followUpWillingness] || 2;
@@ -190,6 +191,14 @@ export function StepPostLaunch({ data, onChange }: StepPostLaunchProps) {
             <p className="text-sm text-purple-800 dark:text-purple-200">
               <strong>High-touch approach!</strong> We'll add daily outreach tasks. 
               Focus on people who clicked but didn't buy, or who replied with questions.
+            </p>
+          </div>
+        )}
+
+        {data.followUpWillingness === 'none-planned' && (
+          <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-950/30 rounded-lg border border-gray-200 dark:border-gray-800">
+            <p className="text-sm text-gray-800 dark:text-gray-200">
+              <strong>One-and-done approach.</strong> That's okay! Some launches are designed to be clean breaks. We'll skip the follow-up tasks and focus on the debrief instead.
             </p>
           </div>
         )}

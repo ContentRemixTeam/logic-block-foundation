@@ -17,16 +17,16 @@ export interface EmailSequenceItem {
 }
 
 export type SalesPageStatus = 'existing' | 'needs-creation' | 'in-progress';
-export type TestimonialStatus = 'have-enough' | 'need-more' | 'none';
+export type TestimonialStatus = 'have-enough' | 'need-more' | 'none' | 'skip-this-launch';
 
 // ============== Step 1: Launch Context ==============
 export type LaunchExperience = 'first-time' | 'launched-before' | 'launched-recently';
 export type OfferType = 'course' | 'coaching' | 'product' | 'membership' | 'other';
-export type EmailListStatus = 'comfortable' | 'small-nervous' | 'starting-zero' | 'building';
+export type EmailListStatus = 'comfortable' | 'small-nervous' | 'starting-zero' | 'building' | 'not-using-email';
 
 // ============== Step 2: Goal & Timeline ==============
 export type LaunchTimeline = '2-weeks' | '3-4-weeks' | '5-6-weeks' | 'other';
-export type RevenueGoalTier = 'first-sale' | '500-1000' | '1000-2500' | '2500-plus' | 'testing' | 'custom';
+export type RevenueGoalTier = 'first-sale' | '500-1000' | '1000-2500' | '2500-plus' | 'testing' | 'custom' | 'no-goal';
 
 // ============== Step 3: Offer Details - ENHANCED PRICING ==============
 export type HasLimitations = 'none' | 'existing-clients' | 'limited-spots';
@@ -107,7 +107,7 @@ export type LiveComponent = 'none' | 'one' | 'multiple' | 'considering' | 'other
 
 // ============== Step 6: Post-Launch Strategy ==============
 export type PromotionDuration = '1-week' | '2-weeks' | 'until-goal' | 'ongoing' | 'unsure' | 'other';
-export type FollowUpWillingness = 'one-email' | 'multiple-emails' | 'personal-outreach' | 'simple' | 'unsure' | 'other';
+export type FollowUpWillingness = 'one-email' | 'multiple-emails' | 'personal-outreach' | 'simple' | 'unsure' | 'none-planned' | 'other';
 
 // ============== Step 7: Contingency Planning ==============
 export type BiggestFear = 
@@ -478,6 +478,7 @@ export const EMAIL_LIST_STATUS_OPTIONS = [
   { value: 'small-nervous', label: 'Yes, but it\'s small and I\'m nervous', color: 'yellow' },
   { value: 'starting-zero', label: 'No, I\'m starting from zero', color: 'red' },
   { value: 'building', label: 'Building it as I go', color: 'blue' },
+  { value: 'not-using-email', label: "I'm not using email for this launch", color: 'gray' },
 ] as const;
 
 export const LAUNCH_TIMELINE_OPTIONS = [
@@ -494,6 +495,7 @@ export const REVENUE_GOAL_TIER_OPTIONS = [
   { value: '2500-plus', label: 'Make $2,500+', color: 'gold' },
   { value: 'testing', label: 'I\'m just testing/getting experience', color: 'gray' },
   { value: 'custom', label: 'I have a specific amount in mind', color: 'teal' },
+  { value: 'no-goal', label: "I don't have a specific revenue goal for this launch", color: 'gray' },
 ] as const;
 
 export const HAS_LIMITATIONS_OPTIONS = [
@@ -579,6 +581,7 @@ export const FOLLOW_UP_WILLINGNESS_OPTIONS = [
   { value: 'personal-outreach', label: 'Personal outreach to interested people' },
   { value: 'simple', label: 'Keep it simple - just one push' },
   { value: 'unsure', label: 'I don\'t know what\'s normal' },
+  { value: 'none-planned', label: 'No follow-up planned for this launch' },
   { value: 'other', label: 'Other' },
 ] as const;
 

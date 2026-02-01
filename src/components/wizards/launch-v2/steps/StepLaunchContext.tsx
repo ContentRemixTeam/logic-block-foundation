@@ -228,6 +228,14 @@ export function StepLaunchContext({ data, onChange }: StepLaunchContextProps) {
             </p>
           </div>
         )}
+
+        {data.emailListStatus === 'not-using-email' && (
+          <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-950/30 rounded-lg border border-gray-200 dark:border-gray-800">
+            <p className="text-sm text-gray-800 dark:text-gray-200">
+              <strong>No email? That's fine.</strong> Many successful launches happen through social media, DMs, or in-person conversations. We'll focus on your other channels instead.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
