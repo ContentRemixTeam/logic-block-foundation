@@ -16,6 +16,7 @@ import { TourWelcome } from "@/components/tour/TourWelcome";
 import { TourKeyboardHandler } from "@/components/tour/TourKeyboardHandler";
 import { QuickCaptureProvider } from "@/components/quick-capture";
 import { ManifestSwitcher } from "@/components/pwa/ManifestSwitcher";
+import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
 import { DevDebugPanel } from "@/components/dev/DevDebugPanel";
 import { LoadingState } from "@/components/system/LoadingState";
 
@@ -157,6 +158,7 @@ const App = () => (
                   <QuickCaptureProvider>
                     <OnlineStatusMonitor />
                     <ManifestSwitcher />
+                    <PWAUpdatePrompt />
                     <TourOverlay />
                     <TourWelcome />
                     <TourKeyboardHandler />
