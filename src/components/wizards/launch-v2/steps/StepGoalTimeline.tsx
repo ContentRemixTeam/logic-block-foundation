@@ -1,13 +1,14 @@
 // Step 2: Goal & Timeline (Q4-Q6)
 // Captures launch timeline, dates, and revenue goal tier
+// Now includes Level 1/Level 2 timeline customization
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { format } from 'date-fns';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Target, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Target, TrendingUp } from 'lucide-react';
 import {
   LaunchWizardV2Data,
   LaunchTimeline,
@@ -19,9 +20,20 @@ import {
   calculateCartCloseDate, 
   getRevenueFromTier,
 } from '@/lib/launchV2Validation';
+import {
+  calculateSuggestedTimeline,
+  LaunchPhaseDates,
+  TimelineDuration,
+} from '@/lib/launchHelpers';
 import { useActiveCycle } from '@/hooks/useActiveCycle';
-import { detectGapOverlap } from '../utils/gapDetection';
+import { detectGapOverlap, GapOverlapResult } from '../utils/gapDetection';
 import { formatCurrency } from '@/lib/wizardHelpers';
+import {
+  TimelineQuickSetup,
+  TimelineCustomizer,
+  FreeEventConfig,
+  GapAcknowledgmentPrompt,
+} from '../timeline';
 
 interface StepGoalTimelineProps {
   data: LaunchWizardV2Data;
@@ -30,6 +42,8 @@ interface StepGoalTimelineProps {
 
 export function StepGoalTimeline({ data, onChange }: StepGoalTimelineProps) {
   const { data: activeCycle } = useActiveCycle();
+  const [isCustomizing, setIsCustomizing] = useState(data.useCustomTimeline);
+  const [showGapPrompt, setShowGapPrompt] = useState(false);
 
   // Auto-calculate cart close when timeline or cart opens changes
   useEffect(() => {
@@ -42,18 +56,23 @@ export function StepGoalTimeline({ data, onChange }: StepGoalTimelineProps) {
   }, [data.cartOpensDate, data.launchTimeline]);
 
   // Auto-detect GAP overlap when dates change
+  const gapResult: GapOverlapResult | null = 
+    data.cartOpensDate && data.cartClosesDate && activeCycle?.start_date
+      ? detectGapOverlap(data.cartOpensDate, data.cartClosesDate, activeCycle.start_date)
+      : null;
+
+  // Update GAP detection state
   useEffect(() => {
-    if (data.cartOpensDate && data.cartClosesDate && activeCycle?.start_date) {
-      const gapResult = detectGapOverlap(
-        data.cartOpensDate,
-        data.cartClosesDate,
-        activeCycle.start_date
-      );
+    if (gapResult) {
       if (gapResult.overlaps !== data.gapOverlapDetected) {
         onChange({ gapOverlapDetected: gapResult.overlaps });
       }
+      // Show GAP prompt if overlap detected and not yet acknowledged
+      if (gapResult.overlaps && !data.gapAcknowledged && data.cartOpensDate) {
+        setShowGapPrompt(true);
+      }
     }
-  }, [data.cartOpensDate, data.cartClosesDate, activeCycle?.start_date]);
+  }, [gapResult?.overlaps, data.cartOpensDate]);
 
   // Set revenue goal when tier changes
   const handleRevenueGoalTierChange = (tier: RevenueGoalTier) => {
@@ -64,14 +83,57 @@ export function StepGoalTimeline({ data, onChange }: StepGoalTimelineProps) {
     });
   };
 
+  // Handle accepting suggested timeline
+  const handleAcceptSuggestedTimeline = (phases: LaunchPhaseDates) => {
+    onChange({
+      runwayStartDate: format(phases.runwayStart, 'yyyy-MM-dd'),
+      runwayEndDate: format(phases.runwayEnd, 'yyyy-MM-dd'),
+      preLaunchStartDate: format(phases.preLaunchStart, 'yyyy-MM-dd'),
+      preLaunchEndDate: format(phases.preLaunchEnd, 'yyyy-MM-dd'),
+      cartClosesDate: format(phases.cartCloses, 'yyyy-MM-dd'),
+      postLaunchEndDate: format(phases.postLaunchEnd, 'yyyy-MM-dd'),
+      useCustomTimeline: false,
+    });
+    setIsCustomizing(false);
+  };
+
+  // Handle switching to customize mode
+  const handleCustomize = () => {
+    // If no dates set yet, populate with suggested
+    if (!data.runwayStartDate && data.cartOpensDate && data.launchTimeline) {
+      const phases = calculateSuggestedTimeline(
+        data.cartOpensDate, 
+        data.launchTimeline as TimelineDuration
+      );
+      onChange({
+        runwayStartDate: format(phases.runwayStart, 'yyyy-MM-dd'),
+        runwayEndDate: format(phases.runwayEnd, 'yyyy-MM-dd'),
+        preLaunchStartDate: format(phases.preLaunchStart, 'yyyy-MM-dd'),
+        preLaunchEndDate: format(phases.preLaunchEnd, 'yyyy-MM-dd'),
+        postLaunchEndDate: format(phases.postLaunchEnd, 'yyyy-MM-dd'),
+      });
+    }
+    setIsCustomizing(true);
+    onChange({ useCustomTimeline: true });
+  };
+
+  // Handle collapsing customizer
+  const handleCollapseCustomizer = () => {
+    setIsCustomizing(false);
+  };
+
+  // Handle GAP acknowledgment
+  const handleGapContinue = () => {
+    setShowGapPrompt(false);
+  };
+
   // Calculate launch percentage of quarterly goal
   const launchPercentage = activeCycle?.revenue_goal && data.customRevenueGoal
     ? Math.round((data.customRevenueGoal / activeCycle.revenue_goal) * 100)
     : null;
 
-  const gapResult = data.cartOpensDate && data.cartClosesDate && activeCycle?.start_date
-    ? detectGapOverlap(data.cartOpensDate, data.cartClosesDate, activeCycle.start_date)
-    : null;
+  // Check if we should show the timeline section
+  const canShowTimeline = data.launchTimeline && data.cartOpensDate;
 
   return (
     <div className="space-y-8">
@@ -132,61 +194,59 @@ export function StepGoalTimeline({ data, onChange }: StepGoalTimelineProps) {
         </RadioGroup>
       </div>
 
-      {/* Q5: Launch Dates */}
+      {/* Q5: Cart Opens Date */}
       <div className="space-y-4">
-        <Label className="text-lg font-semibold flex items-center gap-2">
-          <CalendarDays className="h-5 w-5" />
-          When does your launch start?
+        <Label className="text-lg font-semibold">
+          When does your cart open?
         </Label>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="cart-opens" className="text-sm text-muted-foreground">
-              Cart opens
-            </Label>
-            <Input
-              id="cart-opens"
-              type="date"
-              value={data.cartOpensDate}
-              onChange={(e) => onChange({ cartOpensDate: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="cart-closes" className="text-sm text-muted-foreground">
-              Cart closes (auto-calculated)
-            </Label>
-            <Input
-              id="cart-closes"
-              type="date"
-              value={data.cartClosesDate}
-              onChange={(e) => onChange({ cartClosesDate: e.target.value })}
-              className="bg-muted/50"
-            />
-            <p className="text-xs text-muted-foreground">
-              Adjust if needed
-            </p>
-          </div>
-        </div>
-
-        {/* GAP Warning */}
-        {gapResult?.overlaps && (
-          <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
-            <div className="flex gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                  Launch overlaps with THE GAP
-                </p>
-                <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
-                  {gapResult.message}
-                </p>
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-                  We'll help you plan extra support in a later step.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+        <p className="text-sm text-muted-foreground -mt-2">
+          This is when people can start buying your offer.
+        </p>
+        <input
+          type="date"
+          value={data.cartOpensDate}
+          onChange={(e) => onChange({ cartOpensDate: e.target.value })}
+          className="flex h-10 w-full max-w-xs rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        />
       </div>
+
+      {/* Free Event Config */}
+      {canShowTimeline && (
+        <FreeEventConfig data={data} onChange={onChange} />
+      )}
+
+      {/* Timeline Quick Setup or Customizer */}
+      {canShowTimeline && !isCustomizing && (
+        <TimelineQuickSetup
+          cartOpensDate={data.cartOpensDate}
+          timeline={data.launchTimeline as TimelineDuration}
+          onAccept={handleAcceptSuggestedTimeline}
+          onCustomize={handleCustomize}
+          gapStart={gapResult?.gapStartDate ? new Date(gapResult.gapStartDate) : null}
+          gapEnd={gapResult?.gapEndDate ? new Date(gapResult.gapEndDate) : null}
+        />
+      )}
+
+      {canShowTimeline && isCustomizing && (
+        <TimelineCustomizer
+          data={data}
+          onChange={onChange}
+          onCollapse={handleCollapseCustomizer}
+          gapResult={gapResult}
+          isOpen={isCustomizing}
+        />
+      )}
+
+      {/* GAP Acknowledgment Prompt (blocking) */}
+      {showGapPrompt && gapResult?.overlaps && activeCycle?.start_date && (
+        <GapAcknowledgmentPrompt
+          gapResult={gapResult}
+          data={data}
+          onChange={onChange}
+          cycleStartDate={activeCycle.start_date}
+          onContinue={handleGapContinue}
+        />
+      )}
 
       {/* Q6: Revenue Goal Tier */}
       <div className="space-y-4">
