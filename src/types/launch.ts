@@ -10,21 +10,28 @@ export interface PreLaunchTaskConfig {
   salesPage: boolean;
   salesPageDeadline: string;
   checkoutFlow: boolean;
+  checkoutFlowDeadline: string;
   waitlistPage: boolean;
   waitlistDeadline: string;
   orderBumpUpsell: boolean;
+  orderBumpDeadline: string;
   bonuses: boolean;
+  bonusesDeadline: string;
   
   // Social Proof
   testimonials: boolean;
   testimonialGoal: number;
   testimonialDeadline: string;
   caseStudies: boolean;
+  caseStudiesDeadline: string;
   videoTestimonials: boolean;
+  videoTestimonialsDeadline: string;
   resultsScreenshots: boolean;
+  resultsScreenshotsDeadline: string;
   
   // Tech Setup
   emailSequences: boolean;
+  emailSequencesDeadline: string;
   emailTypes: {
     warmUp: boolean;
     launch: boolean;
@@ -32,14 +39,20 @@ export interface PreLaunchTaskConfig {
     postPurchase: boolean;
   };
   automations: boolean;
+  automationsDeadline: string;
   trackingPixels: boolean;
+  trackingPixelsDeadline: string;
   
   // Content Prep
   liveEventContent: boolean;
   liveEventType: 'webinar' | 'workshop' | 'masterclass' | 'challenge' | 'other' | '';
+  liveEventContentDeadline: string;
   socialContent: boolean;
+  socialContentDeadline: string;
   adCreatives: boolean;
+  adCreativesDeadline: string;
   leadMagnet: boolean;
+  leadMagnetDeadline: string;
 }
 
 export interface LaunchLiveEvent {
@@ -249,19 +262,26 @@ export const DEFAULT_LAUNCH_WIZARD_DATA: LaunchWizardData = {
     salesPage: false,
     salesPageDeadline: '',
     checkoutFlow: false,
+    checkoutFlowDeadline: '',
     waitlistPage: false,
     waitlistDeadline: '',
     orderBumpUpsell: false,
+    orderBumpDeadline: '',
     bonuses: false,
+    bonusesDeadline: '',
     // Social Proof
     testimonials: false,
     testimonialGoal: 5,
     testimonialDeadline: '',
     caseStudies: false,
+    caseStudiesDeadline: '',
     videoTestimonials: false,
+    videoTestimonialsDeadline: '',
     resultsScreenshots: false,
+    resultsScreenshotsDeadline: '',
     // Tech Setup
     emailSequences: false,
+    emailSequencesDeadline: '',
     emailTypes: {
       warmUp: true,
       launch: true,
@@ -269,13 +289,19 @@ export const DEFAULT_LAUNCH_WIZARD_DATA: LaunchWizardData = {
       postPurchase: false,
     },
     automations: false,
+    automationsDeadline: '',
     trackingPixels: false,
+    trackingPixelsDeadline: '',
     // Content Prep
     liveEventContent: false,
     liveEventType: '',
+    liveEventContentDeadline: '',
     socialContent: false,
+    socialContentDeadline: '',
     adCreatives: false,
+    adCreativesDeadline: '',
     leadMagnet: false,
+    leadMagnetDeadline: '',
   },
   // Step 7 - Activities
   liveEvents: [],

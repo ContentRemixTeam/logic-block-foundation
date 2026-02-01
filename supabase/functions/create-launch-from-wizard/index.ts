@@ -52,6 +52,49 @@ function generateTemplateKey(prefix: string, launchId: string, suffix?: string):
   return `${prefix}_${launchId}${suffix ? `_${suffix}` : ''}`;
 }
 
+interface PreLaunchTaskConfig {
+  salesPage?: boolean;
+  salesPageDeadline?: string;
+  checkoutFlow?: boolean;
+  checkoutFlowDeadline?: string;
+  waitlistPage?: boolean;
+  waitlistDeadline?: string;
+  orderBumpUpsell?: boolean;
+  orderBumpDeadline?: string;
+  bonuses?: boolean;
+  bonusesDeadline?: string;
+  testimonials?: boolean;
+  testimonialGoal?: number;
+  testimonialDeadline?: string;
+  caseStudies?: boolean;
+  caseStudiesDeadline?: string;
+  videoTestimonials?: boolean;
+  videoTestimonialsDeadline?: string;
+  resultsScreenshots?: boolean;
+  resultsScreenshotsDeadline?: string;
+  emailSequences?: boolean;
+  emailSequencesDeadline?: string;
+  emailTypes?: {
+    warmUp?: boolean;
+    launch?: boolean;
+    cartClose?: boolean;
+    postPurchase?: boolean;
+  };
+  automations?: boolean;
+  automationsDeadline?: string;
+  trackingPixels?: boolean;
+  trackingPixelsDeadline?: string;
+  liveEventContent?: boolean;
+  liveEventType?: string;
+  liveEventContentDeadline?: string;
+  socialContent?: boolean;
+  socialContentDeadline?: string;
+  adCreatives?: boolean;
+  adCreativesDeadline?: string;
+  leadMagnet?: boolean;
+  leadMagnetDeadline?: string;
+}
+
 interface LaunchWizardData {
   name: string;
   cartOpens: string;
@@ -72,6 +115,7 @@ interface LaunchWizardData {
     }>;
   };
   autoCreateGapTasks?: boolean;
+  preLaunchTasks?: PreLaunchTaskConfig;
   hasWaitlist: boolean;
   waitlistOpens?: string;
   waitlistIncentive?: string;
@@ -459,6 +503,73 @@ Deno.serve(async (req) => {
         context_tags: ['launch', 'ads'],
         estimated_minutes: 45,
       });
+    }
+
+    // --- Pre-Launch Checklist Tasks ---
+    const preLaunchTasks = wizardData.preLaunchTasks;
+    if (preLaunchTasks) {
+      const preLaunchTaskDefinitions: Array<{
+        key: keyof PreLaunchTaskConfig;
+        deadlineKey: keyof PreLaunchTaskConfig;
+        emoji: string;
+        text: string;
+        defaultDays: number;
+        priority: 'high' | 'medium' | 'low';
+        minutes: number;
+        category: string;
+      }> = [
+        // Sales Assets - High priority, ready 2 weeks early
+        { key: 'salesPage', deadlineKey: 'salesPageDeadline', emoji: '📄', text: 'Build Sales Page', defaultDays: -14, priority: 'high', minutes: 240, category: 'Sales Assets' },
+        { key: 'checkoutFlow', deadlineKey: 'checkoutFlowDeadline', emoji: '💳', text: 'Set Up Checkout & Payment', defaultDays: -14, priority: 'high', minutes: 90, category: 'Sales Assets' },
+        { key: 'waitlistPage', deadlineKey: 'waitlistDeadline', emoji: '🔔', text: 'Create Waitlist Page', defaultDays: -21, priority: 'medium', minutes: 60, category: 'Sales Assets' },
+        { key: 'orderBumpUpsell', deadlineKey: 'orderBumpDeadline', emoji: '⚡', text: 'Create Order Bump / Upsell', defaultDays: -10, priority: 'medium', minutes: 90, category: 'Sales Assets' },
+        { key: 'bonuses', deadlineKey: 'bonusesDeadline', emoji: '🎁', text: 'Create Launch Bonuses', defaultDays: -10, priority: 'medium', minutes: 120, category: 'Sales Assets' },
+        
+        // Social Proof - Medium priority, ready 10 days early
+        { key: 'testimonials', deadlineKey: 'testimonialDeadline', emoji: '💬', text: 'Collect Testimonials', defaultDays: -10, priority: 'medium', minutes: 60, category: 'Social Proof' },
+        { key: 'caseStudies', deadlineKey: 'caseStudiesDeadline', emoji: '📋', text: 'Create Case Studies', defaultDays: -10, priority: 'medium', minutes: 180, category: 'Social Proof' },
+        { key: 'videoTestimonials', deadlineKey: 'videoTestimonialsDeadline', emoji: '🎥', text: 'Record Video Testimonials', defaultDays: -10, priority: 'medium', minutes: 120, category: 'Social Proof' },
+        { key: 'resultsScreenshots', deadlineKey: 'resultsScreenshotsDeadline', emoji: '📸', text: 'Gather Results Screenshots', defaultDays: -7, priority: 'low', minutes: 45, category: 'Social Proof' },
+        
+        // Tech Setup - Medium priority, ready 1 week early
+        { key: 'emailSequences', deadlineKey: 'emailSequencesDeadline', emoji: '✉️', text: 'Write Email Sequences', defaultDays: -7, priority: 'high', minutes: 180, category: 'Tech Setup' },
+        { key: 'automations', deadlineKey: 'automationsDeadline', emoji: '⚙️', text: 'Set Up Automations', defaultDays: -7, priority: 'medium', minutes: 90, category: 'Tech Setup' },
+        { key: 'trackingPixels', deadlineKey: 'trackingPixelsDeadline', emoji: '📊', text: 'Install Tracking & Analytics', defaultDays: -5, priority: 'low', minutes: 45, category: 'Tech Setup' },
+        
+        // Content Prep - Lower priority, final polish
+        { key: 'liveEventContent', deadlineKey: 'liveEventContentDeadline', emoji: '🎤', text: 'Prepare Live Event Content', defaultDays: -7, priority: 'medium', minutes: 180, category: 'Content Prep' },
+        { key: 'socialContent', deadlineKey: 'socialContentDeadline', emoji: '📱', text: 'Batch Create Social Content', defaultDays: -5, priority: 'low', minutes: 120, category: 'Content Prep' },
+        { key: 'adCreatives', deadlineKey: 'adCreativesDeadline', emoji: '📣', text: 'Design Ad Creatives', defaultDays: -5, priority: 'low', minutes: 120, category: 'Content Prep' },
+        { key: 'leadMagnet', deadlineKey: 'leadMagnetDeadline', emoji: '🧲', text: 'Create Lead Magnet', defaultDays: -14, priority: 'medium', minutes: 180, category: 'Content Prep' },
+      ];
+
+      for (const taskDef of preLaunchTaskDefinitions) {
+        // Check if this task is enabled (the boolean field is true)
+        const isEnabled = preLaunchTasks[taskDef.key];
+        if (isEnabled === true) {
+          // Use user-provided deadline or calculate default
+          const userDeadline = preLaunchTasks[taskDef.deadlineKey] as string | undefined;
+          const deadline = userDeadline || addDays(wizardData.cartOpens, taskDef.defaultDays);
+          
+          tasksToCreate.push({
+            user_id: userId,
+            project_id: projectId,
+            task_text: `${taskDef.emoji} ${taskDef.text}`,
+            task_description: `Pre-launch task for ${wizardData.name}.\n\nCategory: ${taskDef.category}\nMust be completed before cart opens on ${wizardData.cartOpens}.`,
+            scheduled_date: deadline,
+            priority: taskDef.priority,
+            category: taskDef.category,
+            status: 'todo',
+            is_system_generated: true,
+            system_source: 'launch_wizard',
+            template_key: generateTemplateKey(`prelaunch_${taskDef.key}`, launchId),
+            context_tags: ['launch', 'pre-launch', taskDef.category.toLowerCase().replace(' ', '-')],
+            estimated_minutes: taskDef.minutes,
+          });
+        }
+      }
+      
+      console.log(`[create-launch-from-wizard] Added pre-launch checklist tasks`);
     }
 
     // --- Cart Open Task ---

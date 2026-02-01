@@ -105,7 +105,18 @@ export function LaunchPreLaunchTasks({ data, onChange }: LaunchPreLaunchTasksPro
               onCheckedChange={(checked) => updateTask('checkoutFlow', checked)}
               title="Set Up Checkout & Payment Processing"
               description="Test purchase flow, payment gateway, confirmation emails"
-            />
+            >
+              {tasks.checkoutFlow && (
+                <div className="mt-3 space-y-2">
+                  <Label className="text-xs">Deadline:</Label>
+                  <Input
+                    type="date"
+                    value={tasks.checkoutFlowDeadline}
+                    onChange={(e) => updateTask('checkoutFlowDeadline', e.target.value)}
+                  />
+                </div>
+              )}
+            </TaskItem>
 
             <TaskItem
               icon={<Users className="h-5 w-5" />}
@@ -132,7 +143,18 @@ export function LaunchPreLaunchTasks({ data, onChange }: LaunchPreLaunchTasksPro
               onCheckedChange={(checked) => updateTask('orderBumpUpsell', checked)}
               title="Order Bump / Upsell Offer"
               description="Increase average order value with strategic upsell"
-            />
+            >
+              {tasks.orderBumpUpsell && (
+                <div className="mt-3 space-y-2">
+                  <Label className="text-xs">Deadline:</Label>
+                  <Input
+                    type="date"
+                    value={tasks.orderBumpDeadline}
+                    onChange={(e) => updateTask('orderBumpDeadline', e.target.value)}
+                  />
+                </div>
+              )}
+            </TaskItem>
 
             <TaskItem
               icon={<Gift className="h-5 w-5" />}
@@ -140,7 +162,18 @@ export function LaunchPreLaunchTasks({ data, onChange }: LaunchPreLaunchTasksPro
               onCheckedChange={(checked) => updateTask('bonuses', checked)}
               title="Create Launch Bonuses"
               description="Fast-action bonuses, templates, swipe files, etc."
-            />
+            >
+              {tasks.bonuses && (
+                <div className="mt-3 space-y-2">
+                  <Label className="text-xs">Deadline:</Label>
+                  <Input
+                    type="date"
+                    value={tasks.bonusesDeadline}
+                    onChange={(e) => updateTask('bonusesDeadline', e.target.value)}
+                  />
+                </div>
+              )}
+            </TaskItem>
           </TabsContent>
 
           {/* SOCIAL PROOF TAB */}
@@ -181,7 +214,18 @@ export function LaunchPreLaunchTasks({ data, onChange }: LaunchPreLaunchTasksPro
               onCheckedChange={(checked) => updateTask('caseStudies', checked)}
               title="Create 2-3 Case Studies"
               description="Detailed success stories with before/after, numbers, quotes"
-            />
+            >
+              {tasks.caseStudies && (
+                <div className="mt-3 space-y-2">
+                  <Label className="text-xs">Deadline:</Label>
+                  <Input
+                    type="date"
+                    value={tasks.caseStudiesDeadline}
+                    onChange={(e) => updateTask('caseStudiesDeadline', e.target.value)}
+                  />
+                </div>
+              )}
+            </TaskItem>
 
             <TaskItem
               icon={<Video className="h-5 w-5" />}
@@ -191,13 +235,23 @@ export function LaunchPreLaunchTasks({ data, onChange }: LaunchPreLaunchTasksPro
               description="Video proof converts 2-3x higher than text testimonials"
             >
               {tasks.videoTestimonials && (
-                <Alert className="mt-3 bg-secondary/50 border-secondary">
-                  <Video className="h-4 w-4 text-primary" />
-                  <AlertTitle className="text-sm text-foreground">Conversion Boost</AlertTitle>
-                  <AlertDescription className="text-xs text-muted-foreground">
-                    Adding 3-5 video testimonials to your sales page can increase conversions by 20-30%
-                  </AlertDescription>
-                </Alert>
+                <div className="mt-3 space-y-3">
+                  <Alert className="bg-secondary/50 border-secondary">
+                    <Video className="h-4 w-4 text-primary" />
+                    <AlertTitle className="text-sm text-foreground">Conversion Boost</AlertTitle>
+                    <AlertDescription className="text-xs text-muted-foreground">
+                      Adding 3-5 video testimonials to your sales page can increase conversions by 20-30%
+                    </AlertDescription>
+                  </Alert>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Deadline:</Label>
+                    <Input
+                      type="date"
+                      value={tasks.videoTestimonialsDeadline}
+                      onChange={(e) => updateTask('videoTestimonialsDeadline', e.target.value)}
+                    />
+                  </div>
+                </div>
               )}
             </TaskItem>
 
@@ -207,7 +261,18 @@ export function LaunchPreLaunchTasks({ data, onChange }: LaunchPreLaunchTasksPro
               onCheckedChange={(checked) => updateTask('resultsScreenshots', checked)}
               title="Gather Results Screenshots"
               description="Numbers, messages from happy clients, transformations"
-            />
+            >
+              {tasks.resultsScreenshots && (
+                <div className="mt-3 space-y-2">
+                  <Label className="text-xs">Deadline:</Label>
+                  <Input
+                    type="date"
+                    value={tasks.resultsScreenshotsDeadline}
+                    onChange={(e) => updateTask('resultsScreenshotsDeadline', e.target.value)}
+                  />
+                </div>
+              )}
+            </TaskItem>
           </TabsContent>
 
           {/* TECH SETUP TAB */}
@@ -220,34 +285,44 @@ export function LaunchPreLaunchTasks({ data, onChange }: LaunchPreLaunchTasksPro
               description="Pre-launch warm-up + launch week + cart close + post-purchase"
             >
               {tasks.emailSequences && (
-                <div className="mt-3 space-y-2 ml-2">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      checked={tasks.emailTypes.warmUp}
-                      onCheckedChange={(checked) => updateEmailType('warmUp', !!checked)}
-                    />
-                    <Label className="text-xs cursor-pointer">Warm-up sequence (3-7 emails)</Label>
+                <div className="mt-3 space-y-3">
+                  <div className="space-y-2 ml-2">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        checked={tasks.emailTypes.warmUp}
+                        onCheckedChange={(checked) => updateEmailType('warmUp', !!checked)}
+                      />
+                      <Label className="text-xs cursor-pointer">Warm-up sequence (3-7 emails)</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        checked={tasks.emailTypes.launch}
+                        onCheckedChange={(checked) => updateEmailType('launch', !!checked)}
+                      />
+                      <Label className="text-xs cursor-pointer">Launch week (5-7 emails)</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        checked={tasks.emailTypes.cartClose}
+                        onCheckedChange={(checked) => updateEmailType('cartClose', !!checked)}
+                      />
+                      <Label className="text-xs cursor-pointer">Cart close urgency (3 emails)</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        checked={tasks.emailTypes.postPurchase}
+                        onCheckedChange={(checked) => updateEmailType('postPurchase', !!checked)}
+                      />
+                      <Label className="text-xs cursor-pointer">Post-purchase onboarding</Label>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      checked={tasks.emailTypes.launch}
-                      onCheckedChange={(checked) => updateEmailType('launch', !!checked)}
+                  <div className="space-y-2">
+                    <Label className="text-xs">Deadline:</Label>
+                    <Input
+                      type="date"
+                      value={tasks.emailSequencesDeadline}
+                      onChange={(e) => updateTask('emailSequencesDeadline', e.target.value)}
                     />
-                    <Label className="text-xs cursor-pointer">Launch week (5-7 emails)</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      checked={tasks.emailTypes.cartClose}
-                      onCheckedChange={(checked) => updateEmailType('cartClose', !!checked)}
-                    />
-                    <Label className="text-xs cursor-pointer">Cart close urgency (3 emails)</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      checked={tasks.emailTypes.postPurchase}
-                      onCheckedChange={(checked) => updateEmailType('postPurchase', !!checked)}
-                    />
-                    <Label className="text-xs cursor-pointer">Post-purchase onboarding</Label>
                   </div>
                 </div>
               )}
@@ -259,7 +334,18 @@ export function LaunchPreLaunchTasks({ data, onChange }: LaunchPreLaunchTasksPro
               onCheckedChange={(checked) => updateTask('automations', checked)}
               title="Set Up Automations"
               description="Tags, sequences, abandoned cart, purchase follow-up"
-            />
+            >
+              {tasks.automations && (
+                <div className="mt-3 space-y-2">
+                  <Label className="text-xs">Deadline:</Label>
+                  <Input
+                    type="date"
+                    value={tasks.automationsDeadline}
+                    onChange={(e) => updateTask('automationsDeadline', e.target.value)}
+                  />
+                </div>
+              )}
+            </TaskItem>
 
             <TaskItem
               icon={<BarChart3 className="h-5 w-5" />}
@@ -267,7 +353,18 @@ export function LaunchPreLaunchTasks({ data, onChange }: LaunchPreLaunchTasksPro
               onCheckedChange={(checked) => updateTask('trackingPixels', checked)}
               title="Install Tracking & Analytics"
               description="FB Pixel, Google Analytics, conversion tracking"
-            />
+            >
+              {tasks.trackingPixels && (
+                <div className="mt-3 space-y-2">
+                  <Label className="text-xs">Deadline:</Label>
+                  <Input
+                    type="date"
+                    value={tasks.trackingPixelsDeadline}
+                    onChange={(e) => updateTask('trackingPixelsDeadline', e.target.value)}
+                  />
+                </div>
+              )}
+            </TaskItem>
           </TabsContent>
 
           {/* CONTENT PREP TAB */}
@@ -280,22 +377,32 @@ export function LaunchPreLaunchTasks({ data, onChange }: LaunchPreLaunchTasksPro
               description="Slides, demos, handouts, pitch for webinar/workshop/masterclass"
             >
               {tasks.liveEventContent && (
-                <div className="mt-3 space-y-2">
-                  <Label className="text-xs">Event type:</Label>
-                  <Select
-                    value={tasks.liveEventType}
-                    onValueChange={(value) => updateTask('liveEventType', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select event type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="webinar">Webinar</SelectItem>
-                      <SelectItem value="workshop">Workshop</SelectItem>
-                      <SelectItem value="masterclass">Masterclass</SelectItem>
-                      <SelectItem value="challenge">Challenge</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="mt-3 space-y-3">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Event type:</Label>
+                    <Select
+                      value={tasks.liveEventType}
+                      onValueChange={(value) => updateTask('liveEventType', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select event type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="webinar">Webinar</SelectItem>
+                        <SelectItem value="workshop">Workshop</SelectItem>
+                        <SelectItem value="masterclass">Masterclass</SelectItem>
+                        <SelectItem value="challenge">Challenge</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Deadline:</Label>
+                    <Input
+                      type="date"
+                      value={tasks.liveEventContentDeadline}
+                      onChange={(e) => updateTask('liveEventContentDeadline', e.target.value)}
+                    />
+                  </div>
                 </div>
               )}
             </TaskItem>
@@ -306,7 +413,18 @@ export function LaunchPreLaunchTasks({ data, onChange }: LaunchPreLaunchTasksPro
               onCheckedChange={(checked) => updateTask('socialContent', checked)}
               title="Batch Create Social Content"
               description="Posts, graphics, reels/shorts for entire launch period"
-            />
+            >
+              {tasks.socialContent && (
+                <div className="mt-3 space-y-2">
+                  <Label className="text-xs">Deadline:</Label>
+                  <Input
+                    type="date"
+                    value={tasks.socialContentDeadline}
+                    onChange={(e) => updateTask('socialContentDeadline', e.target.value)}
+                  />
+                </div>
+              )}
+            </TaskItem>
 
             <TaskItem
               icon={<Megaphone className="h-5 w-5" />}
@@ -314,7 +432,18 @@ export function LaunchPreLaunchTasks({ data, onChange }: LaunchPreLaunchTasksPro
               onCheckedChange={(checked) => updateTask('adCreatives', checked)}
               title="Design Ad Creatives"
               description="If running paid ads - images, copy variations, A/B tests"
-            />
+            >
+              {tasks.adCreatives && (
+                <div className="mt-3 space-y-2">
+                  <Label className="text-xs">Deadline:</Label>
+                  <Input
+                    type="date"
+                    value={tasks.adCreativesDeadline}
+                    onChange={(e) => updateTask('adCreativesDeadline', e.target.value)}
+                  />
+                </div>
+              )}
+            </TaskItem>
 
             <TaskItem
               icon={<FileDown className="h-5 w-5" />}
@@ -322,7 +451,18 @@ export function LaunchPreLaunchTasks({ data, onChange }: LaunchPreLaunchTasksPro
               onCheckedChange={(checked) => updateTask('leadMagnet', checked)}
               title="Create Lead Magnet"
               description="Free valuable resource to grow list before launch"
-            />
+            >
+              {tasks.leadMagnet && (
+                <div className="mt-3 space-y-2">
+                  <Label className="text-xs">Deadline:</Label>
+                  <Input
+                    type="date"
+                    value={tasks.leadMagnetDeadline}
+                    onChange={(e) => updateTask('leadMagnetDeadline', e.target.value)}
+                  />
+                </div>
+              )}
+            </TaskItem>
           </TabsContent>
         </Tabs>
 
