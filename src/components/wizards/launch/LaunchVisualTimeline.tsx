@@ -41,8 +41,16 @@ const WEEK_THEMES = [
   { week: 0, theme: 'Launch Week', icon: Megaphone, description: 'Cart open - make offers!' },
 ];
 
+// Helper to get the effective runway weeks as a number
+function getEffectiveRunwayWeeks(data: LaunchWizardData): number {
+  if (data.runwayWeeks === 'custom') {
+    return data.customRunwayWeeks || 4;
+  }
+  return data.runwayWeeks || 4;
+}
+
 export function LaunchVisualTimeline({ data }: LaunchVisualTimelineProps) {
-  const runwayWeeks = data.runwayWeeks || 4;
+  const runwayWeeks = getEffectiveRunwayWeeks(data);
 
   // Generate week columns based on runway
   const weekColumns = Array.from({ length: runwayWeeks + 1 }, (_, i) => ({

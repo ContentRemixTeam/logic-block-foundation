@@ -98,7 +98,8 @@ export interface LaunchWizardData {
   salesNeeded: number;
 
   // Step 2: Runway Timeline (NEW)
-  runwayWeeks: 2 | 4 | 6 | 8;
+  runwayWeeks: 2 | 4 | 6 | 8 | 'custom';
+  customRunwayWeeks: number; // For custom runway length
   runwayStartDate: string; // Auto-calculated from cartOpens - runwayWeeks
   warmUpStrategy: 'email-series' | 'video-series' | 'challenge' | 'workshop-series' | 'content-blitz' | 'other';
   warmUpStrategyOther: string; // Custom strategy description
@@ -208,6 +209,7 @@ export const DEFAULT_LAUNCH_WIZARD_DATA: LaunchWizardData = {
   salesNeeded: 0,
   // Step 2 - Runway
   runwayWeeks: 4,
+  customRunwayWeeks: 4,
   runwayStartDate: '',
   warmUpStrategy: 'email-series',
   warmUpStrategyOther: '',
@@ -331,6 +333,7 @@ export const RUNWAY_WEEKS_OPTIONS = [
   { value: 4, label: '4 weeks', description: 'Standard - good balance of prep and momentum' },
   { value: 6, label: '6 weeks', description: 'Extended - more time for audience building' },
   { value: 8, label: '8 weeks', description: 'Maximum - build deep trust and anticipation' },
+  { value: 'custom', label: 'Custom', description: 'Set your own runway length' },
 ] as const;
 
 export const WARM_UP_STRATEGY_OPTIONS = [
