@@ -121,6 +121,8 @@ export interface LaunchWizardData {
   };
   videoCount: number;
   podcastTopics: string[];
+  videoTopics: string[];
+  blogTopics: string[];
   contentPieces: ContentPiece[];
 
   // Step 5: Content Reuse (was Step 2)
@@ -233,6 +235,8 @@ export const DEFAULT_LAUNCH_WIZARD_DATA: LaunchWizardData = {
   },
   videoCount: 3,
   podcastTopics: ['', '', '', ''],
+  videoTopics: ['', '', '', ''],
+  blogTopics: ['', '', ''],
   contentPieces: [],
   // Step 5 - Content Reuse
   selectedContentIds: [],

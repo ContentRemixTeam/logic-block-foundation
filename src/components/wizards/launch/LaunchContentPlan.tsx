@@ -21,6 +21,8 @@ export function LaunchContentPlan({ data, onChange }: LaunchContentPlanProps) {
   };
 
   const podcastTopics = data.podcastTopics || ['', '', '', ''];
+  const videoTopics = data.videoTopics || ['', '', '', ''];
+  const blogTopics = data.blogTopics || ['', '', ''];
   const beliefShifts = data.beliefShifts || [];
   const objectionsToAddress = Array.isArray(data.objectionsToAddress) ? data.objectionsToAddress : [];
   const runwayWeeks = data.runwayWeeks || 4;
@@ -35,6 +37,18 @@ export function LaunchContentPlan({ data, onChange }: LaunchContentPlanProps) {
     const newTopics = [...podcastTopics];
     newTopics[index] = value;
     onChange({ podcastTopics: newTopics });
+  };
+
+  const updateVideoTopic = (index: number, value: string) => {
+    const newTopics = [...videoTopics];
+    newTopics[index] = value;
+    onChange({ videoTopics: newTopics });
+  };
+
+  const updateBlogTopic = (index: number, value: string) => {
+    const newTopics = [...blogTopics];
+    newTopics[index] = value;
+    onChange({ blogTopics: newTopics });
   };
 
   // Generate suggested topics based on messaging strategy
@@ -154,26 +168,44 @@ export function LaunchContentPlan({ data, onChange }: LaunchContentPlanProps) {
               />
             </div>
 
-            {/* Video stats callout */}
+            {/* Video stats callout + topics */}
             {contentFormats.video && (
-              <Alert className="ml-6 bg-secondary/50 border-secondary">
-                <Video className="h-4 w-4 text-primary" />
-                <AlertTitle className="text-foreground">
-                  Video Converts 2-3x Higher
-                </AlertTitle>
-                <AlertDescription className="text-sm text-muted-foreground">
-                  <strong className="text-foreground">Stats you should know:</strong>
-                  <ul className="mt-2 space-y-1 ml-4 text-xs">
-                    <li>• Email with video gets 96% higher click-through rate</li>
-                    <li>• Video on landing page increases conversions by 80%</li>
-                    <li>• People retain 95% of a message when watching vs 10% reading</li>
-                    <li>• Video viewers are 64-85% more likely to buy</li>
-                  </ul>
-                  <p className="mt-2 font-medium text-foreground">
-                    💡 Recommendation: Record 3-5 short videos (5-10 min) during runway
-                  </p>
-                </AlertDescription>
-              </Alert>
+              <>
+                <Alert className="ml-6 bg-secondary/50 border-secondary">
+                  <Video className="h-4 w-4 text-primary" />
+                  <AlertTitle className="text-foreground">
+                    Video Converts 2-3x Higher
+                  </AlertTitle>
+                  <AlertDescription className="text-sm text-muted-foreground">
+                    <strong className="text-foreground">Stats you should know:</strong>
+                    <ul className="mt-2 space-y-1 ml-4 text-xs">
+                      <li>• Email with video gets 96% higher click-through rate</li>
+                      <li>• Video on landing page increases conversions by 80%</li>
+                      <li>• People retain 95% of a message when watching vs 10% reading</li>
+                      <li>• Video viewers are 64-85% more likely to buy</li>
+                    </ul>
+                    <p className="mt-2 font-medium text-foreground">
+                      💡 Recommendation: Record 3-5 short videos (5-10 min) during runway
+                    </p>
+                  </AlertDescription>
+                </Alert>
+                <div className="ml-6 space-y-2">
+                  <Label className="text-sm">Video episode topics:</Label>
+                  {[0, 1, 2, 3].map((index) => (
+                    <Input
+                      key={index}
+                      placeholder={
+                        index === 0 ? 'Video 1: Problem awareness' :
+                        index === 1 ? 'Video 2: Solution introduction' :
+                        index === 2 ? 'Video 3: Objection handling' :
+                        'Video 4: Social proof'
+                      }
+                      value={videoTopics[index] || ''}
+                      onChange={(e) => updateVideoTopic(index, e.target.value)}
+                    />
+                  ))}
+                </div>
+              </>
             )}
 
             {/* Podcast */}
@@ -230,6 +262,25 @@ export function LaunchContentPlan({ data, onChange }: LaunchContentPlanProps) {
                 onCheckedChange={(checked) => updateFormat('blog', !!checked)}
               />
             </div>
+
+            {/* Blog topics */}
+            {contentFormats.blog && (
+              <div className="ml-6 space-y-2">
+                <Label className="text-sm">Blog post topics:</Label>
+                {[0, 1, 2].map((index) => (
+                  <Input
+                    key={index}
+                    placeholder={
+                      index === 0 ? 'Post 1: Deep dive on the problem' :
+                      index === 1 ? 'Post 2: How the solution works' :
+                      'Post 3: Case study / success story'
+                    }
+                    value={blogTopics[index] || ''}
+                    onChange={(e) => updateBlogTopic(index, e.target.value)}
+                  />
+                ))}
+              </div>
+            )}
 
             {/* Social */}
             <div
