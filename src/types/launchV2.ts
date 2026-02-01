@@ -67,10 +67,11 @@ export type WhatYouNeed = 'task-list' | 'offer-help' | 'confidence' | 'accountab
 
 // ============== Live Event (reused from existing) ==============
 export interface LaunchLiveEvent {
-  type: 'webinar' | 'qa' | 'workshop' | 'challenge' | 'masterclass';
+  type: 'webinar' | 'qa' | 'workshop' | 'challenge' | 'masterclass' | 'other';
   date: string;
   time?: string;
   topic: string;
+  customType?: string; // For 'other' type
 }
 
 // ============== Free Event Types ==============
