@@ -80,35 +80,13 @@ export function OnboardingChecklist() {
     checkProgress();
   }, [user, showChecklist]);
 
-  if (!showChecklist || loading) return null;
-
   const completedCount = items.filter(i => i.completed).length;
-  const progress = (completedCount / items.length) * 100;
   const allComplete = completedCount === items.length;
 
-  // Auto-dismiss if all complete
-  if (allComplete) {
-    return (
-      <Card className="border-success/50 bg-success/5">
-        <CardContent className="py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center">
-                <Sparkles className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="font-medium text-success">You're all set!</p>
-                <p className="text-sm text-muted-foreground">Your 90-day journey has begun</p>
-              </div>
-            </div>
-            <Button variant="ghost" size="sm" onClick={dismissChecklist}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Hide completely when all planning is done or still loading
+  if (!showChecklist || loading || allComplete) return null;
+
+  const progress = (completedCount / items.length) * 100;
 
   return (
     <Card>
