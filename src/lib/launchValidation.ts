@@ -79,64 +79,10 @@ export const LaunchWizardDataSchema = z.object({
 });
 
 // Step validators - returns true if step data is valid enough to proceed
-export function validateLaunchStep(step: number, data: Record<string, unknown>): boolean {
-  switch (step) {
-    case 1: {
-      // Name and dates required
-      const name = data.name as string;
-      const cartOpens = data.cartOpens as string;
-      const cartCloses = data.cartCloses as string;
-      
-      if (!name || name.trim().length < 3) return false;
-      if (!cartOpens || !cartCloses) return false;
-      
-      // Cart close must be after cart open
-      if (cartOpens && cartCloses && new Date(cartCloses) <= new Date(cartOpens)) {
-        return false;
-      }
-      return true;
-    }
-    case 2:
-      // Runway timeline - optional
-      return true;
-    case 3:
-      // Messaging - optional
-      return true;
-    case 4:
-      // Content plan - optional
-      return true;
-    case 5:
-      // Content reuse - optional
-      return true;
-    case 6:
-      // Content gaps - always valid (auto-analyzed)
-      return true;
-    case 7:
-      // Pre-launch tasks - optional
-      return true;
-    case 8:
-      // Activities - optional
-      return true;
-    case 9:
-      // Video & Podcasts - optional
-      return true;
-    case 10:
-      // Sales Assets - optional
-      return true;
-    case 11: {
-      // Offers - goal must be set
-      const offerGoal = data.offerGoal as number;
-      return offerGoal >= 1;
-    }
-    case 12:
-      // Thought work - optional
-      return true;
-    case 13:
-      // Timeline Review - always valid
-      return true;
-    default:
-      return true;
-  }
+// All steps are optional during wizard navigation - validation happens on final submit
+export function validateLaunchStep(_step: number, _data: Record<string, unknown>): boolean {
+  // All steps can proceed - final validation happens when creating the launch
+  return true;
 }
 
 // Field-level validation with error messages
