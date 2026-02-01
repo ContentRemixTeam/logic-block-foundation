@@ -4000,6 +4000,7 @@ export type Database = {
           has_topic_planning: boolean | null
           id: string
           is_launch: boolean
+          is_summit: boolean | null
           is_template: boolean | null
           launch_end_date: string | null
           launch_start_date: string | null
@@ -4008,6 +4009,7 @@ export type Database = {
           revenue_goal: number | null
           start_date: string | null
           status: string
+          summit_id: string | null
           topic_planning_cadence: string | null
           updated_at: string | null
           upgrade_dismissed: boolean | null
@@ -4025,6 +4027,7 @@ export type Database = {
           has_topic_planning?: boolean | null
           id?: string
           is_launch?: boolean
+          is_summit?: boolean | null
           is_template?: boolean | null
           launch_end_date?: string | null
           launch_start_date?: string | null
@@ -4033,6 +4036,7 @@ export type Database = {
           revenue_goal?: number | null
           start_date?: string | null
           status?: string
+          summit_id?: string | null
           topic_planning_cadence?: string | null
           updated_at?: string | null
           upgrade_dismissed?: boolean | null
@@ -4050,6 +4054,7 @@ export type Database = {
           has_topic_planning?: boolean | null
           id?: string
           is_launch?: boolean
+          is_summit?: boolean | null
           is_template?: boolean | null
           launch_end_date?: string | null
           launch_start_date?: string | null
@@ -4058,6 +4063,7 @@ export type Database = {
           revenue_goal?: number | null
           start_date?: string | null
           status?: string
+          summit_id?: string | null
           topic_planning_cadence?: string | null
           updated_at?: string | null
           upgrade_dismissed?: boolean | null
@@ -4084,6 +4090,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cycles_90_day"
             referencedColumns: ["cycle_id"]
+          },
+          {
+            foreignKeyName: "projects_summit_id_fkey"
+            columns: ["summit_id"]
+            isOneToOne: false
+            referencedRelation: "summits"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -4282,6 +4295,229 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      summit_speakers: {
+        Row: {
+          affiliate_commission: number | null
+          affiliate_link_sent: boolean | null
+          bio_received: boolean | null
+          created_at: string | null
+          email: string | null
+          headshot_received: boolean | null
+          id: string
+          is_affiliate: boolean | null
+          name: string
+          notes: string | null
+          recording_deadline: string | null
+          recording_received: boolean | null
+          session_order: number | null
+          session_title: string | null
+          summit_id: string
+          swipe_copy_sent: boolean | null
+          topic: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          affiliate_commission?: number | null
+          affiliate_link_sent?: boolean | null
+          bio_received?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          headshot_received?: boolean | null
+          id?: string
+          is_affiliate?: boolean | null
+          name: string
+          notes?: string | null
+          recording_deadline?: string | null
+          recording_received?: boolean | null
+          session_order?: number | null
+          session_title?: string | null
+          summit_id: string
+          swipe_copy_sent?: boolean | null
+          topic?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          affiliate_commission?: number | null
+          affiliate_link_sent?: boolean | null
+          bio_received?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          headshot_received?: boolean | null
+          id?: string
+          is_affiliate?: boolean | null
+          name?: string
+          notes?: string | null
+          recording_deadline?: string | null
+          recording_received?: boolean | null
+          session_order?: number | null
+          session_title?: string | null
+          summit_id?: string
+          swipe_copy_sent?: boolean | null
+          topic?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "summit_speakers_summit_id_fkey"
+            columns: ["summit_id"]
+            isOneToOne: false
+            referencedRelation: "summits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      summits: {
+        Row: {
+          affiliate_commission: number | null
+          all_access_has_payment_plan: boolean | null
+          all_access_includes: Json | null
+          all_access_payment_plan_details: string | null
+          all_access_price: number | null
+          cart_closes: string | null
+          checkout_platform: string | null
+          community_type: string | null
+          created_at: string | null
+          email_platform: string | null
+          engagement_activities: Json | null
+          experience_level: string | null
+          has_all_access_pass: boolean | null
+          has_post_summit_offer: boolean | null
+          has_social_kit: boolean | null
+          has_vip_tier: boolean | null
+          hosting_platform: string | null
+          id: string
+          name: string
+          num_days: number | null
+          post_summit_nurture: string | null
+          post_summit_offer_details: string | null
+          primary_goal: string | null
+          project_id: string | null
+          promotion_methods: Json | null
+          registration_goal: number | null
+          registration_opens: string | null
+          replay_period: string | null
+          session_format: string | null
+          session_length: string | null
+          sessions_per_day: number | null
+          speaker_email_requirement: string | null
+          speaker_recruitment_deadline: string | null
+          speakers_are_affiliates: string | null
+          status: string | null
+          streaming_platform: string | null
+          summit_end_date: string
+          summit_start_date: string
+          swipe_emails_count: number | null
+          target_speaker_count: number | null
+          updated_at: string | null
+          user_id: string
+          vip_includes: string | null
+          vip_price: number | null
+        }
+        Insert: {
+          affiliate_commission?: number | null
+          all_access_has_payment_plan?: boolean | null
+          all_access_includes?: Json | null
+          all_access_payment_plan_details?: string | null
+          all_access_price?: number | null
+          cart_closes?: string | null
+          checkout_platform?: string | null
+          community_type?: string | null
+          created_at?: string | null
+          email_platform?: string | null
+          engagement_activities?: Json | null
+          experience_level?: string | null
+          has_all_access_pass?: boolean | null
+          has_post_summit_offer?: boolean | null
+          has_social_kit?: boolean | null
+          has_vip_tier?: boolean | null
+          hosting_platform?: string | null
+          id?: string
+          name: string
+          num_days?: number | null
+          post_summit_nurture?: string | null
+          post_summit_offer_details?: string | null
+          primary_goal?: string | null
+          project_id?: string | null
+          promotion_methods?: Json | null
+          registration_goal?: number | null
+          registration_opens?: string | null
+          replay_period?: string | null
+          session_format?: string | null
+          session_length?: string | null
+          sessions_per_day?: number | null
+          speaker_email_requirement?: string | null
+          speaker_recruitment_deadline?: string | null
+          speakers_are_affiliates?: string | null
+          status?: string | null
+          streaming_platform?: string | null
+          summit_end_date: string
+          summit_start_date: string
+          swipe_emails_count?: number | null
+          target_speaker_count?: number | null
+          updated_at?: string | null
+          user_id: string
+          vip_includes?: string | null
+          vip_price?: number | null
+        }
+        Update: {
+          affiliate_commission?: number | null
+          all_access_has_payment_plan?: boolean | null
+          all_access_includes?: Json | null
+          all_access_payment_plan_details?: string | null
+          all_access_price?: number | null
+          cart_closes?: string | null
+          checkout_platform?: string | null
+          community_type?: string | null
+          created_at?: string | null
+          email_platform?: string | null
+          engagement_activities?: Json | null
+          experience_level?: string | null
+          has_all_access_pass?: boolean | null
+          has_post_summit_offer?: boolean | null
+          has_social_kit?: boolean | null
+          has_vip_tier?: boolean | null
+          hosting_platform?: string | null
+          id?: string
+          name?: string
+          num_days?: number | null
+          post_summit_nurture?: string | null
+          post_summit_offer_details?: string | null
+          primary_goal?: string | null
+          project_id?: string | null
+          promotion_methods?: Json | null
+          registration_goal?: number | null
+          registration_opens?: string | null
+          replay_period?: string | null
+          session_format?: string | null
+          session_length?: string | null
+          sessions_per_day?: number | null
+          speaker_email_requirement?: string | null
+          speaker_recruitment_deadline?: string | null
+          speakers_are_affiliates?: string | null
+          status?: string | null
+          streaming_platform?: string | null
+          summit_end_date?: string
+          summit_start_date?: string
+          swipe_emails_count?: number | null
+          target_speaker_count?: number | null
+          updated_at?: string | null
+          user_id?: string
+          vip_includes?: string | null
+          vip_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "summits_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       task_custom_field_values: {
         Row: {

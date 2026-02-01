@@ -109,6 +109,7 @@ const FinancialTracker = lazyWithRetry(() => import('./pages/FinancialTracker'))
 const LaunchDebrief = lazyWithRetry(() => import('./pages/LaunchDebrief'));
 const QuickAddApp = lazyWithRetry(() => import('./pages/QuickAddApp'));
 const InstallQuickAdd = lazyWithRetry(() => import('./pages/InstallQuickAdd'));
+const SummitWizardPage = lazyWithRetry(() => import('./pages/SummitWizardPage'));
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -215,6 +216,7 @@ const App = () => (
                       <Route path="/wizards/launch-v1" element={<ProtectedRoute><PageSuspense><LaunchWizardPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/wizards/habits" element={<ProtectedRoute><PageSuspense><HabitWizardPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/wizards/content" element={<ProtectedRoute><PageSuspense><ContentPlannerPage /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/wizards/summit" element={<ProtectedRoute><PageSuspense><SummitWizardPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/settings/planner" element={<ProtectedRoute><PageSuspense><PlannerSettings /></PageSuspense></ProtectedRoute>} />
                       <Route path="/settings/daily-page" element={<ProtectedRoute><PageSuspense><DailyPageSettings /></PageSuspense></ProtectedRoute>} />
                       <Route path="/finances" element={<ProtectedRoute><PageSuspense><FinancialTracker /></PageSuspense></ProtectedRoute>} />
