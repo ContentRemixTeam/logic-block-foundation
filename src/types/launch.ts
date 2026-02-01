@@ -93,7 +93,8 @@ export interface LaunchWizardData {
   // Step 2: Runway Timeline (NEW)
   runwayWeeks: 2 | 4 | 6 | 8;
   runwayStartDate: string; // Auto-calculated from cartOpens - runwayWeeks
-  warmUpStrategy: 'email-series' | 'video-series' | 'challenge' | 'workshop-series' | 'content-blitz';
+  warmUpStrategy: 'email-series' | 'video-series' | 'challenge' | 'workshop-series' | 'content-blitz' | 'other';
+  warmUpStrategyOther: string; // Custom strategy description
   warmUpFrequency: 'daily' | 'every-other-day' | '2x-week' | 'weekly';
 
   // Step 3: Messaging Strategy (NEW)
@@ -189,6 +190,7 @@ export const DEFAULT_LAUNCH_WIZARD_DATA: LaunchWizardData = {
   runwayWeeks: 4,
   runwayStartDate: '',
   warmUpStrategy: 'email-series',
+  warmUpStrategyOther: '',
   warmUpFrequency: '2x-week',
   // Step 3 - Messaging
   currentMindset: '',
@@ -306,6 +308,7 @@ export const WARM_UP_STRATEGY_OPTIONS = [
   { value: 'challenge', label: '5-day challenge', description: 'Free challenge that leads into the offer' },
   { value: 'workshop-series', label: 'Workshop series', description: '2-3 live trainings before cart opens' },
   { value: 'content-blitz', label: 'Content blitz', description: 'Daily value posts across platforms' },
+  { value: 'other', label: 'Other', description: 'A different strategy that works for your business' },
 ] as const;
 
 export const WARM_UP_FREQUENCY_OPTIONS = [
