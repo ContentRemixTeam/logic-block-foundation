@@ -77,6 +77,8 @@ export default function WizardHub() {
       navigate('/wizards/finance-recovery');
     } else if (templateName === 'content-planner') {
       navigate('/wizards/content');
+    } else if (templateName === 'summit-planner') {
+      navigate('/wizards/summit');
     } else {
       toast.info('This wizard is coming soon!');
     }
