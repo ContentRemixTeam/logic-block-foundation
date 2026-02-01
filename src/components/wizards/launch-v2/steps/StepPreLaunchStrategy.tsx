@@ -387,7 +387,11 @@ export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyP
           </div>
           <div className="flex items-center space-x-3">
             <RadioGroupItem value="none" id="test-none" />
-            <Label htmlFor="test-none" className="cursor-pointer">I don't have any yet</Label>
+            <Label htmlFor="test-none" className="cursor-pointer">I don't have any yet (but want to collect)</Label>
+          </div>
+          <div className="flex items-center space-x-3">
+            <RadioGroupItem value="skip-this-launch" id="test-skip" />
+            <Label htmlFor="test-skip" className="cursor-pointer">I don't have any and don't plan to collect for this launch</Label>
           </div>
         </RadioGroup>
 
@@ -423,6 +427,14 @@ export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyP
 
         {data.testimonialStatus === 'have-enough' && (
           <p className="text-sm text-green-600">✓ Testimonials ready</p>
+        )}
+
+        {data.testimonialStatus === 'skip-this-launch' && (
+          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              <strong>That's okay!</strong> First launches often don't have testimonials. Focus on delivering great results this time, and you'll have stories to share for your next launch.
+            </p>
+          </div>
         )}
       </div>
 

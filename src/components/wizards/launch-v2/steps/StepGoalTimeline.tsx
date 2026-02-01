@@ -340,6 +340,14 @@ export function StepGoalTimeline({ data, onChange }: StepGoalTimelineProps) {
           </div>
         )}
 
+        {data.revenueGoalTier === 'no-goal' && (
+          <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-950/30 rounded-lg border border-gray-200 dark:border-gray-800">
+            <p className="text-sm text-gray-800 dark:text-gray-200">
+              <strong>No revenue goal? Totally valid.</strong> Maybe you're focused on list-building, gathering feedback, or testing your messaging. We'll help you track what matters to you.
+            </p>
+          </div>
+        )}
+
         {data.revenueGoalTier === '2500-plus' && data.emailListStatus !== 'comfortable' && (
           <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
             <p className="text-sm text-amber-800 dark:text-amber-200">
