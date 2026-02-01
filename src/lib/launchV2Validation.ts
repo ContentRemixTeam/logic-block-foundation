@@ -34,9 +34,10 @@ export function validateLaunchV2Step(step: number, data: Record<string, unknown>
       return true;
       
     case 3: // Offer Details
-      // Require name and price
+      // Require name and price (support both legacy pricePoint and new offerPricing)
       if (!d.name?.trim() || d.name.trim().length < 3) return false;
-      if (!d.pricePoint || d.pricePoint <= 0) return false;
+      const price = d.offerPricing?.fullPrice ?? d.pricePoint;
+      if (!price || price <= 0) return false;
       // If limited spots, require the number
       if (d.hasLimitations === 'limited-spots' && (!d.spotLimit || d.spotLimit <= 0)) return false;
       return true;
@@ -130,7 +131,8 @@ export function getStepValidationErrors(step: number, data: LaunchWizardV2Data):
       if (!data.name?.trim() || data.name.trim().length < 3) {
         errors.push('Enter a launch name (at least 3 characters)');
       }
-      if (!data.pricePoint || data.pricePoint <= 0) {
+      const stepPrice = data.offerPricing?.fullPrice ?? data.pricePoint;
+      if (!stepPrice || stepPrice <= 0) {
         errors.push('Enter your price point');
       }
       if (data.hasLimitations === 'limited-spots' && (!data.spotLimit || data.spotLimit <= 0)) {

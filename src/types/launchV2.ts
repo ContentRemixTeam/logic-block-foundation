@@ -1,5 +1,5 @@
 // Launch Planner V2 Wizard Types
-// Streamlined 9-step wizard based on questionnaire
+// Streamlined 8-step wizard based on questionnaire
 
 // ============== Shared Asset Types ==============
 export interface BonusItem {
@@ -28,8 +28,54 @@ export type EmailListStatus = 'comfortable' | 'small-nervous' | 'starting-zero' 
 export type LaunchTimeline = '2-weeks' | '3-4-weeks' | '5-6-weeks' | 'other';
 export type RevenueGoalTier = 'first-sale' | '500-1000' | '1000-2500' | '2500-plus' | 'testing' | 'custom';
 
-// ============== Step 3: Offer Details ==============
+// ============== Step 3: Offer Details - ENHANCED PRICING ==============
 export type HasLimitations = 'none' | 'existing-clients' | 'limited-spots';
+export type GuaranteeType = 'money-back' | 'results' | 'satisfaction' | 'none' | 'other';
+
+export interface PaymentPlanOption {
+  id: string;
+  installments: number;      // e.g., 2, 3, 4, 6, 12
+  installmentAmount: number; // e.g., 349
+  totalAmount?: number;      // Auto-calculated
+}
+
+export interface OfferPricing {
+  fullPrice: number | null;           // Pay-in-full price
+  originalValue: number | null;       // "Value" for anchoring
+  hasEarlyBirdPrice: boolean;
+  earlyBirdPrice: number | null;
+  earlyBirdDeadline: string;          // When early bird expires
+  hasWaitlistPrice: boolean;
+  waitlistPrice: number | null;       // Special price for waitlist
+  paymentPlans: PaymentPlanOption[];  // Multiple payment plans
+  hasVipTier: boolean;
+  vipPrice: number | null;
+  vipIncludes: string;                // What's included in VIP
+}
+
+export interface OrderBump {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+}
+
+export interface Upsell {
+  id: string;
+  name: string;
+  price: number;
+  showWhen: 'checkout' | 'post-purchase' | 'both';
+}
+
+export interface OfferStack {
+  orderBumps: OrderBump[];
+  upsells: Upsell[];
+  hasDownsell: boolean;
+  downsellDetails: string;
+  guaranteeType: GuaranteeType;
+  guaranteeDuration: string;           // "30 days", "60 days", "Lifetime"
+  guaranteeDetails: string;
+}
 
 // ============== Step 4: Pre-Launch Strategy ==============
 export type MainReachMethod = 'email' | 'social' | 'direct-outreach' | 'combination' | 'unsure';
@@ -77,11 +123,11 @@ export type BiggestFear =
 export type ZeroSalesMeaning = 'offer-problem' | 'not-enough-promotion' | 'nobody-wants' | 'unsure' | 'just-data';
 export type ZeroSalesPlan = 'figure-out-retry' | 'adjust-relaunch' | 'take-break' | 'no-plan' | 'unsure';
 
-// ============== Step 8: THE GAP Check ==============
-export type GapSupportType = 'daily-motivation' | 'mid-week-check' | 'thought-work' | 'keep-tasks' | 'decide-later';
-
-// ============== Step 9: Review & Complete ==============
+// ============== Step 8: Review & Complete ==============
 export type WhatYouNeed = 'task-list' | 'offer-help' | 'confidence' | 'accountability' | 'nothing';
+
+// ============== GAP Support (kept for backward compatibility) ==============
+export type GapSupportType = 'daily-motivation' | 'mid-week-check' | 'thought-work' | 'keep-tasks' | 'decide-later';
 
 // ============== Live Event (reused from existing) ==============
 export interface LaunchLiveEvent {
@@ -92,9 +138,83 @@ export interface LaunchLiveEvent {
   customType?: string; // For 'other' type
 }
 
-// ============== Free Event Types ==============
+// ============== Free Event Types - ENHANCED ==============
 export type FreeEventType = 'webinar' | 'workshop' | 'challenge' | 'masterclass' | '';
 export type FreeEventPhase = 'runway' | 'pre-launch' | 'cart-open';
+
+export interface FreeEventDetails {
+  // Basic info
+  type: FreeEventType;
+  date: string;
+  time: string;
+  phase: FreeEventPhase | '';
+  
+  // Deep planning
+  name: string;                        // "The 5-Day Content Challenge"
+  hook: string;                        // "Learn to create a month of content in 5 days"
+  teachingTopics: string[];            // What you're teaching (for webinar: 3 points, for challenge: daily topics)
+  
+  // Registration & Show-up
+  registrationGoal: number | null;     // How many signups?
+  sendReminders: boolean;              // Will you send reminder emails?
+  
+  // Special Offer
+  hasEventOnlyOffer: boolean;          // Special deal for attendees?
+  eventOfferDescription: string;       // What's the offer?
+  eventOfferDeadline: string;          // When does it expire? (e.g., "24 hours after")
+  eventOfferDiscount: string;          // e.g., "$200 off", "Bonus XYZ"
+  
+  // Challenge-specific
+  challengeDuration: number | null;    // 3, 5, 7 days
+  hasFacebookGroup: boolean;
+  dailyEmails: boolean;
+}
+
+// Default free event details
+export const DEFAULT_FREE_EVENT_DETAILS: FreeEventDetails = {
+  type: '',
+  date: '',
+  time: '',
+  phase: '',
+  name: '',
+  hook: '',
+  teachingTopics: [],
+  registrationGoal: null,
+  sendReminders: true,
+  hasEventOnlyOffer: false,
+  eventOfferDescription: '',
+  eventOfferDeadline: '',
+  eventOfferDiscount: '',
+  challengeDuration: null,
+  hasFacebookGroup: false,
+  dailyEmails: false,
+};
+
+// Default offer pricing
+export const DEFAULT_OFFER_PRICING: OfferPricing = {
+  fullPrice: null,
+  originalValue: null,
+  hasEarlyBirdPrice: false,
+  earlyBirdPrice: null,
+  earlyBirdDeadline: '',
+  hasWaitlistPrice: false,
+  waitlistPrice: null,
+  paymentPlans: [],
+  hasVipTier: false,
+  vipPrice: null,
+  vipIncludes: '',
+};
+
+// Default offer stack
+export const DEFAULT_OFFER_STACK: OfferStack = {
+  orderBumps: [],
+  upsells: [],
+  hasDownsell: false,
+  downsellDetails: '',
+  guaranteeType: 'none',
+  guaranteeDuration: '',
+  guaranteeDetails: '',
+};
 
 // ============== Main Wizard Data Type ==============
 export interface LaunchWizardV2Data {
@@ -130,18 +250,25 @@ export interface LaunchWizardV2Data {
   freeEventTime: string;
   freeEventPhase: FreeEventPhase | '';
   
-  // Step 3: Offer Details (Q7-Q10)
+  // Step 3: Offer Details (Q7-Q10) - ENHANCED
   name: string;
-  pricePoint: number | null;
-  hasPaymentPlan: boolean;
-  paymentPlanDetails: string;
+  pricePoint: number | null;           // Legacy - kept for migration
+  hasPaymentPlan: boolean;             // Legacy - kept for migration
+  paymentPlanDetails: string;          // Legacy - kept for migration
   idealCustomer: string;
-  mainBonus: string; // Legacy - kept for migration
-  bonusStack: BonusItem[]; // NEW - replaces mainBonus
+  mainBonus: string;                   // Legacy - kept for migration
+  bonusStack: BonusItem[];
   hasLimitations: HasLimitations | '';
   limitationDetails: string;
   spotLimit: number | null;
-  offerGoal: number | null; // NEW - total offers to make during cart open
+  offerGoal: number | null;
+  
+  // NEW: Enhanced pricing structure
+  offerPricing: OfferPricing;
+  offerStack: OfferStack;
+  
+  // NEW: Free event deep planning
+  freeEventDetails: FreeEventDetails;
   
   // Step 4: Pre-Launch Strategy (Q11-Q13)
   mainReachMethod: MainReachMethod | '';
@@ -239,18 +366,25 @@ export const DEFAULT_LAUNCH_V2_DATA: LaunchWizardV2Data = {
   freeEventTime: '',
   freeEventPhase: '',
   
-  // Step 3
+  // Step 3 - Enhanced Offer Details
   name: '',
   pricePoint: null,
   hasPaymentPlan: false,
   paymentPlanDetails: '',
   idealCustomer: '',
   mainBonus: '', // Legacy
-  bonusStack: [], // NEW
+  bonusStack: [],
   hasLimitations: '',
   limitationDetails: '',
   spotLimit: null,
   offerGoal: null,
+  
+  // NEW: Enhanced pricing structure
+  offerPricing: DEFAULT_OFFER_PRICING,
+  offerStack: DEFAULT_OFFER_STACK,
+  
+  // NEW: Free event deep planning
+  freeEventDetails: DEFAULT_FREE_EVENT_DETAILS,
   
   // Step 4
   mainReachMethod: '',
