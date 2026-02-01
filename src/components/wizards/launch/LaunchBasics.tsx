@@ -174,7 +174,7 @@ export function LaunchBasics({ data, onChange }: LaunchBasicsProps) {
                 value={data.revenueGoal ?? ''}
                 onChange={(e) => handleRevenueChange(e.target.value)}
                 className="pl-7"
-                placeholder="10,000"
+                placeholder="50,000"
               />
             </div>
           </div>

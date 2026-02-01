@@ -47,7 +47,7 @@ export const LaunchActivitiesSchema = z.object({
 
 // Step 5: Making Offers
 export const LaunchOffersSchema = z.object({
-  offerGoal: z.number().min(1, 'Offer goal must be at least 1').max(10000, 'Offer goal too high'),
+  offerGoal: z.number().min(1, 'Offer goal must be at least 1').max(100000, 'Offer goal too high'),
   offerBreakdown: z.object({
     emails: z.number().min(0),
     socialPosts: z.number().min(0),
