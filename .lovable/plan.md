@@ -1,253 +1,246 @@
 
 
-# Fix Content Planner Wizard - Render Loop Issue
+# Launch Planner Pre-Launch Step Enhancements
 
-## Problem Identified
+## Overview
 
-The Content Planner wizard has a **render loop** causing the screen to flash repeatedly with "Loading your draft..." This is caused by an unstable object reference in the `useWizard` hook's dependency array.
+This plan adds three enhancements to **Step 4: Pre-Launch Strategy** in the Launch Wizard V2:
 
-## Root Cause Analysis
-
-### The Bug
-In `ContentPlannerWizard.tsx` (lines 66-73), the `defaultData` is created as a new object on every render:
-
-```typescript
-defaultData: {
-  ...DEFAULT_CONTENT_PLANNER_DATA,
-  mode: launchIdFromUrl ? 'launch' : '',
-  launchId: launchIdFromUrl,
-},
-```
-
-### Why It Causes a Loop
-In `useWizard.ts` (line 145), the `loadDraft` useEffect depends on `defaultData`:
-
-```typescript
-useEffect(() => {
-  const loadDraft = async () => {
-    setIsLoading(true);
-    // ...
-  };
-  loadDraft();
-}, [user, templateName, localStorageKey, defaultData]); // ← defaultData changes every render!
-```
-
-### The Loop Sequence
-1. Component mounts, calls `useWizard` with new `defaultData` object
-2. `loadDraft` effect runs → `setIsLoading(true)` 
-3. Component re-renders (isLoading changed)
-4. New `defaultData` object created (different reference)
-5. `loadDraft` effect runs again because dependency changed
-6. Repeat → **infinite loop**
-
-This pattern also affects the `saveDraftInternal` useCallback (line 236) which has `data` in its dependencies, causing additional cascading updates.
+1. **Email Sequences with "Other" option** - Add customizable email types beyond the standard set
+2. **Automation Selector** - Let users pick which specific automations they need to set up
+3. **Content Prep Integration Note** - Clarify that detailed content planning happens in the separate Content Planner
 
 ---
 
-## Solution
+## Current State
 
-### Fix 1: Memoize defaultData in ContentPlannerWizard
+The V2 Launch Wizard's Pre-Launch step (Step 4) currently asks about:
+- Main reach method (email, social, etc.)
+- Content creation status (ready, partial, from scratch)
+- Content volume (light, medium, heavy)
+- Custom checklist items (just added)
 
-Wrap the `defaultData` object in `useMemo` to ensure stable reference:
+The **V1 wizard** had more detail: specific email sequence types (warm-up, launch, cart close, post-purchase) and automation checkboxes. V2 simplified this too much.
 
-```typescript
-const defaultData = useMemo(() => ({
-  ...DEFAULT_CONTENT_PLANNER_DATA,
-  mode: launchIdFromUrl ? 'launch' : '' as ContentPlanMode | '',
-  launchId: launchIdFromUrl,
-}), [launchIdFromUrl]);
+---
+
+## Changes
+
+### 1. Email Sequence Types with "Other" Option
+
+Add a section where users can select which email sequences they need and add their own.
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│ 📧 Which email sequences do you need to write?          │
+│                                                         │
+│ ☑ Warm-up sequence (3-7 emails to build anticipation)  │
+│ ☑ Launch week (5-7 emails announcing your offer)       │
+│ ☑ Cart close urgency (3 emails for final push)         │
+│ ☐ Post-purchase onboarding                              │
+│                                                         │
+│ + Add custom sequence: [________________] [+]           │
+│                                                         │
+│ ┌─ Custom sequences ────────────────────────────────┐  │
+│ │ "VIP early access series"                    [X]  │  │
+│ │ "FAQ response emails"                        [X]  │  │
+│ └───────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
 ```
 
-### Fix 2: Add initialization guard in useWizard
+### 2. Automation Selector
 
-Add a ref to track if initial load has already started to prevent re-triggering:
+Replace the simple "set up automations" checkbox with a multi-select for specific automations.
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│ ⚡ Which automations do you need to set up?             │
+│                                                         │
+│ ☑ Tagging/segmentation (tag buyers, non-buyers)        │
+│ ☐ Abandoned cart sequence                               │
+│ ☑ Purchase confirmation sequence                        │
+│ ☐ Waitlist to sales sequence                            │
+│ ☐ Deadline/urgency automations                          │
+│ ☐ Lead magnet delivery                                  │
+│                                                         │
+│ + Add custom: [________________] [+]                    │
+│                                                         │
+│ ┌─ Custom automations ──────────────────────────────┐  │
+│ │ "Webinar replay sequence"                    [X]  │  │
+│ └───────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 3. Content Prep Integration Note
+
+Add a note explaining that detailed content planning is done in the Content Planner:
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│ 📝 Content Prep                                         │
+│                                                         │
+│ Based on your choices above, we'll generate content     │
+│ creation tasks. After completing this wizard, you can   │
+│ use the Content Planner to:                             │
+│                                                         │
+│ • Define your messaging framework                       │
+│ • Plan specific content pieces                          │
+│ • Repurpose existing content                            │
+│ • Schedule creation tasks by launch phase               │
+│                                                         │
+│ [Go to Content Planner] ← (shown after wizard complete) │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Technical Changes
+
+### 1. Types Update (`src/types/launchV2.ts`)
+
+Add new fields to `LaunchWizardV2Data`:
 
 ```typescript
-const hasStartedLoadRef = useRef(false);
+// Step 4: Pre-Launch Strategy additions
+emailSequenceTypes: {
+  warmUp: boolean;
+  launch: boolean;
+  cartClose: boolean;
+  postPurchase: boolean;
+};
+customEmailSequences: string[];  // User-added sequences
 
-useEffect(() => {
-  if (hasStartedLoadRef.current) return;
-  hasStartedLoadRef.current = true;
+automationTypes: {
+  tagging: boolean;
+  abandonedCart: boolean;
+  purchaseConfirmation: boolean;
+  waitlistToSales: boolean;
+  deadlineUrgency: boolean;
+  leadMagnetDelivery: boolean;
+};
+customAutomations: string[];  // User-added automations
+```
+
+Add option arrays:
+
+```typescript
+export const EMAIL_SEQUENCE_TYPE_OPTIONS = [
+  { key: 'warmUp', label: 'Warm-up sequence', description: '3-7 emails to build anticipation' },
+  { key: 'launch', label: 'Launch week', description: '5-7 emails announcing your offer' },
+  { key: 'cartClose', label: 'Cart close urgency', description: '3 emails for final push' },
+  { key: 'postPurchase', label: 'Post-purchase onboarding', description: 'Welcome new buyers' },
+] as const;
+
+export const AUTOMATION_TYPE_OPTIONS = [
+  { key: 'tagging', label: 'Tagging/segmentation', description: 'Tag buyers, non-buyers, engaged leads' },
+  { key: 'abandonedCart', label: 'Abandoned cart sequence', description: 'Follow up on incomplete purchases' },
+  { key: 'purchaseConfirmation', label: 'Purchase confirmation sequence', description: 'Order + onboarding emails' },
+  { key: 'waitlistToSales', label: 'Waitlist to sales sequence', description: 'Move waitlist to cart open' },
+  { key: 'deadlineUrgency', label: 'Deadline/urgency automations', description: 'Cart closing countdown' },
+  { key: 'leadMagnetDelivery', label: 'Lead magnet delivery', description: 'Auto-deliver free resources' },
+] as const;
+```
+
+Update default data:
+
+```typescript
+export const DEFAULT_LAUNCH_V2_DATA: LaunchWizardV2Data = {
+  // ... existing fields ...
   
-  const loadDraft = async () => {
-    // ...existing code
-  };
-  loadDraft();
-}, [user, templateName]); // Remove defaultData from dependencies
-```
-
-### Fix 3: Remove defaultData from useEffect dependencies
-
-The `defaultData` should only be used for initial state, not as a reactive dependency. Change the dependency array:
-
-```typescript
-// Before
-}, [user, templateName, localStorageKey, defaultData]);
-
-// After - use a ref for defaultData
-const defaultDataRef = useRef(defaultData);
-// ... in effect use defaultDataRef.current
-}, [user, templateName, localStorageKey]);
-```
-
----
-
-## File Changes
-
-### 1. src/components/wizards/content-planner/ContentPlannerWizard.tsx
-
-**Change**: Wrap defaultData in useMemo
-
-```typescript
-// Before (lines 63-73):
-const {
-  step,
-  data,
-  // ...
-} = useWizard<ContentPlannerData>({
-  templateName: 'content-planner',
-  totalSteps: 7,
-  defaultData: {
-    ...DEFAULT_CONTENT_PLANNER_DATA,
-    mode: launchIdFromUrl ? 'launch' : '',
-    launchId: launchIdFromUrl,
+  // New Step 4 fields
+  emailSequenceTypes: {
+    warmUp: false,
+    launch: false,
+    cartClose: false,
+    postPurchase: false,
   },
-  validateStep: validateContentPlannerStep,
-});
-
-// After:
-import { useMemo } from 'react';
-
-// Before the useWizard call:
-const defaultData = useMemo(() => ({
-  ...DEFAULT_CONTENT_PLANNER_DATA,
-  mode: launchIdFromUrl ? 'launch' : '' as ContentPlanMode | '',
-  launchId: launchIdFromUrl,
-}), [launchIdFromUrl]);
-
-const {
-  step,
-  data,
-  // ...
-} = useWizard<ContentPlannerData>({
-  templateName: 'content-planner',
-  totalSteps: 7,
-  defaultData,
-  validateStep: validateContentPlannerStep,
-});
-```
-
-### 2. src/hooks/useWizard.ts
-
-**Change 1**: Store defaultData in a ref to avoid dependency issues
-
-```typescript
-// Add ref near other refs (around line 59):
-const defaultDataRef = useRef(defaultData);
-
-// Update loadDraft effect (lines 78-145):
-useEffect(() => {
-  // Guard against re-running if already started
-  if (!isInitialLoad.current) return;
+  customEmailSequences: [],
   
-  const loadDraft = async () => {
-    setIsLoading(true);
-    try {
-      // ... existing code ...
-      
-      if (draftData) {
-        setDataState({ ...defaultDataRef.current, ...draftData });
-        // ... rest of existing code
-      }
-      
-      isInitialLoad.current = false;
-    } catch (err) {
-      console.error('Error loading wizard draft:', err);
-      isInitialLoad.current = false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  loadDraft();
-}, [user, templateName, localStorageKey]); // Remove defaultData
+  automationTypes: {
+    tagging: false,
+    abandonedCart: false,
+    purchaseConfirmation: false,
+    waitlistToSales: false,
+    deadlineUrgency: false,
+    leadMagnetDelivery: false,
+  },
+  customAutomations: [],
+};
 ```
 
-**Change 2**: Fix the initial load guard logic
+### 2. Step Component Update (`StepPreLaunchStrategy.tsx`)
 
-The current code sets `isInitialLoad.current = false` inside `loadDraft`, but it's used as a guard for saving. We need a separate flag for tracking if load has started:
+Add three new sections to the step:
+
+**Section 1: Email Sequences**
+- Checkbox list of standard email sequence types
+- Input field to add custom sequences
+- List of custom sequences with delete buttons
+
+**Section 2: Automations**
+- Checkbox list of standard automation types
+- Input field to add custom automations
+- List of custom automations with delete buttons
+
+**Section 3: Content Prep Note**
+- Informational card explaining the Content Planner integration
+- Link to Content Planner (shown only in review step or after completion)
+
+### 3. Component Structure
+
+New helper functions in StepPreLaunchStrategy:
 
 ```typescript
-// Add new ref:
-const hasStartedLoadRef = useRef(false);
+// Email sequence handlers
+const toggleEmailSequenceType = (key: keyof EmailSequenceTypes) => {
+  onChange({
+    emailSequenceTypes: {
+      ...data.emailSequenceTypes,
+      [key]: !data.emailSequenceTypes[key],
+    },
+  });
+};
 
-// Update effect:
-useEffect(() => {
-  if (hasStartedLoadRef.current) return;
-  hasStartedLoadRef.current = true;
-  
-  const loadDraft = async () => {
-    // ... existing code
-  };
-  loadDraft();
-}, [user, templateName, localStorageKey]);
-```
+const addCustomEmailSequence = () => { /* ... */ };
+const removeCustomEmailSequence = (index: number) => { /* ... */ };
 
-**Change 3**: Fix clearDraft to use ref
-
-```typescript
-// In clearDraft (around line 307):
-setDataState(defaultDataRef.current);
+// Automation handlers
+const toggleAutomationType = (key: keyof AutomationTypes) => { /* ... */ };
+const addCustomAutomation = () => { /* ... */ };
+const removeCustomAutomation = (index: number) => { /* ... */ };
 ```
 
 ---
 
-## Verification Checklist
+## UI Layout
 
-After implementing fixes:
+The step will now have these sections in order:
 
-- [ ] Wizard loads without flashing
-- [ ] Loading state shows once, then content appears
-- [ ] Draft persistence still works (save and reload page)
-- [ ] Resume draft dialog appears correctly when draft exists
-- [ ] No console errors about re-renders or state updates
-- [ ] Works correctly with launchId URL parameter
-
----
-
-## Additional Stability Improvements
-
-While fixing this, also address these related issues:
-
-### Issue: StepModeSelection fetch loop
-The `useEffect` in `StepModeSelection.tsx` (lines 32-53) runs on every user change but doesn't check if data is already loaded. Add a check:
-
-```typescript
-useEffect(() => {
-  if (!user || launches.length > 0) return; // Skip if already loaded
-  // ... rest of effect
-}, [user, launches.length]);
-```
-
-### Issue: Missing error boundary
-Wrap the wizard in an error boundary to prevent crashes from breaking the entire app:
-
-```typescript
-// In ContentPlannerPage.tsx or the wizard itself
-<ErrorBoundary fallback={<WizardErrorState />}>
-  <ContentPlannerWizard />
-</ErrorBoundary>
-```
+1. **Main Reach Method** (existing)
+2. **Email Sequences** (new)
+3. **Automations** (new)
+4. **Content Creation Status** (existing)
+5. **Content Volume** (existing)
+6. **Content Prep Integration** (new info card)
+7. **Custom Checklist Items** (existing)
+8. **Strategy Summary** (existing)
 
 ---
 
-## Summary
+## Files to Modify
 
-| File | Change |
-|------|--------|
-| `ContentPlannerWizard.tsx` | Memoize `defaultData` with `useMemo` |
-| `useWizard.ts` | Store `defaultData` in ref, add load guard, remove from deps |
-| `StepModeSelection.tsx` | Add guard to prevent redundant fetches |
+| File | Changes |
+|------|---------|
+| `src/types/launchV2.ts` | Add email sequence types, automation types, custom arrays, and option arrays |
+| `src/components/wizards/launch-v2/steps/StepPreLaunchStrategy.tsx` | Add email sequence section, automation section, content prep info card |
 
-This fix follows React best practices for dependency management and prevents the render loop that causes the glitchy experience.
+---
+
+## Task Estimate
+
+- Types update: ~15 minutes
+- Step component update: ~30 minutes
+- Testing: ~15 minutes
+
+**Total: ~1 hour**
 
