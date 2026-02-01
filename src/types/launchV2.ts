@@ -25,8 +25,8 @@ export type OfferType = 'course' | 'coaching' | 'product' | 'membership' | 'othe
 export type EmailListStatus = 'comfortable' | 'small-nervous' | 'starting-zero' | 'building';
 
 // ============== Step 2: Goal & Timeline ==============
-export type LaunchTimeline = '2-weeks' | '3-4-weeks' | '5-6-weeks';
-export type RevenueGoalTier = 'first-sale' | '500-1000' | '1000-2500' | '2500-plus' | 'testing';
+export type LaunchTimeline = '2-weeks' | '3-4-weeks' | '5-6-weeks' | 'other';
+export type RevenueGoalTier = 'first-sale' | '500-1000' | '1000-2500' | '2500-plus' | 'testing' | 'custom';
 
 // ============== Step 3: Offer Details ==============
 export type HasLimitations = 'none' | 'existing-clients' | 'limited-spots';
@@ -55,13 +55,13 @@ export interface AutomationTypes {
 }
 
 // ============== Step 5: Launch Week Strategy ==============
-export type LaunchMethod = 'email-only' | 'social-email' | 'outreach-email' | 'in-person' | 'combination';
-export type OfferFrequency = 'once' | 'daily' | 'multiple-daily' | 'every-other-day' | 'unsure';
-export type LiveComponent = 'none' | 'one' | 'multiple' | 'considering';
+export type LaunchMethod = 'email-only' | 'social-email' | 'outreach-email' | 'in-person' | 'combination' | 'other';
+export type OfferFrequency = 'once' | 'daily' | 'multiple-daily' | 'every-other-day' | 'unsure' | 'other';
+export type LiveComponent = 'none' | 'one' | 'multiple' | 'considering' | 'other';
 
 // ============== Step 6: Post-Launch Strategy ==============
-export type PromotionDuration = '1-week' | '2-weeks' | 'until-goal' | 'ongoing' | 'unsure';
-export type FollowUpWillingness = 'one-email' | 'multiple-emails' | 'personal-outreach' | 'simple' | 'unsure';
+export type PromotionDuration = '1-week' | '2-weeks' | 'until-goal' | 'ongoing' | 'unsure' | 'other';
+export type FollowUpWillingness = 'one-email' | 'multiple-emails' | 'personal-outreach' | 'simple' | 'unsure' | 'other';
 
 // ============== Step 7: Contingency Planning ==============
 export type BiggestFear = 
@@ -109,6 +109,7 @@ export interface LaunchWizardV2Data {
   
   // Step 2: Goal & Timeline (Q4-Q6)
   launchTimeline: LaunchTimeline | '';
+  otherLaunchTimeline: string; // Custom duration for 'other'
   cartOpensDate: string;
   cartClosesDate: string;
   revenueGoalTier: RevenueGoalTier | '';
@@ -168,13 +169,18 @@ export interface LaunchWizardV2Data {
   
   // Step 5: Launch Week Strategy (Q14-Q16)
   launchMethod: LaunchMethod | '';
+  otherLaunchMethod: string; // Custom method for 'other'
   offerFrequency: OfferFrequency | '';
+  otherOfferFrequency: string; // Custom frequency for 'other'
   liveComponent: LiveComponent | '';
+  otherLiveComponent: string; // Custom live component for 'other'
   liveEventDetails: LaunchLiveEvent[];
   
   // Step 6: Post-Launch Strategy (Q17-Q18)
   promotionDuration: PromotionDuration | '';
+  otherPromotionDuration: string; // Custom duration for 'other'
   followUpWillingness: FollowUpWillingness | '';
+  otherFollowUpWillingness: string; // Custom follow-up for 'other'
   debriefDate: string;
   
   // Step 7: Contingency Planning (Q19-Q21)
@@ -212,6 +218,7 @@ export const DEFAULT_LAUNCH_V2_DATA: LaunchWizardV2Data = {
   
   // Step 2
   launchTimeline: '',
+  otherLaunchTimeline: '',
   cartOpensDate: '',
   cartClosesDate: '',
   revenueGoalTier: '',
@@ -283,13 +290,18 @@ export const DEFAULT_LAUNCH_V2_DATA: LaunchWizardV2Data = {
   
   // Step 5
   launchMethod: '',
+  otherLaunchMethod: '',
   offerFrequency: '',
+  otherOfferFrequency: '',
   liveComponent: '',
+  otherLiveComponent: '',
   liveEventDetails: [],
   
   // Step 6
   promotionDuration: '',
+  otherPromotionDuration: '',
   followUpWillingness: '',
+  otherFollowUpWillingness: '',
   debriefDate: '',
   
   // Step 7
@@ -338,6 +350,7 @@ export const LAUNCH_TIMELINE_OPTIONS = [
   { value: '2-weeks', label: '2 weeks (short sprint)', description: 'Fast & intense. Best for warm audiences.' },
   { value: '3-4-weeks', label: '3-4 weeks (standard launch)', description: 'Classic launch timing. Good balance.' },
   { value: '5-6-weeks', label: '5-6 weeks (extended)', description: 'More time to nurture. Good for cold audiences.' },
+  { value: 'other', label: 'Other', description: 'I have a different timeline in mind.' },
 ] as const;
 
 export const REVENUE_GOAL_TIER_OPTIONS = [
@@ -346,6 +359,7 @@ export const REVENUE_GOAL_TIER_OPTIONS = [
   { value: '1000-2500', label: 'Make $1,000-$2,500', color: 'purple' },
   { value: '2500-plus', label: 'Make $2,500+', color: 'gold' },
   { value: 'testing', label: 'I\'m just testing/getting experience', color: 'gray' },
+  { value: 'custom', label: 'I have a specific amount in mind', color: 'teal' },
 ] as const;
 
 export const HAS_LIMITATIONS_OPTIONS = [
@@ -396,6 +410,7 @@ export const LAUNCH_METHOD_OPTIONS = [
   { value: 'outreach-email', label: 'Direct outreach/calls + email' },
   { value: 'in-person', label: 'In-person/workshop format' },
   { value: 'combination', label: 'Combination' },
+  { value: 'other', label: 'Other' },
 ] as const;
 
 export const OFFER_FREQUENCY_OPTIONS = [
@@ -404,6 +419,7 @@ export const OFFER_FREQUENCY_OPTIONS = [
   { value: 'multiple-daily', label: 'Multiple times per day' },
   { value: 'every-other-day', label: 'Every other day' },
   { value: 'unsure', label: 'Unsure - I need guidance' },
+  { value: 'other', label: 'Other' },
 ] as const;
 
 export const LIVE_COMPONENT_OPTIONS = [
@@ -411,6 +427,7 @@ export const LIVE_COMPONENT_OPTIONS = [
   { value: 'one', label: 'One live call/workshop/event' },
   { value: 'multiple', label: 'Multiple live touchpoints' },
   { value: 'considering', label: 'Thinking about it - not sure yet' },
+  { value: 'other', label: 'Other' },
 ] as const;
 
 export const PROMOTION_DURATION_OPTIONS = [
@@ -419,6 +436,7 @@ export const PROMOTION_DURATION_OPTIONS = [
   { value: 'until-goal', label: 'Until I hit my revenue goal' },
   { value: 'ongoing', label: 'Ongoing sales (not a "launch")' },
   { value: 'unsure', label: 'Not sure' },
+  { value: 'other', label: 'Other' },
 ] as const;
 
 export const FOLLOW_UP_WILLINGNESS_OPTIONS = [
@@ -427,6 +445,7 @@ export const FOLLOW_UP_WILLINGNESS_OPTIONS = [
   { value: 'personal-outreach', label: 'Personal outreach to interested people' },
   { value: 'simple', label: 'Keep it simple - just one push' },
   { value: 'unsure', label: 'I don\'t know what\'s normal' },
+  { value: 'other', label: 'Other' },
 ] as const;
 
 export const BIGGEST_FEAR_OPTIONS = [

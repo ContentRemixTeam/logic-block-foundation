@@ -89,6 +89,22 @@ export function StepPostLaunch({ data, onChange }: StepPostLaunchProps) {
           ))}
         </RadioGroup>
 
+        {/* Other duration input */}
+        {data.promotionDuration === 'other' && (
+          <div className="mt-3">
+            <Label htmlFor="other-duration" className="text-sm">
+              Describe your promotion duration
+            </Label>
+            <Input
+              id="other-duration"
+              value={data.otherPromotionDuration || ''}
+              onChange={(e) => onChange({ otherPromotionDuration: e.target.value })}
+              placeholder="e.g., 3 days, 10 days, until I feel done..."
+              className="mt-1"
+            />
+          </div>
+        )}
+
         {data.promotionDuration === 'until-goal' && (
           <div className="mt-4 p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
             <p className="text-sm text-green-800 dark:text-green-200">
@@ -143,6 +159,22 @@ export function StepPostLaunch({ data, onChange }: StepPostLaunchProps) {
             </div>
           ))}
         </RadioGroup>
+
+        {/* Other follow-up input */}
+        {data.followUpWillingness === 'other' && (
+          <div className="mt-3">
+            <Label htmlFor="other-followup" className="text-sm">
+              Describe your follow-up approach
+            </Label>
+            <Input
+              id="other-followup"
+              value={data.otherFollowUpWillingness || ''}
+              onChange={(e) => onChange({ otherFollowUpWillingness: e.target.value })}
+              placeholder="e.g., Survey non-buyers, offer a smaller entry point..."
+              className="mt-1"
+            />
+          </div>
+        )}
 
         {data.followUpWillingness === 'unsure' && (
           <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
