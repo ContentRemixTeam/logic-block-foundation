@@ -3,11 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { ShoppingBag, Plus, X, FileText, Gift, Star, ShieldCheck, AlertTriangle } from 'lucide-react';
-import { LaunchWizardData } from '@/types/launch';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { ShoppingBag, Plus, FileText, Star, ShieldCheck, AlertTriangle, Calendar } from 'lucide-react';
+import { LaunchWizardData, BonusItem, SalesPageStatus, TestimonialStatus } from '@/types/launch';
 import { useState } from 'react';
 import { format, parseISO, isBefore, addDays } from 'date-fns';
+import { BonusItemCard } from '@/components/wizards/shared/BonusItemCard';
 
 interface LaunchSalesAssetsProps {
   data: LaunchWizardData;
@@ -15,17 +16,29 @@ interface LaunchSalesAssetsProps {
 }
 
 export function LaunchSalesAssets({ data, onChange }: LaunchSalesAssetsProps) {
-  const [newBonus, setNewBonus] = useState('');
+  const [newBonusName, setNewBonusName] = useState('');
 
-  const addBonus = () => {
-    if (newBonus.trim()) {
-      onChange({ bonuses: [...(data.bonuses || []), newBonus.trim()] });
-      setNewBonus('');
-    }
+  // Bonus handlers
+  const handleAddBonus = () => {
+    if (!newBonusName.trim()) return;
+    const newBonus: BonusItem = {
+      id: crypto.randomUUID(),
+      name: newBonusName.trim(),
+      status: 'existing',
+    };
+    onChange({ bonusStack: [...(data.bonusStack || []), newBonus] });
+    setNewBonusName('');
   };
 
-  const removeBonus = (index: number) => {
-    onChange({ bonuses: data.bonuses.filter((_, i) => i !== index) });
+  const handleUpdateBonus = (id: string, updates: Partial<BonusItem>) => {
+    const updated = (data.bonusStack || []).map(b => 
+      b.id === id ? { ...b, ...updates } : b
+    );
+    onChange({ bonusStack: updated });
+  };
+
+  const handleRemoveBonus = (id: string) => {
+    onChange({ bonusStack: (data.bonusStack || []).filter(b => b.id !== id) });
   };
 
   // Calculate if sales page deadline is before cart opens
@@ -58,6 +71,9 @@ export function LaunchSalesAssets({ data, onChange }: LaunchSalesAssetsProps) {
     }
   };
 
+  // Bonus statistics
+  const bonusesNeedingCreation = (data.bonusStack || []).filter(b => b.status === 'needs-creation');
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -73,67 +89,111 @@ export function LaunchSalesAssets({ data, onChange }: LaunchSalesAssetsProps) {
         </CardHeader>
       </Card>
 
-      {/* Sales Page Deadline */}
+      {/* Sales Page Status & Deadline */}
       <div className="space-y-4">
         <div>
-          <Label className="text-lg font-semibold">Sales Page Deadline</Label>
+          <Label className="text-lg font-semibold flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Sales Page
+          </Label>
           <p className="text-sm text-muted-foreground mt-1">
-            When will your sales page be 100% complete? Aim for 3+ days before cart opens.
+            What's the status of your sales page?
           </p>
         </div>
 
-        <div className="flex gap-3 items-end">
-          <div className="flex-1 space-y-2">
-            <Label className="text-xs">Completion deadline</Label>
-            <Input
-              type="date"
-              value={data.salesPageDeadline}
-              onChange={(e) => onChange({ salesPageDeadline: e.target.value })}
-            />
+        <RadioGroup
+          value={data.salesPageStatus}
+          onValueChange={(value) => onChange({ salesPageStatus: value as SalesPageStatus })}
+          className="space-y-2"
+        >
+          <div className="flex items-center space-x-3">
+            <RadioGroupItem value="existing" id="sp-existing" />
+            <Label htmlFor="sp-existing" className="cursor-pointer">Already done</Label>
           </div>
-          {data.cartOpens && !data.salesPageDeadline && (
-            <Button
-              variant="outline"
-              onClick={() => onChange({ salesPageDeadline: suggestedDeadline() })}
-            >
-              Set to 3 days before launch
-            </Button>
-          )}
-        </div>
+          <div className="flex items-center space-x-3">
+            <RadioGroupItem value="in-progress" id="sp-in-progress" />
+            <Label htmlFor="sp-in-progress" className="cursor-pointer">In progress</Label>
+          </div>
+          <div className="flex items-center space-x-3">
+            <RadioGroupItem value="needs-creation" id="sp-needs-creation" />
+            <Label htmlFor="sp-needs-creation" className="cursor-pointer">Haven't started</Label>
+          </div>
+        </RadioGroup>
 
-        {data.salesPageDeadline && !isDeadlineValid() && (
-          <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 text-destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <p className="text-sm">Your deadline is after cart opens. Consider moving it earlier.</p>
+        {data.salesPageStatus !== 'existing' && (
+          <div className="space-y-2 pl-4 border-l-2 border-primary/20">
+            <Label className="text-sm">When will it be complete?</Label>
+            <div className="flex gap-3 items-end">
+              <div className="flex-1">
+                <Input
+                  type="date"
+                  value={data.salesPageDeadline}
+                  onChange={(e) => onChange({ salesPageDeadline: e.target.value })}
+                />
+              </div>
+              {data.cartOpens && !data.salesPageDeadline && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onChange({ salesPageDeadline: suggestedDeadline() })}
+                >
+                  3 days before launch
+                </Button>
+              )}
+            </div>
+
+            {data.salesPageDeadline && !isDeadlineValid() && (
+              <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 text-destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <p className="text-sm">Your deadline is after cart opens. Consider moving it earlier.</p>
+              </div>
+            )}
           </div>
         )}
 
-        {data.salesPageDeadline && isDeadlineValid() && (
-          <p className="text-sm text-muted-foreground">
-            ✓ Sales page complete by {formatDisplayDate(data.salesPageDeadline)}
-          </p>
+        {data.salesPageStatus === 'existing' && (
+          <p className="text-sm text-green-600">✓ Sales page is ready</p>
         )}
       </div>
 
       {/* Testimonials */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <Label className="text-lg font-semibold">Testimonials</Label>
-            <p className="text-sm text-muted-foreground mt-1">
-              Social proof dramatically increases conversions.
-            </p>
-          </div>
-          <Switch
-            checked={data.hasTestimonials}
-            onCheckedChange={(checked) => onChange({ hasTestimonials: checked })}
-          />
+        <div>
+          <Label className="text-lg font-semibold flex items-center gap-2">
+            <Star className="h-5 w-5" />
+            Testimonials
+          </Label>
+          <p className="text-sm text-muted-foreground mt-1">
+            Social proof dramatically increases conversions.
+          </p>
         </div>
 
-        {data.hasTestimonials && (
+        <RadioGroup
+          value={data.testimonialStatus}
+          onValueChange={(value) => onChange({ 
+            testimonialStatus: value as TestimonialStatus,
+            hasTestimonials: value !== 'none',
+          })}
+          className="space-y-2"
+        >
+          <div className="flex items-center space-x-3">
+            <RadioGroupItem value="have-enough" id="test-have-enough" />
+            <Label htmlFor="test-have-enough" className="cursor-pointer">I have enough testimonials</Label>
+          </div>
+          <div className="flex items-center space-x-3">
+            <RadioGroupItem value="need-more" id="test-need-more" />
+            <Label htmlFor="test-need-more" className="cursor-pointer">I need to collect more</Label>
+          </div>
+          <div className="flex items-center space-x-3">
+            <RadioGroupItem value="none" id="test-none" />
+            <Label htmlFor="test-none" className="cursor-pointer">I don't have any yet</Label>
+          </div>
+        </RadioGroup>
+
+        {(data.testimonialStatus === 'need-more' || data.testimonialStatus === 'none') && (
           <div className="space-y-3 pl-4 border-l-2 border-primary/20">
             <div className="space-y-2">
-              <Label className="text-sm">How many testimonials do you want to collect?</Label>
+              <Label className="text-sm">How many do you want to collect?</Label>
               <div className="flex items-center gap-2">
                 <Input
                   type="number"
@@ -145,27 +205,26 @@ export function LaunchSalesAssets({ data, onChange }: LaunchSalesAssetsProps) {
                 />
                 <span className="text-sm text-muted-foreground">testimonials</span>
               </div>
-              <p className="text-xs text-muted-foreground">
-                💡 Aim for at least 3-5 strong testimonials. Quality over quantity.
-              </p>
             </div>
+            <div className="space-y-2">
+              <Label className="text-sm flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Collection deadline
+              </Label>
+              <Input
+                type="date"
+                value={data.testimonialDeadline}
+                onChange={(e) => onChange({ testimonialDeadline: e.target.value })}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              💡 Aim for at least 3-5 strong testimonials. Quality over quantity.
+            </p>
           </div>
         )}
 
-        {!data.hasTestimonials && (
-          <Card className="border-muted bg-muted/50">
-            <CardContent className="pt-4">
-              <div className="flex gap-3">
-                <Star className="h-5 w-5 text-primary shrink-0" />
-                <div className="text-sm">
-                  <p className="font-medium text-foreground">No testimonials yet?</p>
-                  <p className="text-muted-foreground mt-1">
-                    Consider offering beta access or a pilot program to collect results before launch.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {data.testimonialStatus === 'have-enough' && (
+          <p className="text-sm text-green-600">✓ Testimonials ready</p>
         )}
       </div>
 
@@ -189,42 +248,41 @@ export function LaunchSalesAssets({ data, onChange }: LaunchSalesAssetsProps) {
             {/* Add bonus */}
             <div className="flex gap-2">
               <Input
-                value={newBonus}
-                onChange={(e) => setNewBonus(e.target.value)}
+                value={newBonusName}
+                onChange={(e) => setNewBonusName(e.target.value)}
                 placeholder="Bonus name (e.g., 'Private Q&A calls')"
-                onKeyDown={(e) => e.key === 'Enter' && addBonus()}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddBonus()}
               />
-              <Button onClick={addBonus} disabled={!newBonus.trim()}>
+              <Button onClick={handleAddBonus} disabled={!newBonusName.trim()}>
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
 
             {/* Bonus list */}
-            {data.bonuses?.length > 0 && (
-              <div className="space-y-2">
-                {data.bonuses.map((bonus, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 rounded-lg border bg-card"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Gift className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">{bonus}</span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeBonus(index)}
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
+            {(data.bonusStack?.length ?? 0) > 0 && (
+              <div className="space-y-3">
+                {data.bonusStack?.map((bonus) => (
+                  <BonusItemCard
+                    key={bonus.id}
+                    bonus={bonus}
+                    onUpdate={(updates) => handleUpdateBonus(bonus.id, updates)}
+                    onRemove={() => handleRemoveBonus(bonus.id)}
+                    maxDeadline={data.cartOpens}
+                  />
                 ))}
               </div>
             )}
 
-            {!data.bonuses?.length && (
+            {/* Summary of bonuses needing creation */}
+            {bonusesNeedingCreation.length > 0 && (
+              <div className="p-3 rounded-lg bg-muted/50 border">
+                <p className="text-sm">
+                  📋 <strong>{bonusesNeedingCreation.length}</strong> bonus{bonusesNeedingCreation.length > 1 ? 'es' : ''} to create before launch
+                </p>
+              </div>
+            )}
+
+            {!data.bonusStack?.length && (
               <p className="text-xs text-muted-foreground">
                 Add bonuses that complement your main offer and provide additional value.
               </p>
@@ -244,15 +302,15 @@ export function LaunchSalesAssets({ data, onChange }: LaunchSalesAssetsProps) {
         <CardContent>
           <div className="space-y-2">
             <ChecklistItem
-              checked={!!data.salesPageDeadline}
-              label="Sales page deadline set"
+              checked={data.salesPageStatus === 'existing' || !!data.salesPageDeadline}
+              label={data.salesPageStatus === 'existing' ? 'Sales page ready' : 'Sales page deadline set'}
             />
             <ChecklistItem
-              checked={data.hasTestimonials && data.testimonialGoal > 0}
-              label="Testimonial collection planned"
+              checked={data.testimonialStatus === 'have-enough' || (data.testimonialStatus !== 'none' && data.testimonialGoal > 0)}
+              label={data.testimonialStatus === 'have-enough' ? 'Testimonials ready' : 'Testimonial collection planned'}
             />
             <ChecklistItem
-              checked={!data.hasBonuses || (data.bonuses?.length ?? 0) > 0}
+              checked={!data.hasBonuses || (data.bonusStack?.length ?? 0) > 0}
               label={data.hasBonuses ? 'Bonus stack defined' : 'Bonuses (optional)'}
             />
           </div>

@@ -1,5 +1,6 @@
 // Launch Planner V2 Validation
 import { LaunchWizardV2Data } from '@/types/launchV2';
+import { parseISO, isAfter } from 'date-fns';
 
 /**
  * Validates a specific step of the Launch Wizard V2
@@ -235,4 +236,86 @@ export function getRevenueFromTier(tier: string): number | null {
 export function calculateSalesNeeded(revenueGoal: number | null, pricePoint: number | null): number {
   if (!revenueGoal || !pricePoint || pricePoint <= 0) return 0;
   return Math.ceil(revenueGoal / pricePoint);
+}
+
+/**
+ * Validate that all creation deadlines are before cart opens
+ * Returns warnings for items with invalid deadlines
+ */
+export function validateCreationDeadlines(data: LaunchWizardV2Data): string[] {
+  const warnings: string[] = [];
+  const cartOpens = data.cartOpensDate ? parseISO(data.cartOpensDate) : null;
+  
+  if (!cartOpens) return warnings;
+  
+  // Check bonuses
+  data.bonusStack?.forEach(bonus => {
+    if (bonus.status === 'needs-creation' && bonus.deadline) {
+      try {
+        if (isAfter(parseISO(bonus.deadline), cartOpens)) {
+          warnings.push(`Bonus "${bonus.name}" deadline is after cart opens`);
+        }
+      } catch {
+        // Invalid date format, skip
+      }
+    }
+  });
+  
+  // Check sales page
+  if (data.salesPageStatus !== 'existing' && data.salesPageDeadline) {
+    try {
+      if (isAfter(parseISO(data.salesPageDeadline), cartOpens)) {
+        warnings.push('Sales page deadline is after cart opens');
+      }
+    } catch {
+      // Invalid date format, skip
+    }
+  }
+  
+  // Check testimonials
+  if (data.testimonialStatus !== 'have-enough' && data.testimonialDeadline) {
+    try {
+      if (isAfter(parseISO(data.testimonialDeadline), cartOpens)) {
+        warnings.push('Testimonial collection deadline is after cart opens');
+      }
+    } catch {
+      // Invalid date format, skip
+    }
+  }
+  
+  // Check email sequences
+  data.emailSequences?.forEach(seq => {
+    if (seq.status === 'needs-creation' && seq.deadline) {
+      try {
+        if (isAfter(parseISO(seq.deadline), cartOpens)) {
+          const name = seq.type === 'custom' ? seq.customName : seq.type;
+          warnings.push(`Email sequence "${name}" deadline is after cart opens`);
+        }
+      } catch {
+        // Invalid date format, skip
+      }
+    }
+  });
+  
+  return warnings;
+}
+
+/**
+ * Get a summary of items that need creation before launch
+ */
+export function getCreationTodoSummary(data: LaunchWizardV2Data): {
+  bonuses: number;
+  salesPage: boolean;
+  testimonials: boolean;
+  emailSequences: number;
+  total: number;
+} {
+  const bonuses = (data.bonusStack || []).filter(b => b.status === 'needs-creation').length;
+  const salesPage = data.salesPageStatus !== 'existing';
+  const testimonials = data.testimonialStatus !== 'have-enough';
+  const emailSequences = (data.emailSequences || []).filter(s => s.status === 'needs-creation').length;
+  
+  const total = bonuses + (salesPage ? 1 : 0) + (testimonials ? 1 : 0) + emailSequences;
+  
+  return { bonuses, salesPage, testimonials, emailSequences, total };
 }

@@ -1,6 +1,24 @@
 // Launch Planner V2 Wizard Types
 // Streamlined 9-step wizard based on questionnaire
 
+// ============== Shared Asset Types ==============
+export interface BonusItem {
+  id: string;
+  name: string;
+  status: 'existing' | 'needs-creation';
+  deadline?: string; // Required only if needs-creation
+}
+
+export interface EmailSequenceItem {
+  type: 'warmUp' | 'launch' | 'cartClose' | 'postPurchase' | 'custom';
+  customName?: string;
+  status: 'existing' | 'needs-creation';
+  deadline?: string;
+}
+
+export type SalesPageStatus = 'existing' | 'needs-creation' | 'in-progress';
+export type TestimonialStatus = 'have-enough' | 'need-more' | 'none';
+
 // ============== Step 1: Launch Context ==============
 export type LaunchExperience = 'first-time' | 'launched-before' | 'launched-recently';
 export type OfferType = 'course' | 'coaching' | 'product' | 'membership' | 'other';
@@ -18,7 +36,7 @@ export type MainReachMethod = 'email' | 'social' | 'direct-outreach' | 'combinat
 export type ContentCreationStatus = 'ready' | 'partial' | 'from-scratch';
 export type ContentVolume = 'light' | 'medium' | 'heavy';
 
-// Email Sequence Types
+// Email Sequence Types (legacy - for backward compatibility)
 export interface EmailSequenceTypes {
   warmUp: boolean;
   launch: boolean;
@@ -117,7 +135,8 @@ export interface LaunchWizardV2Data {
   hasPaymentPlan: boolean;
   paymentPlanDetails: string;
   idealCustomer: string;
-  mainBonus: string;
+  mainBonus: string; // Legacy - kept for migration
+  bonusStack: BonusItem[]; // NEW - replaces mainBonus
   hasLimitations: HasLimitations | '';
   limitationDetails: string;
   spotLimit: number | null;
@@ -132,9 +151,19 @@ export interface LaunchWizardV2Data {
   customPreLaunchItems: string[]; // User's custom checklist items
   
   // Email Sequences & Automations
-  emailSequenceTypes: EmailSequenceTypes;
-  customEmailSequences: string[];
+  emailSequenceTypes: EmailSequenceTypes; // Legacy - kept for backward compatibility
+  emailSequences: EmailSequenceItem[]; // NEW - with status tracking
+  customEmailSequences: string[]; // Legacy
   automationTypes: AutomationTypes;
+  
+  // Sales Page Status (NEW)
+  salesPageStatus: SalesPageStatus;
+  salesPageDeadline: string;
+  
+  // Testimonials (NEW)
+  testimonialStatus: TestimonialStatus;
+  testimonialGoal: number;
+  testimonialDeadline: string;
   customAutomations: string[];
   
   // Step 5: Launch Week Strategy (Q14-Q16)
@@ -209,7 +238,8 @@ export const DEFAULT_LAUNCH_V2_DATA: LaunchWizardV2Data = {
   hasPaymentPlan: false,
   paymentPlanDetails: '',
   idealCustomer: '',
-  mainBonus: '',
+  mainBonus: '', // Legacy
+  bonusStack: [], // NEW
   hasLimitations: '',
   limitationDetails: '',
   spotLimit: null,
@@ -230,6 +260,7 @@ export const DEFAULT_LAUNCH_V2_DATA: LaunchWizardV2Data = {
     cartClose: false,
     postPurchase: false,
   },
+  emailSequences: [], // NEW - with status tracking
   customEmailSequences: [],
   automationTypes: {
     tagging: false,
@@ -240,6 +271,15 @@ export const DEFAULT_LAUNCH_V2_DATA: LaunchWizardV2Data = {
     leadMagnetDelivery: false,
   },
   customAutomations: [],
+  
+  // Sales Page Status (NEW)
+  salesPageStatus: 'needs-creation',
+  salesPageDeadline: '',
+  
+  // Testimonials (NEW)
+  testimonialStatus: 'none',
+  testimonialGoal: 5,
+  testimonialDeadline: '',
   
   // Step 5
   launchMethod: '',

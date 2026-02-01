@@ -1,5 +1,5 @@
 // Step 4: Pre-Launch Strategy (Q11-Q13)
-// Captures reach method, email sequences, automations, content status, and volume
+// Captures reach method, email sequences, automations, content status, sales page, testimonials, and volume
 
 import { useState } from 'react';
 import { Label } from '@/components/ui/label';
@@ -9,7 +9,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Megaphone, PenTool, Layers, Plus, X, ListChecks, Mail, Zap, FileText, ArrowRight } from 'lucide-react';
+import { 
+  Megaphone, PenTool, Layers, Plus, X, ListChecks, Mail, Zap, FileText, 
+  ArrowRight, Star, Calendar, AlertTriangle 
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
   LaunchWizardV2Data,
@@ -18,12 +21,16 @@ import {
   ContentVolume,
   EmailSequenceTypes,
   AutomationTypes,
+  SalesPageStatus,
+  TestimonialStatus,
+  EmailSequenceItem,
   MAIN_REACH_METHOD_OPTIONS,
   CONTENT_CREATION_STATUS_OPTIONS,
   CONTENT_VOLUME_OPTIONS,
   EMAIL_SEQUENCE_TYPE_OPTIONS,
   AUTOMATION_TYPE_OPTIONS,
 } from '@/types/launchV2';
+import { format, parseISO, isBefore, addDays, isAfter } from 'date-fns';
 
 interface StepPreLaunchStrategyProps {
   data: LaunchWizardV2Data;
@@ -48,6 +55,27 @@ export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyP
     return `~${taskCount} content tasks`;
   };
 
+  // Suggested deadline is 3 days before cart opens
+  const suggestedDeadline = () => {
+    if (!data.cartOpensDate) return '';
+    try {
+      const cartOpen = parseISO(data.cartOpensDate);
+      return format(addDays(cartOpen, -3), 'yyyy-MM-dd');
+    } catch {
+      return '';
+    }
+  };
+
+  // Check if sales page deadline is valid
+  const isSalesPageDeadlineValid = () => {
+    if (!data.salesPageDeadline || !data.cartOpensDate) return true;
+    try {
+      return isBefore(parseISO(data.salesPageDeadline), parseISO(data.cartOpensDate));
+    } catch {
+      return true;
+    }
+  };
+
   // Custom pre-launch items handlers
   const handleAddItem = () => {
     if (!newItem.trim()) return;
@@ -68,7 +96,7 @@ export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyP
     }
   };
 
-  // Email sequence handlers
+  // Email sequence handlers with status tracking
   const toggleEmailSequenceType = (key: keyof EmailSequenceTypes) => {
     const current = data.emailSequenceTypes || {
       warmUp: false,
@@ -76,24 +104,68 @@ export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyP
       cartClose: false,
       postPurchase: false,
     };
+    const newValue = !current[key];
+    
+    // Update legacy format
     onChange({
       emailSequenceTypes: {
         ...current,
-        [key]: !current[key],
+        [key]: newValue,
       },
     });
+    
+    // Also update new format with status tracking
+    const emailSequences = data.emailSequences || [];
+    if (newValue) {
+      // Add new sequence
+      const newSeq: EmailSequenceItem = {
+        type: key,
+        status: 'needs-creation', // Default to needs creation
+      };
+      onChange({ emailSequences: [...emailSequences, newSeq] });
+    } else {
+      // Remove sequence
+      onChange({ emailSequences: emailSequences.filter(s => s.type !== key) });
+    }
+  };
+
+  // Update email sequence status
+  const updateEmailSequenceStatus = (type: string, status: 'existing' | 'needs-creation', deadline?: string) => {
+    const emailSequences = data.emailSequences || [];
+    const updated = emailSequences.map(s => 
+      s.type === type ? { ...s, status, deadline } : s
+    );
+    onChange({ emailSequences: updated });
   };
 
   const handleAddCustomEmailSequence = () => {
     if (!newEmailSequence.trim()) return;
     const current = data.customEmailSequences || [];
     onChange({ customEmailSequences: [...current, newEmailSequence.trim()] });
+    
+    // Also add to new format
+    const emailSequences = data.emailSequences || [];
+    const newSeq: EmailSequenceItem = {
+      type: 'custom',
+      customName: newEmailSequence.trim(),
+      status: 'needs-creation',
+    };
+    onChange({ emailSequences: [...emailSequences, newSeq] });
     setNewEmailSequence('');
   };
 
   const handleRemoveCustomEmailSequence = (index: number) => {
     const current = data.customEmailSequences || [];
+    const removedName = current[index];
     onChange({ customEmailSequences: current.filter((_, i) => i !== index) });
+    
+    // Also remove from new format
+    const emailSequences = data.emailSequences || [];
+    onChange({ 
+      emailSequences: emailSequences.filter(s => 
+        !(s.type === 'custom' && s.customName === removedName)
+      ) 
+    });
   };
 
   const handleEmailSequenceKeyDown = (e: React.KeyboardEvent) => {
@@ -139,6 +211,14 @@ export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyP
       handleAddCustomAutomation();
     }
   };
+
+  // Get email sequence from new format
+  const getEmailSequence = (type: string): EmailSequenceItem | undefined => {
+    return (data.emailSequences || []).find(s => s.type === type);
+  };
+
+  // Count sequences needing creation
+  const sequencesNeedingCreation = (data.emailSequences || []).filter(s => s.status === 'needs-creation').length;
 
   return (
     <div className="space-y-8">
@@ -214,37 +294,213 @@ export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyP
         )}
       </div>
 
+      {/* Sales Page Status */}
+      <div className="space-y-4">
+        <Label className="text-lg font-semibold flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          Sales Page
+        </Label>
+        <p className="text-sm text-muted-foreground -mt-2">
+          What's the status of your sales page?
+        </p>
+
+        <RadioGroup
+          value={data.salesPageStatus}
+          onValueChange={(value) => onChange({ salesPageStatus: value as SalesPageStatus })}
+          className="space-y-2"
+        >
+          <div className="flex items-center space-x-3">
+            <RadioGroupItem value="existing" id="sp-existing" />
+            <Label htmlFor="sp-existing" className="cursor-pointer">Already done</Label>
+          </div>
+          <div className="flex items-center space-x-3">
+            <RadioGroupItem value="in-progress" id="sp-in-progress" />
+            <Label htmlFor="sp-in-progress" className="cursor-pointer">In progress</Label>
+          </div>
+          <div className="flex items-center space-x-3">
+            <RadioGroupItem value="needs-creation" id="sp-needs-creation" />
+            <Label htmlFor="sp-needs-creation" className="cursor-pointer">Haven't started</Label>
+          </div>
+        </RadioGroup>
+
+        {data.salesPageStatus !== 'existing' && (
+          <div className="space-y-2 pl-4 border-l-2 border-primary/20">
+            <Label className="text-sm flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              When will it be complete?
+            </Label>
+            <div className="flex gap-3 items-end">
+              <div className="flex-1">
+                <Input
+                  type="date"
+                  value={data.salesPageDeadline}
+                  onChange={(e) => onChange({ salesPageDeadline: e.target.value })}
+                />
+              </div>
+              {data.cartOpensDate && !data.salesPageDeadline && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onChange({ salesPageDeadline: suggestedDeadline() })}
+                >
+                  3 days before launch
+                </Button>
+              )}
+            </div>
+
+            {data.salesPageDeadline && !isSalesPageDeadlineValid() && (
+              <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 text-destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <p className="text-sm">Your deadline is after cart opens.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {data.salesPageStatus === 'existing' && (
+          <p className="text-sm text-green-600">✓ Sales page is ready</p>
+        )}
+      </div>
+
+      {/* Testimonials */}
+      <div className="space-y-4">
+        <Label className="text-lg font-semibold flex items-center gap-2">
+          <Star className="h-5 w-5" />
+          Testimonials
+        </Label>
+        <p className="text-sm text-muted-foreground -mt-2">
+          Social proof dramatically increases conversions.
+        </p>
+
+        <RadioGroup
+          value={data.testimonialStatus}
+          onValueChange={(value) => onChange({ testimonialStatus: value as TestimonialStatus })}
+          className="space-y-2"
+        >
+          <div className="flex items-center space-x-3">
+            <RadioGroupItem value="have-enough" id="test-have-enough" />
+            <Label htmlFor="test-have-enough" className="cursor-pointer">I have enough testimonials</Label>
+          </div>
+          <div className="flex items-center space-x-3">
+            <RadioGroupItem value="need-more" id="test-need-more" />
+            <Label htmlFor="test-need-more" className="cursor-pointer">I need to collect more</Label>
+          </div>
+          <div className="flex items-center space-x-3">
+            <RadioGroupItem value="none" id="test-none" />
+            <Label htmlFor="test-none" className="cursor-pointer">I don't have any yet</Label>
+          </div>
+        </RadioGroup>
+
+        {(data.testimonialStatus === 'need-more' || data.testimonialStatus === 'none') && (
+          <div className="space-y-3 pl-4 border-l-2 border-primary/20">
+            <div className="space-y-2">
+              <Label className="text-sm">How many do you want to collect?</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={data.testimonialGoal}
+                  onChange={(e) => onChange({ testimonialGoal: Number(e.target.value) })}
+                  className="w-24"
+                />
+                <span className="text-sm text-muted-foreground">testimonials</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Collection deadline
+              </Label>
+              <Input
+                type="date"
+                value={data.testimonialDeadline}
+                onChange={(e) => onChange({ testimonialDeadline: e.target.value })}
+              />
+            </div>
+          </div>
+        )}
+
+        {data.testimonialStatus === 'have-enough' && (
+          <p className="text-sm text-green-600">✓ Testimonials ready</p>
+        )}
+      </div>
+
       {/* Email Sequences Section */}
       <div className="space-y-4">
         <Label className="text-lg font-semibold flex items-center gap-2">
           <Mail className="h-5 w-5" />
-          Which email sequences do you need to write?
+          Which email sequences do you need?
         </Label>
         <p className="text-sm text-muted-foreground -mt-2">
-          Select all that apply. We'll create tasks for each sequence.
+          Select all that apply. For each, tell us if it's ready or needs to be written.
         </p>
 
         <div className="space-y-3">
-          {EMAIL_SEQUENCE_TYPE_OPTIONS.map((option) => (
-            <div
-              key={option.key}
-              className="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors cursor-pointer"
-              onClick={() => toggleEmailSequenceType(option.key as keyof EmailSequenceTypes)}
-            >
-              <Checkbox
-                id={`email-seq-${option.key}`}
-                checked={data.emailSequenceTypes?.[option.key as keyof EmailSequenceTypes] || false}
-                onCheckedChange={() => toggleEmailSequenceType(option.key as keyof EmailSequenceTypes)}
-                className="mt-0.5"
-              />
-              <div className="flex-1">
-                <Label htmlFor={`email-seq-${option.key}`} className="cursor-pointer font-medium">
-                  {option.label}
-                </Label>
-                <p className="text-sm text-muted-foreground">{option.description}</p>
+          {EMAIL_SEQUENCE_TYPE_OPTIONS.map((option) => {
+            const isSelected = data.emailSequenceTypes?.[option.key as keyof EmailSequenceTypes] || false;
+            const sequence = getEmailSequence(option.key);
+            
+            return (
+              <div key={option.key} className="space-y-2">
+                <div
+                  className={`flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
+                    isSelected ? 'bg-primary/5 border-primary/30' : 'hover:bg-muted/30'
+                  }`}
+                  onClick={() => toggleEmailSequenceType(option.key as keyof EmailSequenceTypes)}
+                >
+                  <Checkbox
+                    id={`email-seq-${option.key}`}
+                    checked={isSelected}
+                    onCheckedChange={() => toggleEmailSequenceType(option.key as keyof EmailSequenceTypes)}
+                    className="mt-0.5"
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor={`email-seq-${option.key}`} className="cursor-pointer font-medium">
+                      {option.label}
+                    </Label>
+                    <p className="text-sm text-muted-foreground">{option.description}</p>
+                  </div>
+                </div>
+                
+                {/* Status selector when selected */}
+                {isSelected && (
+                  <div className="ml-8 pl-4 border-l-2 border-primary/20 space-y-2">
+                    <RadioGroup
+                      value={sequence?.status || 'needs-creation'}
+                      onValueChange={(value) => updateEmailSequenceStatus(option.key, value as 'existing' | 'needs-creation')}
+                      className="flex gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="existing" id={`${option.key}-existing`} />
+                        <Label htmlFor={`${option.key}-existing`} className="cursor-pointer text-sm">
+                          Already written
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="needs-creation" id={`${option.key}-needs-creation`} />
+                        <Label htmlFor={`${option.key}-needs-creation`} className="cursor-pointer text-sm">
+                          Need to write
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                    
+                    {sequence?.status === 'needs-creation' && (
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Deadline (optional)</Label>
+                        <Input
+                          type="date"
+                          value={sequence?.deadline || ''}
+                          onChange={(e) => updateEmailSequenceStatus(option.key, 'needs-creation', e.target.value)}
+                          className="w-auto"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Custom email sequences */}
@@ -278,6 +534,7 @@ export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyP
                 >
                   <Mail className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm flex-1">{item}</span>
+                  <Badge variant="outline" className="text-xs">Need to write</Badge>
                   <Button
                     type="button"
                     variant="ghost"
@@ -292,6 +549,15 @@ export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyP
             </div>
           )}
         </div>
+
+        {/* Sequences summary */}
+        {sequencesNeedingCreation > 0 && (
+          <div className="p-3 rounded-lg bg-muted/50 border">
+            <p className="text-sm">
+              📋 <strong>{sequencesNeedingCreation}</strong> email sequence{sequencesNeedingCreation > 1 ? 's' : ''} to write
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Automations Section */}

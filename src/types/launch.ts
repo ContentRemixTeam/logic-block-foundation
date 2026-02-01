@@ -1,4 +1,8 @@
 // Launch Planner Wizard Types
+import type { BonusItem, SalesPageStatus, TestimonialStatus } from './launchV2';
+
+// Re-export shared types for convenience
+export type { BonusItem, SalesPageStatus, TestimonialStatus } from './launchV2';
 
 // Pre-launch task configuration for checklist
 export interface PreLaunchTaskConfig {
@@ -80,6 +84,9 @@ export interface SalesAsset {
   status: 'needed' | 'in-progress' | 'complete';
 }
 
+// Lead Magnet Status (V1 only)
+export type LeadMagnetStatus = 'existing' | 'needs-creation' | 'not-needed';
+
 export interface LaunchWizardData {
   // Step 1: Launch Basics
   name: string;
@@ -153,11 +160,19 @@ export interface LaunchWizardData {
 
   // Step 9: Sales Assets (NEW)
   salesPageDeadline: string;
+  salesPageStatus: SalesPageStatus; // NEW
   hasTestimonials: boolean;
   testimonialGoal: number;
+  testimonialStatus: TestimonialStatus; // NEW
+  testimonialDeadline: string; // NEW
   hasBonuses: boolean;
-  bonuses: string[];
+  bonuses: string[]; // Legacy - kept for migration
+  bonusStack: BonusItem[]; // NEW - replaces bonuses
   salesAssets: SalesAsset[];
+  
+  // Lead Magnet (NEW)
+  leadMagnetStatus: LeadMagnetStatus;
+  leadMagnetDeadline: string;
 
   // Step 10: Making Offers (was Step 5)
   offerGoal: number;
@@ -272,11 +287,18 @@ export const DEFAULT_LAUNCH_WIZARD_DATA: LaunchWizardData = {
   podcastAppearances: [],
   // Step 9 - Sales Assets
   salesPageDeadline: '',
+  salesPageStatus: 'needs-creation', // NEW
   hasTestimonials: false,
   testimonialGoal: 5,
+  testimonialStatus: 'none', // NEW
+  testimonialDeadline: '', // NEW
   hasBonuses: false,
-  bonuses: [],
+  bonuses: [], // Legacy
+  bonusStack: [], // NEW
   salesAssets: [],
+  // Lead Magnet (NEW)
+  leadMagnetStatus: 'not-needed',
+  leadMagnetDeadline: '',
   // Step 10 - Offers
   offerGoal: 50,
   offerBreakdown: {
