@@ -141,6 +141,11 @@ export interface LaunchWizardData {
   adsPlatform: string[];
   socialPostsPerDay: number;
   socialStrategy: string[];
+  
+  // Affiliate Program
+  hasAffiliateProgram: boolean | 'considering';
+  affiliateCommission: string; // e.g., "30%", "$50 per sale"
+  affiliateDetails: string; // Additional notes about the program
 
   // Step 8: Video & Podcasts (NEW)
   videoContent: VideoContent[];
@@ -258,6 +263,10 @@ export const DEFAULT_LAUNCH_WIZARD_DATA: LaunchWizardData = {
   adsPlatform: [],
   socialPostsPerDay: 1,
   socialStrategy: [],
+  // Affiliate Program
+  hasAffiliateProgram: false,
+  affiliateCommission: '',
+  affiliateDetails: '',
   // Step 8 - Video & Podcasts
   videoContent: [],
   podcastAppearances: [],

@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Users } from 'lucide-react';
 import {
   LaunchWizardData,
   LaunchLiveEvent,
@@ -229,6 +229,67 @@ export function LaunchActivities({ data, onChange }: LaunchActivitiesProps) {
                 ))}
               </div>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Affiliate Program */}
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label className="text-lg font-semibold flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Affiliate/Referral Program
+          </Label>
+          <p className="text-sm text-muted-foreground">
+            Will you have affiliates or partners promoting your launch?
+          </p>
+        </div>
+        <RadioGroup
+          value={data.hasAffiliateProgram === 'considering' ? 'considering' : data.hasAffiliateProgram ? 'yes' : 'no'}
+          onValueChange={(v) =>
+            onChange({ hasAffiliateProgram: v === 'considering' ? 'considering' : v === 'yes' })
+          }
+          className="flex gap-4"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="yes" id="affiliate-yes" />
+            <Label htmlFor="affiliate-yes" className="cursor-pointer">Yes</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="no" id="affiliate-no" />
+            <Label htmlFor="affiliate-no" className="cursor-pointer">No</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="considering" id="affiliate-considering" />
+            <Label htmlFor="affiliate-considering" className="cursor-pointer">Considering it</Label>
+          </div>
+        </RadioGroup>
+
+        {(data.hasAffiliateProgram === true || data.hasAffiliateProgram === 'considering') && (
+          <div className="ml-6 p-4 bg-muted/50 rounded-lg space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="affiliate-commission">Commission Structure</Label>
+              <Input
+                id="affiliate-commission"
+                value={data.affiliateCommission ?? ''}
+                onChange={(e) => onChange({ affiliateCommission: e.target.value })}
+                placeholder="e.g., 30% per sale, $50 flat fee, tiered bonuses..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="affiliate-details">Additional Details (optional)</Label>
+              <Input
+                id="affiliate-details"
+                value={data.affiliateDetails ?? ''}
+                onChange={(e) => onChange({ affiliateDetails: e.target.value })}
+                placeholder="e.g., Using ThriveCart, recruiting 10 affiliates, launch swipe copy..."
+              />
+            </div>
+            {data.hasAffiliateProgram === 'considering' && (
+              <p className="text-sm text-muted-foreground italic">
+                We'll add a task to help you decide if an affiliate program makes sense for this launch.
+              </p>
+            )}
           </div>
         )}
       </div>
