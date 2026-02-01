@@ -1,352 +1,345 @@
 
-# Launch Planner V2 - Full Integration Plan
+# Quick Launch Reflections: Multi-Location with Debrief Compilation
 
-## Executive Summary
+## Overview
 
-This plan addresses five major requirements:
-1. **Remove THE GAP UI components** from the launch planner (blocking prompts, warnings, etc.)
-2. **Integrate launch dates** into Dashboard, Daily, Weekly, and Monthly planners  
-3. **Create launch projects** with Gantt-style timeline and organized task sections
-4. **Enable launch reuse** - save launches as templates for future use with autofill
-5. **Launch debrief wizard** - already exists, needs enhancement for lessons learned integration
-
----
-
-## Current State Analysis
-
-### What Already Exists
-
-| Feature | Status | Location |
-|---------|--------|----------|
-| GAP detection system | Exists - to be removed from UI | `src/components/wizards/launch-v2/utils/gapDetection.ts` |
-| Launch creation edge function | Exists | `supabase/functions/create-launch-v2/` |
-| Launch project creation | Exists | Creates project with `is_launch: true` |
-| Launch debrief page | Exists | `src/pages/LaunchDebrief.tsx` |
-| Launch debrief hook | Exists | `src/hooks/useLaunchDebrief.ts` |
-| Active launches hook | Exists | `src/hooks/useActiveLaunches.ts` |
-| Dashboard launch widgets | Exists | `LaunchZone`, `LaunchCountdownWidget`, etc. |
-| `active_launch_id` on plans | Exists in schema | `daily_plans` and `weekly_plans` tables |
-
-### What Needs to Be Built
-
-1. Remove GAP UI components while keeping detection logic (for those who want it later)
-2. Launch timeline Gantt component for project detail page
-3. Organized task sections by phase
-4. Launch template/reuse system
-5. Enhanced debrief wizard with lessons learned autofill
+The user wants launch-specific reflections that are:
+1. **Quick and fast** - Simple "What worked / What didn't" format
+2. **Available in multiple places** - Not buried in the end-of-day section (which many skip)
+3. **Expandable** - Users can add additional lines
+4. **Auto-compiled** - Feed into the final launch debrief
 
 ---
 
-## Phase 1: Remove THE GAP UI Components
+## Design: The Quick Launch Reflection
 
-### Files to Modify
+A compact, focused reflection card with two simple lists:
 
-| File | Changes |
-|------|---------|
-| `src/components/wizards/launch-v2/steps/StepGoalTimeline.tsx` | Remove `GapAcknowledgmentPrompt` import and rendering |
-| `src/components/wizards/launch-v2/timeline/index.ts` | Keep export but component won't be used |
-| `src/pages/Dashboard.tsx` | Remove GAP alert messages (lines 70-84) or make them optional |
-
-### Implementation Details
-
-**StepGoalTimeline.tsx changes:**
-- Remove `showGapPrompt` state variable
-- Remove `gapResult` calculation (or make it purely data, not UI blocking)
-- Remove `handleGapContinue` function
-- Remove `<GapAcknowledgmentPrompt>` component rendering
-- Keep the `gapDetection.ts` utilities - they're useful for optional future features
-
-**Dashboard.tsx changes:**
-- The `getDynamicAlert` function (lines 70-100) shows GAP warnings
-- Make this configurable via user settings or remove entirely
-
----
-
-## Phase 2: Launch Timeline Integration in Planners
-
-### 2A: Dashboard Integration
-
-**Current state:** `LaunchZone` component exists but is basic
-
-**Enhancements needed:**
-- Show active launch phase prominently
-- Display phase timeline bar (visual progress)
-- Quick access to launch project and tasks
-
-**Files to create/modify:**
-- `src/components/dashboard/LaunchTimelineBar.tsx` (New)
-- `src/components/dashboard/LaunchZone.tsx` (Enhance)
-
-### 2B: Daily Planner Integration
-
-**Current state:** `daily_plans.active_launch_id` exists but not fully utilized
-
-**Enhancements needed:**
-- Auto-detect and display current launch phase
-- Show phase-specific tasks for today
-- Display "Launch Mode" banner with phase context
-
-**Files to modify:**
-- `src/pages/DailyPlan.tsx`
-- Create `src/components/daily-plan/LaunchModeSection.tsx`
-
-### 2C: Weekly Planner Integration  
-
-**Current state:** `weekly_plans.active_launch_id` exists with launch metrics columns
-
-**Enhancements needed:**
-- Show launch timeline for the week
-- Display phase transitions within the week
-- Weekly launch metrics summary
-
-**Files to modify:**
-- `src/pages/WeeklyPlan.tsx`
-- Create `src/components/weekly-plan/WeeklyLaunchOverview.tsx`
-
-### 2D: Monthly Planner Integration
-
-**Enhancements needed:**
-- Calendar view showing launch phases
-- Monthly launch overview
-- Links to launch project
-
----
-
-## Phase 3: Launch Project with Gantt Timeline
-
-### 3A: Gantt-Style Timeline Component
-
-**Create:** `src/components/launch/LaunchGanttTimeline.tsx`
-
-Features:
-- Visual horizontal timeline showing 4 phases:
-  - Runway (gray/blue)
-  - Pre-Launch (yellow/amber)  
-  - Cart Open (green/primary)
-  - Post-Launch (purple/secondary)
-- Current day indicator
-- Phase date labels
-- Clickable phases to filter tasks
-
-### 3B: Task Organization by Phase
-
-**Create:** `src/components/launch/LaunchTaskBoard.tsx`
-
-Organization:
-- **Pre-Launch Prep** section
-  - Sales Page
-  - Email Sequences  
-  - Content Creation
-  - Tech Setup
-- **Launch Week** section
-  - Daily offers
-  - Live events
-  - Outreach tasks
-- **Post-Launch** section
-  - Follow-up tasks
-  - Debrief task
-- **Mindset** section (if user selected mindset support)
-
-### 3C: Enhance Project Detail Page for Launch Projects
-
-**Modify:** `src/pages/ProjectDetail.tsx`
-
-Add conditional rendering for launch projects:
-- Show Gantt timeline at top
-- Organize tasks by launch phase
-- Add "Launch Metrics" card (revenue goal, sales needed, days remaining)
-- Add "Launch Debrief" quick access button (post-cart-close)
-
----
-
-## Phase 4: Launch Reuse / Template System
-
-### 4A: Database Changes
-
-**New table:** `launch_templates`
-
-```sql
-CREATE TABLE launch_templates (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  source_launch_id UUID REFERENCES launches(id) ON DELETE SET NULL,
-  name TEXT NOT NULL,
-  offer_type TEXT,
-  timeline_duration TEXT,
-  revenue_goal_tier TEXT,
-  pricing_config JSONB,
-  pre_launch_config JSONB,
-  launch_week_config JSONB,
-  post_launch_config JSONB,
-  -- Lessons learned from debrief
-  lessons_what_worked TEXT,
-  lessons_what_to_improve TEXT,
-  lessons_would_do_differently TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(user_id, name)
-);
+```
+┌────────────────────────────────────────────────────────────────┐
+│ 🚀 Launch Pulse: [Course Launch 2024] — Day 5 of 7           │
+│ ────────────────────────────────────────────────────────────── │
+│                                                                │
+│ ✅ What worked today?                                         │
+│ ┌──────────────────────────────────────────────────────┐      │
+│ │ Email sequence got 15% open rate                     │ [x]  │
+│ └──────────────────────────────────────────────────────┘      │
+│ ┌──────────────────────────────────────────────────────┐      │
+│ │ Instagram story drove 3 sales                        │ [x]  │
+│ └──────────────────────────────────────────────────────┘      │
+│ [+ Add another]                                                │
+│                                                                │
+│ ❌ What didn't work?                                          │
+│ ┌──────────────────────────────────────────────────────┐      │
+│ │ Facebook ads underperformed                          │ [x]  │
+│ └──────────────────────────────────────────────────────┘      │
+│ [+ Add another]                                                │
+│                                                                │
+│ 💡 Quick note (optional)                                      │
+│ ┌──────────────────────────────────────────────────────┐      │
+│ │ Need to adjust targeting tomorrow...                 │      │
+│ └──────────────────────────────────────────────────────┘      │
+└────────────────────────────────────────────────────────────────┘
 ```
 
-### 4B: Save Launch as Template
+---
 
-**When:** After creating a launch OR after completing a debrief
+## Where It Appears (Multiple Locations)
 
-**UI:** 
-- "Save as Template" button on launch project page
-- Dialog to name the template
-- Auto-includes debrief lessons if available
+### 1. **Launch Mode Section** (Morning - near top of Daily Plan)
+- Shows during active launches
+- Appears in the "Morning Zone" after habits or identity anchor
+- Compact version: Phase banner + today's tasks + quick reflection toggle
 
-**Create:** `src/hooks/useLaunchTemplates.ts`
+### 2. **Standalone Card** (Available all day)
+- New section ID: `launch_reflection`
+- Can be positioned anywhere in the user's daily layout
+- Collapsible but visible
 
-### 4C: Reuse Template in Wizard
-
-**Modify:** `src/components/wizards/launch-v2/LaunchWizardV2.tsx`
-
-Add Step 0 or pre-step:
-- "Start Fresh" or "Reuse Previous Launch"
-- If reusing: show list of past launches/templates
-- Auto-fill wizard data from selected template
-- Show reminder card with lessons learned from that launch
-
-**Create:** `src/components/wizards/launch-v2/steps/StepSelectTemplate.tsx`
-
-Features:
-- List of completed launches with debriefs
-- List of saved templates
-- Preview of what will be auto-filled
-- "Lessons from last time" card showing:
-  - What worked
-  - What to improve
-  - What you'd do differently
+### 3. **End of Day Section** (Enhanced)
+- If launch is active, show the same reflection card
+- Pre-filled if they already entered data earlier
+- Adds energy rating for that day
 
 ---
 
-## Phase 5: Enhanced Launch Debrief Wizard
+## Database Changes
 
-### 5A: Current Debrief Page Enhancement
+**New table: `daily_launch_reflections`**
 
-**Current state:** Basic form at `/launch-debrief/:launchId`
+Stores daily quick reflections that compile into the final debrief:
 
-**Enhancements needed:**
-- Add "Save as Template" action
-- Add structured prompts for lessons
-- Add option to create follow-up launch
+```sql
+CREATE TABLE daily_launch_reflections (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  launch_id UUID NOT NULL REFERENCES launches(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  phase TEXT NOT NULL, -- 'runway', 'pre-launch', 'live', 'post-launch'
+  -- Quick reflection lists
+  what_worked JSONB DEFAULT '[]'::jsonb, -- Array of strings
+  what_didnt_work JSONB DEFAULT '[]'::jsonb, -- Array of strings
+  quick_note TEXT,
+  energy_level INTEGER CHECK (energy_level BETWEEN 1 AND 5),
+  -- Metrics (live phase only)
+  offers_made INTEGER DEFAULT 0,
+  sales_today INTEGER DEFAULT 0,
+  revenue_today NUMERIC(10,2) DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, launch_id, date)
+);
 
-### 5B: Debrief Lessons Integration
+-- RLS policies
+ALTER TABLE daily_launch_reflections ENABLE ROW LEVEL SECURITY;
 
-When reusing a launch, display:
-- Previous revenue achieved vs goal
-- What worked (highlighted for attention)
-- What to improve (with action items)
-- Energy rating (warn if previous launch was exhausting)
+CREATE POLICY "Users can manage their own launch reflections"
+  ON daily_launch_reflections FOR ALL
+  USING (auth.uid() = user_id);
 
----
-
-## Technical Implementation Details
-
-### Database Migrations Required
-
-1. **`launch_templates` table** (new)
-2. **Add `template_id` to `launches` table** (optional - tracks source template)
-3. **Add `is_template` to `launches` table** (alternative approach)
-
-### Edge Function Updates
-
-**Modify:** `supabase/functions/create-launch-v2/index.ts`
-
-- Accept optional `template_id` parameter
-- If template provided, merge template data with wizard data
-- Log template usage for analytics
-
-### New Components Summary
-
-| Component | Purpose |
-|-----------|---------|
-| `LaunchGanttTimeline.tsx` | Visual phase timeline for project page |
-| `LaunchTaskBoard.tsx` | Organized task sections by phase |
-| `LaunchModeSection.tsx` | Daily plan launch context |
-| `WeeklyLaunchOverview.tsx` | Weekly plan launch summary |
-| `StepSelectTemplate.tsx` | Template selection in wizard |
-| `LaunchTemplateCard.tsx` | Display template with lessons |
-| `SaveAsTemplateDialog.tsx` | Modal to save launch as template |
-
-### New Hooks Summary
-
-| Hook | Purpose |
-|------|---------|
-| `useLaunchTemplates.ts` | CRUD for launch templates |
-| `useLaunchPhaseTasks.ts` | Get tasks organized by phase |
+-- Index for fast lookups
+CREATE INDEX idx_daily_launch_reflections_lookup 
+  ON daily_launch_reflections(user_id, launch_id, date);
+```
 
 ---
 
-## Implementation Order
+## New Components
 
-### Sprint 1: Remove GAP + Basic Integration
-1. Remove GAP UI from wizard (keep utilities)
-2. Remove GAP alerts from Dashboard
-3. Enhance LaunchZone with timeline bar
+### 1. `QuickLaunchReflectionCard.tsx`
 
-### Sprint 2: Project Page Enhancement
-1. Create LaunchGanttTimeline component
-2. Create task organization by phase
-3. Update ProjectDetail for launch projects
+The main reflection component with:
+- Launch name and phase context
+- "What worked" list (ReflectionList style - add/remove items)
+- "What didn't work" list
+- Optional quick note
+- Auto-saves on change
 
-### Sprint 3: Planner Integration
-1. Daily plan launch mode section
-2. Weekly plan launch overview
-3. Monthly calendar launch view
+```typescript
+interface QuickLaunchReflectionCardProps {
+  launch: ActiveLaunch;
+  compact?: boolean; // For different placement contexts
+  showMetrics?: boolean; // Show offers/sales inputs during live phase
+}
+```
 
-### Sprint 4: Template/Reuse System
-1. Create launch_templates table
-2. Build template selection step
-3. Build save-as-template flow
-4. Integrate lessons learned display
+### 2. `useDailyLaunchReflection.ts`
 
-### Sprint 5: Debrief Enhancement
-1. Add template save to debrief
-2. Add follow-up launch creation
-3. Test full reuse loop
+Hook to manage daily launch reflections:
+- Fetches/creates today's reflection for active launch
+- Auto-saves with debounce
+- Provides compiled data for debrief
+
+```typescript
+interface UseDailyLaunchReflectionReturn {
+  reflection: DailyLaunchReflection | null;
+  activeLaunch: ActiveLaunch | null;
+  isLoading: boolean;
+  updateReflection: (data: Partial<DailyLaunchReflection>) => void;
+  addWhatWorked: (item: string) => void;
+  addWhatDidntWork: (item: string) => void;
+  removeWhatWorked: (index: number) => void;
+  removeWhatDidntWork: (index: number) => void;
+}
+```
 
 ---
 
-## File Changes Summary
+## Daily Plan Integration
 
-### Files to Modify
+### File: `src/pages/DailyPlan.tsx`
 
-| File | Type of Change |
-|------|----------------|
-| `src/components/wizards/launch-v2/steps/StepGoalTimeline.tsx` | Remove GAP prompt |
-| `src/components/wizards/launch-v2/LaunchWizardV2.tsx` | Add template step option |
-| `src/pages/Dashboard.tsx` | Remove/configure GAP alerts |
-| `src/pages/ProjectDetail.tsx` | Add launch-specific UI |
-| `src/pages/DailyPlan.tsx` | Add launch mode section |
-| `src/pages/WeeklyPlan.tsx` | Add launch overview |
-| `src/components/dashboard/LaunchZone.tsx` | Enhance with timeline |
-| `src/pages/LaunchDebrief.tsx` | Add template save option |
-| `supabase/functions/create-launch-v2/index.ts` | Add template support |
+Add to the section components map:
 
-### Files to Create
+```typescript
+launch_reflection: () => {
+  if (!activeLaunch) return null;
+  return <QuickLaunchReflectionCard launch={activeLaunch} />;
+}
+```
+
+Update the end_of_day_reflection section to include launch reflection if active:
+
+```typescript
+end_of_day_reflection: () => {
+  const currentHour = new Date().getHours();
+  if (currentHour < 17) return null;
+  
+  return (
+    <Card>
+      {/* Existing end of day reflection */}
+      
+      {/* Launch reflection if active */}
+      {activeLaunch && (
+        <QuickLaunchReflectionCard 
+          launch={activeLaunch} 
+          showMetrics={activeLaunch.isLive}
+        />
+      )}
+    </Card>
+  );
+}
+```
+
+---
+
+## Launch Mode Section (Top of Daily Plan)
+
+### File: `src/components/daily-plan/LaunchModeSection.tsx`
+
+Creates a dedicated section that shows:
+
+1. **Phase Banner** (existing `LaunchPhaseBanner`)
+2. **Today's Launch Tasks** (collapsible - tasks due today from launch project)
+3. **Quick Reflection** (collapsed by default, expandable)
+
+```typescript
+export function LaunchModeSection({ launch }: { launch: ActiveLaunch }) {
+  const [showReflection, setShowReflection] = useState(false);
+  
+  return (
+    <Card className="border-accent/30">
+      <CardHeader className="pb-2">
+        <LaunchPhaseBanner launch={launch} />
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Today's tasks from launch project */}
+        <LaunchTasksToday projectId={launch.project_id} />
+        
+        {/* Quick reflection toggle */}
+        <Collapsible open={showReflection} onOpenChange={setShowReflection}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="w-full">
+              <Sparkles className="h-4 w-4 mr-2" />
+              {showReflection ? 'Hide' : 'Log'} today's wins & lessons
+              <ChevronDown className="h-4 w-4 ml-2" />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <QuickLaunchReflectionCard launch={launch} compact />
+          </CollapsibleContent>
+        </Collapsible>
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+---
+
+## Debrief Compilation
+
+### Enhanced: `src/pages/LaunchDebrief.tsx`
+
+Add a "Compiled Insights" section that aggregates daily reflections:
+
+```typescript
+// Fetch all daily reflections for this launch
+const { data: dailyReflections } = useQuery({
+  queryKey: ['launch-daily-reflections', launchId],
+  queryFn: async () => {
+    const { data } = await supabase
+      .from('daily_launch_reflections')
+      .select('*')
+      .eq('launch_id', launchId)
+      .order('date');
+    return data || [];
+  }
+});
+
+// Compile insights
+const compiledWhatWorked = dailyReflections
+  ?.flatMap(r => r.what_worked || [])
+  .filter(Boolean);
+
+const compiledWhatDidntWork = dailyReflections
+  ?.flatMap(r => r.what_didnt_work || [])
+  .filter(Boolean);
+
+const averageEnergy = dailyReflections
+  ?.filter(r => r.energy_level)
+  .reduce((sum, r) => sum + r.energy_level, 0) / 
+  (dailyReflections?.filter(r => r.energy_level).length || 1);
+```
+
+Display as a collapsible card before the reflection inputs:
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│ 📊 Compiled from Your Daily Reflections                       │
+│ ────────────────────────────────────────────────────────────── │
+│ 12 daily entries • Avg energy: 3.5/5                          │
+│                                                                │
+│ ✅ What Worked (23 entries)                    [View All →]   │
+│ • Email sequence got high open rates (mentioned 4x)           │
+│ • Instagram stories drove sales (mentioned 3x)                │
+│                                                                │
+│ ❌ What Didn't Work (15 entries)               [View All →]   │
+│ • Facebook ads underperformed (mentioned 3x)                  │
+│ • Early morning emails low engagement (mentioned 2x)          │
+└────────────────────────────────────────────────────────────────┘
+```
+
+Pre-fill the "What Worked Well" and "What Could Be Improved" textareas with the compiled lists.
+
+---
+
+## Files to Create
 
 | File | Purpose |
 |------|---------|
-| `src/components/launch/LaunchGanttTimeline.tsx` | Gantt timeline visualization |
-| `src/components/launch/LaunchTaskBoard.tsx` | Phase-organized tasks |
-| `src/components/launch/LaunchPhaseCard.tsx` | Phase display card |
-| `src/components/daily-plan/LaunchModeSection.tsx` | Daily launch context |
-| `src/components/weekly-plan/WeeklyLaunchOverview.tsx` | Weekly launch summary |
-| `src/components/wizards/launch-v2/steps/StepSelectTemplate.tsx` | Template selection |
-| `src/components/launch/SaveAsTemplateDialog.tsx` | Template save dialog |
-| `src/components/launch/LaunchLessonsCard.tsx` | Display previous lessons |
-| `src/hooks/useLaunchTemplates.ts` | Template CRUD hook |
-| `src/hooks/useLaunchPhaseTasks.ts` | Phase-organized tasks hook |
+| `src/components/daily-plan/QuickLaunchReflectionCard.tsx` | Main quick reflection UI |
+| `src/components/daily-plan/LaunchModeSection.tsx` | Top-of-daily-plan section |
+| `src/components/daily-plan/LaunchTasksToday.tsx` | Shows today's launch tasks |
+| `src/hooks/useDailyLaunchReflection.ts` | CRUD for daily reflections |
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/pages/DailyPlan.tsx` | Add `launch_reflection` section, integrate with useActiveLaunches |
+| `src/pages/LaunchDebrief.tsx` | Add compiled insights section, pre-fill from daily reflections |
+| `src/hooks/useDailyPageLayout.ts` | Add `launch_reflection` to available sections |
+
+## Database Migration
+
+| Migration | Description |
+|-----------|-------------|
+| Create `daily_launch_reflections` table | Stores daily quick reflections |
 
 ---
 
-## User Experience Goals
+## Implementation Priority
 
-1. **Simple by default** - New users don't see templates or complex options
-2. **Progressive depth** - Experienced users can reuse and customize
-3. **Always know where you are** - Phase indicators across all views
-4. **Learn from past launches** - Lessons surfaced at right moments
-5. **Not overwhelming** - Task sections collapse, timeline is visual not text-heavy
+1. **Database migration** - Create the `daily_launch_reflections` table
+2. **Hook** - `useDailyLaunchReflection` for CRUD operations
+3. **QuickLaunchReflectionCard** - The core UI component
+4. **Daily Plan Integration** - Add as new section + enhance end-of-day
+5. **LaunchModeSection** - Dedicated top section with tasks + reflection
+6. **Debrief Compilation** - Aggregate daily insights
+
+---
+
+## User Experience Flow
+
+**Morning (8am):**
+1. User opens Daily Plan
+2. Launch Mode Section visible near top
+3. Phase banner shows "5 DAYS UNTIL LAUNCH"
+4. Can expand to log quick wins/lessons from yesterday
+
+**Midday (1pm):**
+1. User makes a sale
+2. Quick access via Info Cards or Launch Mode Section
+3. Logs "Instagram story drove 2 sales" in "What worked"
+
+**Evening (6pm):**
+1. End of Day section appears
+2. Launch reflection card shown with today's entries
+3. Can add more or rate energy level
+
+**Post-Launch:**
+1. User opens Launch Debrief page
+2. Sees "Compiled Insights" with all daily entries organized
+3. Pre-filled suggestions based on their daily logs
+4. Just needs to review and add summary thoughts
