@@ -57,6 +57,8 @@ export function useWizard<T extends Record<string, unknown>>({
   const lastSavedRef = useRef<string>('');
   const hasUnsavedChanges = useRef(false);
   const isInitialLoad = useRef(true);
+  const hasStartedLoadRef = useRef(false);
+  const defaultDataRef = useRef(defaultData);
 
   const localStorageKey = `${LOCAL_STORAGE_PREFIX}${templateName}`;
 
@@ -74,8 +76,12 @@ export function useWizard<T extends Record<string, unknown>>({
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
 
-  // Load draft on mount
+  // Load draft on mount - only runs once
   useEffect(() => {
+    // Guard against re-running if already started
+    if (hasStartedLoadRef.current) return;
+    hasStartedLoadRef.current = true;
+
     const loadDraft = async () => {
       setIsLoading(true);
       try {
@@ -125,7 +131,7 @@ export function useWizard<T extends Record<string, unknown>>({
         }
 
         if (draftData) {
-          setDataState({ ...defaultData, ...draftData });
+          setDataState({ ...defaultDataRef.current, ...draftData });
           setStep(draftStep);
           setHasDraft(true);
           setDraftUpdatedAt(updatedAt);
@@ -136,13 +142,14 @@ export function useWizard<T extends Record<string, unknown>>({
         isInitialLoad.current = false;
       } catch (err) {
         console.error('Error loading wizard draft:', err);
+        isInitialLoad.current = false;
       } finally {
         setIsLoading(false);
       }
     };
 
     loadDraft();
-  }, [user, templateName, localStorageKey, defaultData]);
+  }, [user, templateName, localStorageKey]);
 
   // Cleanup debounce on unmount
   useEffect(() => {
@@ -304,7 +311,7 @@ export function useWizard<T extends Record<string, unknown>>({
     }
     
     setHasDraft(false);
-    setDataState(defaultData);
+    setDataState(defaultDataRef.current);
     setStep(1);
     setLastServerSync(null);
     setDraftUpdatedAt(null);
@@ -323,7 +330,7 @@ export function useWizard<T extends Record<string, unknown>>({
         console.error('Error clearing server draft:', err);
       }
     }
-  }, [user, templateName, localStorageKey, defaultData]);
+  }, [user, templateName, localStorageKey]);
 
   const getDraftAge = useCallback((): string | null => {
     if (!lastServerSync) return null;

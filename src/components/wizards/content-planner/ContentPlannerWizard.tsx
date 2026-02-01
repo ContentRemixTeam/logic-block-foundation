@@ -19,8 +19,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { formatDistanceToNow } from 'date-fns';
+import { ContentPlanMode } from '@/types/contentPlanner';
 
 const WIZARD_STEPS = [
   { number: 1, title: 'Mode' },
@@ -43,6 +44,13 @@ export function ContentPlannerWizard() {
   // Check for launch ID in URL (from post-launch prompt)
   const launchIdFromUrl = searchParams.get('launchId');
 
+  // Memoize defaultData to prevent render loops
+  const defaultData = useMemo(() => ({
+    ...DEFAULT_CONTENT_PLANNER_DATA,
+    mode: (launchIdFromUrl ? 'launch' : '') as ContentPlanMode | '',
+    launchId: launchIdFromUrl,
+  }), [launchIdFromUrl]);
+
   const {
     step,
     data,
@@ -63,12 +71,7 @@ export function ContentPlannerWizard() {
   } = useWizard<ContentPlannerData>({
     templateName: 'content-planner',
     totalSteps: 7,
-    defaultData: {
-      ...DEFAULT_CONTENT_PLANNER_DATA,
-      // Pre-fill launch ID if coming from launch wizard
-      mode: launchIdFromUrl ? 'launch' : '',
-      launchId: launchIdFromUrl,
-    },
+    defaultData,
     validateStep: validateContentPlannerStep,
   });
 
