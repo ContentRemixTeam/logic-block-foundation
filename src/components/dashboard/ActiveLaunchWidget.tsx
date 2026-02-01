@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, differenceInDays, differenceInHours, parseISO } from 'date-fns';
@@ -20,10 +20,15 @@ import {
   AlertTriangle,
   Flame,
   ChevronRight,
-  Loader2
+  Loader2,
+  Zap
 } from 'lucide-react';
-
-type LaunchPhase = 'pre_launch' | 'live' | 'last_48h' | 'closed';
+import { 
+  getCurrentLaunchPhase,
+  getDailyOfferGoal,
+  type ActiveLaunch as LaunchData,
+  type PhaseInfo
+} from '@/lib/launchHelpers';
 
 interface ActiveLaunch {
   id: string;
@@ -38,6 +43,13 @@ interface ActiveLaunch {
   hoursUntilClose: number;
   isLive: boolean;
   phase: string;
+  // Phase date fields
+  runway_start_date?: string | null;
+  runway_end_date?: string | null;
+  pre_launch_start_date?: string | null;
+  pre_launch_end_date?: string | null;
+  post_launch_end_date?: string | null;
+  offer_goal?: number | null;
 }
 
 interface ActiveLaunchWidgetProps {
@@ -172,20 +184,73 @@ export function ActiveLaunchWidget({ launch, gradientClass = 'from-orange-500/5'
     setLoggingOffer(false);
   };
 
-  // Determine phase styling
+  // Get phase info using launchHelpers
+  const phaseInfo = useMemo(() => {
+    // Convert to format expected by getCurrentLaunchPhase
+    const launchData: LaunchData = {
+      id: launch.id,
+      name: launch.name,
+      cart_opens: launch.cart_opens,
+      cart_closes: launch.cart_closes,
+      runway_start_date: launch.runway_start_date,
+      runway_end_date: launch.runway_end_date,
+      pre_launch_start_date: launch.pre_launch_start_date,
+      pre_launch_end_date: launch.pre_launch_end_date,
+      post_launch_end_date: launch.post_launch_end_date,
+      offer_goal: launch.offer_goal,
+      revenue_goal: launch.revenue_goal,
+    };
+    return getCurrentLaunchPhase(launchData);
+  }, [launch]);
+
+  // Determine phase styling - now using actual phase info
   const getPhaseStyles = () => {
     if (launch.hoursUntilClose <= 48 && launch.hoursUntilClose > 0) {
       return {
         badge: 'bg-red-500 text-white animate-pulse',
-        text: `CART CLOSES IN ${launch.hoursUntilClose}h`,
+        text: phaseInfo ? `CART CLOSES - ${launch.hoursUntilClose}h` : `CLOSES IN ${launch.hoursUntilClose}h`,
         urgency: 'high',
+        phaseBadge: phaseInfo ? `Day ${phaseInfo.dayInPhase} of ${phaseInfo.totalPhaseDays}` : null,
       };
+    }
+    if (phaseInfo) {
+      switch (phaseInfo.phase) {
+        case 'runway':
+          return {
+            badge: 'bg-blue-500 text-white',
+            text: `RUNWAY - Day ${phaseInfo.dayInPhase}/${phaseInfo.totalPhaseDays}`,
+            urgency: 'low',
+            phaseBadge: 'LOW intensity',
+          };
+        case 'pre-launch':
+          return {
+            badge: 'bg-purple-500 text-white',
+            text: `PRE-LAUNCH - Day ${phaseInfo.dayInPhase}/${phaseInfo.totalPhaseDays}`,
+            urgency: 'medium',
+            phaseBadge: 'MEDIUM intensity',
+          };
+        case 'cart-open':
+          return {
+            badge: 'bg-green-500 text-white',
+            text: `CART OPEN - Day ${phaseInfo.dayInPhase}/${phaseInfo.totalPhaseDays}`,
+            urgency: 'high',
+            phaseBadge: 'HIGH intensity',
+          };
+        case 'post-launch':
+          return {
+            badge: 'bg-orange-500 text-white',
+            text: `POST-LAUNCH - Day ${phaseInfo.dayInPhase}/${phaseInfo.totalPhaseDays}`,
+            urgency: 'medium',
+            phaseBadge: 'MEDIUM intensity',
+          };
+      }
     }
     if (launch.isLive) {
       return {
         badge: 'bg-green-500 text-white',
         text: 'LIVE NOW',
         urgency: 'medium',
+        phaseBadge: null,
       };
     }
     if (launch.daysUntilOpen <= 7) {
@@ -193,12 +258,14 @@ export function ActiveLaunchWidget({ launch, gradientClass = 'from-orange-500/5'
         badge: 'bg-amber-500 text-white',
         text: `${launch.daysUntilOpen} DAYS TO GO`,
         urgency: 'medium',
+        phaseBadge: null,
       };
     }
     return {
       badge: 'bg-blue-500 text-white',
       text: `Opens ${launch.cartOpensFormatted}`,
       urgency: 'low',
+      phaseBadge: null,
     };
   };
 
@@ -206,6 +273,17 @@ export function ActiveLaunchWidget({ launch, gradientClass = 'from-orange-500/5'
   const revenueProgress = launch.revenue_goal && todayOfferStatus?.revenueLogged
     ? Math.round((todayOfferStatus.revenueLogged / launch.revenue_goal) * 100)
     : 0;
+
+  // Calculate offers progress
+  const offersProgress = useMemo(() => {
+    if (!launch.offer_goal || !todayOfferStatus) return null;
+    const completed = todayOfferStatus.salesLogged || 0; // Using sales as offers for now
+    return {
+      completed,
+      goal: launch.offer_goal,
+      percent: Math.round((completed / launch.offer_goal) * 100),
+    };
+  }, [launch.offer_goal, todayOfferStatus]);
 
   return (
     <Card className={cn(
@@ -233,9 +311,17 @@ export function ActiveLaunchWidget({ launch, gradientClass = 'from-orange-500/5'
               </p>
             </div>
           </div>
-          <Badge className={phaseStyles.badge}>
-            {phaseStyles.text}
-          </Badge>
+          <div className="flex flex-col items-end gap-1">
+            <Badge className={phaseStyles.badge}>
+              {phaseStyles.text}
+            </Badge>
+            {phaseStyles.phaseBadge && (
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Zap className="h-3 w-3" />
+                {phaseStyles.phaseBadge}
+              </span>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="pt-4 space-y-4">

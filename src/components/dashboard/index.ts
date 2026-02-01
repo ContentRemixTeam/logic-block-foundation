@@ -12,3 +12,7 @@ export { DashboardCustomizeModal } from './DashboardCustomizeModal';
 export { SalesGoalTrackerWidget } from './SalesGoalTrackerWidget';
 export { HabitTrackerWidget } from './HabitTrackerWidget';
 export { QuickWinsWidget } from './QuickWinsWidget';
+export { LaunchZone } from './LaunchZone';
+export { LaunchCountdownWidget } from './LaunchCountdownWidget';
+export { LaunchPhaseReminderWidget } from './LaunchPhaseReminderWidget';
+export { ActiveLaunchWidget } from './ActiveLaunchWidget';

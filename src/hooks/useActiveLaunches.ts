@@ -20,9 +20,17 @@ export interface ActiveLaunch {
     time?: string;
     topic: string;
   }>;
+  // Phase date fields from database
+  runway_start_date: string | null;
+  runway_end_date: string | null;
+  pre_launch_start_date: string | null;
+  pre_launch_end_date: string | null;
+  post_launch_end_date: string | null;
+  offer_goal: number | null;
   // Computed fields
   daysUntilOpen: number;
   daysUntilClose: number;
+  hoursUntilClose: number;
   isLive: boolean;
   phase: 'pre-launch' | 'live' | 'closed';
   // Task progress
@@ -90,6 +98,11 @@ export function useActiveLaunches() {
         const daysUntilClose = differenceInDays(cartCloses, now);
         const isLive = now >= cartOpens && now <= cartCloses;
         
+        // Calculate hours until close for urgency display
+        const cartClosesEndOfDay = new Date(cartCloses);
+        cartClosesEndOfDay.setHours(23, 59, 59, 999);
+        const hoursUntilClose = Math.max(0, Math.floor((cartClosesEndOfDay.getTime() - now.getTime()) / (1000 * 60 * 60)));
+        
         let phase: 'pre-launch' | 'live' | 'closed' = 'pre-launch';
         if (now > cartCloses) phase = 'closed';
         else if (isLive) phase = 'live';
@@ -116,8 +129,17 @@ export function useActiveLaunches() {
           waitlist_opens: launch.waitlist_opens,
           email_sequences: launch.email_sequences || [],
           live_events: (launch.live_events as any) || [],
+          // Phase dates from database
+          runway_start_date: launch.runway_start_date || null,
+          runway_end_date: launch.runway_end_date || null,
+          pre_launch_start_date: launch.pre_launch_start_date || null,
+          pre_launch_end_date: launch.pre_launch_end_date || null,
+          post_launch_end_date: launch.post_launch_end_date || null,
+          offer_goal: launch.offer_goal || null,
+          // Computed fields
           daysUntilOpen,
           daysUntilClose,
+          hoursUntilClose,
           isLive,
           phase,
           tasksTotal,

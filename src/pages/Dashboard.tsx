@@ -58,9 +58,14 @@ import { QuickWinsWidget } from '@/components/dashboard/QuickWinsWidget';
 import { WeekTop3Widget } from '@/components/dashboard/WeekTop3Widget';
 import { DueTodayWidget } from '@/components/dashboard/DueTodayWidget';
 import { CustomizePromoWidget } from '@/components/dashboard/CustomizePromoWidget';
+import { LaunchZone } from '@/components/dashboard/LaunchZone';
+import { LaunchCountdownWidget } from '@/components/dashboard/LaunchCountdownWidget';
+import { LaunchPhaseReminderWidget } from '@/components/dashboard/LaunchPhaseReminderWidget';
+import { ActiveLaunchWidget } from '@/components/dashboard/ActiveLaunchWidget';
 import { PodcastWidget } from '@/components/podcast/PodcastWidget';
 import { MastermindCallWidget } from '@/components/mastermind/MastermindCallWidget';
 import { SmartActionButton } from '@/components/SmartActionButton';
+import { getCurrentLaunchPhase } from '@/lib/launchHelpers';
 
 function getDynamicAlert(currentDay: number) {
   if (currentDay >= 15 && currentDay <= 17) {
@@ -687,192 +692,39 @@ export default function Dashboard() {
               )}
             </WidgetCard>
 
-            {/* Launch Countdown */}
-            <WidgetCard
-              title="Launch Countdown"
-              icon={<Rocket className="h-5 w-5 text-primary" />}
-              gradientClass="from-orange-500/5"
-            >
-              {launchesLoading && (
+            {/* Launch Zone - replaces old Launch Countdown widget */}
+            {launchesLoading && (
+              <WidgetCard
+                title="Launch Zone"
+                icon={<Rocket className="h-5 w-5 text-primary" />}
+                gradientClass="from-orange-500/5"
+              >
                 <div className="space-y-3">
                   <Skeleton className="h-4 w-32" />
                   <Skeleton className="h-16 w-full" />
                 </div>
-              )}
+              </WidgetCard>
+            )}
 
-              {/* State 1: No Launch */}
-              {!launchesLoading && !launchDisplay && (
-                <div className="text-center py-8 px-4">
-                  <div className="relative mb-4">
-                    <div className="h-20 w-20 rounded-full bg-gradient-to-br from-orange-500/20 to-orange-500/5 mx-auto flex items-center justify-center">
-                      <Rocket className="h-10 w-10 text-orange-500/60" />
-                    </div>
-                    <div className="absolute -top-1 -right-1 h-6 w-6 bg-yellow-400 rounded-full flex items-center justify-center">
-                      <Sparkles className="h-4 w-4 text-yellow-900" />
-                    </div>
-                  </div>
-                  <h3 className="font-semibold text-lg mb-2">No launches scheduled</h3>
-                  <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
-                    Planning a launch? Let's create a timeline and track your progress
-                  </p>
-                  <Button size="lg" className="gap-2 shadow-lg shadow-primary/20" asChild>
-                    <Link to="/wizards/launch">
-                      <Rocket className="h-4 w-4" />
-                      Plan Your First Launch
-                    </Link>
-                  </Button>
-                </div>
-              )}
+            {!launchesLoading && !nextLaunch && (
+              <LaunchZone hasLaunch={false} />
+            )}
 
-              {/* State 2: Far (30+ days) */}
-              {!launchesLoading && launchDisplay && launchDisplay.launchState === 'far' && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{launchDisplay.name}</span>
-                    <span className="text-xs bg-muted px-2 py-1 rounded">
-                      {launchDisplay.daysUntilOpen} days away
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Cart opens {launchDisplay.cartOpensFormatted} → closes {launchDisplay.cartClosesFormatted}
-                  </p>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Compass className="h-4 w-4 text-primary" />
-                    <span>Focus on your cycle goals for now</span>
-                  </div>
-                  {launchDisplay.taskPercent > 0 && (
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Prep progress</span>
-                        <span>{launchDisplay.taskPercent}%</span>
-                      </div>
-                      <div className="relative h-2 w-full overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all"
-                          style={{ width: `${launchDisplay.taskPercent}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
+            {!launchesLoading && nextLaunch && launchDisplay && (
+              <LaunchZone hasLaunch={true} launchName={nextLaunch.name}>
+                {/* Two-column grid for Countdown + Phase Reminder */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <LaunchCountdownWidget launch={nextLaunch} />
+                  <LaunchPhaseReminderWidget launch={nextLaunch} />
                 </div>
-              )}
-
-              {/* State 3: Approaching (7-29 days) */}
-              {!launchesLoading && launchDisplay && launchDisplay.launchState === 'approaching' && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{launchDisplay.name}</span>
-                    <span className="text-xs bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 px-2 py-1 rounded font-medium">
-                      {launchDisplay.daysUntilOpen} days until launch
-                    </span>
-                  </div>
-                  <Alert className="border-yellow-500/50 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-l-4">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      <AlertDescription className="font-medium">
-                        Time to finalize launch prep!
-                      </AlertDescription>
-                    </div>
-                  </Alert>
-                  <p className="text-sm text-muted-foreground">
-                    Cart opens {launchDisplay.cartOpensFormatted}
-                  </p>
-                  {launchDisplay.taskPercent > 0 && (
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Tasks complete</span>
-                        <span>{launchDisplay.tasksCompleted}/{launchDisplay.tasksTotal}</span>
-                      </div>
-                      <div className="relative h-2 w-full overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-yellow-400 to-yellow-600 transition-all"
-                          style={{ width: `${launchDisplay.taskPercent}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* State 4: Imminent (1-6 days) */}
-              {!launchesLoading && launchDisplay && launchDisplay.launchState === 'imminent' && (
-                <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/30 rounded-lg p-4">
-                  <div className="flex items-center gap-4">
-                    <div className="relative">
-                      <div className="h-16 w-16 rounded-full bg-orange-500/20 flex items-center justify-center">
-                        <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                          {launchDisplay.daysUntilOpen}
-                        </div>
-                      </div>
-                      <div className="absolute -top-1 -right-1 h-6 w-6 bg-orange-500 rounded-full animate-pulse" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-bold text-lg">
-                        {launchDisplay.daysUntilOpen === 1 ? 'Launch tomorrow!' : `Launch in ${launchDisplay.daysUntilOpen} days!`}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {launchDisplay.name}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* State 5: Live */}
-              {!launchesLoading && launchDisplay && launchDisplay.launchState === 'live' && (
-                <div className="relative overflow-hidden bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-lg p-4">
-                  <div className="absolute inset-0 bg-green-500/5 animate-pulse" />
-                  <div className="relative flex items-center gap-4">
-                    <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse" />
-                    <div className="flex-1">
-                      <p className="font-bold text-lg flex items-center gap-2">
-                        <span className="text-green-600 dark:text-green-400">● LIVE NOW</span>
-                        <span>•</span>
-                        <span>{launchDisplay.daysUntilClose} days left</span>
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {launchDisplay.name}
-                      </p>
-                    </div>
-                  </div>
-                  {launchDisplay.revenue_goal && (
-                    <div className="mt-3 space-y-1">
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Revenue Goal</span>
-                        <span>${launchDisplay.revenue_goal.toLocaleString()}</span>
-                      </div>
-                      <div className="relative h-2 w-full overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-green-400 to-emerald-600 transition-all"
-                          style={{ width: '0%' }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* State 6: Just Closed */}
-              {!launchesLoading && launchDisplay && launchDisplay.launchState === 'closed' && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{launchDisplay.name}</span>
-                    <span className="text-xs bg-muted px-2 py-1 rounded">
-                      Completed
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Launch closed on {launchDisplay.cartClosesFormatted}
-                  </p>
-                  <Button variant="outline" size="sm" className="gap-2 group" asChild>
-                    <Link to={`/launches/${launchDisplay.id}/debrief`}>
-                      Complete Debrief
-                      <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                    </Link>
-                  </Button>
-                </div>
-              )}
-            </WidgetCard>
+                
+                {/* Full-width Active Launch Widget */}
+                <ActiveLaunchWidget 
+                  launch={launchDisplay}
+                  gradientClass="from-orange-500/5"
+                />
+              </LaunchZone>
+            )}
 
             {/* Sales Goal Tracker */}
             <SalesGoalTrackerWidget 
