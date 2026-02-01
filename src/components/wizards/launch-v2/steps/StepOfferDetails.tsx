@@ -1,5 +1,5 @@
-// Step 3: Offer Details (Q7-Q10)
-// Captures pricing, ideal customer, bonuses, and limitations
+// Step 3: Offer Details - ENHANCED with pricing structure and offer stack
+// Captures pricing, payment plans, ideal customer, bonuses, and limitations
 
 import { useState } from 'react';
 import { Label } from '@/components/ui/label';
@@ -7,18 +7,53 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Users, Gift, Lock, Plus, AlertTriangle } from 'lucide-react';
+import { 
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { 
+  DollarSign, 
+  Users, 
+  Gift, 
+  Lock, 
+  Plus, 
+  AlertTriangle,
+  ChevronDown,
+  CreditCard,
+  ShoppingCart,
+  Shield,
+  Sparkles,
+  Tag,
+  TrendingUp,
+} from 'lucide-react';
 import {
   LaunchWizardV2Data,
   HasLimitations,
   HAS_LIMITATIONS_OPTIONS,
   BonusItem,
+  OfferPricing,
+  OfferStack,
+  OrderBump,
+  Upsell,
+  DEFAULT_OFFER_PRICING,
+  DEFAULT_OFFER_STACK,
 } from '@/types/launchV2';
 import { calculateSalesNeeded } from '@/lib/launchV2Validation';
 import { BonusItemCard } from '@/components/wizards/shared/BonusItemCard';
+import { PaymentPlanBuilder } from '@/components/wizards/launch-v2/shared/PaymentPlanBuilder';
+import { OrderBumpCard } from '@/components/wizards/launch-v2/shared/OrderBumpCard';
+import { UpsellCard } from '@/components/wizards/launch-v2/shared/UpsellCard';
 import { parseISO, isAfter } from 'date-fns';
 
 interface StepOfferDetailsProps {
@@ -26,15 +61,35 @@ interface StepOfferDetailsProps {
   onChange: (updates: Partial<LaunchWizardV2Data>) => void;
 }
 
+const GUARANTEE_TYPE_OPTIONS = [
+  { value: 'money-back', label: 'Money-Back Guarantee' },
+  { value: 'results', label: 'Results Guarantee' },
+  { value: 'satisfaction', label: 'Satisfaction Guarantee' },
+  { value: 'none', label: 'No Guarantee' },
+  { value: 'other', label: 'Other' },
+] as const;
+
 export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
   const [newBonusName, setNewBonusName] = useState('');
+  const [specialPricingOpen, setSpecialPricingOpen] = useState(false);
+  const [offerStackOpen, setOfferStackOpen] = useState(false);
 
-  const handlePriceChange = (value: string) => {
-    const price = value ? parseFloat(value) : null;
-    onChange({
-      pricePoint: price,
-      salesNeeded: calculateSalesNeeded(data.customRevenueGoal, price),
+  // Ensure offerPricing and offerStack exist with defaults
+  const offerPricing = data.offerPricing || DEFAULT_OFFER_PRICING;
+  const offerStack = data.offerStack || DEFAULT_OFFER_STACK;
+
+  const handlePricingChange = (updates: Partial<OfferPricing>) => {
+    const newPricing = { ...offerPricing, ...updates };
+    onChange({ 
+      offerPricing: newPricing,
+      // Also update legacy pricePoint for compatibility
+      pricePoint: newPricing.fullPrice,
+      salesNeeded: calculateSalesNeeded(data.customRevenueGoal, newPricing.fullPrice),
     });
+  };
+
+  const handleOfferStackChange = (updates: Partial<OfferStack>) => {
+    onChange({ offerStack: { ...offerStack, ...updates } });
   };
 
   const offerTypeLabel = data.offerType === 'other' 
@@ -47,7 +102,7 @@ export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
     const newBonus: BonusItem = {
       id: crypto.randomUUID(),
       name: newBonusName.trim(),
-      status: 'existing', // Default to existing
+      status: 'existing',
     };
     onChange({ bonusStack: [...(data.bonusStack || []), newBonus] });
     setNewBonusName('');
@@ -62,6 +117,50 @@ export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
 
   const handleRemoveBonus = (id: string) => {
     onChange({ bonusStack: (data.bonusStack || []).filter(b => b.id !== id) });
+  };
+
+  // Order bump handlers
+  const handleAddOrderBump = () => {
+    const newBump: OrderBump = {
+      id: crypto.randomUUID(),
+      name: '',
+      price: 0,
+      description: '',
+    };
+    handleOfferStackChange({ orderBumps: [...offerStack.orderBumps, newBump] });
+  };
+
+  const handleUpdateOrderBump = (id: string, updates: Partial<OrderBump>) => {
+    const updated = offerStack.orderBumps.map(b => 
+      b.id === id ? { ...b, ...updates } : b
+    );
+    handleOfferStackChange({ orderBumps: updated });
+  };
+
+  const handleRemoveOrderBump = (id: string) => {
+    handleOfferStackChange({ orderBumps: offerStack.orderBumps.filter(b => b.id !== id) });
+  };
+
+  // Upsell handlers
+  const handleAddUpsell = () => {
+    const newUpsell: Upsell = {
+      id: crypto.randomUUID(),
+      name: '',
+      price: 0,
+      showWhen: 'post-purchase',
+    };
+    handleOfferStackChange({ upsells: [...offerStack.upsells, newUpsell] });
+  };
+
+  const handleUpdateUpsell = (id: string, updates: Partial<Upsell>) => {
+    const updated = offerStack.upsells.map(u => 
+      u.id === id ? { ...u, ...updates } : u
+    );
+    handleOfferStackChange({ upsells: updated });
+  };
+
+  const handleRemoveUpsell = (id: string) => {
+    handleOfferStackChange({ upsells: offerStack.upsells.filter(u => u.id !== id) });
   };
 
   // Check for bonuses that need creation with deadlines after cart opens
@@ -94,55 +193,68 @@ export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
         />
       </div>
 
-      {/* Q7: Pricing */}
+      {/* SECTION 1: Core Pricing */}
       <div className="space-y-4">
         <Label className="text-lg font-semibold flex items-center gap-2">
           <DollarSign className="h-5 w-5" />
-          How much are you charging?
+          Pricing Structure
         </Label>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Full Price */}
           <div className="space-y-2">
-            <Label htmlFor="price-point" className="text-sm text-muted-foreground">
-              Price
+            <Label htmlFor="full-price" className="text-sm text-muted-foreground">
+              Full Price (pay-in-full)
             </Label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
               <Input
-                id="price-point"
+                id="full-price"
                 type="number"
                 min="0"
                 step="1"
-                value={data.pricePoint ?? ''}
-                onChange={(e) => handlePriceChange(e.target.value)}
+                value={offerPricing.fullPrice ?? ''}
+                onChange={(e) => handlePricingChange({ 
+                  fullPrice: e.target.value ? parseFloat(e.target.value) : null 
+                })}
                 className="pl-7"
                 placeholder="997"
               />
             </div>
           </div>
 
+          {/* Original Value (optional) */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="payment-plan" className="text-sm text-muted-foreground">
-                Payment plan available?
-              </Label>
-              <Switch
-                id="payment-plan"
-                checked={data.hasPaymentPlan}
-                onCheckedChange={(checked) => onChange({ hasPaymentPlan: checked })}
+            <Label htmlFor="original-value" className="text-sm text-muted-foreground flex items-center gap-1">
+              Original Value
+              <span className="text-xs">(optional - for anchoring)</span>
+            </Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+              <Input
+                id="original-value"
+                type="number"
+                min="0"
+                step="1"
+                value={offerPricing.originalValue ?? ''}
+                onChange={(e) => handlePricingChange({ 
+                  originalValue: e.target.value ? parseFloat(e.target.value) : null 
+                })}
+                className="pl-7"
+                placeholder="2,997"
               />
             </div>
-            {data.hasPaymentPlan && (
-              <Input
-                id="payment-plan-details"
-                value={data.paymentPlanDetails}
-                onChange={(e) => onChange({ paymentPlanDetails: e.target.value })}
-                placeholder="e.g., 3 payments of $349"
-                className="mt-2"
-              />
-            )}
           </div>
         </div>
+
+        {/* Value comparison hint */}
+        {offerPricing.originalValue && offerPricing.fullPrice && offerPricing.originalValue > offerPricing.fullPrice && (
+          <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+            <p className="text-sm text-green-800 dark:text-green-200">
+              💰 <strong>That's {Math.round((1 - offerPricing.fullPrice / offerPricing.originalValue) * 100)}% off!</strong> You can show customers they're saving ${(offerPricing.originalValue - offerPricing.fullPrice).toLocaleString()}.
+            </p>
+          </div>
+        )}
 
         {/* Sales needed calculation */}
         {data.salesNeeded > 0 && (
@@ -162,7 +274,160 @@ export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
         )}
       </div>
 
-      {/* Q8: Ideal Customer */}
+      {/* SECTION 2: Payment Plans */}
+      <div className="space-y-4">
+        <PaymentPlanBuilder
+          plans={offerPricing.paymentPlans}
+          fullPrice={offerPricing.fullPrice}
+          onChange={(plans) => handlePricingChange({ paymentPlans: plans })}
+        />
+      </div>
+
+      {/* SECTION 3: Special Pricing (Collapsible) */}
+      <Collapsible open={specialPricingOpen} onOpenChange={setSpecialPricingOpen}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="w-full justify-between p-4 h-auto">
+            <span className="flex items-center gap-2 font-medium">
+              <Tag className="h-4 w-4" />
+              Special Pricing (Early Bird, Waitlist, VIP)
+            </span>
+            <ChevronDown className={`h-4 w-4 transition-transform ${specialPricingOpen ? 'rotate-180' : ''}`} />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-4 pt-2">
+          {/* Early Bird */}
+          <Card className="bg-muted/30">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="early-bird-toggle" className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-amber-500" />
+                  Early Bird Pricing
+                </Label>
+                <Switch
+                  id="early-bird-toggle"
+                  checked={offerPricing.hasEarlyBirdPrice}
+                  onCheckedChange={(checked) => handlePricingChange({ hasEarlyBirdPrice: checked })}
+                />
+              </div>
+              {offerPricing.hasEarlyBirdPrice && (
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="early-bird-price" className="text-xs text-muted-foreground">Price</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                      <Input
+                        id="early-bird-price"
+                        type="number"
+                        min="0"
+                        value={offerPricing.earlyBirdPrice ?? ''}
+                        onChange={(e) => handlePricingChange({ 
+                          earlyBirdPrice: e.target.value ? parseFloat(e.target.value) : null 
+                        })}
+                        className="pl-7"
+                        placeholder="797"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="early-bird-deadline" className="text-xs text-muted-foreground">Expires</Label>
+                    <Input
+                      id="early-bird-deadline"
+                      type="date"
+                      value={offerPricing.earlyBirdDeadline}
+                      onChange={(e) => handlePricingChange({ earlyBirdDeadline: e.target.value })}
+                    />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Waitlist Pricing */}
+          <Card className="bg-muted/30">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="waitlist-toggle" className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-blue-500" />
+                  Waitlist-Only Pricing
+                </Label>
+                <Switch
+                  id="waitlist-toggle"
+                  checked={offerPricing.hasWaitlistPrice}
+                  onCheckedChange={(checked) => handlePricingChange({ hasWaitlistPrice: checked })}
+                />
+              </div>
+              {offerPricing.hasWaitlistPrice && (
+                <div className="space-y-1.5 mt-3">
+                  <Label htmlFor="waitlist-price" className="text-xs text-muted-foreground">Special price for waitlist subscribers</Label>
+                  <div className="relative w-1/2">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                    <Input
+                      id="waitlist-price"
+                      type="number"
+                      min="0"
+                      value={offerPricing.waitlistPrice ?? ''}
+                      onChange={(e) => handlePricingChange({ 
+                        waitlistPrice: e.target.value ? parseFloat(e.target.value) : null 
+                      })}
+                      className="pl-7"
+                      placeholder="897"
+                    />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* VIP Tier */}
+          <Card className="bg-muted/30">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="vip-toggle" className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-purple-500" />
+                  VIP/Premium Tier
+                </Label>
+                <Switch
+                  id="vip-toggle"
+                  checked={offerPricing.hasVipTier}
+                  onCheckedChange={(checked) => handlePricingChange({ hasVipTier: checked })}
+                />
+              </div>
+              {offerPricing.hasVipTier && (
+                <div className="space-y-3 mt-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="vip-price" className="text-xs text-muted-foreground">VIP Price</Label>
+                    <div className="relative w-1/2">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                      <Input
+                        id="vip-price"
+                        type="number"
+                        min="0"
+                        value={offerPricing.vipPrice ?? ''}
+                        onChange={(e) => handlePricingChange({ 
+                          vipPrice: e.target.value ? parseFloat(e.target.value) : null 
+                        })}
+                        className="pl-7"
+                        placeholder="2,497"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="vip-includes" className="text-xs text-muted-foreground">What's included in VIP?</Label>
+                    <Input
+                      id="vip-includes"
+                      value={offerPricing.vipIncludes}
+                      onChange={(e) => handlePricingChange({ vipIncludes: e.target.value })}
+                      placeholder="e.g., 1:1 coaching calls, private Slack access, done-for-you templates"
+                    />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* Ideal Customer */}
       <div className="space-y-3">
         <Label htmlFor="ideal-customer" className="text-lg font-semibold flex items-center gap-2">
           <Users className="h-5 w-5" />
@@ -184,7 +449,7 @@ export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
         </p>
       </div>
 
-      {/* Q9: Bonus Stack */}
+      {/* Bonus Stack */}
       <div className="space-y-4">
         <Label className="text-lg font-semibold flex items-center gap-2">
           <Gift className="h-5 w-5" />
@@ -255,7 +520,155 @@ export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
         )}
       </div>
 
-      {/* Q10: Limitations */}
+      {/* SECTION 4: Offer Stack (Collapsible) */}
+      <Collapsible open={offerStackOpen} onOpenChange={setOfferStackOpen}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="w-full justify-between p-4 h-auto">
+            <span className="flex items-center gap-2 font-medium">
+              <ShoppingCart className="h-4 w-4" />
+              Offer Stack (Order Bumps, Upsells, Guarantee)
+            </span>
+            <ChevronDown className={`h-4 w-4 transition-transform ${offerStackOpen ? 'rotate-180' : ''}`} />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-6 pt-2">
+          {/* Order Bumps */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="font-medium flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Order Bumps
+              </Label>
+              <Button type="button" variant="outline" size="sm" onClick={handleAddOrderBump}>
+                <Plus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Small add-ons shown at checkout (typically $17-$97)
+            </p>
+            {offerStack.orderBumps.map((bump) => (
+              <OrderBumpCard
+                key={bump.id}
+                bump={bump}
+                onUpdate={(updates) => handleUpdateOrderBump(bump.id, updates)}
+                onRemove={() => handleRemoveOrderBump(bump.id)}
+              />
+            ))}
+          </div>
+
+          {/* Upsells */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="font-medium flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Upsells
+              </Label>
+              <Button type="button" variant="outline" size="sm" onClick={handleAddUpsell}>
+                <Plus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Higher-value offers shown during or after checkout
+            </p>
+            {offerStack.upsells.map((upsell) => (
+              <UpsellCard
+                key={upsell.id}
+                upsell={upsell}
+                onUpdate={(updates) => handleUpdateUpsell(upsell.id, updates)}
+                onRemove={() => handleRemoveUpsell(upsell.id)}
+              />
+            ))}
+          </div>
+
+          {/* Downsell */}
+          <Card className="bg-muted/30">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="downsell-toggle" className="flex items-center gap-2">
+                  <Tag className="h-4 w-4" />
+                  Downsell for Non-Buyers
+                </Label>
+                <Switch
+                  id="downsell-toggle"
+                  checked={offerStack.hasDownsell}
+                  onCheckedChange={(checked) => handleOfferStackChange({ hasDownsell: checked })}
+                />
+              </div>
+              {offerStack.hasDownsell && (
+                <div className="space-y-1.5 mt-3">
+                  <Label htmlFor="downsell-details" className="text-xs text-muted-foreground">
+                    What will you offer people who don't buy?
+                  </Label>
+                  <Input
+                    id="downsell-details"
+                    value={offerStack.downsellDetails}
+                    onChange={(e) => handleOfferStackChange({ downsellDetails: e.target.value })}
+                    placeholder="e.g., $47 mini-course, payment plan, lower-tier offer"
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Guarantee */}
+          <Card className="bg-muted/30">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Guarantee
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="guarantee-type" className="text-xs text-muted-foreground">Type</Label>
+                  <Select
+                    value={offerStack.guaranteeType}
+                    onValueChange={(value) => handleOfferStackChange({ 
+                      guaranteeType: value as OfferStack['guaranteeType'] 
+                    })}
+                  >
+                    <SelectTrigger id="guarantee-type">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {GUARANTEE_TYPE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="guarantee-duration" className="text-xs text-muted-foreground">Duration</Label>
+                  <Input
+                    id="guarantee-duration"
+                    value={offerStack.guaranteeDuration}
+                    onChange={(e) => handleOfferStackChange({ guaranteeDuration: e.target.value })}
+                    placeholder="e.g., 30 days, 60 days"
+                  />
+                </div>
+              </div>
+              {offerStack.guaranteeType !== 'none' && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="guarantee-details" className="text-xs text-muted-foreground">Details (what do they get?)</Label>
+                  <Input
+                    id="guarantee-details"
+                    value={offerStack.guaranteeDetails}
+                    onChange={(e) => handleOfferStackChange({ guaranteeDetails: e.target.value })}
+                    placeholder="e.g., Full refund, no questions asked"
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* Limitations */}
       <div className="space-y-4">
         <Label className="text-lg font-semibold flex items-center gap-2">
           <Lock className="h-5 w-5" />
@@ -266,7 +679,6 @@ export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
           value={data.hasLimitations}
           onValueChange={(value) => onChange({ 
             hasLimitations: value as HasLimitations,
-            // Clear spot limit if not limited spots
             ...(value !== 'limited-spots' ? { spotLimit: null } : {}),
           })}
           className="space-y-3"
@@ -334,16 +746,26 @@ export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
       </div>
 
       {/* Summary Card */}
-      {data.name && data.pricePoint && (
+      {data.name && offerPricing.fullPrice && (
         <Card className="bg-muted/50">
           <CardContent className="p-4">
             <p className="text-sm font-medium mb-2">Your offer at a glance:</p>
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary">{data.name}</Badge>
-              <Badge variant="outline">${data.pricePoint}</Badge>
-              {data.hasPaymentPlan && (
+              <Badge variant="outline">${offerPricing.fullPrice.toLocaleString()}</Badge>
+              {offerPricing.paymentPlans.length > 0 && (
                 <Badge variant="outline" className="border-green-500 text-green-600">
-                  Payment plan
+                  {offerPricing.paymentPlans.length} payment plan{offerPricing.paymentPlans.length > 1 ? 's' : ''}
+                </Badge>
+              )}
+              {offerPricing.hasEarlyBirdPrice && (
+                <Badge variant="outline" className="border-amber-500 text-amber-600">
+                  Early bird
+                </Badge>
+              )}
+              {offerPricing.hasVipTier && (
+                <Badge variant="outline" className="border-purple-500 text-purple-600">
+                  VIP tier
                 </Badge>
               )}
               {data.hasLimitations === 'limited-spots' && data.spotLimit && (
@@ -354,6 +776,17 @@ export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
               {(data.bonusStack?.length ?? 0) > 0 && (
                 <Badge variant="outline" className="border-purple-500 text-purple-600">
                   + {data.bonusStack?.length} bonus{(data.bonusStack?.length ?? 0) > 1 ? 'es' : ''}
+                </Badge>
+              )}
+              {offerStack.orderBumps.length > 0 && (
+                <Badge variant="outline" className="border-blue-500 text-blue-600">
+                  {offerStack.orderBumps.length} bump{offerStack.orderBumps.length > 1 ? 's' : ''}
+                </Badge>
+              )}
+              {offerStack.guaranteeType !== 'none' && (
+                <Badge variant="outline" className="border-green-500 text-green-600">
+                  <Shield className="h-3 w-3 mr-1" />
+                  Guarantee
                 </Badge>
               )}
             </div>
