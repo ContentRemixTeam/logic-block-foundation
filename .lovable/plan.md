@@ -1,314 +1,411 @@
 
-# Pre-Implementation Clarifications
+# Week 2: Timeline Customization UI
 
-Thank you for approving the plan! Here are detailed clarifications on all 7 points before we begin Phase 1.
+## Overview
+
+This week we build the multi-level timeline customization system for the Launch Planner V2. The system transforms **Step 2 (Goal & Timeline)** from a simple date picker into an intelligent, adaptive interface with:
+
+- **Level 1 (Quick Setup)**: Suggested timeline with one-click acceptance
+- **Level 2 (Detailed Customization)**: Full 4-phase editing with real-time feedback
+
+## What Users Will Experience
+
+### Quick Setup Flow (Default)
+1. User selects cart opens date
+2. User picks timeline duration (2wk / 3-4wk / 5-6wk)
+3. User answers "Free event?" question
+4. System shows **Suggested Timeline card** with all 4 phases calculated
+5. User clicks **"Use These Dates"** → Done, moves to next question
+6. Or clicks **"Customize Instead"** → Expands to Level 2
+
+### Detailed Customization Flow
+When "Customize Instead" is clicked:
+- 4 phase cards appear (Runway, Pre-Launch, Cart Open, Post-Launch)
+- Each card shows dates, duration, intensity, and what happens
+- Real-time warnings for risky changes
+- Visual timeline bar showing all phases
+- Quick adjust buttons ("Add 1 week runway", etc.)
+- GAP blocking prompt when overlap detected
 
 ---
 
-## 1. Database Cascade: ON DELETE CASCADE for tasks.launch_id
+## New Components to Create
 
-**Decision**: Use `ON DELETE CASCADE` for `tasks.launch_id`
-
-**Rationale**: When a launch is deleted, all associated tasks should be removed automatically. This prevents orphaned tasks and maintains data integrity.
-
-**SQL Migration**:
-```sql
-ALTER TABLE public.tasks 
-ADD COLUMN IF NOT EXISTS launch_id UUID REFERENCES public.launches(id) ON DELETE CASCADE;
-```
-
-**Contrast with daily_plans/weekly_plans**: These will use `ON DELETE SET NULL` because deleting a launch shouldn't remove daily/weekly planning records—they still have value as historical data.
-
----
-
-## 2. THE GAP Warning: Explicit Prompt in StepGoalTimeline
-
-**Current State**: StepGoalTimeline already shows a warning when GAP is detected (lines 171-188), but it's informational only.
-
-**Enhancement**: Add an **acknowledgment prompt** with explicit action required:
-
+### 1. Timeline Directory Structure
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│ ⚠️ YOUR LAUNCH OVERLAPS WITH THE GAP                        │
-│                                                              │
-│ Your launch dates fall during weeks 3-4 of your 90-day      │
-│ cycle. This is when motivation typically dips.              │
-│                                                              │
-│ {gapResult.message}                                          │
-│                                                              │
-│ What would you like to do?                                   │
-│                                                              │
-│ ○ I understand the risk - continue with these dates         │
-│ ○ Adjust my timeline to avoid THE GAP [Auto-adjust dates]   │
-│ ○ Add extra support tasks (daily mindset check-ins)         │
-│                                                              │
-│ [x] I acknowledge this may require extra effort              │
-└─────────────────────────────────────────────────────────────┘
+src/components/wizards/launch-v2/timeline/
+├── index.ts                    # Exports
+├── TimelineQuickSetup.tsx      # Level 1 - suggested dates
+├── TimelinePhaseCard.tsx       # Reusable phase editor card
+├── TimelineCustomizer.tsx      # Level 2 - full editing
+├── TimelineVisualBar.tsx       # Horizontal phase visualization
+├── TimelineSummary.tsx         # Capacity & duration summary
+├── TimelineQuickAdjust.tsx     # Quick adjustment buttons
+├── FreeEventConfig.tsx         # Free event settings
+└── GapAcknowledgmentPrompt.tsx # Blocking GAP acknowledgment
 ```
-
-**Implementation**:
-- Add `gapAcknowledged: boolean` validation check (already in data model)
-- Block "Next" button until user selects an option
-- If "Add extra support tasks" is selected, set `gapSupportType` and auto-generate tasks in Step 8
-- If "Adjust timeline" is selected, auto-calculate safe dates and update fields
 
 ---
 
-## 3. Daily Offer Goal: Add getDailyOfferGoal() to launchHelpers
+## Component Specifications
 
-**New function specification**:
+### TimelineQuickSetup.tsx
+**Purpose**: Level 1 interface showing suggested timeline
 
+**Layout**:
+```text
+┌─────────────────────────────────────────────────────────┐
+│ SUGGESTED TIMELINE                                       │
+│                                                          │
+│ Based on your choices, here's what we suggest:           │
+│                                                          │
+│ ├─ Runway starts:    Feb 15                             │
+│ ├─ Pre-launch:       Feb 24                             │
+│ ├─ Cart opens:       Mar 1                              │
+│ └─ Cart closes:      Mar 8                              │
+│                                                          │
+│ [TimelineVisualBar - color-coded phases]                │
+│                                                          │
+│ Total promotion time: 22 days                           │
+│                                                          │
+│ [Use These Dates]  [Customize Instead]                  │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Behavior**:
+- Calls `calculateSuggestedTimeline()` from launchHelpers.ts
+- "Use These Dates" populates all phase fields and marks `useCustomTimeline: false`
+- "Customize Instead" sets `useCustomTimeline: true` and expands Level 2
+
+---
+
+### TimelinePhaseCard.tsx
+**Purpose**: Reusable card for editing a single phase
+
+**Props**:
 ```typescript
-/**
- * Calculates daily offer goal based on launch data
- * Formula: Total offers needed / Cart open days
- * 
- * @param launch - Active launch data
- * @returns { daily: number, remaining: number, completed: number }
- */
-function getDailyOfferGoal(launch: ActiveLaunch): {
-  daily: number;        // Target offers per day
-  remaining: number;    // Offers still needed today
-  completed: number;    // Offers made today
-  onTrack: boolean;     // Whether pace is sufficient
+interface TimelinePhaseCardProps {
+  phase: 'runway' | 'pre-launch' | 'cart-open' | 'post-launch';
+  startDate: string;
+  endDate: string;
+  onStartChange: (date: string) => void;
+  onEndChange: (date: string) => void;
+  minStartDate?: string;  // Constraint from previous phase
+  maxEndDate?: string;    // Constraint from next phase
+  isGapAffected?: boolean;
+  warnings?: string[];
 }
 ```
 
-**Logic**:
-1. Get `offer_goal` from launch (total offers planned for cart open period)
-2. Calculate `cartOpenDays` = difference between cart_opens and cart_closes
-3. `daily = Math.ceil(offer_goal / cartOpenDays)`
-4. Query `daily_plans.made_offer` for today to get `completed`
-5. `remaining = Math.max(0, daily - completed)`
-6. `onTrack = completed >= daily` for the day
-
-**Usage in Daily Plan**:
+**Layout**:
 ```text
-🎯 Today's Offer Goal: 3 offers
-   ○ ○ ○  (0 of 3 complete)
-   
-   [Log an Offer]
+┌─────────────────────────────────────────────────────────┐
+│ 🚀 RUNWAY                                     LOW       │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│ Start: [Feb 15 ▾]    End: [Feb 23 ▾]                    │
+│                                                          │
+│ Duration: 9 days · ~30 min/day                          │
+│                                                          │
+│ What happens:                                            │
+│ • Build buzz quietly                                    │
+│ • Segment your list                                     │
+│ • Prep your free event (if doing one)                   │
+│                                                          │
+│ ⚠️ Warning (if any)                                     │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Features**:
+- Native HTML5 date pickers
+- Auto-calculates duration
+- Shows intensity badge (LOW/MEDIUM/HIGH)
+- Highlights if GAP-affected (amber border)
+- Shows phase-specific "what happens" bullets
+
+---
+
+### TimelineCustomizer.tsx
+**Purpose**: Level 2 container orchestrating all phase cards
+
+**Props**:
+```typescript
+interface TimelineCustomizerProps {
+  data: LaunchWizardV2Data;
+  onChange: (updates: Partial<LaunchWizardV2Data>) => void;
+  onCollapse: () => void;  // Return to Level 1
+  gapResult: GapOverlapResult | null;
+}
+```
+
+**Layout (Desktop)**:
+- 4 TimelinePhaseCards stacked vertically
+- TimelineVisualBar at top
+- TimelineSummary at bottom
+- TimelineQuickAdjust buttons between cards
+
+**Layout (Mobile)**:
+- Opens in Vaul Drawer
+- Single scrollable column
+- Fixed footer with [Cancel] [Apply Changes]
+- 44px touch targets
+
+---
+
+### TimelineVisualBar.tsx
+**Purpose**: Horizontal visual representation of all phases
+
+**Layout**:
+```text
+FEB 15 ────────────────────────────────── MAR 15
+ ╔═══════╗╔════════════╗╔═════════╗╔════════╗
+ ║RUNWAY ║║ PRE-LAUNCH ║║CART OPEN║║ POST   ║
+ ╚═══════╝╚════════════╝╚═════════╝╚════════╝
+   9 days     6 days       7 days    7 days
+```
+
+**Features**:
+- Color-coded: Runway (blue), Pre-Launch (purple), Cart (green), Post (gray)
+- Shows GAP period in amber if overlapping
+- Hover/tap shows exact dates
+- Mobile: Collapses to vertical list
+
+---
+
+### TimelineSummary.tsx
+**Purpose**: Capacity check and time commitment summary
+
+**Layout**:
+```text
+┌─────────────────────────────────────────────────────────┐
+│ 📊 LAUNCH CAPACITY SUMMARY                               │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│ TOTAL: 22 days · ~45 hours                              │
+│                                                          │
+│ Phase breakdown:                                         │
+│ Runway ······· 9 days ········ 30 min/day ···· LOW      │
+│ Pre-Launch ··· 6 days ······ 1.5 hrs/day ··· MEDIUM     │
+│ Cart Open ···· 7 days ········ 2 hrs/day ···· HIGH      │
+│ Post-Launch ·· 7 days ········ 1 hr/day ···· MEDIUM     │
+│                                                          │
+│ INTENSITY:                                               │
+│ ▁▂▂▃▅▆▇▇▇▅▃▂▁                                           │
+│ LOW → HIGH → MEDIUM                                      │
+│                                                          │
+│ ✅ This timeline looks manageable                        │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Data Source**: Uses `calculateTotalLaunchTime()` from launchHelpers.ts
+
+---
+
+### TimelineQuickAdjust.tsx
+**Purpose**: Quick adjustment buttons for common changes
+
+**Buttons**:
+- "Add 1 week runway" - Extends runway start by 7 days
+- "Extend pre-launch by 3 days" - Gives more promotion time
+- "Shorten cart to 5 days" - Creates urgency
+
+**Behavior**: Each button recalculates and shows preview before applying
+
+---
+
+### FreeEventConfig.tsx
+**Purpose**: Configure optional free event (webinar, workshop, etc.)
+
+**Layout**:
+```text
+┌─────────────────────────────────────────────────────────┐
+│ 🎯 FREE EVENT (Optional)                                 │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│ Are you doing a free event?  ○ No  ● Yes                │
+│                                                          │
+│ If yes:                                                  │
+│ Event type: [Webinar ▾]                                 │
+│ Date: [Mar 1 ▾]                                         │
+│ Time: [2:00 PM ▾]                                       │
+│                                                          │
+│ Which phase?                                             │
+│ ○ During Runway                                          │
+│ ● During Pre-Launch (recommended)                        │
+│ ○ During Cart Open                                       │
+│                                                          │
+│ 💡 Pre-launch is best. You've built buzz and now        │
+│    they attend the free event right before cart opens.  │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 4. TimelineSummary: Capacity Check Card UI
+### GapAcknowledgmentPrompt.tsx
+**Purpose**: Blocking prompt when GAP overlap is detected
 
-**Component Structure**:
-
+**Layout**:
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│ 📊 LAUNCH CAPACITY SUMMARY                                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│ TOTAL PROMOTION TIME: 22 days                               │
-│                                                              │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ PHASE BREAKDOWN                                          │ │
-│ │                                                          │ │
-│ │ Runway ······· 9 days ·········· 30 min/day ···· LOW    │ │
-│ │ Pre-Launch ··· 6 days ········ 1.5 hrs/day ··· MEDIUM   │ │
-│ │ Cart Open ···· 7 days ·········· 2 hrs/day ···· HIGH    │ │
-│ │ Post-Launch ·· 7 days ·········· 1 hr/day ···· MEDIUM   │ │
-│ │                                                          │ │
-│ │ TOTAL: ~45 hours over 22 days                           │ │
-│ └─────────────────────────────────────────────────────────┘ │
-│                                                              │
-│ INTENSITY PROGRESSION:                                       │
-│ ▁▂▂▂▃▅▆▇▇▇▇▇▅▃▂▁                                            │
-│ LOW → MEDIUM → HIGH → MEDIUM                                 │
-│                                                              │
-│ CAPACITY CHECK:                                              │
-│ Based on your 90-day cycle data, you average 2.5 hrs/day     │
-│ on business tasks.                                           │
-│                                                              │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ ✅ You have capacity for this launch                     │ │
-│ │    Peak demand (2 hrs/day) fits within your average.    │ │
-│ └─────────────────────────────────────────────────────────┘ │
-│                                                              │
-│ RECOMMENDATIONS:                                             │
-│ • Consider blocking "deep work" time during Cart Open phase │
-│ • Schedule lighter client work during launch week           │
-│ • Your GAP overlap requires extra mindset support           │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│ ⚠️ YOUR LAUNCH OVERLAPS WITH THE GAP                     │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│ Your launch dates fall during weeks 3-4 of your 90-day  │
+│ cycle. This is when motivation typically dips.           │
+│                                                          │
+│ What would you like to do?                               │
+│                                                          │
+│ ○ I understand the risk - continue with these dates     │
+│ ○ Adjust my timeline to avoid THE GAP                   │
+│   → Suggested: Move cart open to [Mar 15] (7 days later)│
+│ ○ Add extra support tasks (daily mindset check-ins)     │
+│                                                          │
+│ [x] I acknowledge this may require extra effort          │
+│                                                          │
+│ [Continue]                                               │
+└─────────────────────────────────────────────────────────┘
 ```
 
-**Data Sources**:
-- `getPhaseTaskEstimate()` for task counts and time estimates
-- User's `daily_plans` history for capacity baseline (optional enhancement)
-- GAP detection result for recommendations
-
-**Mobile Layout**: Stacks vertically with collapsible sections for phase breakdown and recommendations.
+**Behavior**:
+- Blocks "Next" until user selects option + checks acknowledgment
+- "Adjust timeline" auto-calculates safe dates using `calculateGapAdjustment()`
+- "Add support" sets `gapSupportType` for task generation
 
 ---
 
-## 5. Weekly Metrics: Exact Fields
+## Modified Files
 
-Based on the existing Weekly Plan structure (lines 73-114 in WeeklyPlan.tsx), here are the **launch-specific weekly metrics**:
+### StepGoalTimeline.tsx (Major Refactor)
 
-**New Fields for weekly_plans table**:
+**Current State**: Simple date pickers + revenue goal
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `launch_offers_made` | INTEGER | Total offers made this week |
-| `launch_sales_count` | INTEGER | Number of sales closed this week |
-| `launch_revenue_logged` | NUMERIC | Revenue from sales this week |
-| `launch_conversion_percent` | NUMERIC | (sales / offers) * 100 |
-| `launch_phase_this_week` | TEXT | 'runway' / 'pre-launch' / 'cart-open' / 'post-launch' |
-| `launch_week_reflection` | TEXT (500 chars) | "What worked? What didn't?" |
-| `launch_confidence_rating` | INTEGER (1-10) | Confidence in hitting launch goal |
+**New Structure**:
+1. 90-Day Cycle Context card (existing)
+2. Timeline duration question (existing)
+3. Cart opens date picker (existing)
+4. **NEW**: Free event toggle + config
+5. **NEW**: TimelineQuickSetup (Level 1)
+6. **NEW**: TimelineCustomizer (Level 2, conditional)
+7. **NEW**: GapAcknowledgmentPrompt (conditional)
+8. Revenue goal tier (existing)
 
-**LaunchWeeklyMetrics Card UI**:
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ 🚀 LAUNCH WEEK METRICS                                       │
-│    Phase: CART OPEN (Week 2 of 2)                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│ ┌───────────┐  ┌───────────┐  ┌───────────┐                 │
-│ │    12     │  │     3     │  │   25%     │                 │
-│ │  Offers   │  │   Sales   │  │ Convert   │                 │
-│ └───────────┘  └───────────┘  └───────────┘                 │
-│                                                              │
-│ Revenue This Week: $1,500 / $5,000 goal (30%)               │
-│ ████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░                    │
-│                                                              │
-│ Confidence Rating:                                           │
-│ [ 1 ○ ○ ○ ○ ○ ● ○ ○ ○ 10 ]  Currently: 7                    │
-│                                                              │
-│ Week Reflection:                                             │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ What worked? What didn't? (500 chars)                    │ │
-│ │ _______________________________________________________  │ │
-│ └─────────────────────────────────────────────────────────┘ │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
-```
+**Validation Update**: Step 2 validation must check phase dates are set
 
 ---
 
-## 6. Launch Zone: Widget Grouping & Customization UX
+### launchV2Validation.ts (Update)
 
-**Decision**: Widgets are **grouped within a "Launch Zone" container** but can be individually hidden.
-
-**Layout Structure**:
-
-```text
-DASHBOARD LAYOUT
-
-┌─────────────────────────────────────────────┬──────────────┐
-│                MAIN COLUMN                  │   SIDEBAR    │
-├─────────────────────────────────────────────┼──────────────┤
-│                                             │              │
-│  [Quarter Progress Widget]                  │ [Diagnostic] │
-│                                             │              │
-│  [Planning Next Steps]                      │ [Habits]     │
-│                                             │              │
-│  ┌─────────────────────────────────────────┐│              │
-│  │ 🚀 ACTIVE LAUNCH ZONE                   ││ [Quick Wins] │
-│  │                                         ││              │
-│  │  ┌──────────────┐ ┌──────────────────┐  ││              │
-│  │  │ Launch       │ │ Phase            │  ││              │
-│  │  │ Countdown    │ │ Reminder         │  ││              │
-│  │  └──────────────┘ └──────────────────┘  ││              │
-│  │                                         ││              │
-│  │  ┌─────────────────────────────────────┐││              │
-│  │  │ Active Launch Widget (main card)    │││              │
-│  │  │ - Revenue progress                  │││              │
-│  │  │ - Task completion                   │││              │
-│  │  │ - Quick actions                     │││              │
-│  │  └─────────────────────────────────────┘││              │
-│  └─────────────────────────────────────────┘│              │
-│                                             │              │
-│  [90-Day Goal Widget]                       │              │
-│                                             │              │
-│  [Sales Goal Tracker]                       │              │
-│                                             │              │
-└─────────────────────────────────────────────┴──────────────┘
-```
-
-**Customization Rules**:
-- Launch Zone **auto-appears** when user has active launch (`launches` table with `cart_closes >= today`)
-- Launch Zone **auto-hides** when no active launches
-- Within the zone, each widget can be toggled via the existing "Customize" button (using `user_settings.dashboard_widgets` JSONB)
-- On mobile: Launch Zone stacks at top with horizontal scroll for sub-widgets
-
-**Implementation**:
-- Wrap 3 widgets in a single `LaunchZone` container component
-- LaunchZone conditionally renders based on `useActiveLaunches().data.length > 0`
+Add validation for new phase fields:
+- If `useCustomTimeline: true`, require all 4 phase dates
+- Validate phase sequence using `validatePhaseSequence()`
+- Check free event date is within selected phase
 
 ---
 
-## 7. Mobile-Specific Implementation Notes
+## Mobile Experience
+
+### Detection
+Uses existing `useIsMobile()` hook (768px breakpoint)
+
+### Mobile-Specific Behavior
+
+**TimelineCustomizer on Mobile**:
+```typescript
+// Opens in Drawer instead of inline
+if (isMobile) {
+  return (
+    <Drawer open={isCustomizing} onOpenChange={onToggle}>
+      <DrawerContent className="max-h-[85vh] overflow-y-auto">
+        <DrawerHeader>
+          <DrawerTitle>Customize Timeline</DrawerTitle>
+        </DrawerHeader>
+        <div className="px-4 pb-6">
+          {/* Phase cards stack vertically */}
+          {/* Fixed footer with buttons */}
+        </div>
+      </DrawerContent>
+    </Drawer>
+  );
+}
+```
 
 **Date Pickers**:
-- Use **native HTML5 date inputs** (`<input type="date">`) on mobile
-- Already used in StepGoalTimeline (lines 146-167) - no change needed
-- Native inputs provide best UX with device date pickers
+- Use native `<input type="date">` (already in codebase)
+- Mobile OS provides native date picker UI
 
-**Timeline Editing**:
-- **Desktop**: Inline phase cards with date pickers
-- **Mobile**: Use **Bottom Drawer** (Vaul) for timeline customization
-- When user taps "Customize Instead", open drawer with stacked phase cards
-
-**Mobile Timeline UI**:
-
-```text
-┌─────────────────────────────────────────┐
-│             CUSTOMIZE TIMELINE          │  ← Drawer Header
-├─────────────────────────────────────────┤
-│                                         │
-│  RUNWAY                                 │
-│  ┌─────────────────────────────────────┐│
-│  │ Start: [Feb 15 ▾]                   ││
-│  │ End:   [Feb 23 ▾]                   ││
-│  │ Duration: 9 days · LOW intensity    ││
-│  └─────────────────────────────────────┘│
-│                                         │
-│  PRE-LAUNCH                             │
-│  ┌─────────────────────────────────────┐│
-│  │ Start: [Feb 24 ▾]                   ││
-│  │ End:   [Mar 1 ▾]                    ││
-│  │ Duration: 6 days · MEDIUM intensity ││
-│  └─────────────────────────────────────┘│
-│                                         │
-│  ... (scrollable)                       │
-│                                         │
-│  ┌─────────────────────────────────────┐│
-│  │ [Cancel]  [Apply Changes]           ││  ← 44px touch targets
-│  └─────────────────────────────────────┘│
-└─────────────────────────────────────────┘
-```
-
-**Other Mobile Considerations**:
-- TimelineVisualBar: Becomes vertical list on mobile (phase cards)
-- TimelineSummary: Collapsible sections to reduce scrolling
-- All buttons: 44px minimum touch targets (existing standard)
-- Dashboard widgets: Single column stack with Launch Zone at top
+**Touch Targets**:
+- All buttons minimum 44px height
+- Phase cards have adequate spacing
+- Footer buttons are full-width
 
 ---
 
-## Summary: Ready to Start Phase 1
+## Implementation Order
 
-All clarifications are addressed. Here's the Phase 1 scope confirmation:
+### Day 1: Core Components
+1. Create `timeline/index.ts` with exports
+2. Create `TimelinePhaseCard.tsx` - reusable phase editor
+3. Create `TimelineVisualBar.tsx` - horizontal visualization
 
-**Week 1 Deliverables**:
+### Day 2: Level 1 & Level 2 Containers
+4. Create `TimelineQuickSetup.tsx` - suggested timeline UI
+5. Create `TimelineCustomizer.tsx` - full editing container
+6. Create `TimelineSummary.tsx` - capacity display
 
-| Day | Task |
-|-----|------|
-| 1-2 | Database migration: `launch_id` FK (CASCADE), phase columns, `active_launch_id` on daily/weekly plans |
-| 2-3 | Create `src/lib/launchHelpers.ts` with all helper functions including `getDailyOfferGoal()` |
-| 3 | Extend `gapDetection.ts` with phase recommendations and acknowledgment flow |
-| 3 | Update `src/types/launchV2.ts` with new fields |
+### Day 3: Supporting Components
+7. Create `TimelineQuickAdjust.tsx` - quick adjustment buttons
+8. Create `FreeEventConfig.tsx` - free event settings
+9. Create `GapAcknowledgmentPrompt.tsx` - blocking GAP UI
 
-**Phase 1 Verification Checklist**:
-- [ ] Database columns added and accessible via Supabase client
-- [ ] `getCurrentLaunchPhase()` returns correct phase for test dates
-- [ ] `getDailyOfferGoal()` calculates correctly
-- [ ] GAP detection returns actionable recommendations
-- [ ] Types compile without errors
+### Day 4: Integration & Polish
+10. Refactor `StepGoalTimeline.tsx` to integrate new components
+11. Update `launchV2Validation.ts` with phase validation
+12. Mobile testing and responsive adjustments
 
-Ready to begin Phase 1 implementation.
+---
+
+## Files Summary
+
+### New Files (9)
+```text
+src/components/wizards/launch-v2/timeline/index.ts
+src/components/wizards/launch-v2/timeline/TimelineQuickSetup.tsx
+src/components/wizards/launch-v2/timeline/TimelinePhaseCard.tsx
+src/components/wizards/launch-v2/timeline/TimelineCustomizer.tsx
+src/components/wizards/launch-v2/timeline/TimelineVisualBar.tsx
+src/components/wizards/launch-v2/timeline/TimelineSummary.tsx
+src/components/wizards/launch-v2/timeline/TimelineQuickAdjust.tsx
+src/components/wizards/launch-v2/timeline/FreeEventConfig.tsx
+src/components/wizards/launch-v2/timeline/GapAcknowledgmentPrompt.tsx
+```
+
+### Modified Files (2)
+```text
+src/components/wizards/launch-v2/steps/StepGoalTimeline.tsx
+src/lib/launchV2Validation.ts
+```
+
+---
+
+## Dependencies
+
+All dependencies are already installed:
+- `date-fns` - Date calculations
+- `vaul` - Mobile drawer
+- `@radix-ui/react-radio-group` - Option selection
+- Existing UI components (Card, Badge, Input, etc.)
+
+---
+
+## Verification Checklist
+
+- [ ] Level 1 shows suggested dates based on timeline selection
+- [ ] "Use These Dates" populates all phase fields correctly
+- [ ] "Customize Instead" expands to Level 2
+- [ ] Phase cards show correct intensity and duration
+- [ ] Date constraints prevent invalid sequences
+- [ ] GAP overlap triggers blocking acknowledgment prompt
+- [ ] Free event can be configured and placed in correct phase
+- [ ] TimelineVisualBar shows all phases at glance
+- [ ] Mobile opens in Drawer with proper touch targets
+- [ ] Validation prevents proceeding without required dates
