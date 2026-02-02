@@ -1,262 +1,325 @@
 
-# Editorial Calendar Implementation Plan
+# Feature Enhancement Plan: Dashboard Improvements & Coaching Tools
 
 ## Overview
 
-A visual drag-and-drop editorial calendar for planning content creation and publishing schedules. Features dual-lane scheduling (Create vs. Publish), content type icons, platform color coding, and bidirectional sync with tasks and wizards.
+This plan addresses gaps in the current implementation to add missing features for data persistence, error handling, and several new coaching/planning tools.
 
 ---
 
-## Architecture Summary
+## Features to Implement
 
-```text
-Week View Layout:
-┌──────────────────────────────────────────────────────────────────────────────────┐
-│  Editorial Calendar                              [< Week >]   [View: Publish ▾]  │
-├──────────────────────────────────────────────────────────────────────────────────┤
-│  Platforms: [IG] [LI] [YT] [Email] [Blog] [Podcast] [+ Configure]               │
-├────────┬────────┬────────┬────────┬────────┬────────┬────────┬──────────────────┤
-│  Mon   │  Tue   │  Wed   │  Thu   │  Fri   │  Sat   │  Sun   │   Unscheduled    │
-├────────┼────────┼────────┼────────┼────────┼────────┼────────┤──────────────────┤
-│ CREATE │ CREATE │ CREATE │ CREATE │ CREATE │ CREATE │ CREATE │  [📧 Newsletter] │
-│ (teal) │ (teal) │ (teal) │ (teal) │ (teal) │ (teal) │ (teal) │  [📱 IG Reel]    │
-│ ~~~~~~ │ ~~~~~~ │ ~~~~~~ │        │        │        │        │  [🎙️ Podcast]   │
-├────────┼────────┼────────┼────────┼────────┼────────┼────────┤                  │
-│PUBLISH │PUBLISH │PUBLISH │PUBLISH │PUBLISH │PUBLISH │PUBLISH │                  │
-│(purple)│(purple)│(purple)│(purple)│(purple)│(purple)│(purple)│                  │
-│ ~~~~~~ │        │ ~~~~~~ │        │ ~~~~~~ │        │        │                  │
-└────────┴────────┴────────┴────────┴────────┴────────┴────────┴──────────────────┘
-```
+### 1. Widget Order Persistence (Data Persistence Gap)
+
+**Current State**: Widgets can be toggled on/off but cannot be reordered by dragging.
+
+**Implementation**:
+- Add `widget_order` JSONB column to `user_settings` table
+- Extend `useDashboardWidgets` hook with ordering state
+- Add drag-and-drop reordering using existing `@dnd-kit` library
+- Save order to localStorage + server on drop
+
+**Files to Create/Modify**:
+- `src/hooks/useDashboardWidgets.tsx` - Add order state and persistence
+- `src/pages/Dashboard.tsx` - Add DnD context to widget areas
+- `supabase/migrations/` - Add `dashboard_widget_order` column
 
 ---
 
-## Key Requirements (from user feedback)
+### 2. Widget-Level Error Boundaries (Error Handling Gap)
 
-1. **Tasks → Calendar Integration**: Optional toggle when creating project tasks to add to Editorial Calendar with platform, content type, and dual dates
-2. **Dual-Lane Visual System**: Two distinct schedule colors (Create: teal, Publish: purple) per day
-3. **Content Type Icons**: Each content format uses its Lucide icon from existing `FORMAT_METADATA`
-4. **Platform Color Badges**: Derive colors from user platform settings, not stored on content rows
-5. **Schema Alignment**: Use existing columns (`planned_creation_date`, `planned_publish_date`, `channel`) instead of duplicating
+**Current State**: App has global error boundary, but individual widget failures could break the whole dashboard.
+
+**Implementation**:
+- Create `WidgetErrorBoundary` component with friendly fallback UI
+- Wrap each dashboard widget individually
+- Include "Retry" button in fallback
+
+**Files to Create**:
+- `src/components/dashboard/WidgetErrorBoundary.tsx`
+
+**Files to Modify**:
+- `src/pages/Dashboard.tsx` - Wrap widgets with error boundaries
 
 ---
 
-## Database Changes
+### 3. Simplification Assistant
 
-### 1. New Table: `user_content_platforms`
-Stores user's active platforms with custom colors.
+**Purpose**: Alert users when their plan is over-committed and suggest simplified alternatives.
+
+**Triggers**:
+- Capacity calculator shows > 100% usage
+- User selects 3+ content platforms
+- Weekly time commitment exceeds available hours
+
+**Implementation**:
+- Create modal component with capacity analysis
+- Integrate with cycle setup wizard and content planner
+- Show pre-calculated simplified options (Option A, Option B)
+- Log user's choice for analytics
+
+**Database Changes**:
+- Add `simplification_suggestions` table to log when shown and choice made
+
+**Files to Create**:
+- `src/components/coaching/SimplificationAssistant.tsx` - Modal with options
+- `src/hooks/useCapacityCheck.ts` - Calculate over-commitment
+- `supabase/migrations/` - Add logging table
+
+**Files to Modify**:
+- `src/pages/CycleSetup.tsx` - Integrate capacity check
+- `src/components/wizards/content-planner/` - Add platform limit check
+
+---
+
+### 4. Anti-Comparison Mode
+
+**Purpose**: Settings toggle to hide all benchmark data and focus on personal progress only.
+
+**Implementation**:
+- Add toggle in Settings under Display Preferences
+- Add `anti_comparison_mode` column to `user_settings`
+- Create context/hook to check mode throughout app
+- Hide benchmark data, "average user" references when enabled
+
+**Files to Create**:
+- `src/hooks/useAntiComparisonMode.ts`
+
+**Files to Modify**:
+- `src/pages/Settings.tsx` - Add toggle
+- `supabase/migrations/` - Add column
+- Dashboard/Progress widgets - Conditionally hide comparisons
+
+---
+
+### 5. Coach Prep Tool
+
+**Purpose**: Structured worksheet to prepare for coaching calls with key metrics and questions.
+
+**Implementation**:
+- New page at `/coach-prep`
+- Form fields for: date, current metrics, question, what you've tried, thought creating problem, what you need coaching on
+- Auto-populate metrics from database
+- PDF download, shareable link, print options
+
+**Database Changes**:
+- Add `coaching_call_prep` table
+
+**Files to Create**:
+- `src/pages/CoachPrep.tsx`
+- `src/components/coaching/CoachPrepForm.tsx`
+- `src/hooks/useCoachingPrep.ts`
+- `supabase/migrations/` - Add table
+
+**Files to Modify**:
+- `src/App.tsx` - Add route
+- `src/components/AppSidebar.tsx` - Add navigation
+
+---
+
+### 6. Strategy Change Friction
+
+**Purpose**: Prevent impulsive strategy changes before Day 45 by requiring reflection.
+
+**Triggers**:
+- User attempts to edit core strategy (platform, focus area, main offer) before Day 45 of cycle
+
+**Implementation**:
+- Create friction modal component
+- Required reflection questions before allowing change
+- Log decision (changed anyway vs. gave it more time)
+
+**Database Changes**:
+- Add `strategy_change_attempts` table for logging
+
+**Files to Create**:
+- `src/components/coaching/StrategyChangeFriction.tsx`
+- `supabase/migrations/` - Add logging table
+
+**Files to Modify**:
+- `src/pages/CycleSetup.tsx` - Check cycle day before allowing edits
+- Any strategy edit forms - Wrap with friction check
+
+---
+
+### 7. Quarter Comparison Tool
+
+**Purpose**: Compare previous quarter results with new quarter plan.
+
+**Implementation**:
+- Show during new cycle setup (Q2, Q3, Q4+)
+- Display side-by-side: previous goal vs actual, scores, learnings
+- Prompt for new quarter planning
+
+**Files to Create**:
+- `src/components/wizards/cycle-planner/QuarterComparison.tsx`
+
+**Files to Modify**:
+- `src/pages/CycleSetup.tsx` - Show comparison for returning users
+- `src/pages/CycleSummary.tsx` - Link to comparison view
+
+---
+
+### 8. Example Answers Library
+
+**Purpose**: Provide example inputs from other students on wizard text fields.
+
+**Implementation**:
+- Create curated examples for each wizard question
+- Add "show examples" button next to text inputs
+- Display in popover/tooltip format
+- Store examples in constants file (not database)
+
+**Files to Create**:
+- `src/lib/wizardExamples.ts` - Curated example data
+- `src/components/ui/ExampleAnswersPopover.tsx`
+
+**Files to Modify**:
+- Various wizard step components to include example buttons
+
+---
+
+### 9. Mobile Quick Actions Enhancement
+
+**Purpose**: Quick-tap buttons for common daily actions on mobile.
+
+**Current State**: QuickActionsPanel exists but not mobile-optimized with quick-tap features.
+
+**Implementation**:
+- Add floating action buttons for mobile:
+  - "Made an offer today" (one-tap tracking)
+  - "Completed top 3 tasks" (quick completion)
+  - "Updated metrics" (quick metric entry)
+  - "View today's focus" (navigate)
+  - "Self-coach (CTFAR)" (open modal)
+- Integrate with existing offer tracking and task completion systems
+
+**Files to Create**:
+- `src/components/mobile/MobileQuickActions.tsx` - FAB with quick action drawer
+
+**Files to Modify**:
+- `src/components/Layout.tsx` - Add mobile quick actions component
+
+---
+
+## Database Schema Changes
 
 ```sql
-CREATE TABLE public.user_content_platforms (
+-- 1. Widget ordering
+ALTER TABLE public.user_settings
+ADD COLUMN IF NOT EXISTS dashboard_widget_order JSONB DEFAULT '{}';
+
+-- 2. Anti-comparison mode
+ALTER TABLE public.user_settings
+ADD COLUMN IF NOT EXISTS anti_comparison_mode BOOLEAN DEFAULT false;
+
+-- 3. Simplification logging
+CREATE TABLE public.simplification_suggestions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  platform TEXT NOT NULL,
-  color TEXT NOT NULL,
-  is_active BOOLEAN DEFAULT true,
-  sort_order INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(user_id, platform)
+  trigger_type TEXT NOT NULL,
+  suggested_options JSONB NOT NULL,
+  choice_made TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.simplification_suggestions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own suggestions" ON public.simplification_suggestions
+  FOR ALL USING (auth.uid() = user_id);
 
--- Enable RLS
-ALTER TABLE public.user_content_platforms ENABLE ROW LEVEL SECURITY;
+-- 4. Coaching call prep
+CREATE TABLE public.coaching_call_prep (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  call_date DATE NOT NULL,
+  metrics JSONB,
+  main_question TEXT,
+  what_tried TEXT,
+  blocking_thought TEXT,
+  coaching_need TEXT,
+  share_token UUID DEFAULT gen_random_uuid(),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.coaching_call_prep ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own prep" ON public.coaching_call_prep
+  FOR ALL USING (auth.uid() = user_id);
 
--- RLS Policy
-CREATE POLICY "Users manage own platforms"
-  ON public.user_content_platforms FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
-
--- Index for fast lookups
-CREATE INDEX idx_user_content_platforms_user ON public.user_content_platforms(user_id);
-```
-
-### 2. Extend `tasks` Table
-Add content calendar linkage columns.
-
-```sql
-ALTER TABLE public.tasks
-ADD COLUMN IF NOT EXISTS content_item_id UUID REFERENCES public.content_items(id) ON DELETE SET NULL,
-ADD COLUMN IF NOT EXISTS content_type TEXT,
-ADD COLUMN IF NOT EXISTS content_channel TEXT,
-ADD COLUMN IF NOT EXISTS content_creation_date DATE,
-ADD COLUMN IF NOT EXISTS content_publish_date DATE;
-
--- Index for calendar queries
-CREATE INDEX IF NOT EXISTS idx_tasks_content_calendar 
-ON public.tasks(content_creation_date, content_publish_date) 
-WHERE content_item_id IS NOT NULL OR content_type IS NOT NULL;
-```
-
-### 3. Indexes for `content_items` (already have needed columns)
-```sql
-CREATE INDEX IF NOT EXISTS idx_content_items_creation_date 
-ON public.content_items(planned_creation_date) WHERE planned_creation_date IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS idx_content_items_publish_date 
-ON public.content_items(planned_publish_date) WHERE planned_publish_date IS NOT NULL;
+-- 5. Strategy change logging
+CREATE TABLE public.strategy_change_attempts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  cycle_id UUID REFERENCES public.cycles_90_day(cycle_id) ON DELETE SET NULL,
+  cycle_day INTEGER NOT NULL,
+  change_type TEXT NOT NULL,
+  data_showing_issue TEXT,
+  days_executed INTEGER,
+  blocking_thought TEXT,
+  decision TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.strategy_change_attempts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own attempts" ON public.strategy_change_attempts
+  FOR ALL USING (auth.uid() = user_id);
 ```
 
 ---
 
-## Visual System Constants
+## Implementation Priority
 
-### Schedule Lane Colors (consistent throughout app)
-| Lane | Color | Tailwind Class |
-|------|-------|----------------|
-| Create | Teal | `bg-teal-500/20`, `border-teal-500` |
-| Publish | Purple | `bg-violet-500/20`, `border-violet-500` |
+### Phase 1: Foundation (High Priority)
+1. Widget-level error boundaries
+2. Widget order persistence
+3. Mobile Quick Actions enhancement
 
-### Default Platform Colors
-| Platform | Color | Hex |
-|----------|-------|-----|
-| Instagram | Pink | `#E4405F` |
-| LinkedIn | Blue | `#0A66C2` |
-| YouTube | Red | `#FF0000` |
-| TikTok | Black | `#000000` |
-| Facebook | Blue | `#1877F2` |
-| Email | Orange | `#EA580C` |
-| Blog | Green | `#10B981` |
-| Podcast | Purple | `#8B5CF6` |
-| Twitter/X | Blue | `#1DA1F2` |
+### Phase 2: Coaching Tools (High Priority)
+4. Coach Prep Tool
+5. Simplification Assistant
+6. Strategy Change Friction
 
-### Content Type Icons (from existing FORMAT_METADATA)
-All content types already have Lucide icon mappings in `src/components/wizards/content-planner/utils/formatHelpers.ts`.
+### Phase 3: Settings & Comparison (Medium Priority)
+7. Anti-Comparison Mode
+8. Quarter Comparison Tool
+
+### Phase 4: Polish (Lower Priority)
+9. Example Answers Library
 
 ---
 
-## Files to Create
+## Files Summary
 
+### New Files to Create (15 files)
 | File | Purpose |
 |------|---------|
-| `src/pages/EditorialCalendar.tsx` | Main page wrapper |
-| `src/components/editorial-calendar/EditorialCalendarView.tsx` | Main calendar layout with DnD context |
-| `src/components/editorial-calendar/CalendarWeekView.tsx` | Week grid with day columns |
-| `src/components/editorial-calendar/CalendarDayColumn.tsx` | Single day with Create/Publish lanes |
-| `src/components/editorial-calendar/CalendarContentCard.tsx` | Draggable content card with icon + platform badge |
-| `src/components/editorial-calendar/UnscheduledPool.tsx` | Right sidebar for unscheduled items |
-| `src/components/editorial-calendar/PlatformFilterBar.tsx` | Platform toggle chips |
-| `src/components/editorial-calendar/ContentQuickEditDrawer.tsx` | Edit drawer for scheduling |
-| `src/components/editorial-calendar/ViewToggle.tsx` | Publish/Creation view toggle |
-| `src/components/editorial-calendar/index.ts` | Barrel exports |
-| `src/hooks/useEditorialCalendar.ts` | Data fetching hook (content_items + content_plan_items + tasks) |
-| `src/hooks/useUserPlatforms.ts` | Platform preferences hook |
-| `src/lib/calendarConstants.ts` | Schedule colors, default platforms, type mappings |
+| `src/components/dashboard/WidgetErrorBoundary.tsx` | Widget isolation |
+| `src/components/coaching/SimplificationAssistant.tsx` | Over-commitment modal |
+| `src/components/coaching/StrategyChangeFriction.tsx` | Change friction modal |
+| `src/components/coaching/CoachPrepForm.tsx` | Call prep form |
+| `src/components/wizards/cycle-planner/QuarterComparison.tsx` | Q-over-Q view |
+| `src/components/ui/ExampleAnswersPopover.tsx` | Example hints |
+| `src/components/mobile/MobileQuickActions.tsx` | Mobile FAB |
+| `src/pages/CoachPrep.tsx` | Coach prep page |
+| `src/hooks/useCapacityCheck.ts` | Capacity analysis |
+| `src/hooks/useAntiComparisonMode.ts` | Comparison mode hook |
+| `src/hooks/useCoachingPrep.ts` | Coach prep data |
+| `src/lib/wizardExamples.ts` | Example answers data |
+| `supabase/migrations/xxx_feature_enhancements.sql` | Schema changes |
 
----
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/App.tsx` | Add route `/editorial-calendar` |
-| `src/components/AppSidebar.tsx` | Add nav link under ORGANIZE_NAV |
-| `src/components/sidebar/MobileSidebarContent.tsx` | Add mobile nav link |
-| `src/components/tasks/TaskQuickAdd.tsx` | Add optional "Add to Calendar" toggle + content fields |
-| `src/components/tasks/types.ts` | Add content calendar fields to Task interface |
-| Database migration | Add `user_content_platforms` table + extend `tasks` |
-
----
-
-## Component Details
-
-### CalendarDayColumn (Dual-Lane Design)
-```tsx
-// Visual structure per day
-<div className="flex flex-col h-full">
-  {/* Create Lane */}
-  <DroppableZone id={`create-${date}`} className="bg-teal-500/10 border-l-4 border-teal-500">
-    <div className="text-xs text-teal-600 font-medium">Create</div>
-    {createItems.map(item => <CalendarContentCard key={item.id} item={item} />)}
-  </DroppableZone>
-  
-  {/* Publish Lane */}
-  <DroppableZone id={`publish-${date}`} className="bg-violet-500/10 border-l-4 border-violet-500">
-    <div className="text-xs text-violet-600 font-medium">Publish</div>
-    {publishItems.map(item => <CalendarContentCard key={item.id} item={item} />)}
-  </DroppableZone>
-</div>
-```
-
-### CalendarContentCard
-```tsx
-// Card with icon + platform badge
-<div className="flex items-center gap-2 p-2 bg-card rounded border">
-  <ContentTypeIcon type={item.type} className="h-4 w-4" />
-  <span className="text-sm truncate flex-1">{item.title}</span>
-  <Badge style={{ backgroundColor: platformColor }} className="text-xs">
-    {item.channel}
-  </Badge>
-</div>
-```
-
-### Task Creation Integration
-When user creates a task with "Add to Calendar" enabled:
-1. Show additional fields: Platform, Content Type, Create Date, Publish Date
-2. On save, store in tasks table with content_ prefixed columns
-3. Item appears in Editorial Calendar automatically
-4. Can be promoted to full `content_items` entry later
-
----
-
-## Data Flow
-
-```text
-Sources feeding Editorial Calendar:
-├── content_items (planned_creation_date, planned_publish_date, channel)
-├── content_plan_items (planned_date, channel, content_type)
-└── tasks (where content_type IS NOT NULL)
-
-User Actions:
-├── Drag to Create lane → updates creation date
-├── Drag to Publish lane → updates publish date
-├── Drag to Unscheduled → clears both dates
-└── Quick Edit → modify all fields
-```
-
----
-
-## Mobile Experience
-
-Following existing mobile UX standards from `InlineCalendarAgenda`:
-- Single-column day list with swipe navigation
-- 44px+ touch targets
-- Tap-to-schedule drawer (not drag-only)
-- Bottom sheet for quick edit
-- Auto-scroll to today
-
----
-
-## Implementation Phases
-
-### Phase 1: Foundation + Visual System (This Implementation)
-1. Database migration (platforms table, tasks extension)
-2. Create `calendarConstants.ts` with colors and icon mappings
-3. Create `EditorialCalendarView.tsx` with week grid
-4. Implement dual-lane `CalendarDayColumn` with Create/Publish zones
-5. Create `CalendarContentCard` with icons and platform badges
-6. Implement `UnscheduledPool` sidebar
-7. Add DnD context with drop handlers
-8. Create `PlatformFilterBar` with toggle chips
-9. Implement `ContentQuickEditDrawer`
-10. Add route and navigation
-
-### Phase 2: Task Integration
-11. Extend `TaskQuickAdd` with calendar toggle
-12. Create task creation flow with content fields
-13. Sync tasks with calendar display
-
-### Phase 3: Wizard Sync
-14. Connect Content Planner wizard output to calendar
-15. Handle `content_plan_items` display
-16. Implement "Convert to Content" action
+### Files to Modify (10+ files)
+- `src/hooks/useDashboardWidgets.tsx`
+- `src/pages/Dashboard.tsx`
+- `src/pages/Settings.tsx`
+- `src/pages/CycleSetup.tsx`
+- `src/components/Layout.tsx`
+- `src/components/AppSidebar.tsx`
+- `src/App.tsx`
+- Various wizard components
 
 ---
 
 ## Technical Notes
 
-- Reuse `@dnd-kit` patterns from `InlineCalendarAgenda.tsx`
-- Leverage existing `FORMAT_METADATA` for icon resolution
-- Apply optimistic updates pattern from tasks system
-- Use `date-fns` for all date manipulation
-- Follow data normalization patterns for API responses
-- Platform colors derived at render time, not stored on items
+- Reuse existing `@dnd-kit` patterns from Editorial Calendar for widget ordering
+- Reuse `CoachYourselfModal` patterns for friction and simplification modals
+- Use existing PDF generation (`jspdf`) for Coach Prep export
+- Follow existing Settings toggle patterns for Anti-Comparison Mode
+- Apply existing mobile quick capture patterns from `MobileQuickCapture.tsx`
