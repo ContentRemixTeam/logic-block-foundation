@@ -1,5 +1,5 @@
 // Step 1: Launch Context (Q1-Q3)
-// Determines experience level, offer type, and list status
+// Determines experience level, offer type, list status, and launch style
 
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -7,15 +7,17 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Lightbulb, Sparkles } from 'lucide-react';
+import { Lightbulb, Sparkles, Rocket } from 'lucide-react';
 import {
   LaunchWizardV2Data,
   LaunchExperience,
   OfferType,
   EmailListStatus,
+  LaunchStyle,
   LAUNCH_EXPERIENCE_OPTIONS,
   OFFER_TYPE_OPTIONS,
   EMAIL_LIST_STATUS_OPTIONS,
+  LAUNCH_STYLE_OPTIONS,
   TEACHING_CONTENT,
 } from '@/types/launchV2';
 
@@ -233,6 +235,82 @@ export function StepLaunchContext({ data, onChange }: StepLaunchContextProps) {
           <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-950/30 rounded-lg border border-gray-200 dark:border-gray-800">
             <p className="text-sm text-gray-800 dark:text-gray-200">
               <strong>No email? That's fine.</strong> Many successful launches happen through social media, DMs, or in-person conversations. We'll focus on your other channels instead.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Q4: Launch Style - NEW */}
+      <div className="space-y-4">
+        <Label className="text-lg font-semibold flex items-center gap-2">
+          <Rocket className="h-5 w-5" />
+          What type of launch is this?
+        </Label>
+        <p className="text-sm text-muted-foreground -mt-2">
+          This helps us tailor your tasks and timeline.
+        </p>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {LAUNCH_STYLE_OPTIONS.map((option) => (
+            <Card
+              key={option.value}
+              className={`cursor-pointer transition-all hover:border-primary/50 ${
+                data.launchStyle === option.value 
+                  ? 'border-primary bg-primary/5 ring-2 ring-primary/20' 
+                  : 'border-border'
+              }`}
+              onClick={() => onChange({ launchStyle: option.value as LaunchStyle })}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">{option.icon}</span>
+                  <div className="flex-1">
+                    <span className="font-medium text-sm block">{option.label}</span>
+                    <span className="text-xs text-muted-foreground">{option.description}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Style-specific guidance */}
+        {data.launchStyle === 'challenge' && (
+          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              <strong>Challenge launches</strong> work great for building engagement! We'll help you plan daily topics, group setup, and the pitch transition.
+            </p>
+          </div>
+        )}
+
+        {data.launchStyle === 'webinar' && (
+          <div className="mt-4 p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-200 dark:border-purple-800">
+            <p className="text-sm text-purple-800 dark:text-purple-200">
+              <strong>Webinar launches</strong> are conversion machines! We'll help you plan your pitch timing, show-up strategy, and replay approach.
+            </p>
+          </div>
+        )}
+
+        {data.launchStyle === 'flash-sale' && (
+          <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+            <p className="text-sm text-amber-800 dark:text-amber-200">
+              <strong>Flash sales</strong> need a warm audience! We'll create an urgent email sequence and countdown strategy.
+            </p>
+          </div>
+        )}
+
+        {data.launchStyle === 'beta' && (
+          <div className="mt-4 p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+            <p className="text-sm text-green-800 dark:text-green-200">
+              <strong>Beta launches</strong> are about learning! We'll focus on feedback collection and testimonial gathering.
+            </p>
+          </div>
+        )}
+
+        {data.launchStyle === 'evergreen' && (
+          <div className="mt-4 p-4 bg-teal-50 dark:bg-teal-950/30 rounded-lg border border-teal-200 dark:border-teal-800">
+            <p className="text-sm text-teal-800 dark:text-teal-200">
+              <strong>Evergreen funnels</strong> run on autopilot! We'll help you set up an automated sequence that sells while you sleep.
             </p>
           </div>
         )}

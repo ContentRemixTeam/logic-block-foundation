@@ -24,6 +24,11 @@ import {
   SalesPageStatus,
   TestimonialStatus,
   EmailSequenceItem,
+  ChallengeConfig,
+  WebinarConfig,
+  FlashSaleConfig,
+  BetaLaunchConfig,
+  MasterclassConfig,
   MAIN_REACH_METHOD_OPTIONS,
   CONTENT_CREATION_STATUS_OPTIONS,
   CONTENT_VOLUME_OPTIONS,
@@ -31,6 +36,13 @@ import {
   AUTOMATION_TYPE_OPTIONS,
 } from '@/types/launchV2';
 import { format, parseISO, isBefore, addDays, isAfter } from 'date-fns';
+import {
+  ChallengeConfigComponent,
+  WebinarConfigComponent,
+  FlashSaleConfigComponent,
+  BetaLaunchConfigComponent,
+  MasterclassConfigComponent,
+} from '../styles';
 
 interface StepPreLaunchStrategyProps {
   data: LaunchWizardV2Data;
@@ -830,6 +842,42 @@ export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyP
           </div>
         )}
       </div>
+
+      {/* Launch Style-Specific Configuration */}
+      {data.launchStyle === 'challenge' && (
+        <ChallengeConfigComponent
+          config={data.challengeConfig}
+          onChange={(config: ChallengeConfig) => onChange({ challengeConfig: config })}
+        />
+      )}
+
+      {data.launchStyle === 'webinar' && (
+        <WebinarConfigComponent
+          config={data.webinarConfig}
+          onChange={(config: WebinarConfig) => onChange({ webinarConfig: config })}
+        />
+      )}
+
+      {data.launchStyle === 'flash-sale' && (
+        <FlashSaleConfigComponent
+          config={data.flashSaleConfig}
+          onChange={(config: FlashSaleConfig) => onChange({ flashSaleConfig: config })}
+        />
+      )}
+
+      {data.launchStyle === 'beta' && (
+        <BetaLaunchConfigComponent
+          config={data.betaLaunchConfig}
+          onChange={(config: BetaLaunchConfig) => onChange({ betaLaunchConfig: config })}
+        />
+      )}
+
+      {data.launchStyle === 'masterclass' && (
+        <MasterclassConfigComponent
+          config={data.masterclassConfig}
+          onChange={(config: MasterclassConfig) => onChange({ masterclassConfig: config })}
+        />
+      )}
 
       {/* Strategy Summary */}
       {data.mainReachMethod && data.contentCreationStatus && data.contentVolume && (
