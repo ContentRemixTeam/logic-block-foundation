@@ -19,6 +19,7 @@ export function useEditorialCalendar({ weekStart }: UseEditorialCalendarOptions)
   const weekEndStr = format(weekEndDate, 'yyyy-MM-dd');
 
   // Fetch content items for the week
+  // Use proper grouped OR: items appear if creation OR publish date falls within week range
   const contentItemsQuery = useQuery({
     queryKey: ['editorial-calendar-content', user?.id, weekStartStr],
     queryFn: async () => {
@@ -28,8 +29,10 @@ export function useEditorialCalendar({ weekStart }: UseEditorialCalendarOptions)
         .from('content_items')
         .select('id, title, type, channel, planned_creation_date, planned_publish_date, status')
         .eq('user_id', user.id)
-        .or(`planned_creation_date.gte.${weekStartStr},planned_publish_date.gte.${weekStartStr}`)
-        .or(`planned_creation_date.lte.${weekEndStr},planned_publish_date.lte.${weekEndStr}`);
+        .or(
+          `and(planned_creation_date.gte.${weekStartStr},planned_creation_date.lte.${weekEndStr}),` +
+          `and(planned_publish_date.gte.${weekStartStr},planned_publish_date.lte.${weekEndStr})`
+        );
 
       if (error) throw error;
       return data || [];
@@ -38,6 +41,7 @@ export function useEditorialCalendar({ weekStart }: UseEditorialCalendarOptions)
   });
 
   // Fetch content plan items for the week
+  // Filter out items that have been promoted to content_items to prevent duplicates
   const planItemsQuery = useQuery({
     queryKey: ['editorial-calendar-plans', user?.id, weekStartStr],
     queryFn: async () => {
@@ -47,6 +51,7 @@ export function useEditorialCalendar({ weekStart }: UseEditorialCalendarOptions)
         .from('content_plan_items')
         .select('id, title, content_type, channel, planned_date, status')
         .eq('user_id', user.id)
+        .is('content_item_id', null) // Only unlinked plan items to prevent duplicates
         .gte('planned_date', weekStartStr)
         .lte('planned_date', weekEndStr);
 
@@ -57,6 +62,7 @@ export function useEditorialCalendar({ weekStart }: UseEditorialCalendarOptions)
   });
 
   // Fetch tasks with content calendar data for the week
+  // Use proper grouped OR: tasks appear if creation OR publish date falls within week range
   const tasksQuery = useQuery({
     queryKey: ['editorial-calendar-tasks', user?.id, weekStartStr],
     queryFn: async () => {
@@ -67,8 +73,10 @@ export function useEditorialCalendar({ weekStart }: UseEditorialCalendarOptions)
         .select('task_id, task_text, content_type, content_channel, content_creation_date, content_publish_date, is_completed')
         .eq('user_id', user.id)
         .not('content_type', 'is', null)
-        .or(`content_creation_date.gte.${weekStartStr},content_publish_date.gte.${weekStartStr}`)
-        .or(`content_creation_date.lte.${weekEndStr},content_publish_date.lte.${weekEndStr}`);
+        .or(
+          `and(content_creation_date.gte.${weekStartStr},content_creation_date.lte.${weekEndStr}),` +
+          `and(content_publish_date.gte.${weekStartStr},content_publish_date.lte.${weekEndStr})`
+        );
 
       if (error) throw error;
       return data || [];

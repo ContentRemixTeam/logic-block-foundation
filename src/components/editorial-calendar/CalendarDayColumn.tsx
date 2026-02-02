@@ -89,7 +89,7 @@ function DroppableLane({ id, lane, items, onItemClick, isHighlighted }: Droppabl
     <div
       ref={setNodeRef}
       className={cn(
-        "flex-1 p-1.5 min-h-[80px] transition-colors",
+        "flex-1 p-1.5 min-h-0 overflow-y-auto transition-colors",
         colors.bg,
         isOver && "ring-2 ring-inset",
         isOver && lane === 'create' && "ring-teal-500",
@@ -100,7 +100,7 @@ function DroppableLane({ id, lane, items, onItemClick, isHighlighted }: Droppabl
     >
       {/* Lane Label */}
       <div className={cn(
-        "text-[10px] font-medium uppercase tracking-wider mb-1",
+        "text-[10px] font-medium uppercase tracking-wider mb-1 sticky top-0 bg-inherit",
         colors.text
       )}>
         {lane === 'create' ? 'Create' : 'Publish'}
@@ -110,8 +110,9 @@ function DroppableLane({ id, lane, items, onItemClick, isHighlighted }: Droppabl
       <div className="space-y-1">
         {items.map(item => (
           <CalendarContentCard
-            key={item.id}
+            key={`${item.id}:${lane}`}
             item={item}
+            laneContext={lane}
             onClick={() => onItemClick?.(item)}
             compact
           />

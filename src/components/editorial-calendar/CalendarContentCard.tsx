@@ -21,6 +21,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
 
 interface CalendarContentCardProps {
   item: CalendarItem;
+  laneContext: 'create' | 'publish' | 'pool'; // Lane-specific context for unique DnD IDs
   onClick?: () => void;
   isDragging?: boolean;
   compact?: boolean;
@@ -28,15 +29,17 @@ interface CalendarContentCardProps {
 
 export function CalendarContentCard({ 
   item, 
+  laneContext,
   onClick, 
   isDragging = false,
   compact = false,
 }: CalendarContentCardProps) {
   const { getPlatformColor } = useUserPlatforms();
   
+  // Use lane-specific draggable ID to avoid collisions when same item appears in multiple lanes
   const { attributes, listeners, setNodeRef, transform, isDragging: isLocalDragging } = useDraggable({
-    id: item.id,
-    data: { item },
+    id: `${item.id}:${laneContext}`,
+    data: { item }, // Keep base item in data for drop handler
   });
   
   const style = transform ? {
