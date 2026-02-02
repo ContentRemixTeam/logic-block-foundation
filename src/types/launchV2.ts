@@ -154,7 +154,7 @@ export type LaunchTimeline = '2-weeks' | '3-4-weeks' | '5-6-weeks' | 'other';
 export type RevenueGoalTier = 'first-sale' | '500-1000' | '1000-2500' | '2500-plus' | 'testing' | 'custom' | 'no-goal';
 
 // ============== Step 3: Offer Details - ENHANCED PRICING ==============
-export type HasLimitations = 'none' | 'existing-clients' | 'limited-spots';
+export type HasLimitations = 'none' | 'existing-clients' | 'limited-spots' | 'other';
 export type GuaranteeType = 'money-back' | 'results' | 'satisfaction' | 'none' | 'other';
 
 export interface PaymentPlanOption {
@@ -715,6 +715,7 @@ export const HAS_LIMITATIONS_OPTIONS = [
   { value: 'none', label: 'No limitations - anyone can buy' },
   { value: 'existing-clients', label: 'Only existing clients/students' },
   { value: 'limited-spots', label: 'Limited spots available' },
+  { value: 'other', label: 'Something else' },
 ] as const;
 
 export const MAIN_REACH_METHOD_OPTIONS = [

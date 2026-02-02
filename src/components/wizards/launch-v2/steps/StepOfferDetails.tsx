@@ -849,6 +849,22 @@ export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
             )}
           </div>
         )}
+
+        {/* Other/Custom limitation */}
+        {data.hasLimitations === 'other' && (
+          <div className="mt-3">
+            <Label htmlFor="limitation-details" className="text-sm">
+              Describe your limitation
+            </Label>
+            <Input
+              id="limitation-details"
+              value={data.limitationDetails}
+              onChange={(e) => onChange({ limitationDetails: e.target.value })}
+              placeholder="e.g., Geographic restriction, specific industry, application required..."
+              className="mt-1"
+            />
+          </div>
+        )}
       </div>
 
       {/* Summary Card */}
