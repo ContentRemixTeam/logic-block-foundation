@@ -58,12 +58,16 @@ export function PaymentPlanBuilder({ plans, fullPrice, onChange }: PaymentPlanBu
     onChange(plans.filter(p => p.id !== id));
   };
 
-  const calculateSavings = (planTotal: number) => {
-    if (!fullPrice || fullPrice <= 0) return null;
-    const savings = planTotal - fullPrice;
-    if (savings <= 0) return null;
-    return savings;
-  };
+  // Detect payment plan types for adaptive messaging
+  const hasUpchargePlans = plans.some(plan => {
+    const total = plan.installmentAmount * plan.installments;
+    return fullPrice && total > fullPrice;
+  });
+
+  const hasSamePricePlans = plans.some(plan => {
+    const total = plan.installmentAmount * plan.installments;
+    return fullPrice && total === fullPrice;
+  });
 
   return (
     <div className="space-y-4">
@@ -77,7 +81,6 @@ export function PaymentPlanBuilder({ plans, fullPrice, onChange }: PaymentPlanBu
         <div className="space-y-2">
           {plans.map((plan) => {
             const total = plan.installmentAmount * plan.installments;
-            const savings = calculateSavings(total);
             
             return (
               <Card key={plan.id} className="bg-muted/30">
@@ -88,11 +91,29 @@ export function PaymentPlanBuilder({ plans, fullPrice, onChange }: PaymentPlanBu
                     </p>
                     <p className="text-sm text-muted-foreground">
                       Total: ${total.toLocaleString()}
-                      {savings !== null && (
-                        <span className="text-amber-600 ml-2">
-                          (+${savings.toLocaleString()} vs pay-in-full)
-                        </span>
-                      )}
+                      {(() => {
+                        if (!fullPrice || fullPrice <= 0) return null;
+                        const diff = total - fullPrice;
+                        if (diff > 0) {
+                          return (
+                            <span className="text-amber-600 ml-2">
+                              (+${diff.toLocaleString()} vs pay-in-full)
+                            </span>
+                          );
+                        } else if (diff === 0) {
+                          return (
+                            <span className="text-green-600 ml-2">
+                              (0% interest - same as pay-in-full)
+                            </span>
+                          );
+                        } else {
+                          return (
+                            <span className="text-blue-600 ml-2">
+                              (${Math.abs(diff).toLocaleString()} discount)
+                            </span>
+                          );
+                        }
+                      })()}
                     </p>
                   </div>
                   <Button
@@ -173,13 +194,24 @@ export function PaymentPlanBuilder({ plans, fullPrice, onChange }: PaymentPlanBu
         </p>
       )}
 
-      {/* Pay-in-full savings message */}
+      {/* Adaptive messaging based on plan types */}
       {plans.length > 0 && fullPrice && fullPrice > 0 && (
-        <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
-          <p className="text-sm text-green-800 dark:text-green-200">
-            💰 <strong>Pay-in-full saves money</strong> — your customers save by paying ${fullPrice.toLocaleString()} upfront vs payment plan totals.
-          </p>
-        </div>
+        <>
+          {hasUpchargePlans && (
+            <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+              <p className="text-sm text-green-800 dark:text-green-200">
+                💰 <strong>Pay-in-full saves money</strong> — your customers save by paying ${fullPrice.toLocaleString()} upfront vs payment plan totals.
+              </p>
+            </div>
+          )}
+          {hasSamePricePlans && !hasUpchargePlans && (
+            <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                ✨ <strong>0% interest payment plans</strong> — customers pay the same total whether they pay upfront or in installments. Great for accessibility!
+              </p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
