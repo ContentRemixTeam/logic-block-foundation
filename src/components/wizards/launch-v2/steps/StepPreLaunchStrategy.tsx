@@ -196,11 +196,36 @@ export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyP
       waitlistToSales: false,
       deadlineUrgency: false,
       leadMagnetDelivery: false,
+      skipAutomations: false,
     };
+    
+    // If toggling skipAutomations ON, clear other automations
+    if (key === 'skipAutomations' && !current.skipAutomations) {
+      onChange({
+        automationTypes: {
+          tagging: false,
+          abandonedCart: false,
+          purchaseConfirmation: false,
+          waitlistToSales: false,
+          deadlineUrgency: false,
+          leadMagnetDelivery: false,
+          skipAutomations: true,
+        },
+        customAutomations: [],
+      });
+      return;
+    }
+    
+    // If selecting any automation, turn off skipAutomations
+    const updates: Partial<AutomationTypes> = { [key]: !current[key] };
+    if (key !== 'skipAutomations' && current.skipAutomations) {
+      updates.skipAutomations = false;
+    }
+    
     onChange({
       automationTypes: {
         ...current,
-        [key]: !current[key],
+        ...updates,
       },
     });
   };
@@ -594,74 +619,104 @@ export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyP
           These are tech tasks we'll add to your pre-launch checklist.
         </p>
 
-        <div className="space-y-3">
-          {AUTOMATION_TYPE_OPTIONS.map((option) => (
-            <div
-              key={option.key}
-              className="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors cursor-pointer"
-              onClick={() => toggleAutomationType(option.key as keyof AutomationTypes)}
-            >
-              <Checkbox
-                id={`automation-${option.key}`}
-                checked={data.automationTypes?.[option.key as keyof AutomationTypes] || false}
-                onCheckedChange={() => toggleAutomationType(option.key as keyof AutomationTypes)}
-                className="mt-0.5"
-              />
-              <div className="flex-1">
-                <Label htmlFor={`automation-${option.key}`} className="cursor-pointer font-medium">
-                  {option.label}
-                </Label>
-                <p className="text-sm text-muted-foreground">{option.description}</p>
-              </div>
-            </div>
-          ))}
+        {/* Skip automations option */}
+        <div
+          className={`flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
+            data.automationTypes?.skipAutomations 
+              ? 'bg-muted/50 border-primary' 
+              : 'hover:bg-muted/30'
+          }`}
+          onClick={() => toggleAutomationType('skipAutomations')}
+        >
+          <Checkbox
+            id="automation-skip"
+            checked={data.automationTypes?.skipAutomations || false}
+            onCheckedChange={() => toggleAutomationType('skipAutomations')}
+            className="mt-0.5"
+          />
+          <div className="flex-1">
+            <Label htmlFor="automation-skip" className="cursor-pointer font-medium">
+              I'm not setting up automations for this launch
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Skip this section — you'll handle everything manually or don't need automations
+            </p>
+          </div>
         </div>
 
-        {/* Custom automations */}
-        <div className="mt-4 space-y-3">
-          <Label className="text-sm text-muted-foreground">Add custom automation:</Label>
-          <div className="flex gap-2">
-            <Input
-              value={newAutomation}
-              onChange={(e) => setNewAutomation(e.target.value)}
-              onKeyDown={handleAutomationKeyDown}
-              placeholder="e.g., Webinar replay sequence..."
-              className="flex-1"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={handleAddCustomAutomation}
-              disabled={!newAutomation.trim()}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {(data.customAutomations?.length ?? 0) > 0 && (
-            <div className="space-y-2 mt-2">
-              {data.customAutomations?.map((item, index) => (
+        {/* Automation options - hidden when skipping */}
+        {!data.automationTypes?.skipAutomations && (
+          <>
+            <div className="space-y-3">
+              {AUTOMATION_TYPE_OPTIONS.map((option) => (
                 <div
-                  key={index}
-                  className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg border group"
+                  key={option.key}
+                  className="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors cursor-pointer"
+                  onClick={() => toggleAutomationType(option.key as keyof AutomationTypes)}
                 >
-                  <Zap className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm flex-1">{item}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => handleRemoveCustomAutomation(index)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
+                  <Checkbox
+                    id={`automation-${option.key}`}
+                    checked={data.automationTypes?.[option.key as keyof AutomationTypes] || false}
+                    onCheckedChange={() => toggleAutomationType(option.key as keyof AutomationTypes)}
+                    className="mt-0.5"
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor={`automation-${option.key}`} className="cursor-pointer font-medium">
+                      {option.label}
+                    </Label>
+                    <p className="text-sm text-muted-foreground">{option.description}</p>
+                  </div>
                 </div>
               ))}
             </div>
-          )}
-        </div>
+
+            {/* Custom automations */}
+            <div className="mt-4 space-y-3">
+              <Label className="text-sm text-muted-foreground">Add custom automation:</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={newAutomation}
+                  onChange={(e) => setNewAutomation(e.target.value)}
+                  onKeyDown={handleAutomationKeyDown}
+                  placeholder="e.g., Webinar replay sequence..."
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleAddCustomAutomation}
+                  disabled={!newAutomation.trim()}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {(data.customAutomations?.length ?? 0) > 0 && (
+                <div className="space-y-2 mt-2">
+                  {data.customAutomations?.map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg border group"
+                    >
+                      <Zap className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm flex-1">{item}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handleRemoveCustomAutomation(index)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Q12: Content Creation Status */}
