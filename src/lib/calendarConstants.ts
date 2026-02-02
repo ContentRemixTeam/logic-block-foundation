@@ -98,6 +98,58 @@ export const CONTENT_TYPE_ICONS: Record<string, string> = {
 // Default content type icon
 export const DEFAULT_CONTENT_ICON = 'FileText';
 
+// Label-to-ID mapping for content types (handles display labels -> icon keys)
+const TYPE_LABEL_TO_ID: Record<string, string> = {
+  'newsletter': 'newsletter',
+  'post': 'instagram-post',
+  'reel': 'instagram-reel',
+  'reel/short': 'instagram-reel',
+  'short': 'youtube-short',
+  'video': 'youtube-video',
+  'linkedin post': 'linkedin-post',
+  'blog post': 'blog-post',
+  'blog': 'blog-post',
+  'email': 'email-single',
+  'email sequence': 'email-sequence',
+  'twitter thread': 'twitter-thread',
+  'thread': 'twitter-thread',
+  'youtube video': 'youtube-video',
+  'youtube short': 'youtube-short',
+  'instagram reel': 'instagram-reel',
+  'instagram post': 'instagram-post',
+  'tiktok': 'tiktok',
+  'live stream': 'live-stream',
+  'livestream': 'live-stream',
+  'live': 'live-stream',
+  'sales video': 'sales-video',
+  'testimonial': 'testimonial-video',
+  'testimonial video': 'testimonial-video',
+  'tutorial': 'tutorial-video',
+  'tutorial video': 'tutorial-video',
+  'podcast': 'podcast-episode',
+  'podcast episode': 'podcast-episode',
+  'podcast guest': 'podcast-guest',
+  'audio course': 'audio-course',
+  'audio': 'audio-course',
+  'webinar': 'webinar',
+  'workshop': 'workshop',
+  'challenge': 'challenge',
+  'masterclass': 'masterclass',
+  'group call': 'group-call',
+  'case study': 'case-study',
+  'pdf': 'pdf-guide',
+  'pdf guide': 'pdf-guide',
+  'guide': 'pdf-guide',
+  'workbook': 'workbook',
+  'checklist': 'checklist',
+  'infographic': 'infographic',
+  'carousel': 'carousel',
+  'quote': 'quote-graphic',
+  'quote graphic': 'quote-graphic',
+  'facebook post': 'facebook-post',
+  'community post': 'community-post',
+};
+
 // Get platform color (with fallback)
 export function getPlatformColor(platform: string | null | undefined): string {
   if (!platform) return '#6B7280'; // gray fallback
@@ -119,10 +171,24 @@ export function getPlatformShortLabel(platform: string | null | undefined): stri
   return PLATFORM_SHORT_LABELS[normalized] || platform.slice(0, 2).toUpperCase();
 }
 
-// Get content type icon name
+// Get content type icon name with normalization
 export function getContentTypeIcon(type: string | null | undefined): string {
   if (!type) return DEFAULT_CONTENT_ICON;
-  return CONTENT_TYPE_ICONS[type] || DEFAULT_CONTENT_ICON;
+  
+  // Try direct match first (e.g., already using kebab-case keys)
+  if (CONTENT_TYPE_ICONS[type]) return CONTENT_TYPE_ICONS[type];
+  
+  // Normalize: lowercase, trim
+  const normalized = type.toLowerCase().trim();
+  
+  // Try normalized direct match
+  if (CONTENT_TYPE_ICONS[normalized]) return CONTENT_TYPE_ICONS[normalized];
+  
+  // Try label-to-ID mapping (e.g., "Reel/Short" -> "instagram-reel")
+  const mappedId = TYPE_LABEL_TO_ID[normalized];
+  if (mappedId && CONTENT_TYPE_ICONS[mappedId]) return CONTENT_TYPE_ICONS[mappedId];
+  
+  return DEFAULT_CONTENT_ICON;
 }
 
 // List of available platforms for selection

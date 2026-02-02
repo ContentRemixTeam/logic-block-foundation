@@ -58,8 +58,9 @@ export function UnscheduledPool({ items, onItemClick, selectedPlatforms }: Unsch
           ) : (
             filteredItems.map(item => (
               <CalendarContentCard
-                key={item.id}
+                key={`${item.id}:pool`}
                 item={item}
+                laneContext="pool"
                 onClick={() => onItemClick?.(item)}
               />
             ))
