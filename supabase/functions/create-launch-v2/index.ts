@@ -197,7 +197,7 @@ Deno.serve(async (req) => {
         zero_sales_plan: data.zeroSalesPlan,
         gap_overlap_detected: data.gapOverlapDetected,
         gap_acknowledged: data.gapAcknowledged,
-        gap_support_type: data.gapSupportType,
+        gap_support_type: data.gapSupportType || null,
         readiness_score: data.readinessScore,
         what_they_need: data.whatYouNeed,
         price_per_sale: data.pricePoint,
