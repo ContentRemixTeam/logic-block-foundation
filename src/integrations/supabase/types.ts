@@ -3229,6 +3229,7 @@ export type Database = {
           pre_launch_start_date: string | null
           previous_launch_learnings: string | null
           price_per_sale: number | null
+          project_id: string | null
           promotion_duration: string | null
           readiness_score: number | null
           revenue_goal: number | null
@@ -3312,6 +3313,7 @@ export type Database = {
           pre_launch_start_date?: string | null
           previous_launch_learnings?: string | null
           price_per_sale?: number | null
+          project_id?: string | null
           promotion_duration?: string | null
           readiness_score?: number | null
           revenue_goal?: number | null
@@ -3395,6 +3397,7 @@ export type Database = {
           pre_launch_start_date?: string | null
           previous_launch_learnings?: string | null
           price_per_sale?: number | null
+          project_id?: string | null
           promotion_duration?: string | null
           readiness_score?: number | null
           revenue_goal?: number | null
@@ -3428,6 +3431,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cycles_90_day"
             referencedColumns: ["cycle_id"]
+          },
+          {
+            foreignKeyName: "launches_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "launches_template_id_fkey"
