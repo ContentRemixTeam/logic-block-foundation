@@ -164,8 +164,8 @@ export interface PaymentPlanOption {
   totalAmount?: number;      // Auto-calculated
 }
 
-// Special pricing offer type
-export type SpecialOfferType = 'discount' | 'bonus' | 'both';
+// Special pricing offer type - 'none' means just using scarcity (deadline/spots)
+export type SpecialOfferType = 'none' | 'discount' | 'bonus' | 'both';
 
 export interface OfferPricing {
   fullPrice: number | null;           // Pay-in-full price
@@ -331,12 +331,12 @@ export const DEFAULT_OFFER_PRICING: OfferPricing = {
   fullPrice: null,
   originalValue: null,
   hasEarlyBirdPrice: false,
-  earlyBirdOfferType: 'discount',
+  earlyBirdOfferType: 'none',
   earlyBirdPrice: null,
   earlyBirdBonus: '',
   earlyBirdDeadline: '',
   hasWaitlistPrice: false,
-  waitlistOfferType: 'discount',
+  waitlistOfferType: 'none',
   waitlistPrice: null,
   waitlistBonus: '',
   paymentPlans: [],

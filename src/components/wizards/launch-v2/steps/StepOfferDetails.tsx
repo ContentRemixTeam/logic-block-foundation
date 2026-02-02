@@ -311,14 +311,30 @@ export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
               </div>
               {offerPricing.hasEarlyBirdPrice && (
                 <div className="space-y-3 mt-3">
-                  {/* Offer Type Selector */}
+                  {/* Deadline - always shown */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">What type of early bird offer?</Label>
+                    <Label htmlFor="early-bird-deadline" className="text-xs text-muted-foreground">Expires</Label>
+                    <Input
+                      id="early-bird-deadline"
+                      type="date"
+                      value={offerPricing.earlyBirdDeadline}
+                      onChange={(e) => handlePricingChange({ earlyBirdDeadline: e.target.value })}
+                      className="w-1/2"
+                    />
+                  </div>
+
+                  {/* Offer Type Selector - Optional */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">What's the early bird incentive? (Optional)</Label>
                     <RadioGroup
-                      value={offerPricing.earlyBirdOfferType || 'discount'}
-                      onValueChange={(v) => handlePricingChange({ earlyBirdOfferType: v as 'discount' | 'bonus' | 'both' })}
-                      className="flex gap-4"
+                      value={offerPricing.earlyBirdOfferType || 'none'}
+                      onValueChange={(v) => handlePricingChange({ earlyBirdOfferType: v as 'none' | 'discount' | 'bonus' | 'both' })}
+                      className="flex flex-wrap gap-3"
                     >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="none" id="eb-none" />
+                        <Label htmlFor="eb-none" className="text-sm font-normal cursor-pointer">Just scarcity</Label>
+                      </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="discount" id="eb-discount" />
                         <Label htmlFor="eb-discount" className="text-sm font-normal cursor-pointer">Discount</Label>
@@ -334,37 +350,26 @@ export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
                     </RadioGroup>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* Discount Price - show if discount or both */}
-                    {(offerPricing.earlyBirdOfferType === 'discount' || offerPricing.earlyBirdOfferType === 'both') && (
-                      <div className="space-y-1.5">
-                        <Label htmlFor="early-bird-price" className="text-xs text-muted-foreground">Discounted Price</Label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                          <Input
-                            id="early-bird-price"
-                            type="number"
-                            min="0"
-                            value={offerPricing.earlyBirdPrice ?? ''}
-                            onChange={(e) => handlePricingChange({ 
-                              earlyBirdPrice: e.target.value ? parseFloat(e.target.value) : null 
-                            })}
-                            className="pl-7"
-                            placeholder="797"
-                          />
-                        </div>
-                      </div>
-                    )}
+                  {/* Discount Price - show if discount or both */}
+                  {(offerPricing.earlyBirdOfferType === 'discount' || offerPricing.earlyBirdOfferType === 'both') && (
                     <div className="space-y-1.5">
-                      <Label htmlFor="early-bird-deadline" className="text-xs text-muted-foreground">Expires</Label>
-                      <Input
-                        id="early-bird-deadline"
-                        type="date"
-                        value={offerPricing.earlyBirdDeadline}
-                        onChange={(e) => handlePricingChange({ earlyBirdDeadline: e.target.value })}
-                      />
+                      <Label htmlFor="early-bird-price" className="text-xs text-muted-foreground">Discounted Price</Label>
+                      <div className="relative w-1/2">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                        <Input
+                          id="early-bird-price"
+                          type="number"
+                          min="0"
+                          value={offerPricing.earlyBirdPrice ?? ''}
+                          onChange={(e) => handlePricingChange({ 
+                            earlyBirdPrice: e.target.value ? parseFloat(e.target.value) : null 
+                          })}
+                          className="pl-7"
+                          placeholder="797"
+                        />
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Bonus Description - show if bonus or both */}
                   {(offerPricing.earlyBirdOfferType === 'bonus' || offerPricing.earlyBirdOfferType === 'both') && (
@@ -377,6 +382,13 @@ export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
                         placeholder="e.g., Private 1:1 onboarding call ($500 value)"
                       />
                     </div>
+                  )}
+
+                  {/* Scarcity tip */}
+                  {offerPricing.earlyBirdOfferType === 'none' && (
+                    <p className="text-xs text-muted-foreground">
+                      💡 Don't have a bonus? That's okay. Scarcity (limited time/spots) works too.
+                    </p>
                   )}
                 </div>
               )}
@@ -399,14 +411,18 @@ export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
               </div>
               {offerPricing.hasWaitlistPrice && (
                 <div className="space-y-3 mt-3">
-                  {/* Offer Type Selector */}
+                  {/* Offer Type Selector - Optional */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">What type of waitlist offer?</Label>
+                    <Label className="text-xs text-muted-foreground">What's the waitlist incentive? (Optional)</Label>
                     <RadioGroup
-                      value={offerPricing.waitlistOfferType || 'discount'}
-                      onValueChange={(v) => handlePricingChange({ waitlistOfferType: v as 'discount' | 'bonus' | 'both' })}
-                      className="flex gap-4"
+                      value={offerPricing.waitlistOfferType || 'none'}
+                      onValueChange={(v) => handlePricingChange({ waitlistOfferType: v as 'none' | 'discount' | 'bonus' | 'both' })}
+                      className="flex flex-wrap gap-3"
                     >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="none" id="wl-none" />
+                        <Label htmlFor="wl-none" className="text-sm font-normal cursor-pointer">Just scarcity</Label>
+                      </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="discount" id="wl-discount" />
                         <Label htmlFor="wl-discount" className="text-sm font-normal cursor-pointer">Discount</Label>
@@ -454,6 +470,13 @@ export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
                         placeholder="e.g., Exclusive resource bundle ($300 value)"
                       />
                     </div>
+                  )}
+
+                  {/* Scarcity tip */}
+                  {offerPricing.waitlistOfferType === 'none' && (
+                    <p className="text-xs text-muted-foreground">
+                      💡 Don't have a bonus? That's okay. Scarcity (limited time/spots) works too.
+                    </p>
                   )}
                 </div>
               )}
