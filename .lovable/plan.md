@@ -1,325 +1,226 @@
 
-# Feature Enhancement Plan: Dashboard Improvements & Coaching Tools
+# Editorial Calendar Fixes
 
 ## Overview
-
-This plan addresses gaps in the current implementation to add missing features for data persistence, error handling, and several new coaching/planning tools.
-
----
-
-## Features to Implement
-
-### 1. Widget Order Persistence (Data Persistence Gap)
-
-**Current State**: Widgets can be toggled on/off but cannot be reordered by dragging.
-
-**Implementation**:
-- Add `widget_order` JSONB column to `user_settings` table
-- Extend `useDashboardWidgets` hook with ordering state
-- Add drag-and-drop reordering using existing `@dnd-kit` library
-- Save order to localStorage + server on drop
-
-**Files to Create/Modify**:
-- `src/hooks/useDashboardWidgets.tsx` - Add order state and persistence
-- `src/pages/Dashboard.tsx` - Add DnD context to widget areas
-- `supabase/migrations/` - Add `dashboard_widget_order` column
+This plan addresses 5 must-fix issues identified in the Editorial Calendar implementation: DnD ID collisions, week filtering query bugs, content type icon mapping, lane overflow styling, and content_plan_items duplicate prevention.
 
 ---
 
-### 2. Widget-Level Error Boundaries (Error Handling Gap)
+## Issues & Fixes
 
-**Current State**: App has global error boundary, but individual widget failures could break the whole dashboard.
+### 1. DnD ID Collisions (Critical)
 
-**Implementation**:
-- Create `WidgetErrorBoundary` component with friendly fallback UI
-- Wrap each dashboard widget individually
-- Include "Retry" button in fallback
+**Problem**: The same item can render in multiple lanes (create + publish, or pool + lane) with the same draggable `id`, causing `@dnd-kit` to break.
 
-**Files to Create**:
-- `src/components/dashboard/WidgetErrorBoundary.tsx`
-
-**Files to Modify**:
-- `src/pages/Dashboard.tsx` - Wrap widgets with error boundaries
-
----
-
-### 3. Simplification Assistant
-
-**Purpose**: Alert users when their plan is over-committed and suggest simplified alternatives.
-
-**Triggers**:
-- Capacity calculator shows > 100% usage
-- User selects 3+ content platforms
-- Weekly time commitment exceeds available hours
-
-**Implementation**:
-- Create modal component with capacity analysis
-- Integrate with cycle setup wizard and content planner
-- Show pre-calculated simplified options (Option A, Option B)
-- Log user's choice for analytics
-
-**Database Changes**:
-- Add `simplification_suggestions` table to log when shown and choice made
-
-**Files to Create**:
-- `src/components/coaching/SimplificationAssistant.tsx` - Modal with options
-- `src/hooks/useCapacityCheck.ts` - Calculate over-commitment
-- `supabase/migrations/` - Add logging table
-
-**Files to Modify**:
-- `src/pages/CycleSetup.tsx` - Integrate capacity check
-- `src/components/wizards/content-planner/` - Add platform limit check
-
----
-
-### 4. Anti-Comparison Mode
-
-**Purpose**: Settings toggle to hide all benchmark data and focus on personal progress only.
-
-**Implementation**:
-- Add toggle in Settings under Display Preferences
-- Add `anti_comparison_mode` column to `user_settings`
-- Create context/hook to check mode throughout app
-- Hide benchmark data, "average user" references when enabled
-
-**Files to Create**:
-- `src/hooks/useAntiComparisonMode.ts`
-
-**Files to Modify**:
-- `src/pages/Settings.tsx` - Add toggle
-- `supabase/migrations/` - Add column
-- Dashboard/Progress widgets - Conditionally hide comparisons
-
----
-
-### 5. Coach Prep Tool
-
-**Purpose**: Structured worksheet to prepare for coaching calls with key metrics and questions.
-
-**Implementation**:
-- New page at `/coach-prep`
-- Form fields for: date, current metrics, question, what you've tried, thought creating problem, what you need coaching on
-- Auto-populate metrics from database
-- PDF download, shareable link, print options
-
-**Database Changes**:
-- Add `coaching_call_prep` table
-
-**Files to Create**:
-- `src/pages/CoachPrep.tsx`
-- `src/components/coaching/CoachPrepForm.tsx`
-- `src/hooks/useCoachingPrep.ts`
-- `supabase/migrations/` - Add table
-
-**Files to Modify**:
-- `src/App.tsx` - Add route
-- `src/components/AppSidebar.tsx` - Add navigation
-
----
-
-### 6. Strategy Change Friction
-
-**Purpose**: Prevent impulsive strategy changes before Day 45 by requiring reflection.
-
-**Triggers**:
-- User attempts to edit core strategy (platform, focus area, main offer) before Day 45 of cycle
-
-**Implementation**:
-- Create friction modal component
-- Required reflection questions before allowing change
-- Log decision (changed anyway vs. gave it more time)
-
-**Database Changes**:
-- Add `strategy_change_attempts` table for logging
-
-**Files to Create**:
-- `src/components/coaching/StrategyChangeFriction.tsx`
-- `supabase/migrations/` - Add logging table
-
-**Files to Modify**:
-- `src/pages/CycleSetup.tsx` - Check cycle day before allowing edits
-- Any strategy edit forms - Wrap with friction check
-
----
-
-### 7. Quarter Comparison Tool
-
-**Purpose**: Compare previous quarter results with new quarter plan.
-
-**Implementation**:
-- Show during new cycle setup (Q2, Q3, Q4+)
-- Display side-by-side: previous goal vs actual, scores, learnings
-- Prompt for new quarter planning
-
-**Files to Create**:
-- `src/components/wizards/cycle-planner/QuarterComparison.tsx`
-
-**Files to Modify**:
-- `src/pages/CycleSetup.tsx` - Show comparison for returning users
-- `src/pages/CycleSummary.tsx` - Link to comparison view
-
----
-
-### 8. Example Answers Library
-
-**Purpose**: Provide example inputs from other students on wizard text fields.
-
-**Implementation**:
-- Create curated examples for each wizard question
-- Add "show examples" button next to text inputs
-- Display in popover/tooltip format
-- Store examples in constants file (not database)
-
-**Files to Create**:
-- `src/lib/wizardExamples.ts` - Curated example data
-- `src/components/ui/ExampleAnswersPopover.tsx`
-
-**Files to Modify**:
-- Various wizard step components to include example buttons
-
----
-
-### 9. Mobile Quick Actions Enhancement
-
-**Purpose**: Quick-tap buttons for common daily actions on mobile.
-
-**Current State**: QuickActionsPanel exists but not mobile-optimized with quick-tap features.
-
-**Implementation**:
-- Add floating action buttons for mobile:
-  - "Made an offer today" (one-tap tracking)
-  - "Completed top 3 tasks" (quick completion)
-  - "Updated metrics" (quick metric entry)
-  - "View today's focus" (navigate)
-  - "Self-coach (CTFAR)" (open modal)
-- Integrate with existing offer tracking and task completion systems
-
-**Files to Create**:
-- `src/components/mobile/MobileQuickActions.tsx` - FAB with quick action drawer
-
-**Files to Modify**:
-- `src/components/Layout.tsx` - Add mobile quick actions component
-
----
-
-## Database Schema Changes
-
-```sql
--- 1. Widget ordering
-ALTER TABLE public.user_settings
-ADD COLUMN IF NOT EXISTS dashboard_widget_order JSONB DEFAULT '{}';
-
--- 2. Anti-comparison mode
-ALTER TABLE public.user_settings
-ADD COLUMN IF NOT EXISTS anti_comparison_mode BOOLEAN DEFAULT false;
-
--- 3. Simplification logging
-CREATE TABLE public.simplification_suggestions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  trigger_type TEXT NOT NULL,
-  suggested_options JSONB NOT NULL,
-  choice_made TEXT,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE public.simplification_suggestions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users manage own suggestions" ON public.simplification_suggestions
-  FOR ALL USING (auth.uid() = user_id);
-
--- 4. Coaching call prep
-CREATE TABLE public.coaching_call_prep (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  call_date DATE NOT NULL,
-  metrics JSONB,
-  main_question TEXT,
-  what_tried TEXT,
-  blocking_thought TEXT,
-  coaching_need TEXT,
-  share_token UUID DEFAULT gen_random_uuid(),
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE public.coaching_call_prep ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users manage own prep" ON public.coaching_call_prep
-  FOR ALL USING (auth.uid() = user_id);
-
--- 5. Strategy change logging
-CREATE TABLE public.strategy_change_attempts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  cycle_id UUID REFERENCES public.cycles_90_day(cycle_id) ON DELETE SET NULL,
-  cycle_day INTEGER NOT NULL,
-  change_type TEXT NOT NULL,
-  data_showing_issue TEXT,
-  days_executed INTEGER,
-  blocking_thought TEXT,
-  decision TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE public.strategy_change_attempts ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users manage own attempts" ON public.strategy_change_attempts
-  FOR ALL USING (auth.uid() = user_id);
+**Current Code** (CalendarContentCard.tsx line 37-40):
+```tsx
+const { ... } = useDraggable({
+  id: item.id,  // Same ID everywhere!
+  data: { item },
+});
 ```
 
+**Solution**: Make draggable IDs lane-specific by adding a `laneContext` prop:
+
+```tsx
+// CalendarContentCard.tsx
+interface CalendarContentCardProps {
+  item: CalendarItem;
+  laneContext: 'create' | 'publish' | 'pool'; // NEW
+  // ...
+}
+
+const { ... } = useDraggable({
+  id: `${item.id}:${laneContext}`, // e.g., "content-abc:create"
+  data: { item }, // Keep base item in data for drop handler
+});
+```
+
+**Files to modify**:
+- `src/components/editorial-calendar/CalendarContentCard.tsx` - Add `laneContext` prop
+- `src/components/editorial-calendar/CalendarDayColumn.tsx` - Pass lane type to cards
+- `src/components/editorial-calendar/UnscheduledPool.tsx` - Pass `laneContext="pool"`
+- `src/components/editorial-calendar/EditorialCalendarView.tsx` - Parse base item ID from drag event
+
 ---
 
-## Implementation Priority
+### 2. Week Filtering Query Bug (Critical)
 
-### Phase 1: Foundation (High Priority)
-1. Widget-level error boundaries
-2. Widget order persistence
-3. Mobile Quick Actions enhancement
+**Problem**: The current `.or(...).or(...)` chain doesn't properly filter items to the week range. It creates an incorrect logical grouping.
 
-### Phase 2: Coaching Tools (High Priority)
-4. Coach Prep Tool
-5. Simplification Assistant
-6. Strategy Change Friction
+**Current Code** (useEditorialCalendar.ts lines 27-32):
+```tsx
+.or(`planned_creation_date.gte.${weekStartStr},planned_publish_date.gte.${weekStartStr}`)
+.or(`planned_creation_date.lte.${weekEndStr},planned_publish_date.lte.${weekEndStr}`)
+```
 
-### Phase 3: Settings & Comparison (Medium Priority)
-7. Anti-Comparison Mode
-8. Quarter Comparison Tool
+This creates: `(creation >= start OR publish >= start) AND (creation <= end OR publish <= end)` which is NOT a proper "between" filter.
 
-### Phase 4: Polish (Lower Priority)
-9. Example Answers Library
+**Solution**: Use a single grouped OR with proper AND conditions:
+
+```tsx
+.or(
+  `and(planned_creation_date.gte.${weekStartStr},planned_creation_date.lte.${weekEndStr}),` +
+  `and(planned_publish_date.gte.${weekStartStr},planned_publish_date.lte.${weekEndStr})`
+)
+```
+
+This creates: `(creation BETWEEN start AND end) OR (publish BETWEEN start AND end)` - items appear if either date falls in the week.
+
+**Files to modify**:
+- `src/hooks/useEditorialCalendar.ts` - Fix content_items and tasks queries
+
+---
+
+### 3. Content Type Icon Mapping (Important)
+
+**Problem**: `CONTENT_TYPE_ICONS` uses keys like `instagram-reel`, but actual database values use the `ContentFormat` type which already matches these keys. The issue is the `getContentTypeIcon` function does no normalization.
+
+**Current Code** (calendarConstants.ts line 123-126):
+```tsx
+export function getContentTypeIcon(type: string | null | undefined): string {
+  if (!type) return DEFAULT_CONTENT_ICON;
+  return CONTENT_TYPE_ICONS[type] || DEFAULT_CONTENT_ICON;
+}
+```
+
+**Solution**: Add normalization to handle case variations and label-to-id mapping:
+
+```tsx
+// Add label-to-id mapping for backwards compatibility
+const TYPE_LABEL_TO_ID: Record<string, string> = {
+  'newsletter': 'newsletter',
+  'post': 'instagram-post',
+  'reel': 'instagram-reel',
+  'reel/short': 'instagram-reel',
+  'short': 'youtube-short',
+  'video': 'youtube-video',
+  'linkedin post': 'linkedin-post',
+  'blog post': 'blog-post',
+  'email': 'email-single',
+  // ... etc
+};
+
+export function getContentTypeIcon(type: string | null | undefined): string {
+  if (!type) return DEFAULT_CONTENT_ICON;
+  
+  // Try direct match first
+  if (CONTENT_TYPE_ICONS[type]) return CONTENT_TYPE_ICONS[type];
+  
+  // Normalize: lowercase, trim
+  const normalized = type.toLowerCase().trim();
+  
+  // Try normalized direct match
+  if (CONTENT_TYPE_ICONS[normalized]) return CONTENT_TYPE_ICONS[normalized];
+  
+  // Try label-to-id mapping
+  const mappedId = TYPE_LABEL_TO_ID[normalized];
+  if (mappedId && CONTENT_TYPE_ICONS[mappedId]) return CONTENT_TYPE_ICONS[mappedId];
+  
+  return DEFAULT_CONTENT_ICON;
+}
+```
+
+**Files to modify**:
+- `src/lib/calendarConstants.ts` - Add label mapping and normalize function
+
+---
+
+### 4. Lane Overflow Scrolling (Usability)
+
+**Problem**: Days with lots of content clip items because lanes lack proper overflow styling.
+
+**Current Code** (CalendarDayColumn.tsx line 88-92):
+```tsx
+<div
+  ref={setNodeRef}
+  className={cn(
+    "flex-1 p-1.5 min-h-[80px] transition-colors",
+    // No overflow handling!
+  )}
+>
+```
+
+**Solution**: Add `min-h-0 overflow-y-auto` to each lane container:
+
+```tsx
+<div
+  ref={setNodeRef}
+  className={cn(
+    "flex-1 p-1.5 min-h-0 overflow-y-auto transition-colors",
+    // ...
+  )}
+>
+```
+
+**Files to modify**:
+- `src/components/editorial-calendar/CalendarDayColumn.tsx` - Add overflow classes to DroppableLane
+
+---
+
+### 5. Content Plan Items Duplicate Prevention (Polish)
+
+**Problem**: `content_plan_items` that have been promoted to `content_items` (via `content_item_id`) appear twice on the calendar.
+
+**Current Code** (useEditorialCalendar.ts lines 46-54):
+```tsx
+const { data, error } = await supabase
+  .from('content_plan_items')
+  .select('id, title, content_type, channel, planned_date, status')
+  // No content_item_id filter!
+```
+
+**Solution**: Add filter to exclude linked plan items:
+
+```tsx
+const { data, error } = await supabase
+  .from('content_plan_items')
+  .select('id, title, content_type, channel, planned_date, status')
+  .eq('user_id', user.id)
+  .is('content_item_id', null) // Only unlinked plan items
+  .gte('planned_date', weekStartStr)
+  .lte('planned_date', weekEndStr);
+```
+
+**Files to modify**:
+- `src/hooks/useEditorialCalendar.ts` - Add `.is('content_item_id', null)` filter
 
 ---
 
 ## Files Summary
 
-### New Files to Create (15 files)
-| File | Purpose |
+| File | Changes |
 |------|---------|
-| `src/components/dashboard/WidgetErrorBoundary.tsx` | Widget isolation |
-| `src/components/coaching/SimplificationAssistant.tsx` | Over-commitment modal |
-| `src/components/coaching/StrategyChangeFriction.tsx` | Change friction modal |
-| `src/components/coaching/CoachPrepForm.tsx` | Call prep form |
-| `src/components/wizards/cycle-planner/QuarterComparison.tsx` | Q-over-Q view |
-| `src/components/ui/ExampleAnswersPopover.tsx` | Example hints |
-| `src/components/mobile/MobileQuickActions.tsx` | Mobile FAB |
-| `src/pages/CoachPrep.tsx` | Coach prep page |
-| `src/hooks/useCapacityCheck.ts` | Capacity analysis |
-| `src/hooks/useAntiComparisonMode.ts` | Comparison mode hook |
-| `src/hooks/useCoachingPrep.ts` | Coach prep data |
-| `src/lib/wizardExamples.ts` | Example answers data |
-| `supabase/migrations/xxx_feature_enhancements.sql` | Schema changes |
-
-### Files to Modify (10+ files)
-- `src/hooks/useDashboardWidgets.tsx`
-- `src/pages/Dashboard.tsx`
-- `src/pages/Settings.tsx`
-- `src/pages/CycleSetup.tsx`
-- `src/components/Layout.tsx`
-- `src/components/AppSidebar.tsx`
-- `src/App.tsx`
-- Various wizard components
+| `src/components/editorial-calendar/CalendarContentCard.tsx` | Add `laneContext` prop, update draggable ID |
+| `src/components/editorial-calendar/CalendarDayColumn.tsx` | Pass `laneContext` to cards, add overflow classes |
+| `src/components/editorial-calendar/UnscheduledPool.tsx` | Pass `laneContext="pool"` to cards |
+| `src/components/editorial-calendar/EditorialCalendarView.tsx` | Parse base item ID from composite drag ID |
+| `src/hooks/useEditorialCalendar.ts` | Fix OR query, add content_item_id filter |
+| `src/lib/calendarConstants.ts` | Add type normalization and label mapping |
 
 ---
 
-## Technical Notes
+## Technical Details
 
-- Reuse existing `@dnd-kit` patterns from Editorial Calendar for widget ordering
-- Reuse `CoachYourselfModal` patterns for friction and simplification modals
-- Use existing PDF generation (`jspdf`) for Coach Prep export
-- Follow existing Settings toggle patterns for Anti-Comparison Mode
-- Apply existing mobile quick capture patterns from `MobileQuickCapture.tsx`
+### DnD ID Format
+- **Create lane**: `content-abc:create`
+- **Publish lane**: `content-abc:publish`
+- **Unscheduled pool**: `content-abc:pool`
+
+The drop handler extracts the base item from `active.data.current.item`, so no ID parsing is needed on drop.
+
+### Query Logic Explanation
+The corrected Supabase query uses nested `and()` within `or()`:
+```
+or(
+  and(planned_creation_date.gte.2024-01-01,planned_creation_date.lte.2024-01-07),
+  and(planned_publish_date.gte.2024-01-01,planned_publish_date.lte.2024-01-07)
+)
+```
+This correctly matches items where **either** date falls within the week range.
+
+### Type Normalization Priority
+1. Direct match (e.g., `instagram-reel`)
+2. Lowercase normalized match
+3. Label-to-ID mapping (e.g., `Reel/Short` → `instagram-reel`)
+4. Fallback to `FileText` icon
