@@ -30,12 +30,13 @@ export function EditorialCalendarView() {
   const [activeItem, setActiveItem] = useState<CalendarItem | null>(null);
   const [editingItem, setEditingItem] = useState<CalendarItem | null>(null);
   const [editDrawerOpen, setEditDrawerOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const { 
     items, 
     unscheduledItems, 
     getItemsForDay, 
-    updateItemDate,
+    updateItemDateAsync,
     isUpdating,
     isLoading,
     weekStartDate,
@@ -71,22 +72,37 @@ export function EditorialCalendarView() {
     setEditDrawerOpen(true);
   };
 
-  // Save handler for quick edit
-  const handleSaveEdit = useCallback((updates: { creationDate: string | null; publishDate: string | null }) => {
+  // Save handler for quick edit - AWAIT saves and handle errors
+  const handleSaveEdit = useCallback(async (updates: { creationDate: string | null; publishDate: string | null }) => {
     if (!editingItem) return;
 
-    // Update creation date if changed
-    if (updates.creationDate !== editingItem.creationDate) {
-      updateItemDate({ item: editingItem, lane: 'create', newDate: updates.creationDate });
+    setIsSaving(true);
+    let hasError = false;
+
+    try {
+      // Update creation date if changed
+      if (updates.creationDate !== editingItem.creationDate) {
+        await updateItemDateAsync({ item: editingItem, lane: 'create', newDate: updates.creationDate });
+      }
+
+      // Update publish date if changed
+      if (updates.publishDate !== editingItem.publishDate) {
+        await updateItemDateAsync({ item: editingItem, lane: 'publish', newDate: updates.publishDate });
+      }
+
+      toast.success('Content schedule updated');
+      setEditDrawerOpen(false);
+    } catch (error) {
+      console.error('Failed to save calendar item:', error);
+      toast.error('Failed to save changes. Please try again.');
+      hasError = true;
+      // Keep drawer open on error so user can retry
+    } finally {
+      setIsSaving(false);
     }
 
-    // Update publish date if changed
-    if (updates.publishDate !== editingItem.publishDate) {
-      updateItemDate({ item: editingItem, lane: 'publish', newDate: updates.publishDate });
-    }
-
-    toast.success('Content schedule updated');
-  }, [editingItem, updateItemDate]);
+    return !hasError;
+  }, [editingItem, updateItemDateAsync]);
 
   // DnD handlers
   const handleDragStart = (event: DragStartEvent) => {
@@ -97,7 +113,7 @@ export function EditorialCalendarView() {
     }
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveItem(null);
 
@@ -110,10 +126,17 @@ export function EditorialCalendarView() {
 
     // Dropped on unscheduled pool
     if (overId === 'unscheduled') {
-      // Clear both dates
-      updateItemDate({ item, lane: 'create', newDate: null });
-      updateItemDate({ item, lane: 'publish', newDate: null });
-      toast.success('Content moved to unscheduled');
+      try {
+        // Clear both dates - await to ensure saves complete
+        await Promise.all([
+          updateItemDateAsync({ item, lane: 'create', newDate: null }),
+          updateItemDateAsync({ item, lane: 'publish', newDate: null }),
+        ]);
+        toast.success('Content moved to unscheduled');
+      } catch (error) {
+        console.error('Failed to unschedule content:', error);
+        toast.error('Failed to unschedule content. Please try again.');
+      }
       return;
     }
 
@@ -121,12 +144,17 @@ export function EditorialCalendarView() {
     const match = overId.match(/^(create|publish)-(\d{4}-\d{2}-\d{2})$/);
     if (match) {
       const [, lane, dateStr] = match;
-      updateItemDate({ 
-        item, 
-        lane: lane as 'create' | 'publish', 
-        newDate: dateStr 
-      });
-      toast.success(`Scheduled for ${lane === 'create' ? 'creation' : 'publishing'} on ${format(new Date(dateStr), 'MMM d')}`);
+      try {
+        await updateItemDateAsync({ 
+          item, 
+          lane: lane as 'create' | 'publish', 
+          newDate: dateStr 
+        });
+        toast.success(`Scheduled for ${lane === 'create' ? 'creation' : 'publishing'} on ${format(new Date(dateStr), 'MMM d')}`);
+      } catch (error) {
+        console.error('Failed to schedule content:', error);
+        toast.error('Failed to schedule content. Please try again.');
+      }
     }
   };
 
@@ -200,8 +228,14 @@ export function EditorialCalendarView() {
       <ContentQuickEditDrawer
         item={editingItem}
         open={editDrawerOpen}
-        onOpenChange={setEditDrawerOpen}
+        onOpenChange={(open) => {
+          // Only allow closing if not currently saving
+          if (!isSaving) {
+            setEditDrawerOpen(open);
+          }
+        }}
         onSave={handleSaveEdit}
+        isSaving={isSaving}
       />
 
       {/* Loading overlay */}

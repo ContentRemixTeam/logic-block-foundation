@@ -54,6 +54,7 @@ async function processMutation(mutation: QueuedMutation): Promise<boolean> {
     // Route to appropriate edge function based on table
     let endpoint = '';
     let body: any = mutation.data;
+    let useDirectUpdate = false;
 
     switch (mutation.table) {
       case 'tasks':
@@ -84,9 +85,50 @@ async function processMutation(mutation: QueuedMutation): Promise<boolean> {
         endpoint = 'save-idea';
         break;
       
+      // Content calendar tables - use direct Supabase updates
+      case 'content_items':
+      case 'content_plan_items':
+        useDirectUpdate = true;
+        break;
+      
       default:
         console.warn(`Unknown table for sync: ${mutation.table}`);
         return false;
+    }
+
+    // Handle direct Supabase updates for content calendar tables
+    if (useDirectUpdate) {
+      const { id, ...updateData } = mutation.data;
+      
+      if (!id) {
+        console.error('Missing id for content calendar update');
+        return false;
+      }
+
+      let error: any = null;
+
+      // Use explicit table names to satisfy TypeScript
+      if (mutation.table === 'content_items') {
+        const result = await supabase
+          .from('content_items')
+          .update(updateData as any)
+          .eq('id', id);
+        error = result.error;
+      } else if (mutation.table === 'content_plan_items') {
+        const result = await supabase
+          .from('content_plan_items')
+          .update(updateData as any)
+          .eq('id', id);
+        error = result.error;
+      }
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      await removeMutation(mutation.id);
+      emitSyncEvent('mutation-synced', { mutation });
+      return true;
     }
 
     const response = await fetch(

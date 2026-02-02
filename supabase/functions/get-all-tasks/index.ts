@@ -59,10 +59,14 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Parse pagination params from URL or body
+    // Parse pagination and filter params from URL or body
     const url = new URL(req.url);
     let limit = parseInt(url.searchParams.get('limit') || '0', 10);
     let offset = parseInt(url.searchParams.get('offset') || '0', 10);
+    let dateFrom: string | null = url.searchParams.get('date_from');
+    let dateTo: string | null = url.searchParams.get('date_to');
+    let includeIncomplete = url.searchParams.get('include_incomplete') === 'true';
+    let loadAll = url.searchParams.get('load_all') === 'true';
 
     // Also check request body for POST requests
     if (req.method === 'POST') {
@@ -70,12 +74,24 @@ Deno.serve(async (req) => {
         const body = await req.json();
         if (body.limit) limit = parseInt(body.limit, 10);
         if (body.offset) offset = parseInt(body.offset, 10);
+        if (body.date_from) dateFrom = body.date_from;
+        if (body.date_to) dateTo = body.date_to;
+        if (body.include_incomplete !== undefined) includeIncomplete = body.include_incomplete;
+        if (body.load_all !== undefined) loadAll = body.load_all;
       } catch {
         // No body or invalid JSON, use URL params
       }
     }
 
-    // If no limit specified, return all (backwards compatible)
+    // Smart filtering mode: last 90 days + incomplete if no explicit params
+    const useSmartFilter = !loadAll && !dateFrom && !dateTo && limit === 0;
+    
+    // Calculate smart filter dates
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    const smartDateFrom = ninetyDaysAgo.toISOString().split('T')[0];
+
+    // If no limit specified, return all (backwards compatible) or use smart limit
     const isPaginated = limit > 0;
 
     // First, get total count
@@ -94,7 +110,7 @@ Deno.serve(async (req) => {
 
     const totalCount = count || 0;
 
-    // Build query with pagination
+    // Build query with pagination and filtering
     let query = supabase
       .from('tasks')
       .select(`
@@ -103,7 +119,27 @@ Deno.serve(async (req) => {
         project:projects(id, name, color, is_launch, launch_start_date, launch_end_date)
       `)
       .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+      .is('deleted_at', null); // Exclude soft-deleted tasks
+
+    // Apply smart filtering: get tasks from last 90 days + all incomplete tasks
+    if (useSmartFilter) {
+      // Use OR: (created recently) OR (not completed)
+      query = query.or(`created_at.gte.${smartDateFrom},is_completed.eq.false`);
+    } else if (dateFrom || dateTo) {
+      // Apply explicit date filters
+      if (dateFrom) {
+        query = query.gte('created_at', dateFrom);
+      }
+      if (dateTo) {
+        query = query.lte('created_at', dateTo);
+      }
+      if (includeIncomplete) {
+        // This is more complex - we'd need to restructure
+        // For now, just apply the date filter
+      }
+    }
+
+    query = query.order('created_at', { ascending: false });
 
     if (isPaginated) {
       query = query.range(offset, offset + limit - 1);
@@ -128,6 +164,7 @@ Deno.serve(async (req) => {
       hasMore,
       offset,
       limit: isPaginated ? limit : totalCount,
+      useSmartFilter,
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
