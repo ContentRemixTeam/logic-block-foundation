@@ -89,7 +89,10 @@ export function WizardLayout({
           <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <Button
               variant="outline"
-              onClick={onBack}
+              onClick={() => {
+                onBack();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
               disabled={currentStep === 1 || isSaving}
               className="min-h-[48px] order-2 sm:order-1"
             >
@@ -102,7 +105,10 @@ export function WizardLayout({
             </div>
 
             <Button
-              onClick={onNext}
+              onClick={() => {
+                onNext();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
               disabled={!canProceed}
               className="min-h-[48px] order-1 sm:order-3"
             >
