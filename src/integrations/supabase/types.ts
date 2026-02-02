@@ -361,6 +361,48 @@ export type Database = {
         }
         Relationships: []
       }
+      coaching_call_prep: {
+        Row: {
+          blocking_thought: string | null
+          call_date: string
+          coaching_need: string | null
+          created_at: string | null
+          id: string
+          main_question: string | null
+          metrics: Json | null
+          share_token: string | null
+          updated_at: string | null
+          user_id: string
+          what_tried: string | null
+        }
+        Insert: {
+          blocking_thought?: string | null
+          call_date: string
+          coaching_need?: string | null
+          created_at?: string | null
+          id?: string
+          main_question?: string | null
+          metrics?: Json | null
+          share_token?: string | null
+          updated_at?: string | null
+          user_id: string
+          what_tried?: string | null
+        }
+        Update: {
+          blocking_thought?: string | null
+          call_date?: string
+          coaching_need?: string | null
+          created_at?: string | null
+          id?: string
+          main_question?: string | null
+          metrics?: Json | null
+          share_token?: string | null
+          updated_at?: string | null
+          user_id?: string
+          what_tried?: string | null
+        }
+        Relationships: []
+      }
       coaching_entries: {
         Row: {
           action: string | null
@@ -4264,6 +4306,33 @@ export type Database = {
           },
         ]
       }
+      simplification_suggestions: {
+        Row: {
+          choice_made: string | null
+          created_at: string | null
+          id: string
+          suggested_options: Json
+          trigger_type: string
+          user_id: string
+        }
+        Insert: {
+          choice_made?: string | null
+          created_at?: string | null
+          id?: string
+          suggested_options: Json
+          trigger_type: string
+          user_id: string
+        }
+        Update: {
+          choice_made?: string | null
+          created_at?: string | null
+          id?: string
+          suggested_options?: Json
+          trigger_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sops: {
         Row: {
           checklist_items: Json | null
@@ -4305,6 +4374,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      strategy_change_attempts: {
+        Row: {
+          blocking_thought: string | null
+          change_type: string
+          created_at: string | null
+          cycle_day: number
+          cycle_id: string | null
+          data_showing_issue: string | null
+          days_executed: number | null
+          decision: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          blocking_thought?: string | null
+          change_type: string
+          created_at?: string | null
+          cycle_day: number
+          cycle_id?: string | null
+          data_showing_issue?: string | null
+          days_executed?: number | null
+          decision: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          blocking_thought?: string | null
+          change_type?: string
+          created_at?: string | null
+          cycle_day?: number
+          cycle_id?: string | null
+          data_showing_issue?: string | null
+          days_executed?: number | null
+          decision?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategy_change_attempts_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+        ]
       }
       summit_speakers: {
         Row: {
@@ -5304,6 +5420,7 @@ export type Database = {
         Row: {
           active_theme_id: string | null
           ai_api_key: string | null
+          anti_comparison_mode: boolean | null
           arcade_enabled: boolean | null
           arcade_reduce_motion: boolean | null
           arcade_sounds_off: boolean | null
@@ -5313,6 +5430,7 @@ export type Database = {
           cycle_summary_questions: Json | null
           daily_anchor_enabled: boolean | null
           daily_review_questions: Json | null
+          dashboard_widget_order: Json | null
           dashboard_widgets: Json | null
           delight_intensity: string
           dismissed_launch_debriefs: Json | null
@@ -5349,6 +5467,7 @@ export type Database = {
         Insert: {
           active_theme_id?: string | null
           ai_api_key?: string | null
+          anti_comparison_mode?: boolean | null
           arcade_enabled?: boolean | null
           arcade_reduce_motion?: boolean | null
           arcade_sounds_off?: boolean | null
@@ -5358,6 +5477,7 @@ export type Database = {
           cycle_summary_questions?: Json | null
           daily_anchor_enabled?: boolean | null
           daily_review_questions?: Json | null
+          dashboard_widget_order?: Json | null
           dashboard_widgets?: Json | null
           delight_intensity?: string
           dismissed_launch_debriefs?: Json | null
@@ -5394,6 +5514,7 @@ export type Database = {
         Update: {
           active_theme_id?: string | null
           ai_api_key?: string | null
+          anti_comparison_mode?: boolean | null
           arcade_enabled?: boolean | null
           arcade_reduce_motion?: boolean | null
           arcade_sounds_off?: boolean | null
@@ -5403,6 +5524,7 @@ export type Database = {
           cycle_summary_questions?: Json | null
           daily_anchor_enabled?: boolean | null
           daily_review_questions?: Json | null
+          dashboard_widget_order?: Json | null
           dashboard_widgets?: Json | null
           delight_intensity?: string
           dismissed_launch_debriefs?: Json | null

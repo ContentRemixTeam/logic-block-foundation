@@ -111,6 +111,7 @@ const QuickAddApp = lazyWithRetry(() => import('./pages/QuickAddApp'));
 const InstallQuickAdd = lazyWithRetry(() => import('./pages/InstallQuickAdd'));
 const SummitWizardPage = lazyWithRetry(() => import('./pages/SummitWizardPage'));
 const EditorialCalendar = lazyWithRetry(() => import('./pages/EditorialCalendar'));
+const CoachPrep = lazyWithRetry(() => import('./pages/CoachPrep'));
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -205,6 +206,7 @@ const App = () => (
                       <Route path="/settings" element={<ProtectedRoute><PageSuspense><Settings /></PageSuspense></ProtectedRoute>} />
                       <Route path="/admin" element={<ProtectedRoute><PageSuspense><Admin /></PageSuspense></ProtectedRoute>} />
                       <Route path="/coaching-log" element={<ProtectedRoute><PageSuspense><CoachingLog /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/coach-prep" element={<ProtectedRoute><PageSuspense><CoachPrep /></PageSuspense></ProtectedRoute>} />
                       <Route path="/content-vault" element={<ProtectedRoute><PageSuspense><ContentVault /></PageSuspense></ProtectedRoute>} />
                       <Route path="/editorial-calendar" element={<ProtectedRoute><PageSuspense><EditorialCalendar /></PageSuspense></ProtectedRoute>} />
                       <Route path="/trash" element={<ProtectedRoute><PageSuspense><Trash /></PageSuspense></ProtectedRoute>} />
