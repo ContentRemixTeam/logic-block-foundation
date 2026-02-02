@@ -1,514 +1,420 @@
 
 
-# Summit Wizard - Dedicated Virtual Summit Planning System
+# Launch Planner Enhancement: Adaptive vs. Separate Wizards
 
-## Why a Separate Wizard
+## My Recommendation: Hybrid Approach
 
-Summits are uniquely complex compared to standard launches:
-- **Speaker Management**: Recruiting, coordinating, and tracking 5-50+ speakers
-- **Affiliate System**: Commission structures, swipe copy, promotional schedules
-- **Multi-Session Scheduling**: Organizing sessions across multiple days
-- **All-Access Pass**: A separate product with its own sales strategy
-- **Tech Stack**: Different platforms (HeySummit, SamCart, Kajabi, etc.)
+After analyzing the comprehensive Launch Strategy Encyclopedia and your current codebase, I recommend a **"Smart Adaptive" approach** rather than creating 5-10 separate wizards.
 
-Trying to fit this into the Launch Planner would create an overwhelming experience. A dedicated Summit Wizard keeps both tools focused and simple.
+### Why NOT Separate Wizards for Each Launch Style
+
+| Separate Wizards | Problems |
+|-----------------|----------|
+| Webinar Wizard, Challenge Wizard, Flash Sale Wizard, Beta Launch Wizard, etc. | **Maintenance nightmare** - 8+ wizards to maintain, update, and keep consistent |
+| | **User confusion** - "Which wizard do I use?" becomes a barrier |
+| | **Code duplication** - 70% of launch logic is shared (pricing, timeline, emails, contingency) |
+| | **Diminishing returns** - Most users do 1-2 launch types; separate wizards over-engineer |
+
+### Why an Adaptive Single Wizard Works Better
+
+| Adaptive Wizard | Benefits |
+|-----------------|----------|
+| One Launch Planner with style-specific branches | **Shared foundation** - Core 8 steps remain consistent |
+| | **Style-specific sections** appear only when relevant |
+| | **Progressive disclosure** - Complexity reveals only when needed |
+| | **Easier onboarding** - Users always start at same place |
+| | **Single codebase** - Easier to maintain and improve |
 
 ---
 
-## Summit Wizard Overview
+## The Proposed Architecture
 
-| Attribute | Value |
-|-----------|-------|
-| Template Name | `summit-planner` |
-| Display Name | Summit Planner |
-| Total Steps | 9 |
-| Icon | `Users` (represents speakers/community) |
-| Creates | Project with `is_summit: true` flag |
+### Step 1: Add "Launch Style" Selection (Early in Wizard)
+
+Add a new question to **Step 1 (Launch Context)** or create a **new Step 1.5**:
+
+```
+What type of launch is this?
+├── Standard Launch (Cart open → Cart close)
+├── Challenge Launch (5-7 day challenge → Offer)
+├── Webinar Launch (Free training → Pitch)
+├── Masterclass (Multi-day deep training → Offer)
+├── Flash Sale (24-72 hour promotion)
+├── Beta Launch (Test product, gather feedback)
+├── Evergreen (Always available funnel)
+└── Other (I'll configure manually)
+```
+
+Based on selection, the wizard **adapts subsequent steps** to show relevant questions.
 
 ---
 
-## Step-by-Step Flow
+## What Changes Per Launch Style
 
-### Step 1: Summit Basics
-**Questions:**
-- What's the name of your summit?
-- Have you hosted a summit before?
-  - First time ever
-  - Hosted 1-2 before
-  - Experienced summit host
-- What's the primary goal?
-  - Grow my email list
-  - Make sales (all-access pass + offers)
-  - Build authority in my space
-  - Launch a new offer
-  - Combination
+### Core Steps (Always Present, ~70% Shared)
+These steps appear for ALL launch styles with minor adaptations:
 
-### Step 2: Summit Structure
-**Questions:**
-- How many days will your summit run?
-  - 3 days (compact)
-  - 5 days (standard)
-  - 7+ days (extended)
-  - Custom
-- How many sessions per day?
-  - 3-4 sessions/day
-  - 5-6 sessions/day
-  - 7+ sessions/day
-- Session format:
-  - Pre-recorded interviews
-  - Live sessions
-  - Mix of both
-- Session length:
-  - 20-30 minutes
-  - 45 minutes
-  - 60 minutes
+| Step | Shared Content | Style Variations |
+|------|---------------|------------------|
+| 1. Launch Context | Experience, offer type, list status | + Launch style selection |
+| 2. Goal & Timeline | Revenue goal, cart dates | Timeline adapts (Flash = 3 days, Challenge = 2-3 weeks) |
+| 3. Offer Details | Pricing, bonuses, payment plans | Same for all |
+| 4. Pre-Launch Strategy | Email sequences, content, sales page | Style-specific additions (see below) |
+| 5. Launch Week | How you'll sell, live events | Adapts heavily by style |
+| 6. Post-Launch | Follow-up, debrief | Same for all |
+| 7. Contingency | Fears, zero-sales plan | Same for all |
+| 8. Review & Complete | Summary, create | Task generation adapts by style |
 
-### Step 3: Speaker Strategy
-**Questions:**
-- How many speakers are you recruiting?
-  - 10-15 speakers (intimate)
-  - 16-25 speakers (standard)
-  - 26-40 speakers (large)
-  - 40+ speakers (mega)
-- Speaker recruitment deadline (date picker)
-- Are speakers affiliates for your all-access pass?
-  - Yes, all speakers are affiliates
-  - Some speakers, not all
-  - No affiliate program
-- If affiliates: What commission % will you offer?
-  - 30%
-  - 40%
-  - 50%
-  - Custom
+### Style-Specific Sections (Conditional)
 
-**Dynamic Section - Per Speaker (or bulk upload):**
-- Speaker name
-- Email
-- Topic/Session title
-- Recording deadline
-- Bio received? Y/N
-- Headshot received? Y/N
-- Swipe copy sent? Y/N
-- Recording received? Y/N
+**Challenge Launch** adds to Step 4 & 5:
+- Challenge duration (3, 5, 7, 10 days)
+- Daily topics (Day 1: X, Day 2: Y...)
+- Group strategy (Pop-up group / Existing group / No group)
+- Group platform (Facebook, Slack, Discord, Circle)
+- Completion incentive (Giveaway, bonus, certificate)
+- Homework structure (Type, submission method)
+- Daily email strategy
 
-### Step 4: All-Access Pass
-**Questions:**
-- Do you have an all-access pass?
-  - Yes
-  - No (free summit only)
-  - Considering it
-- If yes:
-  - Price point (number input)
-  - Has payment plan?
-  - What's included?
-    - Lifetime replay access
-    - Downloadable resources
-    - Bonus trainings
-    - Private community access
-    - Live Q&A sessions
-    - Other
-  - VIP tier available?
-    - VIP price
-    - VIP extras
-
-### Step 5: Summit Timeline
-**Questions:**
-- Registration opens (date)
-- Summit start date
-- Summit end date
-- All-access pass cart closes (date)
-- Post-summit replay period?
-  - 24 hours
-  - 48 hours
-  - 7 days
-  - Permanent (all-access only)
-
-**Visual Timeline Generated:**
-```
-[Prep Phase]----[Registration Open]----[Summit Live]----[Replay Period]----[Cart Close]
-```
-
-### Step 6: Tech & Delivery
-**Questions:**
-- Summit hosting platform:
-  - HeySummit
-  - Kajabi
-  - Thinkific
-  - Custom website
-  - Facebook Group
-  - Other
-- Email platform:
-  - Kit (ConvertKit)
-  - ActiveCampaign
-  - Mailchimp
-  - Flodesk
-  - Other
-- Checkout platform:
-  - ThriveCart
-  - SamCart
-  - Stripe
-  - Kajabi
-  - Other
-- Are you doing live sessions?
-  - If yes: Streaming platform (Zoom, StreamYard, Crowdcast)
-
-### Step 7: Marketing Strategy
-**Questions:**
-- How will you promote registrations?
-  - Email list
-  - Social media
-  - Speaker promotions (affiliates)
-  - Paid ads
-  - Podcast guesting
-  - Other
-- Registration goal (number)
-- Will speakers send promotional emails?
-  - Yes, required
-  - Yes, optional
-  - No
-- Number of swipe copy emails you'll provide to speakers:
-  - 3 emails
-  - 5 emails
-  - 7+ emails
-- Social promo assets for speakers?
-  - Yes, full kit
-  - Basic graphics only
-  - No
-
-### Step 8: Engagement & Experience
-**Questions:**
-- Will you have a community for attendees?
-  - Pop-up Facebook Group
-  - Existing community
-  - Slack/Discord
-  - No community
-- Daily engagement activities?
-  - Giveaways
-  - Q&A sessions
-  - Networking events
-  - Homework/challenges
-  - None
-- Special launch offer after summit?
-  - Yes (describe)
-  - No
-- Post-summit nurture plan?
-  - Email sequence to all registrants
-  - Personal outreach to engaged attendees
-  - Both
-  - None planned
-
-### Step 9: Review & Create
-**Summary Display:**
-- Summit name and dates
-- # of speakers, # of sessions
-- All-access pass price
+**Webinar Launch** adds to Step 4 & 5:
+- Webinar platform (Zoom, StreamYard, etc.)
+- Replay availability (24h, 48h, 72h)
+- Pitch timing (End, throughout, after Q&A)
+- Live-only bonus
 - Registration goal
-- Generated task count preview
-- "Create Summit" button
+- Show-up strategy
+
+**Flash Sale** adds to Step 2 & 5:
+- Sale duration (12h, 24h, 48h, 72h)
+- Discount type (% off, $ off, bonus stack)
+- Countdown timer strategy
+- Email count (typically 3-5 rapid fire)
+
+**Beta Launch** adds to Step 4 & 5:
+- Beta pricing (typically 30-50% off)
+- Feedback agreement
+- Beta size (limit to 20-50)
+- Testimonial collection plan
+
+**Masterclass** adds to Step 4 & 5:
+- Number of days (2-5)
+- Daily themes
+- Replay period
+- Replay-only offer
 
 ---
 
-## Database Changes
+## Implementation Plan
 
-### New Table: `summits`
+### Phase 1: Launch Style Foundation
+**Files to modify:**
 
-```sql
-CREATE TABLE summits (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
-  
-  -- Basics
-  name TEXT NOT NULL,
-  experience_level TEXT, -- first-time, some-experience, experienced
-  primary_goal TEXT, -- list-growth, sales, authority, launch-offer, combination
-  
-  -- Structure
-  num_days INTEGER DEFAULT 5,
-  sessions_per_day INTEGER DEFAULT 5,
-  session_format TEXT, -- pre-recorded, live, mixed
-  session_length TEXT, -- 20-30, 45, 60
-  
-  -- Speakers
-  target_speaker_count INTEGER DEFAULT 20,
-  speaker_recruitment_deadline DATE,
-  speakers_are_affiliates TEXT, -- all, some, none
-  affiliate_commission INTEGER,
-  
-  -- All-Access Pass
-  has_all_access_pass BOOLEAN DEFAULT true,
-  all_access_price NUMERIC(10,2),
-  all_access_has_payment_plan BOOLEAN DEFAULT false,
-  all_access_payment_plan_details TEXT,
-  all_access_includes JSONB DEFAULT '[]',
-  has_vip_tier BOOLEAN DEFAULT false,
-  vip_price NUMERIC(10,2),
-  vip_includes TEXT,
-  
-  -- Timeline
-  registration_opens DATE,
-  summit_start_date DATE NOT NULL,
-  summit_end_date DATE NOT NULL,
-  cart_closes DATE,
-  replay_period TEXT, -- 24-hours, 48-hours, 7-days, permanent
-  
-  -- Tech
-  hosting_platform TEXT,
-  email_platform TEXT,
-  checkout_platform TEXT,
-  streaming_platform TEXT,
-  
-  -- Marketing
-  promotion_methods JSONB DEFAULT '[]',
-  registration_goal INTEGER,
-  speaker_email_requirement TEXT, -- required, optional, none
-  swipe_emails_count INTEGER DEFAULT 5,
-  has_social_kit BOOLEAN DEFAULT true,
-  
-  -- Engagement
-  community_type TEXT, -- popup-fb, existing, slack-discord, none
-  engagement_activities JSONB DEFAULT '[]',
-  has_post_summit_offer BOOLEAN DEFAULT false,
-  post_summit_offer_details TEXT,
-  post_summit_nurture TEXT, -- email-sequence, personal-outreach, both, none
-  
-  -- Status
-  status TEXT DEFAULT 'planning', -- planning, active, completed
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
+1. **`src/types/launchV2.ts`**
+   - Add `LaunchStyle` type and options
+   - Add `ChallengeConfig`, `WebinarConfig`, `FlashSaleConfig` interfaces
+   - Add default values for each style
 
--- RLS policies
-ALTER TABLE summits ENABLE ROW LEVEL SECURITY;
+2. **`src/components/wizards/launch-v2/steps/StepLaunchContext.tsx`**
+   - Add Launch Style selector card grid
+   - Style selection sets `launchStyle` in wizard data
 
-CREATE POLICY "Users can manage their own summits"
-  ON summits FOR ALL
-  USING (auth.uid() = user_id);
+### Phase 2: Style-Specific Configuration Components
+**New files to create:**
+
+| File | Purpose |
+|------|---------|
+| `src/components/wizards/launch-v2/styles/ChallengeConfig.tsx` | Challenge-specific questions (group, homework, incentive) |
+| `src/components/wizards/launch-v2/styles/WebinarConfig.tsx` | Webinar-specific questions (platform, replay, pitch) |
+| `src/components/wizards/launch-v2/styles/FlashSaleConfig.tsx` | Flash sale questions (duration, discount) |
+| `src/components/wizards/launch-v2/styles/BetaLaunchConfig.tsx` | Beta questions (pricing, feedback) |
+| `src/components/wizards/launch-v2/styles/MasterclassConfig.tsx` | Masterclass questions (days, themes) |
+| `src/components/wizards/launch-v2/styles/index.ts` | Export all style configs |
+
+### Phase 3: Integrate Style Configs into Existing Steps
+**Files to modify:**
+
+1. **`src/components/wizards/launch-v2/steps/StepGoalTimeline.tsx`**
+   - Suggest timeline based on launch style
+   - Flash sale shows shorter timeline options
+
+2. **`src/components/wizards/launch-v2/steps/StepPreLaunchStrategy.tsx`**
+   - Conditionally render style-specific config component
+   - Challenge → show `ChallengeConfig`
+   - Webinar → show `WebinarConfig`
+
+3. **`src/components/wizards/launch-v2/steps/StepLaunchWeek.tsx`**
+   - Adapt "live component" options based on style
+   - Challenge → daily live sessions
+   - Webinar → single event focus
+
+4. **`src/components/wizards/launch-v2/timeline/FreeEventConfig.tsx`**
+   - Already exists - enhance with style-aware defaults
+   - Pre-fill based on launch style selection
+
+### Phase 4: Style-Specific Task Generation
+**Files to modify:**
+
+1. **`supabase/functions/create-launch-v2/index.ts`**
+   - Add launch style to task generation logic
+   - Generate style-specific tasks
+
+**Challenge Launch Tasks:**
+```
+- Create pop-up group (if selected)
+- Write challenge welcome post
+- Create Day 1-5 content
+- Design daily homework templates
+- Set up completion tracking
+- Create giveaway/incentive rules
+- Write challenge → offer bridge email
 ```
 
-### New Table: `summit_speakers`
-
-```sql
-CREATE TABLE summit_speakers (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  summit_id UUID NOT NULL REFERENCES summits(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  
-  -- Speaker Info
-  name TEXT NOT NULL,
-  email TEXT,
-  topic TEXT,
-  session_title TEXT,
-  session_order INTEGER,
-  
-  -- Assets Status
-  bio_received BOOLEAN DEFAULT false,
-  headshot_received BOOLEAN DEFAULT false,
-  swipe_copy_sent BOOLEAN DEFAULT false,
-  recording_received BOOLEAN DEFAULT false,
-  affiliate_link_sent BOOLEAN DEFAULT false,
-  
-  -- Deadlines
-  recording_deadline DATE,
-  
-  -- Affiliate Tracking
-  is_affiliate BOOLEAN DEFAULT false,
-  affiliate_commission INTEGER,
-  
-  -- Notes
-  notes TEXT,
-  
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- RLS policies
-ALTER TABLE summit_speakers ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can manage their own summit speakers"
-  ON summit_speakers FOR ALL
-  USING (auth.uid() = user_id);
-
--- Index for fast lookups
-CREATE INDEX idx_summit_speakers_summit ON summit_speakers(summit_id);
+**Webinar Launch Tasks:**
+```
+- Create webinar registration page
+- Write webinar script/slides
+- Set up replay automation
+- Create webinar reminder sequence
+- Design live-only bonus
+- Write post-webinar follow-up sequence
 ```
 
-### Add wizard_templates entry
-
-```sql
-INSERT INTO wizard_templates (template_name, display_name, description, icon)
-VALUES (
-  'summit-planner',
-  'Summit Planner',
-  'Plan your virtual summit from speaker recruitment to all-access pass sales. The complete summit blueprint.',
-  'Users'
-);
+**Flash Sale Tasks:**
 ```
-
-### Modify projects table
-
-```sql
-ALTER TABLE projects ADD COLUMN IF NOT EXISTS is_summit BOOLEAN DEFAULT false;
-ALTER TABLE projects ADD COLUMN IF NOT EXISTS summit_id UUID REFERENCES summits(id) ON DELETE SET NULL;
+- Set up countdown timer
+- Create urgency graphics
+- Write 3-5 rapid email sequence
+- Schedule social media countdown
+- Prepare cart abandon recovery
 ```
 
 ---
 
-## New Files to Create
+## Type Definitions Preview
 
-### Types
-| File | Purpose |
-|------|---------|
-| `src/types/summit.ts` | Summit wizard types and defaults |
+```typescript
+// Add to src/types/launchV2.ts
 
-### Wizard Components
-| File | Purpose |
-|------|---------|
-| `src/components/wizards/summit/SummitWizard.tsx` | Main wizard component |
-| `src/components/wizards/summit/steps/StepSummitBasics.tsx` | Step 1 |
-| `src/components/wizards/summit/steps/StepSummitStructure.tsx` | Step 2 |
-| `src/components/wizards/summit/steps/StepSpeakerStrategy.tsx` | Step 3 |
-| `src/components/wizards/summit/steps/StepAllAccessPass.tsx` | Step 4 |
-| `src/components/wizards/summit/steps/StepSummitTimeline.tsx` | Step 5 |
-| `src/components/wizards/summit/steps/StepTechDelivery.tsx` | Step 6 |
-| `src/components/wizards/summit/steps/StepMarketingStrategy.tsx` | Step 7 |
-| `src/components/wizards/summit/steps/StepEngagement.tsx` | Step 8 |
-| `src/components/wizards/summit/steps/StepReviewCreate.tsx` | Step 9 |
-| `src/components/wizards/summit/steps/index.ts` | Step exports |
-| `src/components/wizards/summit/components/SpeakerTracker.tsx` | Speaker management UI |
-| `src/components/wizards/summit/components/SummitTimelineVisual.tsx` | Visual timeline |
+export type LaunchStyle = 
+  | 'standard'
+  | 'challenge'
+  | 'webinar'
+  | 'masterclass'
+  | 'flash-sale'
+  | 'beta'
+  | 'evergreen'
+  | 'other';
 
-### Pages
-| File | Purpose |
-|------|---------|
-| `src/pages/SummitWizardPage.tsx` | Wizard page wrapper |
+export const LAUNCH_STYLE_OPTIONS = [
+  { 
+    value: 'standard', 
+    label: 'Standard Launch', 
+    description: 'Cart open → Cart close with email sequence',
+    icon: '🚀',
+    suggestedTimeline: '3-4-weeks',
+  },
+  { 
+    value: 'challenge', 
+    label: 'Challenge Launch', 
+    description: 'Multi-day challenge leading to your offer',
+    icon: '🎯',
+    suggestedTimeline: '3-4-weeks',
+  },
+  { 
+    value: 'webinar', 
+    label: 'Webinar Launch', 
+    description: 'Free training with pitch at the end',
+    icon: '🎥',
+    suggestedTimeline: '3-4-weeks',
+  },
+  { 
+    value: 'masterclass', 
+    label: 'Masterclass', 
+    description: 'Multi-day deep training event',
+    icon: '🎓',
+    suggestedTimeline: '5-6-weeks',
+  },
+  { 
+    value: 'flash-sale', 
+    label: 'Flash Sale', 
+    description: 'Quick 24-72 hour promotional sale',
+    icon: '⚡',
+    suggestedTimeline: '2-weeks',
+  },
+  { 
+    value: 'beta', 
+    label: 'Beta Launch', 
+    description: 'Test product at discount, gather feedback',
+    icon: '🧪',
+    suggestedTimeline: '3-4-weeks',
+  },
+  { 
+    value: 'evergreen', 
+    label: 'Evergreen Funnel', 
+    description: 'Always available, automated sequence',
+    icon: '🌲',
+    suggestedTimeline: 'other',
+  },
+  { 
+    value: 'other', 
+    label: 'Other', 
+    description: "I'll configure this manually",
+    icon: '✨',
+    suggestedTimeline: '3-4-weeks',
+  },
+] as const;
 
-### Hooks
-| File | Purpose |
-|------|---------|
-| `src/hooks/useSummitSpeakers.ts` | Speaker CRUD operations |
+// Challenge-specific config
+export interface ChallengeConfig {
+  challengeDuration: 3 | 5 | 7 | 10 | number;
+  dailyTopics: string[];
+  groupStrategy: 'pop-up' | 'existing' | 'none';
+  groupPlatform: 'facebook' | 'slack' | 'discord' | 'circle' | 'mighty-networks' | 'other';
+  groupPlatformOther: string;
+  popUpGroupName: string;
+  existingGroupLink: string;
+  hasCompletionIncentive: boolean;
+  incentiveType: 'giveaway' | 'bonus' | 'certificate' | 'discount' | 'other';
+  incentiveDescription: string;
+  incentiveQualification: 'complete-all-days' | 'submit-homework' | 'attend-live' | 'other';
+  hasHomework: boolean;
+  homeworkType: 'worksheet' | 'video-response' | 'group-post' | 'action-item' | 'mixed';
+  homeworkSubmissionMethod: 'group' | 'email' | 'form' | 'dm';
+}
 
-### Edge Functions
-| File | Purpose |
-|------|---------|
-| `supabase/functions/create-summit/index.ts` | Summit + project + task generation |
+// Webinar-specific config
+export interface WebinarConfig {
+  platform: 'zoom' | 'webinarjam' | 'streamyard' | 'crowdcast' | 'other';
+  platformOther: string;
+  hasReplay: boolean;
+  replayDuration: '24-hours' | '48-hours' | '72-hours' | 'until-cart-close';
+  pitchTiming: 'at-end' | 'throughout' | 'after-qa';
+  hasLiveBonus: boolean;
+  liveBonusDescription: string;
+  registrationGoal: number | null;
+  showUpStrategy: 'email-reminders' | 'sms' | 'both';
+}
 
-### Validation
-| File | Purpose |
-|------|---------|
-| `src/lib/summitValidation.ts` | Step validation logic |
+// Flash sale config
+export interface FlashSaleConfig {
+  saleDuration: '12-hours' | '24-hours' | '48-hours' | '72-hours';
+  discountType: 'percent-off' | 'dollar-off' | 'bonus-stack';
+  discountAmount: string;
+  hasCountdownTimer: boolean;
+  emailCount: number;
+  socialPostsPlanned: number;
+}
+```
 
 ---
 
-## Files to Modify
+## User Experience Flow
 
-| File | Changes |
-|------|---------|
-| `src/components/wizards/WizardHub.tsx` | Add summit-planner route handling |
-| `src/App.tsx` | Add /wizards/summit route |
-
----
-
-## Task Generation Logic
-
-The edge function will generate tasks organized by phase:
-
-**Phase 1: Speaker Recruitment** (8-12 weeks before)
-- Create speaker pitch email
-- Research potential speakers (batched by day)
-- Send speaker invitations (staggered)
-- Follow up with pending speakers
-- Collect speaker bios and headshots
-- Create affiliate tracking links
-
-**Phase 2: Content Creation** (4-8 weeks before)
-- Record speaker interviews (if pre-recorded)
-- Create speaker swipe copy
-- Design promotional graphics
-- Build summit registration page
-- Set up email sequences
-- Create all-access pass sales page
-
-**Phase 3: Pre-Summit Promotion** (2-4 weeks before)
-- Launch registration
-- Daily email promotion
-- Social media campaign
-- Remind speakers to promote
-- Track registration milestones
-
-**Phase 4: Summit Live** (summit days)
-- Daily session hosting
-- Community engagement
-- Attendee Q&A
-- All-access pass pitch
-- Daily recap emails
-
-**Phase 5: Post-Summit** (1-2 weeks after)
-- Send replay reminders
-- Final cart close push
-- Thank speakers
-- Send affiliate payouts
-- Summit debrief
-
----
-
-## Speaker Tracker Component
-
-A dedicated component within the wizard (and accessible from the Summit Project page) to track:
+### User Selects "Challenge Launch"
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│ Speakers (15/20 confirmed)                               [+ Add Speaker]│
-├─────────────────────────────────────────────────────────────────────────┤
-│ Name           │ Topic          │ Bio │ Photo │ Swipe │ Recording │ ✓  │
-│ Sarah Smith    │ Email Marketing│ ✅  │ ✅    │ ✅    │ ⏳        │ 80%│
-│ Mike Johnson   │ Mindset        │ ✅  │ ⏳    │ ✅    │ ❌        │ 50%│
-│ Lisa Chen      │ Funnels        │ ⏳  │ ⏳    │ ❌    │ ❌        │ 25%│
-└─────────────────────────────────────────────────────────────────────────┘
+Step 1: Launch Context
+├── "Is this your first launch?" → Launched before
+├── "What type of offer?" → Course
+├── "Email list status?" → Small but engaged
+└── "What type of launch is this?" → 🎯 Challenge Launch
+    ↓ (wizard now adapts)
+
+Step 2: Goal & Timeline
+├── [Pre-filled suggestion: 3-4 weeks for challenge]
+├── Cart opens: [date picker]
+└── Cart closes: [date picker]
+
+Step 3: Offer Details
+└── [Standard pricing, bonuses, payment plans]
+
+Step 4: Pre-Launch Strategy
+├── [Standard: reach method, email sequences, sales page]
+└── 🎯 CHALLENGE CONFIGURATION
+    ├── Challenge Duration: [5 days ▼]
+    ├── Daily Topics:
+    │   ├── Day 1: [_____________]
+    │   ├── Day 2: [_____________]
+    │   └── + Add Day
+    ├── Community:
+    │   ├── ( ) Pop-up group → [Name: ____] [Platform: Facebook ▼]
+    │   ├── (●) Use existing group → [Link: ____]
+    │   └── ( ) No group
+    ├── Completion Incentive:
+    │   └── [Toggle] Yes → [Type: Giveaway ▼] [Description: ____]
+    └── Daily Homework:
+        └── [Toggle] Yes → [Type: Action item ▼] [Submit via: Group ▼]
+
+Step 5-8: [Adapted but similar flow]
 ```
 
 ---
 
-## Integration with Existing Systems
+## Why This Approach Handles Your Document
 
-1. **Projects**: Summit creates a project with `is_summit: true`
-2. **Tasks**: All summit tasks linked to project via `project_id`
-3. **Dashboard**: Summit shows in LaunchZone during active period
-4. **Debrief**: Summit debrief wizard (future - separate from launch debrief)
-5. **Templates**: Save summit as template for future events
+The Encyclopedia covers:
+
+1. **6 Price Point Strategies** → Already captured in offer pricing
+2. **3 Audience Temperatures** → Can add as question or infer from list status
+3. **10+ Launch Mechanisms** → Captured via Launch Style + Free Event Config
+4. **6 Product Types** → Already captured in Offer Type
+5. **Timeline Variations** → Already adaptive
+6. **Resource Constraints** → Can add "Solo founder vs. team" question
+
+The adaptive wizard can handle ALL of these by:
+- Asking the right selector questions upfront
+- Showing relevant configuration sections
+- Generating appropriate tasks at the end
+
+---
+
+## The Summit Exception
+
+Summits remain separate because they have **fundamentally different core entities**:
+- Speaker management (not just tasks)
+- Affiliate tracking (commission structures)
+- Multi-session scheduling (not just one event)
+- All-access pass (separate product)
+
+This is NOT just "different questions" - it's a **different data model**.
 
 ---
 
 ## Implementation Priority
 
-**Sprint 1: Foundation**
-1. Create database tables (`summits`, `summit_speakers`)
-2. Create `SummitWizardData` types
-3. Create main `SummitWizard.tsx` component
-4. Create Steps 1-3 (Basics, Structure, Speakers)
+**Sprint 1: Launch Style Foundation (This PR)**
+1. Add `LaunchStyle` type and `LAUNCH_STYLE_OPTIONS`
+2. Add Launch Style selector to Step 1
+3. Add `ChallengeConfig` interface and defaults
+4. Create `ChallengeConfig.tsx` component
+5. Integrate into Step 4 (Pre-Launch Strategy)
 
-**Sprint 2: Configuration**
-1. Create Steps 4-6 (All-Access, Timeline, Tech)
-2. Create `SummitTimelineVisual` component
-3. Add to WizardHub and routes
+**Sprint 2: Challenge Deep Dive**
+1. Add group strategy section
+2. Add completion incentive section
+3. Add homework section
+4. Update task generation for challenge-specific tasks
 
-**Sprint 3: Marketing & Completion**
-1. Create Steps 7-9 (Marketing, Engagement, Review)
-2. Create `create-summit` edge function
-3. Implement task generation logic
+**Sprint 3: Other Launch Styles**
+1. Add `WebinarConfig` + component
+2. Add `FlashSaleConfig` + component
+3. Add `BetaLaunchConfig` + component
+4. Update task generation for each style
 
-**Sprint 4: Speaker Management**
-1. Create `SpeakerTracker` component
-2. Create `useSummitSpeakers` hook
-3. Add speaker management to Summit Project page
+**Sprint 4: Polish**
+1. Add smart defaults based on style selection
+2. Add style-aware teaching tips
+3. Add success metrics based on style
 
 ---
 
-## User Experience Goals
+## Summary
 
-1. **Focused complexity** - Only show what's needed for summits
-2. **Speaker-centric** - Make speaker management the core feature
-3. **Timeline clarity** - Visual timeline shows all key dates
-4. **Progress tracking** - Clear completion % for speaker assets
-5. **Reusable** - Save as template for annual/recurring summits
+| Approach | Verdict |
+|----------|---------|
+| **One adaptive wizard** | ✅ Recommended - clean, maintainable, user-friendly |
+| **Separate wizard per style** | ❌ Over-engineering - too much duplication |
+| **Exception: Summit Wizard** | ✅ Keep separate - fundamentally different data model |
+
+The Launch Planner V2 becomes a **style-aware adaptive wizard** that asks "What type of launch?" early, then reveals only the relevant configuration sections for that style while keeping the core flow consistent.
 
