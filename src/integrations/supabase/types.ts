@@ -4212,6 +4212,155 @@ export type Database = {
         }
         Relationships: []
       }
+      revenue_sprints: {
+        Row: {
+          accountability_method: string | null
+          accountability_partner: string | null
+          adjusted_gap: number | null
+          blocking_action: string | null
+          blocking_feeling: string | null
+          blocking_result: string | null
+          blocking_thought: string | null
+          brainstormed_ideas: Json | null
+          commitment_options: Json | null
+          completed_at: string | null
+          consequences: string | null
+          counter_evidence: string | null
+          created_at: string
+          current_offers: Json | null
+          current_revenue: number | null
+          daily_duration: string | null
+          daily_target: number | null
+          daily_time: string | null
+          days_in_sprint: number | null
+          expense_cuts: number | null
+          fastest_sale: string | null
+          gap_to_close: number | null
+          id: string
+          new_thought: string | null
+          past_customers_comfortable: number | null
+          past_customers_count: number | null
+          past_customers_details: string | null
+          past_customers_offer_type: string | null
+          pause_reason: string | null
+          paused_at: string | null
+          resume_date: string | null
+          revenue_goal: number | null
+          selected_actions: Json | null
+          sprint_end_date: string | null
+          sprint_start_date: string | null
+          status: string | null
+          survival_mode: boolean | null
+          target_month: string | null
+          total_revenue_generated: number | null
+          updated_at: string
+          user_id: string
+          warm_leads_count: number | null
+          warm_leads_sources: Json | null
+          working_days: Json | null
+        }
+        Insert: {
+          accountability_method?: string | null
+          accountability_partner?: string | null
+          adjusted_gap?: number | null
+          blocking_action?: string | null
+          blocking_feeling?: string | null
+          blocking_result?: string | null
+          blocking_thought?: string | null
+          brainstormed_ideas?: Json | null
+          commitment_options?: Json | null
+          completed_at?: string | null
+          consequences?: string | null
+          counter_evidence?: string | null
+          created_at?: string
+          current_offers?: Json | null
+          current_revenue?: number | null
+          daily_duration?: string | null
+          daily_target?: number | null
+          daily_time?: string | null
+          days_in_sprint?: number | null
+          expense_cuts?: number | null
+          fastest_sale?: string | null
+          gap_to_close?: number | null
+          id?: string
+          new_thought?: string | null
+          past_customers_comfortable?: number | null
+          past_customers_count?: number | null
+          past_customers_details?: string | null
+          past_customers_offer_type?: string | null
+          pause_reason?: string | null
+          paused_at?: string | null
+          resume_date?: string | null
+          revenue_goal?: number | null
+          selected_actions?: Json | null
+          sprint_end_date?: string | null
+          sprint_start_date?: string | null
+          status?: string | null
+          survival_mode?: boolean | null
+          target_month?: string | null
+          total_revenue_generated?: number | null
+          updated_at?: string
+          user_id: string
+          warm_leads_count?: number | null
+          warm_leads_sources?: Json | null
+          working_days?: Json | null
+        }
+        Update: {
+          accountability_method?: string | null
+          accountability_partner?: string | null
+          adjusted_gap?: number | null
+          blocking_action?: string | null
+          blocking_feeling?: string | null
+          blocking_result?: string | null
+          blocking_thought?: string | null
+          brainstormed_ideas?: Json | null
+          commitment_options?: Json | null
+          completed_at?: string | null
+          consequences?: string | null
+          counter_evidence?: string | null
+          created_at?: string
+          current_offers?: Json | null
+          current_revenue?: number | null
+          daily_duration?: string | null
+          daily_target?: number | null
+          daily_time?: string | null
+          days_in_sprint?: number | null
+          expense_cuts?: number | null
+          fastest_sale?: string | null
+          gap_to_close?: number | null
+          id?: string
+          new_thought?: string | null
+          past_customers_comfortable?: number | null
+          past_customers_count?: number | null
+          past_customers_details?: string | null
+          past_customers_offer_type?: string | null
+          pause_reason?: string | null
+          paused_at?: string | null
+          resume_date?: string | null
+          revenue_goal?: number | null
+          selected_actions?: Json | null
+          sprint_end_date?: string | null
+          sprint_start_date?: string | null
+          status?: string | null
+          survival_mode?: boolean | null
+          target_month?: string | null
+          total_revenue_generated?: number | null
+          updated_at?: string
+          user_id?: string
+          warm_leads_count?: number | null
+          warm_leads_sources?: Json | null
+          working_days?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenue_sprints_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_log: {
         Row: {
           amount: number
@@ -4374,6 +4523,267 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      sprint_action_metrics: {
+        Row: {
+          action_name: string
+          action_type: string | null
+          attempts: number | null
+          conversions: number | null
+          created_at: string
+          id: string
+          responses: number | null
+          revenue_generated: number | null
+          roi_rating: string | null
+          sprint_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_name: string
+          action_type?: string | null
+          attempts?: number | null
+          conversions?: number | null
+          created_at?: string
+          id?: string
+          responses?: number | null
+          revenue_generated?: number | null
+          roi_rating?: string | null
+          sprint_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_name?: string
+          action_type?: string | null
+          attempts?: number | null
+          conversions?: number | null
+          created_at?: string
+          id?: string
+          responses?: number | null
+          revenue_generated?: number | null
+          roi_rating?: string | null
+          sprint_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sprint_action_metrics_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
+            referencedRelation: "revenue_sprints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sprint_action_metrics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sprint_daily_progress: {
+        Row: {
+          actions_completed: Json | null
+          actual_revenue: number | null
+          created_at: string
+          daily_target: number | null
+          date: string
+          hit_target: boolean | null
+          id: string
+          sprint_id: string
+          updated_at: string
+          user_id: string
+          what_didnt_work: string | null
+          what_worked: string | null
+        }
+        Insert: {
+          actions_completed?: Json | null
+          actual_revenue?: number | null
+          created_at?: string
+          daily_target?: number | null
+          date: string
+          hit_target?: boolean | null
+          id?: string
+          sprint_id: string
+          updated_at?: string
+          user_id: string
+          what_didnt_work?: string | null
+          what_worked?: string | null
+        }
+        Update: {
+          actions_completed?: Json | null
+          actual_revenue?: number | null
+          created_at?: string
+          daily_target?: number | null
+          date?: string
+          hit_target?: boolean | null
+          id?: string
+          sprint_id?: string
+          updated_at?: string
+          user_id?: string
+          what_didnt_work?: string | null
+          what_worked?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sprint_daily_progress_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
+            referencedRelation: "revenue_sprints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sprint_daily_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sprint_reviews: {
+        Row: {
+          actual_amount: number | null
+          biggest_win: string | null
+          created_at: string
+          goal_amount: number | null
+          id: string
+          next_sprint_goal: number | null
+          next_sprint_start_date: string | null
+          percent_of_goal: number | null
+          save_as_template: boolean | null
+          sprint_id: string
+          template_name: string | null
+          updated_at: string
+          user_id: string
+          what_didnt_work: string | null
+          what_worked: string | null
+          would_change: string | null
+        }
+        Insert: {
+          actual_amount?: number | null
+          biggest_win?: string | null
+          created_at?: string
+          goal_amount?: number | null
+          id?: string
+          next_sprint_goal?: number | null
+          next_sprint_start_date?: string | null
+          percent_of_goal?: number | null
+          save_as_template?: boolean | null
+          sprint_id: string
+          template_name?: string | null
+          updated_at?: string
+          user_id: string
+          what_didnt_work?: string | null
+          what_worked?: string | null
+          would_change?: string | null
+        }
+        Update: {
+          actual_amount?: number | null
+          biggest_win?: string | null
+          created_at?: string
+          goal_amount?: number | null
+          id?: string
+          next_sprint_goal?: number | null
+          next_sprint_start_date?: string | null
+          percent_of_goal?: number | null
+          save_as_template?: boolean | null
+          sprint_id?: string
+          template_name?: string | null
+          updated_at?: string
+          user_id?: string
+          what_didnt_work?: string | null
+          what_worked?: string | null
+          would_change?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sprint_reviews_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: true
+            referencedRelation: "revenue_sprints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sprint_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sprint_templates: {
+        Row: {
+          created_at: string
+          daily_duration: string | null
+          daily_time: string | null
+          id: string
+          last_used_at: string | null
+          original_actual: number | null
+          original_goal: number | null
+          selected_actions: Json | null
+          source_sprint_id: string | null
+          success_rate: number | null
+          template_name: string
+          times_used: number | null
+          updated_at: string
+          user_id: string
+          working_days: Json | null
+        }
+        Insert: {
+          created_at?: string
+          daily_duration?: string | null
+          daily_time?: string | null
+          id?: string
+          last_used_at?: string | null
+          original_actual?: number | null
+          original_goal?: number | null
+          selected_actions?: Json | null
+          source_sprint_id?: string | null
+          success_rate?: number | null
+          template_name: string
+          times_used?: number | null
+          updated_at?: string
+          user_id: string
+          working_days?: Json | null
+        }
+        Update: {
+          created_at?: string
+          daily_duration?: string | null
+          daily_time?: string | null
+          id?: string
+          last_used_at?: string | null
+          original_actual?: number | null
+          original_goal?: number | null
+          selected_actions?: Json | null
+          source_sprint_id?: string | null
+          success_rate?: number | null
+          template_name?: string
+          times_used?: number | null
+          updated_at?: string
+          user_id?: string
+          working_days?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sprint_templates_source_sprint_id_fkey"
+            columns: ["source_sprint_id"]
+            isOneToOne: false
+            referencedRelation: "revenue_sprints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sprint_templates_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       strategy_change_attempts: {
         Row: {

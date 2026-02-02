@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Target, ArrowRight, RotateCcw, Rocket, Mail, Zap } from 'lucide-react';
+import { Target, ArrowRight, RotateCcw, Rocket, Mail, Zap, DollarSign } from 'lucide-react';
 import { WizardTemplate, WizardCompletion } from '@/types/wizard';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
@@ -16,6 +16,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   Rocket: <Rocket className="h-8 w-8" />,
   Mail: <Mail className="h-8 w-8" />,
   Zap: <Zap className="h-8 w-8" />,
+  DollarSign: <DollarSign className="h-8 w-8" />,
 };
 
 export default function WizardHub() {
@@ -79,6 +80,8 @@ export default function WizardHub() {
       navigate('/wizards/content');
     } else if (templateName === 'summit-planner') {
       navigate('/wizards/summit');
+    } else if (templateName === 'money_momentum') {
+      navigate('/wizards/money-momentum');
     } else {
       toast.info('This wizard is coming soon!');
     }

@@ -1,0 +1,336 @@
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Package, Users, Sparkles, Zap, Plus, X, Check } from 'lucide-react';
+import { MoneyMomentumData, Offer, formatCurrency } from '@/types/moneyMomentum';
+
+interface StepWhatYouHaveProps {
+  data: MoneyMomentumData;
+  onChange: (updates: Partial<MoneyMomentumData>) => void;
+}
+
+export function StepWhatYouHave({ data, onChange }: StepWhatYouHaveProps) {
+  const [newOfferName, setNewOfferName] = useState('');
+  const [newOfferPrice, setNewOfferPrice] = useState('');
+
+  const handleAddOffer = () => {
+    if (!newOfferName.trim()) return;
+    
+    const newOffer: Offer = {
+      name: newOfferName.trim(),
+      price: newOfferPrice ? Number(newOfferPrice) : 0,
+    };
+    
+    onChange({ currentOffers: [...data.currentOffers, newOffer] });
+    setNewOfferName('');
+    setNewOfferPrice('');
+  };
+
+  const handleRemoveOffer = (index: number) => {
+    onChange({ 
+      currentOffers: data.currentOffers.filter((_, i) => i !== index) 
+    });
+  };
+
+  const warmLeadOptions = [
+    { value: 'email-list', label: 'Email list' },
+    { value: 'dms-social', label: 'DMs/social media' },
+    { value: 'discovery-calls', label: 'Past discovery calls' },
+    { value: 'webinar', label: 'Webinar attendees' },
+    { value: 'freebie', label: 'Freebie downloaders' },
+  ];
+
+  const handleWarmLeadSourceChange = (source: string, checked: boolean) => {
+    if (checked) {
+      onChange({ warmLeadsSources: [...data.warmLeadsSources, source] });
+    } else {
+      onChange({ warmLeadsSources: data.warmLeadsSources.filter(s => s !== source) });
+    }
+  };
+
+  const pastOfferOptions = [
+    { value: 'upsell', label: 'Upsell to higher tier' },
+    { value: 'new-offer', label: 'New offer' },
+    { value: 'extension', label: 'Extension/renewal' },
+    { value: 'referral', label: 'Referral incentive' },
+    { value: 'other', label: 'Other' },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold mb-2">Find your low-hanging fruit.</h2>
+        <p className="text-muted-foreground">
+          No new product creation. Use what you already have.
+        </p>
+      </div>
+
+      {/* Section 1: Current Offers */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Package className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">Your Current Offers</CardTitle>
+          </div>
+          <CardDescription>
+            What are you currently selling or have sold before?
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Existing offers */}
+          {data.currentOffers.length > 0 && (
+            <div className="space-y-2">
+              {data.currentOffers.map((offer, index) => (
+                <div 
+                  key={index}
+                  className="flex items-center justify-between p-3 bg-accent/30 rounded-lg"
+                >
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span className="font-medium">{offer.name}</span>
+                    {offer.price > 0 && (
+                      <span className="text-muted-foreground">
+                        - {formatCurrency(offer.price)}
+                      </span>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemoveOffer(index)}
+                    className="h-8 w-8"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add new offer */}
+          <div className="flex gap-2 flex-col sm:flex-row">
+            <Input
+              placeholder="Offer name"
+              value={newOfferName}
+              onChange={(e) => setNewOfferName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddOffer()}
+              className="flex-1"
+            />
+            <div className="relative w-full sm:w-32">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+              <Input
+                type="number"
+                placeholder="Price"
+                value={newOfferPrice}
+                onChange={(e) => setNewOfferPrice(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddOffer()}
+                className="pl-7"
+              />
+            </div>
+            <Button onClick={handleAddOffer} disabled={!newOfferName.trim()}>
+              <Plus className="h-4 w-4 mr-1" />
+              Add
+            </Button>
+          </div>
+
+          {data.currentOffers.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Add at least one offer to continue
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Section 2: Past Customers */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">Past Customers</CardTitle>
+          </div>
+          <CardDescription>
+            Who might buy from you again?
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="total-customers" className="block mb-2">
+                How many past customers total?
+              </Label>
+              <Input
+                id="total-customers"
+                type="number"
+                min="0"
+                value={data.pastCustomersCount || ''}
+                onChange={(e) => onChange({ 
+                  pastCustomersCount: e.target.value ? Number(e.target.value) : 0 
+                })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="comfortable-customers" className="block mb-2">
+                How many would you reach out to?
+              </Label>
+              <Input
+                id="comfortable-customers"
+                type="number"
+                min="0"
+                max={data.pastCustomersCount || 999}
+                value={data.pastCustomersComfortable || ''}
+                onChange={(e) => onChange({ 
+                  pastCustomersComfortable: Math.min(
+                    e.target.value ? Number(e.target.value) : 0,
+                    data.pastCustomersCount || 999
+                  )
+                })}
+              />
+            </div>
+          </div>
+
+          {data.pastCustomersComfortable > 0 && (
+            <>
+              <div>
+                <Label className="block mb-3">What would you offer them?</Label>
+                <RadioGroup
+                  value={data.pastCustomersOfferType}
+                  onValueChange={(value) => onChange({ pastCustomersOfferType: value })}
+                  className="grid gap-2 sm:grid-cols-2"
+                >
+                  {pastOfferOptions.map(({ value, label }) => (
+                    <Label 
+                      key={value}
+                      htmlFor={`offer-type-${value}`}
+                      className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-accent/50 transition-colors min-h-[48px] [&:has(:checked)]:border-primary [&:has(:checked)]:bg-primary/5"
+                    >
+                      <RadioGroupItem value={value} id={`offer-type-${value}`} />
+                      <span>{label}</span>
+                    </Label>
+                  ))}
+                </RadioGroup>
+              </div>
+
+              <div>
+                <Label htmlFor="past-customer-details" className="block mb-2">
+                  Details:
+                </Label>
+                <Input
+                  id="past-customer-details"
+                  placeholder="e.g., VIP upgrade to premium coaching"
+                  value={data.pastCustomersDetails}
+                  onChange={(e) => onChange({ pastCustomersDetails: e.target.value })}
+                  maxLength={200}
+                />
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Section 3: Warm Leads */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">Warm Leads</CardTitle>
+          </div>
+          <CardDescription>
+            People who know you but haven't bought yet
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label className="block mb-3">Where are these leads?</Label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {warmLeadOptions.map(({ value, label }) => (
+                <Label 
+                  key={value}
+                  htmlFor={`warm-lead-${value}`}
+                  className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-accent/50 transition-colors min-h-[48px]"
+                >
+                  <Checkbox
+                    id={`warm-lead-${value}`}
+                    checked={data.warmLeadsSources.includes(value)}
+                    onCheckedChange={(checked) => handleWarmLeadSourceChange(value, checked as boolean)}
+                  />
+                  <span>{label}</span>
+                </Label>
+              ))}
+              <Label 
+                htmlFor="warm-lead-other"
+                className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-accent/50 transition-colors min-h-[48px]"
+              >
+                <Checkbox
+                  id="warm-lead-other"
+                  checked={data.warmLeadsSources.includes('other')}
+                  onCheckedChange={(checked) => handleWarmLeadSourceChange('other', checked as boolean)}
+                />
+                <Input
+                  placeholder="Other..."
+                  value={data.warmLeadsOther}
+                  onChange={(e) => onChange({ warmLeadsOther: e.target.value })}
+                  onClick={(e) => e.stopPropagation()}
+                  className="border-0 p-0 h-auto focus-visible:ring-0"
+                />
+              </Label>
+            </div>
+          </div>
+
+          <div className="max-w-xs">
+            <Label htmlFor="warm-leads-count" className="block mb-2">
+              Estimated number:
+            </Label>
+            <Input
+              id="warm-leads-count"
+              type="number"
+              min="0"
+              value={data.warmLeadsCount || ''}
+              onChange={(e) => onChange({ 
+                warmLeadsCount: e.target.value ? Number(e.target.value) : 0 
+              })}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Section 4: Fastest Sale */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Zap className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">Fastest Sale This Week</CardTitle>
+          </div>
+          <CardDescription>
+            What's the fastest thing you could sell THIS WEEK?
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-sm text-muted-foreground mb-3 space-y-1">
+            <p>Think:</p>
+            <ul className="list-disc list-inside pl-2">
+              <li>Something you've sold before</li>
+              <li>No new creation needed</li>
+              <li>Can deliver immediately</li>
+              <li>Someone's already asked about it</li>
+            </ul>
+          </div>
+          <Textarea
+            placeholder="e.g., 1-hour strategy call for $200 - had 3 people ask about this last month"
+            value={data.fastestSale}
+            onChange={(e) => onChange({ fastestSale: e.target.value })}
+            maxLength={200}
+            rows={3}
+          />
+          <p className="text-xs text-muted-foreground mt-1 text-right">
+            {data.fastestSale.length}/200
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
