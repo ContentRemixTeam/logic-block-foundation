@@ -98,6 +98,12 @@ export interface Task {
   recurrence_end_date?: string | null;
   // Launch/category fields
   category?: string | null;
+  // Content calendar fields
+  content_item_id?: string | null;
+  content_type?: string | null;
+  content_channel?: string | null;
+  content_creation_date?: string | null;
+  content_publish_date?: string | null;
 }
 
 export type FilterTab = 'today' | 'week' | 'future' | 'all' | 'completed';

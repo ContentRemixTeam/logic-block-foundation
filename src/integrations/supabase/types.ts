@@ -4696,7 +4696,12 @@ export type Database = {
           category: string | null
           checklist_progress: Json | null
           completed_at: string | null
+          content_channel: string | null
+          content_creation_date: string | null
+          content_item_id: string | null
+          content_publish_date: string | null
           content_topic_id: string | null
+          content_type: string | null
           context_tags: string[] | null
           course_id: string | null
           created_at: string | null
@@ -4761,7 +4766,12 @@ export type Database = {
           category?: string | null
           checklist_progress?: Json | null
           completed_at?: string | null
+          content_channel?: string | null
+          content_creation_date?: string | null
+          content_item_id?: string | null
+          content_publish_date?: string | null
           content_topic_id?: string | null
+          content_type?: string | null
           context_tags?: string[] | null
           course_id?: string | null
           created_at?: string | null
@@ -4826,7 +4836,12 @@ export type Database = {
           category?: string | null
           checklist_progress?: Json | null
           completed_at?: string | null
+          content_channel?: string | null
+          content_creation_date?: string | null
+          content_item_id?: string | null
+          content_publish_date?: string | null
           content_topic_id?: string | null
+          content_type?: string | null
           context_tags?: string[] | null
           course_id?: string | null
           created_at?: string | null
@@ -4887,6 +4902,13 @@ export type Database = {
           week_in_cycle?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_content_item_id_fkey"
+            columns: ["content_item_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tasks_content_topic_id_fkey"
             columns: ["content_topic_id"]
@@ -4993,6 +5015,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_content_platforms: {
+        Row: {
+          color: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          platform: string
+          sort_order: number | null
+          user_id: string
+        }
+        Insert: {
+          color: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          platform: string
+          sort_order?: number | null
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          platform?: string
+          sort_order?: number | null
+          user_id?: string
+        }
+        Relationships: []
       }
       user_content_workflows: {
         Row: {
