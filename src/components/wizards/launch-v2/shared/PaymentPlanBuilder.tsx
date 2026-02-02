@@ -34,8 +34,10 @@ export function PaymentPlanBuilder({ plans, fullPrice, onChange }: PaymentPlanBu
   const [newInstallments, setNewInstallments] = useState<number>(3);
   const [newAmount, setNewAmount] = useState<string>('');
 
+  const isValidAmount = newAmount.trim() !== '' && parseFloat(newAmount) > 0;
+
   const handleAddPlan = () => {
-    if (!newAmount || parseFloat(newAmount) <= 0) return;
+    if (!isValidAmount) return;
     
     const amount = parseFloat(newAmount);
     const newPlan: PaymentPlanOption = {
@@ -45,7 +47,10 @@ export function PaymentPlanBuilder({ plans, fullPrice, onChange }: PaymentPlanBu
       totalAmount: amount * newInstallments,
     };
     
-    onChange([...plans, newPlan]);
+    // Create new array to ensure React detects the change
+    const updatedPlans = [...plans, newPlan];
+    console.log('Adding payment plan:', newPlan, 'Total plans:', updatedPlans.length);
+    onChange(updatedPlans);
     setNewAmount('');
   };
 
@@ -153,8 +158,9 @@ export function PaymentPlanBuilder({ plans, fullPrice, onChange }: PaymentPlanBu
           type="button"
           variant="outline"
           onClick={handleAddPlan}
-          disabled={!newAmount || parseFloat(newAmount) <= 0}
+          disabled={!isValidAmount}
           className="shrink-0"
+          aria-label="Add payment plan"
         >
           <Plus className="h-4 w-4" />
         </Button>
