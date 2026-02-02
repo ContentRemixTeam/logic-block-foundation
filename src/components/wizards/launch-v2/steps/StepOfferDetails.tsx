@@ -310,33 +310,74 @@ export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
                 />
               </div>
               {offerPricing.hasEarlyBirdPrice && (
-                <div className="grid grid-cols-2 gap-3 mt-3">
+                <div className="space-y-3 mt-3">
+                  {/* Offer Type Selector */}
                   <div className="space-y-1.5">
-                    <Label htmlFor="early-bird-price" className="text-xs text-muted-foreground">Price</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                    <Label className="text-xs text-muted-foreground">What type of early bird offer?</Label>
+                    <RadioGroup
+                      value={offerPricing.earlyBirdOfferType || 'discount'}
+                      onValueChange={(v) => handlePricingChange({ earlyBirdOfferType: v as 'discount' | 'bonus' | 'both' })}
+                      className="flex gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="discount" id="eb-discount" />
+                        <Label htmlFor="eb-discount" className="text-sm font-normal cursor-pointer">Discount</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="bonus" id="eb-bonus" />
+                        <Label htmlFor="eb-bonus" className="text-sm font-normal cursor-pointer">Bonus</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="both" id="eb-both" />
+                        <Label htmlFor="eb-both" className="text-sm font-normal cursor-pointer">Both</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Discount Price - show if discount or both */}
+                    {(offerPricing.earlyBirdOfferType === 'discount' || offerPricing.earlyBirdOfferType === 'both') && (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="early-bird-price" className="text-xs text-muted-foreground">Discounted Price</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                          <Input
+                            id="early-bird-price"
+                            type="number"
+                            min="0"
+                            value={offerPricing.earlyBirdPrice ?? ''}
+                            onChange={(e) => handlePricingChange({ 
+                              earlyBirdPrice: e.target.value ? parseFloat(e.target.value) : null 
+                            })}
+                            className="pl-7"
+                            placeholder="797"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="early-bird-deadline" className="text-xs text-muted-foreground">Expires</Label>
                       <Input
-                        id="early-bird-price"
-                        type="number"
-                        min="0"
-                        value={offerPricing.earlyBirdPrice ?? ''}
-                        onChange={(e) => handlePricingChange({ 
-                          earlyBirdPrice: e.target.value ? parseFloat(e.target.value) : null 
-                        })}
-                        className="pl-7"
-                        placeholder="797"
+                        id="early-bird-deadline"
+                        type="date"
+                        value={offerPricing.earlyBirdDeadline}
+                        onChange={(e) => handlePricingChange({ earlyBirdDeadline: e.target.value })}
                       />
                     </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="early-bird-deadline" className="text-xs text-muted-foreground">Expires</Label>
-                    <Input
-                      id="early-bird-deadline"
-                      type="date"
-                      value={offerPricing.earlyBirdDeadline}
-                      onChange={(e) => handlePricingChange({ earlyBirdDeadline: e.target.value })}
-                    />
-                  </div>
+
+                  {/* Bonus Description - show if bonus or both */}
+                  {(offerPricing.earlyBirdOfferType === 'bonus' || offerPricing.earlyBirdOfferType === 'both') && (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="early-bird-bonus" className="text-xs text-muted-foreground">Bonus Description</Label>
+                      <Input
+                        id="early-bird-bonus"
+                        value={offerPricing.earlyBirdBonus || ''}
+                        onChange={(e) => handlePricingChange({ earlyBirdBonus: e.target.value })}
+                        placeholder="e.g., Private 1:1 onboarding call ($500 value)"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -357,26 +398,68 @@ export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
                 />
               </div>
               {offerPricing.hasWaitlistPrice && (
-                <div className="space-y-1.5 mt-3">
-                  <Label htmlFor="waitlist-price" className="text-xs text-muted-foreground">Special price for waitlist subscribers</Label>
-                  <div className="relative w-1/2">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                    <Input
-                      id="waitlist-price"
-                      type="number"
-                      min="0"
-                      value={offerPricing.waitlistPrice ?? ''}
-                      onChange={(e) => handlePricingChange({ 
-                        waitlistPrice: e.target.value ? parseFloat(e.target.value) : null 
-                      })}
-                      className="pl-7"
-                      placeholder="897"
-                    />
+                <div className="space-y-3 mt-3">
+                  {/* Offer Type Selector */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">What type of waitlist offer?</Label>
+                    <RadioGroup
+                      value={offerPricing.waitlistOfferType || 'discount'}
+                      onValueChange={(v) => handlePricingChange({ waitlistOfferType: v as 'discount' | 'bonus' | 'both' })}
+                      className="flex gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="discount" id="wl-discount" />
+                        <Label htmlFor="wl-discount" className="text-sm font-normal cursor-pointer">Discount</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="bonus" id="wl-bonus" />
+                        <Label htmlFor="wl-bonus" className="text-sm font-normal cursor-pointer">Bonus</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="both" id="wl-both" />
+                        <Label htmlFor="wl-both" className="text-sm font-normal cursor-pointer">Both</Label>
+                      </div>
+                    </RadioGroup>
                   </div>
+
+                  {/* Discount Price - show if discount or both */}
+                  {(offerPricing.waitlistOfferType === 'discount' || offerPricing.waitlistOfferType === 'both') && (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="waitlist-price" className="text-xs text-muted-foreground">Special price for waitlist subscribers</Label>
+                      <div className="relative w-1/2">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                        <Input
+                          id="waitlist-price"
+                          type="number"
+                          min="0"
+                          value={offerPricing.waitlistPrice ?? ''}
+                          onChange={(e) => handlePricingChange({ 
+                            waitlistPrice: e.target.value ? parseFloat(e.target.value) : null 
+                          })}
+                          className="pl-7"
+                          placeholder="897"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Bonus Description - show if bonus or both */}
+                  {(offerPricing.waitlistOfferType === 'bonus' || offerPricing.waitlistOfferType === 'both') && (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="waitlist-bonus" className="text-xs text-muted-foreground">Bonus Description</Label>
+                      <Input
+                        id="waitlist-bonus"
+                        value={offerPricing.waitlistBonus || ''}
+                        onChange={(e) => handlePricingChange({ waitlistBonus: e.target.value })}
+                        placeholder="e.g., Exclusive resource bundle ($300 value)"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
           </Card>
+
 
           {/* VIP Tier */}
           <Card className="bg-muted/30">
