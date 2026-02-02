@@ -234,6 +234,7 @@ export interface AutomationTypes {
   waitlistToSales: boolean;
   deadlineUrgency: boolean;
   leadMagnetDelivery: boolean;
+  skipAutomations: boolean; // User is not setting up automations
 }
 
 // ============== Step 5: Launch Week Strategy ==============
@@ -566,6 +567,7 @@ export const DEFAULT_LAUNCH_V2_DATA: LaunchWizardV2Data = {
     waitlistToSales: false,
     deadlineUrgency: false,
     leadMagnetDelivery: false,
+    skipAutomations: false,
   },
   customAutomations: [],
   
