@@ -1,226 +1,289 @@
 
-# Editorial Calendar Fixes
+# Reliability & Scalability Fixes Plan
 
 ## Overview
-This plan addresses 5 must-fix issues identified in the Editorial Calendar implementation: DnD ID collisions, week filtering query bugs, content type icon mapping, lane overflow styling, and content_plan_items duplicate prevention.
+This plan addresses 10 critical issues across security, reliability, and scalability categories to ensure the app can handle thousands of users without data loss.
 
 ---
 
-## Issues & Fixes
+## P0: Must-Do (Critical Security & Reliability)
 
-### 1. DnD ID Collisions (Critical)
+### 1. Secure emergency-save with Token Validation
 
-**Problem**: The same item can render in multiple lanes (create + publish, or pool + lane) with the same draggable `id`, causing `@dnd-kit` to break.
+**Problem**: The endpoint trusts `payload.userId` and uses service role to write, allowing anyone to write emergency saves for any user_id (data poisoning, abuse, privacy issues).
 
-**Current Code** (CalendarContentCard.tsx line 37-40):
-```tsx
-const { ... } = useDraggable({
-  id: item.id,  // Same ID everywhere!
-  data: { item },
-});
-```
-
-**Solution**: Make draggable IDs lane-specific by adding a `laneContext` prop:
-
-```tsx
-// CalendarContentCard.tsx
-interface CalendarContentCardProps {
-  item: CalendarItem;
-  laneContext: 'create' | 'publish' | 'pool'; // NEW
-  // ...
-}
-
-const { ... } = useDraggable({
-  id: `${item.id}:${laneContext}`, // e.g., "content-abc:create"
-  data: { item }, // Keep base item in data for drop handler
-});
-```
+**Solution**:
+- Client: Include access token in sendBeacon payload (sendBeacon can't set Authorization headers)
+- Server: Validate token with `supabase.auth.getUser(token)` and derive user_id from the token, ignoring payload's userId
+- Add cron job to cleanup old emergency saves (>7 days)
 
 **Files to modify**:
-- `src/components/editorial-calendar/CalendarContentCard.tsx` - Add `laneContext` prop
-- `src/components/editorial-calendar/CalendarDayColumn.tsx` - Pass lane type to cards
-- `src/components/editorial-calendar/UnscheduledPool.tsx` - Pass `laneContext="pool"`
-- `src/components/editorial-calendar/EditorialCalendarView.tsx` - Parse base item ID from drag event
+| File | Changes |
+|------|---------|
+| `src/lib/emergencySave.ts` | Add `token` to payload from session.access_token |
+| `supabase/functions/emergency-save/index.ts` | Validate token, extract user_id from auth, ignore payload.userId |
+
+**Database migration**:
+- Create cron job to delete emergency_saves older than 7 days
 
 ---
 
-### 2. Week Filtering Query Bug (Critical)
+### 2. Calendar Updates: Await Saves + Error Handling
 
-**Problem**: The current `.or(...).or(...)` chain doesn't properly filter items to the week range. It creates an incorrect logical grouping.
+**Problem**: `handleSaveEdit` fires `updateItemDate()` but doesn't await it, then immediately shows `toast.success()`. Same issue in drag/drop. Users see "success" even when saves fail.
 
-**Current Code** (useEditorialCalendar.ts lines 27-32):
-```tsx
-.or(`planned_creation_date.gte.${weekStartStr},planned_publish_date.gte.${weekStartStr}`)
-.or(`planned_creation_date.lte.${weekEndStr},planned_publish_date.lte.${weekEndStr}`)
-```
+**Solution**:
+- Expose `mutateAsync` from the mutation hook
+- Await the mutation before showing success toast
+- Show error toast on failure
+- Keep drawer open if save fails
 
-This creates: `(creation >= start OR publish >= start) AND (creation <= end OR publish <= end)` which is NOT a proper "between" filter.
+**Files to modify**:
+| File | Changes |
+|------|---------|
+| `src/hooks/useEditorialCalendar.ts` | Return both `mutate` and `mutateAsync` from updateItemDate |
+| `src/components/editorial-calendar/EditorialCalendarView.tsx` | Await `updateItemDateAsync`, show error toast on failure, keep drawer open on error |
 
-**Solution**: Use a single grouped OR with proper AND conditions:
+---
 
-```tsx
+### 3. Namespace DnD Draggable IDs (Source:SourceId)
+
+**Problem**: DnD uses `item.id` which is prefixed (`content-X`, `plan-Y`, `task-Z`), but items from different tables could have UUID collisions, and the current `laneContext` approach only handles same-item-in-multiple-lanes, not cross-source collisions.
+
+**Current Implementation**: `${item.id}:${laneContext}` → e.g., `content-abc:create`
+
+**Improved Solution**: Already partially fixed, but the `item.id` is already namespaced with source prefix. The current implementation is adequate but should be documented. The real issue is that `item.sourceId` (the raw UUID) could collide across tables.
+
+**Verification**: The current implementation using `${item.id}:${laneContext}` where `item.id` is already prefixed (e.g., `content-uuid`, `plan-uuid`, `task-uuid`) is sufficient. No code change needed, but add comments for clarity.
+
+---
+
+### 4. Fix Week-Range Filter Logic
+
+**Problem**: The current query logic was already fixed in a previous change to use proper `and()/or()` grouping. Need to verify it's applied consistently.
+
+**Current Code** (already correct):
+```typescript
 .or(
   `and(planned_creation_date.gte.${weekStartStr},planned_creation_date.lte.${weekEndStr}),` +
   `and(planned_publish_date.gte.${weekStartStr},planned_publish_date.lte.${weekEndStr})`
 )
 ```
 
-This creates: `(creation BETWEEN start AND end) OR (publish BETWEEN start AND end)` - items appear if either date falls in the week.
-
-**Files to modify**:
-- `src/hooks/useEditorialCalendar.ts` - Fix content_items and tasks queries
+**Verification**: The fix is already in place in `useEditorialCalendar.ts` for both content_items and tasks queries.
 
 ---
 
-### 3. Content Type Icon Mapping (Important)
+## P1: Should-Do (Performance & Scalability)
 
-**Problem**: `CONTENT_TYPE_ICONS` uses keys like `instagram-reel`, but actual database values use the `ContentFormat` type which already matches these keys. The issue is the `getContentTypeIcon` function does no normalization.
+### 5. Replace select('*') with Skinny Selects
 
-**Current Code** (calendarConstants.ts line 123-126):
-```tsx
-export function getContentTypeIcon(type: string | null | undefined): string {
-  if (!type) return DEFAULT_CONTENT_ICON;
-  return CONTENT_TYPE_ICONS[type] || DEFAULT_CONTENT_ICON;
-}
-```
+**Problem**: Calendar queries currently use explicit field selection (already correct), but unscheduled query and other views may still use `*`.
 
-**Solution**: Add normalization to handle case variations and label-to-id mapping:
+**Current State**: `useEditorialCalendar.ts` already uses explicit selects:
+- `select('id, title, type, channel, planned_creation_date, planned_publish_date, status')`
 
-```tsx
-// Add label-to-id mapping for backwards compatibility
-const TYPE_LABEL_TO_ID: Record<string, string> = {
-  'newsletter': 'newsletter',
-  'post': 'instagram-post',
-  'reel': 'instagram-reel',
-  'reel/short': 'instagram-reel',
-  'short': 'youtube-short',
-  'video': 'youtube-video',
-  'linkedin post': 'linkedin-post',
-  'blog post': 'blog-post',
-  'email': 'email-single',
-  // ... etc
-};
-
-export function getContentTypeIcon(type: string | null | undefined): string {
-  if (!type) return DEFAULT_CONTENT_ICON;
-  
-  // Try direct match first
-  if (CONTENT_TYPE_ICONS[type]) return CONTENT_TYPE_ICONS[type];
-  
-  // Normalize: lowercase, trim
-  const normalized = type.toLowerCase().trim();
-  
-  // Try normalized direct match
-  if (CONTENT_TYPE_ICONS[normalized]) return CONTENT_TYPE_ICONS[normalized];
-  
-  // Try label-to-id mapping
-  const mappedId = TYPE_LABEL_TO_ID[normalized];
-  if (mappedId && CONTENT_TYPE_ICONS[mappedId]) return CONTENT_TYPE_ICONS[mappedId];
-  
-  return DEFAULT_CONTENT_ICON;
-}
-```
-
-**Files to modify**:
-- `src/lib/calendarConstants.ts` - Add label mapping and normalize function
+**Verification**: Already implemented. Check other hooks for `select('*')` patterns.
 
 ---
 
-### 4. Lane Overflow Scrolling (Usability)
+### 6. Add Composite Indexes (user_id + date)
 
-**Problem**: Days with lots of content clip items because lanes lack proper overflow styling.
+**Problem**: Date-only indexes exist but queries are `WHERE user_id = X AND date in range`, requiring composite indexes for optimal performance.
 
-**Current Code** (CalendarDayColumn.tsx line 88-92):
-```tsx
-<div
-  ref={setNodeRef}
-  className={cn(
-    "flex-1 p-1.5 min-h-[80px] transition-colors",
-    // No overflow handling!
-  )}
->
+**Solution**: Create composite indexes:
+
+```sql
+CREATE INDEX IF NOT EXISTS idx_content_items_user_creation_date 
+ON content_items(user_id, planned_creation_date) 
+WHERE planned_creation_date IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_content_items_user_publish_date 
+ON content_items(user_id, planned_publish_date) 
+WHERE planned_publish_date IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_content_plan_items_user_date 
+ON content_plan_items(user_id, planned_date) 
+WHERE planned_date IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_tasks_user_content_creation 
+ON tasks(user_id, content_creation_date) 
+WHERE content_creation_date IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_tasks_user_content_publish 
+ON tasks(user_id, content_publish_date) 
+WHERE content_publish_date IS NOT NULL;
 ```
-
-**Solution**: Add `min-h-0 overflow-y-auto` to each lane container:
-
-```tsx
-<div
-  ref={setNodeRef}
-  className={cn(
-    "flex-1 p-1.5 min-h-0 overflow-y-auto transition-colors",
-    // ...
-  )}
->
-```
-
-**Files to modify**:
-- `src/components/editorial-calendar/CalendarDayColumn.tsx` - Add overflow classes to DroppableLane
 
 ---
 
-### 5. Content Plan Items Duplicate Prevention (Polish)
+### 7. Add Pagination Strategy for Tasks
 
-**Problem**: `content_plan_items` that have been promoted to `content_items` (via `content_item_id`) appear twice on the calendar.
+**Problem**: Task fetching is capped at 500 with no pagination. Heavy users will hit the ceiling and think tasks "disappeared".
 
-**Current Code** (useEditorialCalendar.ts lines 46-54):
-```tsx
-const { data, error } = await supabase
-  .from('content_plan_items')
-  .select('id, title, content_type, channel, planned_date, status')
-  // No content_item_id filter!
-```
+**Current State**: 
+- `useTasks.tsx` calls `{ limit: 500, offset: 0 }`
+- `get-all-tasks` edge function supports pagination but client doesn't use it
 
-**Solution**: Add filter to exclude linked plan items:
+**Solution Options** (recommend Option B):
 
-```tsx
-const { data, error } = await supabase
-  .from('content_plan_items')
-  .select('id, title, content_type, channel, planned_date, status')
-  .eq('user_id', user.id)
-  .is('content_item_id', null) // Only unlinked plan items
-  .gte('planned_date', weekStartStr)
-  .lte('planned_date', weekEndStr);
-```
+**Option A**: Infinite query pagination
+- Use `useInfiniteQuery` to load more as user scrolls
+- Complex but most complete
+
+**Option B**: Smart filtering (recommended for V1)
+- Default fetch: last 90 days + incomplete + pinned
+- "Load all" button for full history
+- Simpler implementation, sufficient for most users
+
+**Option C**: Split by context
+- Calendar: fetch by date range
+- Project view: fetch by project_id
+- Inbox: fetch recent/open only
 
 **Files to modify**:
-- `src/hooks/useEditorialCalendar.ts` - Add `.is('content_item_id', null)` filter
-
----
-
-## Files Summary
-
 | File | Changes |
 |------|---------|
-| `src/components/editorial-calendar/CalendarContentCard.tsx` | Add `laneContext` prop, update draggable ID |
-| `src/components/editorial-calendar/CalendarDayColumn.tsx` | Pass `laneContext` to cards, add overflow classes |
-| `src/components/editorial-calendar/UnscheduledPool.tsx` | Pass `laneContext="pool"` to cards |
-| `src/components/editorial-calendar/EditorialCalendarView.tsx` | Parse base item ID from composite drag ID |
-| `src/hooks/useEditorialCalendar.ts` | Fix OR query, add content_item_id filter |
-| `src/lib/calendarConstants.ts` | Add type normalization and label mapping |
+| `src/hooks/useTasks.tsx` | Add date range filter, "load more" capability |
+| `supabase/functions/get-all-tasks/index.ts` | Add date_from/date_to parameters |
 
 ---
 
-## Technical Details
+### 8. Extend Offline Mutation Queue to Content Calendar
 
-### DnD ID Format
-- **Create lane**: `content-abc:create`
-- **Publish lane**: `content-abc:publish`
-- **Unscheduled pool**: `content-abc:pool`
+**Problem**: Tasks use offline queue via `useTaskMutations`, but calendar scheduling updates (content_items, content_plan_items) are direct Supabase calls that fail silently offline.
 
-The drop handler extracts the base item from `active.data.current.item`, so no ID parsing is needed on drop.
+**Solution**: 
+- Extend `offlineSync.processMutation` to handle `content_items` and `content_plan_items` tables
+- Create edge functions for content calendar mutations (or use direct table updates with queue)
+- Wrap calendar mutations in queueMutation when offline
 
-### Query Logic Explanation
-The corrected Supabase query uses nested `and()` within `or()`:
+**Files to modify**:
+| File | Changes |
+|------|---------|
+| `src/lib/offlineSync.ts` | Add cases for `content_items` and `content_plan_items` in processMutation |
+| `src/hooks/useEditorialCalendar.ts` | Use offline queue for mutations when `!navigator.onLine` |
+
+---
+
+### 9. Update manage-task to Accept Content Calendar Fields
+
+**Problem**: Tasks table has `content_type`, `content_channel`, `content_creation_date`, `content_publish_date`, `content_item_id` but manage-task's Zod schema doesn't include them.
+
+**Solution**: Add these optional fields to the Zod schema and update handler logic:
+
+```typescript
+// Add to OptionalTaskFields in manage-task/index.ts
+content_type: z.string().nullable().optional(),
+content_channel: z.string().nullable().optional(),
+content_creation_date: z.string().nullable().optional(),
+content_publish_date: z.string().nullable().optional(),
+content_item_id: z.string().uuid().nullable().optional(),
 ```
-or(
-  and(planned_creation_date.gte.2024-01-01,planned_creation_date.lte.2024-01-07),
-  and(planned_publish_date.gte.2024-01-01,planned_publish_date.lte.2024-01-07)
-)
-```
-This correctly matches items where **either** date falls within the week range.
 
-### Type Normalization Priority
-1. Direct match (e.g., `instagram-reel`)
-2. Lowercase normalized match
-3. Label-to-ID mapping (e.g., `Reel/Short` → `instagram-reel`)
-4. Fallback to `FileText` icon
+**Files to modify**:
+| File | Changes |
+|------|---------|
+| `supabase/functions/manage-task/index.ts` | Add content calendar fields to Zod schemas and update handler |
+
+---
+
+### 10. Create Data Access Layer (Future-Proofing)
+
+**Problem**: Supabase access is scattered across hooks, making refactors fragile and error-prone.
+
+**Solution**: Create per-domain data access modules:
+```
+src/data/
+├── tasks.ts          // Task CRUD, consistent error handling
+├── contentCalendar.ts // Content items + plan items
+├── contentItems.ts   // Content vault operations
+└── index.ts          // Re-exports
+```
+
+Each module exports:
+- Typed fetch functions with explicit field lists
+- Typed update functions
+- Consistent error handling
+- No accidental `select('*')`
+
+**Files to create**:
+| File | Purpose |
+|------|---------|
+| `src/data/contentCalendar.ts` | Calendar-specific queries and mutations |
+| `src/data/tasks.ts` | Task queries extracted from useTasks |
+| `src/data/index.ts` | Barrel exports |
+
+---
+
+## Implementation Order
+
+1. **Day 1**: P0 items (security + reliability)
+   - Emergency-save token validation + cleanup cron
+   - Calendar await saves + error handling
+
+2. **Day 2**: P1 performance items
+   - Composite indexes (database migration)
+   - Task pagination strategy
+
+3. **Day 3**: P1 reliability items
+   - Extend offline queue to content calendar
+   - Update manage-task with content fields
+
+4. **Day 4**: Future-proofing
+   - Create data access layer structure
+   - Migrate one domain (contentCalendar) as template
+
+---
+
+## Database Migration Summary
+
+```sql
+-- Composite indexes for calendar performance
+CREATE INDEX IF NOT EXISTS idx_content_items_user_creation_date 
+ON content_items(user_id, planned_creation_date) 
+WHERE planned_creation_date IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_content_items_user_publish_date 
+ON content_items(user_id, planned_publish_date) 
+WHERE planned_publish_date IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_content_plan_items_user_date 
+ON content_plan_items(user_id, planned_date) 
+WHERE planned_date IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_tasks_user_content_creation 
+ON tasks(user_id, content_creation_date) 
+WHERE content_creation_date IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_tasks_user_content_publish 
+ON tasks(user_id, content_publish_date) 
+WHERE content_publish_date IS NOT NULL;
+
+-- Cleanup cron for emergency_saves
+SELECT cron.schedule(
+  'cleanup-emergency-saves',
+  '0 3 * * *', -- Daily at 3 AM
+  $$
+  DELETE FROM public.emergency_saves 
+  WHERE created_at < NOW() - INTERVAL '7 days';
+  $$
+);
+```
+
+---
+
+## Technical Notes
+
+### Token in sendBeacon
+Since `sendBeacon` can't set Authorization headers, we pass the token in the JSON payload body. The edge function extracts and validates it server-side.
+
+### Optimistic Updates + Error Recovery
+The calendar already uses react-query mutations. We just need to:
+1. Return `mutateAsync` alongside `mutate`
+2. Use `try/catch` with `mutateAsync` in handlers
+3. Only show success toast in the `try` block
+4. Show error toast in `catch` block
+
+### Offline Queue Extension
+The existing `offlineSync.processMutation` switch statement can be extended with new table cases. For content_items and content_plan_items, we can use direct Supabase updates (with service role) or create new edge functions for consistency.
