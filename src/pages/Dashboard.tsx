@@ -62,6 +62,7 @@ import { LaunchZone } from '@/components/dashboard/LaunchZone';
 import { LaunchCountdownWidget } from '@/components/dashboard/LaunchCountdownWidget';
 import { LaunchPhaseReminderWidget } from '@/components/dashboard/LaunchPhaseReminderWidget';
 import { ActiveLaunchWidget } from '@/components/dashboard/ActiveLaunchWidget';
+import { ActiveSprintWidget } from '@/components/dashboard/ActiveSprintWidget';
 import { PodcastWidget } from '@/components/podcast/PodcastWidget';
 import { MastermindCallWidget } from '@/components/mastermind/MastermindCallWidget';
 import { SmartActionButton } from '@/components/SmartActionButton';
@@ -424,6 +425,9 @@ export default function Dashboard() {
           {/* Main Content - spans 2 cols on desktop */}
           <div className="lg:col-span-2 space-y-6">
             
+            {/* Active Sprint Widget - Shows only if user has active sprint */}
+            <ActiveSprintWidget />
+
             {/* Quarter Progress */}
             <WidgetCard
               title="Quarter Progress"

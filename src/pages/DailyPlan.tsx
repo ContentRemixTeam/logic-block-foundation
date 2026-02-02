@@ -49,6 +49,7 @@ import { CalendarReconnectBanner } from '@/components/google-calendar/CalendarRe
 import { CycleProgressBanner } from '@/components/cycle/CycleProgressBanner';
 import { LaunchModeSection } from '@/components/daily-plan/LaunchModeSection';
 import { QuickLaunchReflectionCard } from '@/components/daily-plan/QuickLaunchReflectionCard';
+import { DailySprintSection } from '@/components/daily-plan/DailySprintSection';
 import { useActiveLaunches } from '@/hooks/useActiveLaunches';
 import {
   AlertDialog,
@@ -1152,6 +1153,8 @@ export default function DailyPlan() {
             // Component map - each section ID maps to a render function
             // Render functions return JSX or null for conditional sections
             const sectionComponents: Record<string, () => React.ReactNode> = {
+              revenue_sprint: () => <DailySprintSection />,
+
               habits_tracker: () => <HabitTrackerCard view="daily" />,
 
               identity_anchor: () => {
