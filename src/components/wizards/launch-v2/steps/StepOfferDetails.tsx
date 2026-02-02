@@ -555,74 +555,92 @@ export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
         </p>
       </div>
 
-      {/* Bonus Stack */}
+      {/* Bonus Stack - Optional */}
       <div className="space-y-4">
-        <Label className="text-lg font-semibold flex items-center gap-2">
-          <Gift className="h-5 w-5" />
-          Bonus Stack
-        </Label>
-        <p className="text-sm text-muted-foreground -mt-1">
-          Add bonuses to increase value. For each, tell us if it's ready or needs to be created.
-        </p>
-
-        {/* Add new bonus */}
-        <div className="flex gap-2">
-          <Input
-            value={newBonusName}
-            onChange={(e) => setNewBonusName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAddBonus()}
-            placeholder="Bonus name (e.g., 'Private Q&A calls')"
-            className="flex-1"
+        <div className="flex items-center justify-between">
+          <Label className="text-lg font-semibold flex items-center gap-2">
+            <Gift className="h-5 w-5" />
+            Bonus Stack
+            <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+          </Label>
+          <Switch
+            checked={data.hasBonusStack ?? false}
+            onCheckedChange={(checked) => onChange({ hasBonusStack: checked })}
           />
-          <Button 
-            type="button"
-            onClick={handleAddBonus} 
-            disabled={!newBonusName.trim()}
-            variant="outline"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
         </div>
-
-        {/* Bonus list */}
-        {(data.bonusStack?.length ?? 0) > 0 && (
-          <div className="space-y-3">
-            {data.bonusStack?.map((bonus) => (
-              <BonusItemCard
-                key={bonus.id}
-                bonus={bonus}
-                onUpdate={(updates) => handleUpdateBonus(bonus.id, updates)}
-                onRemove={() => handleRemoveBonus(bonus.id)}
-                maxDeadline={data.cartOpensDate}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Warning for late deadlines */}
-        {bonusesWithLateDeadlines.length > 0 && (
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
-            <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-            <p className="text-sm text-amber-800 dark:text-amber-200">
-              {bonusesWithLateDeadlines.length} bonus{bonusesWithLateDeadlines.length > 1 ? 'es' : ''} ha{bonusesWithLateDeadlines.length > 1 ? 've' : 's'} a deadline after cart opens. 
-              Consider adjusting the deadline to have everything ready before launch.
-            </p>
-          </div>
-        )}
-
-        {/* Summary of bonuses needing creation */}
-        {bonusesNeedingCreation.length > 0 && (
-          <div className="p-3 rounded-lg bg-muted/50 border">
-            <p className="text-sm">
-              📋 <strong>{bonusesNeedingCreation.length}</strong> bonus{bonusesNeedingCreation.length > 1 ? 'es' : ''} to create before launch
-            </p>
-          </div>
-        )}
-
-        {!data.bonusStack?.length && (
-          <p className="text-xs text-muted-foreground">
-            💡 Don't have a bonus? That's okay. Scarcity (limited time/spots) works too.
+        
+        {!data.hasBonusStack && (
+          <p className="text-sm text-muted-foreground">
+            💡 Don't have bonuses? That's okay. Scarcity (limited time/spots) works too.
           </p>
+        )}
+
+        {data.hasBonusStack && (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Add bonuses to increase value. For each, tell us if it's ready or needs to be created.
+            </p>
+
+            {/* Add new bonus */}
+            <div className="flex gap-2">
+              <Input
+                value={newBonusName}
+                onChange={(e) => setNewBonusName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddBonus()}
+                placeholder="Bonus name (e.g., 'Private Q&A calls')"
+                className="flex-1"
+              />
+              <Button 
+                type="button"
+                onClick={handleAddBonus} 
+                disabled={!newBonusName.trim()}
+                variant="outline"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Bonus list */}
+            {(data.bonusStack?.length ?? 0) > 0 && (
+              <div className="space-y-3">
+                {data.bonusStack?.map((bonus) => (
+                  <BonusItemCard
+                    key={bonus.id}
+                    bonus={bonus}
+                    onUpdate={(updates) => handleUpdateBonus(bonus.id, updates)}
+                    onRemove={() => handleRemoveBonus(bonus.id)}
+                    maxDeadline={data.cartOpensDate}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Warning for late deadlines */}
+            {bonusesWithLateDeadlines.length > 0 && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  {bonusesWithLateDeadlines.length} bonus{bonusesWithLateDeadlines.length > 1 ? 'es' : ''} ha{bonusesWithLateDeadlines.length > 1 ? 've' : 's'} a deadline after cart opens. 
+                  Consider adjusting the deadline to have everything ready before launch.
+                </p>
+              </div>
+            )}
+
+            {/* Summary of bonuses needing creation */}
+            {bonusesNeedingCreation.length > 0 && (
+              <div className="p-3 rounded-lg bg-muted/50 border">
+                <p className="text-sm">
+                  📋 <strong>{bonusesNeedingCreation.length}</strong> bonus{bonusesNeedingCreation.length > 1 ? 'es' : ''} to create before launch
+                </p>
+              </div>
+            )}
+
+            {data.bonusStack?.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                Add your first bonus above to get started.
+              </p>
+            )}
+          </div>
         )}
       </div>
 
@@ -895,7 +913,7 @@ export function StepOfferDetails({ data, onChange }: StepOfferDetailsProps) {
                   {data.spotLimit} spots
                 </Badge>
               )}
-              {(data.bonusStack?.length ?? 0) > 0 && (
+              {data.hasBonusStack && (data.bonusStack?.length ?? 0) > 0 && (
                 <Badge variant="outline" className="border-purple-500 text-purple-600">
                   + {data.bonusStack?.length} bonus{(data.bonusStack?.length ?? 0) > 1 ? 'es' : ''}
                 </Badge>

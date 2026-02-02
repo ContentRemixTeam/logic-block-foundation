@@ -405,6 +405,7 @@ export interface LaunchWizardV2Data {
   paymentPlanDetails: string;          // Legacy - kept for migration
   idealCustomer: string;
   mainBonus: string;                   // Legacy - kept for migration
+  hasBonusStack: boolean;              // Toggle for bonus section
   bonusStack: BonusItem[];
   hasLimitations: HasLimitations | '';
   limitationDetails: string;
@@ -527,6 +528,7 @@ export const DEFAULT_LAUNCH_V2_DATA: LaunchWizardV2Data = {
   paymentPlanDetails: '',
   idealCustomer: '',
   mainBonus: '', // Legacy
+  hasBonusStack: false,
   bonusStack: [],
   hasLimitations: '',
   limitationDetails: '',
