@@ -24,6 +24,131 @@ export type LaunchExperience = 'first-time' | 'launched-before' | 'launched-rece
 export type OfferType = 'course' | 'coaching' | 'product' | 'membership' | 'other';
 export type EmailListStatus = 'comfortable' | 'small-nervous' | 'starting-zero' | 'building' | 'not-using-email';
 
+// ============== Launch Style (NEW) ==============
+export type LaunchStyle = 
+  | 'standard'
+  | 'challenge'
+  | 'webinar'
+  | 'masterclass'
+  | 'flash-sale'
+  | 'beta'
+  | 'evergreen'
+  | 'other';
+
+// Challenge-specific config
+export interface ChallengeConfig {
+  challengeDuration: 3 | 5 | 7 | 10 | number;
+  dailyTopics: string[];
+  groupStrategy: 'pop-up' | 'existing' | 'none';
+  groupPlatform: 'facebook' | 'slack' | 'discord' | 'circle' | 'mighty-networks' | 'other';
+  groupPlatformOther: string;
+  popUpGroupName: string;
+  existingGroupLink: string;
+  hasCompletionIncentive: boolean;
+  incentiveType: 'giveaway' | 'bonus' | 'certificate' | 'discount' | 'other';
+  incentiveDescription: string;
+  incentiveQualification: 'complete-all-days' | 'submit-homework' | 'attend-live' | 'other';
+  hasHomework: boolean;
+  homeworkType: 'worksheet' | 'video-response' | 'group-post' | 'action-item' | 'mixed';
+  homeworkSubmissionMethod: 'group' | 'email' | 'form' | 'dm';
+}
+
+// Webinar-specific config
+export interface WebinarConfig {
+  platform: 'zoom' | 'webinarjam' | 'streamyard' | 'crowdcast' | 'other';
+  platformOther: string;
+  hasReplay: boolean;
+  replayDuration: '24-hours' | '48-hours' | '72-hours' | 'until-cart-close';
+  pitchTiming: 'at-end' | 'throughout' | 'after-qa';
+  hasLiveBonus: boolean;
+  liveBonusDescription: string;
+  registrationGoal: number | null;
+  showUpStrategy: 'email-reminders' | 'sms' | 'both';
+}
+
+// Flash sale config
+export interface FlashSaleConfig {
+  saleDuration: '12-hours' | '24-hours' | '48-hours' | '72-hours';
+  discountType: 'percent-off' | 'dollar-off' | 'bonus-stack';
+  discountAmount: string;
+  hasCountdownTimer: boolean;
+  emailCount: number;
+  socialPostsPlanned: number;
+}
+
+// Beta launch config
+export interface BetaLaunchConfig {
+  betaDiscount: number; // percentage off
+  betaSpots: number;
+  requiresFeedback: boolean;
+  feedbackMethod: 'survey' | 'calls' | 'community' | 'other';
+  collectsTestimonials: boolean;
+}
+
+// Masterclass config
+export interface MasterclassConfig {
+  numberOfDays: 2 | 3 | 4 | 5 | number;
+  dailyThemes: string[];
+  replayPeriod: '24-hours' | '48-hours' | '72-hours' | 'until-cart-close';
+  hasReplayOnlyOffer: boolean;
+  replayOnlyOfferDescription: string;
+}
+
+// Default configs
+export const DEFAULT_CHALLENGE_CONFIG: ChallengeConfig = {
+  challengeDuration: 5,
+  dailyTopics: [],
+  groupStrategy: 'pop-up',
+  groupPlatform: 'facebook',
+  groupPlatformOther: '',
+  popUpGroupName: '',
+  existingGroupLink: '',
+  hasCompletionIncentive: false,
+  incentiveType: 'bonus',
+  incentiveDescription: '',
+  incentiveQualification: 'complete-all-days',
+  hasHomework: false,
+  homeworkType: 'action-item',
+  homeworkSubmissionMethod: 'group',
+};
+
+export const DEFAULT_WEBINAR_CONFIG: WebinarConfig = {
+  platform: 'zoom',
+  platformOther: '',
+  hasReplay: true,
+  replayDuration: '48-hours',
+  pitchTiming: 'at-end',
+  hasLiveBonus: false,
+  liveBonusDescription: '',
+  registrationGoal: null,
+  showUpStrategy: 'email-reminders',
+};
+
+export const DEFAULT_FLASH_SALE_CONFIG: FlashSaleConfig = {
+  saleDuration: '48-hours',
+  discountType: 'percent-off',
+  discountAmount: '',
+  hasCountdownTimer: true,
+  emailCount: 5,
+  socialPostsPlanned: 5,
+};
+
+export const DEFAULT_BETA_LAUNCH_CONFIG: BetaLaunchConfig = {
+  betaDiscount: 50,
+  betaSpots: 20,
+  requiresFeedback: true,
+  feedbackMethod: 'survey',
+  collectsTestimonials: true,
+};
+
+export const DEFAULT_MASTERCLASS_CONFIG: MasterclassConfig = {
+  numberOfDays: 3,
+  dailyThemes: [],
+  replayPeriod: '48-hours',
+  hasReplayOnlyOffer: false,
+  replayOnlyOfferDescription: '',
+};
+
 // ============== Step 2: Goal & Timeline ==============
 export type LaunchTimeline = '2-weeks' | '3-4-weeks' | '5-6-weeks' | 'other';
 export type RevenueGoalTier = 'first-sale' | '500-1000' | '1000-2500' | '2500-plus' | 'testing' | 'custom' | 'no-goal';
@@ -227,6 +352,14 @@ export interface LaunchWizardV2Data {
   otherOfferType: string;
   emailListStatus: EmailListStatus | '';
   
+  // Step 1b: Launch Style (NEW)
+  launchStyle: LaunchStyle | '';
+  challengeConfig: ChallengeConfig;
+  webinarConfig: WebinarConfig;
+  flashSaleConfig: FlashSaleConfig;
+  betaLaunchConfig: BetaLaunchConfig;
+  masterclassConfig: MasterclassConfig;
+  
   // Step 2: Goal & Timeline (Q4-Q6)
   launchTimeline: LaunchTimeline | '';
   otherLaunchTimeline: string; // Custom duration for 'other'
@@ -343,7 +476,13 @@ export const DEFAULT_LAUNCH_V2_DATA: LaunchWizardV2Data = {
   otherOfferType: '',
   emailListStatus: '',
   
-  // Step 2
+  // Step 1b: Launch Style (NEW)
+  launchStyle: '',
+  challengeConfig: DEFAULT_CHALLENGE_CONFIG,
+  webinarConfig: DEFAULT_WEBINAR_CONFIG,
+  flashSaleConfig: DEFAULT_FLASH_SALE_CONFIG,
+  betaLaunchConfig: DEFAULT_BETA_LAUNCH_CONFIG,
+  masterclassConfig: DEFAULT_MASTERCLASS_CONFIG,
   launchTimeline: '',
   otherLaunchTimeline: '',
   cartOpensDate: '',
@@ -479,6 +618,65 @@ export const EMAIL_LIST_STATUS_OPTIONS = [
   { value: 'starting-zero', label: 'No, I\'m starting from zero', color: 'red' },
   { value: 'building', label: 'Building it as I go', color: 'blue' },
   { value: 'not-using-email', label: "I'm not using email for this launch", color: 'gray' },
+] as const;
+
+export const LAUNCH_STYLE_OPTIONS = [
+  { 
+    value: 'standard', 
+    label: 'Standard Launch', 
+    description: 'Cart open → Cart close with email sequence',
+    icon: '🚀',
+    suggestedTimeline: '3-4-weeks',
+  },
+  { 
+    value: 'challenge', 
+    label: 'Challenge Launch', 
+    description: 'Multi-day challenge leading to your offer',
+    icon: '🎯',
+    suggestedTimeline: '3-4-weeks',
+  },
+  { 
+    value: 'webinar', 
+    label: 'Webinar Launch', 
+    description: 'Free training with pitch at the end',
+    icon: '🎥',
+    suggestedTimeline: '3-4-weeks',
+  },
+  { 
+    value: 'masterclass', 
+    label: 'Masterclass', 
+    description: 'Multi-day deep training event',
+    icon: '🎓',
+    suggestedTimeline: '5-6-weeks',
+  },
+  { 
+    value: 'flash-sale', 
+    label: 'Flash Sale', 
+    description: 'Quick 24-72 hour promotional sale',
+    icon: '⚡',
+    suggestedTimeline: '2-weeks',
+  },
+  { 
+    value: 'beta', 
+    label: 'Beta Launch', 
+    description: 'Test product at discount, gather feedback',
+    icon: '🧪',
+    suggestedTimeline: '3-4-weeks',
+  },
+  { 
+    value: 'evergreen', 
+    label: 'Evergreen Funnel', 
+    description: 'Always available, automated sequence',
+    icon: '🌲',
+    suggestedTimeline: 'other',
+  },
+  { 
+    value: 'other', 
+    label: 'Other', 
+    description: "I'll configure this manually",
+    icon: '✨',
+    suggestedTimeline: '3-4-weeks',
+  },
 ] as const;
 
 export const LAUNCH_TIMELINE_OPTIONS = [
