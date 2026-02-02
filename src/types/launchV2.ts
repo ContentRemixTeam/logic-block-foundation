@@ -164,15 +164,26 @@ export interface PaymentPlanOption {
   totalAmount?: number;      // Auto-calculated
 }
 
+// Special pricing offer type
+export type SpecialOfferType = 'discount' | 'bonus' | 'both';
+
 export interface OfferPricing {
   fullPrice: number | null;           // Pay-in-full price
   originalValue: number | null;       // "Value" for anchoring
+  // Early Bird
   hasEarlyBirdPrice: boolean;
-  earlyBirdPrice: number | null;
+  earlyBirdOfferType: SpecialOfferType;
+  earlyBirdPrice: number | null;      // Discount price (if discount or both)
+  earlyBirdBonus: string;             // Bonus description (if bonus or both)
   earlyBirdDeadline: string;          // When early bird expires
+  // Waitlist
   hasWaitlistPrice: boolean;
-  waitlistPrice: number | null;       // Special price for waitlist
+  waitlistOfferType: SpecialOfferType;
+  waitlistPrice: number | null;       // Discount price (if discount or both)
+  waitlistBonus: string;              // Bonus description (if bonus or both)
+  // Payment plans
   paymentPlans: PaymentPlanOption[];  // Multiple payment plans
+  // VIP
   hasVipTier: boolean;
   vipPrice: number | null;
   vipIncludes: string;                // What's included in VIP
@@ -320,10 +331,14 @@ export const DEFAULT_OFFER_PRICING: OfferPricing = {
   fullPrice: null,
   originalValue: null,
   hasEarlyBirdPrice: false,
+  earlyBirdOfferType: 'discount',
   earlyBirdPrice: null,
+  earlyBirdBonus: '',
   earlyBirdDeadline: '',
   hasWaitlistPrice: false,
+  waitlistOfferType: 'discount',
   waitlistPrice: null,
+  waitlistBonus: '',
   paymentPlans: [],
   hasVipTier: false,
   vipPrice: null,
