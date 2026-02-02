@@ -31,6 +31,7 @@ import {
   FolderKanban,
   Plus,
   ChevronDown,
+  CalendarRange,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
@@ -57,6 +58,7 @@ const ORGANIZE_NAV = [
   { name: 'Ideas', href: '/ideas', icon: Lightbulb, questIcon: '💡' },
   { name: 'Learning', href: '/courses', icon: GraduationCap, questIcon: '🎓' },
   { name: 'Content Vault', href: '/content-vault', icon: Library, questIcon: '📚' },
+  { name: 'Editorial Calendar', href: '/editorial-calendar', icon: CalendarRange, questIcon: '📅' },
   { name: 'SOPs', href: '/sops', icon: ClipboardList, questIcon: '📖' },
   { name: 'Finances', href: '/finances', icon: DollarSign, questIcon: '💰', settingsKey: 'show_income_tracker' },
 ];
