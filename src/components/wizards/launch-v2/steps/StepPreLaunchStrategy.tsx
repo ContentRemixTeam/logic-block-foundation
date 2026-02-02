@@ -825,20 +825,10 @@ export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyP
               <h4 className="font-semibold">Content Prep</h4>
               <p className="text-sm text-muted-foreground">
                 Based on your choices above, we'll generate content creation tasks. 
-                After completing this wizard, you can use the <strong>Content Planner</strong> to:
+                After completing this wizard, you can use the <strong>Content Planner</strong> to 
+                define your messaging framework, plan specific content pieces, repurpose existing content, 
+                and schedule creation tasks by launch phase.
               </p>
-              <ul className="text-sm text-muted-foreground space-y-1 ml-4 list-disc">
-                <li>Define your messaging framework</li>
-                <li>Plan specific content pieces</li>
-                <li>Repurpose existing content</li>
-                <li>Schedule creation tasks by launch phase</li>
-              </ul>
-              <Link 
-                to="/wizards/content-planner" 
-                className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-2"
-              >
-                Go to Content Planner <ArrowRight className="h-3 w-3" />
-              </Link>
             </div>
           </div>
         </CardContent>
