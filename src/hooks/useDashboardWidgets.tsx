@@ -46,6 +46,7 @@ export const DASHBOARD_WIDGETS: DashboardWidget[] = [
 ];
 
 const STORAGE_KEY = 'dashboard-widget-preferences';
+const ORDER_STORAGE_KEY = 'dashboard-widget-order';
 
 export function useDashboardWidgets() {
   const { user } = useAuth();
@@ -57,6 +58,16 @@ export function useDashboardWidgets() {
     });
     return defaults;
   });
+  
+  // Widget order state - maps column to array of widget IDs
+  const [widgetOrder, setWidgetOrder] = useState<Record<string, string[]>>(() => {
+    const defaultOrder: Record<string, string[]> = {
+      main: DASHBOARD_WIDGETS.filter(w => w.column === 'main').map(w => w.id),
+      sidebar: DASHBOARD_WIDGETS.filter(w => w.column === 'sidebar').map(w => w.id),
+    };
+    return defaultOrder;
+  });
+  
   const [isLoading, setIsLoading] = useState(true);
 
   // Load preferences from localStorage (fast) then sync with server
@@ -70,6 +81,17 @@ export function useDashboardWidgets() {
           setEnabledWidgets(prev => ({ ...prev, ...parsed }));
         } catch (e) {
           console.error('Failed to parse cached widget preferences');
+        }
+      }
+
+      // Load order from localStorage
+      const cachedOrder = localStorage.getItem(ORDER_STORAGE_KEY);
+      if (cachedOrder) {
+        try {
+          const parsed = JSON.parse(cachedOrder);
+          setWidgetOrder(prev => ({ ...prev, ...parsed }));
+        } catch (e) {
+          console.error('Failed to parse cached widget order');
         }
       }
 
@@ -88,6 +110,28 @@ export function useDashboardWidgets() {
             const serverPrefs = rawData.dashboard_widgets as Record<string, boolean>;
             setEnabledWidgets(prev => ({ ...prev, ...serverPrefs }));
             localStorage.setItem(STORAGE_KEY, JSON.stringify(serverPrefs));
+          }
+          
+          // Load widget order from server
+          if (rawData?.dashboard_widget_order) {
+            const serverOrder = rawData.dashboard_widget_order as Record<string, string[]>;
+            // Validate order has all widgets (merge with defaults for any missing)
+            const mergedOrder: Record<string, string[]> = {
+              main: serverOrder.main || [],
+              sidebar: serverOrder.sidebar || [],
+            };
+            
+            // Add any missing widgets to the end
+            DASHBOARD_WIDGETS.forEach(w => {
+              if (w.column === 'main' && !mergedOrder.main.includes(w.id)) {
+                mergedOrder.main.push(w.id);
+              } else if (w.column === 'sidebar' && !mergedOrder.sidebar.includes(w.id)) {
+                mergedOrder.sidebar.push(w.id);
+              }
+            });
+            
+            setWidgetOrder(mergedOrder);
+            localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(mergedOrder));
           }
         } catch (e) {
           console.error('Failed to load widget preferences from server');
@@ -120,6 +164,39 @@ export function useDashboardWidgets() {
     }
   }, [user]);
 
+  // Save widget order
+  const saveOrder = useCallback(async (newOrder: Record<string, string[]>) => {
+    setWidgetOrder(newOrder);
+    localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(newOrder));
+
+    if (user) {
+      try {
+        await supabase
+          .from('user_settings')
+          .upsert({
+            user_id: user.id,
+            dashboard_widget_order: newOrder,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'user_id' });
+      } catch (e) {
+        console.error('Failed to save widget order to server');
+      }
+    }
+  }, [user]);
+
+  // Reorder widgets within a column
+  const reorderWidgets = useCallback((column: 'main' | 'sidebar', fromIndex: number, toIndex: number) => {
+    setWidgetOrder(prev => {
+      const columnOrder = [...prev[column]];
+      const [removed] = columnOrder.splice(fromIndex, 1);
+      columnOrder.splice(toIndex, 0, removed);
+      
+      const newOrder = { ...prev, [column]: columnOrder };
+      saveOrder(newOrder);
+      return newOrder;
+    });
+  }, [saveOrder]);
+
   const toggleWidget = useCallback((widgetId: string) => {
     const newPrefs = { ...enabledWidgets, [widgetId]: !enabledWidgets[widgetId] };
     savePreferences(newPrefs);
@@ -135,11 +212,35 @@ export function useDashboardWidgets() {
       defaults[w.id] = w.defaultEnabled;
     });
     savePreferences(defaults);
-  }, [savePreferences]);
+    
+    // Also reset order
+    const defaultOrder: Record<string, string[]> = {
+      main: DASHBOARD_WIDGETS.filter(w => w.column === 'main').map(w => w.id),
+      sidebar: DASHBOARD_WIDGETS.filter(w => w.column === 'sidebar').map(w => w.id),
+    };
+    saveOrder(defaultOrder);
+  }, [savePreferences, saveOrder]);
 
   const getWidgetsByColumn = useCallback((column: 'main' | 'sidebar') => {
     return DASHBOARD_WIDGETS.filter(w => w.column === column);
   }, []);
+
+  // Get ordered widgets for a column (respects user order)
+  const getOrderedWidgets = useCallback((column: 'main' | 'sidebar') => {
+    const order = widgetOrder[column] || [];
+    const columnWidgets = DASHBOARD_WIDGETS.filter(w => w.column === column);
+    
+    // Sort by order, any missing widgets go at the end
+    return columnWidgets.sort((a, b) => {
+      const aIndex = order.indexOf(a.id);
+      const bIndex = order.indexOf(b.id);
+      
+      if (aIndex === -1 && bIndex === -1) return 0;
+      if (aIndex === -1) return 1;
+      if (bIndex === -1) return -1;
+      return aIndex - bIndex;
+    });
+  }, [widgetOrder]);
 
   const getWidgetsByCategory = useCallback((category: DashboardWidget['category']) => {
     return DASHBOARD_WIDGETS.filter(w => w.category === category);
@@ -148,12 +249,16 @@ export function useDashboardWidgets() {
   return {
     widgets: DASHBOARD_WIDGETS,
     enabledWidgets,
+    widgetOrder,
     isLoading,
     toggleWidget,
     isWidgetEnabled,
     savePreferences,
+    saveOrder,
+    reorderWidgets,
     resetToDefaults,
     getWidgetsByColumn,
+    getOrderedWidgets,
     getWidgetsByCategory,
   };
 }

@@ -12,6 +12,7 @@ import { useArcade } from '@/hooks/useArcade';
 import { OfflineBanner, OfflineIndicator } from '@/components/OfflineIndicator';
 import { UnsyncedDataBanner } from '@/components/UnsyncedDataBanner';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
+import { MobileQuickActions } from '@/components/mobile/MobileQuickActions';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { LaunchDebriefBanner } from '@/components/LaunchDebriefBanner';
 import { Loader2, Sparkles, ArrowRight, X } from 'lucide-react';
@@ -135,6 +136,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
         {/* Floating Actions */}
         <QuickCaptureButton />
+        <MobileQuickActions />
         
         {/* Arcade Drawer - lazy loaded */}
         {settings.arcade_enabled && (

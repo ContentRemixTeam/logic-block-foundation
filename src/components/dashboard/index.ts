@@ -16,3 +16,4 @@ export { LaunchZone } from './LaunchZone';
 export { LaunchCountdownWidget } from './LaunchCountdownWidget';
 export { LaunchPhaseReminderWidget } from './LaunchPhaseReminderWidget';
 export { ActiveLaunchWidget } from './ActiveLaunchWidget';
+export { WidgetErrorBoundary } from './WidgetErrorBoundary';
