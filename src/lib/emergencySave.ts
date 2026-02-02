@@ -9,12 +9,16 @@
  * 
  * sendBeacon is designed to survive page unload events where
  * normal fetch/XHR requests would be killed.
+ * 
+ * SECURITY: Token is passed in payload body since sendBeacon can't set Authorization headers.
+ * The edge function validates the token and derives user_id from it.
  */
 
 import { saveEmergencyData } from './offlineDb';
+import { supabase } from '@/integrations/supabase/client';
 
 interface EmergencySavePayload {
-  userId: string;
+  token: string; // Access token for authentication
   pageType: string;
   pageId?: string;
   data: any;
@@ -27,17 +31,54 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const EMERGENCY_SAVE_ENDPOINT = `${SUPABASE_URL}/functions/v1/emergency-save`;
 
 /**
+ * Get current session access token (synchronous attempt via cached session)
+ */
+function getCachedAccessToken(): string | null {
+  try {
+    // Try to get cached session from localStorage
+    const storageKey = `sb-${import.meta.env.VITE_SUPABASE_PROJECT_ID}-auth-token`;
+    const storedSession = localStorage.getItem(storageKey);
+    if (storedSession) {
+      const parsed = JSON.parse(storedSession);
+      // Check if token is not expired (with 60s buffer)
+      if (parsed?.access_token && parsed?.expires_at) {
+        const expiresAt = parsed.expires_at * 1000; // Convert to ms
+        if (Date.now() < expiresAt - 60000) {
+          return parsed.access_token;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[EmergencySave] Failed to get cached token:', e);
+  }
+  return null;
+}
+
+/**
  * Send data using sendBeacon (fire-and-forget, survives page unload)
  * Returns true if the beacon was queued successfully
+ * 
+ * SECURITY: Token is included in payload for authentication since sendBeacon
+ * cannot set custom headers. The edge function validates the token server-side.
  */
-export function sendEmergencyBeacon(payload: Omit<EmergencySavePayload, 'timestamp'>): boolean {
+export function sendEmergencyBeacon(
+  payload: Omit<EmergencySavePayload, 'timestamp' | 'token'>
+): boolean {
   if (!navigator.sendBeacon) {
     console.warn('[EmergencySave] sendBeacon not supported');
     return false;
   }
 
+  // Get access token from cached session
+  const token = getCachedAccessToken();
+  if (!token) {
+    console.warn('[EmergencySave] No valid token available, skipping beacon');
+    return false;
+  }
+
   const fullPayload: EmergencySavePayload = {
     ...payload,
+    token, // SECURE: Include token for server-side validation
     timestamp: Date.now(),
   };
 
@@ -64,7 +105,7 @@ export function sendEmergencyBeacon(payload: Omit<EmergencySavePayload, 'timesta
 
 /**
  * Multi-layer emergency save:
- * 1. Try sendBeacon for server-side backup
+ * 1. Try sendBeacon for server-side backup (with token authentication)
  * 2. Try localStorage as sync fallback
  * 3. Try IndexedDB as async fallback
  */
@@ -76,8 +117,8 @@ export function emergencySave(
   pageId?: string
 ): void {
   // Layer 1: sendBeacon for server-side crash recovery
+  // Note: userId is ignored by the server - it validates and extracts from token
   sendEmergencyBeacon({
-    userId,
     pageType,
     pageId,
     data,

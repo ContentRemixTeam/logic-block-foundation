@@ -19,25 +19,41 @@ export const taskQueryKeys = {
   byWeek: (weekStart: string) => ['tasks', 'week', weekStart] as const,
 };
 
-// Main hook for fetching all tasks
-export function useTasks() {
+// Response type from edge function
+interface TasksResponse {
+  tasks: Task[];
+  hasMore: boolean;
+  totalCount: number;
+  useSmartFilter: boolean;
+}
+
+// Main hook for fetching all tasks with smart filtering
+export function useTasks(options: { loadAll?: boolean } = {}) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { loadAll = false } = options;
 
-  // Main tasks query
+  // Main tasks query - uses smart filtering by default (last 90 days + incomplete)
   const query = useQuery({
-    queryKey: taskQueryKeys.all,
-    queryFn: async () => {
+    queryKey: [...taskQueryKeys.all, { loadAll }],
+    queryFn: async (): Promise<Task[]> => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      // Add pagination to prevent unbounded fetches
+      // Smart filtering: fetch last 90 days + all incomplete tasks
+      // This prevents the "500 task ceiling" issue while keeping the UI fast
       const response = await supabase.functions.invoke('get-all-tasks', {
-        body: { limit: 500, offset: 0 },
+        body: { 
+          load_all: loadAll,
+          // No limit/offset = server uses smart filtering
+        },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
       if (response.error) throw response.error;
+      
+      // Extract just the tasks array for backwards compatibility
+      // The metadata (hasMore, totalCount) is available if needed in the future
       return (response.data?.data || []) as Task[];
     },
     enabled: !!user,

@@ -47,6 +47,12 @@ const OptionalTaskFields = z.object({
   daily_plan_id: z.string().uuid().nullable().optional(),
   source: z.enum(['manual', 'scratch_pad', 'top_3']).optional(),
   is_completed: z.boolean().optional(),
+  // Content calendar fields
+  content_type: z.string().max(100).nullable().optional(),
+  content_channel: z.string().max(100).nullable().optional(),
+  content_creation_date: z.string().nullable().optional(),
+  content_publish_date: z.string().nullable().optional(),
+  content_item_id: z.string().uuid().nullable().optional(),
 });
 
 const CreateTaskSchema = z.object({
@@ -85,6 +91,12 @@ const CreateTaskSchema = z.object({
   source: z.enum(['manual', 'scratch_pad', 'top_3']).optional(),
   source_note_id: z.string().uuid().nullable().optional(),
   source_note_title: z.string().max(500).nullable().optional(),
+  // Content calendar fields
+  content_type: z.string().max(100).nullable().optional(),
+  content_channel: z.string().max(100).nullable().optional(),
+  content_creation_date: z.string().nullable().optional(),
+  content_publish_date: z.string().nullable().optional(),
+  content_item_id: z.string().uuid().nullable().optional(),
 });
 
 const UpdateTaskSchema = OptionalTaskFields.extend({
@@ -311,7 +323,9 @@ Deno.serve(async (req) => {
           actual_minutes, time_block_start, time_block_end, energy_level,
           context_tags, goal_id, status, waiting_on, subtasks, notes,
           position_in_column, planned_day, day_order, project_id,
-          project_column, section_id, cycle_id, source_note_id, source_note_title
+          project_column, section_id, cycle_id, source_note_id, source_note_title,
+          // Content calendar fields
+          content_type, content_channel, content_creation_date, content_publish_date, content_item_id
         } = validatedData;
         
         const isRecurringParent = recurrence_pattern && recurrence_pattern !== 'none';
@@ -373,6 +387,12 @@ Deno.serve(async (req) => {
             cycle_id: cycle_id || null,
             source_note_id: source_note_id || null,
             source_note_title: source_note_title || null,
+            // Content calendar fields
+            content_type: content_type || null,
+            content_channel: content_channel || null,
+            content_creation_date: content_creation_date || null,
+            content_publish_date: content_publish_date || null,
+            content_item_id: content_item_id || null,
           })
           .select()
           .single();
@@ -430,6 +450,12 @@ Deno.serve(async (req) => {
         if (updateFields.project_column !== undefined) updateData.project_column = updateFields.project_column;
         if (updateFields.section_id !== undefined) updateData.section_id = updateFields.section_id;
         if (updateFields.cycle_id !== undefined) updateData.cycle_id = updateFields.cycle_id;
+        // Content calendar fields
+        if (updateFields.content_type !== undefined) updateData.content_type = updateFields.content_type;
+        if (updateFields.content_channel !== undefined) updateData.content_channel = updateFields.content_channel;
+        if (updateFields.content_creation_date !== undefined) updateData.content_creation_date = updateFields.content_creation_date;
+        if (updateFields.content_publish_date !== undefined) updateData.content_publish_date = updateFields.content_publish_date;
+        if (updateFields.content_item_id !== undefined) updateData.content_item_id = updateFields.content_item_id;
 
         // Track reschedules: if date/time is being changed for first time, store originals
         const isRescheduling = (

@@ -219,8 +219,11 @@ export function useEditorialCalendar({ weekStart }: UseEditorialCalendarOptions)
     items: allItems,
     unscheduledItems,
     getItemsForDay,
+    // Expose both mutate (fire-and-forget) and mutateAsync (awaitable)
     updateItemDate: updateItemDate.mutate,
+    updateItemDateAsync: updateItemDate.mutateAsync,
     isUpdating: updateItemDate.isPending,
+    updateError: updateItemDate.error,
     isLoading: contentItemsQuery.isLoading || planItemsQuery.isLoading || tasksQuery.isLoading,
     error: contentItemsQuery.error || planItemsQuery.error || tasksQuery.error,
     weekStartDate,

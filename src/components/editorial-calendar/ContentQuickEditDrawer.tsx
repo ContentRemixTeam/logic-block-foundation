@@ -19,10 +19,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CalendarItem, PLATFORM_LABELS, SCHEDULE_COLORS } from '@/lib/calendarConstants';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { CalendarIcon, Palette, Send, ExternalLink } from 'lucide-react';
+import { CalendarIcon, ExternalLink, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 
@@ -30,7 +29,8 @@ interface ContentQuickEditDrawerProps {
   item: CalendarItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (updates: { creationDate: string | null; publishDate: string | null }) => void;
+  onSave: (updates: { creationDate: string | null; publishDate: string | null }) => Promise<boolean | void>;
+  isSaving?: boolean;
 }
 
 export function ContentQuickEditDrawer({
@@ -38,6 +38,7 @@ export function ContentQuickEditDrawer({
   open,
   onOpenChange,
   onSave,
+  isSaving = false,
 }: ContentQuickEditDrawerProps) {
   const isMobile = useIsMobile();
   const [creationDate, setCreationDate] = useState<Date | undefined>(undefined);
@@ -51,12 +52,13 @@ export function ContentQuickEditDrawer({
     }
   }, [item]);
 
-  const handleSave = () => {
-    onSave({
+  const handleSave = async () => {
+    const result = await onSave({
       creationDate: creationDate ? format(creationDate, 'yyyy-MM-dd') : null,
       publishDate: publishDate ? format(publishDate, 'yyyy-MM-dd') : null,
     });
-    onOpenChange(false);
+    // Only close if save was successful (result is true or undefined for backwards compat)
+    // The parent now controls closing via onOpenChange
   };
 
   const content = item && (
@@ -98,6 +100,7 @@ export function ContentQuickEditDrawer({
                 "w-full justify-start text-left font-normal",
                 !creationDate && "text-muted-foreground"
               )}
+              disabled={isSaving}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
               {creationDate ? format(creationDate, 'PPP') : 'Pick a date'}
@@ -118,6 +121,7 @@ export function ContentQuickEditDrawer({
             size="sm"
             className="text-xs text-muted-foreground"
             onClick={() => setCreationDate(undefined)}
+            disabled={isSaving}
           >
             Clear creation date
           </Button>
@@ -138,6 +142,7 @@ export function ContentQuickEditDrawer({
                 "w-full justify-start text-left font-normal",
                 !publishDate && "text-muted-foreground"
               )}
+              disabled={isSaving}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
               {publishDate ? format(publishDate, 'PPP') : 'Pick a date'}
@@ -158,6 +163,7 @@ export function ContentQuickEditDrawer({
             size="sm"
             className="text-xs text-muted-foreground"
             onClick={() => setPublishDate(undefined)}
+            disabled={isSaving}
           >
             Clear publish date
           </Button>
@@ -173,11 +179,27 @@ export function ContentQuickEditDrawer({
 
   const footer = (
     <div className="flex gap-2">
-      <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+      <Button 
+        variant="outline" 
+        onClick={() => onOpenChange(false)} 
+        className="flex-1"
+        disabled={isSaving}
+      >
         Cancel
       </Button>
-      <Button onClick={handleSave} className="flex-1">
-        Save Changes
+      <Button 
+        onClick={handleSave} 
+        className="flex-1"
+        disabled={isSaving}
+      >
+        {isSaving ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Saving...
+          </>
+        ) : (
+          'Save Changes'
+        )}
       </Button>
     </div>
   );
@@ -185,7 +207,7 @@ export function ContentQuickEditDrawer({
   // Use Drawer on mobile, Sheet on desktop
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={onOpenChange}>
+      <Drawer open={open} onOpenChange={isSaving ? undefined : onOpenChange}>
         <DrawerContent>
           <DrawerHeader>
             <DrawerTitle>Edit Content Schedule</DrawerTitle>
@@ -198,7 +220,7 @@ export function ContentQuickEditDrawer({
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={isSaving ? undefined : onOpenChange}>
       <SheetContent>
         <SheetHeader>
           <SheetTitle>Edit Content Schedule</SheetTitle>
