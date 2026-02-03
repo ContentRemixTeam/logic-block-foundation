@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { 
   DndContext, 
   DragOverlay, 
@@ -21,6 +21,9 @@ import { PlatformFilterBar } from './PlatformFilterBar';
 import { ViewToggle } from './ViewToggle';
 import { ContentQuickEditDrawer } from './ContentQuickEditDrawer';
 import { CalendarContentCardOverlay } from './CalendarContentCard';
+import { CalendarOnboarding, useCalendarOnboardingSeen } from './CalendarOnboarding';
+import { CalendarQuickAdd } from './CalendarQuickAdd';
+import { PlatformConfigModal } from './PlatformConfigModal';
 import { toast } from 'sonner';
 
 export function EditorialCalendarView() {
@@ -31,6 +34,13 @@ export function EditorialCalendarView() {
   const [editingItem, setEditingItem] = useState<CalendarItem | null>(null);
   const [editDrawerOpen, setEditDrawerOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // New modal states
+  const [showOnboarding, setShowOnboarding] = useState(true);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [platformConfigOpen, setPlatformConfigOpen] = useState(false);
+  
+  const hasSeenOnboarding = useCalendarOnboardingSeen();
 
   const { 
     items, 
@@ -160,6 +170,11 @@ export function EditorialCalendarView() {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Onboarding Banner */}
+      {showOnboarding && !hasSeenOnboarding && (
+        <CalendarOnboarding onDismiss={() => setShowOnboarding(false)} />
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-border flex-wrap">
         {/* Week Navigation */}
@@ -188,6 +203,7 @@ export function EditorialCalendarView() {
         <PlatformFilterBar
           selectedPlatforms={selectedPlatforms}
           onTogglePlatform={togglePlatform}
+          onConfigureClick={() => setPlatformConfigOpen(true)}
         />
       </div>
 
@@ -214,6 +230,7 @@ export function EditorialCalendarView() {
               items={unscheduledItems}
               onItemClick={handleItemClick}
               selectedPlatforms={selectedPlatforms}
+              onAddContentClick={() => setQuickAddOpen(true)}
             />
           </div>
         </div>
@@ -236,6 +253,18 @@ export function EditorialCalendarView() {
         }}
         onSave={handleSaveEdit}
         isSaving={isSaving}
+      />
+
+      {/* Quick Add Modal */}
+      <CalendarQuickAdd
+        open={quickAddOpen}
+        onOpenChange={setQuickAddOpen}
+      />
+
+      {/* Platform Config Modal */}
+      <PlatformConfigModal
+        open={platformConfigOpen}
+        onOpenChange={setPlatformConfigOpen}
       />
 
       {/* Loading overlay */}

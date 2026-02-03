@@ -126,8 +126,10 @@ export function useUserPlatforms() {
 }
 
 // Generate default platforms (before user customizes)
+// Better starter set including podcast and commonly used platforms
 function getDefaultPlatforms(): UserPlatform[] {
-  return AVAILABLE_PLATFORMS.slice(0, 6).map((platform, index) => ({
+  const defaultSet = ['instagram', 'email', 'podcast', 'youtube', 'linkedin', 'blog', 'tiktok', 'newsletter'];
+  return defaultSet.map((platform, index) => ({
     id: `default-${platform}`,
     user_id: '',
     platform,

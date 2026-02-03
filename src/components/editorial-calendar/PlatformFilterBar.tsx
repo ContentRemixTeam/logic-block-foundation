@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUserPlatforms } from '@/hooks/useUserPlatforms';
 import { PLATFORM_LABELS, PLATFORM_SHORT_LABELS } from '@/lib/calendarConstants';
@@ -56,7 +56,7 @@ export function PlatformFilterBar({
           className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
           onClick={onConfigureClick}
         >
-          <Plus className="h-3 w-3 mr-1" />
+          <Settings className="h-3 w-3 mr-1" />
           Configure
         </Button>
       )}
