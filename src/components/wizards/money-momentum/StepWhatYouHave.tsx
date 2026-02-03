@@ -358,10 +358,14 @@ export function StepWhatYouHave({ data, onChange }: StepWhatYouHaveProps) {
                       id="total-customers"
                       type="number"
                       min="0"
+                      step="1"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       value={data.pastCustomersCount || ''}
-                      onChange={(e) => onChange({ 
-                        pastCustomersCount: e.target.value ? Number(e.target.value) : 0 
-                      })}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9]/g, '');
+                        onChange({ pastCustomersCount: value ? Number(value) : 0 });
+                      }}
                     />
                   </div>
                   <div>
@@ -372,14 +376,18 @@ export function StepWhatYouHave({ data, onChange }: StepWhatYouHaveProps) {
                       id="comfortable-customers"
                       type="number"
                       min="0"
+                      step="1"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       max={data.pastCustomersCount || 999}
                       value={data.pastCustomersComfortable || ''}
-                      onChange={(e) => onChange({ 
-                        pastCustomersComfortable: Math.min(
-                          e.target.value ? Number(e.target.value) : 0,
-                          data.pastCustomersCount || 999
-                        )
-                      })}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9]/g, '');
+                        const numValue = value ? Number(value) : 0;
+                        onChange({ 
+                          pastCustomersComfortable: Math.min(numValue, data.pastCustomersCount || 999)
+                        });
+                      }}
                     />
                   </div>
                 </div>
