@@ -1,331 +1,378 @@
 
 
-# Editorial Calendar Improvements: Platform Selection & Clear Instructions
+# Wizard ↔ Editorial Calendar Integration
 
 ## Overview
-Improve the Editorial Calendar with two major changes:
-1. **Extended platform selection** with podcast support and user customization
-2. **Clear onboarding instructions** so users understand how to add content and use drag-and-drop
+Create a deep integration between wizards (Launch Planner, Content Planner) and the Editorial Calendar so that when users complete a wizard, their email sequences, content pieces, and other scheduled items automatically appear:
+1. On their **task list** (clearly marked as content pieces)
+2. On the **Editorial Calendar** (in the correct Create/Publish lanes)
 
 ---
 
-## Problem Analysis
+## Current State Analysis
 
-### Current Issues
+### What Already Exists
+1. **Tasks table** has content calendar fields:
+   - `content_item_id` - link to content_items
+   - `content_type` - type of content (Newsletter, Post, etc.)
+   - `content_channel` - platform (Email, Instagram, etc.)
+   - `content_creation_date` - when to create
+   - `content_publish_date` - when to publish
 
-1. **Limited Platform List**: Only 6 default platforms shown (instagram, linkedin, youtube, tiktok, facebook, email). Podcast exists in the constants but isn't activated by default.
+2. **Editorial Calendar** already displays:
+   - `content_items` with creation/publish dates
+   - `content_plan_items` with planned dates
+   - `tasks` that have content_type set
 
-2. **No Way to Add Content**: Users can only drag existing content items, but there's no clear way to CREATE new content directly from the calendar. The "Unscheduled Pool" shows existing items but doesn't explain how to add new ones.
+3. **Content Items** table has:
+   - `creation_task_id` and `publish_task_id` fields (for bidirectional linking)
 
-3. **Confusing UX**: No onboarding, no tooltips, no instructions on how the calendar works.
-
----
-
-## Solution
-
-### Part 1: Extended Platform Selection
-
-**Add Platform Configuration Modal**
-
-When user clicks "Configure" in the PlatformFilterBar, open a modal where they can:
-- See ALL available platforms (10+ options)
-- Toggle which platforms they use
-- Reorder their preferred platforms
-- Customize colors (optional)
-
-**Expand Available Platforms**
-
-Update `calendarConstants.ts` to include more platforms:
-- Pinterest
-- Threads
-- Substack
-- Patreon
-- Teachable/Courses
-- Clubhouse (audio)
-- Twitch
-- Discord
-- Slack Community
-- WhatsApp Business
-
-**Update Default Platforms**
-
-Change `getDefaultPlatforms()` to show a more useful starter set including Podcast.
+### What's Missing
+1. **Wizard outputs don't create content_items** - Launch wizard creates tasks but not linked content items
+2. **No content badge in TaskCard** - Tasks with content_type aren't visually distinguished
+3. **Email sequences not scheduled as content** - Email sequence tasks are created but without calendar dates
+4. **No automatic creation/publish date separation** - Wizard tasks only get `scheduled_date`, not dual dates
 
 ---
 
-### Part 2: Clear Instructions & Quick-Add
+## Solution Architecture
 
-**Add Onboarding Banner**
+### Phase 1: Enhance Task Card with Content Indicator
 
-Show a dismissible banner when the calendar is empty or on first visit:
+Add a visual badge to TaskCard when a task is content-related:
 
 ```
-📅 How to use your Editorial Calendar
-
-1. Add content using the "+ Add Content" button below
-2. Drag items from "Unscheduled" to a day column
-3. Drop on "Create" lane for production date, "Publish" lane for go-live date
-4. Click any item to quick-edit dates and details
-
-[Got it!]
+┌─────────────────────────────────────────────────┐
+│ ☐ Write welcome email sequence                  │
+│   📧 Email • Create: Jan 15 • Publish: Jan 22   │
+│   🚀 Spring Launch                              │
+└─────────────────────────────────────────────────┘
 ```
 
-**Add Prominent "+ Add Content" Button**
+**Files to modify:**
+- `src/components/tasks/TaskCard.tsx` - Add content type badge and calendar dates display
 
-Add a floating action button or clear button in the Unscheduled Pool header that opens a quick-add modal for creating new content items with:
-- Title (required)
-- Platform/Channel (dropdown)
-- Content Type (dropdown)
-- Create Date (optional date picker)
-- Publish Date (optional date picker)
+### Phase 2: Upgrade Launch Wizard V2 Edge Function
 
-**Empty State Improvements**
+Update `create-launch-v2` edge function to:
 
-Replace current empty state text with clearer guidance:
+1. **Create content_items** for each email sequence
+2. **Link tasks to content_items** via `content_item_id`
+3. **Set dual dates** on both tasks and content_items
 
-Current: "No unscheduled content" / "Drag items here to unschedule"
-
-New: 
+**New Email Content Flow:**
 ```
-No content yet
-
-Click "+ Add Content" to create your first piece
-or add content in the Content Vault
+Email Sequence "Warm-Up" (needs-creation, deadline: Jan 15)
+                      ↓
+Creates:
+├── content_item (type: Newsletter, channel: Email)
+│   ├── planned_creation_date: deadline - 3 days
+│   ├── planned_publish_date: deadline
+│   └── project_id: launch project
+├── task "Create: Warm-Up Email Sequence"
+│   ├── scheduled_date: creation date
+│   ├── content_item_id: → content_item
+│   ├── content_type: Newsletter
+│   ├── content_channel: Email
+│   ├── content_creation_date: deadline - 3 days
+│   └── content_publish_date: deadline
+└── task "Send: Warm-Up Email Sequence"
+    ├── scheduled_date: publish date
+    └── content_item_id: → content_item
 ```
 
-**Visual Cues for Drag-Drop**
+### Phase 3: Add Content Integration to Content Planner
 
-Add subtle animations and visual indicators:
-- Pulsing border on empty lane areas
-- Arrow icons pointing from Unscheduled to calendar
-- Hover tooltips on lanes explaining "Drop here to schedule"
+Update ContentPlannerWizard completion to:
+
+1. Create `content_items` for each planned piece
+2. Generate linked tasks with dual dates
+3. Set `content_creation_date` and `content_publish_date` on tasks
+
+**Files to modify:**
+- `src/components/wizards/content-planner/ContentPlannerWizard.tsx` - Add content_items creation
+- Create edge function `execute-content-plan` for atomic creation
 
 ---
 
-## File Changes
+## Technical Implementation
 
-### 1. Update `src/lib/calendarConstants.ts`
+### 1. Update TaskCard Component
 
-**Add more platforms:**
+Add content indicator section:
+
 ```typescript
-export const DEFAULT_PLATFORM_COLORS: Record<string, string> = {
-  // ... existing
-  podcast: '#8B5CF6',
-  pinterest: '#E60023',
-  threads: '#000000',
-  substack: '#FF6719',
-  patreon: '#F96854',
-  discord: '#5865F2',
-  whatsapp: '#25D366',
-  clubhouse: '#F6E05E',
-  teachable: '#FF7849',
-  twitch: '#9146FF',
-};
+// In TaskCard.tsx, add after project indicator:
+
+{/* Content Calendar indicator */}
+{task.content_type && (
+  <div className="flex items-center gap-2 mt-1">
+    <Badge variant="outline" className="text-xs px-1.5 py-0 h-5 bg-violet-500/10 border-violet-500/30 text-violet-600 dark:text-violet-400">
+      <FileText className="h-3 w-3 mr-1" />
+      {task.content_type}
+    </Badge>
+    {task.content_channel && (
+      <span className="text-xs text-muted-foreground">
+        • {task.content_channel}
+      </span>
+    )}
+    {(task.content_creation_date || task.content_publish_date) && (
+      <span className="text-xs text-muted-foreground">
+        {task.content_creation_date && `Create: ${format(parseISO(task.content_creation_date), 'MMM d')}`}
+        {task.content_creation_date && task.content_publish_date && ' → '}
+        {task.content_publish_date && `Publish: ${format(parseISO(task.content_publish_date), 'MMM d')}`}
+      </span>
+    )}
+  </div>
+)}
 ```
 
-**Update labels and short labels** for new platforms.
+### 2. Create Content Helper Functions
 
----
+New utility file for wizard content creation:
 
-### 2. Update `src/hooks/useUserPlatforms.ts`
-
-**Change default platforms** to include podcast and better starter set:
 ```typescript
-function getDefaultPlatforms(): UserPlatform[] {
-  // Show: Instagram, Email, Podcast, YouTube, LinkedIn, Blog, TikTok, Newsletter
-  const defaultSet = ['instagram', 'email', 'podcast', 'youtube', 'linkedin', 'blog', 'tiktok', 'newsletter'];
-  return defaultSet.map((platform, index) => ({...}));
+// src/lib/wizardContentHelpers.ts
+
+interface ContentTaskPair {
+  contentItem: Partial<ContentItem>;
+  createTask: Partial<Task>;
+  publishTask?: Partial<Task>;
+}
+
+export function generateEmailSequenceContent(
+  sequence: EmailSequenceItem,
+  launchData: LaunchWizardV2Data,
+  projectId: string,
+  userId: string
+): ContentTaskPair {
+  const publishDate = sequence.deadline || launchData.cartOpensDate;
+  const createDate = subDays(parseISO(publishDate), 3);
+  
+  return {
+    contentItem: {
+      user_id: userId,
+      title: `${getSequenceLabel(sequence.type)} Email Sequence`,
+      type: 'Newsletter',
+      channel: 'Email',
+      status: 'Draft',
+      project_id: projectId,
+      planned_creation_date: format(createDate, 'yyyy-MM-dd'),
+      planned_publish_date: publishDate,
+    },
+    createTask: {
+      user_id: userId,
+      task_text: `Create: ${getSequenceLabel(sequence.type)} Email Sequence`,
+      scheduled_date: format(createDate, 'yyyy-MM-dd'),
+      content_type: 'Newsletter',
+      content_channel: 'Email',
+      content_creation_date: format(createDate, 'yyyy-MM-dd'),
+      content_publish_date: publishDate,
+      task_type: 'content_creation',
+      project_id: projectId,
+      is_system_generated: true,
+    },
+    publishTask: {
+      user_id: userId,
+      task_text: `Send: ${getSequenceLabel(sequence.type)} Email Sequence`,
+      scheduled_date: publishDate,
+      content_type: 'Newsletter',
+      content_channel: 'Email',
+      content_creation_date: format(createDate, 'yyyy-MM-dd'),
+      content_publish_date: publishDate,
+      task_type: 'content_publish',
+      project_id: projectId,
+      is_system_generated: true,
+    },
+  };
+}
+```
+
+### 3. Upgrade create-launch-v2 Edge Function
+
+Add content item creation:
+
+```typescript
+// In create-launch-v2/index.ts
+
+// After creating project, before creating tasks:
+
+// 3. Create content items for email sequences
+const contentItems: ContentItemToCreate[] = [];
+
+if (data.emailSequences && data.emailSequences.length > 0) {
+  for (const sequence of data.emailSequences) {
+    const publishDate = sequence.deadline || data.cartOpensDate;
+    const createDate = format(addDays(parseISO(publishDate), -3), 'yyyy-MM-dd');
+    
+    contentItems.push({
+      user_id: userId,
+      title: `${getSequenceLabel(sequence.type)} Email Sequence`,
+      type: 'Newsletter',
+      channel: 'Email',
+      status: 'Draft',
+      project_id: project.id,
+      planned_creation_date: createDate,
+      planned_publish_date: publishDate,
+      tags: ['launch', 'email', data.name],
+    });
+  }
+}
+
+// Insert content items
+const { data: createdContent } = await serviceClient
+  .from('content_items')
+  .insert(contentItems)
+  .select('id, title');
+
+// Create corresponding tasks with content_item_id links
+// ... (modify existing task creation to include content fields)
+```
+
+### 4. Update Content Planner Wizard
+
+Modify completion handler to create full content ecosystem:
+
+```typescript
+// In ContentPlannerWizard.tsx handleCreatePlan():
+
+// For each planned item, create both content_item AND linked tasks
+for (const item of data.plannedItems) {
+  // Create content item
+  const { data: contentItem } = await supabase
+    .from('content_items')
+    .insert({
+      user_id: user.id,
+      title: item.title,
+      type: item.type,
+      channel: item.channel,
+      status: 'Draft',
+      project_id: data.launchId || null,
+      planned_creation_date: item.createDate || null,
+      planned_publish_date: item.date || null,
+    })
+    .select('id')
+    .single();
+
+  // Create "Create" task if creation date specified
+  if (item.createDate) {
+    await supabase.from('tasks').insert({
+      user_id: user.id,
+      task_text: `Create: ${item.title}`,
+      scheduled_date: item.createDate,
+      content_item_id: contentItem.id,
+      content_type: item.type,
+      content_channel: item.channel,
+      content_creation_date: item.createDate,
+      content_publish_date: item.date || null,
+      project_id: data.launchId || null,
+      is_system_generated: true,
+      system_source: 'content_planner',
+    });
+  }
+
+  // Create "Publish" task if publish date specified
+  if (item.date) {
+    await supabase.from('tasks').insert({
+      user_id: user.id,
+      task_text: `Publish: ${item.title}`,
+      scheduled_date: item.date,
+      content_item_id: contentItem.id,
+      content_type: item.type,
+      content_channel: item.channel,
+      content_creation_date: item.createDate || null,
+      content_publish_date: item.date,
+      project_id: data.launchId || null,
+      is_system_generated: true,
+      system_source: 'content_planner',
+    });
+  }
 }
 ```
 
 ---
 
-### 3. Create `src/components/editorial-calendar/PlatformConfigModal.tsx`
+## Data Flow Diagram
 
-New component for platform configuration:
-- Grid of all available platforms with toggles
-- Drag-to-reorder capability
-- Color customization (expandable section)
-- Save to `user_content_platforms` table
-
----
-
-### 4. Create `src/components/editorial-calendar/CalendarQuickAdd.tsx`
-
-New component for quick-adding content:
-
-**Fields:**
-- Title (text input, required)
-- Platform (select from user's active platforms)
-- Content Type (select from CONTENT_TYPES)
-- Create Date (optional date picker)
-- Publish Date (optional date picker)
-
-**Behavior:**
-- Creates entry in `content_items` table
-- Immediately appears in calendar or Unscheduled Pool
-- Toast confirmation: "Content added! Drag to schedule."
-
----
-
-### 5. Create `src/components/editorial-calendar/CalendarOnboarding.tsx`
-
-Dismissible onboarding banner:
-- Uses `localStorage` to track if dismissed
-- Clear step-by-step instructions
-- Visual diagram of drag-drop flow
-- "Got it!" button to dismiss
-
----
-
-### 6. Update `src/components/editorial-calendar/UnscheduledPool.tsx`
-
-**Add Quick-Add button in header:**
-```tsx
-<div className="px-3 py-2 border-b border-border">
-  <div className="flex items-center gap-2">
-    <Inbox className="h-4 w-4 text-muted-foreground" />
-    <span className="text-sm font-medium">Unscheduled</span>
-    <span className="text-xs text-muted-foreground ml-auto">
-      {filteredItems.length}
-    </span>
-  </div>
-  
-  {/* NEW: Quick Add Button */}
-  <Button 
-    variant="outline" 
-    size="sm" 
-    className="w-full mt-2 gap-2"
-    onClick={() => setQuickAddOpen(true)}
-  >
-    <Plus className="h-4 w-4" />
-    Add Content
-  </Button>
-</div>
 ```
-
-**Update empty state:**
-```tsx
-{filteredItems.length === 0 && (
-  <div className="text-center py-8">
-    <Inbox className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
-    <p className="text-sm text-muted-foreground font-medium">
-      No content to schedule
-    </p>
-    <p className="text-xs text-muted-foreground/60 mt-1 max-w-[180px] mx-auto">
-      Click "Add Content" above to create something, then drag it to a day
-    </p>
-  </div>
-)}
+WIZARD COMPLETION
+       │
+       ▼
+┌──────────────────────┐
+│ Create content_item  │
+│ (type, channel,      │
+│  creation_date,      │
+│  publish_date)       │
+└──────────────────────┘
+       │
+       ├────────────────────────────┐
+       ▼                            ▼
+┌──────────────────┐    ┌──────────────────┐
+│ Create Task      │    │ Publish Task     │
+│ "Create: X"      │    │ "Publish: X"     │
+│ scheduled_date = │    │ scheduled_date = │
+│   creation_date  │    │   publish_date   │
+│ content_item_id  │    │ content_item_id  │
+└──────────────────┘    └──────────────────┘
+       │                            │
+       ▼                            ▼
+┌─────────────────────────────────────────┐
+│          EDITORIAL CALENDAR              │
+│  ┌─────────┐          ┌─────────┐       │
+│  │ Create  │          │ Publish │       │
+│  │  Lane   │    →     │  Lane   │       │
+│  │  (Teal) │          │(Violet) │       │
+│  └─────────┘          └─────────┘       │
+└─────────────────────────────────────────┘
+       │                            │
+       └──────────┬─────────────────┘
+                  ▼
+┌─────────────────────────────────────────┐
+│             TASK LIST                   │
+│  ☐ Create: Welcome Email Sequence       │
+│    📧 Newsletter • Email                │
+│    Create: Jan 12 → Publish: Jan 15     │
+└─────────────────────────────────────────┘
 ```
 
 ---
 
-### 7. Update `src/components/editorial-calendar/PlatformFilterBar.tsx`
+## File Changes Summary
 
-**Wire up Configure button:**
-```tsx
-{onConfigureClick && (
-  <Button
-    variant="ghost"
-    size="sm"
-    onClick={onConfigureClick}
-  >
-    <Settings className="h-3 w-3 mr-1" />
-    Configure Platforms
-  </Button>
-)}
-```
+| File | Change Type | Description |
+|------|-------------|-------------|
+| `src/components/tasks/TaskCard.tsx` | Modify | Add content type badge and calendar dates |
+| `supabase/functions/create-launch-v2/index.ts` | Modify | Add content_items creation, link to tasks |
+| `src/components/wizards/content-planner/ContentPlannerWizard.tsx` | Modify | Create content_items and linked tasks |
+| `src/lib/wizardContentHelpers.ts` | Create | Shared helper functions for content generation |
+| `src/types/launchV2.ts` | Modify | Add content generation options to wizard data |
 
 ---
 
-### 8. Update `src/components/editorial-calendar/EditorialCalendarView.tsx`
+## User Experience After Implementation
 
-**Add new state and modals:**
-```typescript
-const [showOnboarding, setShowOnboarding] = useState(true);
-const [platformConfigOpen, setPlatformConfigOpen] = useState(false);
-const [quickAddOpen, setQuickAddOpen] = useState(false);
-```
+### During Wizard Completion
+User sees confirmation: "Created 12 content items and 24 tasks. View in Editorial Calendar →"
 
-**Add onboarding banner above calendar:**
-```tsx
-{showOnboarding && !hasSeenOnboarding && (
-  <CalendarOnboarding onDismiss={() => {
-    setShowOnboarding(false);
-    localStorage.setItem('calendar-onboarding-seen', 'true');
-  }} />
-)}
-```
+### On Task List
+Content tasks display with:
+- Purple/violet content badge showing type (Newsletter, Post, etc.)
+- Channel indicator (Email, Instagram, etc.)
+- Dual dates: "Create: Jan 12 → Publish: Jan 15"
+- Link to editorial calendar for that item
 
-**Pass configure handler to PlatformFilterBar:**
-```tsx
-<PlatformFilterBar
-  selectedPlatforms={selectedPlatforms}
-  onTogglePlatform={togglePlatform}
-  onConfigureClick={() => setPlatformConfigOpen(true)}
-/>
-```
+### On Editorial Calendar
+- Items appear in correct lanes automatically
+- Create tasks in Teal "Create" lane
+- Publish tasks in Violet "Publish" lane
+- Click to open full task details or content editor
 
 ---
 
-## User Flow After Implementation
+## Implementation Order
 
-1. **First Visit**: User sees onboarding banner explaining how the calendar works
-2. **Add Content**: User clicks "+ Add Content" in Unscheduled Pool sidebar
-3. **Quick Form**: Enters title, selects platform (Podcast now available!), picks dates if known
-4. **Content Created**: Item appears in Unscheduled Pool or directly on calendar
-5. **Drag to Schedule**: User drags item to desired day/lane
-6. **Configure Platforms**: User clicks "Configure Platforms" to add/remove platforms they use
-7. **Platform Modal**: User toggles on Podcast, Threads, etc. and saves
-
----
-
-## Visual Mockup
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│ Editorial Calendar                                                │
-│ Plan and schedule your content creation and publishing           │
-├──────────────────────────────────────────────────────────────────┤
-│ ┌─────────────────────────────────────────────────────────────┐  │
-│ │ 📅 How to use: Add content → Drag to day → Drop on lane     │  │
-│ │ Create = production date | Publish = go-live date  [Got it!] │  │
-│ └─────────────────────────────────────────────────────────────┘  │
-├──────────────────────────────────────────────────────────────────┤
-│ [← Prev] [Today] [Next →]     Feb 3 - Feb 9, 2026               │
-├──────────────────────────────────────────────────────────────────┤
-│ Platforms: [IG] [Email] [Pod✓] [YT] [LI] [+Configure Platforms] │
-├──────────────────────────────────────────────────────────────────┤
-│                                              │ Unscheduled       │
-│   Mon  Tue  Wed  Thu  Fri  Sat  Sun         │ [+ Add Content]   │
-│ ┌────┬────┬────┬────┬────┬────┬────┐       │                   │
-│ │ C  │ C  │ C  │ C  │ C  │ C  │ C  │       │ ○ Podcast Ep 12   │
-│ ├────┼────┼────┼────┼────┼────┼────┤       │ ○ IG Reel Draft   │
-│ │ P  │ P  │ P  │ P  │ P  │ P  │ P  │       │                   │
-│ └────┴────┴────┴────┴────┴────┴────┘       │ Drag items to     │
-│                                              │ schedule them →   │
-└──────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Mobile Considerations
-
-- Quick-add opens as bottom drawer (44px touch targets)
-- Platform config as full-screen modal on mobile
-- Onboarding banner is scrollable if needed
-- All buttons meet 44px minimum height
-
----
-
-## Technical Notes
-
-### Database
-No schema changes needed - uses existing:
-- `content_items` table for new content
-- `user_content_platforms` table for platform preferences
-
-### LocalStorage Keys
-- `calendar-onboarding-seen`: boolean to hide onboarding banner
+1. **TaskCard content indicator** - Show existing content tasks properly
+2. **Launch Wizard V2 upgrade** - Generate content_items + linked tasks
+3. **Content Planner upgrade** - Same pattern for content plan items
+4. **Testing** - Verify items appear in both Task List and Editorial Calendar
 
