@@ -16,6 +16,8 @@ import { ToastAction } from "@/components/ui/toast";
 import { SaveStatusIndicator, SaveStatusBanner } from "@/components/SaveStatusIndicator";
 import { LaunchCheckInCard } from "@/components/launch/LaunchCheckInCard";
 import { LaunchProgressCard } from "@/components/monthly-review/LaunchProgressCard";
+import { SummitCheckInCard } from "@/components/reviews/SummitCheckInCard";
+import { SprintSummaryCard } from "@/components/reviews/SprintSummaryCard";
 // Modular 4-hook data protection system (Prompt 5)
 import { useLocalStorageSync, ConflictInfo } from "@/hooks/useLocalStorageSync";
 import { useServerSync, SyncStatus } from "@/hooks/useServerSync";
@@ -440,6 +442,12 @@ export default function MonthlyReview() {
         {/* Launch Progress (if active launches) */}
         <LaunchProgressCard />
         <LaunchCheckInCard reviewType="monthly" />
+
+        {/* Summit Progress (if active summits) */}
+        <SummitCheckInCard showAllSummits />
+
+        {/* Sprint Summary (if active sprint) */}
+        <SprintSummaryCard />
 
         {/* Execution Summary */}
         {executionSummary && (
