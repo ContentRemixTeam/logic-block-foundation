@@ -1,378 +1,374 @@
 
 
-# Wizard ↔ Editorial Calendar Integration
+# Wizard App Integration Standard
 
 ## Overview
-Create a deep integration between wizards (Launch Planner, Content Planner) and the Editorial Calendar so that when users complete a wizard, their email sequences, content pieces, and other scheduled items automatically appear:
-1. On their **task list** (clearly marked as content pieces)
-2. On the **Editorial Calendar** (in the correct Create/Publish lanes)
+Establish a comprehensive integration pattern ensuring all wizards (existing and future) automatically connect with the rest of the application: Daily/Weekly/Monthly/90-Day planning pages, Editorial Calendar, Projects, Tasks, and other relevant surfaces.
 
 ---
 
 ## Current State Analysis
 
-### What Already Exists
-1. **Tasks table** has content calendar fields:
-   - `content_item_id` - link to content_items
-   - `content_type` - type of content (Newsletter, Post, etc.)
-   - `content_channel` - platform (Email, Instagram, etc.)
-   - `content_creation_date` - when to create
-   - `content_publish_date` - when to publish
+### Existing Wizards
 
-2. **Editorial Calendar** already displays:
-   - `content_items` with creation/publish dates
-   - `content_plan_items` with planned dates
-   - `tasks` that have content_type set
+| Wizard | Creates | Integrates With | Missing Integration |
+|--------|---------|-----------------|---------------------|
+| **90-Day Cycle** | `cycles_90_day` record | Dashboard, all planners, reviews | None - fully integrated |
+| **Launch Planner V2** | Project, Tasks, content_items, launches record | Dashboard (LaunchZone), Daily/Weekly/Monthly (LaunchModeSection, check-ins), Editorial Calendar | Fully integrated |
+| **Money Momentum Sprint** | `revenue_sprints`, recurring tasks | Daily Plan (DailySprintSection), Sprint Dashboard | Not in Weekly/Monthly reviews |
+| **Summit Planner** | Project, Tasks, `summits` record | Project board only | Missing: Dashboard, Daily/Weekly views, no summit phase tracking |
+| **Content Planner** | content_items, content_plan_items, tasks | Editorial Calendar, Task list | Needs content_items link verification |
 
-3. **Content Items** table has:
-   - `creation_task_id` and `publish_task_id` fields (for bidirectional linking)
+### Integration Points Available
 
-### What's Missing
-1. **Wizard outputs don't create content_items** - Launch wizard creates tasks but not linked content items
-2. **No content badge in TaskCard** - Tasks with content_type aren't visually distinguished
-3. **Email sequences not scheduled as content** - Email sequence tasks are created but without calendar dates
-4. **No automatic creation/publish date separation** - Wizard tasks only get `scheduled_date`, not dual dates
+1. **Dashboard** - LaunchZone widget, sprint section, cycle progress
+2. **Daily Plan** - LaunchModeSection, DailySprintSection, CycleProgressBanner
+3. **Weekly Plan** - Context pull, alignment check, metrics
+4. **Monthly Review** - Launch progress, cycle snapshot
+5. **Editorial Calendar** - content_items, content_plan_items, tasks with content_type
+6. **Task List** - All tasks with content indicators
+
+---
+
+## Integration Gaps to Fix
+
+### 1. Summit Wizard - No Dashboard/Planner Integration
+
+**Current:** Creates project and tasks only
+
+**Missing:**
+- No `useActiveSummits()` hook like `useActiveLaunches()`
+- No SummitModeSection in Daily Plan
+- No summit phase tracking or banners
+- No summit check-in questions in reviews
+
+### 2. Money Momentum Sprint - Limited Review Integration
+
+**Current:** Appears in Daily Plan via DailySprintSection
+
+**Missing:**
+- No sprint section in Weekly Plan/Review
+- No sprint progress in Monthly Review
+- No sprint ROI summary after completion
+
+### 3. Content Planner - Task Linking Incomplete
+
+**Current:** Creates content_items and tasks separately
+
+**Missing:**
+- Verify content_item_id is set on all generated tasks
+- Ensure tasks have proper content_type/content_channel fields
 
 ---
 
 ## Solution Architecture
 
-### Phase 1: Enhance Task Card with Content Indicator
+### Part 1: Create Wizard Integration Registry
 
-Add a visual badge to TaskCard when a task is content-related:
+Central configuration defining what each wizard creates and where it integrates.
 
-```
-┌─────────────────────────────────────────────────┐
-│ ☐ Write welcome email sequence                  │
-│   📧 Email • Create: Jan 15 • Publish: Jan 22   │
-│   🚀 Spring Launch                              │
-└─────────────────────────────────────────────────┘
-```
-
-**Files to modify:**
-- `src/components/tasks/TaskCard.tsx` - Add content type badge and calendar dates display
-
-### Phase 2: Upgrade Launch Wizard V2 Edge Function
-
-Update `create-launch-v2` edge function to:
-
-1. **Create content_items** for each email sequence
-2. **Link tasks to content_items** via `content_item_id`
-3. **Set dual dates** on both tasks and content_items
-
-**New Email Content Flow:**
-```
-Email Sequence "Warm-Up" (needs-creation, deadline: Jan 15)
-                      ↓
-Creates:
-├── content_item (type: Newsletter, channel: Email)
-│   ├── planned_creation_date: deadline - 3 days
-│   ├── planned_publish_date: deadline
-│   └── project_id: launch project
-├── task "Create: Warm-Up Email Sequence"
-│   ├── scheduled_date: creation date
-│   ├── content_item_id: → content_item
-│   ├── content_type: Newsletter
-│   ├── content_channel: Email
-│   ├── content_creation_date: deadline - 3 days
-│   └── content_publish_date: deadline
-└── task "Send: Warm-Up Email Sequence"
-    ├── scheduled_date: publish date
-    └── content_item_id: → content_item
-```
-
-### Phase 3: Add Content Integration to Content Planner
-
-Update ContentPlannerWizard completion to:
-
-1. Create `content_items` for each planned piece
-2. Generate linked tasks with dual dates
-3. Set `content_creation_date` and `content_publish_date` on tasks
-
-**Files to modify:**
-- `src/components/wizards/content-planner/ContentPlannerWizard.tsx` - Add content_items creation
-- Create edge function `execute-content-plan` for atomic creation
-
----
-
-## Technical Implementation
-
-### 1. Update TaskCard Component
-
-Add content indicator section:
+**New file:** `src/lib/wizardIntegration.ts`
 
 ```typescript
-// In TaskCard.tsx, add after project indicator:
-
-{/* Content Calendar indicator */}
-{task.content_type && (
-  <div className="flex items-center gap-2 mt-1">
-    <Badge variant="outline" className="text-xs px-1.5 py-0 h-5 bg-violet-500/10 border-violet-500/30 text-violet-600 dark:text-violet-400">
-      <FileText className="h-3 w-3 mr-1" />
-      {task.content_type}
-    </Badge>
-    {task.content_channel && (
-      <span className="text-xs text-muted-foreground">
-        • {task.content_channel}
-      </span>
-    )}
-    {(task.content_creation_date || task.content_publish_date) && (
-      <span className="text-xs text-muted-foreground">
-        {task.content_creation_date && `Create: ${format(parseISO(task.content_creation_date), 'MMM d')}`}
-        {task.content_creation_date && task.content_publish_date && ' → '}
-        {task.content_publish_date && `Publish: ${format(parseISO(task.content_publish_date), 'MMM d')}`}
-      </span>
-    )}
-  </div>
-)}
-```
-
-### 2. Create Content Helper Functions
-
-New utility file for wizard content creation:
-
-```typescript
-// src/lib/wizardContentHelpers.ts
-
-interface ContentTaskPair {
-  contentItem: Partial<ContentItem>;
-  createTask: Partial<Task>;
-  publishTask?: Partial<Task>;
-}
-
-export function generateEmailSequenceContent(
-  sequence: EmailSequenceItem,
-  launchData: LaunchWizardV2Data,
-  projectId: string,
-  userId: string
-): ContentTaskPair {
-  const publishDate = sequence.deadline || launchData.cartOpensDate;
-  const createDate = subDays(parseISO(publishDate), 3);
-  
-  return {
-    contentItem: {
-      user_id: userId,
-      title: `${getSequenceLabel(sequence.type)} Email Sequence`,
-      type: 'Newsletter',
-      channel: 'Email',
-      status: 'Draft',
-      project_id: projectId,
-      planned_creation_date: format(createDate, 'yyyy-MM-dd'),
-      planned_publish_date: publishDate,
-    },
-    createTask: {
-      user_id: userId,
-      task_text: `Create: ${getSequenceLabel(sequence.type)} Email Sequence`,
-      scheduled_date: format(createDate, 'yyyy-MM-dd'),
-      content_type: 'Newsletter',
-      content_channel: 'Email',
-      content_creation_date: format(createDate, 'yyyy-MM-dd'),
-      content_publish_date: publishDate,
-      task_type: 'content_creation',
-      project_id: projectId,
-      is_system_generated: true,
-    },
-    publishTask: {
-      user_id: userId,
-      task_text: `Send: ${getSequenceLabel(sequence.type)} Email Sequence`,
-      scheduled_date: publishDate,
-      content_type: 'Newsletter',
-      content_channel: 'Email',
-      content_creation_date: format(createDate, 'yyyy-MM-dd'),
-      content_publish_date: publishDate,
-      task_type: 'content_publish',
-      project_id: projectId,
-      is_system_generated: true,
-    },
+interface WizardIntegrationConfig {
+  templateName: string;
+  creates: {
+    table: string;
+    type: 'record' | 'project' | 'tasks' | 'content_items';
+  }[];
+  integratesWith: {
+    dashboard?: boolean;
+    dailyPlan?: boolean;
+    weeklyPlan?: boolean;
+    monthlyReview?: boolean;
+    editorialCalendar?: boolean;
+    taskList?: boolean;
   };
+  activeHook?: string; // Name of the React Query hook
+  phaseTracking?: boolean;
 }
+
+const WIZARD_INTEGRATIONS: WizardIntegrationConfig[] = [
+  {
+    templateName: 'cycle-90-day-wizard',
+    creates: [{ table: 'cycles_90_day', type: 'record' }],
+    integratesWith: {
+      dashboard: true,
+      dailyPlan: true,
+      weeklyPlan: true,
+      monthlyReview: true,
+    },
+    activeHook: 'useActiveCycle',
+    phaseTracking: true, // Tracks weeks 1-13
+  },
+  {
+    templateName: 'launch-planner-v2',
+    creates: [
+      { table: 'projects', type: 'project' },
+      { table: 'launches', type: 'record' },
+      { table: 'tasks', type: 'tasks' },
+      { table: 'content_items', type: 'content_items' },
+    ],
+    integratesWith: {
+      dashboard: true,
+      dailyPlan: true,
+      weeklyPlan: true,
+      monthlyReview: true,
+      editorialCalendar: true,
+      taskList: true,
+    },
+    activeHook: 'useActiveLaunches',
+    phaseTracking: true, // Runway, Pre-Launch, Cart Open, Post-Launch
+  },
+  {
+    templateName: 'summit-planner',
+    creates: [
+      { table: 'projects', type: 'project' },
+      { table: 'summits', type: 'record' },
+      { table: 'tasks', type: 'tasks' },
+    ],
+    integratesWith: {
+      dashboard: true,
+      dailyPlan: true,
+      weeklyPlan: true,
+      monthlyReview: true,
+      taskList: true,
+    },
+    activeHook: 'useActiveSummits', // TO CREATE
+    phaseTracking: true, // Speaker Recruitment, Content, Promo, Live, Post
+  },
+  {
+    templateName: 'money_momentum',
+    creates: [
+      { table: 'revenue_sprints', type: 'record' },
+      { table: 'tasks', type: 'tasks' },
+    ],
+    integratesWith: {
+      dashboard: true,
+      dailyPlan: true,
+      weeklyPlan: true, // TO ADD
+      monthlyReview: true, // TO ADD
+    },
+    activeHook: 'useActiveSprint',
+    phaseTracking: false,
+  },
+  {
+    templateName: 'content-planner',
+    creates: [
+      { table: 'content_items', type: 'content_items' },
+      { table: 'content_plan_items', type: 'content_items' },
+      { table: 'tasks', type: 'tasks' },
+    ],
+    integratesWith: {
+      editorialCalendar: true,
+      taskList: true,
+    },
+    phaseTracking: false,
+  },
+];
 ```
 
-### 3. Upgrade create-launch-v2 Edge Function
+---
 
-Add content item creation:
+### Part 2: Create Missing Hooks
+
+#### 2a. Create `useActiveSummits` Hook
+
+**New file:** `src/hooks/useActiveSummits.ts`
+
+Pattern mirrors `useActiveLaunches`:
+- Fetch summits where today falls within planning period (registration_opens to post-summit)
+- Calculate phase: Speaker Recruitment, Content Creation, Promotion, Live, Post-Summit
+- Include task progress from linked project
+- Generate check-in questions per phase
+
+#### 2b. Extend `useActiveSprint` Return Data
+
+Add fields needed for weekly/monthly display:
+- `weeklyProgress`: aggregated revenue for current week
+- `weekToDateTarget`: calculated weekly target
+- `isOnTrack`: boolean based on pace
+
+---
+
+### Part 3: Create Missing UI Components
+
+#### 3a. SummitModeSection Component
+
+**New file:** `src/components/daily-plan/SummitModeSection.tsx`
+
+Similar to LaunchModeSection:
+- Show current phase (Speaker Recruitment, Content, Promo, Live, Post-Summit)
+- Display task progress
+- Quick reflection for summit-specific metrics
+- Link to summit project
+
+#### 3b. WeeklySprintSection Component
+
+**New file:** `src/components/weekly-plan/WeeklySprintSection.tsx`
+
+Shows in Weekly Plan/Review:
+- Sprint progress bar
+- Week-to-date revenue vs target
+- Sprint actions completion rate
+- Link to full Sprint Dashboard
+
+#### 3c. SummitCheckInCard Component
+
+**New file:** `src/components/reviews/SummitCheckInCard.tsx`
+
+Add summit-specific check-in questions to reviews:
+- Speaker confirmations count
+- Registration numbers (during promo)
+- AAP sales (during live)
+
+---
+
+### Part 4: Update Existing Pages
+
+#### 4a. Daily Plan Updates
+
+Add to conditional sections:
 
 ```typescript
-// In create-launch-v2/index.ts
-
-// After creating project, before creating tasks:
-
-// 3. Create content items for email sequences
-const contentItems: ContentItemToCreate[] = [];
-
-if (data.emailSequences && data.emailSequences.length > 0) {
-  for (const sequence of data.emailSequences) {
-    const publishDate = sequence.deadline || data.cartOpensDate;
-    const createDate = format(addDays(parseISO(publishDate), -3), 'yyyy-MM-dd');
-    
-    contentItems.push({
-      user_id: userId,
-      title: `${getSequenceLabel(sequence.type)} Email Sequence`,
-      type: 'Newsletter',
-      channel: 'Email',
-      status: 'Draft',
-      project_id: project.id,
-      planned_creation_date: createDate,
-      planned_publish_date: publishDate,
-      tags: ['launch', 'email', data.name],
-    });
-  }
-}
-
-// Insert content items
-const { data: createdContent } = await serviceClient
-  .from('content_items')
-  .insert(contentItems)
-  .select('id, title');
-
-// Create corresponding tasks with content_item_id links
-// ... (modify existing task creation to include content fields)
+// In DailyPlan.tsx section components
+summit_mode: () => activeSummit && <SummitModeSection summit={activeSummit} />,
 ```
 
-### 4. Update Content Planner Wizard
+Requires:
+- Import and call `useActiveSummits()`
+- Add 'summit_mode' to section order options
 
-Modify completion handler to create full content ecosystem:
+#### 4b. Weekly Plan Updates
+
+Add new sections:
 
 ```typescript
-// In ContentPlannerWizard.tsx handleCreatePlan():
+// Sprint section (when active sprint exists)
+{activeSprint && <WeeklySprintSection sprint={activeSprint} />}
 
-// For each planned item, create both content_item AND linked tasks
-for (const item of data.plannedItems) {
-  // Create content item
-  const { data: contentItem } = await supabase
-    .from('content_items')
-    .insert({
-      user_id: user.id,
-      title: item.title,
-      type: item.type,
-      channel: item.channel,
-      status: 'Draft',
-      project_id: data.launchId || null,
-      planned_creation_date: item.createDate || null,
-      planned_publish_date: item.date || null,
-    })
-    .select('id')
-    .single();
+// Summit section (when active summit exists)  
+{activeSummit && <SummitProgressCard summit={activeSummit} />}
+```
 
-  // Create "Create" task if creation date specified
-  if (item.createDate) {
-    await supabase.from('tasks').insert({
-      user_id: user.id,
-      task_text: `Create: ${item.title}`,
-      scheduled_date: item.createDate,
-      content_item_id: contentItem.id,
-      content_type: item.type,
-      content_channel: item.channel,
-      content_creation_date: item.createDate,
-      content_publish_date: item.date || null,
-      project_id: data.launchId || null,
-      is_system_generated: true,
-      system_source: 'content_planner',
-    });
-  }
+#### 4c. Monthly Review Updates
 
-  // Create "Publish" task if publish date specified
-  if (item.date) {
-    await supabase.from('tasks').insert({
-      user_id: user.id,
-      task_text: `Publish: ${item.title}`,
-      scheduled_date: item.date,
-      content_item_id: contentItem.id,
-      content_type: item.type,
-      content_channel: item.channel,
-      content_creation_date: item.createDate || null,
-      content_publish_date: item.date,
-      project_id: data.launchId || null,
-      is_system_generated: true,
-      system_source: 'content_planner',
-    });
-  }
-}
+Add summit check-ins to review:
+
+```typescript
+// Alongside LaunchProgressCard
+<SummitCheckInCard />
+<SprintSummaryCard />
 ```
 
 ---
 
-## Data Flow Diagram
+### Part 5: Standardize Wizard Output Helpers
 
-```
-WIZARD COMPLETION
-       │
-       ▼
-┌──────────────────────┐
-│ Create content_item  │
-│ (type, channel,      │
-│  creation_date,      │
-│  publish_date)       │
-└──────────────────────┘
-       │
-       ├────────────────────────────┐
-       ▼                            ▼
-┌──────────────────┐    ┌──────────────────┐
-│ Create Task      │    │ Publish Task     │
-│ "Create: X"      │    │ "Publish: X"     │
-│ scheduled_date = │    │ scheduled_date = │
-│   creation_date  │    │   publish_date   │
-│ content_item_id  │    │ content_item_id  │
-└──────────────────┘    └──────────────────┘
-       │                            │
-       ▼                            ▼
-┌─────────────────────────────────────────┐
-│          EDITORIAL CALENDAR              │
-│  ┌─────────┐          ┌─────────┐       │
-│  │ Create  │          │ Publish │       │
-│  │  Lane   │    →     │  Lane   │       │
-│  │  (Teal) │          │(Violet) │       │
-│  └─────────┘          └─────────┘       │
-└─────────────────────────────────────────┘
-       │                            │
-       └──────────┬─────────────────┘
-                  ▼
-┌─────────────────────────────────────────┐
-│             TASK LIST                   │
-│  ☐ Create: Welcome Email Sequence       │
-│    📧 Newsletter • Email                │
-│    Create: Jan 12 → Publish: Jan 15     │
-└─────────────────────────────────────────┘
-```
+Create shared utilities all wizards use when generating output.
+
+**Extend:** `src/lib/wizardContentHelpers.ts`
+
+Add functions:
+- `generateLinkedTask()` - Creates task with proper content_item_id, content_type, etc.
+- `generateContentItem()` - Creates content_item with all required fields
+- `calculateRelativeDate()` - Standard date calculation from reference date
+- `linkTaskToContent()` - Ensures bidirectional linking
 
 ---
 
-## File Changes Summary
+### Part 6: Edge Function Updates
 
-| File | Change Type | Description |
-|------|-------------|-------------|
-| `src/components/tasks/TaskCard.tsx` | Modify | Add content type badge and calendar dates |
-| `supabase/functions/create-launch-v2/index.ts` | Modify | Add content_items creation, link to tasks |
-| `src/components/wizards/content-planner/ContentPlannerWizard.tsx` | Modify | Create content_items and linked tasks |
-| `src/lib/wizardContentHelpers.ts` | Create | Shared helper functions for content generation |
-| `src/types/launchV2.ts` | Modify | Add content generation options to wizard data |
+#### 6a. Update `create-summit` Edge Function
 
----
+Add:
+- Create content_items for email sequences
+- Set content_type, content_channel on tasks
+- Link tasks to content_items where applicable
 
-## User Experience After Implementation
+#### 6b. Verify `create-launch-v2` Edge Function
 
-### During Wizard Completion
-User sees confirmation: "Created 12 content items and 24 tasks. View in Editorial Calendar →"
-
-### On Task List
-Content tasks display with:
-- Purple/violet content badge showing type (Newsletter, Post, etc.)
-- Channel indicator (Email, Instagram, etc.)
-- Dual dates: "Create: Jan 12 → Publish: Jan 15"
-- Link to editorial calendar for that item
-
-### On Editorial Calendar
-- Items appear in correct lanes automatically
-- Create tasks in Teal "Create" lane
-- Publish tasks in Violet "Publish" lane
-- Click to open full task details or content editor
+Confirm:
+- All email sequence tasks have content_item_id set
+- content_creation_date and content_publish_date populated
+- Tasks appear in Editorial Calendar queries
 
 ---
 
 ## Implementation Order
 
-1. **TaskCard content indicator** - Show existing content tasks properly
-2. **Launch Wizard V2 upgrade** - Generate content_items + linked tasks
-3. **Content Planner upgrade** - Same pattern for content plan items
-4. **Testing** - Verify items appear in both Task List and Editorial Calendar
+### Phase 1: Hooks & Types (Foundation)
+1. Create `src/lib/wizardIntegration.ts` registry
+2. Create `src/hooks/useActiveSummits.ts`
+3. Extend `useActiveSprint` with weekly aggregates
+
+### Phase 2: Daily Plan Integration
+4. Create `SummitModeSection.tsx`
+5. Update DailyPlan.tsx to include summit mode
+6. Add 'summit_mode' to layout customization options
+
+### Phase 3: Weekly/Monthly Integration
+7. Create `WeeklySprintSection.tsx`
+8. Create `SummitCheckInCard.tsx`
+9. Update WeeklyPlan.tsx to include sprint and summit sections
+10. Update MonthlyReview.tsx with sprint summary
+
+### Phase 4: Edge Function Fixes
+11. Update `create-summit` to generate content_items
+12. Verify `create-launch-v2` content linking
+13. Test Editorial Calendar displays all wizard content
+
+### Phase 5: Future-Proofing
+14. Document wizard integration pattern in code comments
+15. Create wizard integration checklist for new wizards
+
+---
+
+## File Changes Summary
+
+| File | Action | Description |
+|------|--------|-------------|
+| `src/lib/wizardIntegration.ts` | Create | Central wizard config registry |
+| `src/hooks/useActiveSummits.ts` | Create | Hook for active summit data |
+| `src/hooks/useActiveSprint.ts` | Modify | Add weekly aggregates |
+| `src/components/daily-plan/SummitModeSection.tsx` | Create | Summit banner for daily plan |
+| `src/components/weekly-plan/WeeklySprintSection.tsx` | Create | Sprint progress for weekly view |
+| `src/components/reviews/SummitCheckInCard.tsx` | Create | Summit check-in for reviews |
+| `src/pages/DailyPlan.tsx` | Modify | Add summit mode section |
+| `src/pages/WeeklyPlan.tsx` | Modify | Add sprint and summit sections |
+| `src/pages/MonthlyReview.tsx` | Modify | Add sprint summary |
+| `supabase/functions/create-summit/index.ts` | Modify | Add content_items creation |
+| `src/lib/wizardContentHelpers.ts` | Extend | Add shared helper functions |
+
+---
+
+## Future Wizard Checklist
+
+When creating new wizards, ensure:
+
+1. **Database Records**: Create records in appropriate tables
+2. **Project Creation**: If applicable, create project with proper flags
+3. **Task Generation**: Use `generateLinkedTask()` helper with:
+   - `content_item_id` when content-related
+   - `content_type` and `content_channel` fields
+   - `content_creation_date` and `content_publish_date` for calendar
+4. **Content Items**: For content-related wizards, create content_items
+5. **Active Hook**: Create `useActiveX()` hook if wizard creates time-bounded records
+6. **Dashboard Widget**: Add to Dashboard if user needs visibility
+7. **Daily/Weekly Integration**: Add mode section if wizard is "active" during a period
+8. **Review Integration**: Add check-in questions for reviews
+9. **Editorial Calendar**: Ensure content appears in calendar queries
+10. **Registry Entry**: Add to `WIZARD_INTEGRATIONS` config
+
+---
+
+## Testing Verification
+
+After implementation, verify:
+
+1. Summit wizard → Items appear in Daily Plan, Weekly Plan, Monthly Review
+2. Money Momentum Sprint → Week summary appears in Weekly Plan
+3. Launch wizard → Content items show in Editorial Calendar Create/Publish lanes
+4. Content Planner → All items have linked tasks with proper dates
+5. All wizards → Tasks appear in task list with content badges where applicable
 
