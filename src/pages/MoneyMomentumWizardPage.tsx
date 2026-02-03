@@ -4,7 +4,6 @@ import { Layout } from '@/components/Layout';
 import { WizardLayout } from '@/components/wizards/WizardLayout';
 import { useWizard } from '@/hooks/useWizard';
 import { useAuth } from '@/hooks/useAuth';
-import { useMembership } from '@/hooks/useMembership';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -20,7 +19,10 @@ import {
 import { StepTheNumbers } from '@/components/wizards/money-momentum/StepTheNumbers';
 import { StepRealityCheck } from '@/components/wizards/money-momentum/StepRealityCheck';
 import { StepWhatYouHave } from '@/components/wizards/money-momentum/StepWhatYouHave';
+import { StepFastCashPicker } from '@/components/wizards/money-momentum/StepFastCashPicker';
 import { StepRevenueActions } from '@/components/wizards/money-momentum/StepRevenueActions';
+import { StepOfferScoring } from '@/components/wizards/money-momentum/StepOfferScoring';
+import { StepScriptGenerator } from '@/components/wizards/money-momentum/StepScriptGenerator';
 import { StepWhatsStoppingYou } from '@/components/wizards/money-momentum/StepWhatsStoppingYou';
 import { StepSprintSchedule } from '@/components/wizards/money-momentum/StepSprintSchedule';
 import { StepCommit } from '@/components/wizards/money-momentum/StepCommit';
@@ -28,7 +30,6 @@ import { StepCommit } from '@/components/wizards/money-momentum/StepCommit';
 export default function MoneyMomentumWizardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isMastermind } = useMembership();
   const [isCreating, setIsCreating] = useState(false);
 
   // Stable default data reference
@@ -63,7 +64,7 @@ export default function MoneyMomentumWizardPage() {
       const finalGap = data.gapToClose - data.estimatedSavings;
       const finalDailyTarget = data.daysInSprint > 0 ? finalGap / data.daysInSprint : 0;
 
-      // Create the revenue sprint (cast to any to handle new table not in types yet)
+      // Create the revenue sprint
       const { data: sprint, error } = await supabase
         .from('revenue_sprints' as any)
         .insert({
@@ -96,6 +97,11 @@ export default function MoneyMomentumWizardPage() {
           accountability_method: data.accountabilityMethod,
           commitment_options: data.commitmentOptions,
           consequences: data.consequences,
+          // New fields
+          recommended_lane: data.recommendedLane,
+          primary_offer_id: data.primaryOfferId,
+          backup_offer_id: data.backupOfferId,
+          offer_scores: data.offerScores,
           status: 'active',
         } as any)
         .select()
@@ -142,42 +148,40 @@ export default function MoneyMomentumWizardPage() {
 
   const canProceed = (): boolean => {
     switch (step) {
-      case 1:
-        // Must have current revenue and goal
+      case 1: // The Numbers
         return (
           data.currentRevenue !== null && 
           data.currentRevenue >= 0 &&
           data.revenueGoal !== null && 
           data.revenueGoal > 0
         );
-      case 2:
-        // Can't proceed if survival mode is true
+      case 2: // Reality Check
         return data.survivalMode === false;
-      case 3:
-        // Must have at least 1 offer and either past customers or warm leads
+      case 3: // What You Already Have
+        return data.offerType !== null;
+      case 4: // Fast Cash Picker
         return (
-          data.currentOffers.length > 0 &&
-          (data.pastCustomersCount > 0 || data.warmLeadsCount > 0)
+          data.hasExistingBuyers !== null &&
+          data.cashSpeed !== null &&
+          data.readyAssets.length > 0 &&
+          data.weeklyCapacity !== null &&
+          data.sellingComfort !== null
         );
-      case 4:
-        // Must have 3-5 selected actions with details
-        return (
-          data.selectedActions.length >= 3 &&
-          data.selectedActions.length <= 5 &&
-          data.selectedActions.every(a => a.details && a.why)
-        );
-      case 5:
-        // Mindset step is optional but encouraged
-        return true;
-      case 6:
-        // Must have schedule
+      case 5: // Revenue Ideas (Brainstorming)
+        return data.brainstormedIdeas.length >= 1;
+      case 6: // Score Your Offers
+        return data.offerScores.length >= 1 && data.primaryOfferId !== null;
+      case 7: // Scripts
+        return true; // Optional step
+      case 8: // What's Stopping You
+        return true; // Optional but encouraged
+      case 9: // Sprint Schedule
         return (
           data.sprintStartDate !== '' &&
           data.sprintEndDate !== '' &&
           data.workingDays.length > 0
         );
-      case 7:
-        // Must have at least one commitment
+      case 10: // Commit
         return data.commitmentOptions.length > 0 || data.consequences.trim() !== '';
       default:
         return true;
@@ -193,12 +197,18 @@ export default function MoneyMomentumWizardPage() {
       case 3:
         return <StepWhatYouHave data={data} onChange={handleChange} />;
       case 4:
-        return <StepRevenueActions data={data} onChange={handleChange} />;
+        return <StepFastCashPicker data={data} onChange={handleChange} />;
       case 5:
-        return <StepWhatsStoppingYou data={data} onChange={handleChange} />;
+        return <StepRevenueActions data={data} onChange={handleChange} />;
       case 6:
-        return <StepSprintSchedule data={data} onChange={handleChange} />;
+        return <StepOfferScoring data={data} onChange={handleChange} />;
       case 7:
+        return <StepScriptGenerator data={data} onChange={handleChange} />;
+      case 8:
+        return <StepWhatsStoppingYou data={data} onChange={handleChange} />;
+      case 9:
+        return <StepSprintSchedule data={data} onChange={handleChange} />;
+      case 10:
         return <StepCommit data={data} onChange={handleChange} />;
       default:
         return null;
