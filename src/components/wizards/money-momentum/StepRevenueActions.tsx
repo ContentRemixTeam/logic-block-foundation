@@ -20,7 +20,9 @@ import {
   ChevronDown,
   ChevronUp,
   Check,
-  AlertTriangle
+  AlertTriangle,
+  MessageSquare,
+  Send
 } from 'lucide-react';
 import { MoneyMomentumData, SelectedAction, BrainstormedIdea, formatCurrency } from '@/types/moneyMomentum';
 
@@ -28,31 +30,6 @@ interface StepRevenueActionsProps {
   data: MoneyMomentumData;
   onChange: (updates: Partial<MoneyMomentumData>) => void;
 }
-
-// Brainstorm section IDs
-const BRAINSTORM_SECTIONS = [
-  { id: 'all_access', title: 'All-Access Pass', icon: Package, color: 'text-blue-500' },
-  { id: 'vip_tier', title: 'VIP/Premium Tier', icon: Crown, color: 'text-amber-500' },
-  { id: 'intensive', title: 'Quick Intensives', icon: Clock, color: 'text-green-500' },
-  { id: 'past_client_bonus', title: 'Past Client Bonuses', icon: Users, color: 'text-purple-500' },
-  { id: 'flash_sale', title: 'Flash Sale Replay', icon: Zap, color: 'text-red-500' },
-  { id: 'payment_plan', title: 'Payment Plans', icon: CreditCard, color: 'text-cyan-500' },
-  { id: 'custom', title: 'Your Custom Idea', icon: Sparkles, color: 'text-pink-500' },
-] as const;
-
-// Other action options
-const OTHER_ACTIONS = [
-  { id: 'follow-up-leads', label: 'Follow up with warm leads', hasInput: true, inputLabel: 'How many?' },
-  { id: 'email-past-customers', label: 'Email past customers about', hasInput: true, inputLabel: 'About what?' },
-  { id: 'post-daily', label: 'Post daily about offer on social', hasInput: true, inputLabel: 'Which offer?' },
-  { id: 'book-calls', label: 'Book discovery/sales calls', hasInput: true, inputLabel: 'How many?' },
-  { id: 'ask-referrals', label: 'Ask for referrals from past clients', hasInput: false },
-  { id: 'abandoned-carts', label: 'Reactivate abandoned carts', hasInput: false },
-  { id: 'text-top-leads', label: 'Text/call top 10 warmest leads', hasInput: false },
-  { id: 'host-training', label: 'Host free training to pitch', hasInput: true, inputLabel: 'Which offer?' },
-  { id: 'partner-affiliate', label: 'Partner/affiliate opportunity', hasInput: false },
-  { id: 'other', label: 'Other action', hasInput: true, inputLabel: 'Describe' },
-];
 
 const TIME_OPTIONS = [
   { value: '15min', label: '15 minutes' },
@@ -64,6 +41,39 @@ const TIME_OPTIONS = [
 export function StepRevenueActions({ data, onChange }: StepRevenueActionsProps) {
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const [brainstormInputs, setBrainstormInputs] = useState<Record<string, Record<string, string>>>({});
+
+  // Determine which brainstorm sections to show based on user context
+  const showAllAccessPass = data.currentOffers.length >= 2;
+  const showVipTier = data.currentOffers.length >= 1 || data.offerType === 'custom-project';
+  const showPaymentPlans = 
+    data.currentOffers.some(o => o.price >= 500) || 
+    (data.projectPriceMax && data.projectPriceMax >= 500);
+  const showPastClientBonuses = data.hasPastCustomers === true && data.pastCustomersComfortable > 0;
+  
+  // Build dynamic brainstorm sections based on context
+  const BRAINSTORM_SECTIONS = [
+    ...(showAllAccessPass ? [{ id: 'all_access', title: 'All-Access Pass', icon: Package, color: 'text-blue-500', description: 'Bundle multiple offers' }] : []),
+    ...(showVipTier ? [{ id: 'vip_tier', title: 'VIP/Premium Tier', icon: Crown, color: 'text-amber-500', description: 'Upgrade existing offers' }] : []),
+    { id: 'intensive', title: 'Quick Intensives', icon: Clock, color: 'text-green-500', description: 'Sell your time this week' },
+    ...(showPastClientBonuses ? [{ id: 'past_client_bonus', title: 'Past Client Bonuses', icon: Users, color: 'text-purple-500', description: 'Re-engage previous buyers' }] : []),
+    { id: 'direct_outreach', title: 'Direct Outreach', icon: MessageSquare, color: 'text-indigo-500', description: 'Personal DMs, calls, emails' },
+    ...(data.hasRunFlashSale === true ? [{ id: 'flash_sale', title: 'Flash Sale Replay', icon: Zap, color: 'text-red-500', description: 'Run a successful sale again' }] : []),
+    ...(showPaymentPlans ? [{ id: 'payment_plan', title: 'Payment Plans', icon: CreditCard, color: 'text-cyan-500', description: 'Make high-ticket accessible' }] : []),
+    { id: 'custom', title: 'Your Custom Idea', icon: Sparkles, color: 'text-pink-500', description: 'Something unique to you' },
+  ] as const;
+
+  // Other action options - universal actions that work for everyone
+  const OTHER_ACTIONS = [
+    { id: 'follow-up-leads', label: 'Follow up with warm leads', hasInput: true, inputLabel: 'How many?' },
+    { id: 'email-past-customers', label: 'Email past customers about', hasInput: true, inputLabel: 'About what?' },
+    { id: 'post-daily', label: 'Post daily about offer on social', hasInput: true, inputLabel: 'Which offer?' },
+    { id: 'book-calls', label: 'Book discovery/sales calls', hasInput: true, inputLabel: 'How many?' },
+    { id: 'ask-referrals', label: 'Ask for referrals from past clients', hasInput: false },
+    { id: 'text-top-leads', label: 'Text/call top 10 warmest leads', hasInput: false },
+    { id: 'host-training', label: 'Host free training to pitch', hasInput: true, inputLabel: 'Which offer?' },
+    { id: 'partner-affiliate', label: 'Partner/affiliate opportunity', hasInput: false },
+    { id: 'other', label: 'Other action', hasInput: true, inputLabel: 'Describe' },
+  ];
 
   const toggleSection = (id: string) => {
     setExpandedSections(prev => 
@@ -138,6 +148,8 @@ export function StepRevenueActions({ data, onChange }: StepRevenueActionsProps) 
         return `Sell ${inputs.type || 'intensive'} sessions`;
       case 'past_client_bonus':
         return `Reach out to ${inputs.clientName || 'past client'} with custom offer`;
+      case 'direct_outreach':
+        return `Direct outreach to ${inputs.target || 'warm contacts'}`;
       case 'flash_sale':
         return `Run flash sale on ${inputs.offer || 'offer'}`;
       case 'payment_plan':
@@ -174,6 +186,37 @@ export function StepRevenueActions({ data, onChange }: StepRevenueActionsProps) 
         </p>
       </div>
 
+      {/* Flash Sale Gate Question - only show if not answered */}
+      {data.hasRunFlashSale === null && (
+        <Card className="border-dashed">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Zap className="h-5 w-5 text-amber-500" />
+              Quick Question
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Have you run a successful flash sale or promotion before?
+            </p>
+            <RadioGroup
+              value=""
+              onValueChange={(value) => onChange({ hasRunFlashSale: value === 'yes' })}
+              className="flex gap-4"
+            >
+              <Label className="flex items-center gap-2 cursor-pointer">
+                <RadioGroupItem value="yes" />
+                <span>Yes</span>
+              </Label>
+              <Label className="flex items-center gap-2 cursor-pointer">
+                <RadioGroupItem value="no" />
+                <span>No</span>
+              </Label>
+            </RadioGroup>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Brainstorm Sections */}
       <Card>
         <CardHeader>
@@ -182,11 +225,11 @@ export function StepRevenueActions({ data, onChange }: StepRevenueActionsProps) 
             <CardTitle className="text-lg">Brainstorm Revenue Ideas</CardTitle>
           </div>
           <CardDescription>
-            Click each section to explore ideas. Don't overthink - just capture what comes to mind.
+            Click each section to explore ideas. We've tailored these to your business context.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {BRAINSTORM_SECTIONS.map(({ id, title, icon: Icon, color }) => (
+          {BRAINSTORM_SECTIONS.map(({ id, title, icon: Icon, color, description }) => (
             <Collapsible
               key={id}
               open={expandedSections.includes(id)}
@@ -196,7 +239,10 @@ export function StepRevenueActions({ data, onChange }: StepRevenueActionsProps) 
                 <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
                   <div className="flex items-center gap-3">
                     <Icon className={`h-5 w-5 ${color}`} />
-                    <span className="font-medium">💡 {title}</span>
+                    <div className="text-left">
+                      <span className="font-medium">💡 {title}</span>
+                      <p className="text-xs text-muted-foreground">{description}</p>
+                    </div>
                     {data.brainstormedIdeas.some(i => i.type === id) && (
                       <Check className="h-4 w-4 text-green-500" />
                     )}
@@ -542,13 +588,13 @@ function renderBrainstormSection(
       return (
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Could you sell your TIME this week?
+            Could you sell your TIME this week? This works for any business model.
           </p>
           <div className="space-y-3">
             <div>
               <Label className="mb-2 block">What type of intensive?</Label>
               <Input 
-                placeholder="Voxer week, VIP Day, Power Hour, Email coaching..."
+                placeholder="Voxer week, VIP Day, Power Hour, Strategy Session, Audit..."
                 value={inputs.type || ''}
                 onChange={(e) => updateInput('type', e.target.value)}
               />
@@ -640,11 +686,55 @@ function renderBrainstormSection(
         </div>
       );
 
+    case 'direct_outreach':
+      return (
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Sometimes the fastest path to revenue is a direct conversation. Who could you reach out to THIS WEEK?
+          </p>
+          <div className="space-y-3">
+            <div>
+              <Label className="mb-2 block">Who will you reach out to?</Label>
+              <Input 
+                placeholder="e.g., 5 people who've DMed me, old colleagues, warm contacts"
+                value={inputs.target || ''}
+                onChange={(e) => updateInput('target', e.target.value)}
+              />
+            </div>
+            <div>
+              <Label className="mb-2 block">What will you offer/ask?</Label>
+              <Textarea 
+                placeholder="e.g., Coffee chat to learn about their needs, pitch my services, ask for referrals"
+                value={inputs.offer || ''}
+                onChange={(e) => updateInput('offer', e.target.value)}
+                rows={2}
+              />
+            </div>
+            <div>
+              <Label className="mb-2 block">How many conversations will you initiate?</Label>
+              <Input 
+                type="number"
+                placeholder="e.g., 10"
+                value={inputs.count || ''}
+                onChange={(e) => updateInput('count', e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="text-sm bg-background p-3 rounded-lg">
+            <strong>💡 TIP:</strong> Personalize each message. Reference something specific about them. 
+            Don't copy-paste the same message to everyone.
+          </div>
+          <Button onClick={onSave} size="sm">
+            <Check className="h-4 w-4 mr-1" /> Save Idea
+          </Button>
+        </div>
+      );
+
     case 'flash_sale':
       return (
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Have you run a successful flash sale before? Could you run it again?
+            You've run a successful sale before - could you run it again?
           </p>
           <div className="space-y-3">
             <div>
@@ -702,38 +792,32 @@ function renderBrainstormSection(
           <p className="text-sm text-muted-foreground">
             Do you have a higher-priced offer ($500+) that people say they want but can't afford?
           </p>
-          {data.currentOffers.filter(o => o.price >= 500).length === 0 ? (
-            <div className="text-sm text-muted-foreground bg-background p-3 rounded-lg">
-              No high-ticket offers ($500+) yet - you can skip this one.
+          <div className="space-y-3">
+            <div>
+              <Label className="mb-2 block">Which offer?</Label>
+              <Input 
+                value={inputs.offer || ''}
+                onChange={(e) => updateInput('offer', e.target.value)}
+              />
             </div>
-          ) : (
-            <div className="space-y-3">
-              <div>
-                <Label className="mb-2 block">Which offer?</Label>
-                <Input 
-                  value={inputs.offer || ''}
-                  onChange={(e) => updateInput('offer', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label className="mb-2 block">Payment plan option</Label>
-                <Input 
-                  placeholder="3 payments of $X/month"
-                  value={inputs.paymentPlan || ''}
-                  onChange={(e) => updateInput('paymentPlan', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label className="mb-2 block">Who has asked about this but couldn't pay in full?</Label>
-                <Textarea 
-                  placeholder="List specific people or '5+ people in my DMs'"
-                  value={inputs.prospects || ''}
-                  onChange={(e) => updateInput('prospects', e.target.value)}
-                  rows={2}
-                />
-              </div>
+            <div>
+              <Label className="mb-2 block">Payment plan option</Label>
+              <Input 
+                placeholder="3 payments of $X/month"
+                value={inputs.paymentPlan || ''}
+                onChange={(e) => updateInput('paymentPlan', e.target.value)}
+              />
             </div>
-          )}
+            <div>
+              <Label className="mb-2 block">Who has asked about this but couldn't pay in full?</Label>
+              <Textarea 
+                placeholder="List specific people or '5+ people in my DMs'"
+                value={inputs.prospects || ''}
+                onChange={(e) => updateInput('prospects', e.target.value)}
+                rows={2}
+              />
+            </div>
+          </div>
           <Button onClick={onSave} size="sm">
             <Check className="h-4 w-4 mr-1" /> Save Idea
           </Button>

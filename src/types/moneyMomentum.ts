@@ -33,6 +33,7 @@ export interface MoneyMomentumData {
   adjustedGoal: number | null;
   
   // Step 2: Reality Check
+  canCutExpenses: boolean | null; // true = will check, false = already lean, null = unanswered
   expenseCuts: {
     unusedSoftware: boolean;
     marketingTools: boolean;
@@ -44,17 +45,27 @@ export interface MoneyMomentumData {
   survivalMode: boolean | null;
   
   // Step 3: What You Already Have
+  offerType: 'defined' | 'custom-project' | 'figuring-out' | null;
   currentOffers: Offer[];
+  projectPriceMin: number | null; // for custom-project type
+  projectPriceMax: number | null;
+  projectCapacity: number | null; // how many projects this month
+  quickOfferIdea: string; // for figuring-out type
+  
+  hasPastCustomers: boolean | null; // true = has relevant ones, false = new/pivoting
   pastCustomersCount: number;
   pastCustomersComfortable: number;
   pastCustomersOfferType: string;
   pastCustomersDetails: string;
+  
+  hasWarmLeads: boolean | null; // true = has some, false = none right now
   warmLeadsSources: string[];
   warmLeadsOther: string;
   warmLeadsCount: number;
   fastestSale: string;
   
   // Step 4: Revenue Actions
+  hasRunFlashSale: boolean | null; // for conditional flash sale section
   brainstormedIdeas: BrainstormedIdea[];
   selectedActions: SelectedAction[];
   realityCheckDoable: 'doable' | 'stretch' | 'too-much' | null;
@@ -96,6 +107,7 @@ export const DEFAULT_MONEY_MOMENTUM_DATA: MoneyMomentumData = {
   adjustedGoal: null,
   
   // Step 2
+  canCutExpenses: null,
   expenseCuts: {
     unusedSoftware: false,
     marketingTools: false,
@@ -107,17 +119,27 @@ export const DEFAULT_MONEY_MOMENTUM_DATA: MoneyMomentumData = {
   survivalMode: null,
   
   // Step 3
+  offerType: null,
   currentOffers: [],
+  projectPriceMin: null,
+  projectPriceMax: null,
+  projectCapacity: null,
+  quickOfferIdea: '',
+  
+  hasPastCustomers: null,
   pastCustomersCount: 0,
   pastCustomersComfortable: 0,
   pastCustomersOfferType: '',
   pastCustomersDetails: '',
+  
+  hasWarmLeads: null,
   warmLeadsSources: [],
   warmLeadsOther: '',
   warmLeadsCount: 0,
   fastestSale: '',
   
   // Step 4
+  hasRunFlashSale: null,
   brainstormedIdeas: [],
   selectedActions: [],
   realityCheckDoable: null,
