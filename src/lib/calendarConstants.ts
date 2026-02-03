@@ -29,6 +29,18 @@ export const DEFAULT_PLATFORM_COLORS: Record<string, string> = {
   podcast: '#8B5CF6',
   twitter: '#1DA1F2',
   newsletter: '#F59E0B',
+  pinterest: '#E60023',
+  threads: '#000000',
+  substack: '#FF6719',
+  patreon: '#F96854',
+  discord: '#5865F2',
+  whatsapp: '#25D366',
+  clubhouse: '#F6E05E',
+  teachable: '#FF7849',
+  twitch: '#9146FF',
+  slack: '#4A154B',
+  medium: '#000000',
+  spotify: '#1DB954',
 };
 
 // Platform display names
@@ -43,6 +55,18 @@ export const PLATFORM_LABELS: Record<string, string> = {
   podcast: 'Podcast',
   twitter: 'Twitter/X',
   newsletter: 'Newsletter',
+  pinterest: 'Pinterest',
+  threads: 'Threads',
+  substack: 'Substack',
+  patreon: 'Patreon',
+  discord: 'Discord',
+  whatsapp: 'WhatsApp',
+  clubhouse: 'Clubhouse',
+  teachable: 'Teachable/Courses',
+  twitch: 'Twitch',
+  slack: 'Slack Community',
+  medium: 'Medium',
+  spotify: 'Spotify',
 };
 
 // Platform short labels for badges
@@ -57,6 +81,18 @@ export const PLATFORM_SHORT_LABELS: Record<string, string> = {
   podcast: 'Pod',
   twitter: 'X',
   newsletter: 'NL',
+  pinterest: 'Pin',
+  threads: 'Thr',
+  substack: 'Sub',
+  patreon: 'Pat',
+  discord: 'Disc',
+  whatsapp: 'WA',
+  clubhouse: 'Club',
+  teachable: 'Teach',
+  twitch: 'Twi',
+  slack: 'Slack',
+  medium: 'Med',
+  spotify: 'Spot',
 };
 
 // Content type to Lucide icon mapping
