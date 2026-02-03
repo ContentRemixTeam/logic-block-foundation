@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Target, ArrowRight, RotateCcw, Rocket, Mail, Zap, DollarSign } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Target, ArrowRight, RotateCcw, Rocket, Mail, Zap, DollarSign, History, ExternalLink } from 'lucide-react';
 import { WizardTemplate, WizardCompletion } from '@/types/wizard';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from 'sonner';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -19,12 +19,31 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   DollarSign: <DollarSign className="h-8 w-8" />,
 };
 
+const ICON_MAP_SMALL: Record<string, React.ReactNode> = {
+  Target: <Target className="h-5 w-5" />,
+  Rocket: <Rocket className="h-5 w-5" />,
+  Mail: <Mail className="h-5 w-5" />,
+  Zap: <Zap className="h-5 w-5" />,
+  DollarSign: <DollarSign className="h-5 w-5" />,
+};
+
 export default function WizardHub() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [templates, setTemplates] = useState<WizardTemplate[]>([]);
   const [completions, setCompletions] = useState<WizardCompletion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Create template lookup map
+  const templateMap = useMemo(() => {
+    return templates.reduce((acc, t) => {
+      acc[t.template_name] = {
+        displayName: t.display_name,
+        icon: t.icon
+      };
+      return acc;
+    }, {} as Record<string, { displayName: string; icon: string | null }>);
+  }, [templates]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -95,83 +114,151 @@ export default function WizardHub() {
 
   if (isLoading) {
     return (
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {[1, 2].map(i => (
-          <Card key={i}>
-            <CardHeader>
-              <Skeleton className="h-8 w-8 rounded-lg" />
-              <Skeleton className="h-6 w-3/4 mt-3" />
-              <Skeleton className="h-4 w-full mt-2" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-10 w-full" />
-            </CardContent>
-          </Card>
-        ))}
+      <div className="space-y-6">
+        <div className="flex gap-2">
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2].map(i => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-8 w-8 rounded-lg" />
+                <Skeleton className="h-6 w-3/4 mt-3" />
+                <Skeleton className="h-4 w-full mt-2" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-10 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {templates.map(template => {
-        const lastCompletion = getLastCompletion(template.template_name);
-        const icon = template.icon ? ICON_MAP[template.icon] : <Target className="h-8 w-8" />;
+    <Tabs defaultValue="wizards" className="space-y-6">
+      <TabsList>
+        <TabsTrigger value="wizards">Wizards</TabsTrigger>
+        <TabsTrigger value="history" className="gap-2">
+          <History className="h-4 w-4" />
+          History
+        </TabsTrigger>
+      </TabsList>
 
-        return (
-          <Card key={template.id} className="flex flex-col">
-            <CardHeader>
-              <div className="p-2 rounded-lg bg-primary/10 text-primary w-fit">
-                {icon}
-              </div>
-              <CardTitle className="mt-3">{template.display_name}</CardTitle>
-              <CardDescription>{template.description}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 flex flex-col justify-end gap-3">
-              {lastCompletion && (
-                <div className="text-sm text-muted-foreground">
-                  Last completed {formatDistanceToNow(new Date(lastCompletion.completed_at), { addSuffix: true })}
-                </div>
-              )}
-              <div className="flex gap-2">
-                <Button 
-                  onClick={() => handleStart(template.template_name)}
-                  className="flex-1"
-                >
-                  {lastCompletion ? (
-                    <>
-                      <RotateCcw className="h-4 w-4 mr-2" />
-                      Create Another
-                    </>
-                  ) : (
-                    <>
-                      Start
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </>
+      <TabsContent value="wizards">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {templates.map(template => {
+            const lastCompletion = getLastCompletion(template.template_name);
+            const icon = template.icon ? ICON_MAP[template.icon] : <Target className="h-8 w-8" />;
+
+            return (
+              <Card key={template.id} className="flex flex-col">
+                <CardHeader>
+                  <div className="p-2 rounded-lg bg-primary/10 text-primary w-fit">
+                    {icon}
+                  </div>
+                  <CardTitle className="mt-3">{template.display_name}</CardTitle>
+                  <CardDescription>{template.description}</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col justify-end gap-3">
+                  {lastCompletion && (
+                    <div className="text-sm text-muted-foreground">
+                      Last completed {formatDistanceToNow(new Date(lastCompletion.completed_at), { addSuffix: true })}
+                    </div>
                   )}
-                </Button>
-                {lastCompletion?.created_cycle_id && (
-                  <Button 
-                    variant="outline"
-                    onClick={() => handleViewLast(lastCompletion)}
-                  >
-                    View Last
-                  </Button>
-                )}
-              </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => handleStart(template.template_name)}
+                      className="flex-1"
+                    >
+                      {lastCompletion ? (
+                        <>
+                          <RotateCcw className="h-4 w-4 mr-2" />
+                          Create Another
+                        </>
+                      ) : (
+                        <>
+                          Start
+                          <ArrowRight className="h-4 w-4 ml-2" />
+                        </>
+                      )}
+                    </Button>
+                    {lastCompletion?.created_cycle_id && (
+                      <Button 
+                        variant="outline"
+                        onClick={() => handleViewLast(lastCompletion)}
+                      >
+                        View Last
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+
+          {templates.length === 0 && (
+            <Card className="col-span-full">
+              <CardContent className="py-12 text-center text-muted-foreground">
+                <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No wizards available yet.</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </TabsContent>
+
+      <TabsContent value="history">
+        {completions.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center text-muted-foreground">
+              <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p className="font-medium">No completed wizards yet.</p>
+              <p className="text-sm mt-1">Complete a wizard to see it here.</p>
             </CardContent>
           </Card>
-        );
-      })}
+        ) : (
+          <div className="space-y-2">
+            {completions.map(completion => {
+              const template = templateMap[completion.template_name];
+              const displayName = template?.displayName || completion.template_name;
+              const iconName = template?.icon;
+              const icon = iconName ? ICON_MAP_SMALL[iconName] : <Target className="h-5 w-5" />;
+              const formattedDate = format(new Date(completion.completed_at), "MMM d, yyyy 'at' h:mm a");
 
-      {templates.length === 0 && (
-        <Card className="col-span-full">
-          <CardContent className="py-12 text-center text-muted-foreground">
-            <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No wizards available yet.</p>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+              return (
+                <Card 
+                  key={completion.id} 
+                  className="hover:bg-muted/50 transition-colors"
+                >
+                  <CardContent className="py-4 px-4 flex items-center gap-4">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                      {icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{displayName}</p>
+                      <p className="text-sm text-muted-foreground">{formattedDate}</p>
+                    </div>
+                    {completion.created_cycle_id && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleViewLast(completion)}
+                        className="shrink-0"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </TabsContent>
+    </Tabs>
   );
 }
