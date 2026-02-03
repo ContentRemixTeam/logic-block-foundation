@@ -166,44 +166,149 @@ export function ContentPlannerWizard() {
 
       if (planError) throw planError;
 
-      // Create content plan items
+      // Track counts for success message
+      let contentItemsCreated = 0;
+      let tasksCreated = 0;
+
+      // Create content items AND linked tasks for each planned item
       if (data.plannedItems.length > 0) {
-        const itemsData = data.plannedItems.map((item, index) => ({
-          user_id: user.id,
-          plan_id: plan.id,
-          title: item.title,
-          content_type: item.type,
-          planned_date: item.date || null,
-          phase: item.phase || null,
-          selling_point_ids: item.sellingPointIds.length > 0 ? item.sellingPointIds : null,
-          messaging_angle: item.messagingAngle || null,
-          is_repurposed: item.isRepurposed,
-          sort_order: index,
-          status: 'planned',
-        }));
+        for (const item of data.plannedItems) {
+          // Determine channel from type
+          const channelMap: Record<string, string> = {
+            'email-sequence': 'Email',
+            'email-single': 'Email',
+            'newsletter': 'Email',
+            'blog-post': 'Blog',
+            'linkedin-post': 'LinkedIn',
+            'twitter-thread': 'Twitter/X',
+            'instagram-post': 'Instagram',
+            'instagram-reel': 'Instagram',
+            'facebook-post': 'Facebook',
+            'youtube-video': 'YouTube',
+            'youtube-short': 'YouTube',
+            'tiktok': 'TikTok',
+            'podcast-episode': 'Podcast',
+            'webinar': 'Webinar',
+          };
+          
+          const typeMap: Record<string, string> = {
+            'email-sequence': 'Newsletter',
+            'email-single': 'Newsletter',
+            'newsletter': 'Newsletter',
+            'blog-post': 'Blog Post',
+            'linkedin-post': 'Social Post',
+            'twitter-thread': 'Social Post',
+            'instagram-post': 'Social Post',
+            'instagram-reel': 'Video',
+            'facebook-post': 'Social Post',
+            'youtube-video': 'Video',
+            'youtube-short': 'Video',
+            'tiktok': 'Video',
+            'podcast-episode': 'Podcast',
+            'webinar': 'Webinar',
+          };
 
-        const { error: itemsError } = await supabase
-          .from('content_plan_items')
-          .insert(itemsData);
+          const mappedChannel = channelMap[item.type] || 'Other';
+          const mappedType = typeMap[item.type] || item.type;
 
-        if (itemsError) throw itemsError;
-      }
+          // Create content item
+          const { data: contentItem, error: contentError } = await supabase
+            .from('content_items')
+            .insert({
+              user_id: user.id,
+              title: item.title,
+              type: mappedType,
+              channel: mappedChannel,
+              status: 'Draft',
+              project_id: data.launchId || null,
+              planned_creation_date: item.date ? item.date : null, // Use item date as creation date
+              planned_publish_date: item.date || null,
+              messaging_angle: item.messagingAngle || null,
+              selling_point_ids: item.sellingPointIds.length > 0 ? item.sellingPointIds : null,
+            })
+            .select('id')
+            .single();
 
-      // Generate tasks if enabled
-      if (data.generateTasks) {
-        // TODO: Implement task generation via edge function
-        // For now, just log
-        console.log('Task generation enabled for', data.plannedItems.length, 'items');
+          if (contentError) {
+            console.error('Content item creation error:', contentError);
+            continue;
+          }
+          
+          contentItemsCreated++;
+
+          // Create content plan item linking to the content item
+          await supabase.from('content_plan_items').insert({
+            user_id: user.id,
+            plan_id: plan.id,
+            content_item_id: contentItem.id,
+            title: item.title,
+            content_type: item.type,
+            planned_date: item.date || null,
+            phase: item.phase || null,
+            selling_point_ids: item.sellingPointIds.length > 0 ? item.sellingPointIds : null,
+            messaging_angle: item.messagingAngle || null,
+            is_repurposed: item.isRepurposed,
+            status: 'planned',
+          });
+
+          // Generate tasks if enabled
+          if (data.generateTasks) {
+            // Create "Create" task
+            const { error: createTaskError } = await supabase.from('tasks').insert({
+              user_id: user.id,
+              task_text: `Create: ${item.title}`,
+              scheduled_date: item.date || null,
+              content_item_id: contentItem.id,
+              content_type: mappedType,
+              content_channel: mappedChannel,
+              content_creation_date: item.date || null,
+              content_publish_date: item.date || null,
+              project_id: data.launchId || null,
+              is_system_generated: true,
+              system_source: 'content_planner',
+              task_type: 'content_creation',
+              status: item.date ? 'scheduled' : 'backlog',
+            });
+
+            if (!createTaskError) tasksCreated++;
+
+            // Create "Publish" task if different publish date or always for clarity
+            if (item.date) {
+              const { error: publishTaskError } = await supabase.from('tasks').insert({
+                user_id: user.id,
+                task_text: `Publish: ${item.title}`,
+                scheduled_date: item.date,
+                content_item_id: contentItem.id,
+                content_type: mappedType,
+                content_channel: mappedChannel,
+                content_creation_date: item.date || null,
+                content_publish_date: item.date,
+                project_id: data.launchId || null,
+                is_system_generated: true,
+                system_source: 'content_planner',
+                task_type: 'content_publish',
+                status: 'scheduled',
+              });
+
+              if (!publishTaskError) tasksCreated++;
+            }
+          }
+        }
       }
 
       await clearDraft();
-      toast.success(`Content plan created with ${data.plannedItems.length} items!`);
       
-      // Navigate to content or project page
+      const message = data.generateTasks 
+        ? `Created ${contentItemsCreated} content items and ${tasksCreated} tasks!`
+        : `Content plan created with ${contentItemsCreated} items!`;
+      
+      toast.success(message);
+      
+      // Navigate to editorial calendar or project page
       if (data.launchId) {
         navigate(`/projects/${data.launchId}`);
       } else {
-        navigate('/content');
+        navigate('/editorial-calendar');
       }
     } catch (error) {
       console.error('Create content plan error:', error);

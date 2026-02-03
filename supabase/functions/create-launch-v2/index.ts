@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
-import { addDays, format, differenceInDays, parseISO } from 'https://esm.sh/date-fns@3.6.0';
+import { addDays, format, differenceInDays, parseISO, subDays } from 'https://esm.sh/date-fns@3.6.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -43,6 +43,26 @@ const OFFER_FREQUENCY_MAP: Record<string, number> = {
   unsure: 1,
 };
 
+// Email sequence type labels
+const EMAIL_SEQUENCE_LABELS: Record<string, string> = {
+  warmUp: 'Warm-Up',
+  launch: 'Launch',
+  cartClose: 'Cart Close',
+  postPurchase: 'Post-Purchase',
+  custom: 'Custom',
+};
+
+function getSequenceLabel(type: string): string {
+  return EMAIL_SEQUENCE_LABELS[type] || type;
+}
+
+interface EmailSequenceItem {
+  type: string;
+  customName?: string;
+  status: 'existing' | 'needs-creation';
+  deadline?: string;
+}
+
 interface LaunchV2Data {
   name: string;
   launchExperience?: string;
@@ -84,6 +104,8 @@ interface LaunchV2Data {
   gapOverlapDetected?: boolean;
   readinessScore?: number;
   whatYouNeed?: string;
+  // Email sequences with status tracking
+  emailSequences?: EmailSequenceItem[];
 }
 
 interface TaskToCreate {
@@ -93,6 +115,23 @@ interface TaskToCreate {
   phase: string;
   estimated_minutes?: number;
   is_system_generated: boolean;
+  content_item_id?: string;
+  content_type?: string;
+  content_channel?: string;
+  content_creation_date?: string;
+  content_publish_date?: string;
+}
+
+interface ContentItemToCreate {
+  user_id: string;
+  title: string;
+  type: string;
+  channel: string;
+  status: string;
+  project_id: string;
+  planned_creation_date: string;
+  planned_publish_date: string;
+  tags: string[];
 }
 
 Deno.serve(async (req) => {
@@ -206,8 +245,98 @@ Deno.serve(async (req) => {
 
     if (launchError) throw launchError;
 
-    // 3. Generate tasks
+    // 3. Create content items for email sequences (NEW)
+    const contentItems: ContentItemToCreate[] = [];
+    const contentItemMap = new Map<string, string>(); // sequence key -> content_item_id
+    
+    if (data.emailSequences && data.emailSequences.length > 0) {
+      for (const sequence of data.emailSequences) {
+        if (sequence.status === 'needs-creation') {
+          const publishDateStr = sequence.deadline || data.cartOpensDate;
+          const publishDate = parseISO(publishDateStr);
+          const createDate = subDays(publishDate, 3);
+          const sequenceLabel = sequence.customName || getSequenceLabel(sequence.type);
+          
+          contentItems.push({
+            user_id: userId,
+            title: `${sequenceLabel} Email Sequence`,
+            type: 'Newsletter',
+            channel: 'Email',
+            status: 'Draft',
+            project_id: project.id,
+            planned_creation_date: format(createDate, 'yyyy-MM-dd'),
+            planned_publish_date: publishDateStr,
+            tags: ['launch', 'email', data.name],
+          });
+        }
+      }
+      
+      // Insert content items and get their IDs
+      if (contentItems.length > 0) {
+        const { data: createdContent, error: contentError } = await serviceClient
+          .from('content_items')
+          .insert(contentItems)
+          .select('id, title');
+        
+        if (contentError) {
+          console.error('Content items error:', contentError);
+        } else if (createdContent) {
+          // Map content items back to sequences for task linking
+          createdContent.forEach((item, index) => {
+            const sequence = data.emailSequences!.filter(s => s.status === 'needs-creation')[index];
+            if (sequence) {
+              contentItemMap.set(sequence.type, item.id);
+            }
+          });
+        }
+      }
+    }
+
+    // 4. Generate tasks
     const tasks: TaskToCreate[] = [];
+
+    // Email sequence tasks (with content linking)
+    if (data.emailSequences && data.emailSequences.length > 0) {
+      for (const sequence of data.emailSequences) {
+        if (sequence.status === 'needs-creation') {
+          const publishDateStr = sequence.deadline || data.cartOpensDate;
+          const publishDate = parseISO(publishDateStr);
+          const createDate = subDays(publishDate, 3);
+          const sequenceLabel = sequence.customName || getSequenceLabel(sequence.type);
+          const contentItemId = contentItemMap.get(sequence.type);
+          
+          // Create task
+          tasks.push({
+            task_text: `Create: ${sequenceLabel} Email Sequence`,
+            scheduled_date: format(createDate, 'yyyy-MM-dd'),
+            task_type: 'content_creation',
+            phase: 'pre_launch',
+            estimated_minutes: 60,
+            is_system_generated: true,
+            content_item_id: contentItemId,
+            content_type: 'Newsletter',
+            content_channel: 'Email',
+            content_creation_date: format(createDate, 'yyyy-MM-dd'),
+            content_publish_date: publishDateStr,
+          });
+          
+          // Publish/Send task
+          tasks.push({
+            task_text: `Send: ${sequenceLabel} Email Sequence`,
+            scheduled_date: publishDateStr,
+            task_type: 'content_publish',
+            phase: 'pre_launch',
+            estimated_minutes: 15,
+            is_system_generated: true,
+            content_item_id: contentItemId,
+            content_type: 'Newsletter',
+            content_channel: 'Email',
+            content_creation_date: format(createDate, 'yyyy-MM-dd'),
+            content_publish_date: publishDateStr,
+          });
+        }
+      }
+    }
 
     // PRE-LAUNCH TASKS
     // ----------------
@@ -505,7 +634,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 4. Insert all tasks
+    // 5. Insert all tasks
     const tasksWithMeta = tasks.map((task) => ({
       ...task,
       user_id: userId,
@@ -520,7 +649,7 @@ Deno.serve(async (req) => {
 
     if (tasksError) throw tasksError;
 
-    // 5. Create CTFAR entries for fears (max 3)
+    // 6. Create CTFAR entries for fears (max 3)
     if (data.biggestFears && data.biggestFears.length > 0) {
       // Get active cycle for linking
       const { data: activeCycle } = await serviceClient
@@ -547,7 +676,7 @@ Deno.serve(async (req) => {
       await serviceClient.from('ctfar').insert(ctfarEntries);
     }
 
-    // 6. Mark wizard completion
+    // 7. Mark wizard completion
     await serviceClient.from('wizard_completions').insert({
       user_id: userId,
       template_name: 'launch-planner-v2',
@@ -556,7 +685,7 @@ Deno.serve(async (req) => {
       created_project_id: project.id,
     });
 
-    // 7. Clear wizard draft
+    // 8. Clear wizard draft
     await serviceClient
       .from('wizard_drafts')
       .delete()
@@ -566,9 +695,10 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Launch created with ${tasks.length} tasks!`,
+        message: `Launch created with ${tasks.length} tasks and ${contentItems.length} content items!`,
         project_id: project.id,
         tasks_created: tasks.length,
+        content_items_created: contentItems.length,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
