@@ -1,326 +1,408 @@
 
+# Editorial Calendar Simplification & High-Value Enhancement Plan
 
-# Wizard App Integration Standard
-
-## Overview
-Establish a comprehensive integration pattern ensuring all wizards (existing and future) automatically connect with the rest of the application: Daily/Weekly/Monthly/90-Day planning pages, Editorial Calendar, Projects, Tasks, and other relevant surfaces.
-
----
-
-## Current State Analysis
-
-### Existing Wizards
-
-| Wizard | Creates | Integrates With | Missing Integration |
-|--------|---------|-----------------|---------------------|
-| **90-Day Cycle** | `cycles_90_day` record | Dashboard, all planners, reviews | None - fully integrated |
-| **Launch Planner V2** | Project, Tasks, content_items, launches record | Dashboard (LaunchZone), Daily/Weekly/Monthly (LaunchModeSection, check-ins), Editorial Calendar | Fully integrated |
-| **Money Momentum Sprint** | `revenue_sprints`, recurring tasks | Daily Plan (DailySprintSection), Sprint Dashboard | Not in Weekly/Monthly reviews |
-| **Summit Planner** | Project, Tasks, `summits` record | Project board only | Missing: Dashboard, Daily/Weekly views, no summit phase tracking |
-| **Content Planner** | content_items, content_plan_items, tasks | Editorial Calendar, Task list | Needs content_items link verification |
-
-### Integration Points Available
-
-1. **Dashboard** - LaunchZone widget, sprint section, cycle progress
-2. **Daily Plan** - LaunchModeSection, DailySprintSection, CycleProgressBanner
-3. **Weekly Plan** - Context pull, alignment check, metrics
-4. **Monthly Review** - Launch progress, cycle snapshot
-5. **Editorial Calendar** - content_items, content_plan_items, tasks with content_type
-6. **Task List** - All tasks with content indicators
+## Executive Summary
+A comprehensive overhaul of the Editorial Calendar to make it simple and high-value through 5 major improvements:
+1. Fix platform toggle saving (TikTok and all platforms)
+2. Add custom platform support
+3. Fix content addition with rich fields
+4. Add recurring content capability
+5. Implement customizable content types
 
 ---
 
-## Integration Gaps to Fix
+## Part 1: Fix Platform Toggle Saving
 
-### 1. Summit Wizard - No Dashboard/Planner Integration
+### Current Issue
+The `useUserPlatforms.ts` hook has a timing issue - the toggle mutation doesn't await properly and the optimistic update relies on query invalidation which may not reflect immediately.
 
-**Current:** Creates project and tasks only
+### Solution
 
-**Missing:**
-- No `useActiveSummits()` hook like `useActiveLaunches()`
-- No SummitModeSection in Daily Plan
-- No summit phase tracking or banners
-- No summit check-in questions in reviews
+**File: `src/hooks/useUserPlatforms.ts`**
 
-### 2. Money Momentum Sprint - Limited Review Integration
-
-**Current:** Appears in Daily Plan via DailySprintSection
-
-**Missing:**
-- No sprint section in Weekly Plan/Review
-- No sprint progress in Monthly Review
-- No sprint ROI summary after completion
-
-### 3. Content Planner - Task Linking Incomplete
-
-**Current:** Creates content_items and tasks separately
-
-**Missing:**
-- Verify content_item_id is set on all generated tasks
-- Ensure tasks have proper content_type/content_channel fields
-
----
-
-## Solution Architecture
-
-### Part 1: Create Wizard Integration Registry
-
-Central configuration defining what each wizard creates and where it integrates.
-
-**New file:** `src/lib/wizardIntegration.ts`
+Add proper error handling and toast feedback:
 
 ```typescript
-interface WizardIntegrationConfig {
-  templateName: string;
-  creates: {
-    table: string;
-    type: 'record' | 'project' | 'tasks' | 'content_items';
-  }[];
-  integratesWith: {
-    dashboard?: boolean;
-    dailyPlan?: boolean;
-    weeklyPlan?: boolean;
-    monthlyReview?: boolean;
-    editorialCalendar?: boolean;
-    taskList?: boolean;
+const togglePlatform = useMutation({
+  mutationFn: async ({ platform, isActive }: { platform: string; isActive: boolean }) => {
+    if (!user?.id) throw new Error('Not authenticated');
+    
+    const existing = query.data?.find(p => p.platform === platform);
+    
+    if (existing) {
+      const { error } = await supabase
+        .from('user_content_platforms')
+        .update({ is_active: isActive })
+        .eq('id', existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from('user_content_platforms')
+        .insert({ ... });
+      if (error) throw error;
+    }
+    
+    return { platform, isActive }; // Return for toast
+  },
+  onSuccess: (data) => {
+    queryClient.invalidateQueries({ queryKey: ['user-platforms', user?.id] });
+    toast.success(`${data.platform} ${data.isActive ? 'enabled' : 'disabled'}`);
+  },
+  onError: (error) => {
+    toast.error('Failed to update platform. Please try again.');
+  },
+});
+```
+
+**File: `src/components/editorial-calendar/PlatformConfigModal.tsx`**
+
+Fix the async toggle handler to properly await:
+
+```typescript
+const handleToggle = async (platform: string, isActive: boolean) => {
+  setPendingToggles(prev => new Set(prev).add(platform));
+  try {
+    await togglePlatformAsync({ platform, isActive }); // Use mutateAsync
+  } catch (error) {
+    // Error handled by mutation
+  } finally {
+    setPendingToggles(prev => {
+      const next = new Set(prev);
+      next.delete(platform);
+      return next;
+    });
+  }
+};
+```
+
+---
+
+## Part 2: Add Custom Platform Support
+
+### Database Changes
+
+```sql
+ALTER TABLE user_content_platforms
+  ADD COLUMN IF NOT EXISTS is_custom BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS custom_name TEXT,
+  ADD COLUMN IF NOT EXISTS short_label TEXT;
+```
+
+### New Component: `CustomPlatformDialog.tsx`
+
+**File: `src/components/editorial-calendar/CustomPlatformDialog.tsx`**
+
+Dialog for adding/editing custom platforms:
+
+- Platform Name (required, max 50 chars)
+- Display Color (color picker, default #6B7280)
+- Short Label (max 3 chars, auto-generated from first 2 letters)
+- [Cancel] [Save Platform]
+
+Creates entry with:
+- `platform`: slugified name (e.g., "my-platform")
+- `is_custom`: true
+- `custom_name`: original display name
+- `short_label`: user-defined or auto-generated
+- `color`: selected color
+- `is_active`: true
+
+### Update `PlatformConfigModal.tsx`
+
+Add two sections:
+
+**Section 1: Default Platforms** (existing list with toggles)
+
+**Section 2: Custom Platforms**
+- [+ Add Custom Platform] button
+- List of user's custom platforms with [Edit] [Delete] icons
+- Delete confirmation dialog
+
+### Update `useUserPlatforms.ts`
+
+Add mutations:
+- `addCustomPlatform(name, color, shortLabel)`
+- `updateCustomPlatform(id, updates)`
+- `deleteCustomPlatform(id)`
+
+Update `getPlatformColor()` and `getPlatformLabel()` to check custom platforms first.
+
+### Update Platform Filter Bar
+
+Show both default and custom platforms:
+- Custom platforms appear with same styling
+- Custom platforms show delete (X) button on hover
+
+---
+
+## Part 3: Enhanced Content Addition Dialog
+
+### Database Changes
+
+```sql
+ALTER TABLE content_items
+  ADD COLUMN IF NOT EXISTS promoting TEXT,
+  ADD COLUMN IF NOT EXISTS launch_id UUID REFERENCES launches(id),
+  ADD COLUMN IF NOT EXISTS scheduled_time TIME,
+  ADD COLUMN IF NOT EXISTS idea_id UUID REFERENCES ideas(id),
+  ADD COLUMN IF NOT EXISTS is_recurring BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS recurring_parent_id UUID REFERENCES content_items(id),
+  ADD COLUMN IF NOT EXISTS recurrence_pattern JSONB;
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_content_items_launch_id ON content_items(launch_id);
+CREATE INDEX IF NOT EXISTS idx_content_items_idea_id ON content_items(idea_id);
+CREATE INDEX IF NOT EXISTS idx_content_items_recurring_parent ON content_items(recurring_parent_id);
+```
+
+### Rewrite `CalendarQuickAdd.tsx` as `AddContentDialog.tsx`
+
+**File: `src/components/editorial-calendar/AddContentDialog.tsx`**
+
+Full-featured content creation dialog:
+
+**Basic Info Section:**
+- Title* (text, max 200, required)
+- Platform (dropdown: user's active + custom platforms)
+- Content Type (dropdown: user's content types - see Part 5)
+
+**Schedule Section:**
+- Creation Date (date picker, optional)
+- Publish Date (date picker, optional)
+- Time to Post (time picker, optional, format HH:MM AM/PM)
+
+**Details Section:**
+- Promoting (text, max 200)
+  - Placeholder: "Product launch, affiliate offer, free resource..."
+- Related to Launch (dropdown)
+  - Query: `SELECT id, name, cart_opens FROM launches WHERE user_id = ? AND status NOT IN ('completed', 'cancelled') ORDER BY cart_opens DESC`
+  - Display: "[Launch Name] (Opens: MMM DD)"
+  - Empty state: "No active launches"
+- Link to Idea (searchable dropdown)
+  - Query: `SELECT id, content FROM ideas WHERE user_id = ? ORDER BY created_at DESC LIMIT 100`
+  - When selected, auto-populates title field
+
+**Content Section:**
+- Copy/Notes (textarea, max 2000)
+  - Placeholder: "Draft your copy, add notes, brainstorm hooks..."
+
+**Recurring Toggle (at top):**
+- [ ] Make this recurring
+
+When checked, shows additional fields (see Part 4).
+
+### Validation
+
+- Title is required
+- All other fields optional
+- `type` defaults to 'post' if not selected
+- `status` defaults to 'draft'
+
+---
+
+## Part 4: Recurring Content Support
+
+### UI in AddContentDialog
+
+When "Make this recurring" is checked, show:
+
+**Recurrence Pattern:**
+- Frequency (dropdown):
+  - Daily
+  - Weekly
+  - Bi-weekly
+  - Monthly
+
+- Repeat on (if Weekly/Bi-weekly):
+  - Checkboxes: Mon Tue Wed Thu Fri Sat Sun
+
+- Repeat on (if Monthly):
+  - Dropdown: 1st, 2nd, ..., 31st, Last day of month
+
+- Ends (radio):
+  - Never
+  - On date: [date picker]
+  - After X occurrences: [number input, default 12]
+
+### Behavior When Saved
+
+1. Create parent content_item with:
+   - `is_recurring`: true
+   - `recurrence_pattern`: JSON storing pattern config
+
+2. Generate child content_items:
+   - Calculate dates based on pattern
+   - Create up to 52 occurrences (1 year) or until end date
+   - Each child has:
+     - `recurring_parent_id`: parent's ID
+     - All same details (title, platform, type, etc.)
+     - Adjusted creation/publish dates
+
+### Create Utility: `src/lib/recurrenceUtils.ts`
+
+Functions:
+- `generateRecurrenceDates(pattern, startDate, endDate?)`: Returns array of dates
+- `createRecurringItems(parentItem, dates)`: Creates child items
+- `updateRecurringChildren(parentId, updates, scope: 'this' | 'all_future')`: Batch update
+
+### Edit Behavior
+
+When editing a recurring item, show:
+- "This is part of a recurring series" indicator
+- Options:
+  - Edit this occurrence only
+  - Edit all future occurrences
+
+When deleting:
+- "Delete this occurrence only" or "Delete entire series"
+
+---
+
+## Part 5: Customizable Content Types
+
+### Database Changes
+
+```sql
+CREATE TABLE IF NOT EXISTS user_content_types (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  type_key TEXT NOT NULL,
+  type_label TEXT NOT NULL,
+  platform TEXT,
+  icon TEXT DEFAULT 'FileText',
+  color TEXT DEFAULT '#6B7280',
+  is_custom BOOLEAN DEFAULT false,
+  is_active BOOLEAN DEFAULT true,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, type_key)
+);
+
+CREATE INDEX idx_user_content_types_user ON user_content_types(user_id);
+
+ALTER TABLE user_content_types ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users manage own content types"
+  ON user_content_types FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+```
+
+### New Hook: `useUserContentTypes.ts`
+
+**File: `src/hooks/useUserContentTypes.ts`**
+
+```typescript
+export function useUserContentTypes() {
+  // Fetch user's content types
+  // If empty, seed with defaults based on active platforms
+  
+  return {
+    contentTypes,
+    activeContentTypes,
+    toggleContentType,
+    addCustomContentType,
+    updateContentType,
+    deleteContentType,
+    getContentTypeIcon,
+    getContentTypeLabel,
   };
-  activeHook?: string; // Name of the React Query hook
-  phaseTracking?: boolean;
 }
-
-const WIZARD_INTEGRATIONS: WizardIntegrationConfig[] = [
-  {
-    templateName: 'cycle-90-day-wizard',
-    creates: [{ table: 'cycles_90_day', type: 'record' }],
-    integratesWith: {
-      dashboard: true,
-      dailyPlan: true,
-      weeklyPlan: true,
-      monthlyReview: true,
-    },
-    activeHook: 'useActiveCycle',
-    phaseTracking: true, // Tracks weeks 1-13
-  },
-  {
-    templateName: 'launch-planner-v2',
-    creates: [
-      { table: 'projects', type: 'project' },
-      { table: 'launches', type: 'record' },
-      { table: 'tasks', type: 'tasks' },
-      { table: 'content_items', type: 'content_items' },
-    ],
-    integratesWith: {
-      dashboard: true,
-      dailyPlan: true,
-      weeklyPlan: true,
-      monthlyReview: true,
-      editorialCalendar: true,
-      taskList: true,
-    },
-    activeHook: 'useActiveLaunches',
-    phaseTracking: true, // Runway, Pre-Launch, Cart Open, Post-Launch
-  },
-  {
-    templateName: 'summit-planner',
-    creates: [
-      { table: 'projects', type: 'project' },
-      { table: 'summits', type: 'record' },
-      { table: 'tasks', type: 'tasks' },
-    ],
-    integratesWith: {
-      dashboard: true,
-      dailyPlan: true,
-      weeklyPlan: true,
-      monthlyReview: true,
-      taskList: true,
-    },
-    activeHook: 'useActiveSummits', // TO CREATE
-    phaseTracking: true, // Speaker Recruitment, Content, Promo, Live, Post
-  },
-  {
-    templateName: 'money_momentum',
-    creates: [
-      { table: 'revenue_sprints', type: 'record' },
-      { table: 'tasks', type: 'tasks' },
-    ],
-    integratesWith: {
-      dashboard: true,
-      dailyPlan: true,
-      weeklyPlan: true, // TO ADD
-      monthlyReview: true, // TO ADD
-    },
-    activeHook: 'useActiveSprint',
-    phaseTracking: false,
-  },
-  {
-    templateName: 'content-planner',
-    creates: [
-      { table: 'content_items', type: 'content_items' },
-      { table: 'content_plan_items', type: 'content_items' },
-      { table: 'tasks', type: 'tasks' },
-    ],
-    integratesWith: {
-      editorialCalendar: true,
-      taskList: true,
-    },
-    phaseTracking: false,
-  },
-];
 ```
 
----
+### Seed Defaults
 
-### Part 2: Create Missing Hooks
+On first load (when table is empty for user), auto-create entries for standard types:
+- post, reel, video, blog-post, newsletter, podcast-episode, email-single, carousel, live-stream, story
 
-#### 2a. Create `useActiveSummits` Hook
+### New Component: `ContentTypeConfigSection.tsx`
 
-**New file:** `src/hooks/useActiveSummits.ts`
+Add to Settings page or create `/settings/content-types`:
 
-Pattern mirrors `useActiveLaunches`:
-- Fetch summits where today falls within planning period (registration_opens to post-summit)
-- Calculate phase: Speaker Recruitment, Content Creation, Promotion, Live, Post-Summit
-- Include task progress from linked project
-- Generate check-in questions per phase
+**Section 1: Default Content Types**
+- List with checkboxes showing all defaults from CONTENT_TYPE_ICONS
+- User can toggle on/off
 
-#### 2b. Extend `useActiveSprint` Return Data
+**Section 2: Custom Content Types**
+- [+ Add Custom Type] button
+- Dialog:
+  - Type Name (required, max 50)
+  - Platform (optional dropdown)
+  - Icon (dropdown of Lucide icons)
+- Custom types show [Edit] [Delete] options
 
-Add fields needed for weekly/monthly display:
-- `weeklyProgress`: aggregated revenue for current week
-- `weekToDateTarget`: calculated weekly target
-- `isOnTrack`: boolean based on pace
+### Update Content Dropdowns
 
----
+In AddContentDialog and CalendarQuickAdd:
+- Query `user_content_types WHERE user_id = ? AND is_active = true`
+- Group by platform if platform is set
+- Show icon + label
 
-### Part 3: Create Missing UI Components
+### Fallback Behavior
 
-#### 3a. SummitModeSection Component
-
-**New file:** `src/components/daily-plan/SummitModeSection.tsx`
-
-Similar to LaunchModeSection:
-- Show current phase (Speaker Recruitment, Content, Promo, Live, Post-Summit)
-- Display task progress
-- Quick reflection for summit-specific metrics
-- Link to summit project
-
-#### 3b. WeeklySprintSection Component
-
-**New file:** `src/components/weekly-plan/WeeklySprintSection.tsx`
-
-Shows in Weekly Plan/Review:
-- Sprint progress bar
-- Week-to-date revenue vs target
-- Sprint actions completion rate
-- Link to full Sprint Dashboard
-
-#### 3c. SummitCheckInCard Component
-
-**New file:** `src/components/reviews/SummitCheckInCard.tsx`
-
-Add summit-specific check-in questions to reviews:
-- Speaker confirmations count
-- Registration numbers (during promo)
-- AAP sales (during live)
+If user's type is deleted:
+- Content items with that type still display (with default icon)
+- Type dropdown shows as "Unknown Type" or falls back
 
 ---
 
-### Part 4: Update Existing Pages
+## Part 6: Enhanced Quick Edit Drawer
 
-#### 4a. Daily Plan Updates
+### Update `ContentQuickEditDrawer.tsx`
 
-Add to conditional sections:
+Expand to show ALL editable fields:
 
-```typescript
-// In DailyPlan.tsx section components
-summit_mode: () => activeSummit && <SummitModeSection summit={activeSummit} />,
+**Scheduling Section:**
+- Creation Date (date picker)
+- Publish Date (date picker)
+- Time to Post (time picker)
+
+**Details Section:**
+- Title (editable text input)
+- Platform (dropdown)
+- Content Type (dropdown)
+- What's this promoting? (text input)
+- Launch (dropdown from launches)
+- Link to Idea (searchable dropdown)
+
+**Content Section:**
+- Copy/Notes (expandable textarea)
+
+**Status Section:**
+- Status (dropdown: draft, scheduled, in-progress, published, cancelled)
+
+### Update Calendar Cards
+
+Show additional badges when data is present:
+- Time badge: "3:00 PM" (if scheduled_time set)
+- Launch badge: rocket icon + launch name (if launch_id set)
+- Idea badge: lightbulb icon (if idea_id set)
+- Recurring badge: repeat icon (if is_recurring)
+
+---
+
+## Part 7: Launch Integration
+
+### Auto-populate Launch Dropdown
+
+Query active launches:
+```sql
+SELECT id, name, cart_opens, cart_closes, status
+FROM launches
+WHERE user_id = ?
+  AND status IN ('planning', 'active', 'scheduled')
+ORDER BY cart_opens DESC
 ```
 
-Requires:
-- Import and call `useActiveSummits()`
-- Add 'summit_mode' to section order options
+Display format: "[Launch Name] (Opens: Mon DD)"
 
-#### 4b. Weekly Plan Updates
+Empty state: "No active launches - [Create one in Launch Wizard]" with link
 
-Add new sections:
+### Smart Suggestion
 
-```typescript
-// Sprint section (when active sprint exists)
-{activeSprint && <WeeklySprintSection sprint={activeSprint} />}
-
-// Summit section (when active summit exists)  
-{activeSummit && <SummitProgressCard summit={activeSummit} />}
-```
-
-#### 4c. Monthly Review Updates
-
-Add summit check-ins to review:
-
-```typescript
-// Alongside LaunchProgressCard
-<SummitCheckInCard />
-<SprintSummaryCard />
-```
-
----
-
-### Part 5: Standardize Wizard Output Helpers
-
-Create shared utilities all wizards use when generating output.
-
-**Extend:** `src/lib/wizardContentHelpers.ts`
-
-Add functions:
-- `generateLinkedTask()` - Creates task with proper content_item_id, content_type, etc.
-- `generateContentItem()` - Creates content_item with all required fields
-- `calculateRelativeDate()` - Standard date calculation from reference date
-- `linkTaskToContent()` - Ensures bidirectional linking
-
----
-
-### Part 6: Edge Function Updates
-
-#### 6a. Update `create-summit` Edge Function
-
-Add:
-- Create content_items for email sequences
-- Set content_type, content_channel on tasks
-- Link tasks to content_items where applicable
-
-#### 6b. Verify `create-launch-v2` Edge Function
-
-Confirm:
-- All email sequence tasks have content_item_id set
-- content_creation_date and content_publish_date populated
-- Tasks appear in Editorial Calendar queries
-
----
-
-## Implementation Order
-
-### Phase 1: Hooks & Types (Foundation)
-1. Create `src/lib/wizardIntegration.ts` registry
-2. Create `src/hooks/useActiveSummits.ts`
-3. Extend `useActiveSprint` with weekly aggregates
-
-### Phase 2: Daily Plan Integration
-4. Create `SummitModeSection.tsx`
-5. Update DailyPlan.tsx to include summit mode
-6. Add 'summit_mode' to layout customization options
-
-### Phase 3: Weekly/Monthly Integration
-7. Create `WeeklySprintSection.tsx`
-8. Create `SummitCheckInCard.tsx`
-9. Update WeeklyPlan.tsx to include sprint and summit sections
-10. Update MonthlyReview.tsx with sprint summary
-
-### Phase 4: Edge Function Fixes
-11. Update `create-summit` to generate content_items
-12. Verify `create-launch-v2` content linking
-13. Test Editorial Calendar displays all wizard content
-
-### Phase 5: Future-Proofing
-14. Document wizard integration pattern in code comments
-15. Create wizard integration checklist for new wizards
+When creating content:
+- If current date is within 30 days of a launch's cart_opens
+- Show subtle prompt: "This might be for [Launch Name]. [Assign] [Skip]"
 
 ---
 
@@ -328,47 +410,136 @@ Confirm:
 
 | File | Action | Description |
 |------|--------|-------------|
-| `src/lib/wizardIntegration.ts` | Create | Central wizard config registry |
-| `src/hooks/useActiveSummits.ts` | Create | Hook for active summit data |
-| `src/hooks/useActiveSprint.ts` | Modify | Add weekly aggregates |
-| `src/components/daily-plan/SummitModeSection.tsx` | Create | Summit banner for daily plan |
-| `src/components/weekly-plan/WeeklySprintSection.tsx` | Create | Sprint progress for weekly view |
-| `src/components/reviews/SummitCheckInCard.tsx` | Create | Summit check-in for reviews |
-| `src/pages/DailyPlan.tsx` | Modify | Add summit mode section |
-| `src/pages/WeeklyPlan.tsx` | Modify | Add sprint and summit sections |
-| `src/pages/MonthlyReview.tsx` | Modify | Add sprint summary |
-| `supabase/functions/create-summit/index.ts` | Modify | Add content_items creation |
-| `src/lib/wizardContentHelpers.ts` | Extend | Add shared helper functions |
+| `src/hooks/useUserPlatforms.ts` | Modify | Fix toggle saving, add custom platform support, add toast feedback |
+| `src/components/editorial-calendar/PlatformConfigModal.tsx` | Modify | Split sections, add custom platforms UI |
+| `src/components/editorial-calendar/CustomPlatformDialog.tsx` | Create | Dialog for adding/editing custom platforms |
+| `src/components/editorial-calendar/AddContentDialog.tsx` | Create | Full-featured replacement for CalendarQuickAdd |
+| `src/components/editorial-calendar/CalendarQuickAdd.tsx` | Delete | Replaced by AddContentDialog |
+| `src/lib/recurrenceUtils.ts` | Create | Utilities for recurring content |
+| `src/hooks/useUserContentTypes.ts` | Create | Hook for managing user content types |
+| `src/components/settings/ContentTypeConfigSection.tsx` | Create | UI for managing content types |
+| `src/components/editorial-calendar/ContentQuickEditDrawer.tsx` | Modify | Expand with all editable fields |
+| `src/components/editorial-calendar/CalendarContentCard.tsx` | Modify | Add time/launch/idea/recurring badges |
+| `src/lib/calendarConstants.ts` | Modify | Add helper for custom platform lookups |
+| `src/hooks/useLaunches.ts` | Create | Hook for querying active launches |
+
+### Database Migrations
+
+**Migration 1: Custom Platforms**
+```sql
+ALTER TABLE user_content_platforms
+  ADD COLUMN IF NOT EXISTS is_custom BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS custom_name TEXT,
+  ADD COLUMN IF NOT EXISTS short_label TEXT;
+```
+
+**Migration 2: Enhanced Content Items**
+```sql
+ALTER TABLE content_items
+  ADD COLUMN IF NOT EXISTS promoting TEXT,
+  ADD COLUMN IF NOT EXISTS launch_id UUID REFERENCES launches(id),
+  ADD COLUMN IF NOT EXISTS scheduled_time TIME,
+  ADD COLUMN IF NOT EXISTS idea_id UUID REFERENCES ideas(id),
+  ADD COLUMN IF NOT EXISTS is_recurring BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS recurring_parent_id UUID REFERENCES content_items(id),
+  ADD COLUMN IF NOT EXISTS recurrence_pattern JSONB;
+
+CREATE INDEX IF NOT EXISTS idx_content_items_launch_id ON content_items(launch_id);
+CREATE INDEX IF NOT EXISTS idx_content_items_idea_id ON content_items(idea_id);
+CREATE INDEX IF NOT EXISTS idx_content_items_recurring_parent ON content_items(recurring_parent_id);
+```
+
+**Migration 3: User Content Types**
+```sql
+CREATE TABLE IF NOT EXISTS user_content_types (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  type_key TEXT NOT NULL,
+  type_label TEXT NOT NULL,
+  platform TEXT,
+  icon TEXT DEFAULT 'FileText',
+  color TEXT DEFAULT '#6B7280',
+  is_custom BOOLEAN DEFAULT false,
+  is_active BOOLEAN DEFAULT true,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, type_key)
+);
+
+CREATE INDEX idx_user_content_types_user ON user_content_types(user_id);
+
+ALTER TABLE user_content_types ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users manage own content types"
+  ON user_content_types FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+```
 
 ---
 
-## Future Wizard Checklist
+## Implementation Order
 
-When creating new wizards, ensure:
+### Phase 1: Fix Existing Issues (Quick Wins)
+1. Fix platform toggle saving with toast feedback
+2. Fix PlatformConfigModal async handling
 
-1. **Database Records**: Create records in appropriate tables
-2. **Project Creation**: If applicable, create project with proper flags
-3. **Task Generation**: Use `generateLinkedTask()` helper with:
-   - `content_item_id` when content-related
-   - `content_type` and `content_channel` fields
-   - `content_creation_date` and `content_publish_date` for calendar
-4. **Content Items**: For content-related wizards, create content_items
-5. **Active Hook**: Create `useActiveX()` hook if wizard creates time-bounded records
-6. **Dashboard Widget**: Add to Dashboard if user needs visibility
-7. **Daily/Weekly Integration**: Add mode section if wizard is "active" during a period
-8. **Review Integration**: Add check-in questions for reviews
-9. **Editorial Calendar**: Ensure content appears in calendar queries
-10. **Registry Entry**: Add to `WIZARD_INTEGRATIONS` config
+### Phase 2: Custom Platforms
+3. Run database migration for custom platform columns
+4. Create CustomPlatformDialog component
+5. Update PlatformConfigModal with custom section
+6. Update useUserPlatforms hook
+
+### Phase 3: Enhanced Content Creation
+7. Run database migration for content_items
+8. Create AddContentDialog component
+9. Create useLaunches hook
+10. Update EditorialCalendarView to use new dialog
+
+### Phase 4: Recurring Content
+11. Create recurrenceUtils.ts
+12. Add recurring UI to AddContentDialog
+13. Update ContentQuickEditDrawer for recurring edit options
+
+### Phase 5: Custom Content Types
+14. Run database migration for user_content_types
+15. Create useUserContentTypes hook
+16. Create ContentTypeConfigSection for settings
+17. Update content type dropdowns everywhere
+
+### Phase 6: Polish
+18. Update CalendarContentCard with new badges
+19. Expand ContentQuickEditDrawer with all fields
+20. Add launch smart suggestion
 
 ---
 
-## Testing Verification
+## Testing Checklist
 
-After implementation, verify:
+**Platform Toggles:**
+- [ ] Toggle TikTok on → saves immediately, shows toast
+- [ ] Toggle TikTok off → saves immediately, disappears from filter bar
+- [ ] Refresh page → toggle state persists
 
-1. Summit wizard → Items appear in Daily Plan, Weekly Plan, Monthly Review
-2. Money Momentum Sprint → Week summary appears in Weekly Plan
-3. Launch wizard → Content items show in Editorial Calendar Create/Publish lanes
-4. Content Planner → All items have linked tasks with proper dates
-5. All wizards → Tasks appear in task list with content badges where applicable
+**Custom Platforms:**
+- [ ] Add custom "Threads" platform → appears in filter bar
+- [ ] Custom platform works in calendar filtering
+- [ ] Edit custom platform color → updates everywhere
+- [ ] Delete custom platform → removed from filter bar, existing content still shows
 
+**Content Addition:**
+- [ ] Add content with just title → saves without error
+- [ ] Add content with all fields → all data saves correctly
+- [ ] Launch dropdown shows active launches
+- [ ] Idea selection auto-populates title
+
+**Recurring Content:**
+- [ ] Create weekly recurring "Email Newsletter" → creates 13 instances
+- [ ] Edit parent → option to update all future
+- [ ] Delete child → only that one removed
+- [ ] Delete parent → option to delete all
+
+**Content Types:**
+- [ ] Toggle off "TikTok Video" → doesn't show in Add Content dialog
+- [ ] Add custom "Pinterest Pin" → shows in dialog
+- [ ] Delete custom type → content with that type still displays
