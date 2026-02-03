@@ -25,7 +25,8 @@ import {
   Folder,
   Flag,
   Eye,
-  Edit2
+  Edit2,
+  FileText
 } from 'lucide-react';
 import { Task, ENERGY_LEVELS, DURATION_OPTIONS } from './types';
 import {
@@ -306,6 +307,31 @@ export function TaskCard({
             </Badge>
           )}
         </div>
+
+        {/* Content Calendar indicator */}
+        {task.content_type && (
+          <div className="flex flex-wrap items-center gap-2 text-sm mt-2">
+            <Badge 
+              variant="outline" 
+              className="text-xs px-1.5 py-0 h-5 bg-violet-500/10 border-violet-500/30 text-violet-600 dark:text-violet-400"
+            >
+              <FileText className="h-3 w-3 mr-1" />
+              {task.content_type}
+            </Badge>
+            {task.content_channel && (
+              <span className="text-xs text-muted-foreground">
+                • {task.content_channel}
+              </span>
+            )}
+            {(task.content_creation_date || task.content_publish_date) && (
+              <span className="text-xs text-muted-foreground">
+                {task.content_creation_date && `Create: ${format(parseISO(task.content_creation_date), 'MMM d')}`}
+                {task.content_creation_date && task.content_publish_date && ' → '}
+                {task.content_publish_date && `Publish: ${format(parseISO(task.content_publish_date), 'MMM d')}`}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Task Description (truncated) */}
         {task.task_description && !task.is_completed && (
