@@ -33,6 +33,10 @@ import { SaveStatusIndicator, SaveStatusBanner } from '@/components/SaveStatusIn
 
 import { CycleProgressBanner } from '@/components/cycle/CycleProgressBanner';
 import { ToastAction } from '@/components/ui/toast';
+import { WeeklySprintSection } from '@/components/weekly-plan/WeeklySprintSection';
+import { SummitCheckInCard } from '@/components/reviews/SummitCheckInCard';
+import { useActiveSprint } from '@/hooks/useActiveSprint';
+import { useActiveSummits } from '@/hooks/useActiveSummits';
 
 export default function WeeklyPlan() {
   const { user } = useAuth();
@@ -40,6 +44,10 @@ export default function WeeklyPlan() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const highlightTaskId = searchParams.get('highlightTask');
+  
+  // Active wizard data
+  const { data: sprintData } = useActiveSprint();
+  const { data: activeSummits = [] } = useActiveSummits();
   
   // Tab state for the new planner
   const [activeTab, setActiveTab] = useState<'planner' | 'worksheet'>('planner');
@@ -574,6 +582,16 @@ export default function WeeklyPlan() {
                   taskExecution={executionSummary.task_execution || { priority_completed: 0, priority_total: 0, strategic_completed: 0, strategic_total: 0 }}
                   habitGrid={executionSummary.habit_grid || []}
                 />
+              )}
+
+              {/* Sprint Progress Section (when active sprint) */}
+              {sprintData && (
+                <WeeklySprintSection sprintData={sprintData} />
+              )}
+
+              {/* Summit Check-In Section (when active summit) */}
+              {activeSummits.length > 0 && (
+                <SummitCheckInCard />
               )}
 
               {/* Last Week's Priorities for Carry-Over */}

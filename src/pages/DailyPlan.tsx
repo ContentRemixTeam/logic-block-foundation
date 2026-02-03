@@ -50,7 +50,9 @@ import { CycleProgressBanner } from '@/components/cycle/CycleProgressBanner';
 import { LaunchModeSection } from '@/components/daily-plan/LaunchModeSection';
 import { QuickLaunchReflectionCard } from '@/components/daily-plan/QuickLaunchReflectionCard';
 import { DailySprintSection } from '@/components/daily-plan/DailySprintSection';
+import { SummitModeSection } from '@/components/daily-plan/SummitModeSection';
 import { useActiveLaunches } from '@/hooks/useActiveLaunches';
+import { useActiveSummits } from '@/hooks/useActiveSummits';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -79,10 +81,13 @@ export default function DailyPlan() {
   const queryClient = useQueryClient();
   const { data: activeCycleData } = useActiveCycle();
   const { data: activeLaunches = [] } = useActiveLaunches();
+  const { data: activeSummits = [] } = useActiveSummits();
   const isMobile = useIsMobile();
   
   // Get the primary active launch (first one if multiple)
   const activeLaunch = activeLaunches.length > 0 ? activeLaunches[0] : null;
+  // Get the primary active summit (first one if multiple)
+  const activeSummit = activeSummits.length > 0 ? activeSummits[0] : null;
   
   // Layout preferences
   const { layout, isSectionVisible, getAllSectionsInOrder, isLoading: layoutLoading } = useDailyPageLayout();
@@ -1006,6 +1011,11 @@ export default function DailyPlan() {
           <LaunchModeSection launch={activeLaunch} />
         )}
 
+        {/* 2.6 Summit Mode Section (during active summits) */}
+        {activeSummit && !activeLaunch && (
+          <SummitModeSection summit={activeSummit} />
+        )}
+
         {/* 3. GAP Reconnection Message (conditional) */}
         {gapStatus?.shouldShowAlert && activeCycleData && (
           <Card className={`border-2 ${
@@ -1154,6 +1164,8 @@ export default function DailyPlan() {
             // Render functions return JSX or null for conditional sections
             const sectionComponents: Record<string, () => React.ReactNode> = {
               revenue_sprint: () => <DailySprintSection />,
+
+              summit_mode: () => activeSummit ? <SummitModeSection summit={activeSummit} /> : null,
 
               habits_tracker: () => <HabitTrackerCard view="daily" />,
 
