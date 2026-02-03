@@ -1,259 +1,139 @@
 
+# Wizard History Feature
 
-# Money Momentum Wizard UX Improvements
-
-## Problem Statement
-The current wizard design assumes all users have the same business context. Several sections force interaction (expense cuts, past customers, warm leads) without providing clear "not applicable" options. This creates friction for business owners whose situations don't match the assumptions.
-
-## Analysis of Current Issues
-
-### Step 2: Reality Check - Expense Audit
-**Current**: Shows checkboxes for expense types + savings input. No way to indicate "I've already optimized my expenses" or "Not applicable to my business."
-
-**Business cases not covered**:
-- Solo consultants with minimal overhead
-- Businesses that already run lean
-- New businesses with no subscriptions yet
-- Those who genuinely can't cut anything
-
-### Step 3: What You Already Have
-**Current**: Requires at least 1 offer + either past customers OR warm leads.
-
-**Business cases not covered**:
-- Brand new businesses with no past customers
-- Service providers who do all custom work (no "offers")
-- Those pivoting to a new niche (old customers irrelevant)
-- B2B with long sales cycles and few customers
-
-### Step 4: Revenue Actions
-**Current**: Brainstorm sections assume specific business models (bundles, VIP tiers, payment plans, flash sales).
-
-**Business cases not covered**:
-- Service businesses that sell time, not products
-- B2B consultants (no "flash sales")
-- Those with only one offer (can't bundle)
-- New businesses without past flash sale data
+## Overview
+Add a "History" section to the Wizards page that displays all past wizard completions with the wizard name and completion date. Users can view a chronological list of everything they've completed.
 
 ---
 
-## Proposed Changes
+## User Experience
 
-### 1. Step 2: Add "Nothing to Cut" Option
+### Location
+Add a tabbed interface to the Wizards page:
+- **Wizards** tab (default): Current wizard cards
+- **History** tab: Past completions list
 
-**Add before expense checkboxes:**
+### History List View
+Each item shows:
+- Wizard icon (from template)
+- Wizard display name (e.g., "Launch Planner", "Money Momentum Sprint")
+- Completion date (formatted: "Feb 3, 2026 at 2:30 PM")
+- Optional: Link to view created resource (cycle, project) if one was generated
+
+---
+
+## Implementation
+
+### File Changes
+
+**1. Update WizardHub.tsx**
+- Add state for active tab: `'wizards' | 'history'`
+- Add tab switcher UI using existing ViewSwitcher component
+- Conditionally render wizard cards OR history list based on tab
+- Create `WizardHistoryList` component inline or extract to separate file
+
+**2. Create WizardHistoryList Component**
+- Accept completions array and templates map as props
+- Map template_name to display_name using templates data
+- Format dates using `date-fns` format function
+- Display in a clean list/table layout with:
+  - Icon (from template.icon mapped to Lucide icons)
+  - Display name
+  - Formatted date
+  - View action (if `created_cycle_id` exists)
+
+### Data Flow
+- Already loading all completions in WizardHub useEffect
+- Already have templates loaded with display_name and icon mappings
+- Create lookup map: `templateName -> displayName`
+
+### UI Layout
 ```
-"Can you cut expenses this month?"
++---------------------------+
+| Smart Wizards             |
+| Description text          |
++---------------------------+
+| [Wizards] [History]       |  <- Tab switcher
++---------------------------+
 
-○ Yes - let me look
-○ No - I've already optimized / Not applicable
+History Tab Content:
++---------------------------+
+| 💰 Money Momentum Sprint  |
+|    Feb 3, 2026 at 2:30 PM |
++---------------------------+
+| 💰 Money Momentum Sprint  |
+|    Feb 3, 2026 at 12:00 AM|
++---------------------------+
+| 🚀 Launch Planner         |
+|    Jan 28, 2026 at 4:15 PM|
++---------------------------+
 ```
 
-If "No" selected:
-- Skip the checkboxes entirely
-- Show supportive message: "Good - you're already running lean. Let's focus on revenue instead."
-- Set `canCutExpenses: false` in data
-- Still allow them to see/check options if they change their mind via "Actually, let me look" link
+---
 
-**Type addition:**
+## Technical Details
+
+### Template Name to Display Name Mapping
 ```typescript
-canCutExpenses: boolean | null;  // null = not answered yet
+// Create map from templates array
+const templateMap = useMemo(() => {
+  return templates.reduce((acc, t) => {
+    acc[t.template_name] = {
+      displayName: t.display_name,
+      icon: t.icon
+    };
+    return acc;
+  }, {} as Record<string, { displayName: string; icon: string | null }>);
+}, [templates]);
 ```
 
-### 2. Step 3: Make Sections More Flexible
-
-**Past Customers Section:**
-Add at start:
-```
-○ I have past customers I could reach out to
-○ I'm too new / My past customers aren't relevant for this
-```
-
-If "too new" selected:
-- Collapse the past customer fields
-- Show: "No problem - we'll focus on other revenue sources."
-
-**Warm Leads Section:**
-Add option:
-```
-○ I don't have warm leads right now
-```
-
-If selected:
-- Skip warm leads count
-- Show: "That's okay - we'll build your lead sources through actions."
-
-**Current Offers Section:**
-Add before offer input:
-```
-"How do you sell?"
-
-○ I have defined offers/packages (show offer input)
-○ I sell custom/project-based work (show different input)
-○ I'm still figuring out my offers
-```
-
-For custom/project-based:
-- Ask: "What's your typical project price range? $____ to $____"
-- Ask: "How many projects can you take on this month?"
-
-For "still figuring out":
-- Show encouragement: "That's okay! This sprint can help you test."
-- Ask: "What could you offer THIS WEEK even if imperfect?"
-
-**Remove strict validation**: Allow proceeding without offers if they selected "still figuring out"
-
-### 3. Step 4: Smarter Brainstorm Sections
-
-**Show/hide sections based on context:**
-- "All-Access Pass" - only if they have 2+ offers
-- "VIP Tier" - only if they have at least 1 offer
-- "Payment Plans" - only if they have offers $500+
-- "Flash Sale Replay" - ask "Have you run a sale before?" before showing
-
-**Always show:**
-- Quick Intensives (selling time works for everyone)
-- Past Client Bonuses (only if they said they have past customers)
-- Custom Idea (always available)
-
-**Add new universal sections:**
-- "Sell Your Time This Week" (consulting, coaching, audits)
-- "Quick Win Package" (what could you create fast?)
-- "Reach Out Directly" (DMs, calls, emails to specific people)
-
-### 4. Global: Add "Not Sure / Skip" Options Thoughtfully
-
-Where appropriate, add:
-- "I'm not sure yet" as a valid option (saved for later reflection)
-- "Skip this section" with brief explanation
-
-**But NOT everywhere** - some things matter:
-- Revenue goal: Required (they need a target)
-- At least one action: Required (otherwise no sprint)
-- Survival mode check: Required (safety check)
-
----
-
-## Data Model Updates
-
+### Date Formatting
 ```typescript
-// Add to MoneyMomentumData:
+import { format } from 'date-fns';
 
-// Step 2 additions
-canCutExpenses: boolean | null;  // true = will check, false = already lean, null = unanswered
-
-// Step 3 additions
-hasPastCustomers: boolean | null;  // true = has relevant ones, false = new/pivoting
-hasWarmLeads: boolean | null;  // true = has some, false = none right now
-offerType: 'defined' | 'custom-project' | 'figuring-out' | null;
-projectPriceMin: number | null;  // for custom-project type
-projectPriceMax: number | null;
-projectCapacity: number | null;  // how many projects this month
-quickOfferIdea: string;  // for figuring-out type
+// Format as "Feb 3, 2026 at 2:30 PM"
+format(new Date(completion.completed_at), "MMM d, yyyy 'at' h:mm a")
 ```
 
----
-
-## Updated Default Data
-
+### Icon Mapping
+Already exists in WizardHub:
 ```typescript
-// Add to DEFAULT_MONEY_MOMENTUM_DATA:
-canCutExpenses: null,
-hasPastCustomers: null,
-hasWarmLeads: null,
-offerType: null,
-projectPriceMin: null,
-projectPriceMax: null,
-projectCapacity: null,
-quickOfferIdea: '',
+const ICON_MAP: Record<string, React.ReactNode> = {
+  Target: <Target className="h-5 w-5" />,
+  Rocket: <Rocket className="h-5 w-5" />,
+  Mail: <Mail className="h-5 w-5" />,
+  Zap: <Zap className="h-5 w-5" />,
+  DollarSign: <DollarSign className="h-5 w-5" />,
+};
 ```
 
 ---
 
-## Implementation Sequence
+## Components Structure
 
-1. **Update Types** (`src/types/moneyMomentum.ts`)
-   - Add new fields to interface and defaults
+### Option A: Inline in WizardHub (simpler)
+Keep everything in WizardHub.tsx with conditional rendering
 
-2. **Update Step 2** (`StepRealityCheck.tsx`)
-   - Add "Can you cut expenses?" gate question
-   - Conditionally show expense checkboxes
-   - Add supportive messaging for "No" selection
+### Option B: Extract Component (cleaner)
+Create `src/components/wizards/WizardHistoryList.tsx`:
+- Receives `completions`, `templates` as props
+- Handles rendering and navigation
+- WizardHub manages tabs and passes data
 
-3. **Update Step 3** (`StepWhatYouHave.tsx`)
-   - Add offer type question with 3 options
-   - Handle custom-project and figuring-out flows
-   - Add past customers gate question
-   - Add warm leads gate question
-   - Relax validation requirements
-
-4. **Update Step 4** (`StepRevenueActions.tsx`)
-   - Conditionally show brainstorm sections based on context
-   - Add universal sections that work for all business types
-   - Improve section visibility logic
-
-5. **Test with edge cases**
-   - New business owner (no customers, no offers)
-   - Lean business (can't cut expenses)
-   - Service provider (custom work, not products)
-   - Pivoting entrepreneur (old customers irrelevant)
+Recommend **Option A** for simplicity since the logic is straightforward and keeps related code together.
 
 ---
 
-## Technical Notes
-
-### Conditional Rendering Logic (Step 4)
-
-```typescript
-// Show All-Access Pass only if 2+ offers
-const showAllAccessPass = data.currentOffers.length >= 2;
-
-// Show VIP Tier only if has offers
-const showVipTier = data.currentOffers.length >= 1 || data.offerType === 'custom-project';
-
-// Show Payment Plans only if has $500+ offer
-const showPaymentPlans = data.currentOffers.some(o => o.price >= 500) || 
-  (data.projectPriceMax && data.projectPriceMax >= 500);
-
-// Show Past Client Bonuses only if they said they have past customers
-const showPastClientBonuses = data.hasPastCustomers === true && data.pastCustomersComfortable > 0;
-
-// Show Flash Sale only after asking if they've done one
-const showFlashSale = data.hasRunFlashSale === true;
-
-// Always show these:
-// - Quick Intensives
-// - Custom Idea
-// - Direct Outreach (new)
+## Empty State
+When no completions exist:
+```
+No completed wizards yet.
+Complete a wizard to see it here.
 ```
 
-### Validation Changes
-
-**Current (too strict):**
-- Must have 1+ offers
-- Must have past customers OR warm leads
-
-**Proposed (flexible):**
-- If `offerType === 'figuring-out'`, allow proceeding without offers
-- If `hasPastCustomers === false && hasWarmLeads === false`, show guidance but allow proceeding
-- Focus validation on: "Do you have at least 3 actions selected?"
-
 ---
 
-## Summary
-
-This update makes the wizard more inclusive by:
-
-1. Adding clear "not applicable" paths for each section
-2. Supporting different business models (products vs services vs custom work)
-3. Removing assumptions that don't apply to all entrepreneurs
-4. Keeping required elements that matter (goal, actions, commitment)
-5. Using conditional logic to show relevant brainstorm prompts
-
-The result is a wizard that works for:
-- Brand new entrepreneurs
-- Lean operations
-- Service providers
-- Product creators
-- Coaches and consultants
-- B2B and B2C businesses
-
+## Mobile Considerations
+- Stack list items vertically
+- Full-width tap target
+- Date below title on smaller screens
