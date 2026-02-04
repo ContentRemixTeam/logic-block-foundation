@@ -1,15 +1,25 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Target, ArrowRight, RotateCcw, Rocket, Mail, Zap, DollarSign, History, ExternalLink } from 'lucide-react';
+import { Target, ArrowRight, RotateCcw, Rocket, Mail, Zap, DollarSign, History, ExternalLink, Lightbulb, Sparkles } from 'lucide-react';
 import { WizardTemplate, WizardCompletion } from '@/types/wizard';
 import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from 'sonner';
+
+// Fully implemented wizards that should be shown
+const IMPLEMENTED_WIZARDS = [
+  'cycle-90-day',
+  'launch-planner',
+  'habit-planner',
+  'content-planner',
+  'summit-planner',
+  'money_momentum',
+];
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   Target: <Target className="h-8 w-8" />,
@@ -147,59 +157,61 @@ export default function WizardHub() {
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="wizards">
+      <TabsContent value="wizards" className="space-y-6">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {templates.map(template => {
-            const lastCompletion = getLastCompletion(template.template_name);
-            const icon = template.icon ? ICON_MAP[template.icon] : <Target className="h-8 w-8" />;
+          {templates
+            .filter(template => IMPLEMENTED_WIZARDS.includes(template.template_name))
+            .map(template => {
+              const lastCompletion = getLastCompletion(template.template_name);
+              const icon = template.icon ? ICON_MAP[template.icon] : <Target className="h-8 w-8" />;
 
-            return (
-              <Card key={template.id} className="flex flex-col">
-                <CardHeader>
-                  <div className="p-2 rounded-lg bg-primary/10 text-primary w-fit">
-                    {icon}
-                  </div>
-                  <CardTitle className="mt-3">{template.display_name}</CardTitle>
-                  <CardDescription>{template.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col justify-end gap-3">
-                  {lastCompletion && (
-                    <div className="text-sm text-muted-foreground">
-                      Last completed {formatDistanceToNow(new Date(lastCompletion.completed_at), { addSuffix: true })}
+              return (
+                <Card key={template.id} className="flex flex-col">
+                  <CardHeader>
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary w-fit">
+                      {icon}
                     </div>
-                  )}
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={() => handleStart(template.template_name)}
-                      className="flex-1"
-                    >
-                      {lastCompletion ? (
-                        <>
-                          <RotateCcw className="h-4 w-4 mr-2" />
-                          Create Another
-                        </>
-                      ) : (
-                        <>
-                          Start
-                          <ArrowRight className="h-4 w-4 ml-2" />
-                        </>
-                      )}
-                    </Button>
-                    {lastCompletion?.created_cycle_id && (
-                      <Button 
-                        variant="outline"
-                        onClick={() => handleViewLast(lastCompletion)}
-                      >
-                        View Last
-                      </Button>
+                    <CardTitle className="mt-3">{template.display_name}</CardTitle>
+                    <CardDescription>{template.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-1 flex flex-col justify-end gap-3">
+                    {lastCompletion && (
+                      <div className="text-sm text-muted-foreground">
+                        Last completed {formatDistanceToNow(new Date(lastCompletion.completed_at), { addSuffix: true })}
+                      </div>
                     )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => handleStart(template.template_name)}
+                        className="flex-1"
+                      >
+                        {lastCompletion ? (
+                          <>
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                            Create Another
+                          </>
+                        ) : (
+                          <>
+                            Start
+                            <ArrowRight className="h-4 w-4 ml-2" />
+                          </>
+                        )}
+                      </Button>
+                      {lastCompletion?.created_cycle_id && (
+                        <Button 
+                          variant="outline"
+                          onClick={() => handleViewLast(lastCompletion)}
+                        >
+                          View Last
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
 
-          {templates.length === 0 && (
+          {templates.filter(t => IMPLEMENTED_WIZARDS.includes(t.template_name)).length === 0 && (
             <Card className="col-span-full">
               <CardContent className="py-12 text-center text-muted-foreground">
                 <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -208,6 +220,27 @@ export default function WizardHub() {
             </Card>
           )}
         </div>
+
+        {/* Coming Soon Banner */}
+        <Card className="border-dashed border-2 bg-muted/30">
+          <CardContent className="py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3 text-center sm:text-left">
+              <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                <Sparkles className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="font-medium">More Wizards Coming Soon!</p>
+                <p className="text-sm text-muted-foreground">We're building more guided workflows to help you grow.</p>
+              </div>
+            </div>
+            <Button variant="outline" asChild className="shrink-0">
+              <Link to="/support?tab=features">
+                <Lightbulb className="h-4 w-4 mr-2" />
+                Request a Wizard
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
       </TabsContent>
 
       <TabsContent value="history">
