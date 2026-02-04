@@ -27,6 +27,7 @@ import {
 import { useSpeechDictation } from './useSpeechDictation';
 import { EditableChips } from './EditableChips';
 import { QuickChips } from './QuickChips';
+import { IdeaQuickChips } from './IdeaQuickChips';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ContentSaveModal } from '@/components/content/ContentSaveModal';
@@ -1502,13 +1503,21 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
               </div>
             )}
 
-            {/* Idea preview */}
+            {/* Idea preview with metadata chips */}
             {captureType === 'idea' && input.trim() && (
-              <div className="p-3 rounded-lg bg-muted/50 space-y-3">
+              <div className="p-3 rounded-lg bg-muted/50 space-y-2">
                 <div className="text-sm font-medium flex items-center gap-2">
                   <Lightbulb className="h-4 w-4 text-yellow-500" />
                   {cleanIdeaInput(input) || '(enter your idea)'}
                 </div>
+                
+                {/* Idea metadata chips for mobile */}
+                <IdeaQuickChips
+                  ideaData={ideaData}
+                  onUpdate={setIdeaData}
+                  categories={ideaCategories}
+                  projects={projects}
+                />
               </div>
             )}
           </>

@@ -3,6 +3,7 @@ export { QuickCaptureButton } from './QuickCaptureButton';
 export { QuickCaptureModal } from './QuickCaptureModal';
 export { EditableChips } from './EditableChips';
 export { QuickChips } from './QuickChips';
+export { IdeaQuickChips } from './IdeaQuickChips';
 export { useSpeechDictation } from './useSpeechDictation';
 export { 
   detectCaptureType, 

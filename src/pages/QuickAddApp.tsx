@@ -21,6 +21,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ManifestSwitcher } from '@/components/pwa/ManifestSwitcher';
+import { IdeaQuickChips } from '@/components/quick-capture/IdeaQuickChips';
+import { useProjects } from '@/hooks/useProjects';
 
 type CaptureType = 'task' | 'idea' | 'expense' | 'income';
 
@@ -63,17 +65,56 @@ const typeOptions: TypeOption[] = [
   },
 ];
 
+interface IdeaData {
+  categoryId: string | null;
+  priority: string | null;
+  tags: string[];
+  projectId: string | null;
+}
+
+interface IdeaCategory {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export default function QuickAddApp() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const { data: projects = [] } = useProjects();
   const [selectedType, setSelectedType] = useState<CaptureType>('task');
   const [inputValue, setInputValue] = useState('');
   const [amount, setAmount] = useState('');
   const [saving, setSaving] = useState(false);
   const [sessionCount, setSessionCount] = useState(0);
+  
+  // Idea metadata state
+  const [ideaData, setIdeaData] = useState<IdeaData>({ 
+    categoryId: null, 
+    priority: null, 
+    tags: [], 
+    projectId: null 
+  });
+  const [ideaCategories, setIdeaCategories] = useState<IdeaCategory[]>([]);
 
   const currentType = typeOptions.find(t => t.id === selectedType)!;
   const isFinancial = selectedType === 'expense' || selectedType === 'income';
+
+  // Fetch idea categories on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      if (!user) return;
+      try {
+        const { data, error } = await supabase.functions.invoke('get-ideas', {});
+        if (!error && data?.categories) {
+          setIdeaCategories(data.categories);
+        }
+      } catch (err) {
+        console.error('Failed to fetch idea categories:', err);
+      }
+    };
+    fetchCategories();
+  }, [user]);
 
   const handleSave = useCallback(async () => {
     if (!inputValue.trim()) return;
@@ -101,6 +142,10 @@ export default function QuickAddApp() {
         const { error } = await supabase.from('ideas').insert({
           user_id: user.id,
           content: inputValue.trim(),
+          category_id: ideaData.categoryId,
+          priority: ideaData.priority,
+          project_id: ideaData.projectId,
+          tags: ideaData.tags.length > 0 ? ideaData.tags : null,
           source_note_title: 'Quick Add',
         });
         if (error) throw error;
@@ -119,6 +164,7 @@ export default function QuickAddApp() {
       setSessionCount(prev => prev + 1);
       setInputValue('');
       setAmount('');
+      setIdeaData({ categoryId: null, priority: null, tags: [], projectId: null });
       
       // Haptic feedback on mobile
       if (navigator.vibrate) {
@@ -212,6 +258,7 @@ export default function QuickAddApp() {
                   setSelectedType(type.id);
                   setInputValue('');
                   setAmount('');
+                  setIdeaData({ categoryId: null, priority: null, tags: [], projectId: null });
                 }}
                 className={cn(
                   'flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all',
@@ -274,6 +321,22 @@ export default function QuickAddApp() {
                       }}
                     />
                   </div>
+                </div>
+              )}
+
+              {/* Idea metadata chips */}
+              {selectedType === 'idea' && inputValue.trim() && (
+                <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+                  <div className="text-sm font-medium flex items-center gap-2 mb-2">
+                    <Lightbulb className="h-4 w-4 text-yellow-500" />
+                    <span className="text-muted-foreground">Add details</span>
+                  </div>
+                  <IdeaQuickChips
+                    ideaData={ideaData}
+                    onUpdate={setIdeaData}
+                    categories={ideaCategories}
+                    projects={projects}
+                  />
                 </div>
               )}
 
