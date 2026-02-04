@@ -490,7 +490,10 @@ export type Database = {
           cycle_id: string | null
           hook: string | null
           id: string
+          idea_id: string | null
+          is_recurring: boolean | null
           is_template: boolean | null
+          launch_id: string | null
           likes: number | null
           link_url: string | null
           messaging_angle: string | null
@@ -502,11 +505,15 @@ export type Database = {
           planned_publish_date: string | null
           preview_text: string | null
           project_id: string | null
+          promoting: string | null
           publish_task_id: string | null
           published_at: string | null
+          recurrence_pattern: Json | null
+          recurring_parent_id: string | null
           repurposed_from_id: string | null
           revenue: number | null
           saves: number | null
+          scheduled_time: string | null
           selling_point_ids: string[] | null
           shares: number | null
           status: string
@@ -531,7 +538,10 @@ export type Database = {
           cycle_id?: string | null
           hook?: string | null
           id?: string
+          idea_id?: string | null
+          is_recurring?: boolean | null
           is_template?: boolean | null
+          launch_id?: string | null
           likes?: number | null
           link_url?: string | null
           messaging_angle?: string | null
@@ -543,11 +553,15 @@ export type Database = {
           planned_publish_date?: string | null
           preview_text?: string | null
           project_id?: string | null
+          promoting?: string | null
           publish_task_id?: string | null
           published_at?: string | null
+          recurrence_pattern?: Json | null
+          recurring_parent_id?: string | null
           repurposed_from_id?: string | null
           revenue?: number | null
           saves?: number | null
+          scheduled_time?: string | null
           selling_point_ids?: string[] | null
           shares?: number | null
           status?: string
@@ -572,7 +586,10 @@ export type Database = {
           cycle_id?: string | null
           hook?: string | null
           id?: string
+          idea_id?: string | null
+          is_recurring?: boolean | null
           is_template?: boolean | null
+          launch_id?: string | null
           likes?: number | null
           link_url?: string | null
           messaging_angle?: string | null
@@ -584,11 +601,15 @@ export type Database = {
           planned_publish_date?: string | null
           preview_text?: string | null
           project_id?: string | null
+          promoting?: string | null
           publish_task_id?: string | null
           published_at?: string | null
+          recurrence_pattern?: Json | null
+          recurring_parent_id?: string | null
           repurposed_from_id?: string | null
           revenue?: number | null
           saves?: number | null
+          scheduled_time?: string | null
           selling_point_ids?: string[] | null
           shares?: number | null
           status?: string
@@ -611,10 +632,24 @@ export type Database = {
             referencedColumns: ["cycle_id"]
           },
           {
+            foreignKeyName: "content_items_launch_id_fkey"
+            columns: ["launch_id"]
+            isOneToOne: false
+            referencedRelation: "launches"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "content_items_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_items_recurring_parent_id_fkey"
+            columns: ["recurring_parent_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
             referencedColumns: ["id"]
           },
           {
@@ -5546,28 +5581,79 @@ export type Database = {
         Row: {
           color: string
           created_at: string | null
+          custom_name: string | null
           id: string
           is_active: boolean | null
+          is_custom: boolean | null
           platform: string
+          short_label: string | null
           sort_order: number | null
           user_id: string
         }
         Insert: {
           color: string
           created_at?: string | null
+          custom_name?: string | null
           id?: string
           is_active?: boolean | null
+          is_custom?: boolean | null
           platform: string
+          short_label?: string | null
           sort_order?: number | null
           user_id: string
         }
         Update: {
           color?: string
           created_at?: string | null
+          custom_name?: string | null
           id?: string
           is_active?: boolean | null
+          is_custom?: boolean | null
           platform?: string
+          short_label?: string | null
           sort_order?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_content_types: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          is_custom: boolean | null
+          platform: string | null
+          sort_order: number | null
+          type_key: string
+          type_label: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_custom?: boolean | null
+          platform?: string | null
+          sort_order?: number | null
+          type_key: string
+          type_label: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_custom?: boolean | null
+          platform?: string | null
+          sort_order?: number | null
+          type_key?: string
+          type_label?: string
           user_id?: string
         }
         Relationships: []

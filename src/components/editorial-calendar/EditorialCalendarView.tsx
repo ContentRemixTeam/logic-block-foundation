@@ -11,7 +11,7 @@ import {
 } from '@dnd-kit/core';
 import { format, addWeeks, subWeeks, startOfWeek } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEditorialCalendar } from '@/hooks/useEditorialCalendar';
 import { CalendarItem } from '@/lib/calendarConstants';
@@ -22,7 +22,7 @@ import { ViewToggle } from './ViewToggle';
 import { ContentQuickEditDrawer } from './ContentQuickEditDrawer';
 import { CalendarContentCardOverlay } from './CalendarContentCard';
 import { CalendarOnboarding, useCalendarOnboardingSeen } from './CalendarOnboarding';
-import { CalendarQuickAdd } from './CalendarQuickAdd';
+import { AddContentDialog } from './AddContentDialog';
 import { PlatformConfigModal } from './PlatformConfigModal';
 import { toast } from 'sonner';
 
@@ -37,7 +37,7 @@ export function EditorialCalendarView() {
   
   // New modal states
   const [showOnboarding, setShowOnboarding] = useState(true);
-  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [addContentOpen, setAddContentOpen] = useState(false);
   const [platformConfigOpen, setPlatformConfigOpen] = useState(false);
   
   const hasSeenOnboarding = useCalendarOnboardingSeen();
@@ -194,8 +194,14 @@ export function EditorialCalendarView() {
           </span>
         </div>
 
-        {/* View Toggle */}
-        <ViewToggle view={view} onViewChange={setView} />
+        {/* Actions */}
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setAddContentOpen(true)} size="sm" className="gap-1">
+            <Plus className="h-4 w-4" />
+            Add Content
+          </Button>
+          <ViewToggle view={view} onViewChange={setView} />
+        </div>
       </div>
 
       {/* Platform Filter Bar */}
@@ -230,7 +236,7 @@ export function EditorialCalendarView() {
               items={unscheduledItems}
               onItemClick={handleItemClick}
               selectedPlatforms={selectedPlatforms}
-              onAddContentClick={() => setQuickAddOpen(true)}
+              onAddContentClick={() => setAddContentOpen(true)}
             />
           </div>
         </div>
@@ -255,10 +261,10 @@ export function EditorialCalendarView() {
         isSaving={isSaving}
       />
 
-      {/* Quick Add Modal */}
-      <CalendarQuickAdd
-        open={quickAddOpen}
-        onOpenChange={setQuickAddOpen}
+      {/* Add Content Dialog */}
+      <AddContentDialog
+        open={addContentOpen}
+        onOpenChange={setAddContentOpen}
       />
 
       {/* Platform Config Modal */}

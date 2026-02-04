@@ -8,5 +8,6 @@ export { PlatformFilterBar } from './PlatformFilterBar';
 export { ContentQuickEditDrawer } from './ContentQuickEditDrawer';
 export { ViewToggle } from './ViewToggle';
 export { CalendarOnboarding } from './CalendarOnboarding';
-export { CalendarQuickAdd } from './CalendarQuickAdd';
+export { AddContentDialog } from './AddContentDialog';
 export { PlatformConfigModal } from './PlatformConfigModal';
+export { CustomPlatformDialog } from './CustomPlatformDialog';
