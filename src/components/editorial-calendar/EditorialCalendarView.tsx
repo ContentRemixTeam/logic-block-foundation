@@ -13,7 +13,7 @@ import { format, addWeeks, subWeeks, startOfWeek } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { 
   ChevronLeft, ChevronRight, Calendar, Plus, Rocket, 
-  Inbox, LayoutGrid, ChevronDown, ChevronUp 
+  Inbox, LayoutGrid, ChevronDown, ChevronUp, Layers, Settings2 
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator } from '@/components/ui/select';
 import {
@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { useEditorialCalendar } from '@/hooks/useEditorialCalendar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { CalendarDensityProvider, useCalendarDensity, CalendarDensity } from '@/hooks/useCalendarDensity';
+import { useCalendarSettings } from '@/hooks/useCalendarSettings';
 import { CalendarItem } from '@/lib/calendarConstants';
 // Import components directly to avoid barrel export issues
 import { CalendarWeekView } from '@/components/editorial-calendar/CalendarWeekView';
@@ -41,6 +42,7 @@ import { AddContentDialog } from '@/components/editorial-calendar/AddContentDial
 import { PlatformConfigModal } from '@/components/editorial-calendar/PlatformConfigModal';
 import { CampaignSlideIn } from '@/components/editorial-calendar/CampaignSlideIn';
 import { CalendarStats } from '@/components/editorial-calendar/CalendarStats';
+import { DateModeSelector, CalendarDateMode } from '@/components/editorial-calendar/DateModeSelector';
 import { toast } from 'sonner';
 
 const DENSITY_LABELS: Record<CalendarDensity, string> = {
@@ -73,6 +75,8 @@ function EditorialCalendarViewInner() {
   // Modal states
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [addContentOpen, setAddContentOpen] = useState(false);
+  const [addContentInitialDate, setAddContentInitialDate] = useState<Date | undefined>();
+  const [addContentInitialLane, setAddContentInitialLane] = useState<'create' | 'publish' | undefined>();
   const [platformConfigOpen, setPlatformConfigOpen] = useState(false);
   
   // New responsive states
@@ -82,6 +86,7 @@ function EditorialCalendarViewInner() {
   const hasSeenOnboarding = useCalendarOnboardingSeen();
   const isMobile = useIsMobile();
   const { density, setDensity } = useCalendarDensity();
+  const { settings: calendarSettings, updateSettings } = useCalendarSettings();
 
   const { 
     items, 
@@ -133,6 +138,13 @@ function EditorialCalendarViewInner() {
     setEditDrawerOpen(true);
     if (isMobile) setMobilePoolOpen(false);
   };
+
+  // Quick add handler - click empty lane to add content
+  const handleAddClick = useCallback((date: Date, lane: 'create' | 'publish') => {
+    setAddContentInitialDate(date);
+    setAddContentInitialLane(lane);
+    setAddContentOpen(true);
+  }, []);
 
   // Save handler for quick edit
   const handleSaveEdit = useCallback(async (updates: { creationDate: string | null; publishDate: string | null }) => {
@@ -283,37 +295,53 @@ function EditorialCalendarViewInner() {
               </Select>
             )}
 
-            {/* Density Toggle */}
+            {/* Calendar Settings (Density + Date Mode) */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-9 gap-2 hidden md:flex">
-                  <LayoutGrid className="h-3.5 w-3.5" />
-                  <span className="hidden lg:inline">{DENSITY_LABELS[density]}</span>
+                  <Settings2 className="h-3.5 w-3.5" />
+                  <span className="hidden lg:inline">View</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setDensity('compact')}>
-                  <div className="flex flex-col">
-                    <span className="font-medium">Compact</span>
-                    <span className="text-xs text-muted-foreground">See more at once</span>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="px-2 py-1.5">
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">Density</p>
+                  <div className="space-y-1">
+                    <DropdownMenuItem onClick={() => setDensity('compact')}>
+                      <span className={density === 'compact' ? 'font-medium' : ''}>Compact</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setDensity('comfortable')}>
+                      <span className={density === 'comfortable' ? 'font-medium' : ''}>Comfortable</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setDensity('spacious')}>
+                      <span className={density === 'spacious' ? 'font-medium' : ''}>Spacious</span>
+                    </DropdownMenuItem>
                   </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setDensity('comfortable')}>
-                  <div className="flex flex-col">
-                    <span className="font-medium">Comfortable</span>
-                    <span className="text-xs text-muted-foreground">Balanced view (default)</span>
+                </div>
+                <div className="border-t border-border my-1" />
+                <div className="px-2 py-1.5">
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">Date Lanes</p>
+                  <div className="space-y-1">
+                    <DropdownMenuItem onClick={() => updateSettings({ calendarDateMode: 'dual' })}>
+                      <Layers className="h-3.5 w-3.5 mr-2" />
+                      <span className={calendarSettings.calendarDateMode === 'dual' ? 'font-medium' : ''}>Dual Lanes</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => updateSettings({ calendarDateMode: 'create-only' })}>
+                      <span className={calendarSettings.calendarDateMode === 'create-only' ? 'font-medium' : ''}>Create Only</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => updateSettings({ calendarDateMode: 'publish-only' })}>
+                      <span className={calendarSettings.calendarDateMode === 'publish-only' ? 'font-medium' : ''}>Publish Only</span>
+                    </DropdownMenuItem>
                   </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setDensity('spacious')}>
-                  <div className="flex flex-col">
-                    <span className="font-medium">Spacious</span>
-                    <span className="text-xs text-muted-foreground">More details visible</span>
-                  </div>
-                </DropdownMenuItem>
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button onClick={() => setAddContentOpen(true)} size="sm" className="gap-1.5 shadow-sm">
+            <Button onClick={() => {
+              setAddContentInitialDate(undefined);
+              setAddContentInitialLane(undefined);
+              setAddContentOpen(true);
+            }} size="sm" className="gap-1.5 shadow-sm">
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Add Content</span>
             </Button>
@@ -374,9 +402,11 @@ function EditorialCalendarViewInner() {
             campaigns={campaigns}
             getItemsForDay={getItemsForDay}
             onItemClick={handleItemClick}
+            onAddClick={handleAddClick}
             onCampaignClick={handleCampaignClick}
             view={view}
             selectedPlatforms={selectedPlatforms}
+            dateMode={calendarSettings.calendarDateMode}
           />
 
           {/* Desktop: Sidebar Pool */}
@@ -461,7 +491,15 @@ function EditorialCalendarViewInner() {
       {/* Add Content Dialog */}
       <AddContentDialog
         open={addContentOpen}
-        onOpenChange={setAddContentOpen}
+        onOpenChange={(open) => {
+          setAddContentOpen(open);
+          if (!open) {
+            setAddContentInitialDate(undefined);
+            setAddContentInitialLane(undefined);
+          }
+        }}
+        initialDate={addContentInitialDate}
+        initialLane={addContentInitialLane}
       />
 
       {/* Platform Config Modal */}

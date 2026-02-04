@@ -5921,6 +5921,7 @@ export type Database = {
           arcade_reduce_motion: boolean | null
           arcade_sounds_off: boolean | null
           auto_create_content_tasks: boolean | null
+          calendar_date_mode: string | null
           celebrations_enabled: boolean
           created_at: string | null
           current_debrief_streak: number | null
@@ -5970,6 +5971,7 @@ export type Database = {
           arcade_reduce_motion?: boolean | null
           arcade_sounds_off?: boolean | null
           auto_create_content_tasks?: boolean | null
+          calendar_date_mode?: string | null
           celebrations_enabled?: boolean
           created_at?: string | null
           current_debrief_streak?: number | null
@@ -6019,6 +6021,7 @@ export type Database = {
           arcade_reduce_motion?: boolean | null
           arcade_sounds_off?: boolean | null
           auto_create_content_tasks?: boolean | null
+          calendar_date_mode?: string | null
           celebrations_enabled?: boolean
           created_at?: string | null
           current_debrief_streak?: number | null

@@ -5,15 +5,18 @@ import { CalendarItem } from '@/lib/calendarConstants';
 import { CampaignBar, Campaign } from './CampaignBar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { CalendarDateMode } from '@/hooks/useCalendarSettings';
 
 interface CalendarWeekViewProps {
   weekStart: Date;
   campaigns?: Campaign[];
   getItemsForDay: (date: Date, lane: 'create' | 'publish') => CalendarItem[];
   onItemClick?: (item: CalendarItem) => void;
+  onAddClick?: (date: Date, lane: 'create' | 'publish') => void;
   onCampaignClick?: (campaignId: string) => void;
   view: 'publish' | 'create';
   selectedPlatforms: string[];
+  dateMode?: CalendarDateMode;
 }
 
 export function CalendarWeekView({
@@ -21,9 +24,11 @@ export function CalendarWeekView({
   campaigns = [],
   getItemsForDay,
   onItemClick,
+  onAddClick,
   onCampaignClick,
   view,
   selectedPlatforms,
+  dateMode = 'dual',
 }: CalendarWeekViewProps) {
   const isMobile = useIsMobile();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -98,7 +103,9 @@ export function CalendarWeekView({
               createItems={filterByPlatform(getItemsForDay(date, 'create'))}
               publishItems={filterByPlatform(getItemsForDay(date, 'publish'))}
               onItemClick={onItemClick}
+              onAddClick={onAddClick}
               view={view}
+              dateMode={dateMode}
             />
           </div>
         ))}

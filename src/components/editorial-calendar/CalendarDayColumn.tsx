@@ -4,15 +4,18 @@ import { cn } from '@/lib/utils';
 import { CalendarItem, SCHEDULE_COLORS } from '@/lib/calendarConstants';
 import { CalendarContentCard } from './CalendarContentCard';
 import { Badge } from '@/components/ui/badge';
-import { Palette, Send } from 'lucide-react';
+import { Palette, Send, Plus } from 'lucide-react';
 import { useCalendarDensity } from '@/hooks/useCalendarDensity';
+import { CalendarDateMode } from '@/hooks/useCalendarSettings';
 
 interface CalendarDayColumnProps {
   date: Date;
   createItems: CalendarItem[];
   publishItems: CalendarItem[];
   onItemClick?: (item: CalendarItem) => void;
+  onAddClick?: (date: Date, lane: 'create' | 'publish') => void;
   view: 'publish' | 'create';
+  dateMode?: CalendarDateMode;
 }
 
 export function CalendarDayColumn({
@@ -20,12 +23,17 @@ export function CalendarDayColumn({
   createItems,
   publishItems,
   onItemClick,
+  onAddClick,
   view,
+  dateMode = 'dual',
 }: CalendarDayColumnProps) {
   const dateStr = format(date, 'yyyy-MM-dd');
   const isCurrentDay = isToday(date);
   const totalItems = createItems.length + publishItems.length;
   const { density } = useCalendarDensity();
+
+  const showCreateLane = dateMode === 'dual' || dateMode === 'create-only';
+  const showPublishLane = dateMode === 'dual' || dateMode === 'publish-only';
 
   return (
     <div className={cn(
@@ -74,27 +82,37 @@ export function CalendarDayColumn({
       {/* Dual Lane Container */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Create Lane */}
-        <DroppableLane
-          id={`create-${dateStr}`}
-          lane="create"
-          items={createItems}
-          onItemClick={onItemClick}
-          isHighlighted={view === 'create'}
-          density={density}
-        />
+        {showCreateLane && (
+          <DroppableLane
+            id={`create-${dateStr}`}
+            lane="create"
+            items={createItems}
+            onItemClick={onItemClick}
+            onAddClick={() => onAddClick?.(date, 'create')}
+            isHighlighted={view === 'create'}
+            density={density}
+            isOnlyLane={!showPublishLane}
+          />
+        )}
 
-        {/* Divider */}
-        <div className="h-px bg-border shrink-0" />
+        {/* Divider - only show in dual mode */}
+        {showCreateLane && showPublishLane && (
+          <div className="h-px bg-border shrink-0" />
+        )}
 
         {/* Publish Lane */}
-        <DroppableLane
-          id={`publish-${dateStr}`}
-          lane="publish"
-          items={publishItems}
-          onItemClick={onItemClick}
-          isHighlighted={view === 'publish'}
-          density={density}
-        />
+        {showPublishLane && (
+          <DroppableLane
+            id={`publish-${dateStr}`}
+            lane="publish"
+            items={publishItems}
+            onItemClick={onItemClick}
+            onAddClick={() => onAddClick?.(date, 'publish')}
+            isHighlighted={view === 'publish'}
+            density={density}
+            isOnlyLane={!showCreateLane}
+          />
+        )}
       </div>
     </div>
   );
@@ -105,11 +123,13 @@ interface DroppableLaneProps {
   lane: 'create' | 'publish';
   items: CalendarItem[];
   onItemClick?: (item: CalendarItem) => void;
+  onAddClick?: () => void;
   isHighlighted?: boolean;
   density: 'compact' | 'comfortable' | 'spacious';
+  isOnlyLane?: boolean;
 }
 
-function DroppableLane({ id, lane, items, onItemClick, isHighlighted, density }: DroppableLaneProps) {
+function DroppableLane({ id, lane, items, onItemClick, onAddClick, isHighlighted, density, isOnlyLane }: DroppableLaneProps) {
   const { isOver, setNodeRef } = useDroppable({ id });
   const colors = SCHEDULE_COLORS[lane];
 
@@ -117,7 +137,9 @@ function DroppableLane({ id, lane, items, onItemClick, isHighlighted, density }:
     <div
       ref={setNodeRef}
       className={cn(
-        "flex-1 min-h-0 overflow-y-auto transition-colors",
+        "min-h-0 overflow-y-auto transition-colors relative group/lane",
+        // In single-lane mode, take full height; otherwise flex equally
+        isOnlyLane ? "flex-1" : "flex-1",
         // Density-based padding
         density === 'compact' && "p-1",
         density === 'comfortable' && "p-1.5",
@@ -181,21 +203,24 @@ function DroppableLane({ id, lane, items, onItemClick, isHighlighted, density }:
         ))}
       </div>
 
-      {/* Empty state */}
+      {/* Empty state with add button */}
       {items.length === 0 && !isOver && (
-        <div className={cn(
-          "flex flex-col items-center justify-center py-3 px-2 rounded-md border border-dashed text-center",
-          lane === 'create' ? "border-teal-500/30" : "border-violet-500/30"
-        )}>
+        <div 
+          onClick={onAddClick}
+          className={cn(
+            "flex flex-col items-center justify-center py-3 px-2 rounded-md border border-dashed text-center cursor-pointer transition-colors hover:bg-muted/50",
+            lane === 'create' ? "border-teal-500/30 hover:border-teal-500/50" : "border-violet-500/30 hover:border-violet-500/50"
+          )}
+        >
           {lane === 'create' ? (
             <>
-              <Palette className="h-4 w-4 mb-1 text-teal-500/40" />
-              <span className="text-[9px] font-medium text-teal-500/60">No content</span>
+              <Plus className="h-4 w-4 mb-1 text-teal-500/40 group-hover/lane:text-teal-500" />
+              <span className="text-[9px] font-medium text-teal-500/60 group-hover/lane:text-teal-500">Add content</span>
             </>
           ) : (
             <>
-              <Send className="h-4 w-4 mb-1 text-violet-500/40" />
-              <span className="text-[9px] font-medium text-violet-500/60">Nothing to publish</span>
+              <Plus className="h-4 w-4 mb-1 text-violet-500/40 group-hover/lane:text-violet-500" />
+              <span className="text-[9px] font-medium text-violet-500/60 group-hover/lane:text-violet-500">Add content</span>
             </>
           )}
         </div>
