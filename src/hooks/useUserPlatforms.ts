@@ -240,6 +240,62 @@ export function useUserPlatforms() {
     return PLATFORM_SHORT_LABELS[platform.toLowerCase()] || platform.slice(0, 2).toUpperCase();
   };
 
+  // Sync platforms from 90-day cycle strategy
+  const syncFromCycleStrategy = useMutation({
+    mutationFn: async (cycleId: string) => {
+      if (!user?.id) throw new Error('Not authenticated');
+
+      // Fetch cycle strategy
+      const { data: strategy, error: strategyError } = await supabase
+        .from('cycle_strategy')
+        .select('lead_primary_platform, secondary_platforms')
+        .eq('cycle_id', cycleId)
+        .single();
+
+      if (strategyError || !strategy) {
+        console.log('No cycle strategy found');
+        return [];
+      }
+
+      const platformsToEnable = new Set<string>();
+
+      // Add primary platform
+      if (strategy.lead_primary_platform && strategy.lead_primary_platform !== 'other') {
+        platformsToEnable.add(strategy.lead_primary_platform.toLowerCase());
+      }
+
+      // Add secondary platforms
+      const secondaryPlatforms = strategy.secondary_platforms as Array<{ platform?: string }> | null;
+      if (Array.isArray(secondaryPlatforms)) {
+        secondaryPlatforms.forEach(p => {
+          if (p?.platform) {
+            platformsToEnable.add(p.platform.toLowerCase());
+          }
+        });
+      }
+
+      // Enable each platform
+      for (const platform of platformsToEnable) {
+        // Check if already exists and is active
+        const existing = query.data?.find(p => p.platform.toLowerCase() === platform);
+        if (!existing || !existing.is_active) {
+          await togglePlatform.mutateAsync({ platform, isActive: true });
+        }
+      }
+
+      return Array.from(platformsToEnable);
+    },
+    onSuccess: (platforms) => {
+      queryClient.invalidateQueries({ queryKey: ['user-platforms', user?.id] });
+      if (platforms.length > 0) {
+        toast.success(`Synced ${platforms.length} platforms from your 90-day plan`);
+      }
+    },
+    onError: () => {
+      toast.error('Failed to sync platforms from cycle');
+    },
+  });
+
   return {
     platforms,
     activePlatforms,
@@ -255,6 +311,9 @@ export function useUserPlatforms() {
     // Async versions (for proper await)
     togglePlatformAsync: togglePlatform.mutateAsync,
     addCustomPlatformAsync: addCustomPlatform.mutateAsync,
+    // Sync from cycle
+    syncFromCycleStrategy: syncFromCycleStrategy.mutate,
+    isSyncingFromCycle: syncFromCycleStrategy.isPending,
     // Helpers
     getPlatformColor,
     getPlatformLabel,
