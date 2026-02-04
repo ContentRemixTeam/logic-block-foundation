@@ -1,208 +1,84 @@
 
-# Fix Editorial Calendar - Core Functionality and Stability
+# Fix Editorial Calendar "Failed to add content" Error
 
-## Problem Summary
+## Problem Identified
 
-The Editorial Calendar has critical bugs preventing it from functioning properly:
+When adding content to the Editorial Calendar, the database rejects the insert with this error:
 
-1. **Content Task Creation Fails**: The `createContentTasks` function uses incorrect column names (`title` instead of `task_text`, `status: 'pending'` instead of valid status values)
-2. **RLS Violations in related features**: The `arcade_wallet` table is causing RLS errors (unrelated but appearing in console)
-3. **Need for data protection**: Emergency save and offline resilience need to be integrated
+```
+"new row for relation \"content_items\" violates check constraint \"content_items_status_check\""
+```
+
+**The code is sending:** `status: 'idea'`
+**The database only accepts:** `'Draft'`, `'Ready'`, or `'Published'`
+
+This is a simple value mismatch - the code uses a status value that doesn't exist in the database.
 
 ---
 
-## Root Cause Analysis
+## The Fix
 
-### Issue 1: Wrong Column Names in Task Creation
+Update `AddContentDialog.tsx` to use `'Draft'` instead of `'idea'` in two locations:
 
-**File**: `src/components/editorial-calendar/AddContentDialog.tsx` (lines 163-205)
-
-The `createContentTasks` function inserts tasks with incorrect column names:
-
+### Location 1: Line 353 (base item for new content)
 ```typescript
-// CURRENT (BROKEN)
-tasksToCreate.push({
-  user_id: user.id,
-  title: `Create: ${contentTitle}`,        // WRONG - column doesn't exist
-  due_date: createDateStr,                  // CORRECT - column exists
-  status: 'pending',                         // WRONG - invalid value
-  // ...
-});
+// FROM:
+status: 'idea',
+
+// TO:
+status: 'Draft',
 ```
 
-**Database Reality** (verified via schema query):
-- Task text column is `task_text` (NOT `title`)
-- Valid status values are: `'backlog'`, `'scheduled'`, `'todo'`, `'waiting'`
-
-### Issue 2: Missing Error Handling
-
-When the task insert fails silently, users don't see clear feedback about what went wrong with their content creation.
-
----
-
-## Implementation Plan
-
-### Part 1: Fix Task Creation Column Names
-
-**File**: `src/components/editorial-calendar/AddContentDialog.tsx`
-
-Update the `createContentTasks` function:
-
+### Location 2: Line 409 (child items for recurring content)
 ```typescript
-// FROM
-tasksToCreate.push({
-  user_id: user.id,
-  title: `Create: ${contentTitle}`,
-  due_date: createDateStr,
-  // ...
-  status: 'pending',
-});
+// FROM:
+status: 'idea',
 
-// TO
-tasksToCreate.push({
-  user_id: user.id,
-  task_text: `Create: ${contentTitle}`,      // Fixed column name
-  scheduled_date: createDateStr,              // Use scheduled_date for calendar tasks
-  due_date: createDateStr,                    // Keep due_date as well
-  // ...
-  status: 'scheduled',                        // Valid status value
-});
+// TO:
+status: 'Draft',
 ```
 
-### Part 2: Add Proper Error Handling and Validation
+---
 
-Update the submit handlers to provide better feedback:
+## File Changes
 
-1. Validate user authentication before operations
-2. Show specific error messages when operations fail
-3. Ensure RLS-compliant data structure (user_id always set correctly)
-
-### Part 3: Add Data Protection Integration
-
-Integrate the existing emergency save system with the AddContentDialog:
-
-1. Use `useFormDraftProtection` hook to auto-save form drafts
-2. Add `beforeunload` listener via `useBeforeUnload` hook
-3. Ensure form data is recoverable after browser crashes
-
-### Part 4: Improve Form Stability
-
-1. Add loading states during async operations
-2. Disable submit button while operations are in progress
-3. Add optimistic updates for better UX
+| File | Change |
+|------|--------|
+| `src/components/editorial-calendar/AddContentDialog.tsx` | Change `status: 'idea'` to `status: 'Draft'` in 2 locations |
 
 ---
 
-## File Changes Summary
+## Why This Happened
 
-| File | Change Type | Description |
-|------|-------------|-------------|
-| `src/components/editorial-calendar/AddContentDialog.tsx` | **Fix** | Correct column names (`task_text`, `scheduled_date`), valid status values, add draft protection |
-| `src/hooks/useEditorialCalendar.ts` | **Enhancement** | Add error recovery and better error messages |
+The code was written with an assumed status value (`idea`) that was never added to the database constraint. The database was created with only three valid statuses:
 
----
+```sql
+CHECK (status IN ('Draft', 'Ready', 'Published'))
+```
 
-## Technical Details
-
-### Fixed createContentTasks Function
-
+These match the existing `ContentStatus` type in the codebase:
 ```typescript
-const createContentTasks = async (
-  contentId: string, 
-  contentTitle: string, 
-  createDateStr: string | null, 
-  publishDateStr: string | null
-) => {
-  if (!user?.id) return;
-  
-  const tasksToCreate = [];
-  
-  if (createDateStr) {
-    tasksToCreate.push({
-      user_id: user.id,
-      task_text: `Create: ${contentTitle}`,
-      scheduled_date: createDateStr,
-      due_date: createDateStr,
-      content_item_id: contentId,
-      content_type: contentType || 'post',
-      content_channel: platform || null,
-      content_creation_date: createDateStr,
-      content_publish_date: publishDateStr,
-      priority: 'medium',
-      status: 'scheduled',
-    });
-  }
-  
-  if (publishDateStr) {
-    tasksToCreate.push({
-      user_id: user.id,
-      task_text: `Publish: ${contentTitle}`,
-      scheduled_date: publishDateStr,
-      due_date: publishDateStr,
-      content_item_id: contentId,
-      content_type: contentType || 'post',
-      content_channel: platform || null,
-      content_creation_date: createDateStr,
-      content_publish_date: publishDateStr,
-      priority: 'medium',
-      status: 'scheduled',
-    });
-  }
-  
-  if (tasksToCreate.length > 0) {
-    const { error } = await supabase.from('tasks').insert(tasksToCreate);
-    if (error) {
-      console.error('Failed to create content tasks:', error);
-      toast.warning('Content saved, but task creation failed. You can add tasks manually.');
-    }
-  }
-};
-```
-
-### Draft Protection Integration
-
-```typescript
-// Add to AddContentDialog
-import { useFormDraftProtection } from '@/hooks/useFormDraftProtection';
-
-// Inside component
-const formData = useMemo(() => ({
-  title, platform, contentType, createDate, publishDate, 
-  scheduledTime, promoting, launchId, copyNotes, isRecurring
-}), [title, platform, contentType, createDate, publishDate, 
-     scheduledTime, promoting, launchId, copyNotes, isRecurring]);
-
-const { hasDraft, clearDraft } = useFormDraftProtection({
-  key: 'add-content-dialog',
-  data: formData,
-  enabled: open && mode === 'new',
-});
-
-// On successful save
-clearDraft();
+export type ContentStatus = 'Draft' | 'Ready' | 'Published';
 ```
 
 ---
 
-## Testing Checklist
+## After This Fix
 
-After implementation:
-- [ ] Open Editorial Calendar page - should load without errors
-- [ ] Click "Add Content" button - dialog should open
-- [ ] Fill in title and at least one date
-- [ ] Submit - should create content item successfully
-- [ ] Verify tasks are created (check Tasks page)
-- [ ] Test browser refresh during form fill - draft should recover
-- [ ] Verify drag-and-drop still works for rescheduling
-- [ ] Test on mobile view
+- Adding new content will work immediately
+- New content will have status `'Draft'` (appropriate for newly created items)
+- Users can later change status to `'Ready'` or `'Published'` as they progress
+- Recurring content items will also be created successfully
+- All the draft protection and task creation features will work as intended
 
 ---
 
-## Related RLS Issue (Separate Fix)
+## Quick Test After Fix
 
-The console shows an RLS error for `arcade_wallet`:
-```
-new row violates row-level security policy for table "arcade_wallet"
-```
-
-This is unrelated to the Editorial Calendar but should be fixed separately. The arcade wallet initialization likely needs a database trigger or the insert needs to happen through a service-role function.
+1. Go to Editorial Calendar
+2. Click "Add Content"
+3. Enter a title (e.g., "Test Post")
+4. Select a platform and content type
+5. Set at least one date
+6. Click "Add Content"
+7. Should see success toast and content appears on calendar
