@@ -491,7 +491,7 @@ Deno.serve(async (req) => {
         status: 'active',
         is_summit: true,
         start_date: wizardData.registrationOpens || wizardData.summitStartDate,
-        target_date: wizardData.cartCloses || wizardData.summitEndDate,
+        end_date: wizardData.cartCloses || wizardData.summitEndDate,
       })
       .select()
       .single();
