@@ -1,153 +1,120 @@
 
+# Fix: AuthProvider Context Error During Calendar Operations
 
-# Fix: Calendar Density State Not Syncing Across Components
+## Problem Summary
 
-## Problem
+When trying to add items to the Editorial Calendar, you're seeing an "Invalid Input" error. The **actual underlying error** is:
 
-The density toggle appears to work (it saves to localStorage), but **the calendar doesn't visually update** because each component calling `useCalendarDensity()` creates its own isolated React state.
-
-**Current Flow (Broken):**
-```text
-User clicks "Compact"
-    → EditorialCalendarView calls setDensity('compact')
-    → Its local useState updates ✓
-    → localStorage updates ✓
-    → CalendarContentCard has separate useState (still 'comfortable') ✗
-    → CalendarDayColumn has separate useState (still 'comfortable') ✗
-    → No visual change!
+```
+useAuth must be used within an AuthProvider
 ```
 
-**Why it happens:** The hook uses `useState` which creates independent state per component instance. The localStorage write happens, but other components never re-read it until page refresh.
+This is a misleading error message because:
+1. The real error is a **React context initialization issue**, not an input validation problem
+2. The error message gets incorrectly classified as "Invalid Input" because it contains "must be"
+3. The browser is running a stale version of the Dashboard code that's out of sync with the current source
 
----
+## Root Causes
 
-## Solution: React Context for Shared State
+1. **Vite HMR Cache Desync**: After code changes, the browser cache can get out of sync with source files
+2. **Error Classification Bug**: The error message pattern matcher incorrectly categorizes "useAuth must be used within an AuthProvider" as a validation error
+3. **Aggressive Context Check**: The `useAuth` hook throws immediately if context is missing, which can happen briefly during hot module reloads
 
-Create a `CalendarDensityProvider` context that wraps the Editorial Calendar, ensuring all components share the same state.
+## Solution
 
-**Fixed Flow:**
-```text
-User clicks "Compact"
-    → Provider's setDensity('compact') called
-    → Single shared state updates ✓
-    → localStorage updates ✓
-    → All consuming components receive new value via context ✓
-    → Visual update happens immediately! ✓
-```
+### Part 1: Fix Error Classification (Immediate Priority)
 
----
+Update `errorMessages.ts` to specifically handle the context provider error before the generic validation pattern.
 
-## Implementation
+**File: `src/lib/errorMessages.ts`**
 
-### File 1: Update `src/hooks/useCalendarDensity.ts`
-
-Add a Context-based provider and update the hook to consume from context when available.
-
+Add a new pattern BEFORE the validation pattern:
 ```typescript
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+// React Context Provider errors (must be before validation pattern)
+{
+  pattern: /must be used within/i,
+  friendly: {
+    title: "Component Error",
+    message: "A component failed to load properly. Please refresh the page to continue.",
+    action: 'refresh',
+  },
+},
+```
 
-export type CalendarDensity = 'compact' | 'comfortable' | 'spacious';
+This ensures the error gets a proper message and prompts the user to refresh instead of retry.
 
-interface CalendarDensityContextValue {
-  density: CalendarDensity;
-  setDensity: (density: CalendarDensity) => void;
+### Part 2: Make useAuth More Resilient
+
+Update `useAuth` hook to return a safe default during transient context issues instead of throwing.
+
+**File: `src/hooks/useAuth.tsx`**
+
+Current code (throws error):
+```typescript
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }
+```
 
-const CalendarDensityContext = createContext<CalendarDensityContextValue | null>(null);
-
-// Provider component - wrap the calendar with this
-export function CalendarDensityProvider({ children }: { children: ReactNode }) {
-  const [density, setDensity] = useState<CalendarDensity>(() => {
-    if (typeof window === 'undefined') return 'comfortable';
-    const stored = localStorage.getItem('calendar-density');
-    return (stored as CalendarDensity) || 'comfortable';
-  });
-
-  // Persist on change
-  useEffect(() => {
-    localStorage.setItem('calendar-density', density);
-  }, [density]);
-
-  return (
-    <CalendarDensityContext.Provider value={{ density, setDensity }}>
-      {children}
-    </CalendarDensityContext.Provider>
-  );
-}
-
-// Hook - uses context when available, falls back to local state
-export function useCalendarDensity() {
-  const context = useContext(CalendarDensityContext);
+Updated code (safe fallback with warning):
+```typescript
+export function useAuth() {
+  const context = useContext(AuthContext);
   
-  // If provider exists, use shared context
-  if (context) {
-    return context;
+  if (context === undefined) {
+    // During HMR or initial load, context might briefly be unavailable
+    // Return a safe fallback instead of throwing
+    console.warn('useAuth called outside AuthProvider - returning loading state');
+    return {
+      user: null,
+      session: null,
+      loading: true,  // Signal that we're still loading
+      signOut: async () => { console.warn('signOut called during loading state'); },
+    };
   }
   
-  // Fallback for usage outside provider (shouldn't happen in calendar)
-  const [density, setDensity] = useState<CalendarDensity>(() => {
-    if (typeof window === 'undefined') return 'comfortable';
-    const stored = localStorage.getItem('calendar-density');
-    return (stored as CalendarDensity) || 'comfortable';
-  });
-
-  useEffect(() => {
-    localStorage.setItem('calendar-density', density);
-  }, [density]);
-
-  return { density, setDensity };
+  return context;
 }
 ```
 
-### File 2: Update `src/components/editorial-calendar/EditorialCalendarView.tsx`
+Benefits:
+- Components gracefully handle the loading state
+- No crash during HMR transitions
+- Console warning helps with debugging
+- User sees loading state instead of error page
 
-Wrap the component with the provider so all child components share state.
+### Part 3: Add Clear Cache Button for Users
 
-```typescript
-// Add import
-import { CalendarDensityProvider, useCalendarDensity, CalendarDensity } from '@/hooks/useCalendarDensity';
+To handle future cache sync issues, add a utility for hard refreshing.
 
-// Wrap the main content with provider
-export function EditorialCalendarView() {
-  return (
-    <CalendarDensityProvider>
-      <EditorialCalendarViewInner />
-    </CalendarDensityProvider>
-  );
-}
-
-// Move current component logic here
-function EditorialCalendarViewInner() {
-  // ... all existing code
-  const { density, setDensity } = useCalendarDensity();
-  // ... rest of component
-}
-```
+This is optional but helpful - add a "Clear Cache & Reload" option in the error boundary.
 
 ---
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| `src/hooks/useCalendarDensity.ts` | Add Context, Provider, and update hook to use context |
-| `src/components/editorial-calendar/EditorialCalendarView.tsx` | Wrap with `CalendarDensityProvider` |
+| File | Change |
+|------|--------|
+| `src/lib/errorMessages.ts` | Add context provider error pattern before validation |
+| `src/hooks/useAuth.tsx` | Return safe fallback instead of throwing |
 
 ---
 
-## No Changes Needed
+## Immediate Workaround
 
-These files already call `useCalendarDensity()` correctly - they just need the provider wrapped above them:
-- `CalendarContentCard.tsx` - already uses hook ✓
-- `CalendarDayColumn.tsx` - already uses hook ✓
+Before implementing fixes, you can resolve this immediately by:
+1. **Hard refresh the page**: Press `Ctrl+Shift+R` (Windows/Linux) or `Cmd+Shift+R` (Mac)
+2. This clears the browser cache and reloads fresh code
 
 ---
 
-## Testing Checklist
+## Why This Prevents Future Issues
 
-- [ ] Click "Compact" - cards immediately shrink (no refresh needed)
-- [ ] Click "Comfortable" - cards return to normal size
-- [ ] Click "Spacious" - cards expand with extra details
-- [ ] Refresh page - density setting persists from localStorage
-- [ ] All cards in all day columns update simultaneously
-
+1. **Error messages will be accurate**: Users will see "Please refresh the page" instead of "Invalid Input"
+2. **No more crashes during HMR**: The app will show loading state instead of crashing
+3. **Better developer experience**: Console warnings help identify the root cause quickly
+4. **Users can self-recover**: Clear messaging tells users exactly what to do
