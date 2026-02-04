@@ -141,14 +141,14 @@ export function CalendarContentCard({
       onClick={onClick}
       className={cn(
         "group relative flex flex-col rounded-md border cursor-pointer transition-all duration-200",
-        "bg-card shadow-sm hover:shadow-md hover:scale-[1.02] hover:-translate-y-0.5",
+        "bg-card hover:scale-[1.02] hover:-translate-y-0.5",
         "active:scale-[0.98]",
-        // Density-based padding
-        isCompact && "py-1.5 px-2",
-        density === 'comfortable' && "py-2 px-2.5",
-        isSpacious && "py-3 px-3",
+        // Density-based padding and sizing - more noticeable differences
+        isCompact && "py-1 px-1.5 gap-0 shadow-none",
+        density === 'comfortable' && "py-2 px-2.5 gap-1 shadow-sm hover:shadow-md",
+        isSpacious && "py-3 px-4 gap-2 shadow-md hover:shadow-lg",
         // Touch-friendly minimum height on mobile
-        "min-h-[44px]",
+        isCompact ? "min-h-[32px]" : isSpacious ? "min-h-[56px]" : "min-h-[44px]",
         // Status-based border
         getStatusBorderClass(item.status),
         isActive && "opacity-50 shadow-lg z-50"
@@ -159,24 +159,24 @@ export function CalendarContentCard({
         {/* Content Type Icon */}
         <IconComponent className={cn(
           "shrink-0 text-muted-foreground",
-          isCompact ? "h-3.5 w-3.5" : "h-4 w-4"
+          isCompact ? "h-3 w-3" : isSpacious ? "h-5 w-5" : "h-4 w-4"
         )} />
         
         {/* Title */}
         <span className={cn(
-          "flex-1 font-medium line-clamp-1",
-          isCompact ? "text-xs" : "text-sm"
+          "flex-1 font-medium",
+          isCompact ? "text-[11px] line-clamp-1" : isSpacious ? "text-sm line-clamp-2" : "text-xs line-clamp-1"
         )}>
           {item.title}
         </span>
         
-        {/* Platform Badge */}
-        {item.channel && (
+        {/* Platform Badge - hide in compact mode */}
+        {item.channel && !isCompact && (
           <Badge
             variant="outline"
             className={cn(
               "shrink-0 font-medium border-0",
-              isCompact ? "text-[10px] px-1 py-0" : "text-xs px-1.5 py-0.5"
+              isSpacious ? "text-xs px-2 py-0.5" : "text-[10px] px-1.5 py-0"
             )}
             style={{
               backgroundColor: `${platformColor}20`,
@@ -187,18 +187,18 @@ export function CalendarContentCard({
           </Badge>
         )}
 
-        {/* Status Badge - compact shows icon only */}
-        {item.status && item.status !== 'draft' && (
+        {/* Status Badge - hide in compact, icon-only in comfortable, full in spacious */}
+        {item.status && item.status !== 'draft' && !isCompact && (
           <Badge
             variant="secondary"
             className={cn(
               "shrink-0 gap-1",
               getStatusBadgeClass(item.status),
-              isCompact ? "text-[10px] px-1 py-0" : "text-xs px-1.5 py-0.5"
+              isSpacious ? "text-xs px-2 py-0.5" : "text-[10px] px-1 py-0"
             )}
           >
-            {StatusIcon && <StatusIcon className="h-3 w-3" />}
-            {!isCompact && <span>{getStatusLabel(item.status)}</span>}
+            {StatusIcon && <StatusIcon className={isSpacious ? "h-3.5 w-3.5" : "h-3 w-3"} />}
+            {isSpacious && <span>{getStatusLabel(item.status)}</span>}
           </Badge>
         )}
       </div>
