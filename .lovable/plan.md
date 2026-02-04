@@ -1,220 +1,233 @@
 
-# Editorial Calendar Visual Redesign
+
+# Summit Planner Enhancements: Live Panels & Task Preview
 
 ## Overview
-Transform the Editorial Calendar from a functional but flat interface into a polished, professional, and delightful experience with better visual hierarchy, hover states, and personality.
-
-## Current State vs Target
-
-| Component | Current | After |
-|-----------|---------|-------|
-| CalendarContentCard | Flat, minimal shadow, basic status dots | Elevated with hover animations, status badges, quick actions |
-| CalendarDayColumn | Minimal headers, plain lane labels | Prominent headers with item counts, icons in lanes |
-| EditorialCalendarView | Cramped header, basic spacing | Spacious layout, better hierarchy |
-| UnscheduledPool | Basic empty state | Encouraging empty state with animation |
+Add two key features to improve the Summit Planner wizard:
+1. **Live Panels Configuration** - Allow users to decide if they'll host live panel discussions during the summit
+2. **Task Preview with Toggles** - Show all generated tasks before creation, allowing users to enable/disable individual tasks
 
 ---
 
-## Part 1: CalendarContentCard Redesign
+## Part 1: Live Panels Configuration
 
-### File: `src/components/editorial-calendar/CalendarContentCard.tsx`
+### Why in Engagement Step?
+Live panels are an engagement activity during the summit. Adding this to **Step 8 (Engagement)** keeps it with related features like Q&A sessions, giveaways, and community engagement.
 
-**Changes:**
+### Data Structure Changes
 
-1. **Add elevation and hover states**
-   - Base shadow with `shadow-sm`
-   - Hover: lift with `hover:shadow-md hover:scale-[1.02] hover:-translate-y-0.5`
-   - Active/dragging: compress with `active:scale-[0.98]`
-   - Smooth transitions with `transition-all duration-200`
+**File: `src/types/summit.ts`**
 
-2. **Status-based left border**
-   - Add colored left border based on item status
-   - Published: green, Scheduled: purple, Draft: gray, In-progress: blue
+Add new fields to `SummitWizardData`:
+```
+hasLivePanels: boolean
+livePanelCount: number | null
+livePanelTopics: string[]
+```
 
-3. **Improved typography**
-   - Title with `line-clamp-1` for cleaner truncation
-   - Slightly heavier font weight
+Add to `DEFAULT_SUMMIT_WIZARD_DATA`:
+```
+hasLivePanels: false
+livePanelCount: null
+livePanelTopics: []
+```
 
-4. **Status badges instead of dots**
-   - Replace simple colored dots with descriptive badges
-   - Include emoji indicators for quick scanning
+### UI Implementation
 
-5. **Quick actions on hover**
-   - Add Edit and More buttons that appear on hover
-   - Buttons stop event propagation to prevent card click
+**File: `src/components/wizards/summit/steps/StepEngagement.tsx`**
 
-**New Helper Functions:**
-- `getStatusBadgeClass(status)` - Returns badge styling based on status
-- `getStatusIcon(status)` - Returns emoji for status
-- `getStatusBorderClass(status)` - Returns border color class
+Add a new section after "Community Type" for live panels:
 
-**Additional imports:** `Edit`, `MoreVertical` from lucide-react
+```
++------------------------------------------+
+|  Will you host live panels?              |
+|  [ Toggle Switch ]                       |
+|                                          |
+|  Live panels bring speakers together     |
+|  for dynamic discussions during the      |
+|  summit.                                 |
++------------------------------------------+
+| (If toggled ON:)                         |
+|                                          |
+|  How many panels?                        |
+|  [ 1 ] [ 2 ] [ 3 ] [ 4+ Custom ]        |
+|                                          |
+|  Panel topics (optional):                |
+|  +-----------------------------------+   |
+|  | + Add topic                       |   |
+|  | - Opening night panel             |   |
+|  | - Expert roundtable               |   |
+|  +-----------------------------------+   |
++------------------------------------------+
+```
 
----
-
-## Part 2: CalendarDayColumn Enhancement
-
-### File: `src/components/editorial-calendar/CalendarDayColumn.tsx`
-
-**Changes:**
-
-1. **Redesigned day header**
-   - Larger, bolder day numbers
-   - Today indicator with background circle
-   - Item count badge showing total items for the day
-   - Better visual hierarchy between day name and number
-
-2. **Enhanced lane labels with icons**
-   - Add `Palette` icon for Create lane
-   - Add `Send` icon for Publish lane
-   - Item count pill next to label
-   - Sticky positioning for scroll visibility
-
-3. **Improved empty states**
-   - Icon + descriptive text instead of just "Drop here"
-   - Different messaging for Create vs Publish lanes
-   - Animated pulse effect when dragging over
-
-4. **Drop zone active state**
-   - Dedicated visual when actively hovering with drag item
-   - Pulsing animation to indicate drop readiness
-
-**Additional imports:** `Palette`, `Send`, `CheckCircle2` from lucide-react, `Badge` from UI
+**Pro tip callout:** "Live panels create memorable moments! Consider an opening night panel to build excitement and a closing panel to wrap up key takeaways."
 
 ---
 
-## Part 3: EditorialCalendarView Header Polish
+## Part 2: Task Preview with Toggle Controls
 
-### File: `src/components/editorial-calendar/EditorialCalendarView.tsx`
+### Current State
+The Review step (Step 9) shows an estimated task count but doesn't show individual tasks or allow selection.
 
-**Changes:**
+### New Feature
+Replace the simple task count with a full task preview that allows users to toggle tasks on/off.
 
-1. **Better header spacing**
-   - Increased padding (`py-4`)
-   - Background for visual separation
-   - Two-row layout: navigation row + filter row
+### Data Structure Changes
 
-2. **Enhanced week navigation**
-   - Grouped navigation buttons with border
-   - Larger, more prominent week range display
-   - Year shown separately in muted style
+**File: `src/types/summit.ts`**
 
-3. **Week range typography**
-   - Larger font size for date range
-   - Year in smaller, muted text below
-   - Icon separator between navigation and display
+Add to `SummitWizardData`:
+```
+excludedTasks: string[]  // Array of task text identifiers to exclude
+```
 
----
+Add to `DEFAULT_SUMMIT_WIZARD_DATA`:
+```
+excludedTasks: []
+```
 
-## Part 4: PlatformFilterBar Enhancement
+### Task Generation Refactor
 
-### File: `src/components/editorial-calendar/PlatformFilterBar.tsx`
+**File: `supabase/functions/create-summit/index.ts`**
 
-**Changes:**
+1. Add `id` field to each generated task for identification
+2. Pass `excludedTasks` array and filter before insertion
 
-1. **Larger, more clickable badges**
-   - Increased padding for easier touch/click
-   - More visible selected state ring
+**File: `src/types/summit.ts` or new utility file**
 
-2. **Better hover transitions**
-   - Smooth opacity and scale transitions
+Create a client-side `generateTaskPreview()` function that mirrors the edge function's task generation logic. This allows showing the full task list in the wizard without a server call.
 
----
+### UI Implementation
 
-## Part 5: UnscheduledPool Empty State
+**File: `src/components/wizards/summit/steps/StepReviewCreate.tsx`**
 
-### File: `src/components/editorial-calendar/UnscheduledPool.tsx`
+Replace the simple task count section with an interactive task preview:
 
-**Changes:**
+```
++------------------------------------------+
+| Tasks to Create                          |
+| [Select All] [Deselect All]   X selected |
++------------------------------------------+
+| Phase: Speaker Recruitment (8 tasks)     |
+|   [x] Create speaker pitch email         |
+|   [x] Research potential speakers (1)    |
+|   [x] Research potential speakers (2)    |
+|   [x] Send speaker invitations (1)       |
+|   [x] Send speaker invitations (2)       |
+|   [x] Follow up with pending invites     |
+|   [x] Set up affiliate tracking          |
+|   [x] Create affiliate onboarding guide  |
++------------------------------------------+
+| Phase: Content Creation (7 tasks)        |
+|   [x] Create interview guide             |
+|   [x] Schedule recordings (week 1)       |
+|   [x] Schedule recordings (week 2)       |
+|   [x] Collect bios and headshots         |
+|   [x] Write swipe copy emails            |
+|   [x] Send swipe copy to speakers        |
+|   [ ] Design social media graphics  ^    |
+|                                   Scroll |
++------------------------------------------+
+| Phase: Pre-Summit Promotion (X tasks)    |
+|   ...                                    |
++------------------------------------------+
+| Phase: Summit Live (X tasks)             |
+|   ...                                    |
++------------------------------------------+
+| Phase: Post-Summit (X tasks)             |
+|   ...                                    |
++------------------------------------------+
+```
 
-1. **Encouraging empty state when all scheduled**
-   - Celebratory message and icon
-   - Instructions for how to use the pool
+### UI Features
 
-2. **Drop zone active state**
-   - Visual feedback when dragging over
-   - Clear "Drop here" indication
+1. **Grouped by Phase** - Tasks organized into collapsible sections by summit phase
+2. **Checkboxes** - Each task has a checkbox to include/exclude
+3. **Select All / Deselect All** - Bulk actions per section and globally
+4. **Task Count** - Shows "X of Y tasks selected"
+5. **Scroll Area** - If many tasks, use a scrollable container with max-height
+6. **Phase headers** - Click to expand/collapse
+
+### Edge Function Updates
+
+**File: `supabase/functions/create-summit/index.ts`**
+
+1. Accept `excludedTasks` in the request body
+2. Add unique `id` to each task in `generateSummitTasks()`
+3. Filter out excluded tasks before database insertion
+4. Add live panel tasks when `hasLivePanels` is true
+
+New tasks to add for live panels:
+- "Plan live panel: [Topic]" - for each topic
+- "Invite panelists for [Topic]" - for each panel
+- "Prepare panel discussion questions"
+- "Test live streaming setup for panels"
+- "Host live panel: [Topic]" - scheduled during summit days
 
 ---
 
 ## Files to Modify
 
-| File | Scope |
-|------|-------|
-| `src/components/editorial-calendar/CalendarContentCard.tsx` | Major - new styling, helpers, hover states |
-| `src/components/editorial-calendar/CalendarDayColumn.tsx` | Major - header redesign, empty states |
-| `src/components/editorial-calendar/EditorialCalendarView.tsx` | Moderate - header spacing |
-| `src/components/editorial-calendar/PlatformFilterBar.tsx` | Minor - badge sizing |
-| `src/components/editorial-calendar/UnscheduledPool.tsx` | Moderate - empty state improvements |
+| File | Changes |
+|------|---------|
+| `src/types/summit.ts` | Add `hasLivePanels`, `livePanelCount`, `livePanelTopics`, `excludedTasks` fields and defaults |
+| `src/components/wizards/summit/steps/StepEngagement.tsx` | Add live panels configuration UI |
+| `src/components/wizards/summit/steps/StepReviewCreate.tsx` | Replace task estimate with full task preview with toggles |
+| `supabase/functions/create-summit/index.ts` | Add task IDs, filter excluded tasks, add live panel tasks |
 
 ---
 
-## Technical Details
+## New Component
 
-### Status Helper Functions
-```text
-┌────────────────────────────────────────────────────────────┐
-│ getStatusBadgeClass(status)                                │
-├────────────────────────────────────────────────────────────┤
-│ published  → bg-green-500/10 text-green-700               │
-│ scheduled  → bg-purple-500/10 text-purple-700             │
-│ draft      → bg-gray-500/10 text-gray-600                 │
-│ in-progress→ bg-blue-500/10 text-blue-700                 │
-│ completed  → bg-green-500/10 text-green-700               │
-└────────────────────────────────────────────────────────────┘
+**File: `src/components/wizards/summit/TaskPreviewSection.tsx`**
 
-┌────────────────────────────────────────────────────────────┐
-│ getStatusIcon(status)                                      │
-├────────────────────────────────────────────────────────────┤
-│ published  → CheckCircle (lucide icon)                    │
-│ scheduled  → Clock icon                                   │
-│ draft      → Edit icon                                    │
-│ in-progress→ Zap icon                                     │
-│ completed  → CheckCircle icon                             │
-└────────────────────────────────────────────────────────────┘
-```
-
-### Animation Timing
-- Hover scale: 200ms duration
-- Shadow transitions: 200ms
-- Drop zone pulse: CSS animation
+A dedicated component for the task preview with:
+- Props: `tasks`, `excludedTasks`, `onToggleTask`, `onToggleAll`
+- Grouping logic by phase
+- Collapsible sections
+- Checkbox controls
+- Task count display
 
 ---
 
-## Visual Impact Summary
+## Technical Implementation Notes
 
-**Before:**
-- Flat cards with no depth
-- Basic status indicators
-- Cramped header
-- Plain "Drop here" empty states
+### Client-side Task Preview Generation
+To avoid a server round-trip, create a client-side version of `generateSummitTasks()` in a new utility:
 
-**After:**
-- Elevated cards with smooth hover lift
-- Color-coded status badges with icons
-- Spacious, scannable header
-- Delightful empty states with personality
+**File: `src/lib/summitTaskGenerator.ts`**
 
-**No Breaking Changes:**
-- All existing functionality preserved
-- Drag-and-drop works identically
-- No database changes required
-- Purely visual enhancements
+This mirrors the edge function logic and generates the same task list based on wizard data. The task IDs must match between client preview and server generation.
+
+### Task ID Strategy
+Each task needs a stable, unique identifier based on:
+- Phase + task type + index (e.g., `recruitment_research_1`)
+
+This ensures:
+1. Tasks can be toggled off and stay off through wizard navigation
+2. Excluded tasks are correctly filtered server-side
+
+---
+
+## Edge Cases
+
+1. **Live panels without dates** - Default panel scheduling to summit days
+2. **All tasks deselected** - Show warning but allow (creates project without tasks)
+3. **Panel topics empty** - Generate generic "Live Panel 1/2/3" names
+4. **Draft restoration** - Excluded tasks array persists with draft
 
 ---
 
 ## Testing Checklist
 
-- [ ] Cards have visible shadow on rest state
-- [ ] Hover lifts cards smoothly with scale
-- [ ] Status badges show correct colors per status
-- [ ] Quick action buttons appear on hover
-- [ ] Left border uses platform color
-- [ ] Compact mode cards look correct
-- [ ] Today has clear highlight circle
-- [ ] Item counts appear on days with content
-- [ ] Lane labels have icons
-- [ ] Empty lanes show helpful messages
-- [ ] Drop zones pulse when dragging over
-- [ ] Header is well-spaced and scannable
-- [ ] Platform filter badges are easy to click
+- [ ] Live panels toggle appears in Engagement step
+- [ ] Panel count and topics appear when toggled on
+- [ ] Task preview shows all generated tasks grouped by phase
+- [ ] Individual tasks can be toggled on/off
+- [ ] "Select All" / "Deselect All" work correctly
+- [ ] Task count updates as selections change
+- [ ] Excluded tasks are not created in database
+- [ ] Live panel tasks appear when panels enabled
+- [ ] Draft saves and restores excluded tasks correctly
+
