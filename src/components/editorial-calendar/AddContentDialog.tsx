@@ -504,19 +504,23 @@ export function AddContentDialog({
         </DialogHeader>
 
         {/* Mode Tabs */}
-        <Tabs value={mode} onValueChange={(v) => setMode(v as DialogMode)} className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <TabsList className="grid w-full grid-cols-3 flex-shrink-0">
-            <TabsTrigger value="new" className="flex items-center gap-2">
+        <Tabs 
+          value={mode} 
+          onValueChange={(v) => setMode(v as DialogMode)} 
+          className="flex-1 flex flex-col min-h-0 overflow-hidden"
+        >
+          <TabsList className="grid w-full grid-cols-3 flex-shrink-0 relative z-10">
+            <TabsTrigger value="new" className="flex items-center gap-2" type="button">
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Create New</span>
               <span className="sm:hidden">New</span>
             </TabsTrigger>
-            <TabsTrigger value="from-idea" className="flex items-center gap-2">
+            <TabsTrigger value="from-idea" className="flex items-center gap-2" type="button">
               <Lightbulb className="h-4 w-4" />
               <span className="hidden sm:inline">From Ideas</span>
               <span className="sm:hidden">Ideas</span>
             </TabsTrigger>
-            <TabsTrigger value="reuse" className="flex items-center gap-2">
+            <TabsTrigger value="reuse" className="flex items-center gap-2" type="button">
               <Library className="h-4 w-4" />
               <span className="hidden sm:inline">From Vault</span>
               <span className="sm:hidden">Vault</span>
@@ -524,167 +528,170 @@ export function AddContentDialog({
           </TabsList>
 
           {/* Reuse from Vault Tab */}
-          <TabsContent value="reuse" className="mt-4 flex-1 min-h-0 overflow-hidden focus-visible:outline-none" tabIndex={0}>
+          <TabsContent value="reuse" className="mt-4 flex-1 min-h-0 overflow-hidden">
             <ScrollIndicator className="h-full">
-              <ScrollArea className="h-full -mx-2 px-2" tabIndex={0}>
-              <div className="space-y-4">
-                {/* Search */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search your vault..."
-                    value={vaultSearch}
-                    onChange={(e) => setVaultSearch(e.target.value)}
-                    className="pl-9"
-                  />
-                </div>
-
-                {/* Vault Items List */}
-                <div className="space-y-2">
-                  {vaultLoading && (
-                    <div className="flex items-center justify-center py-8 text-muted-foreground">
-                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                      Loading...
-                    </div>
-                  )}
-                  
-                  {!vaultLoading && vaultItems.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Library className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p>No unscheduled content found</p>
-                      <p className="text-xs mt-1">Create content in your vault first, or use "Create New"</p>
-                    </div>
-                  )}
-
-                  {!vaultLoading && vaultItems.map((item) => (
-                    <div
-                      key={item.id}
-                      onClick={() => setSelectedVaultItemId(item.id)}
-                      className={cn(
-                        "p-3 rounded-lg border cursor-pointer transition-colors",
-                        selectedVaultItemId === item.id 
-                          ? "border-primary bg-primary/5" 
-                          : "hover:border-muted-foreground/30"
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{item.title}</p>
-                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                            {item.channel && <span className="capitalize">{item.channel}</span>}
-                            {item.channel && item.type && <span>•</span>}
-                            {item.type && <span className="capitalize">{item.type}</span>}
-                          </div>
-                        </div>
-                        <div className={cn(
-                          "w-4 h-4 rounded-full border-2 flex-shrink-0",
-                          selectedVaultItemId === item.id 
-                            ? "border-primary bg-primary" 
-                            : "border-muted-foreground/30"
-                        )} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Date Selection for Reuse */}
-                {selectedVaultItemId && (
-                  <div className="space-y-4 pt-4 border-t">
-                    <h3 className="text-sm font-semibold text-muted-foreground">Schedule "{selectedVaultItem?.title}"</h3>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Create Date */}
-                      <div className="grid gap-2">
-                        <Label className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-teal-500" />
-                          Create Date
-                        </Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                'justify-start text-left font-normal',
-                                !createDate && 'text-muted-foreground'
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {createDate ? format(createDate, 'MMM d') : 'Optional'}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={createDate}
-                              onSelect={setCreateDate}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-
-                      {/* Publish Date */}
-                      <div className="grid gap-2">
-                        <Label className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-violet-500" />
-                          Publish Date
-                        </Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                'justify-start text-left font-normal',
-                                !publishDate && 'text-muted-foreground'
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {publishDate ? format(publishDate, 'MMM d') : 'Optional'}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={publishDate}
-                              onSelect={setPublishDate}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    </div>
-
-                    {/* Launch */}
-                    <div className="grid gap-2">
-                      <Label className="flex items-center gap-2">
-                        <Rocket className="h-3 w-3" />
-                        Related to Campaign
-                      </Label>
-                      <Select value={launchId || 'none'} onValueChange={(v) => setLaunchId(v === 'none' ? '' : v)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select campaign (optional)" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
-                          {launches.map((launch) => (
-                            <SelectItem key={launch.id} value={launch.id}>
-                              {formatLaunchOption(launch)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+              <ScrollArea className="h-full -mx-2 px-2">
+                <div className="space-y-4">
+                  {/* Search */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search your vault..."
+                      value={vaultSearch}
+                      onChange={(e) => setVaultSearch(e.target.value)}
+                      className="pl-9"
+                    />
                   </div>
-                )}
-              </div>
+
+                  {/* Vault Items List */}
+                  <div className="space-y-2">
+                    {vaultLoading && (
+                      <div className="flex items-center justify-center py-8 text-muted-foreground">
+                        <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                        Loading...
+                      </div>
+                    )}
+                    
+                    {!vaultLoading && vaultItems.length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Library className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>No unscheduled content found</p>
+                        <p className="text-xs mt-1">Create content in your vault first, or use "Create New"</p>
+                      </div>
+                    )}
+
+                    {!vaultLoading && vaultItems.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setSelectedVaultItemId(item.id)}
+                        className={cn(
+                          "w-full text-left p-3 rounded-lg border cursor-pointer transition-colors",
+                          selectedVaultItemId === item.id 
+                            ? "border-primary bg-primary/5" 
+                            : "hover:border-muted-foreground/30"
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{item.title}</p>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                              {item.channel && <span className="capitalize">{item.channel}</span>}
+                              {item.channel && item.type && <span>•</span>}
+                              {item.type && <span className="capitalize">{item.type}</span>}
+                            </div>
+                          </div>
+                          <div className={cn(
+                            "w-4 h-4 rounded-full border-2 flex-shrink-0",
+                            selectedVaultItemId === item.id 
+                              ? "border-primary bg-primary" 
+                              : "border-muted-foreground/30"
+                          )} />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Date Selection for Reuse */}
+                  {selectedVaultItemId && (
+                    <div className="space-y-4 pt-4 border-t">
+                      <h3 className="text-sm font-semibold text-muted-foreground">Schedule "{selectedVaultItem?.title}"</h3>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Create Date */}
+                        <div className="grid gap-2">
+                          <Label className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-teal-500" />
+                            Create Date
+                          </Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                type="button"
+                                className={cn(
+                                  'justify-start text-left font-normal',
+                                  !createDate && 'text-muted-foreground'
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {createDate ? format(createDate, 'MMM d') : 'Optional'}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={createDate}
+                                onSelect={setCreateDate}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+
+                        {/* Publish Date */}
+                        <div className="grid gap-2">
+                          <Label className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-violet-500" />
+                            Publish Date
+                          </Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                type="button"
+                                className={cn(
+                                  'justify-start text-left font-normal',
+                                  !publishDate && 'text-muted-foreground'
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {publishDate ? format(publishDate, 'MMM d') : 'Optional'}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={publishDate}
+                                onSelect={setPublishDate}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </div>
+
+                      {/* Launch */}
+                      <div className="grid gap-2">
+                        <Label className="flex items-center gap-2">
+                          <Rocket className="h-3 w-3" />
+                          Related to Campaign
+                        </Label>
+                        <Select value={launchId || 'none'} onValueChange={(v) => setLaunchId(v === 'none' ? '' : v)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select campaign (optional)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">None</SelectItem>
+                            {launches.map((launch) => (
+                              <SelectItem key={launch.id} value={launch.id}>
+                                {formatLaunchOption(launch)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </ScrollArea>
             </ScrollIndicator>
           </TabsContent>
 
           {/* From Ideas Tab */}
-          <TabsContent value="from-idea" className="mt-4 flex-1 min-h-0 overflow-hidden focus-visible:outline-none" tabIndex={0}>
+          <TabsContent value="from-idea" className="mt-4 flex-1 min-h-0 overflow-hidden">
             <ScrollIndicator className="h-full">
-              <ScrollArea className="h-full -mx-2 px-2" tabIndex={0}>
+              <ScrollArea className="h-full -mx-2 px-2">
                 <div className="space-y-4">
                   {/* Search Ideas */}
                   <div className="relative">
@@ -715,14 +722,15 @@ export function AddContentDialog({
                     )}
 
                     {!ideasLoading && ideas.map((idea) => (
-                      <div
+                      <button
                         key={idea.id}
+                        type="button"
                         onClick={() => {
                           setSelectedIdea(idea);
                           setTitle(idea.content.substring(0, 100)); // Prefill title
                         }}
                         className={cn(
-                          "p-3 rounded-lg border cursor-pointer transition-colors",
+                          "w-full text-left p-3 rounded-lg border cursor-pointer transition-colors",
                           selectedIdea?.id === idea.id 
                             ? "border-primary bg-primary/5" 
                             : "hover:border-muted-foreground/30"
@@ -745,7 +753,7 @@ export function AddContentDialog({
                               : "border-muted-foreground/30"
                           )} />
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </div>
 
@@ -868,9 +876,9 @@ export function AddContentDialog({
           </TabsContent>
 
           {/* Create New Tab */}
-          <TabsContent value="new" className="mt-4 flex-1 min-h-0 overflow-hidden focus-visible:outline-none" tabIndex={0}>
+          <TabsContent value="new" className="mt-4 flex-1 min-h-0 overflow-hidden">
             <ScrollIndicator className="h-full">
-              <ScrollArea className="h-full -mx-2 px-2" tabIndex={0}>
+              <ScrollArea className="h-full -mx-2 px-2">
                 <div className="grid gap-5 py-2 pb-4">
                 {/* Recurring Toggle */}
                 <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
