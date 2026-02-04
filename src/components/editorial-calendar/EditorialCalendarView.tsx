@@ -29,17 +29,18 @@ import { useEditorialCalendar } from '@/hooks/useEditorialCalendar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { CalendarDensityProvider, useCalendarDensity, CalendarDensity } from '@/hooks/useCalendarDensity';
 import { CalendarItem } from '@/lib/calendarConstants';
-import { CalendarWeekView } from './CalendarWeekView';
-import { UnscheduledPool } from './UnscheduledPool';
-import { PlatformFilterBar } from './PlatformFilterBar';
-import { ViewToggle } from './ViewToggle';
-import { ContentQuickEditDrawer } from './ContentQuickEditDrawer';
-import { CalendarContentCard, CalendarContentCardOverlay } from './CalendarContentCard';
-import { CalendarOnboarding, useCalendarOnboardingSeen } from './CalendarOnboarding';
-import { AddContentDialog } from './AddContentDialog';
-import { PlatformConfigModal } from './PlatformConfigModal';
-import { CampaignSlideIn } from './CampaignSlideIn';
-import { CalendarStats } from './CalendarStats';
+// Import components directly to avoid barrel export issues
+import { CalendarWeekView } from '@/components/editorial-calendar/CalendarWeekView';
+import { UnscheduledPool } from '@/components/editorial-calendar/UnscheduledPool';
+import { PlatformFilterBar } from '@/components/editorial-calendar/PlatformFilterBar';
+import { ViewToggle } from '@/components/editorial-calendar/ViewToggle';
+import { ContentQuickEditDrawer } from '@/components/editorial-calendar/ContentQuickEditDrawer';
+import { CalendarContentCard, CalendarContentCardOverlay } from '@/components/editorial-calendar/CalendarContentCard';
+import { CalendarOnboarding, useCalendarOnboardingSeen } from '@/components/editorial-calendar/CalendarOnboarding';
+import { AddContentDialog } from '@/components/editorial-calendar/AddContentDialog';
+import { PlatformConfigModal } from '@/components/editorial-calendar/PlatformConfigModal';
+import { CampaignSlideIn } from '@/components/editorial-calendar/CampaignSlideIn';
+import { CalendarStats } from '@/components/editorial-calendar/CalendarStats';
 import { toast } from 'sonner';
 
 const DENSITY_LABELS: Record<CalendarDensity, string> = {
