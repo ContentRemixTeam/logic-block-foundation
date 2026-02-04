@@ -4,14 +4,18 @@ import { useAuth } from '@/hooks/useAuth';
 import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
+export type CalendarDateMode = 'dual' | 'create-only' | 'publish-only';
+
 export interface CalendarSettings {
   autoCreateContentTasks: boolean;
   showContentInPlanners: boolean;
+  calendarDateMode: CalendarDateMode;
 }
 
 const DEFAULT_SETTINGS: CalendarSettings = {
   autoCreateContentTasks: true,
   showContentInPlanners: true,
+  calendarDateMode: 'dual',
 };
 
 export function useCalendarSettings() {
@@ -25,7 +29,7 @@ export function useCalendarSettings() {
 
       const { data, error } = await supabase
         .from('user_settings')
-        .select('auto_create_content_tasks, show_content_in_planners')
+        .select('auto_create_content_tasks, show_content_in_planners, calendar_date_mode')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -37,6 +41,7 @@ export function useCalendarSettings() {
       return {
         autoCreateContentTasks: data?.auto_create_content_tasks ?? true,
         showContentInPlanners: data?.show_content_in_planners ?? true,
+        calendarDateMode: (data?.calendar_date_mode as CalendarDateMode) ?? 'dual',
       };
     },
     enabled: !!user?.id,
@@ -47,12 +52,15 @@ export function useCalendarSettings() {
     mutationFn: async (updates: Partial<CalendarSettings>) => {
       if (!user?.id) throw new Error('Not authenticated');
 
-      const dbUpdates: Record<string, boolean> = {};
+      const dbUpdates: Record<string, boolean | string> = {};
       if (updates.autoCreateContentTasks !== undefined) {
         dbUpdates.auto_create_content_tasks = updates.autoCreateContentTasks;
       }
       if (updates.showContentInPlanners !== undefined) {
         dbUpdates.show_content_in_planners = updates.showContentInPlanners;
+      }
+      if (updates.calendarDateMode !== undefined) {
+        dbUpdates.calendar_date_mode = updates.calendarDateMode;
       }
 
       const { error } = await supabase
