@@ -1,14 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { startOfWeek, endOfWeek, addWeeks, subWeeks, format, parseISO } from 'date-fns';
+import { startOfWeek, endOfWeek, format } from 'date-fns';
 import { CalendarItem } from '@/lib/calendarConstants';
+
+export interface EditorialCampaign {
+  id: string;
+  name: string;
+  cart_opens: string | null;
+  cart_closes: string | null;
+  status: string;
+  display_color: string;
+}
 
 interface UseEditorialCalendarOptions {
   weekStart: Date;
+  campaignFilter?: string | null;
 }
 
-export function useEditorialCalendar({ weekStart }: UseEditorialCalendarOptions) {
+const CAMPAIGN_COLORS = ['#8B5CF6', '#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#EC4899', '#14B8A6', '#F97316'];
+
+export function useEditorialCalendar({ weekStart, campaignFilter }: UseEditorialCalendarOptions) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -18,22 +30,54 @@ export function useEditorialCalendar({ weekStart }: UseEditorialCalendarOptions)
   const weekStartStr = format(weekStartDate, 'yyyy-MM-dd');
   const weekEndStr = format(weekEndDate, 'yyyy-MM-dd');
 
-  // Fetch content items for the week
-  // Use proper grouped OR: items appear if creation OR publish date falls within week range
-  const contentItemsQuery = useQuery({
-    queryKey: ['editorial-calendar-content', user?.id, weekStartStr],
-    queryFn: async () => {
+  // Fetch campaigns/launches that overlap with current week
+  const campaignsQuery = useQuery({
+    queryKey: ['editorial-calendar-campaigns', user?.id, weekStartStr],
+    queryFn: async (): Promise<EditorialCampaign[]> => {
       if (!user?.id) return [];
 
       const { data, error } = await supabase
+        .from('launches')
+        .select('id, name, cart_opens, cart_closes, status')
+        .eq('user_id', user.id)
+        .in('status', ['planning', 'active', 'scheduled', 'pre-launch', 'runway'])
+        .not('cart_opens', 'is', null)
+        .not('cart_closes', 'is', null)
+        .lte('cart_opens', weekEndStr)
+        .gte('cart_closes', weekStartStr);
+
+      if (error) throw error;
+
+      // Assign colors based on index
+      return (data || []).map((campaign, idx) => ({
+        ...campaign,
+        display_color: CAMPAIGN_COLORS[idx % CAMPAIGN_COLORS.length],
+      }));
+    },
+    enabled: !!user?.id,
+  });
+
+  // Fetch content items for the week
+  const contentItemsQuery = useQuery({
+    queryKey: ['editorial-calendar-content', user?.id, weekStartStr, campaignFilter],
+    queryFn: async () => {
+      if (!user?.id) return [];
+
+      let query = supabase
         .from('content_items')
-        .select('id, title, type, channel, planned_creation_date, planned_publish_date, status')
+        .select('id, title, type, channel, planned_creation_date, planned_publish_date, status, launch_id')
         .eq('user_id', user.id)
         .or(
           `and(planned_creation_date.gte.${weekStartStr},planned_creation_date.lte.${weekEndStr}),` +
           `and(planned_publish_date.gte.${weekStartStr},planned_publish_date.lte.${weekEndStr})`
         );
 
+      // Apply campaign filter if set
+      if (campaignFilter) {
+        query = query.eq('launch_id', campaignFilter);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
@@ -41,20 +85,24 @@ export function useEditorialCalendar({ weekStart }: UseEditorialCalendarOptions)
   });
 
   // Fetch content plan items for the week
-  // Filter out items that have been promoted to content_items to prevent duplicates
   const planItemsQuery = useQuery({
-    queryKey: ['editorial-calendar-plans', user?.id, weekStartStr],
+    queryKey: ['editorial-calendar-plans', user?.id, weekStartStr, campaignFilter],
     queryFn: async () => {
       if (!user?.id) return [];
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('content_plan_items')
-        .select('id, title, content_type, channel, planned_date, status')
+        .select('id, title, content_type, channel, planned_date, status, plan_id')
         .eq('user_id', user.id)
-        .is('content_item_id', null) // Only unlinked plan items to prevent duplicates
+        .is('content_item_id', null)
         .gte('planned_date', weekStartStr)
         .lte('planned_date', weekEndStr);
 
+      // If filtering by campaign, we need to join through content_plans
+      // For now, plan items don't have direct launch_id, so they show regardless of filter
+      // This is intentional - plan items are for planning before linking to campaigns
+
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
@@ -62,7 +110,6 @@ export function useEditorialCalendar({ weekStart }: UseEditorialCalendarOptions)
   });
 
   // Fetch tasks with content calendar data for the week
-  // Use proper grouped OR: tasks appear if creation OR publish date falls within week range
   const tasksQuery = useQuery({
     queryKey: ['editorial-calendar-tasks', user?.id, weekStartStr],
     queryFn: async () => {
@@ -86,19 +133,24 @@ export function useEditorialCalendar({ weekStart }: UseEditorialCalendarOptions)
 
   // Fetch unscheduled content items
   const unscheduledQuery = useQuery({
-    queryKey: ['editorial-calendar-unscheduled', user?.id],
+    queryKey: ['editorial-calendar-unscheduled', user?.id, campaignFilter],
     queryFn: async () => {
       if (!user?.id) return [];
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('content_items')
-        .select('id, title, type, channel, planned_creation_date, planned_publish_date, status')
+        .select('id, title, type, channel, planned_creation_date, planned_publish_date, status, launch_id')
         .eq('user_id', user.id)
         .is('planned_publish_date', null)
         .neq('status', 'published')
         .order('created_at', { ascending: false })
         .limit(50);
 
+      if (campaignFilter) {
+        query = query.eq('launch_id', campaignFilter);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
@@ -125,7 +177,7 @@ export function useEditorialCalendar({ weekStart }: UseEditorialCalendarOptions)
       title: item.title,
       type: item.content_type,
       channel: item.channel,
-      creationDate: null, // Plan items don't have creation date
+      creationDate: null,
       publishDate: item.planned_date,
       source: 'content_plan_item' as const,
       status: item.status,
@@ -189,7 +241,6 @@ export function useEditorialCalendar({ weekStart }: UseEditorialCalendarOptions)
           .eq('id', item.sourceId);
         if (error) throw error;
       } else if (item.source === 'content_plan_item') {
-        // Plan items only have planned_date (publish)
         if (lane === 'publish') {
           const { error } = await supabase
             .from('content_plan_items')
@@ -207,7 +258,6 @@ export function useEditorialCalendar({ weekStart }: UseEditorialCalendarOptions)
       }
     },
     onSuccess: () => {
-      // Invalidate all calendar queries
       queryClient.invalidateQueries({ queryKey: ['editorial-calendar-content'] });
       queryClient.invalidateQueries({ queryKey: ['editorial-calendar-plans'] });
       queryClient.invalidateQueries({ queryKey: ['editorial-calendar-tasks'] });
@@ -218,14 +268,14 @@ export function useEditorialCalendar({ weekStart }: UseEditorialCalendarOptions)
   return {
     items: allItems,
     unscheduledItems,
+    campaigns: campaignsQuery.data || [],
     getItemsForDay,
-    // Expose both mutate (fire-and-forget) and mutateAsync (awaitable)
     updateItemDate: updateItemDate.mutate,
     updateItemDateAsync: updateItemDate.mutateAsync,
     isUpdating: updateItemDate.isPending,
     updateError: updateItemDate.error,
-    isLoading: contentItemsQuery.isLoading || planItemsQuery.isLoading || tasksQuery.isLoading,
-    error: contentItemsQuery.error || planItemsQuery.error || tasksQuery.error,
+    isLoading: contentItemsQuery.isLoading || planItemsQuery.isLoading || tasksQuery.isLoading || campaignsQuery.isLoading,
+    error: contentItemsQuery.error || planItemsQuery.error || tasksQuery.error || campaignsQuery.error,
     weekStartDate,
     weekEndDate,
     refetch: () => {
@@ -233,6 +283,7 @@ export function useEditorialCalendar({ weekStart }: UseEditorialCalendarOptions)
       planItemsQuery.refetch();
       tasksQuery.refetch();
       unscheduledQuery.refetch();
+      campaignsQuery.refetch();
     },
   };
 }

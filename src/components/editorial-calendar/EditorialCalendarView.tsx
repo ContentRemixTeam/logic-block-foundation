@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { 
   DndContext, 
   DragOverlay, 
@@ -11,7 +11,8 @@ import {
 } from '@dnd-kit/core';
 import { format, addWeeks, subWeeks, startOfWeek } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Calendar, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Plus, Rocket } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useEditorialCalendar } from '@/hooks/useEditorialCalendar';
 import { CalendarItem } from '@/lib/calendarConstants';
@@ -24,6 +25,7 @@ import { CalendarContentCardOverlay } from './CalendarContentCard';
 import { CalendarOnboarding, useCalendarOnboardingSeen } from './CalendarOnboarding';
 import { AddContentDialog } from './AddContentDialog';
 import { PlatformConfigModal } from './PlatformConfigModal';
+import { CampaignSlideIn } from './CampaignSlideIn';
 import { toast } from 'sonner';
 
 export function EditorialCalendarView() {
@@ -35,7 +37,11 @@ export function EditorialCalendarView() {
   const [editDrawerOpen, setEditDrawerOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
-  // New modal states
+  // Campaign states
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+  const [campaignFilter, setCampaignFilter] = useState<string | null>(null);
+  
+  // Modal states
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [addContentOpen, setAddContentOpen] = useState(false);
   const [platformConfigOpen, setPlatformConfigOpen] = useState(false);
@@ -44,14 +50,15 @@ export function EditorialCalendarView() {
 
   const { 
     items, 
-    unscheduledItems, 
+    unscheduledItems,
+    campaigns,
     getItemsForDay, 
     updateItemDateAsync,
     isUpdating,
     isLoading,
     weekStartDate,
     weekEndDate,
-  } = useEditorialCalendar({ weekStart });
+  } = useEditorialCalendar({ weekStart, campaignFilter });
 
   // DnD sensors
   const sensors = useSensors(
@@ -76,13 +83,22 @@ export function EditorialCalendarView() {
     );
   };
 
+  // Campaign handlers
+  const handleCampaignClick = (campaignId: string) => {
+    setSelectedCampaignId(campaignId);
+  };
+
+  const handleFilterToCampaign = (campaignId: string) => {
+    setCampaignFilter(campaignId);
+  };
+
   // Item click handler
   const handleItemClick = (item: CalendarItem) => {
     setEditingItem(item);
     setEditDrawerOpen(true);
   };
 
-  // Save handler for quick edit - AWAIT saves and handle errors
+  // Save handler for quick edit
   const handleSaveEdit = useCallback(async (updates: { creationDate: string | null; publishDate: string | null }) => {
     if (!editingItem) return;
 
@@ -90,12 +106,10 @@ export function EditorialCalendarView() {
     let hasError = false;
 
     try {
-      // Update creation date if changed
       if (updates.creationDate !== editingItem.creationDate) {
         await updateItemDateAsync({ item: editingItem, lane: 'create', newDate: updates.creationDate });
       }
 
-      // Update publish date if changed
       if (updates.publishDate !== editingItem.publishDate) {
         await updateItemDateAsync({ item: editingItem, lane: 'publish', newDate: updates.publishDate });
       }
@@ -106,7 +120,6 @@ export function EditorialCalendarView() {
       console.error('Failed to save calendar item:', error);
       toast.error('Failed to save changes. Please try again.');
       hasError = true;
-      // Keep drawer open on error so user can retry
     } finally {
       setIsSaving(false);
     }
@@ -134,10 +147,8 @@ export function EditorialCalendarView() {
 
     const overId = String(over.id);
 
-    // Dropped on unscheduled pool
     if (overId === 'unscheduled') {
       try {
-        // Clear both dates - await to ensure saves complete
         await Promise.all([
           updateItemDateAsync({ item, lane: 'create', newDate: null }),
           updateItemDateAsync({ item, lane: 'publish', newDate: null }),
@@ -150,7 +161,6 @@ export function EditorialCalendarView() {
       return;
     }
 
-    // Dropped on a day lane (format: "create-2024-01-15" or "publish-2024-01-15")
     const match = overId.match(/^(create|publish)-(\d{4}-\d{2}-\d{2})$/);
     if (match) {
       const [, lane, dateStr] = match;
@@ -196,6 +206,36 @@ export function EditorialCalendarView() {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
+          {/* Campaign Filter */}
+          {campaigns.length > 0 && (
+            <Select
+              value={campaignFilter || 'all'}
+              onValueChange={(value) => setCampaignFilter(value === 'all' ? null : value)}
+            >
+              <SelectTrigger className="w-[180px] h-9">
+                <div className="flex items-center gap-2">
+                  <Rocket className="h-3.5 w-3.5 text-muted-foreground" />
+                  <SelectValue placeholder="All Campaigns" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Campaigns</SelectItem>
+                <SelectSeparator />
+                {campaigns.map(campaign => (
+                  <SelectItem key={campaign.id} value={campaign.id}>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: campaign.display_color }}
+                      />
+                      <span className="truncate">{campaign.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
           <Button onClick={() => setAddContentOpen(true)} size="sm" className="gap-1">
             <Plus className="h-4 w-4" />
             Add Content
@@ -224,8 +264,10 @@ export function EditorialCalendarView() {
           {/* Week Grid */}
           <CalendarWeekView
             weekStart={weekStart}
+            campaigns={campaigns}
             getItemsForDay={getItemsForDay}
             onItemClick={handleItemClick}
+            onCampaignClick={handleCampaignClick}
             view={view}
             selectedPlatforms={selectedPlatforms}
           />
@@ -252,7 +294,6 @@ export function EditorialCalendarView() {
         item={editingItem}
         open={editDrawerOpen}
         onOpenChange={(open) => {
-          // Only allow closing if not currently saving
           if (!isSaving) {
             setEditDrawerOpen(open);
           }
@@ -271,6 +312,16 @@ export function EditorialCalendarView() {
       <PlatformConfigModal
         open={platformConfigOpen}
         onOpenChange={setPlatformConfigOpen}
+      />
+
+      {/* Campaign Slide-In Panel */}
+      <CampaignSlideIn
+        campaignId={selectedCampaignId}
+        open={!!selectedCampaignId}
+        onOpenChange={(open) => {
+          if (!open) setSelectedCampaignId(null);
+        }}
+        onFilterToCampaign={handleFilterToCampaign}
       />
 
       {/* Loading overlay */}
