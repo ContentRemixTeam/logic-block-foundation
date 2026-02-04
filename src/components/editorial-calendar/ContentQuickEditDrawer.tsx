@@ -14,6 +14,16 @@ import {
   SheetTitle,
   SheetFooter,
 } from '@/components/ui/sheet';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,7 +38,7 @@ import {
 } from '@/components/ui/select';
 import { CalendarItem, PLATFORM_LABELS, SCHEDULE_COLORS } from '@/lib/calendarConstants';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { CalendarIcon, ExternalLink, Loader2 } from 'lucide-react';
+import { CalendarIcon, ExternalLink, Loader2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { useLaunches } from '@/hooks/useLaunches';
@@ -39,7 +49,9 @@ interface ContentQuickEditDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (updates: { creationDate: string | null; publishDate: string | null }) => Promise<boolean | void>;
+  onDelete?: (item: CalendarItem) => Promise<void>;
   isSaving?: boolean;
+  isDeleting?: boolean;
 }
 
 export function ContentQuickEditDrawer({
@@ -47,12 +59,15 @@ export function ContentQuickEditDrawer({
   open,
   onOpenChange,
   onSave,
+  onDelete,
   isSaving = false,
+  isDeleting = false,
 }: ContentQuickEditDrawerProps) {
   const isMobile = useIsMobile();
   const [creationDate, setCreationDate] = useState<Date | undefined>(undefined);
   const [publishDate, setPublishDate] = useState<Date | undefined>(undefined);
   const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
   const { launches, formatLaunchOption } = useLaunches();
 
@@ -230,6 +245,21 @@ export function ContentQuickEditDrawer({
       <div className="text-xs text-muted-foreground border-t pt-4">
         Source: {item.source === 'content_item' ? 'Content Vault' : item.source === 'content_plan_item' ? 'Content Plan' : 'Task'}
       </div>
+
+      {/* Delete Button */}
+      {onDelete && (
+        <div className="pt-2">
+          <Button 
+            variant="ghost" 
+            className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={() => setShowDeleteConfirm(true)}
+            disabled={isSaving || isDeleting}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete Content
+          </Button>
+        </div>
+      )}
     </div>
   );
 
@@ -239,14 +269,14 @@ export function ContentQuickEditDrawer({
         variant="outline" 
         onClick={() => onOpenChange(false)} 
         className="flex-1"
-        disabled={isSaving}
+        disabled={isSaving || isDeleting}
       >
         Cancel
       </Button>
       <Button 
         onClick={handleSave} 
         className="flex-1"
-        disabled={isSaving}
+        disabled={isSaving || isDeleting}
       >
         {isSaving ? (
           <>
@@ -260,30 +290,72 @@ export function ContentQuickEditDrawer({
     </div>
   );
 
+  const deleteConfirmDialog = (
+    <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete this content?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will permanently delete "{item?.title}". This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+          <AlertDialogAction 
+            className="bg-destructive hover:bg-destructive/90"
+            disabled={isDeleting}
+            onClick={async () => {
+              if (item && onDelete) {
+                await onDelete(item);
+                setShowDeleteConfirm(false);
+                onOpenChange(false);
+              }
+            }}
+          >
+            {isDeleting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              'Delete'
+            )}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
   // Use Drawer on mobile, Sheet on desktop
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={isSaving ? undefined : onOpenChange}>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>Edit Content Schedule</DrawerTitle>
-          </DrawerHeader>
-          <div className="px-4">{content}</div>
-          <DrawerFooter>{footer}</DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+      <>
+        {deleteConfirmDialog}
+        <Drawer open={open} onOpenChange={isSaving || isDeleting ? undefined : onOpenChange}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Edit Content Schedule</DrawerTitle>
+            </DrawerHeader>
+            <div className="px-4">{content}</div>
+            <DrawerFooter>{footer}</DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      </>
     );
   }
 
   return (
-    <Sheet open={open} onOpenChange={isSaving ? undefined : onOpenChange}>
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle>Edit Content Schedule</SheetTitle>
-        </SheetHeader>
-        {content}
-        <SheetFooter className="mt-4">{footer}</SheetFooter>
-      </SheetContent>
-    </Sheet>
+    <>
+      {deleteConfirmDialog}
+      <Sheet open={open} onOpenChange={isSaving || isDeleting ? undefined : onOpenChange}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>Edit Content Schedule</SheetTitle>
+          </SheetHeader>
+          {content}
+          <SheetFooter className="mt-4">{footer}</SheetFooter>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }

@@ -94,7 +94,9 @@ function EditorialCalendarViewInner() {
     campaigns,
     getItemsForDay, 
     updateItemDateAsync,
+    deleteItemAsync,
     isUpdating,
+    isDeleting,
     isLoading,
     weekStartDate,
     weekEndDate,
@@ -174,6 +176,16 @@ function EditorialCalendarViewInner() {
 
     return !hasError;
   }, [editingItem, updateItemDateAsync]);
+
+  // Delete handler for quick edit
+  const handleDelete = useCallback(async (item: CalendarItem) => {
+    try {
+      await deleteItemAsync({ item });
+      setEditDrawerOpen(false);
+    } catch (error) {
+      console.error('Failed to delete calendar item:', error);
+    }
+  }, [deleteItemAsync]);
 
   // DnD handlers
   const handleDragStart = (event: DragStartEvent) => {
@@ -480,12 +492,14 @@ function EditorialCalendarViewInner() {
         item={editingItem}
         open={editDrawerOpen}
         onOpenChange={(open) => {
-          if (!isSaving) {
+          if (!isSaving && !isDeleting) {
             setEditDrawerOpen(open);
           }
         }}
         onSave={handleSaveEdit}
+        onDelete={handleDelete}
         isSaving={isSaving}
+        isDeleting={isDeleting}
       />
 
       {/* Add Content Dialog */}

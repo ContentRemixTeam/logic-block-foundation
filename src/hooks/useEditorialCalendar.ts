@@ -352,6 +352,83 @@ export function useEditorialCalendar({ weekStart, campaignFilter }: UseEditorial
     },
   });
 
+  // Delete content item mutation
+  const deleteItem = useMutation({
+    mutationFn: async ({ item }: { item: CalendarItem }) => {
+      if (!user?.id) {
+        throw new Error('Not authenticated');
+      }
+
+      console.log('[Editorial Calendar] Deleting item:', {
+        itemId: item.id,
+        sourceId: item.sourceId,
+        source: item.source,
+      });
+
+      if (item.source === 'content_item') {
+        // First delete any linked tasks
+        await supabase
+          .from('tasks')
+          .delete()
+          .eq('content_item_id', item.sourceId);
+
+        // Then delete the content item
+        const { error } = await supabase
+          .from('content_items')
+          .delete()
+          .eq('id', item.sourceId)
+          .eq('user_id', user.id);
+          
+        if (error) {
+          console.error('[Editorial Calendar] Delete error:', error);
+          throw new Error(`Failed to delete: ${error.message}`);
+        }
+        
+      } else if (item.source === 'content_plan_item') {
+        const { error } = await supabase
+          .from('content_plan_items')
+          .delete()
+          .eq('id', item.sourceId)
+          .eq('user_id', user.id);
+          
+        if (error) {
+          console.error('[Editorial Calendar] Plan item delete error:', error);
+          throw new Error(`Failed to delete plan item: ${error.message}`);
+        }
+        
+      } else if (item.source === 'task') {
+        const { error } = await supabase
+          .from('tasks')
+          .delete()
+          .eq('task_id', item.sourceId)
+          .eq('user_id', user.id);
+          
+        if (error) {
+          console.error('[Editorial Calendar] Task delete error:', error);
+          throw new Error(`Failed to delete task: ${error.message}`);
+        }
+      } else {
+        throw new Error(`Unknown source type: ${item.source}`);
+      }
+    },
+    onSuccess: () => {
+      // Invalidate all calendar queries
+      queryClient.invalidateQueries({ queryKey: ['editorial-calendar-content'] });
+      queryClient.invalidateQueries({ queryKey: ['editorial-calendar-plans'] });
+      queryClient.invalidateQueries({ queryKey: ['editorial-calendar-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['editorial-calendar-unscheduled'] });
+      
+      toast.success('Content deleted');
+    },
+    onError: (error: Error) => {
+      console.error('[Editorial Calendar] Delete error:', error);
+      toast.error('Delete Failed', {
+        description: error.message || 'Failed to delete content',
+        duration: 5000,
+      });
+    },
+  });
+
   return {
     items: allItems,
     unscheduledItems,
@@ -361,6 +438,9 @@ export function useEditorialCalendar({ weekStart, campaignFilter }: UseEditorial
     updateItemDateAsync: updateItemDate.mutateAsync,
     isUpdating: updateItemDate.isPending,
     updateError: updateItemDate.error,
+    deleteItem: deleteItem.mutate,
+    deleteItemAsync: deleteItem.mutateAsync,
+    isDeleting: deleteItem.isPending,
     isLoading: contentItemsQuery.isLoading || planItemsQuery.isLoading || tasksQuery.isLoading || campaignsQuery.isLoading,
     error: contentItemsQuery.error || planItemsQuery.error || tasksQuery.error || campaignsQuery.error,
     weekStartDate,
