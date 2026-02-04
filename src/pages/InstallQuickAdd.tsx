@@ -105,7 +105,7 @@ export default function InstallQuickAdd() {
 
         <main className="container mx-auto px-4 py-8 max-w-2xl">
           {/* Hero */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-accent text-primary-foreground mb-4 shadow-lg">
               <Zap className="h-10 w-10" />
             </div>
@@ -114,6 +114,22 @@ export default function InstallQuickAdd() {
               Capture tasks, ideas, and finances in 3 seconds
             </p>
           </div>
+
+          {/* Progress indicator */}
+          <Card className="mb-6 border-primary/50 bg-primary/5">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex gap-2">
+                  <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">1</div>
+                  <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-sm font-bold">2</div>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Step 1 of 2</p>
+                  <p className="text-xs text-muted-foreground">After this, install the full Boss Planner app</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Features */}
           <Card className="mb-8">
@@ -287,17 +303,27 @@ export default function InstallQuickAdd() {
             </Card>
           )}
 
+          {/* Next Step */}
+          <Card className="mb-6 border-2 border-dashed">
+            <CardContent className="pt-6 text-center">
+              <p className="text-sm text-muted-foreground mb-3">
+                After installing Quick Add, install the full planning app:
+              </p>
+              <Button asChild size="lg" className="w-full">
+                <Link to="/install">
+                  <Smartphone className="h-4 w-4 mr-2" />
+                  Step 2: Install Boss Planner →
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+
           {/* Footer */}
           <div className="flex flex-col sm:flex-row gap-4">
             <Button variant="outline" asChild className="flex-1">
-              <Link to="/install">
-                Back to All Apps
-              </Link>
-            </Button>
-            <Button asChild className="flex-1">
               <Link to="/quick-add">
                 <Zap className="h-4 w-4 mr-2" />
-                Try Quick Add Now
+                Try Quick Add First
               </Link>
             </Button>
           </div>
