@@ -117,14 +117,86 @@ export default function InstallApp() {
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         {/* Hero */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Install Boss Planner Apps</h1>
-          <p className="text-muted-foreground">
-            Two apps for different needs - install one or both
+          <h1 className="text-3xl font-bold mb-2">Install Both Apps</h1>
+          <p className="text-muted-foreground max-w-md mx-auto">
+            Get <strong>two separate apps</strong> on your phone: one for quick capture, 
+            one for full planning. Install both for the complete experience.
           </p>
         </div>
 
-        {/* App Options */}
-        <div className="grid gap-4 mb-8">
+        {/* Important Note */}
+        <Card className="mb-6 border-primary/50 bg-primary/5">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex gap-3">
+              <div className="shrink-0 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                <span className="text-lg">💡</span>
+              </div>
+              <div className="text-sm">
+                <p className="font-medium mb-1">Why two apps?</p>
+                <p className="text-muted-foreground">
+                  <strong>Quick Add</strong> launches instantly for capturing tasks on the go. 
+                  <strong> Boss Planner</strong> is your full planning hub for organizing your day, week, and 90-day goals.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Step-by-step installation */}
+        <div className="space-y-4 mb-8">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">1</span>
+            Install Quick Add (for fast capture)
+          </h2>
+          
+          {/* Quick Add Card */}
+          <Card className="border-2 border-primary hover:border-primary transition-colors">
+            <CardHeader>
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground flex items-center justify-center shrink-0">
+                  <Zap className="h-7 w-7" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <CardTitle className="text-xl">Quick Add</CardTitle>
+                    <Badge variant="secondary">Install First</Badge>
+                  </div>
+                  <CardDescription>
+                    Lightning-fast capture. Opens in 1 second. Use when ideas strike.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 mb-4">
+                {[
+                  'Capture tasks, ideas, expenses, income',
+                  'Instant launch from home screen',
+                  'Minimal interface - no distractions',
+                  'Works offline - syncs when online',
+                ].map((feature, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm">
+                    <Check className="h-4 w-4 text-success shrink-0" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+              <Button asChild size="lg" className="w-full">
+                <Link to="/install-quick-add">
+                  <Zap className="h-4 w-4 mr-2" />
+                  Install Quick Add →
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-4 mb-8">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">2</span>
+            Install Boss Planner (for full planning)
+          </h2>
+          
           {/* Full App Card */}
           <Card className="border-2 hover:border-primary/50 transition-colors">
             <CardHeader>
@@ -135,7 +207,7 @@ export default function InstallApp() {
                 <div className="flex-1">
                   <CardTitle className="text-xl mb-1">Boss Planner</CardTitle>
                   <CardDescription>
-                    Complete planning experience with dashboard, weekly planner, tasks, habits, and more.
+                    Your complete planning hub. Organize today, this week, and your 90-day goals.
                   </CardDescription>
                 </div>
               </div>
@@ -143,11 +215,11 @@ export default function InstallApp() {
             <CardContent>
               <ul className="space-y-2 mb-4">
                 {[
-                  'Full dashboard and analytics',
-                  'Weekly & daily planning',
-                  'Task management',
-                  'Habit tracking',
-                  'Goal setting & reviews',
+                  'Plan your day with Top 3 priorities',
+                  'Weekly planning & reflection',
+                  '90-day goal tracking',
+                  'Full dashboard & analytics',
+                  'Habits, tasks, reviews & more',
                 ].map((feature, i) => (
                   <li key={i} className="flex items-center gap-2 text-sm">
                     <Check className="h-4 w-4 text-success shrink-0" />
@@ -161,52 +233,45 @@ export default function InstallApp() {
                   Install Boss Planner
                 </Button>
               ) : (
-                <p className="text-sm text-muted-foreground text-center">
-                  See installation instructions below
+                <p className="text-sm text-muted-foreground text-center py-2 px-4 bg-muted rounded-lg">
+                  ↓ Follow the instructions below to install
                 </p>
               )}
             </CardContent>
           </Card>
-
-          {/* Quick Add Card */}
-          <Card className="border-2 hover:border-primary/50 transition-colors">
-            <CardHeader>
-              <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground flex items-center justify-center shrink-0">
-                  <Zap className="h-7 w-7" />
-                </div>
-                <div className="flex-1">
-                  <CardTitle className="text-xl mb-1">Quick Add</CardTitle>
-                  <CardDescription>
-                    Lightning-fast capture for tasks, ideas, expenses, and income. Perfect for on-the-go.
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 mb-4">
-                {[
-                  'Instant launch from home screen',
-                  'Add tasks in seconds',
-                  'Capture ideas quickly',
-                  'Log expenses & income',
-                  'Minimal, focused interface',
-                ].map((feature, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm">
-                    <Check className="h-4 w-4 text-success shrink-0" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-              <Button variant="outline" asChild size="lg" className="w-full">
-                <Link to="/install-quick-add">
-                  <Zap className="h-4 w-4 mr-2" />
-                  Install Quick Add
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
         </div>
+        {/* How They Work Together */}
+        <Card className="mb-8 bg-muted/30">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <span>📱</span> How to Use Both Apps
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-3">
+              <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                <Zap className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <p className="font-medium">Quick Add</p>
+                <p className="text-sm text-muted-foreground">
+                  Tap to instantly capture a task or idea. Don't break your flow.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <div className="shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                <Smartphone className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <p className="font-medium">Boss Planner</p>
+                <p className="text-sm text-muted-foreground">
+                  Open when you're ready to plan your day, review your week, or set goals.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Benefits */}
         <Card className="mb-8">
