@@ -19,11 +19,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { CalendarItem, PLATFORM_LABELS, SCHEDULE_COLORS } from '@/lib/calendarConstants';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { CalendarIcon, ExternalLink, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
+import { useLaunches } from '@/hooks/useLaunches';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ContentQuickEditDrawerProps {
   item: CalendarItem | null;
@@ -43,22 +52,45 @@ export function ContentQuickEditDrawer({
   const isMobile = useIsMobile();
   const [creationDate, setCreationDate] = useState<Date | undefined>(undefined);
   const [publishDate, setPublishDate] = useState<Date | undefined>(undefined);
+  const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
+  
+  const { launches, formatLaunchOption } = useLaunches();
 
   // Sync state when item changes
   useEffect(() => {
     if (item) {
       setCreationDate(item.creationDate ? new Date(item.creationDate) : undefined);
       setPublishDate(item.publishDate ? new Date(item.publishDate) : undefined);
+      
+      // Fetch current launch_id if content_item
+      if (item.source === 'content_item' && item.sourceId) {
+        supabase
+          .from('content_items')
+          .select('launch_id')
+          .eq('id', item.sourceId)
+          .single()
+          .then(({ data }) => {
+            setSelectedCampaign(data?.launch_id || null);
+          });
+      } else {
+        setSelectedCampaign(null);
+      }
     }
   }, [item]);
 
   const handleSave = async () => {
-    const result = await onSave({
+    // Update campaign if content_item
+    if (item?.source === 'content_item' && item.sourceId) {
+      await supabase
+        .from('content_items')
+        .update({ launch_id: selectedCampaign })
+        .eq('id', item.sourceId);
+    }
+    
+    await onSave({
       creationDate: creationDate ? format(creationDate, 'yyyy-MM-dd') : null,
       publishDate: publishDate ? format(publishDate, 'yyyy-MM-dd') : null,
     });
-    // Only close if save was successful (result is true or undefined for backwards compat)
-    // The parent now controls closing via onOpenChange
   };
 
   const content = item && (
@@ -83,6 +115,30 @@ export function ContentQuickEditDrawer({
         <div className="space-y-2">
           <Label>Platform</Label>
           <Input value={PLATFORM_LABELS[item.channel.toLowerCase()] || item.channel} readOnly className="bg-muted" />
+        </div>
+      )}
+
+      {/* Campaign/Launch - only for content_items */}
+      {item.source === 'content_item' && (
+        <div className="space-y-2">
+          <Label>Campaign</Label>
+          <Select
+            value={selectedCampaign || 'none'}
+            onValueChange={(value) => setSelectedCampaign(value === 'none' ? null : value)}
+            disabled={isSaving}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select campaign..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No Campaign</SelectItem>
+              {launches.map((launch) => (
+                <SelectItem key={launch.id} value={launch.id}>
+                  {formatLaunchOption(launch)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       )}
 
