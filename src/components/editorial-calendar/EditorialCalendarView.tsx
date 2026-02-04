@@ -27,7 +27,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useEditorialCalendar } from '@/hooks/useEditorialCalendar';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useCalendarDensity, CalendarDensity } from '@/hooks/useCalendarDensity';
+import { CalendarDensityProvider, useCalendarDensity, CalendarDensity } from '@/hooks/useCalendarDensity';
 import { CalendarItem } from '@/lib/calendarConstants';
 import { CalendarWeekView } from './CalendarWeekView';
 import { UnscheduledPool } from './UnscheduledPool';
@@ -49,6 +49,14 @@ const DENSITY_LABELS: Record<CalendarDensity, string> = {
 };
 
 export function EditorialCalendarView() {
+  return (
+    <CalendarDensityProvider>
+      <EditorialCalendarViewInner />
+    </CalendarDensityProvider>
+  );
+}
+
+function EditorialCalendarViewInner() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [view, setView] = useState<'publish' | 'create'>('publish');
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
