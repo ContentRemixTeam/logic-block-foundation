@@ -1,75 +1,61 @@
 
-# Fix Editorial Calendar "Failed to add content" Error
+
+# Fix Editorial Calendar - Remove Outdated Type Constraint
 
 ## Problem Identified
 
-When adding content to the Editorial Calendar, the database rejects the insert with this error:
+The database has a CHECK constraint on `content_items.type` that only allows these legacy values:
+- `'Email'`, `'IG Post'`, `'Reel'`, `'Carousel'`, `'Story'`, `'YouTube'`, `'Podcast'`, `'Blog'`, `'Live'`, `'Ad'`, `'Landing Page'`, `'Other'`
 
-```
-"new row for relation \"content_items\" violates check constraint \"content_items_status_check\""
-```
+But the system now uses a flexible `user_content_types` table where users can create custom content types with keys like:
+- `'email-single'`, `'post'`, `'reel'`, `'video'`, `'blog-post'`, `'newsletter'`, `'carousel'`, etc.
 
-**The code is sending:** `status: 'idea'`
-**The database only accepts:** `'Draft'`, `'Ready'`, or `'Published'`
-
-This is a simple value mismatch - the code uses a status value that doesn't exist in the database.
+When users select "Email" from the dropdown, the code sends `type: 'email-single'` (the `type_key`), but the database rejects it because `'email-single'` is not in the old hardcoded list.
 
 ---
 
 ## The Fix
 
-Update `AddContentDialog.tsx` to use `'Draft'` instead of `'idea'` in two locations:
+**Drop the outdated CHECK constraint** to allow any content type value.
 
-### Location 1: Line 353 (base item for new content)
-```typescript
-// FROM:
-status: 'idea',
+### Database Migration
 
-// TO:
-status: 'Draft',
+```sql
+ALTER TABLE content_items DROP CONSTRAINT content_items_type_check;
 ```
 
-### Location 2: Line 409 (child items for recurring content)
-```typescript
-// FROM:
-status: 'idea',
+This is safe because:
+1. The `user_content_types` table now manages valid content types per user
+2. The UI only allows selection from the user's configured types
+3. The old hardcoded enum is incompatible with the custom types feature
 
-// TO:
-status: 'Draft',
-```
+---
+
+## Why Previous Fixes Failed
+
+| Attempt | What was fixed | Actual error |
+|---------|---------------|--------------|
+| 1st | `status: 'idea'` → `status: 'Draft'` | Was `content_items_type_check`, not status |
+| 2nd | Same status fix | Error message says `type_check` not `status_check` |
+
+The error message was misread - it says **`content_items_type_check`** not `content_items_status_check`.
 
 ---
 
 ## File Changes
 
-| File | Change |
-|------|--------|
-| `src/components/editorial-calendar/AddContentDialog.tsx` | Change `status: 'idea'` to `status: 'Draft'` in 2 locations |
-
----
-
-## Why This Happened
-
-The code was written with an assumed status value (`idea`) that was never added to the database constraint. The database was created with only three valid statuses:
-
-```sql
-CHECK (status IN ('Draft', 'Ready', 'Published'))
-```
-
-These match the existing `ContentStatus` type in the codebase:
-```typescript
-export type ContentStatus = 'Draft' | 'Ready' | 'Published';
-```
+| File/Location | Change |
+|---------------|--------|
+| Database migration | `ALTER TABLE content_items DROP CONSTRAINT content_items_type_check;` |
 
 ---
 
 ## After This Fix
 
-- Adding new content will work immediately
-- New content will have status `'Draft'` (appropriate for newly created items)
-- Users can later change status to `'Ready'` or `'Published'` as they progress
-- Recurring content items will also be created successfully
-- All the draft protection and task creation features will work as intended
+- Adding content will work with any content type from the user's custom types
+- Users can add new content types via the configuration modal
+- Existing content items remain unaffected (no data migration needed)
+- The flexible content types system will work as designed
 
 ---
 
@@ -78,7 +64,9 @@ export type ContentStatus = 'Draft' | 'Ready' | 'Published';
 1. Go to Editorial Calendar
 2. Click "Add Content"
 3. Enter a title (e.g., "Test Post")
-4. Select a platform and content type
-5. Set at least one date
-6. Click "Add Content"
-7. Should see success toast and content appears on calendar
+4. Select any platform (e.g., "Email")
+5. Select any content type (e.g., "Email" which sends `email-single`)
+6. Set at least one date
+7. Click "Add Content"
+8. Should see success toast and content appears on calendar
+
