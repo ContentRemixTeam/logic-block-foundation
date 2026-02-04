@@ -103,6 +103,14 @@ export interface SummitWizardData {
   hasPostSummitOffer: boolean;
   postSummitOfferDetails: string;
   postSummitNurture: PostSummitNurture;
+  
+  // Step 8: Live Panels
+  hasLivePanels: boolean;
+  livePanelCount: number | null;
+  livePanelTopics: string[];
+  
+  // Step 9: Task Exclusions
+  excludedTasks: string[];
 }
 
 export interface OrderBump {
@@ -184,6 +192,14 @@ export const DEFAULT_SUMMIT_WIZARD_DATA: SummitWizardData = {
   hasPostSummitOffer: false,
   postSummitOfferDetails: '',
   postSummitNurture: 'email-sequence',
+  
+  // Step 8: Live Panels
+  hasLivePanels: false,
+  livePanelCount: null,
+  livePanelTopics: [],
+  
+  // Step 9: Task Exclusions
+  excludedTasks: [],
 };
 
 // Options for selectors

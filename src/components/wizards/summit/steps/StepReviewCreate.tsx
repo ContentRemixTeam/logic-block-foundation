@@ -1,27 +1,21 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Pencil, Calendar, Users, DollarSign, Megaphone, Heart, Wrench } from 'lucide-react';
+import { Pencil, Calendar, Users, DollarSign, Megaphone, Wrench } from 'lucide-react';
 import { SummitWizardData, GOAL_OPTIONS, HOSTING_PLATFORMS, EMAIL_PLATFORMS } from '@/types/summit';
 import { format, parseISO, differenceInDays } from 'date-fns';
+import { TaskPreviewSection } from '../TaskPreviewSection';
 
 interface StepProps {
   data: SummitWizardData;
+  updateData: (updates: Partial<SummitWizardData>) => void;
   onEdit: (step: number) => void;
 }
 
-export function StepReviewCreate({ data, onEdit }: StepProps) {
+export function StepReviewCreate({ data, updateData, onEdit }: StepProps) {
   const effectiveDays = data.numDays === 0 ? data.customDays || 5 : data.numDays;
   const totalSessions = effectiveDays * data.sessionsPerDay;
   const effectiveCommission = data.affiliateCommission === 0 ? data.customCommission : data.affiliateCommission;
-
-  // Calculate task count estimate
-  const estimatedTasks = 
-    15 + // Base tasks
-    data.targetSpeakerCount * 3 + // Per speaker
-    (data.hasSocialKit ? 5 : 0) + // Social kit
-    data.engagementActivities.length * 2 + // Per activity
-    (data.hasPostSummitOffer ? 8 : 0); // Post-summit offer
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'Not set';
@@ -214,16 +208,11 @@ export function StepReviewCreate({ data, onEdit }: StepProps) {
       </div>
 
       {/* Task Preview */}
-      <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
-        <div className="flex items-center gap-2 mb-2">
-          <Heart className="h-5 w-5 text-primary" />
-          <span className="font-medium">Ready to Create</span>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          This will create a summit project with approximately <strong>{estimatedTasks} tasks</strong> organized 
-          into phases: Speaker Recruitment, Content Creation, Pre-Summit Promotion, Summit Live, and Post-Summit.
-        </p>
-      </div>
+      <Card>
+        <CardContent className="pt-6">
+          <TaskPreviewSection data={data} updateData={updateData} />
+        </CardContent>
+      </Card>
     </div>
   );
 }
