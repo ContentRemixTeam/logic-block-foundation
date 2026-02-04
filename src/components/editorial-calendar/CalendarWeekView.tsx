@@ -1,8 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { addDays, format, startOfWeek } from 'date-fns';
 import { CalendarDayColumn } from './CalendarDayColumn';
 import { CalendarItem } from '@/lib/calendarConstants';
 import { CampaignBar, Campaign } from './CampaignBar';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface CalendarWeekViewProps {
   weekStart: Date;
@@ -23,6 +25,9 @@ export function CalendarWeekView({
   view,
   selectedPlatforms,
 }: CalendarWeekViewProps) {
+  const isMobile = useIsMobile();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   // Generate array of 7 days starting from Monday
   const weekDays = useMemo(() => {
     const monday = startOfWeek(weekStart, { weekStartsOn: 1 });
@@ -61,17 +66,41 @@ export function CalendarWeekView({
         </div>
       )}
 
-      {/* Week Grid */}
-      <div className="flex-1 grid grid-cols-7 min-h-0 overflow-hidden">
-        {weekDays.map((date) => (
-          <CalendarDayColumn
+      {/* Week Grid - Responsive */}
+      <div 
+        ref={scrollContainerRef}
+        className={cn(
+          "flex-1 min-h-0 overflow-hidden",
+          // Desktop: full grid
+          "lg:grid lg:grid-cols-7",
+          // Tablet/Mobile: horizontal scroll with snap
+          "max-lg:overflow-x-auto max-lg:flex max-lg:snap-x max-lg:snap-mandatory",
+          // Hide scrollbar on mobile for cleaner look
+          "max-lg:scrollbar-thin max-lg:scrollbar-thumb-border"
+        )}
+      >
+        {weekDays.map((date, index) => (
+          <div
             key={format(date, 'yyyy-MM-dd')}
-            date={date}
-            createItems={filterByPlatform(getItemsForDay(date, 'create'))}
-            publishItems={filterByPlatform(getItemsForDay(date, 'publish'))}
-            onItemClick={onItemClick}
-            view={view}
-          />
+            className={cn(
+              // Desktop: normal column
+              "lg:min-w-0",
+              // Tablet: 5 columns visible (20% each)
+              "max-lg:min-w-[calc(100%/5)] max-lg:shrink-0 max-lg:snap-start",
+              // Mobile: 3 columns visible (33.33% each)
+              "max-md:min-w-[calc(100%/3)]",
+              // Ensure proper height
+              "h-full"
+            )}
+          >
+            <CalendarDayColumn
+              date={date}
+              createItems={filterByPlatform(getItemsForDay(date, 'create'))}
+              publishItems={filterByPlatform(getItemsForDay(date, 'publish'))}
+              onItemClick={onItemClick}
+              view={view}
+            />
+          </div>
         ))}
       </div>
     </div>

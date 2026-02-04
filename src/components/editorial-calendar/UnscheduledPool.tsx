@@ -1,20 +1,29 @@
+import { useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { CalendarItem } from '@/lib/calendarConstants';
 import { CalendarContentCard } from './CalendarContentCard';
-import { Inbox, Plus, ArrowRight, CheckCircle2, Sparkles } from 'lucide-react';
+import { Inbox, Plus, ArrowRight, CheckCircle2, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface UnscheduledPoolProps {
   items: CalendarItem[];
   onItemClick?: (item: CalendarItem) => void;
   selectedPlatforms: string[];
   onAddContentClick?: () => void;
+  isCollapsible?: boolean;
 }
 
-export function UnscheduledPool({ items, onItemClick, selectedPlatforms, onAddContentClick }: UnscheduledPoolProps) {
+export function UnscheduledPool({ 
+  items, 
+  onItemClick, 
+  selectedPlatforms, 
+  onAddContentClick,
+  isCollapsible = true,
+}: UnscheduledPoolProps) {
   const { isOver, setNodeRef } = useDroppable({ id: 'unscheduled' });
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Filter items by selected platforms
   const filteredItems = items.filter(item => {
@@ -25,24 +34,79 @@ export function UnscheduledPool({ items, onItemClick, selectedPlatforms, onAddCo
     );
   });
 
+  // Collapsed state
+  if (isCollapsed && isCollapsible) {
+    return (
+      <div 
+        ref={setNodeRef}
+        className={cn(
+          "flex flex-col h-full bg-muted/30 border-l border-border transition-all duration-300",
+          "w-12",
+          isOver && "bg-primary/5 ring-2 ring-inset ring-primary"
+        )}
+      >
+        {/* Expand button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsCollapsed(false)}
+          className="h-10 w-full rounded-none border-b border-border"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+
+        {/* Vertical text and count */}
+        <div className="flex-1 flex flex-col items-center justify-center py-4">
+          <div 
+            className="writing-mode-vertical text-xs font-medium text-muted-foreground whitespace-nowrap"
+            style={{ writingMode: 'vertical-rl', textOrientation: 'mixed', transform: 'rotate(180deg)' }}
+          >
+            Unscheduled
+          </div>
+          <div className="mt-2 px-2 py-1 rounded bg-muted text-xs font-medium">
+            {filteredItems.length}
+          </div>
+        </div>
+
+        {/* Drop indicator */}
+        {isOver && (
+          <div className="absolute inset-0 flex items-center justify-center bg-primary/10">
+            <Inbox className="h-5 w-5 text-primary" />
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div 
       ref={setNodeRef}
       className={cn(
-        "flex flex-col h-full bg-muted/30 border-l border-border transition-all duration-200",
+        "flex flex-col h-full bg-muted/30 border-l border-border transition-all duration-300 relative",
+        "w-64",
         isOver && "bg-primary/5 ring-2 ring-inset ring-primary"
       )}
     >
       {/* Header */}
-      <div className="px-3 py-3 border-b border-border bg-card/50">
+      <div className="px-3 py-3 border-b border-border bg-card/50 shrink-0">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-md bg-muted">
             <Inbox className="h-4 w-4 text-muted-foreground" />
           </div>
-          <span className="text-sm font-semibold">Unscheduled</span>
-          <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded ml-auto font-medium">
+          <span className="text-sm font-semibold flex-1">Unscheduled</span>
+          <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded font-medium">
             {filteredItems.length}
           </span>
+          {isCollapsible && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsCollapsed(true)}
+              className="h-6 w-6"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          )}
         </div>
 
         {/* Add Content Button */}
