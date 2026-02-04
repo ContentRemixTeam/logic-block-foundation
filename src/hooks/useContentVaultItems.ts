@@ -36,6 +36,7 @@ export function useContentVaultItems(options: UseContentVaultItemsOptions = {}) 
         .from('content_items')
         .select('id, title, type, channel, status, planned_creation_date, planned_publish_date')
         .eq('user_id', user.id)
+        .eq('show_in_vault', true)
         .neq('status', 'published')
         .order('created_at', { ascending: false })
         .limit(limit);
