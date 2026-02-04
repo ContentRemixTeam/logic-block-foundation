@@ -318,7 +318,8 @@ export function AddContentDialog({
       toast.success('Content scheduled!');
       await clearDraft();
 
-      queryClient.invalidateQueries({ queryKey: ['editorial-calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['editorial-calendar-content'] });
+      queryClient.invalidateQueries({ queryKey: ['editorial-calendar-unscheduled'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['content-for-planner'] });
       queryClient.invalidateQueries({ queryKey: ['content-vault-items'] });
@@ -465,7 +466,8 @@ export function AddContentDialog({
       }
 
       await clearDraft();
-      queryClient.invalidateQueries({ queryKey: ['editorial-calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['editorial-calendar-content'] });
+      queryClient.invalidateQueries({ queryKey: ['editorial-calendar-unscheduled'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['content-for-planner'] });
       onOpenChange(false);
