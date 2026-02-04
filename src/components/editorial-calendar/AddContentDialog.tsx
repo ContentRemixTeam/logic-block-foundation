@@ -550,12 +550,12 @@ export function AddContentDialog({
                   <Rocket className="h-3 w-3" />
                   Related to Launch
                 </Label>
-                <Select value={launchId} onValueChange={setLaunchId}>
+                <Select value={launchId || 'none'} onValueChange={(v) => setLaunchId(v === 'none' ? '' : v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select launch (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {launches.map((launch) => (
                       <SelectItem key={launch.id} value={launch.id}>
                         {formatLaunchOption(launch)}
