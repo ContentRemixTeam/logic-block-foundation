@@ -1,91 +1,85 @@
 
-# Fix Editorial Calendar - Query Cache Invalidation Bug
 
-## Problem Found
+# Enhance Editorial Calendar Error Handling and Debugging
 
-Content IS being saved to the database (verified: item exists with dates Feb 4-5, 2026), but it doesn't appear on the calendar because **the query cache is not being invalidated correctly**.
+## Overview
 
-### Root Cause
+Replace the current `updateItemDate` mutation with a comprehensive version that includes detailed logging, existence verification, permission checks, and user-friendly error messages.
 
-In `AddContentDialog.tsx`, after successfully creating content:
+---
 
+## Current State
+
+The existing mutation (lines 222-266) has minimal error handling:
+- No console logging for debugging
+- No verification that items exist before updating
+- No user-visible success/error feedback
+- Errors just get thrown without context
+
+---
+
+## Changes
+
+### File: `src/hooks/useEditorialCalendar.ts`
+
+**Add import for toast** (line 1-5):
 ```typescript
-// Current (BROKEN):
-queryClient.invalidateQueries({ queryKey: ['editorial-calendar'] });
+import { toast } from 'sonner';
 ```
 
-But in `useEditorialCalendar.ts`, the actual query keys are:
-- `['editorial-calendar-content', user?.id, weekStartStr, campaignFilter]`
-- `['editorial-calendar-campaigns', user?.id, weekStartStr]`
-- `['editorial-calendar-plans', user?.id, weekStartStr, campaignFilter]`
-- `['editorial-calendar-tasks', user?.id, weekStartStr]`
-- `['editorial-calendar-unscheduled', user?.id, campaignFilter]`
+**Replace updateItemDate mutation** (lines 222-266):
 
-The `invalidateQueries({ queryKey: ['editorial-calendar'] })` does NOT match any of these keys, so the queries never refetch after content is added.
+The new mutation will include:
 
----
+1. **Debug Logging** - Console logs showing exactly what's being updated
+2. **Existence Check** - For content_items, verify the item exists before updating
+3. **Permission Check** - Verify the user owns the item
+4. **User ID Filters** - Add `.eq('user_id', user.id)` to all updates for security
+5. **Error Messages** - User-friendly toast notifications for different error types
+6. **Success Feedback** - Toast showing what was updated
 
-## The Fix
+### Key Improvements
 
-Update both locations in `AddContentDialog.tsx` to invalidate the correct query keys:
-
-### Location 1: handleReuseSubmit (around line 321)
-```typescript
-// FROM:
-queryClient.invalidateQueries({ queryKey: ['editorial-calendar'] });
-
-// TO:
-queryClient.invalidateQueries({ queryKey: ['editorial-calendar-content'] });
-queryClient.invalidateQueries({ queryKey: ['editorial-calendar-unscheduled'] });
-```
-
-### Location 2: handleSubmit (around line 468)
-```typescript
-// FROM:
-queryClient.invalidateQueries({ queryKey: ['editorial-calendar'] });
-
-// TO:
-queryClient.invalidateQueries({ queryKey: ['editorial-calendar-content'] });
-queryClient.invalidateQueries({ queryKey: ['editorial-calendar-unscheduled'] });
-```
+| Feature | Before | After |
+|---------|--------|-------|
+| Console logging | None | Detailed logs with `[Editorial Calendar]` prefix |
+| Item existence check | No | Yes (for content_items) |
+| User permission check | Implicit (RLS) | Explicit user_id comparison |
+| Success notification | None | Toast showing "Creation/Publish date updated" |
+| Error notification | None | Specific error messages based on error type |
+| Plan item lane check | Silent ignore | Throws helpful error |
+| Unknown source handling | Silent fail | Throws helpful error |
 
 ---
 
-## Why This Works
+## Error Message Mapping
 
-React Query's `invalidateQueries` uses **prefix matching** by default. When you invalidate `['editorial-calendar-content']`, it will invalidate ALL queries that start with that key, including:
-
-- `['editorial-calendar-content', 'user-123', '2026-02-03', null]`
-- `['editorial-calendar-content', 'user-123', '2026-02-10', 'campaign-abc']`
-
-This ensures the calendar refetches content data regardless of which week is being viewed or what filters are active.
-
----
-
-## File Changes
-
-| File | Lines | Change |
-|------|-------|--------|
-| `src/components/editorial-calendar/AddContentDialog.tsx` | ~321 | Fix query key to `'editorial-calendar-content'` |
-| `src/components/editorial-calendar/AddContentDialog.tsx` | ~468 | Fix query key to `'editorial-calendar-content'` |
+| Error Type | User Message |
+|------------|--------------|
+| Item not found | "Content not found. It may have been deleted." |
+| Permission denied | "You don't have permission to update this content." |
+| Not authenticated | "Please log in again to continue." |
+| Other errors | Shows actual error message |
 
 ---
 
-## After This Fix
+## Debugging Instructions
 
-1. User adds content in the dialog
-2. Content is saved to database (already working)
-3. Query cache is invalidated with correct keys
-4. Calendar automatically refetches and displays the new content
-5. No page refresh needed
+After this fix, when dragging content:
+
+1. Open browser console (F12)
+2. Look for `[Editorial Calendar]` prefixed logs
+3. Logs will show: itemId, sourceId, source type, lane, newDate
+4. If update fails, check:
+   - "Item not found" → sourceId mismatch
+   - "permission" → RLS policy issue
+   - Specific Supabase error → database problem
 
 ---
 
-## Verification
+## Technical Details
 
-The database already has content for today's date:
-- Title: "test"
-- Creation date: 2026-02-04 (today)
-- Publish date: 2026-02-05 (tomorrow)
+- **File**: `src/hooks/useEditorialCalendar.ts`
+- **Lines affected**: 1-5 (add import), 222-266 (replace mutation)
+- **Dependencies**: Uses existing `sonner` toast library
 
-After this fix, this content will immediately appear on the calendar.
