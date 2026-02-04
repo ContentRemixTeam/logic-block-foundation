@@ -350,7 +350,7 @@ export function AddContentDialog({
         title: title.trim(),
         channel: platform || null,
         type: contentType || 'post',
-        status: 'idea',
+        status: 'Draft',
         planned_creation_date: createDate ? format(createDate, 'yyyy-MM-dd') : null,
         planned_publish_date: publishDate ? format(publishDate, 'yyyy-MM-dd') : null,
         scheduled_time: scheduledTime || null,
@@ -406,7 +406,7 @@ export function AddContentDialog({
           title: title.trim(),
           channel: platform || null,
           type: contentType || 'post',
-          status: 'idea',
+          status: 'Draft',
           planned_creation_date: createDate 
             ? format(new Date(new Date(date).getTime() - (publishDate.getTime() - createDate.getTime())), 'yyyy-MM-dd')
             : null,
