@@ -22,6 +22,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollIndicator } from '@/components/ui/scroll-indicator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CalendarIcon, Loader2, Repeat, Clock, Rocket, Lightbulb, Settings, Library, Plus, Search } from 'lucide-react';
@@ -416,7 +417,7 @@ export function AddContentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Add Content</DialogTitle>
           <DialogDescription>
@@ -425,8 +426,8 @@ export function AddContentDialog({
         </DialogHeader>
 
         {/* Mode Tabs */}
-        <Tabs value={mode} onValueChange={(v) => setMode(v as DialogMode)} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs value={mode} onValueChange={(v) => setMode(v as DialogMode)} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
             <TabsTrigger value="new" className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
               Create New
@@ -438,8 +439,9 @@ export function AddContentDialog({
           </TabsList>
 
           {/* Reuse from Vault Tab */}
-          <TabsContent value="reuse" className="mt-4">
-            <ScrollArea className="h-[400px] -mx-2 px-2">
+          <TabsContent value="reuse" className="mt-4 flex-1 min-h-0 overflow-hidden">
+            <ScrollIndicator className="h-full">
+              <ScrollArea className="h-full -mx-2 px-2">
               <div className="space-y-4">
                 {/* Search */}
                 <div className="relative">
@@ -590,13 +592,15 @@ export function AddContentDialog({
                   </div>
                 )}
               </div>
-            </ScrollArea>
+              </ScrollArea>
+            </ScrollIndicator>
           </TabsContent>
 
           {/* Create New Tab */}
-          <TabsContent value="new" className="mt-4">
-            <ScrollArea className="h-[400px] -mx-2 px-2">
-              <div className="grid gap-5 py-2">
+          <TabsContent value="new" className="mt-4 flex-1 min-h-0 overflow-hidden">
+            <ScrollIndicator className="h-full">
+              <ScrollArea className="h-full -mx-2 px-2">
+                <div className="grid gap-5 py-2 pb-4">
                 {/* Recurring Toggle */}
                 <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
                   <div className="flex items-center gap-2">
@@ -957,7 +961,8 @@ export function AddContentDialog({
               </div>
             </div>
               </div>
-            </ScrollArea>
+              </ScrollArea>
+            </ScrollIndicator>
           </TabsContent>
         </Tabs>
 
