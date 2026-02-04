@@ -70,6 +70,10 @@ export interface ContentPlannerData {
   // Step 7: Review
   generateTasks: boolean;
   
+  // Task configuration for preview
+  excludedTasks: string[];
+  taskDateOverrides: Array<{ taskId: string; newDate: string }>;
+  
   // Index signature for useWizard compatibility
   [key: string]: unknown;
 }
@@ -121,6 +125,10 @@ export const DEFAULT_CONTENT_PLANNER_DATA: ContentPlannerData = {
   
   // Step 7
   generateTasks: true,
+  
+  // Task configuration
+  excludedTasks: [],
+  taskDateOverrides: [],
 };
 
 // Format metadata for display

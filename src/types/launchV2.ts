@@ -478,6 +478,10 @@ export interface LaunchWizardV2Data {
   // Calculated fields
   salesNeeded: number;
   
+  // Task configuration for preview
+  excludedTasks: string[];
+  taskDateOverrides: Array<{ taskId: string; newDate: string }>;
+  
   // Index signature for Record<string, unknown> compatibility
   [key: string]: unknown;
 }
@@ -613,6 +617,10 @@ export const DEFAULT_LAUNCH_V2_DATA: LaunchWizardV2Data = {
   
   // Calculated
   salesNeeded: 0,
+  
+  // Task configuration
+  excludedTasks: [],
+  taskDateOverrides: [],
 };
 
 // ============== Option Arrays for UI ==============

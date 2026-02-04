@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -18,6 +18,8 @@ import {
 import { ContentPlannerData } from '@/types/contentPlanner';
 import { getFormatMetadata, formatDuration, calculateTotalTime } from '../utils/formatHelpers';
 import { format, parseISO, differenceInDays } from 'date-fns';
+import { WizardTaskPreview } from '@/components/wizards/shared/WizardTaskPreview';
+import { generateContentPlannerTasksPreview, CONTENT_PLANNER_PHASE_CONFIG } from '@/lib/contentPlannerTaskGenerator';
 
 interface StepReviewCreateProps {
   data: ContentPlannerData;
@@ -25,6 +27,10 @@ interface StepReviewCreateProps {
 }
 
 export function StepReviewCreate({ data, onChange }: StepReviewCreateProps) {
+  // Generate task preview
+  const allTasks = useMemo(() => generateContentPlannerTasksPreview(data), [data]);
+  const selectedTaskCount = allTasks.filter(t => !(data.excludedTasks || []).includes(t.id)).length;
+  
   // Calculate summary stats
   const totalItems = data.plannedItems.length;
   const repurposedCount = data.plannedItems.filter(i => i.isRepurposed).length;
@@ -212,14 +218,17 @@ export function StepReviewCreate({ data, onChange }: StepReviewCreateProps) {
             </Label>
           </div>
           
-          {data.generateTasks && (
-            <div className="text-sm text-muted-foreground pl-6">
-              <p>• {totalItems} creation tasks</p>
-              <p>• {totalItems} publish tasks</p>
-              <p className="font-medium text-foreground mt-2">
-                Total: {totalItems * 2} tasks
-              </p>
-            </div>
+          {data.generateTasks && allTasks.length > 0 && (
+            <WizardTaskPreview
+              tasks={allTasks}
+              excludedTasks={data.excludedTasks || []}
+              dateOverrides={data.taskDateOverrides || []}
+              onExcludedTasksChange={(excludedTasks) => onChange({ excludedTasks })}
+              onDateOverridesChange={(taskDateOverrides) => onChange({ taskDateOverrides })}
+              phaseOrder={CONTENT_PLANNER_PHASE_CONFIG}
+              defaultExpandedPhases={['create']}
+              maxHeight="300px"
+            />
           )}
         </CardContent>
       </Card>
@@ -229,7 +238,7 @@ export function StepReviewCreate({ data, onChange }: StepReviewCreateProps) {
         <CheckCircle2 className="h-12 w-12 mx-auto mb-4 text-green-500" />
         <p className="font-medium">Your content plan is ready!</p>
         <p className="text-sm text-muted-foreground mt-1">
-          Click "Create Content Plan" to save and start creating
+          Click "Create Content Plan" to save{data.generateTasks ? ` and create ${selectedTaskCount} tasks` : ''}
         </p>
       </div>
     </div>

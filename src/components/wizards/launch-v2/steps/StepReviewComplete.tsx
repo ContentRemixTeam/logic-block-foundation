@@ -1,9 +1,8 @@
 // Step 9: Review & Complete (Q24-Q25)
-// Captures readiness score and what they need, shows summary
+// Captures readiness score and what they need, shows summary with task preview
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +17,8 @@ import {
   REVENUE_GOAL_TIER_OPTIONS,
 } from '@/types/launchV2';
 import { formatCurrency } from '@/lib/wizardHelpers';
+import { WizardTaskPreview } from '@/components/wizards/shared/WizardTaskPreview';
+import { generateLaunchV2TasksPreview, LAUNCH_V2_PHASE_CONFIG } from '@/lib/launchV2TaskGenerator';
 
 interface StepReviewCompleteProps {
   data: LaunchWizardV2Data;
@@ -26,6 +27,10 @@ interface StepReviewCompleteProps {
 
 export function StepReviewComplete({ data, onChange }: StepReviewCompleteProps) {
   const [sliderValue, setSliderValue] = useState([data.readinessScore || 5]);
+  
+  // Generate task preview
+  const allTasks = useMemo(() => generateLaunchV2TasksPreview(data), [data]);
+  const selectedTaskCount = allTasks.filter(t => !(data.excludedTasks || []).includes(t.id)).length;
   
   const handleSliderChange = (value: number[]) => {
     setSliderValue(value);
@@ -38,41 +43,6 @@ export function StepReviewComplete({ data, onChange }: StepReviewCompleteProps) 
     : OFFER_TYPE_OPTIONS.find(o => o.value === data.offerType)?.label;
   const timelineLabel = LAUNCH_TIMELINE_OPTIONS.find(o => o.value === data.launchTimeline)?.label;
   const revenueLabel = REVENUE_GOAL_TIER_OPTIONS.find(o => o.value === data.revenueGoalTier)?.label;
-
-  // Estimate task count based on selections
-  const estimateTaskCount = (): number => {
-    let count = 5; // Base tasks (debrief, etc.)
-    
-    // Pre-launch content
-    if (data.contentCreationStatus === 'from-scratch') count += 10;
-    else if (data.contentCreationStatus === 'partial') count += 5;
-    else count += 2;
-    
-    // Content volume
-    if (data.contentVolume === 'heavy') count += 6;
-    else if (data.contentVolume === 'medium') count += 3;
-    
-    // Launch week frequency
-    if (data.offerFrequency === 'multiple-daily') count += 12;
-    else if (data.offerFrequency === 'daily') count += 7;
-    else count += 3;
-    
-    // Live events
-    if (data.liveComponent === 'multiple') count += 4;
-    else if (data.liveComponent === 'one') count += 2;
-    
-    // Follow-up
-    if (data.followUpWillingness === 'personal-outreach') count += 5;
-    else if (data.followUpWillingness === 'multiple-emails') count += 3;
-    else count += 1;
-    
-    // Mindset tasks
-    if (data.readinessScore <= 5 || data.whatYouNeed === 'confidence') count += 5;
-    if (data.gapOverlapDetected && data.gapSupportType === 'daily-motivation') count += 7;
-    if (data.biggestFears.length > 0 && !data.biggestFears.includes('no-fear')) count += 3;
-    
-    return count;
-  };
 
   return (
     <div className="space-y-8">
@@ -206,22 +176,6 @@ export function StepReviewComplete({ data, onChange }: StepReviewCompleteProps) 
             </div>
           </div>
 
-          {/* Task estimate */}
-          <div className="pt-4 border-t">
-            <div className="flex items-center gap-2 mb-2">
-              <ListChecks className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">What we'll create:</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">~{estimateTaskCount()} tasks</Badge>
-              {data.biggestFears.length > 0 && !data.biggestFears.includes('no-fear') && (
-                <Badge variant="secondary">{Math.min(data.biggestFears.length, 3)} thought work prompts</Badge>
-              )}
-              {data.gapOverlapDetected && <Badge variant="secondary">GAP support</Badge>}
-              <Badge variant="secondary">Launch project</Badge>
-            </div>
-          </div>
-
           {/* Flags */}
           <div className="pt-4 border-t">
             <p className="text-sm font-medium mb-2">Key flags:</p>
@@ -246,11 +200,33 @@ export function StepReviewComplete({ data, onChange }: StepReviewCompleteProps) 
         </CardContent>
       </Card>
 
+      {/* Task Preview */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <ListChecks className="h-5 w-5 text-primary" />
+            Tasks to Create ({selectedTaskCount} selected)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <WizardTaskPreview
+            tasks={allTasks}
+            excludedTasks={data.excludedTasks || []}
+            dateOverrides={data.taskDateOverrides || []}
+            onExcludedTasksChange={(excludedTasks) => onChange({ excludedTasks })}
+            onDateOverridesChange={(taskDateOverrides) => onChange({ taskDateOverrides })}
+            phaseOrder={LAUNCH_V2_PHASE_CONFIG}
+            defaultExpandedPhases={['pre_launch', 'launch']}
+            maxHeight="350px"
+          />
+        </CardContent>
+      </Card>
+
       {/* Final CTA hint */}
       <div className="text-center py-4">
         <p className="text-sm text-muted-foreground">
           <CheckCircle className="h-4 w-4 inline mr-1 text-green-500" />
-          Click "Create Launch" to generate your project, tasks, and thought work prompts.
+          Click "Create Launch" to generate your project and {selectedTaskCount} tasks.
         </p>
       </div>
     </div>
