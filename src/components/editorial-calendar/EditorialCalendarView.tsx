@@ -185,72 +185,84 @@ export function EditorialCalendarView() {
         <CalendarOnboarding onDismiss={() => setShowOnboarding(false)} />
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-border flex-wrap">
-        {/* Week Navigation */}
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={goToPreviousWeek}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={goToToday} className="gap-2">
-            <Calendar className="h-4 w-4" />
-            Today
-          </Button>
-          <Button variant="outline" size="icon" onClick={goToNextWeek}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-medium ml-2">
-            {format(weekStartDate, 'MMM d')} - {format(weekEndDate, 'MMM d, yyyy')}
-          </span>
+      {/* Header - Redesigned with better spacing */}
+      <div className="bg-card border-b border-border">
+        {/* Main navigation row */}
+        <div className="flex items-center justify-between gap-4 px-4 py-4 flex-wrap">
+          {/* Week Navigation - improved grouping */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center rounded-lg border border-border bg-muted/30 p-0.5">
+              <Button variant="ghost" size="icon" onClick={goToPreviousWeek} className="h-8 w-8">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={goToToday} className="h-8 gap-1.5 px-3">
+                <Calendar className="h-3.5 w-3.5" />
+                Today
+              </Button>
+              <Button variant="ghost" size="icon" onClick={goToNextWeek} className="h-8 w-8">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            {/* Week range - larger, more prominent */}
+            <div className="flex flex-col">
+              <span className="text-lg font-semibold tracking-tight">
+                {format(weekStartDate, 'MMM d')} – {format(weekEndDate, 'MMM d')}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {format(weekStartDate, 'yyyy')}
+              </span>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            {/* Campaign Filter */}
+            {campaigns.length > 0 && (
+              <Select
+                value={campaignFilter || 'all'}
+                onValueChange={(value) => setCampaignFilter(value === 'all' ? null : value)}
+              >
+                <SelectTrigger className="w-[180px] h-9">
+                  <div className="flex items-center gap-2">
+                    <Rocket className="h-3.5 w-3.5 text-muted-foreground" />
+                    <SelectValue placeholder="All Campaigns" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Campaigns</SelectItem>
+                  <SelectSeparator />
+                  {campaigns.map(campaign => (
+                    <SelectItem key={campaign.id} value={campaign.id}>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-2 h-2 rounded-full shrink-0"
+                          style={{ backgroundColor: campaign.display_color }}
+                        />
+                        <span className="truncate">{campaign.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            <Button onClick={() => setAddContentOpen(true)} size="sm" className="gap-1.5 shadow-sm">
+              <Plus className="h-4 w-4" />
+              Add Content
+            </Button>
+            <ViewToggle view={view} onViewChange={setView} />
+          </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2">
-          {/* Campaign Filter */}
-          {campaigns.length > 0 && (
-            <Select
-              value={campaignFilter || 'all'}
-              onValueChange={(value) => setCampaignFilter(value === 'all' ? null : value)}
-            >
-              <SelectTrigger className="w-[180px] h-9">
-                <div className="flex items-center gap-2">
-                  <Rocket className="h-3.5 w-3.5 text-muted-foreground" />
-                  <SelectValue placeholder="All Campaigns" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Campaigns</SelectItem>
-                <SelectSeparator />
-                {campaigns.map(campaign => (
-                  <SelectItem key={campaign.id} value={campaign.id}>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="w-2 h-2 rounded-full shrink-0"
-                        style={{ backgroundColor: campaign.display_color }}
-                      />
-                      <span className="truncate">{campaign.name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-
-          <Button onClick={() => setAddContentOpen(true)} size="sm" className="gap-1">
-            <Plus className="h-4 w-4" />
-            Add Content
-          </Button>
-          <ViewToggle view={view} onViewChange={setView} />
+        {/* Platform Filter Bar - separate row for breathing room */}
+        <div className="px-4 py-2.5 border-t border-border/50 bg-muted/20">
+          <PlatformFilterBar
+            selectedPlatforms={selectedPlatforms}
+            onTogglePlatform={togglePlatform}
+            onConfigureClick={() => setPlatformConfigOpen(true)}
+          />
         </div>
-      </div>
-
-      {/* Platform Filter Bar */}
-      <div className="px-4 py-2 border-b border-border bg-muted/30">
-        <PlatformFilterBar
-          selectedPlatforms={selectedPlatforms}
-          onTogglePlatform={togglePlatform}
-          onConfigureClick={() => setPlatformConfigOpen(true)}
-        />
       </div>
 
       {/* Main Content Area */}

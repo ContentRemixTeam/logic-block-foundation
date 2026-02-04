@@ -1,8 +1,10 @@
 import { useDroppable } from '@dnd-kit/core';
-import { format, isToday, isSameDay } from 'date-fns';
+import { format, isToday } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { CalendarItem, SCHEDULE_COLORS } from '@/lib/calendarConstants';
 import { CalendarContentCard } from './CalendarContentCard';
+import { Badge } from '@/components/ui/badge';
+import { Palette, Send, CheckCircle2 } from 'lucide-react';
 
 interface CalendarDayColumnProps {
   date: Date;
@@ -21,29 +23,50 @@ export function CalendarDayColumn({
 }: CalendarDayColumnProps) {
   const dateStr = format(date, 'yyyy-MM-dd');
   const isCurrentDay = isToday(date);
+  const totalItems = createItems.length + publishItems.length;
 
   return (
     <div className={cn(
       "flex flex-col min-w-0 border-r border-border last:border-r-0",
       isCurrentDay && "bg-primary/5"
     )}>
-      {/* Day Header */}
+      {/* Day Header - Redesigned */}
       <div className={cn(
-        "px-2 py-1.5 border-b border-border text-center",
+        "px-3 py-2 border-b border-border text-center relative",
         isCurrentDay && "bg-primary/10"
       )}>
+        {/* Day name */}
         <div className={cn(
-          "text-xs font-medium",
+          "text-[10px] font-semibold uppercase tracking-wider mb-0.5",
           isCurrentDay ? "text-primary" : "text-muted-foreground"
         )}>
           {format(date, 'EEE')}
         </div>
-        <div className={cn(
-          "text-lg font-semibold",
-          isCurrentDay ? "text-primary" : "text-foreground"
-        )}>
-          {format(date, 'd')}
+        
+        {/* Day number with today indicator */}
+        <div className="relative inline-flex items-center justify-center">
+          {isCurrentDay && (
+            <div className="absolute inset-0 -m-1 rounded-full bg-primary/20 animate-pulse" />
+          )}
+          <span className={cn(
+            "relative text-xl font-bold leading-none",
+            isCurrentDay 
+              ? "text-primary" 
+              : "text-foreground"
+          )}>
+            {format(date, 'd')}
+          </span>
         </div>
+
+        {/* Item count badge */}
+        {totalItems > 0 && (
+          <Badge 
+            variant="secondary" 
+            className="ml-2 text-[10px] px-1.5 py-0 h-4 font-medium"
+          >
+            {totalItems} {totalItems === 1 ? 'item' : 'items'}
+          </Badge>
+        )}
       </div>
 
       {/* Dual Lane Container */}
@@ -92,22 +115,49 @@ function DroppableLane({ id, lane, items, onItemClick, isHighlighted }: Droppabl
         "flex-1 p-1.5 min-h-0 overflow-y-auto transition-colors",
         colors.bg,
         isOver && "ring-2 ring-inset",
-        isOver && lane === 'create' && "ring-teal-500",
-        isOver && lane === 'publish' && "ring-violet-500",
+        isOver && lane === 'create' && "ring-teal-500 bg-teal-500/10",
+        isOver && lane === 'publish' && "ring-violet-500 bg-violet-500/10",
         isHighlighted && "opacity-100",
         !isHighlighted && "opacity-60"
       )}
     >
-      {/* Lane Label */}
+      {/* Lane Label with icon */}
       <div className={cn(
-        "text-[10px] font-medium uppercase tracking-wider mb-1 sticky top-0 bg-inherit",
-        colors.text
+        "flex items-center justify-between mb-1.5 sticky top-0 bg-inherit z-10 py-0.5",
       )}>
-        {lane === 'create' ? 'Create' : 'Publish'}
+        <div className={cn(
+          "flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider",
+          colors.text
+        )}>
+          {lane === 'create' ? (
+            <>
+              <Palette className="h-3 w-3" />
+              Create
+            </>
+          ) : (
+            <>
+              <Send className="h-3 w-3" />
+              Publish
+            </>
+          )}
+        </div>
+        {items.length > 0 && (
+          <Badge 
+            variant="outline" 
+            className={cn(
+              "text-[10px] px-1 py-0 h-4 font-medium border-0",
+              lane === 'create' 
+                ? "bg-teal-500/10 text-teal-600 dark:text-teal-400" 
+                : "bg-violet-500/10 text-violet-600 dark:text-violet-400"
+            )}
+          >
+            {items.length}
+          </Badge>
+        )}
       </div>
 
       {/* Items */}
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         {items.map(item => (
           <CalendarContentCard
             key={`${item.id}:${lane}`}
@@ -119,13 +169,68 @@ function DroppableLane({ id, lane, items, onItemClick, isHighlighted }: Droppabl
         ))}
       </div>
 
-      {/* Empty state */}
-      {items.length === 0 && (
+      {/* Empty state - beautiful version */}
+      {items.length === 0 && !isOver && (
         <div className={cn(
-          "text-[10px] text-center py-2 rounded border border-dashed",
-          lane === 'create' ? "border-teal-500/30 text-teal-500/50" : "border-violet-500/30 text-violet-500/50"
+          "flex flex-col items-center justify-center py-4 px-2 rounded-md border border-dashed text-center",
+          lane === 'create' 
+            ? "border-teal-500/30" 
+            : "border-violet-500/30"
         )}>
-          Drop here
+          {lane === 'create' ? (
+            <>
+              <Palette className={cn(
+                "h-5 w-5 mb-1",
+                "text-teal-500/40"
+              )} />
+              <span className="text-[10px] font-medium text-teal-500/60">
+                No content to create
+              </span>
+              <span className="text-[9px] text-teal-500/40 mt-0.5">
+                Drag items here
+              </span>
+            </>
+          ) : (
+            <>
+              <Send className={cn(
+                "h-5 w-5 mb-1",
+                "text-violet-500/40"
+              )} />
+              <span className="text-[10px] font-medium text-violet-500/60">
+                Nothing to publish
+              </span>
+              <span className="text-[9px] text-violet-500/40 mt-0.5">
+                Drag items here
+              </span>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Drop zone active state */}
+      {items.length === 0 && isOver && (
+        <div className={cn(
+          "flex flex-col items-center justify-center py-4 px-2 rounded-md border-2 border-dashed animate-pulse",
+          lane === 'create' 
+            ? "border-teal-500 bg-teal-500/10" 
+            : "border-violet-500 bg-violet-500/10"
+        )}>
+          <div className={cn(
+            "rounded-full p-2 mb-1",
+            lane === 'create' ? "bg-teal-500/20" : "bg-violet-500/20"
+          )}>
+            {lane === 'create' ? (
+              <Palette className="h-4 w-4 text-teal-500" />
+            ) : (
+              <Send className="h-4 w-4 text-violet-500" />
+            )}
+          </div>
+          <span className={cn(
+            "text-xs font-medium",
+            lane === 'create' ? "text-teal-600 dark:text-teal-400" : "text-violet-600 dark:text-violet-400"
+          )}>
+            Drop here!
+          </span>
         </div>
       )}
     </div>
