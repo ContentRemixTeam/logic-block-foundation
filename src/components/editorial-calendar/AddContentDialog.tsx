@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -48,6 +48,7 @@ import {
   generateRecurrenceDates,
   getRecurrenceDescription,
 } from '@/lib/recurrenceUtils';
+import { useFormDraftProtection } from '@/hooks/useFormDraftProtection';
 
 interface AddContentDialogProps {
   open: boolean;
@@ -111,30 +112,90 @@ export function AddContentDialog({
   const [platformConfigOpen, setPlatformConfigOpen] = useState(false);
   const [contentTypeConfigOpen, setContentTypeConfigOpen] = useState(false);
 
-  // Reset form when dialog opens
+  // Draft protection for form data
+  interface ContentFormDraft {
+    title: string;
+    platform: string;
+    contentType: string;
+    createDate: string | null;
+    publishDate: string | null;
+    scheduledTime: string;
+    promoting: string;
+    launchId: string;
+    copyNotes: string;
+    isRecurring: boolean;
+  }
+
+  const formData = useMemo<ContentFormDraft>(() => ({
+    title,
+    platform,
+    contentType,
+    createDate: createDate ? format(createDate, 'yyyy-MM-dd') : null,
+    publishDate: publishDate ? format(publishDate, 'yyyy-MM-dd') : null,
+    scheduledTime,
+    promoting,
+    launchId,
+    copyNotes,
+    isRecurring,
+  }), [title, platform, contentType, createDate, publishDate, scheduledTime, promoting, launchId, copyNotes, isRecurring]);
+
+  const { hasDraft, draftTimestamp, saveDraft, loadDraft, clearDraft } = useFormDraftProtection<ContentFormDraft>({
+    localStorageKey: 'add-content-dialog-draft',
+    enabled: open && mode === 'new',
+  });
+
+  // Auto-save draft when form data changes
   useEffect(() => {
-    if (open) {
-      setMode('new');
-      setVaultSearch('');
-      setSelectedVaultItemId(null);
-      setTitle('');
-      setPlatform('');
-      setContentType('');
-      setCreateDate(initialLane === 'create' && initialDate ? initialDate : undefined);
-      setPublishDate(initialLane === 'publish' && initialDate ? initialDate : undefined);
-      setScheduledTime('');
-      setPromoting('');
-      setLaunchId('');
-      setCopyNotes('');
-      setIsRecurring(false);
-      setFrequency('weekly');
-      setSelectedDays([1]);
-      setMonthDay(1);
-      setEndType('after_occurrences');
-      setEndDate(undefined);
-      setOccurrences(12);
+    if (open && mode === 'new' && title.trim()) {
+      saveDraft(formData);
     }
-  }, [open, initialDate, initialLane]);
+  }, [formData, open, mode, saveDraft, title]);
+
+  // Load draft or reset form when dialog opens
+  useEffect(() => {
+    const initializeForm = async () => {
+      if (open) {
+        // Check for existing draft first
+        const draft = await loadDraft();
+        if (draft && draft.title) {
+          setTitle(draft.title);
+          setPlatform(draft.platform);
+          setContentType(draft.contentType);
+          setCreateDate(draft.createDate ? new Date(draft.createDate) : undefined);
+          setPublishDate(draft.publishDate ? new Date(draft.publishDate) : undefined);
+          setScheduledTime(draft.scheduledTime);
+          setPromoting(draft.promoting);
+          setLaunchId(draft.launchId);
+          setCopyNotes(draft.copyNotes);
+          setIsRecurring(draft.isRecurring);
+          toast.info('Recovered unsaved draft', { duration: 3000 });
+        } else {
+          // Reset to defaults
+          setTitle('');
+          setPlatform('');
+          setContentType('');
+          setCreateDate(initialLane === 'create' && initialDate ? initialDate : undefined);
+          setPublishDate(initialLane === 'publish' && initialDate ? initialDate : undefined);
+          setScheduledTime('');
+          setPromoting('');
+          setLaunchId('');
+          setCopyNotes('');
+          setIsRecurring(false);
+        }
+        // Always reset these
+        setMode('new');
+        setVaultSearch('');
+        setSelectedVaultItemId(null);
+        setFrequency('weekly');
+        setSelectedDays([1]);
+        setMonthDay(1);
+        setEndType('after_occurrences');
+        setEndDate(undefined);
+        setOccurrences(12);
+      }
+    };
+    initializeForm();
+  }, [open, initialDate, initialLane, loadDraft]);
 
   const toggleDay = (day: number) => {
     setSelectedDays(prev => 
@@ -168,7 +229,8 @@ export function AddContentDialog({
     if (createDateStr) {
       tasksToCreate.push({
         user_id: user.id,
-        title: `Create: ${contentTitle}`,
+        task_text: `Create: ${contentTitle}`,
+        scheduled_date: createDateStr,
         due_date: createDateStr,
         content_item_id: contentId,
         content_type: contentType || 'post',
@@ -176,14 +238,15 @@ export function AddContentDialog({
         content_creation_date: createDateStr,
         content_publish_date: publishDateStr,
         priority: 'medium',
-        status: 'pending',
+        status: 'scheduled',
       });
     }
     
     if (publishDateStr) {
       tasksToCreate.push({
         user_id: user.id,
-        title: `Publish: ${contentTitle}`,
+        task_text: `Publish: ${contentTitle}`,
+        scheduled_date: publishDateStr,
         due_date: publishDateStr,
         content_item_id: contentId,
         content_type: contentType || 'post',
@@ -191,7 +254,7 @@ export function AddContentDialog({
         content_creation_date: createDateStr,
         content_publish_date: publishDateStr,
         priority: 'medium',
-        status: 'pending',
+        status: 'scheduled',
       });
     }
     
@@ -199,7 +262,7 @@ export function AddContentDialog({
       const { error } = await supabase.from('tasks').insert(tasksToCreate);
       if (error) {
         console.error('Failed to create content tasks:', error);
-        // Don't fail the whole operation, just log the error
+        toast.warning('Content saved, but task creation failed. You can add tasks manually.');
       }
     }
   };
@@ -253,6 +316,7 @@ export function AddContentDialog({
       }
 
       toast.success('Content scheduled!');
+      await clearDraft();
 
       queryClient.invalidateQueries({ queryKey: ['editorial-calendar'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
@@ -400,6 +464,7 @@ export function AddContentDialog({
         toast.success('Content added!');
       }
 
+      await clearDraft();
       queryClient.invalidateQueries({ queryKey: ['editorial-calendar'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['content-for-planner'] });
