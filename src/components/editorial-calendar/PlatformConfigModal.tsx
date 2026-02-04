@@ -11,8 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Check, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Loader2, Check, Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
 import { useUserPlatforms, UserPlatform } from '@/hooks/useUserPlatforms';
+import { useActiveCycle } from '@/hooks/useActiveCycle';
 import { PLATFORM_LABELS, DEFAULT_PLATFORM_COLORS, AVAILABLE_PLATFORMS } from '@/lib/calendarConstants';
 import { cn } from '@/lib/utils';
 import { CustomPlatformDialog } from './CustomPlatformDialog';
@@ -39,9 +40,13 @@ export function PlatformConfigModal({ open, onOpenChange }: PlatformConfigModalP
     customPlatforms,
     togglePlatformAsync, 
     deleteCustomPlatform,
+    syncFromCycleStrategy,
+    isSyncingFromCycle,
     isToggling,
     isDeletingCustom,
   } = useUserPlatforms();
+  
+  const { data: activeCycle } = useActiveCycle();
   
   const [pendingToggles, setPendingToggles] = useState<Set<string>>(new Set());
   const [customDialogOpen, setCustomDialogOpen] = useState(false);
@@ -90,6 +95,33 @@ export function PlatformConfigModal({ open, onOpenChange }: PlatformConfigModalP
 
           <ScrollArea className="flex-1 -mx-6 px-6">
             <div className="space-y-6 py-4">
+              {/* Sync from 90-Day Plan */}
+              {activeCycle && (
+                <div className="p-3 rounded-lg border bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Sync from 90-Day Plan</p>
+                      <p className="text-xs text-muted-foreground">
+                        Import platforms from your current cycle strategy
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => syncFromCycleStrategy(activeCycle.cycle_id)}
+                      disabled={isSyncingFromCycle}
+                    >
+                      {isSyncingFromCycle ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4" />
+                      )}
+                      <span className="ml-2">Sync</span>
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* Default Platforms Section */}
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">

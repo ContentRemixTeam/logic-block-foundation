@@ -23,7 +23,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CalendarIcon, Loader2, Repeat, Clock, Rocket, Lightbulb } from 'lucide-react';
+import { CalendarIcon, Loader2, Repeat, Clock, Rocket, Lightbulb, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useUserPlatforms } from '@/hooks/useUserPlatforms';
@@ -33,6 +33,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
+import { PlatformConfigModal } from './PlatformConfigModal';
+import { ContentTypeConfigModal } from './ContentTypeConfigModal';
 import { 
   RecurrencePattern, 
   RecurrenceFrequency,
@@ -87,6 +89,8 @@ export function AddContentDialog({
   const [occurrences, setOccurrences] = useState(12);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [platformConfigOpen, setPlatformConfigOpen] = useState(false);
+  const [contentTypeConfigOpen, setContentTypeConfigOpen] = useState(false);
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -283,7 +287,18 @@ export function AddContentDialog({
               {/* Platform & Content Type */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label>Platform</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Platform</Label>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5"
+                      onClick={() => setPlatformConfigOpen(true)}
+                      title="Configure platforms"
+                    >
+                      <Settings className="h-3 w-3" />
+                    </Button>
+                  </div>
                   <Select value={platform} onValueChange={setPlatform}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select platform" />
@@ -299,7 +314,18 @@ export function AddContentDialog({
                 </div>
 
                 <div className="grid gap-2">
-                  <Label>Content Type</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Content Type</Label>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5"
+                      onClick={() => setContentTypeConfigOpen(true)}
+                      title="Configure content types"
+                    >
+                      <Settings className="h-3 w-3" />
+                    </Button>
+                  </div>
                   <Select value={contentType} onValueChange={setContentType}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select type" />
@@ -599,6 +625,18 @@ export function AddContentDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Platform Config Modal */}
+      <PlatformConfigModal
+        open={platformConfigOpen}
+        onOpenChange={setPlatformConfigOpen}
+      />
+
+      {/* Content Type Config Modal */}
+      <ContentTypeConfigModal
+        open={contentTypeConfigOpen}
+        onOpenChange={setContentTypeConfigOpen}
+      />
     </Dialog>
   );
 }

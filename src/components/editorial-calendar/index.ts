@@ -11,5 +11,6 @@ export { CalendarOnboarding } from './CalendarOnboarding';
 export { AddContentDialog } from './AddContentDialog';
 export { PlatformConfigModal } from './PlatformConfigModal';
 export { CustomPlatformDialog } from './CustomPlatformDialog';
+export { ContentTypeConfigModal } from './ContentTypeConfigModal';
 export { CampaignBar } from './CampaignBar';
 export { CampaignSlideIn } from './CampaignSlideIn';
