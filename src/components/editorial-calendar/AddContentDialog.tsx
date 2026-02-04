@@ -117,9 +117,19 @@ export function AddContentDialog({
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [occurrences, setOccurrences] = useState(12);
   
+  // Vault visibility toggle - determines if content appears in Content Vault
+  const [saveToVault, setSaveToVault] = useState(false);
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [platformConfigOpen, setPlatformConfigOpen] = useState(false);
   const [contentTypeConfigOpen, setContentTypeConfigOpen] = useState(false);
+  
+  // Auto-enable vault toggle when substantial copy is added
+  useEffect(() => {
+    if (copyNotes.trim().length > 50 && !saveToVault) {
+      setSaveToVault(true);
+    }
+  }, [copyNotes, saveToVault]);
 
   // Draft protection for form data
   interface ContentFormDraft {
@@ -203,6 +213,7 @@ export function AddContentDialog({
         setEndType('after_occurrences');
         setEndDate(undefined);
         setOccurrences(12);
+        setSaveToVault(false);
       }
     };
     initializeForm();
@@ -357,6 +368,9 @@ export function AddContentDialog({
     setIsSubmitting(true);
 
     try {
+      // Determine vault visibility: explicit toggle OR has substantial content
+      const shouldShowInVault = saveToVault || copyNotes.trim().length > 0;
+      
       const baseItem = {
         user_id: user.id,
         title: title.trim(),
@@ -370,6 +384,7 @@ export function AddContentDialog({
         launch_id: launchId || null,
         notes: copyNotes.trim() || null,
         is_recurring: isRecurring,
+        show_in_vault: shouldShowInVault,
         recurrence_pattern: isRecurring ? {
           frequency,
           days: (frequency === 'weekly' || frequency === 'biweekly') ? selectedDays : undefined,
@@ -1236,6 +1251,24 @@ export function AddContentDialog({
                   onChange={(e) => setCopyNotes(e.target.value)}
                   maxLength={2000}
                   rows={4}
+                />
+              </div>
+
+              {/* Save to Vault Toggle */}
+              <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                <div className="space-y-0.5">
+                  <Label htmlFor="save-to-vault" className="flex items-center gap-2 font-medium cursor-pointer">
+                    <Library className="h-4 w-4 text-muted-foreground" />
+                    Save to Content Vault
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Store this content for future reuse
+                  </p>
+                </div>
+                <Switch
+                  id="save-to-vault"
+                  checked={saveToVault}
+                  onCheckedChange={setSaveToVault}
                 />
               </div>
             </div>

@@ -155,6 +155,7 @@ export async function getContentItems(filters?: ContentFilters): Promise<Content
   let query = supabase
     .from('content_items')
     .select('*')
+    .eq('show_in_vault', true)
     .order('updated_at', { ascending: false });
 
   if (filters?.search) {

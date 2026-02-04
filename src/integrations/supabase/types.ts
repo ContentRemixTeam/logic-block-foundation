@@ -516,6 +516,7 @@ export type Database = {
           scheduled_time: string | null
           selling_point_ids: string[] | null
           shares: number | null
+          show_in_vault: boolean | null
           status: string
           subject_line: string | null
           subscribers_gained: number | null
@@ -564,6 +565,7 @@ export type Database = {
           scheduled_time?: string | null
           selling_point_ids?: string[] | null
           shares?: number | null
+          show_in_vault?: boolean | null
           status?: string
           subject_line?: string | null
           subscribers_gained?: number | null
@@ -612,6 +614,7 @@ export type Database = {
           scheduled_time?: string | null
           selling_point_ids?: string[] | null
           shares?: number | null
+          show_in_vault?: boolean | null
           status?: string
           subject_line?: string | null
           subscribers_gained?: number | null
