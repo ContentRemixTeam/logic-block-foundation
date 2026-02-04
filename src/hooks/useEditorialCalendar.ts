@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { startOfWeek, endOfWeek, format } from 'date-fns';
 import { CalendarItem } from '@/lib/calendarConstants';
+import { toast } from 'sonner';
 
 export interface EditorialCampaign {
   id: string;
@@ -219,7 +220,7 @@ export function useEditorialCalendar({ weekStart, campaignFilter }: UseEditorial
     });
   };
 
-  // Update item dates
+  // Update item dates with comprehensive error handling
   const updateItemDate = useMutation({
     mutationFn: async ({ 
       item, 
@@ -230,38 +231,124 @@ export function useEditorialCalendar({ weekStart, campaignFilter }: UseEditorial
       lane: 'create' | 'publish'; 
       newDate: string | null;
     }) => {
-      if (!user?.id) throw new Error('Not authenticated');
+      if (!user?.id) {
+        throw new Error('Not authenticated');
+      }
+
+      console.log('[Editorial Calendar] Updating item:', {
+        itemId: item.id,
+        sourceId: item.sourceId,
+        source: item.source,
+        lane,
+        newDate,
+      });
 
       const field = lane === 'create' ? 'planned_creation_date' : 'planned_publish_date';
 
       if (item.source === 'content_item') {
+        // Verify the item exists first
+        const { data: existingItem, error: fetchError } = await supabase
+          .from('content_items')
+          .select('id, user_id')
+          .eq('id', item.sourceId)
+          .maybeSingle();
+
+        if (fetchError) {
+          console.error('[Editorial Calendar] Fetch error:', fetchError);
+          throw new Error(`Failed to verify content: ${fetchError.message}`);
+        }
+
+        if (!existingItem) {
+          console.error('[Editorial Calendar] Item not found:', item.sourceId);
+          throw new Error(`Content item not found: ${item.sourceId}`);
+        }
+
+        if (existingItem.user_id !== user.id) {
+          throw new Error('You do not have permission to update this item');
+        }
+
+        // Now update
         const { error } = await supabase
           .from('content_items')
           .update({ [field]: newDate })
           .eq('id', item.sourceId);
-        if (error) throw error;
+          
+        if (error) {
+          console.error('[Editorial Calendar] Update error:', error);
+          throw new Error(`Failed to update: ${error.message}`);
+        }
+
+        console.log('[Editorial Calendar] Successfully updated content_item');
+        
       } else if (item.source === 'content_plan_item') {
+        // Plan items only have planned_date (publish)
         if (lane === 'publish') {
           const { error } = await supabase
             .from('content_plan_items')
             .update({ planned_date: newDate })
-            .eq('id', item.sourceId);
-          if (error) throw error;
+            .eq('id', item.sourceId)
+            .eq('user_id', user.id);
+            
+          if (error) {
+            console.error('[Editorial Calendar] Plan item update error:', error);
+            throw new Error(`Failed to update plan item: ${error.message}`);
+          }
+          
+          console.log('[Editorial Calendar] Successfully updated content_plan_item');
+        } else {
+          throw new Error('Plan items can only have publish dates');
         }
+        
       } else if (item.source === 'task') {
         const taskField = lane === 'create' ? 'content_creation_date' : 'content_publish_date';
         const { error } = await supabase
           .from('tasks')
           .update({ [taskField]: newDate })
-          .eq('task_id', item.sourceId);
-        if (error) throw error;
+          .eq('task_id', item.sourceId)
+          .eq('user_id', user.id);
+          
+        if (error) {
+          console.error('[Editorial Calendar] Task update error:', error);
+          throw new Error(`Failed to update task: ${error.message}`);
+        }
+        
+        console.log('[Editorial Calendar] Successfully updated task');
+      } else {
+        throw new Error(`Unknown source type: ${item.source}`);
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      // Invalidate all calendar queries
       queryClient.invalidateQueries({ queryKey: ['editorial-calendar-content'] });
       queryClient.invalidateQueries({ queryKey: ['editorial-calendar-plans'] });
       queryClient.invalidateQueries({ queryKey: ['editorial-calendar-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['editorial-calendar-unscheduled'] });
+      
+      console.log('[Editorial Calendar] Queries invalidated, calendar will refresh');
+      
+      // Show success toast
+      toast.success(`${variables.lane === 'create' ? 'Creation' : 'Publish'} date updated`);
+    },
+    onError: (error: Error) => {
+      console.error('[Editorial Calendar] Mutation error:', error);
+      
+      // User-friendly error messages
+      let message = 'Failed to update date';
+      
+      if (error.message.includes('not found')) {
+        message = 'Content not found. It may have been deleted.';
+      } else if (error.message.includes('permission')) {
+        message = "You don't have permission to update this content.";
+      } else if (error.message.includes('not authenticated')) {
+        message = 'Please log in again to continue.';
+      } else if (error.message) {
+        message = error.message;
+      }
+      
+      toast.error('Update Failed', {
+        description: message,
+        duration: 5000,
+      });
     },
   });
 
