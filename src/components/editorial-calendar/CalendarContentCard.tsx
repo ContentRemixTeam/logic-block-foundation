@@ -83,6 +83,24 @@ function getStatusLabel(status: string): string {
   }
 }
 
+// Status dot colors for visibility in all modes
+function getStatusDotClass(status?: string): string {
+  switch (status) {
+    case 'published':
+    case 'completed':
+      return 'bg-green-500';
+    case 'scheduled':
+      return 'bg-purple-500';
+    case 'in-progress':
+      return 'bg-blue-500';
+    case 'draft':
+    case 'Draft':
+      return 'bg-gray-400';
+    default:
+      return 'bg-gray-300';
+  }
+}
+
 interface CalendarContentCardProps {
   item: CalendarItem;
   laneContext: 'create' | 'publish' | 'pool';
@@ -156,6 +174,16 @@ export function CalendarContentCard({
     >
       {/* Main content row */}
       <div className="flex items-center gap-2">
+        {/* Status Dot - always visible in all density modes */}
+        <div 
+          className={cn(
+            "shrink-0 rounded-full",
+            isCompact ? "h-2 w-2" : "h-2.5 w-2.5",
+            getStatusDotClass(item.status)
+          )}
+          title={item.status ? getStatusLabel(item.status) : 'No status'}
+        />
+        
         {/* Content Type Icon */}
         <IconComponent className={cn(
           "shrink-0 text-muted-foreground",

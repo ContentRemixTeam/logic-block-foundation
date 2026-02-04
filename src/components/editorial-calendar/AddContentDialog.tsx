@@ -524,9 +524,9 @@ export function AddContentDialog({
           </TabsList>
 
           {/* Reuse from Vault Tab */}
-          <TabsContent value="reuse" className="mt-4 flex-1 min-h-0 overflow-hidden">
+          <TabsContent value="reuse" className="mt-4 flex-1 min-h-0 overflow-hidden focus-visible:outline-none" tabIndex={0}>
             <ScrollIndicator className="h-full">
-              <ScrollArea className="h-full -mx-2 px-2">
+              <ScrollArea className="h-full -mx-2 px-2" tabIndex={0}>
               <div className="space-y-4">
                 {/* Search */}
                 <div className="relative">
@@ -682,9 +682,9 @@ export function AddContentDialog({
           </TabsContent>
 
           {/* From Ideas Tab */}
-          <TabsContent value="from-idea" className="mt-4 flex-1 min-h-0 overflow-hidden">
+          <TabsContent value="from-idea" className="mt-4 flex-1 min-h-0 overflow-hidden focus-visible:outline-none" tabIndex={0}>
             <ScrollIndicator className="h-full">
-              <ScrollArea className="h-full -mx-2 px-2">
+              <ScrollArea className="h-full -mx-2 px-2" tabIndex={0}>
                 <div className="space-y-4">
                   {/* Search Ideas */}
                   <div className="relative">
@@ -868,9 +868,9 @@ export function AddContentDialog({
           </TabsContent>
 
           {/* Create New Tab */}
-          <TabsContent value="new" className="mt-4 flex-1 min-h-0 overflow-hidden">
+          <TabsContent value="new" className="mt-4 flex-1 min-h-0 overflow-hidden focus-visible:outline-none" tabIndex={0}>
             <ScrollIndicator className="h-full">
-              <ScrollArea className="h-full -mx-2 px-2">
+              <ScrollArea className="h-full -mx-2 px-2" tabIndex={0}>
                 <div className="grid gap-5 py-2 pb-4">
                 {/* Recurring Toggle */}
                 <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
