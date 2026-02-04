@@ -303,30 +303,12 @@ export const NURTURE_OPTIONS = [
   { value: 'none', label: 'None planned' },
 ] as const;
 
-// Validation
+// Validation - Non-blocking navigation (all steps are optional)
+// Per architectural standard: validation is deferred until final creation
 export function validateSummitStep(step: number, data: SummitWizardData): boolean {
-  switch (step) {
-    case 1: // Basics
-      return data.name.trim().length > 0;
-    case 2: // Structure
-      return data.numDays > 0 || (data.customDays !== null && data.customDays > 0);
-    case 3: // Speaker Strategy
-      return data.speakerRecruitmentDeadline !== '';
-    case 4: // All-Access Pass
-      return true; // Optional
-    case 5: // Timeline
-      return data.summitStartDate !== '' && data.summitEndDate !== '';
-    case 6: // Tech
-      return data.hostingPlatform !== '' && data.emailPlatform !== '';
-    case 7: // Marketing
-      return data.promotionMethods.length > 0;
-    case 8: // Engagement
-      return true; // Optional
-    case 9: // Review
-      return true;
-    default:
-      return true;
-  }
+  // Always return true to allow free navigation between steps
+  // Final validation happens at creation time
+  return true;
 }
 
 export const SUMMIT_STEPS = [
