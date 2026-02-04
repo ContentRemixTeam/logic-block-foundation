@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { useState, useEffect, useMemo } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ContentPlanMode } from '@/types/contentPlanner';
+import { useQueryClient } from '@tanstack/react-query';
 
 const WIZARD_STEPS = [
   { number: 1, title: 'Mode' },
@@ -37,6 +38,7 @@ export function ContentPlannerWizard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [hasCheckedDraft, setHasCheckedDraft] = useState(false);
@@ -303,6 +305,14 @@ export function ContentPlannerWizard() {
         : `Content plan created with ${contentItemsCreated} items!`;
       
       toast.success(message);
+      
+      // Invalidate queries to ensure calendar and task views are updated
+      queryClient.invalidateQueries({ queryKey: ['editorial-calendar-content'] });
+      queryClient.invalidateQueries({ queryKey: ['editorial-calendar-plans'] });
+      queryClient.invalidateQueries({ queryKey: ['editorial-calendar-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['editorial-calendar-unscheduled'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['content-for-planner'] });
       
       // Navigate to editorial calendar or project page
       if (data.launchId) {

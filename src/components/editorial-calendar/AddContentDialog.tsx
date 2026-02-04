@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -23,13 +23,15 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CalendarIcon, Loader2, Repeat, Clock, Rocket, Lightbulb, Settings } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CalendarIcon, Loader2, Repeat, Clock, Rocket, Lightbulb, Settings, Library, Plus, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useUserPlatforms } from '@/hooks/useUserPlatforms';
 import { useUserContentTypes } from '@/hooks/useUserContentTypes';
 import { useLaunches } from '@/hooks/useLaunches';
 import { useCalendarSettings } from '@/hooks/useCalendarSettings';
+import { useContentVaultItems } from '@/hooks/useContentVaultItems';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -53,6 +55,8 @@ interface AddContentDialogProps {
   initialLane?: 'create' | 'publish';
 }
 
+type DialogMode = 'new' | 'reuse';
+
 export function AddContentDialog({ 
   open, 
   onOpenChange,
@@ -66,7 +70,19 @@ export function AddContentDialog({
   const { settings: calendarSettings } = useCalendarSettings();
   const queryClient = useQueryClient();
 
-  // Form state
+  // Mode state
+  const [mode, setMode] = useState<DialogMode>('new');
+  const [vaultSearch, setVaultSearch] = useState('');
+  const [selectedVaultItemId, setSelectedVaultItemId] = useState<string | null>(null);
+
+  // Fetch vault items for reuse mode
+  const { items: vaultItems, isLoading: vaultLoading } = useContentVaultItems({
+    unscheduledOnly: true,
+    search: vaultSearch,
+    limit: 50,
+  });
+
+  // Form state for new content
   const [title, setTitle] = useState('');
   const [platform, setPlatform] = useState('');
   const [contentType, setContentType] = useState('');
@@ -97,6 +113,9 @@ export function AddContentDialog({
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
+      setMode('new');
+      setVaultSearch('');
+      setSelectedVaultItemId(null);
       setTitle('');
       setPlatform('');
       setContentType('');
@@ -181,6 +200,69 @@ export function AddContentDialog({
         console.error('Failed to create content tasks:', error);
         // Don't fail the whole operation, just log the error
       }
+    }
+  };
+
+  // Handle scheduling an existing vault item
+  const handleReuseSubmit = async () => {
+    if (!selectedVaultItemId) {
+      toast.error('Please select a content item from your vault');
+      return;
+    }
+
+    if (!user?.id) {
+      toast.error('You must be logged in');
+      return;
+    }
+
+    if (!createDate && !publishDate) {
+      toast.error('Please set at least one date');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const createDateStr = createDate ? format(createDate, 'yyyy-MM-dd') : null;
+      const publishDateStr = publishDate ? format(publishDate, 'yyyy-MM-dd') : null;
+
+      // Update the existing content item with dates
+      const { error } = await supabase
+        .from('content_items')
+        .update({
+          planned_creation_date: createDateStr,
+          planned_publish_date: publishDateStr,
+          launch_id: launchId || null,
+        })
+        .eq('id', selectedVaultItemId);
+
+      if (error) throw error;
+
+      // Find the selected item to get its title for tasks
+      const selectedItem = vaultItems.find(item => item.id === selectedVaultItemId);
+
+      // Auto-create tasks if enabled and dates are set
+      if (calendarSettings.autoCreateContentTasks && selectedItem) {
+        await createContentTasks(
+          selectedVaultItemId,
+          selectedItem.title,
+          createDateStr,
+          publishDateStr
+        );
+      }
+
+      toast.success('Content scheduled!');
+
+      queryClient.invalidateQueries({ queryKey: ['editorial-calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['content-for-planner'] });
+      queryClient.invalidateQueries({ queryKey: ['content-vault-items'] });
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Failed to schedule content:', error);
+      toast.error('Failed to schedule content. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -329,32 +411,206 @@ export function AddContentDialog({
     }
   };
 
+  // Selected vault item for display
+  const selectedVaultItem = vaultItems.find(item => item.id === selectedVaultItemId);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Add Content</DialogTitle>
           <DialogDescription>
-            Create new content for your calendar. All fields except title are optional.
+            Create new content or schedule existing items from your vault.
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 -mx-6 px-6">
-          <div className="grid gap-5 py-4">
-            {/* Recurring Toggle */}
-            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
-              <div className="flex items-center gap-2">
-                <Repeat className="h-4 w-4 text-muted-foreground" />
-                <Label htmlFor="recurring" className="font-medium cursor-pointer">
-                  Make this recurring
-                </Label>
+        {/* Mode Tabs */}
+        <Tabs value={mode} onValueChange={(v) => setMode(v as DialogMode)} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="new" className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Create New
+            </TabsTrigger>
+            <TabsTrigger value="reuse" className="flex items-center gap-2">
+              <Library className="h-4 w-4" />
+              From Vault
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Reuse from Vault Tab */}
+          <TabsContent value="reuse" className="mt-4">
+            <ScrollArea className="h-[400px] -mx-2 px-2">
+              <div className="space-y-4">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search your vault..."
+                    value={vaultSearch}
+                    onChange={(e) => setVaultSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+
+                {/* Vault Items List */}
+                <div className="space-y-2">
+                  {vaultLoading && (
+                    <div className="flex items-center justify-center py-8 text-muted-foreground">
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                      Loading...
+                    </div>
+                  )}
+                  
+                  {!vaultLoading && vaultItems.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Library className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>No unscheduled content found</p>
+                      <p className="text-xs mt-1">Create content in your vault first, or use "Create New"</p>
+                    </div>
+                  )}
+
+                  {!vaultLoading && vaultItems.map((item) => (
+                    <div
+                      key={item.id}
+                      onClick={() => setSelectedVaultItemId(item.id)}
+                      className={cn(
+                        "p-3 rounded-lg border cursor-pointer transition-colors",
+                        selectedVaultItemId === item.id 
+                          ? "border-primary bg-primary/5" 
+                          : "hover:border-muted-foreground/30"
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{item.title}</p>
+                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                            {item.channel && <span className="capitalize">{item.channel}</span>}
+                            {item.channel && item.type && <span>•</span>}
+                            {item.type && <span className="capitalize">{item.type}</span>}
+                          </div>
+                        </div>
+                        <div className={cn(
+                          "w-4 h-4 rounded-full border-2 flex-shrink-0",
+                          selectedVaultItemId === item.id 
+                            ? "border-primary bg-primary" 
+                            : "border-muted-foreground/30"
+                        )} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Date Selection for Reuse */}
+                {selectedVaultItemId && (
+                  <div className="space-y-4 pt-4 border-t">
+                    <h3 className="text-sm font-semibold text-muted-foreground">Schedule "{selectedVaultItem?.title}"</h3>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Create Date */}
+                      <div className="grid gap-2">
+                        <Label className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-teal-500" />
+                          Create Date
+                        </Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                'justify-start text-left font-normal',
+                                !createDate && 'text-muted-foreground'
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {createDate ? format(createDate, 'MMM d') : 'Optional'}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={createDate}
+                              onSelect={setCreateDate}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
+                      {/* Publish Date */}
+                      <div className="grid gap-2">
+                        <Label className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-violet-500" />
+                          Publish Date
+                        </Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                'justify-start text-left font-normal',
+                                !publishDate && 'text-muted-foreground'
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {publishDate ? format(publishDate, 'MMM d') : 'Optional'}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={publishDate}
+                              onSelect={setPublishDate}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+
+                    {/* Launch */}
+                    <div className="grid gap-2">
+                      <Label className="flex items-center gap-2">
+                        <Rocket className="h-3 w-3" />
+                        Related to Campaign
+                      </Label>
+                      <Select value={launchId || 'none'} onValueChange={(v) => setLaunchId(v === 'none' ? '' : v)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select campaign (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          {launches.map((launch) => (
+                            <SelectItem key={launch.id} value={launch.id}>
+                              {formatLaunchOption(launch)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
               </div>
-              <Switch
-                id="recurring"
-                checked={isRecurring}
-                onCheckedChange={setIsRecurring}
-              />
-            </div>
+            </ScrollArea>
+          </TabsContent>
+
+          {/* Create New Tab */}
+          <TabsContent value="new" className="mt-4">
+            <ScrollArea className="h-[400px] -mx-2 px-2">
+              <div className="grid gap-5 py-2">
+                {/* Recurring Toggle */}
+                <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                  <div className="flex items-center gap-2">
+                    <Repeat className="h-4 w-4 text-muted-foreground" />
+                    <Label htmlFor="recurring" className="font-medium cursor-pointer">
+                      Make this recurring
+                    </Label>
+                  </div>
+                  <Switch
+                    id="recurring"
+                    checked={isRecurring}
+                    onCheckedChange={setIsRecurring}
+                  />
+                </div>
 
             {/* Basic Info */}
             <div className="space-y-4">
@@ -700,17 +956,29 @@ export function AddContentDialog({
                 />
               </div>
             </div>
-          </div>
-        </ScrollArea>
+              </div>
+            </ScrollArea>
+          </TabsContent>
+        </Tabs>
 
         <DialogFooter className="border-t pt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isRecurring ? 'Create Recurring' : 'Add Content'}
-          </Button>
+          {mode === 'reuse' ? (
+            <Button 
+              onClick={handleReuseSubmit} 
+              disabled={isSubmitting || !selectedVaultItemId}
+            >
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Schedule Content
+            </Button>
+          ) : (
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isRecurring ? 'Create Recurring' : 'Add Content'}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
 
