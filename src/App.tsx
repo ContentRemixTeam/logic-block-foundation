@@ -34,16 +34,33 @@ function lazyWithRetry<T extends ComponentType<any>>(
       return await componentImport();
     } catch (error: any) {
       // Check if it's a chunk loading error
-      if (
+      const isChunkError = 
         error?.message?.includes('Failed to fetch dynamically imported module') ||
         error?.message?.includes('Importing a module script failed') ||
-        error?.message?.includes('Load failed')
-      ) {
-        // Clear cache and reload once
+        error?.message?.includes('Load failed') ||
+        error?.message?.includes('dynamically imported module');
+      
+      if (isChunkError) {
+        // Clear service worker and caches, then reload
         const hasReloaded = sessionStorage.getItem('chunk_reload_attempted');
         if (!hasReloaded) {
           sessionStorage.setItem('chunk_reload_attempted', 'true');
+          
+          // Clear service worker caches
+          if ('caches' in window) {
+            try {
+              const cacheNames = await caches.keys();
+              await Promise.all(cacheNames.map(name => caches.delete(name)));
+            } catch (e) {
+              console.warn('Failed to clear caches:', e);
+            }
+          }
+          
+          // Force reload with cache bypass
           window.location.reload();
+        } else {
+          // Already attempted reload, clear the flag for next time
+          sessionStorage.removeItem('chunk_reload_attempted');
         }
       }
       throw error;
