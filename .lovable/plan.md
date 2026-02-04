@@ -1,120 +1,158 @@
 
-# Fix: AuthProvider Context Error During Calendar Operations
+
+# Add Category, Priority, and Project Selection to Mobile Quick Capture
 
 ## Problem Summary
 
-When trying to add items to the Editorial Calendar, you're seeing an "Invalid Input" error. The **actual underlying error** is:
+When capturing **ideas** on mobile (via the Quick Capture drawer or the standalone Quick Add PWA app), users cannot set:
+- **Category** (e.g., Business, Personal, Marketing)
+- **Priority** (e.g., ASAP, Next Week, Someday)
+- **Project** (link idea to a project)
+- **Tags**
 
+The desktop Quick Capture modal has all these controls for ideas (lines 1007-1196 in QuickCaptureModal.tsx), but the mobile drawer (lines 1505-1513) only shows a simple preview without any metadata selectors.
+
+The Quick Add PWA app (QuickAddApp.tsx) has no metadata controls for ideas at all — it just saves plain text.
+
+---
+
+## Solution Overview
+
+Create a reusable **IdeaQuickChips** component (similar to the existing QuickChips for tasks) and integrate it into:
+1. The mobile Quick Capture drawer (`mobileContent` section)
+2. The Quick Add PWA app
+
+This gives mobile users the same one-tap metadata selection they have for tasks.
+
+---
+
+## Implementation Details
+
+### Part 1: Create IdeaQuickChips Component
+
+**New File: `src/components/quick-capture/IdeaQuickChips.tsx`**
+
+A mobile-optimized component with horizontally scrollable chip rows for:
+- **Category** - Show user's idea categories with color dots
+- **Priority** - ASAP, Next Week, Next Month, Someday
+- **Project** - Show user's projects with color dots
+- **Tags** - Show quick-add tag input + existing tags
+
+Design approach:
+- Use the same `QuickChip` styling pattern from the existing QuickChips
+- Horizontal scroll rows with `overflow-x-auto` 
+- 44px minimum touch targets
+- Active state highlighting when selected
+
+### Part 2: Update Mobile Quick Capture (QuickCaptureModal.tsx)
+
+**Location**: Lines 1505-1513 (mobile idea preview section)
+
+Currently shows:
+```tsx
+{captureType === 'idea' && input.trim() && (
+  <div className="p-3 rounded-lg bg-muted/50 space-y-3">
+    <div className="text-sm font-medium flex items-center gap-2">
+      <Lightbulb className="h-4 w-4 text-yellow-500" />
+      {cleanIdeaInput(input) || '(enter your idea)'}
+    </div>
+  </div>
+)}
 ```
-useAuth must be used within an AuthProvider
+
+Update to include IdeaQuickChips:
+```tsx
+{captureType === 'idea' && input.trim() && (
+  <div className="p-3 rounded-lg bg-muted/50 space-y-3">
+    <div className="text-sm font-medium flex items-center gap-2">
+      <Lightbulb className="h-4 w-4 text-yellow-500" />
+      {cleanIdeaInput(input) || '(enter your idea)'}
+    </div>
+    
+    {/* Add idea metadata chips */}
+    <IdeaQuickChips
+      ideaData={ideaData}
+      onUpdate={setIdeaData}
+      categories={ideaCategories}
+      projects={projects}
+    />
+  </div>
+)}
 ```
 
-This is a misleading error message because:
-1. The real error is a **React context initialization issue**, not an input validation problem
-2. The error message gets incorrectly classified as "Invalid Input" because it contains "must be"
-3. The browser is running a stale version of the Dashboard code that's out of sync with the current source
+### Part 3: Update Quick Add PWA App (QuickAddApp.tsx)
 
-## Root Causes
+**Location**: Lines 100-106 (idea save logic) and Lines 229-251 (input section)
 
-1. **Vite HMR Cache Desync**: After code changes, the browser cache can get out of sync with source files
-2. **Error Classification Bug**: The error message pattern matcher incorrectly categorizes "useAuth must be used within an AuthProvider" as a validation error
-3. **Aggressive Context Check**: The `useAuth` hook throws immediately if context is missing, which can happen briefly during hot module reloads
+Changes needed:
+1. Add state for `ideaData` (category, priority, project, tags)
+2. Fetch idea categories and projects on mount
+3. Add IdeaQuickChips below the input when idea type is selected
+4. Update save function to include metadata when saving ideas
 
-## Solution
-
-### Part 1: Fix Error Classification (Immediate Priority)
-
-Update `errorMessages.ts` to specifically handle the context provider error before the generic validation pattern.
-
-**File: `src/lib/errorMessages.ts`**
-
-Add a new pattern BEFORE the validation pattern:
-```typescript
-// React Context Provider errors (must be before validation pattern)
-{
-  pattern: /must be used within/i,
-  friendly: {
-    title: "Component Error",
-    message: "A component failed to load properly. Please refresh the page to continue.",
-    action: 'refresh',
-  },
-},
-```
-
-This ensures the error gets a proper message and prompts the user to refresh instead of retry.
-
-### Part 2: Make useAuth More Resilient
-
-Update `useAuth` hook to return a safe default during transient context issues instead of throwing.
-
-**File: `src/hooks/useAuth.tsx`**
-
-Current code (throws error):
-```typescript
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+**Updated save for ideas**:
+```tsx
+} else if (selectedType === 'idea') {
+  const { error } = await supabase.from('ideas').insert({
+    user_id: user.id,
+    content: inputValue.trim(),
+    category_id: ideaData.categoryId,
+    priority: ideaData.priority,
+    project_id: ideaData.projectId,
+    tags: ideaData.tags.length > 0 ? ideaData.tags : null,
+    source_note_title: 'Quick Add',
+  });
+  if (error) throw error;
 }
 ```
 
-Updated code (safe fallback with warning):
-```typescript
-export function useAuth() {
-  const context = useContext(AuthContext);
-  
-  if (context === undefined) {
-    // During HMR or initial load, context might briefly be unavailable
-    // Return a safe fallback instead of throwing
-    console.warn('useAuth called outside AuthProvider - returning loading state');
-    return {
-      user: null,
-      session: null,
-      loading: true,  // Signal that we're still loading
-      signOut: async () => { console.warn('signOut called during loading state'); },
-    };
-  }
-  
-  return context;
-}
+---
+
+## File Changes Summary
+
+| File | Change Type | Description |
+|------|-------------|-------------|
+| `src/components/quick-capture/IdeaQuickChips.tsx` | **New** | Reusable chip selector for idea metadata |
+| `src/components/quick-capture/index.ts` | Update | Export new IdeaQuickChips component |
+| `src/components/quick-capture/QuickCaptureModal.tsx` | Update | Add IdeaQuickChips to mobile idea preview |
+| `src/pages/QuickAddApp.tsx` | Update | Add idea metadata state, fetching, and chips UI |
+
+---
+
+## Mobile UX Design
+
+The IdeaQuickChips will display as horizontally scrollable rows:
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│ 💡 My brilliant marketing idea                                  │
+├─────────────────────────────────────────────────────────────────┤
+│ [🏷️ Category] [● Business] [● Personal] [● Marketing] →        │
+├─────────────────────────────────────────────────────────────────┤
+│ [⏰ ASAP] [📅 Next Week] [📅 Next Month] [💭 Someday]           │
+├─────────────────────────────────────────────────────────────────┤
+│ [📁 Project A] [📁 Project B] [📁 Project C] →                  │
+├─────────────────────────────────────────────────────────────────┤
+│ [#marketing] [#content] [+ Add Tag]                             │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-Benefits:
-- Components gracefully handle the loading state
-- No crash during HMR transitions
-- Console warning helps with debugging
-- User sees loading state instead of error page
-
-### Part 3: Add Clear Cache Button for Users
-
-To handle future cache sync issues, add a utility for hard refreshing.
-
-This is optional but helpful - add a "Clear Cache & Reload" option in the error boundary.
+- Active chips highlighted with primary color
+- Tap to toggle selection
+- Horizontal scroll for overflow
+- 44px touch targets per mobile standards
 
 ---
 
-## Files to Modify
+## Testing Checklist
 
-| File | Change |
-|------|--------|
-| `src/lib/errorMessages.ts` | Add context provider error pattern before validation |
-| `src/hooks/useAuth.tsx` | Return safe fallback instead of throwing |
+After implementation:
+- [ ] Open Quick Capture on mobile → select Idea → verify chips appear
+- [ ] Tap Category chip → verify selection persists
+- [ ] Tap Priority chip → verify selection persists  
+- [ ] Tap Project chip → verify selection persists
+- [ ] Add a tag → verify it appears as a chip
+- [ ] Save idea → verify metadata is saved to database
+- [ ] Open Quick Add PWA app → select Idea → verify chips appear
+- [ ] Save idea from PWA → verify metadata is saved
 
----
-
-## Immediate Workaround
-
-Before implementing fixes, you can resolve this immediately by:
-1. **Hard refresh the page**: Press `Ctrl+Shift+R` (Windows/Linux) or `Cmd+Shift+R` (Mac)
-2. This clears the browser cache and reloads fresh code
-
----
-
-## Why This Prevents Future Issues
-
-1. **Error messages will be accurate**: Users will see "Please refresh the page" instead of "Invalid Input"
-2. **No more crashes during HMR**: The app will show loading state instead of crashing
-3. **Better developer experience**: Console warnings help identify the root cause quickly
-4. **Users can self-recover**: Clear messaging tells users exactly what to do
