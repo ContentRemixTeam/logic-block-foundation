@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollIndicator } from '@/components/ui/scroll-indicator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -1595,8 +1597,14 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
     return (
       <>
         <Drawer open={open} onOpenChange={onOpenChange}>
-          <DrawerContent className="max-h-[100dvh] overflow-y-auto px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
-            {mobileContent}
+          <DrawerContent className="max-h-[85dvh] flex flex-col overflow-hidden px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
+            <ScrollIndicator className="flex-1 overflow-hidden min-h-0">
+              <ScrollArea className="h-full">
+                <div className="pb-4">
+                  {mobileContent}
+                </div>
+              </ScrollArea>
+            </ScrollIndicator>
           </DrawerContent>
         </Drawer>
         
@@ -1613,8 +1621,14 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
-          {desktopContent}
+        <DialogContent className="sm:max-w-md max-h-[85vh] flex flex-col overflow-hidden">
+          <ScrollIndicator className="flex-1 min-h-0">
+            <ScrollArea className="h-full">
+              <div className="pr-2 pb-4">
+                {desktopContent}
+              </div>
+            </ScrollArea>
+          </ScrollIndicator>
         </DialogContent>
       </Dialog>
       

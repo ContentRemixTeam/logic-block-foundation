@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollIndicator } from '@/components/ui/scroll-indicator';
 import { Loader2, Check, Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
 import { useUserPlatforms, UserPlatform } from '@/hooks/useUserPlatforms';
 import { useActiveCycle } from '@/hooks/useActiveCycle';
@@ -93,8 +94,9 @@ export function PlatformConfigModal({ open, onOpenChange }: PlatformConfigModalP
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 -mx-6 px-6">
-            <div className="space-y-6 py-4">
+          <ScrollIndicator className="flex-1 min-h-0">
+            <ScrollArea className="h-full -mx-6 px-6">
+              <div className="space-y-6 py-4 pb-6">
               {/* Sync from 90-Day Plan */}
               {activeCycle && (
                 <div className="p-3 rounded-lg border bg-muted/30">
@@ -256,8 +258,9 @@ export function PlatformConfigModal({ open, onOpenChange }: PlatformConfigModalP
                   </div>
                 )}
               </div>
-            </div>
-          </ScrollArea>
+              </div>
+            </ScrollArea>
+          </ScrollIndicator>
 
           <DialogFooter className="border-t pt-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mr-auto">
