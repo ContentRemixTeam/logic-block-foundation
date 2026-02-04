@@ -5920,6 +5920,7 @@ export type Database = {
           arcade_enabled: boolean | null
           arcade_reduce_motion: boolean | null
           arcade_sounds_off: boolean | null
+          auto_create_content_tasks: boolean | null
           celebrations_enabled: boolean
           created_at: string | null
           current_debrief_streak: number | null
@@ -5945,6 +5946,7 @@ export type Database = {
           reminder_preferences: Json | null
           scratch_pad_review_mode: string | null
           show_coin_counter: boolean | null
+          show_content_in_planners: boolean | null
           show_income_tracker: boolean | null
           show_mastermind_calls: boolean | null
           show_pet_widget: boolean | null
@@ -5967,6 +5969,7 @@ export type Database = {
           arcade_enabled?: boolean | null
           arcade_reduce_motion?: boolean | null
           arcade_sounds_off?: boolean | null
+          auto_create_content_tasks?: boolean | null
           celebrations_enabled?: boolean
           created_at?: string | null
           current_debrief_streak?: number | null
@@ -5992,6 +5995,7 @@ export type Database = {
           reminder_preferences?: Json | null
           scratch_pad_review_mode?: string | null
           show_coin_counter?: boolean | null
+          show_content_in_planners?: boolean | null
           show_income_tracker?: boolean | null
           show_mastermind_calls?: boolean | null
           show_pet_widget?: boolean | null
@@ -6014,6 +6018,7 @@ export type Database = {
           arcade_enabled?: boolean | null
           arcade_reduce_motion?: boolean | null
           arcade_sounds_off?: boolean | null
+          auto_create_content_tasks?: boolean | null
           celebrations_enabled?: boolean
           created_at?: string | null
           current_debrief_streak?: number | null
@@ -6039,6 +6044,7 @@ export type Database = {
           reminder_preferences?: Json | null
           scratch_pad_review_mode?: string | null
           show_coin_counter?: boolean | null
+          show_content_in_planners?: boolean | null
           show_income_tracker?: boolean | null
           show_mastermind_calls?: boolean | null
           show_pet_widget?: boolean | null

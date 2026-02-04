@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format, differenceInDays, differenceInHours, startOfWeek } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Rocket, Target, TrendingUp, Zap, ChevronRight, Loader2, ListTodo, StickyNote } from 'lucide-react';
+import { ContentScheduleCard } from '@/components/daily-plan/ContentScheduleCard';
 
 export function InfoCards() {
   const navigate = useNavigate();
@@ -241,7 +242,11 @@ export function InfoCards() {
     : 0;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+    <div className="space-y-4 mb-6">
+      {/* Content Schedule (if enabled) */}
+      <ContentScheduleCard date={new Date()} />
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
       {/* Launch Countdown Card */}
       <Card className={cn(
         "hover:shadow-md transition-shadow cursor-pointer",
@@ -429,6 +434,7 @@ export function InfoCards() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

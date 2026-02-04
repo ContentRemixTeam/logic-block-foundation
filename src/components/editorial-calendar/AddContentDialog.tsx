@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 import { useUserPlatforms } from '@/hooks/useUserPlatforms';
 import { useUserContentTypes } from '@/hooks/useUserContentTypes';
 import { useLaunches } from '@/hooks/useLaunches';
+import { useCalendarSettings } from '@/hooks/useCalendarSettings';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -62,6 +63,7 @@ export function AddContentDialog({
   const { activePlatforms, getPlatformLabel } = useUserPlatforms();
   const { activeContentTypes, getContentTypeLabel } = useUserContentTypes();
   const { launches, formatLaunchOption } = useLaunches();
+  const { settings: calendarSettings } = useCalendarSettings();
   const queryClient = useQueryClient();
 
   // Form state
@@ -137,6 +139,51 @@ export function AddContentDialog({
     return getRecurrenceDescription(pattern);
   };
 
+  // Helper to create tasks for content
+  const createContentTasks = async (contentId: string, contentTitle: string, createDateStr: string | null, publishDateStr: string | null) => {
+    if (!user?.id) return;
+    
+    const tasksToCreate = [];
+    
+    if (createDateStr) {
+      tasksToCreate.push({
+        user_id: user.id,
+        title: `Create: ${contentTitle}`,
+        due_date: createDateStr,
+        content_item_id: contentId,
+        content_type: contentType || 'post',
+        content_channel: platform || null,
+        content_creation_date: createDateStr,
+        content_publish_date: publishDateStr,
+        priority: 'medium',
+        status: 'pending',
+      });
+    }
+    
+    if (publishDateStr) {
+      tasksToCreate.push({
+        user_id: user.id,
+        title: `Publish: ${contentTitle}`,
+        due_date: publishDateStr,
+        content_item_id: contentId,
+        content_type: contentType || 'post',
+        content_channel: platform || null,
+        content_creation_date: createDateStr,
+        content_publish_date: publishDateStr,
+        priority: 'medium',
+        status: 'pending',
+      });
+    }
+    
+    if (tasksToCreate.length > 0) {
+      const { error } = await supabase.from('tasks').insert(tasksToCreate);
+      if (error) {
+        console.error('Failed to create content tasks:', error);
+        // Don't fail the whole operation, just log the error
+      }
+    }
+  };
+
   const handleSubmit = async () => {
     if (!title.trim()) {
       toast.error('Please enter a title');
@@ -184,6 +231,16 @@ export function AddContentDialog({
 
         if (parentError) throw parentError;
 
+        // Auto-create tasks for parent if enabled
+        if (calendarSettings.autoCreateContentTasks && (createDate || publishDate)) {
+          await createContentTasks(
+            parentData.id,
+            title.trim(),
+            createDate ? format(createDate, 'yyyy-MM-dd') : null,
+            publishDate ? format(publishDate, 'yyyy-MM-dd') : null
+          );
+        }
+
         // Generate child items
         const pattern: RecurrencePattern = {
           frequency,
@@ -216,22 +273,53 @@ export function AddContentDialog({
         }));
 
         if (childItems.length > 0) {
-          const { error: childError } = await supabase
+          const { data: childData, error: childError } = await supabase
             .from('content_items')
-            .insert(childItems);
+            .insert(childItems)
+            .select('id, planned_creation_date, planned_publish_date');
 
           if (childError) throw childError;
+
+          // Auto-create tasks for child items if enabled
+          if (calendarSettings.autoCreateContentTasks && childData) {
+            for (const child of childData) {
+              await createContentTasks(
+                child.id,
+                title.trim(),
+                child.planned_creation_date,
+                child.planned_publish_date
+              );
+            }
+          }
         }
 
         toast.success(`Created recurring content (${dates.length} occurrences)`);
       } else {
         // Single item
-        const { error } = await supabase.from('content_items').insert(baseItem);
+        const { data: insertedData, error } = await supabase
+          .from('content_items')
+          .insert(baseItem)
+          .select('id')
+          .single();
+          
         if (error) throw error;
+
+        // Auto-create tasks if enabled and dates are set
+        if (calendarSettings.autoCreateContentTasks && insertedData && (createDate || publishDate)) {
+          await createContentTasks(
+            insertedData.id,
+            title.trim(),
+            createDate ? format(createDate, 'yyyy-MM-dd') : null,
+            publishDate ? format(publishDate, 'yyyy-MM-dd') : null
+          );
+        }
+
         toast.success('Content added!');
       }
 
       queryClient.invalidateQueries({ queryKey: ['editorial-calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['content-for-planner'] });
       onOpenChange(false);
     } catch (error) {
       console.error('Failed to add content:', error);

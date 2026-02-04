@@ -35,6 +35,7 @@ import { CycleProgressBanner } from '@/components/cycle/CycleProgressBanner';
 import { ToastAction } from '@/components/ui/toast';
 import { WeeklySprintSection } from '@/components/weekly-plan/WeeklySprintSection';
 import { SummitCheckInCard } from '@/components/reviews/SummitCheckInCard';
+import { WeeklyContentScheduleCard } from '@/components/weekly-plan/WeeklyContentScheduleCard';
 import { useActiveSprint } from '@/hooks/useActiveSprint';
 import { useActiveSummits } from '@/hooks/useActiveSummits';
 
@@ -505,6 +506,9 @@ export default function WeeklyPlan() {
       <div className="mx-auto max-w-7xl space-y-6 px-4">
         {/* 90-Day Cycle Progress */}
         <CycleProgressBanner compact />
+
+        {/* Weekly Content Schedule (if enabled) */}
+        <WeeklyContentScheduleCard />
 
         {/* New Sunsama-style Weekly Planner */}
         <WeekPlannerNew 
