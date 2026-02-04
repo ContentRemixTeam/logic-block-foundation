@@ -62,6 +62,16 @@ export interface SummitWizardData {
   vipPrice: number | null;
   vipIncludes: string;
   
+  // Step 4: Price Increases
+  hasPriceIncreases: boolean;
+  waitlistPrice: number | null;
+  duringSummitPrice: number | null;
+  afterSummitPrice: number | null;
+  
+  // Step 4: Order Bumps
+  hasOrderBumps: boolean;
+  orderBumps: OrderBump[];
+  
   // Step 5: Timeline
   registrationOpens: string;
   summitStartDate: string;
@@ -95,6 +105,13 @@ export interface SummitWizardData {
   postSummitNurture: PostSummitNurture;
 }
 
+export interface OrderBump {
+  id: string;
+  name: string;
+  price: number | null;
+  description: string;
+}
+
 export const DEFAULT_SUMMIT_WIZARD_DATA: SummitWizardData = {
   // Step 1
   name: '',
@@ -125,6 +142,16 @@ export const DEFAULT_SUMMIT_WIZARD_DATA: SummitWizardData = {
   hasVipTier: false,
   vipPrice: null,
   vipIncludes: '',
+  
+  // Step 4: Price Increases
+  hasPriceIncreases: false,
+  waitlistPrice: null,
+  duringSummitPrice: null,
+  afterSummitPrice: null,
+  
+  // Step 4: Order Bumps
+  hasOrderBumps: false,
+  orderBumps: [],
   
   // Step 5
   registrationOpens: '',
