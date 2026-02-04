@@ -23,6 +23,7 @@ import { GoogleCalendarPanel } from '@/components/google-calendar/GoogleCalendar
 import { THEMES, THEME_IDS, ThemeId } from '@/lib/themes';
 import { DelightSettingsCard, DataRecoveryCard } from '@/components/settings';
 import { ThemeGallery } from '@/components/themes';
+import { CalendarSettingsCard } from '@/components/editorial-calendar';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -398,6 +399,9 @@ export default function Settings() {
 
         {/* Google Calendar Integration */}
         <GoogleCalendarPanel />
+
+        {/* Calendar Integration */}
+        <CalendarSettingsCard />
 
         {/* Display Preferences */}
         <Card>

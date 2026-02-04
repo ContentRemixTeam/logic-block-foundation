@@ -149,6 +149,9 @@ Deno.serve(async (req) => {
         streak_potions_remaining: settings.streak_potions_remaining ?? 2,
         last_debrief_date: settings.last_debrief_date ?? null,
         potions_last_reset: settings.potions_last_reset ?? null,
+        // Calendar integration fields
+        auto_create_content_tasks: settings.auto_create_content_tasks ?? true,
+        show_content_in_planners: settings.show_content_in_planners ?? true,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

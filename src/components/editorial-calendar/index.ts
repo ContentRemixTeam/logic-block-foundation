@@ -14,3 +14,4 @@ export { CustomPlatformDialog } from './CustomPlatformDialog';
 export { ContentTypeConfigModal } from './ContentTypeConfigModal';
 export { CampaignBar } from './CampaignBar';
 export { CampaignSlideIn } from './CampaignSlideIn';
+export { CalendarSettingsCard } from './CalendarSettingsCard';
