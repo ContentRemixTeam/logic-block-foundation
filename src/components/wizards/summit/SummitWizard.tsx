@@ -150,7 +150,7 @@ export default function SummitWizard() {
       case 8:
         return <StepEngagement {...stepProps} />;
       case 9:
-        return <StepReviewCreate data={data as SummitWizardData} onEdit={goToStep} />;
+        return <StepReviewCreate data={data as SummitWizardData} updateData={updateData} onEdit={goToStep} />;
       default:
         return null;
     }

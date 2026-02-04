@@ -2,7 +2,11 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Card, CardContent } from '@/components/ui/card';
+import { X, Plus, Lightbulb, Users } from 'lucide-react';
 import { 
   SummitWizardData, 
   COMMUNITY_OPTIONS, 
@@ -25,6 +29,22 @@ export function StepEngagement({ data, updateData }: StepProps) {
     } else {
       updateData({ engagementActivities: [...current, value] });
     }
+  };
+
+  const addPanelTopic = () => {
+    updateData({ livePanelTopics: [...data.livePanelTopics, ''] });
+  };
+
+  const updatePanelTopic = (index: number, value: string) => {
+    const updated = [...data.livePanelTopics];
+    updated[index] = value;
+    updateData({ livePanelTopics: updated });
+  };
+
+  const removePanelTopic = (index: number) => {
+    updateData({ 
+      livePanelTopics: data.livePanelTopics.filter((_, i) => i !== index) 
+    });
   };
 
   return (
@@ -55,6 +75,102 @@ export function StepEngagement({ data, updateData }: StepProps) {
           ))}
         </RadioGroup>
       </div>
+
+      {/* Live Panels */}
+      <Card className="border-2">
+        <CardContent className="pt-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <div>
+                <Label htmlFor="live-panels">Will you host live panels?</Label>
+                <p className="text-sm text-muted-foreground">
+                  Bring speakers together for dynamic discussions
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="live-panels"
+              checked={data.hasLivePanels}
+              onCheckedChange={(checked) => updateData({ 
+                hasLivePanels: checked,
+                livePanelCount: checked ? 1 : null 
+              })}
+            />
+          </div>
+
+          {data.hasLivePanels && (
+            <div className="space-y-4 pt-2 border-t">
+              {/* Panel Count */}
+              <div className="space-y-2">
+                <Label>How many panels?</Label>
+                <div className="flex gap-2">
+                  {[1, 2, 3].map((num) => (
+                    <Button
+                      key={num}
+                      variant={data.livePanelCount === num ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => updateData({ livePanelCount: num })}
+                    >
+                      {num}
+                    </Button>
+                  ))}
+                  <Input
+                    type="number"
+                    min={4}
+                    max={10}
+                    placeholder="4+"
+                    value={data.livePanelCount && data.livePanelCount > 3 ? data.livePanelCount : ''}
+                    onChange={(e) => updateData({ livePanelCount: parseInt(e.target.value) || 4 })}
+                    className="w-16"
+                  />
+                </div>
+              </div>
+
+              {/* Panel Topics */}
+              <div className="space-y-2">
+                <Label>Panel topics (optional)</Label>
+                <div className="space-y-2">
+                  {data.livePanelTopics.map((topic, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        value={topic}
+                        onChange={(e) => updatePanelTopic(index, e.target.value)}
+                        placeholder={`e.g., Opening night panel, Expert roundtable...`}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removePanelTopic(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={addPanelTopic}
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add topic
+                  </Button>
+                </div>
+              </div>
+
+              {/* Pro tip */}
+              <div className="flex gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                <Lightbulb className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  Live panels create memorable moments! Consider an opening night panel to build excitement 
+                  and a closing panel to wrap up key takeaways.
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Engagement Activities */}
       <div className="space-y-3">
@@ -149,6 +265,9 @@ export function StepEngagement({ data, updateData }: StepProps) {
         <p className="text-sm font-medium mb-2">Engagement Plan:</p>
         <ul className="text-sm text-muted-foreground space-y-1">
           <li>• Community: {COMMUNITY_OPTIONS.find(c => c.value === data.communityType)?.label}</li>
+          {data.hasLivePanels && (
+            <li>• {data.livePanelCount || 1} live panel{(data.livePanelCount || 1) > 1 ? 's' : ''} planned</li>
+          )}
           {data.engagementActivities.length > 0 && (
             <li>• {data.engagementActivities.length} daily activities planned</li>
           )}

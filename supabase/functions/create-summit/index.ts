@@ -51,9 +51,16 @@ interface SummitWizardData {
   hasPostSummitOffer: boolean;
   postSummitOfferDetails: string;
   postSummitNurture: string;
+  // Live panels
+  hasLivePanels: boolean;
+  livePanelCount: number | null;
+  livePanelTopics: string[];
+  // Task exclusions
+  excludedTasks: string[];
 }
 
 interface Task {
+  id: string;
   task_text: string;
   scheduled_date: string | null;
   status: string;
@@ -76,16 +83,18 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
   const tasks: Task[] = [];
   const today = new Date();
   
+  const effectiveDays = data.numDays === 0 ? (data.customDays || 5) : data.numDays;
   const summitStart = data.summitStartDate ? new Date(data.summitStartDate) : addDays(today, 90);
-  const summitEnd = data.summitEndDate ? new Date(data.summitEndDate) : addDays(summitStart, (data.numDays || 5) - 1);
+  const summitEnd = data.summitEndDate ? new Date(data.summitEndDate) : addDays(summitStart, effectiveDays - 1);
   const regOpens = data.registrationOpens ? new Date(data.registrationOpens) : addDays(summitStart, -21);
   const speakerDeadline = data.speakerRecruitmentDeadline ? new Date(data.speakerRecruitmentDeadline) : addDays(summitStart, -42);
   const cartClose = data.cartCloses ? new Date(data.cartCloses) : addDays(summitEnd, 7);
 
-  // Phase 1: Speaker Recruitment (8-12 weeks before)
+  // Phase 1: Speaker Recruitment
   const recruitStart = addDays(speakerDeadline, -35);
   
   tasks.push({
+    id: 'recruitment_pitch_email',
     task_text: 'Create speaker pitch email template',
     scheduled_date: formatDate(recruitStart),
     status: 'scheduled',
@@ -95,6 +104,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
   });
 
   tasks.push({
+    id: 'recruitment_research_1',
     task_text: 'Research and list potential speakers (batch 1)',
     scheduled_date: formatDate(addDays(recruitStart, 2)),
     status: 'scheduled',
@@ -104,6 +114,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
   });
 
   tasks.push({
+    id: 'recruitment_research_2',
     task_text: 'Research and list potential speakers (batch 2)',
     scheduled_date: formatDate(addDays(recruitStart, 5)),
     status: 'scheduled',
@@ -113,6 +124,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
   });
 
   tasks.push({
+    id: 'recruitment_invite_1',
     task_text: 'Send speaker invitation emails (batch 1)',
     scheduled_date: formatDate(addDays(recruitStart, 7)),
     status: 'scheduled',
@@ -122,6 +134,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
   });
 
   tasks.push({
+    id: 'recruitment_invite_2',
     task_text: 'Send speaker invitation emails (batch 2)',
     scheduled_date: formatDate(addDays(recruitStart, 14)),
     status: 'scheduled',
@@ -131,6 +144,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
   });
 
   tasks.push({
+    id: 'recruitment_followup',
     task_text: 'Follow up with pending speaker invitations',
     scheduled_date: formatDate(addDays(recruitStart, 21)),
     status: 'scheduled',
@@ -141,6 +155,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
 
   if (data.speakersAreAffiliates !== 'none') {
     tasks.push({
+      id: 'recruitment_affiliate_setup',
       task_text: 'Set up affiliate tracking system for speakers',
       scheduled_date: formatDate(addDays(recruitStart, 10)),
       status: 'scheduled',
@@ -150,6 +165,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
     });
 
     tasks.push({
+      id: 'recruitment_affiliate_guide',
       task_text: 'Create affiliate onboarding guide for speakers',
       scheduled_date: formatDate(addDays(recruitStart, 14)),
       status: 'scheduled',
@@ -159,11 +175,12 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
     });
   }
 
-  // Phase 2: Content Creation (4-8 weeks before)
+  // Phase 2: Content Creation
   const contentStart = addDays(regOpens, -21);
 
   if (data.sessionFormat === 'pre-recorded' || data.sessionFormat === 'mixed') {
     tasks.push({
+      id: 'content_interview_guide',
       task_text: 'Create speaker interview guide/questions',
       scheduled_date: formatDate(contentStart),
       status: 'scheduled',
@@ -173,6 +190,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
     });
 
     tasks.push({
+      id: 'content_recording_1',
       task_text: 'Schedule speaker recording sessions (week 1)',
       scheduled_date: formatDate(addDays(contentStart, 7)),
       status: 'scheduled',
@@ -182,6 +200,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
     });
 
     tasks.push({
+      id: 'content_recording_2',
       task_text: 'Schedule speaker recording sessions (week 2)',
       scheduled_date: formatDate(addDays(contentStart, 14)),
       status: 'scheduled',
@@ -192,6 +211,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
   }
 
   tasks.push({
+    id: 'content_bios_headshots',
     task_text: 'Collect speaker bios and headshots',
     scheduled_date: formatDate(speakerDeadline),
     status: 'scheduled',
@@ -202,6 +222,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
 
   if (data.speakerEmailRequirement !== 'none') {
     tasks.push({
+      id: 'content_swipe_emails',
       task_text: `Write ${data.swipeEmailsCount} speaker swipe copy emails`,
       scheduled_date: formatDate(addDays(regOpens, -14)),
       status: 'scheduled',
@@ -211,6 +232,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
     });
 
     tasks.push({
+      id: 'content_send_swipe',
       task_text: 'Send swipe copy kit to confirmed speakers',
       scheduled_date: formatDate(addDays(regOpens, -7)),
       status: 'scheduled',
@@ -222,6 +244,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
 
   if (data.hasSocialKit) {
     tasks.push({
+      id: 'content_social_graphics',
       task_text: 'Design speaker social media promo graphics',
       scheduled_date: formatDate(addDays(regOpens, -14)),
       status: 'scheduled',
@@ -232,6 +255,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
   }
 
   tasks.push({
+    id: 'content_reg_page',
     task_text: 'Build summit registration page',
     scheduled_date: formatDate(addDays(regOpens, -10)),
     status: 'scheduled',
@@ -241,6 +265,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
   });
 
   tasks.push({
+    id: 'content_email_sequence',
     task_text: 'Set up registration email sequence',
     scheduled_date: formatDate(addDays(regOpens, -7)),
     status: 'scheduled',
@@ -251,6 +276,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
 
   if (data.hasAllAccessPass !== 'no') {
     tasks.push({
+      id: 'content_aap_page',
       task_text: 'Create all-access pass sales page',
       scheduled_date: formatDate(addDays(regOpens, -5)),
       status: 'scheduled',
@@ -260,6 +286,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
     });
 
     tasks.push({
+      id: 'content_checkout',
       task_text: 'Set up checkout and payment processing',
       scheduled_date: formatDate(addDays(regOpens, -3)),
       status: 'scheduled',
@@ -269,8 +296,58 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
     });
   }
 
-  // Phase 3: Pre-Summit Promotion (2-4 weeks before)
+  // Live Panels
+  if (data.hasLivePanels) {
+    const panelCount = data.livePanelCount || 1;
+    
+    tasks.push({
+      id: 'live_panel_prep',
+      task_text: 'Prepare panel discussion questions',
+      scheduled_date: formatDate(addDays(summitStart, -3)),
+      status: 'scheduled',
+      priority: 'high',
+      estimated_minutes: 60,
+      tags: ['summit', 'content', 'panels'],
+    });
+
+    tasks.push({
+      id: 'live_panel_tech_test',
+      task_text: 'Test live streaming setup for panels',
+      scheduled_date: formatDate(addDays(summitStart, -2)),
+      status: 'scheduled',
+      priority: 'high',
+      estimated_minutes: 45,
+      tags: ['summit', 'tech', 'panels'],
+    });
+
+    for (let i = 0; i < panelCount; i++) {
+      const topicName = data.livePanelTopics?.[i] || `Panel ${i + 1}`;
+      
+      tasks.push({
+        id: `live_panel_invite_${i + 1}`,
+        task_text: `Invite panelists for: ${topicName}`,
+        scheduled_date: formatDate(addDays(recruitStart, 25)),
+        status: 'scheduled',
+        priority: 'high',
+        estimated_minutes: 30,
+        tags: ['summit', 'speakers', 'panels'],
+      });
+
+      tasks.push({
+        id: `live_panel_host_${i + 1}`,
+        task_text: `Host live panel: ${topicName}`,
+        scheduled_date: formatDate(addDays(summitStart, Math.min(i, effectiveDays - 1))),
+        status: 'scheduled',
+        priority: 'high',
+        estimated_minutes: 60,
+        tags: ['summit', 'live', 'panels'],
+      });
+    }
+  }
+
+  // Phase 3: Pre-Summit Promotion
   tasks.push({
+    id: 'promo_launch',
     task_text: 'Launch summit registration',
     scheduled_date: formatDate(regOpens),
     status: 'scheduled',
@@ -280,6 +357,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
   });
 
   tasks.push({
+    id: 'promo_launch_email',
     task_text: 'Send registration launch email to list',
     scheduled_date: formatDate(regOpens),
     status: 'scheduled',
@@ -290,6 +368,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
 
   if (data.promotionMethods.includes('social-media')) {
     tasks.push({
+      id: 'promo_social_announce',
       task_text: 'Post summit announcement on social media',
       scheduled_date: formatDate(regOpens),
       status: 'scheduled',
@@ -299,10 +378,10 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
     });
   }
 
-  // Reminder emails during registration period
   const regDays = Math.floor((summitStart.getTime() - regOpens.getTime()) / (1000 * 60 * 60 * 24));
   if (regDays > 7) {
     tasks.push({
+      id: 'promo_mid_reminder',
       task_text: 'Send mid-registration reminder email',
       scheduled_date: formatDate(addDays(regOpens, Math.floor(regDays / 2))),
       status: 'scheduled',
@@ -313,6 +392,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
   }
 
   tasks.push({
+    id: 'promo_speaker_remind',
     task_text: 'Remind speakers to promote the summit',
     scheduled_date: formatDate(addDays(summitStart, -7)),
     status: 'scheduled',
@@ -322,6 +402,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
   });
 
   tasks.push({
+    id: 'promo_tomorrow_email',
     task_text: 'Send "summit starts tomorrow" email',
     scheduled_date: formatDate(addDays(summitStart, -1)),
     status: 'scheduled',
@@ -331,12 +412,11 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
   });
 
   // Phase 4: Summit Live
-  const effectiveDays = data.numDays === 0 ? (data.customDays || 5) : data.numDays;
-  
   for (let day = 0; day < effectiveDays; day++) {
     const summitDay = addDays(summitStart, day);
     
     tasks.push({
+      id: `live_host_day_${day + 1}`,
       task_text: `Summit Day ${day + 1}: Host sessions and engage`,
       scheduled_date: formatDate(summitDay),
       status: 'scheduled',
@@ -347,6 +427,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
 
     if (data.communityType !== 'none') {
       tasks.push({
+        id: `live_community_day_${day + 1}`,
         task_text: `Summit Day ${day + 1}: Community engagement`,
         scheduled_date: formatDate(summitDay),
         status: 'scheduled',
@@ -357,6 +438,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
     }
 
     tasks.push({
+      id: `live_recap_day_${day + 1}`,
       task_text: `Summit Day ${day + 1}: Send daily recap email`,
       scheduled_date: formatDate(summitDay),
       status: 'scheduled',
@@ -368,6 +450,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
 
   // Phase 5: Post-Summit
   tasks.push({
+    id: 'post_replay_reminder',
     task_text: 'Send replay reminder email (24hr)',
     scheduled_date: formatDate(addDays(summitEnd, 1)),
     status: 'scheduled',
@@ -378,6 +461,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
 
   if (data.hasAllAccessPass !== 'no') {
     tasks.push({
+      id: 'post_cart_48hr',
       task_text: 'Send cart closing reminder (48hr warning)',
       scheduled_date: formatDate(addDays(cartClose, -2)),
       status: 'scheduled',
@@ -387,6 +471,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
     });
 
     tasks.push({
+      id: 'post_cart_final',
       task_text: 'Send final cart closing email',
       scheduled_date: formatDate(cartClose),
       status: 'scheduled',
@@ -397,6 +482,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
   }
 
   tasks.push({
+    id: 'post_speaker_thanks',
     task_text: 'Send thank you emails to all speakers',
     scheduled_date: formatDate(addDays(summitEnd, 2)),
     status: 'scheduled',
@@ -407,6 +493,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
 
   if (data.speakersAreAffiliates !== 'none') {
     tasks.push({
+      id: 'post_affiliate_payments',
       task_text: 'Calculate and send affiliate commission payments',
       scheduled_date: formatDate(addDays(cartClose, 7)),
       status: 'scheduled',
@@ -417,6 +504,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
   }
 
   tasks.push({
+    id: 'post_debrief',
     task_text: 'Complete summit debrief and lessons learned',
     scheduled_date: formatDate(addDays(cartClose, 3)),
     status: 'scheduled',
@@ -427,6 +515,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
 
   if (data.hasPostSummitOffer) {
     tasks.push({
+      id: 'post_offer_launch',
       task_text: 'Launch post-summit offer sequence',
       scheduled_date: formatDate(addDays(summitEnd, 3)),
       status: 'scheduled',
@@ -438,6 +527,7 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
 
   if (data.postSummitNurture !== 'none') {
     tasks.push({
+      id: 'post_nurture_sequence',
       task_text: 'Set up post-summit nurture email sequence',
       scheduled_date: formatDate(addDays(cartClose, 1)),
       status: 'scheduled',
@@ -558,6 +648,9 @@ Deno.serve(async (req) => {
         has_post_summit_offer: wizardData.hasPostSummitOffer,
         post_summit_offer_details: wizardData.postSummitOfferDetails,
         post_summit_nurture: wizardData.postSummitNurture,
+        has_live_panels: wizardData.hasLivePanels || false,
+        live_panel_count: wizardData.livePanelCount,
+        live_panel_topics: wizardData.livePanelTopics || [],
         status: 'planning',
       })
       .select()
@@ -575,10 +668,12 @@ Deno.serve(async (req) => {
       .update({ summit_id: summit.id })
       .eq('id', project.id);
 
-    // Generate and create tasks
-    const tasks = generateSummitTasks(wizardData);
+    // Generate and create tasks (filtering out excluded tasks)
+    const allTasks = generateSummitTasks(wizardData);
+    const excludedTasks = wizardData.excludedTasks || [];
+    const filteredTasks = allTasks.filter(task => !excludedTasks.includes(task.id));
     
-    const taskRecords = tasks.map(task => ({
+    const taskRecords = filteredTasks.map(task => ({
       user_id: user.id,
       project_id: project.id,
       task_text: task.task_text,
@@ -605,6 +700,7 @@ Deno.serve(async (req) => {
         projectId: project.id,
         summitId: summit.id,
         tasksCreated: taskRecords.length,
+        tasksExcluded: excludedTasks.length,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
