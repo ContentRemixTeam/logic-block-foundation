@@ -95,6 +95,16 @@ const ERROR_PATTERNS: Array<{
     },
   },
   
+  // React Context Provider errors (must be before validation pattern)
+  {
+    pattern: /must be used within/i,
+    friendly: {
+      title: "Component Error",
+      message: "A component failed to load properly. Please refresh the page to continue.",
+      action: 'refresh',
+    },
+  },
+  
   // Validation errors
   {
     pattern: /validation|required|invalid|must be/i,
