@@ -1,72 +1,91 @@
 
+# Fix Editorial Calendar - Query Cache Invalidation Bug
 
-# Fix Editorial Calendar - Remove Outdated Type Constraint
+## Problem Found
 
-## Problem Identified
+Content IS being saved to the database (verified: item exists with dates Feb 4-5, 2026), but it doesn't appear on the calendar because **the query cache is not being invalidated correctly**.
 
-The database has a CHECK constraint on `content_items.type` that only allows these legacy values:
-- `'Email'`, `'IG Post'`, `'Reel'`, `'Carousel'`, `'Story'`, `'YouTube'`, `'Podcast'`, `'Blog'`, `'Live'`, `'Ad'`, `'Landing Page'`, `'Other'`
+### Root Cause
 
-But the system now uses a flexible `user_content_types` table where users can create custom content types with keys like:
-- `'email-single'`, `'post'`, `'reel'`, `'video'`, `'blog-post'`, `'newsletter'`, `'carousel'`, etc.
+In `AddContentDialog.tsx`, after successfully creating content:
 
-When users select "Email" from the dropdown, the code sends `type: 'email-single'` (the `type_key`), but the database rejects it because `'email-single'` is not in the old hardcoded list.
+```typescript
+// Current (BROKEN):
+queryClient.invalidateQueries({ queryKey: ['editorial-calendar'] });
+```
+
+But in `useEditorialCalendar.ts`, the actual query keys are:
+- `['editorial-calendar-content', user?.id, weekStartStr, campaignFilter]`
+- `['editorial-calendar-campaigns', user?.id, weekStartStr]`
+- `['editorial-calendar-plans', user?.id, weekStartStr, campaignFilter]`
+- `['editorial-calendar-tasks', user?.id, weekStartStr]`
+- `['editorial-calendar-unscheduled', user?.id, campaignFilter]`
+
+The `invalidateQueries({ queryKey: ['editorial-calendar'] })` does NOT match any of these keys, so the queries never refetch after content is added.
 
 ---
 
 ## The Fix
 
-**Drop the outdated CHECK constraint** to allow any content type value.
+Update both locations in `AddContentDialog.tsx` to invalidate the correct query keys:
 
-### Database Migration
+### Location 1: handleReuseSubmit (around line 321)
+```typescript
+// FROM:
+queryClient.invalidateQueries({ queryKey: ['editorial-calendar'] });
 
-```sql
-ALTER TABLE content_items DROP CONSTRAINT content_items_type_check;
+// TO:
+queryClient.invalidateQueries({ queryKey: ['editorial-calendar-content'] });
+queryClient.invalidateQueries({ queryKey: ['editorial-calendar-unscheduled'] });
 ```
 
-This is safe because:
-1. The `user_content_types` table now manages valid content types per user
-2. The UI only allows selection from the user's configured types
-3. The old hardcoded enum is incompatible with the custom types feature
+### Location 2: handleSubmit (around line 468)
+```typescript
+// FROM:
+queryClient.invalidateQueries({ queryKey: ['editorial-calendar'] });
+
+// TO:
+queryClient.invalidateQueries({ queryKey: ['editorial-calendar-content'] });
+queryClient.invalidateQueries({ queryKey: ['editorial-calendar-unscheduled'] });
+```
 
 ---
 
-## Why Previous Fixes Failed
+## Why This Works
 
-| Attempt | What was fixed | Actual error |
-|---------|---------------|--------------|
-| 1st | `status: 'idea'` → `status: 'Draft'` | Was `content_items_type_check`, not status |
-| 2nd | Same status fix | Error message says `type_check` not `status_check` |
+React Query's `invalidateQueries` uses **prefix matching** by default. When you invalidate `['editorial-calendar-content']`, it will invalidate ALL queries that start with that key, including:
 
-The error message was misread - it says **`content_items_type_check`** not `content_items_status_check`.
+- `['editorial-calendar-content', 'user-123', '2026-02-03', null]`
+- `['editorial-calendar-content', 'user-123', '2026-02-10', 'campaign-abc']`
+
+This ensures the calendar refetches content data regardless of which week is being viewed or what filters are active.
 
 ---
 
 ## File Changes
 
-| File/Location | Change |
-|---------------|--------|
-| Database migration | `ALTER TABLE content_items DROP CONSTRAINT content_items_type_check;` |
+| File | Lines | Change |
+|------|-------|--------|
+| `src/components/editorial-calendar/AddContentDialog.tsx` | ~321 | Fix query key to `'editorial-calendar-content'` |
+| `src/components/editorial-calendar/AddContentDialog.tsx` | ~468 | Fix query key to `'editorial-calendar-content'` |
 
 ---
 
 ## After This Fix
 
-- Adding content will work with any content type from the user's custom types
-- Users can add new content types via the configuration modal
-- Existing content items remain unaffected (no data migration needed)
-- The flexible content types system will work as designed
+1. User adds content in the dialog
+2. Content is saved to database (already working)
+3. Query cache is invalidated with correct keys
+4. Calendar automatically refetches and displays the new content
+5. No page refresh needed
 
 ---
 
-## Quick Test After Fix
+## Verification
 
-1. Go to Editorial Calendar
-2. Click "Add Content"
-3. Enter a title (e.g., "Test Post")
-4. Select any platform (e.g., "Email")
-5. Select any content type (e.g., "Email" which sends `email-single`)
-6. Set at least one date
-7. Click "Add Content"
-8. Should see success toast and content appears on calendar
+The database already has content for today's date:
+- Title: "test"
+- Creation date: 2026-02-04 (today)
+- Publish date: 2026-02-05 (tomorrow)
 
+After this fix, this content will immediately appear on the calendar.
