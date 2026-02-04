@@ -1,9 +1,11 @@
 import { useDraggable } from '@dnd-kit/core';
+import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { CalendarItem, getContentTypeIcon, getPlatformShortLabel } from '@/lib/calendarConstants';
 import { useUserPlatforms } from '@/hooks/useUserPlatforms';
+import { useCalendarDensity } from '@/hooks/useCalendarDensity';
 import { 
   FileText, Mail, Linkedin, Twitter, Newspaper, Youtube, Instagram, 
   Video, Radio, UserCheck, PlayCircle, Podcast, Mic, Headphones, 
@@ -83,7 +85,7 @@ function getStatusLabel(status: string): string {
 
 interface CalendarContentCardProps {
   item: CalendarItem;
-  laneContext: 'create' | 'publish' | 'pool'; // Lane-specific context for unique DnD IDs
+  laneContext: 'create' | 'publish' | 'pool';
   onClick?: () => void;
   isDragging?: boolean;
   compact?: boolean;
@@ -94,14 +96,19 @@ export function CalendarContentCard({
   laneContext,
   onClick, 
   isDragging = false,
-  compact = false,
+  compact: compactProp,
 }: CalendarContentCardProps) {
   const { getPlatformColor } = useUserPlatforms();
+  const { density } = useCalendarDensity();
+  
+  // Determine compact mode from prop or density
+  const isCompact = compactProp ?? density === 'compact';
+  const isSpacious = density === 'spacious';
   
   // Use lane-specific draggable ID to avoid collisions when same item appears in multiple lanes
   const { attributes, listeners, setNodeRef, transform, isDragging: isLocalDragging } = useDraggable({
     id: `${item.id}:${laneContext}`,
-    data: { item }, // Keep base item in data for drop handler
+    data: { item },
   });
   
   const style = transform ? {
@@ -133,65 +140,85 @@ export function CalendarContentCard({
       {...attributes}
       onClick={onClick}
       className={cn(
-        "group relative flex items-center gap-2 rounded-md border cursor-pointer transition-all duration-200",
-        // Base state with elevation
-        "bg-card shadow-sm",
-        // Hover state - add elevation
-        "hover:shadow-md hover:scale-[1.02] hover:-translate-y-0.5",
-        // Active/dragging state
+        "group relative flex flex-col rounded-md border cursor-pointer transition-all duration-200",
+        "bg-card shadow-sm hover:shadow-md hover:scale-[1.02] hover:-translate-y-0.5",
         "active:scale-[0.98]",
-        // Compact vs normal spacing
-        compact ? "py-2 px-2.5" : "py-3 px-3",
+        // Density-based padding
+        isCompact && "py-1.5 px-2",
+        density === 'comfortable' && "py-2 px-2.5",
+        isSpacious && "py-3 px-3",
+        // Touch-friendly minimum height on mobile
+        "min-h-[44px]",
         // Status-based border
         getStatusBorderClass(item.status),
-        // Dragging opacity
         isActive && "opacity-50 shadow-lg z-50"
       )}
     >
-      {/* Content Type Icon */}
-      <IconComponent className={cn(
-        "shrink-0 text-muted-foreground",
-        compact ? "h-3.5 w-3.5" : "h-4 w-4"
-      )} />
-      
-      {/* Title */}
-      <span className={cn(
-        "flex-1 font-medium line-clamp-1",
-        compact ? "text-xs" : "text-sm"
-      )}>
-        {item.title}
-      </span>
-      
-      {/* Platform Badge */}
-      {item.channel && (
-        <Badge
-          variant="outline"
-          className={cn(
-            "shrink-0 font-medium border-0",
-            compact ? "text-[10px] px-1 py-0" : "text-xs px-1.5 py-0.5"
-          )}
-          style={{
-            backgroundColor: `${platformColor}20`,
-            color: platformColor,
-          }}
-        >
-          {platformLabel}
-        </Badge>
-      )}
+      {/* Main content row */}
+      <div className="flex items-center gap-2">
+        {/* Content Type Icon */}
+        <IconComponent className={cn(
+          "shrink-0 text-muted-foreground",
+          isCompact ? "h-3.5 w-3.5" : "h-4 w-4"
+        )} />
+        
+        {/* Title */}
+        <span className={cn(
+          "flex-1 font-medium line-clamp-1",
+          isCompact ? "text-xs" : "text-sm"
+        )}>
+          {item.title}
+        </span>
+        
+        {/* Platform Badge */}
+        {item.channel && (
+          <Badge
+            variant="outline"
+            className={cn(
+              "shrink-0 font-medium border-0",
+              isCompact ? "text-[10px] px-1 py-0" : "text-xs px-1.5 py-0.5"
+            )}
+            style={{
+              backgroundColor: `${platformColor}20`,
+              color: platformColor,
+            }}
+          >
+            {platformLabel}
+          </Badge>
+        )}
 
-      {/* Status Badge */}
-      {item.status && item.status !== 'draft' && (
-        <Badge
-          variant="secondary"
-          className={cn(
-            "shrink-0 gap-1",
-            getStatusBadgeClass(item.status),
-            compact ? "text-[10px] px-1 py-0" : "text-xs px-1.5 py-0.5"
+        {/* Status Badge - compact shows icon only */}
+        {item.status && item.status !== 'draft' && (
+          <Badge
+            variant="secondary"
+            className={cn(
+              "shrink-0 gap-1",
+              getStatusBadgeClass(item.status),
+              isCompact ? "text-[10px] px-1 py-0" : "text-xs px-1.5 py-0.5"
+            )}
+          >
+            {StatusIcon && <StatusIcon className="h-3 w-3" />}
+            {!isCompact && <span>{getStatusLabel(item.status)}</span>}
+          </Badge>
+        )}
+      </div>
+
+      {/* Spacious mode: Show extra details */}
+      {isSpacious && (item.creationDate || item.publishDate) && (
+        <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
+          {item.creationDate && (
+            <span className="flex items-center gap-1">
+              <span className="text-teal-500">Create:</span>
+              {format(new Date(item.creationDate), 'MMM d')}
+            </span>
           )}
-        >
-          {StatusIcon && <StatusIcon className="h-3 w-3" />}
-          {!compact && <span>{getStatusLabel(item.status)}</span>}
-        </Badge>
+          {item.publishDate && (
+            <span className="flex items-center gap-1">
+              <span className="text-violet-500">Publish:</span>
+              {format(new Date(item.publishDate), 'MMM d')}
+            </span>
+          )}
+        </div>
       )}
 
       {/* Quick Actions - appears on hover */}
@@ -217,7 +244,6 @@ export function CalendarContentCard({
           className="h-6 w-6"
           onClick={(e) => {
             e.stopPropagation();
-            // More actions menu - future enhancement
           }}
         >
           <MoreVertical className="h-3 w-3" />
