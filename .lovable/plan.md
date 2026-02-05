@@ -1,264 +1,260 @@
 
-# Task Timer (Stopwatch) Feature - Implementation Plan
+# Sprint 1: "Stop the Bleeding" - Security & Performance Fixes
 
-## Overview
+## Current State Analysis
 
-Transform time tracking from a post-completion entry system into a live stopwatch that users toggle while working on tasks. Users will:
-1. Click a "Start" button on any task to begin timing
-2. See elapsed time counting up in real-time
-3. Click "Stop" when done - time is automatically logged
-4. Optional: Complete the task immediately or continue working
+After thoroughly reviewing your database, I found that **your foundation is stronger than expected**:
 
-This mirrors how tools like Toggl, Clockify, and Harvest work.
+### ✅ Already In Place
+| Area | Status | Details |
+|------|--------|---------|
+| **RLS Enabled** | ✅ Complete | All 18 core user tables have RLS enabled with 4-6 policies each |
+| **user_id NOT NULL** | ✅ Complete | All core tables (tasks, daily_plans, projects, etc.) have `user_id NOT NULL` |
+| **Core Indexes** | ✅ Mostly done | `idx_tasks_user_status`, `idx_daily_plans_user_date`, `idx_cycles_user_id`, etc. exist |
+| **Smart Filtering** | ✅ Complete | `get-all-tasks` already uses 90-day + incomplete filter |
+| **Pagination Support** | ✅ Partial | Edge function supports pagination via limit/offset |
 
----
-
-## How It Works
-
-### Starting a Timer
-- Click the play button on any task card
-- Timer starts counting up from 00:00
-- A floating indicator appears (similar to the existing PiP toolbar)
-- Only one task can be timed at once
-
-### While Timing
-- Elapsed time displays on the task card
-- Floating mini-bar shows current task + time (stays visible across pages)
-- Can pause/resume the timer
-- Can switch to a different task (current timer stops, new one starts)
-
-### Stopping the Timer
-- Click stop to end timing
-- Elapsed minutes automatically saved to `actual_minutes`
-- Option to complete the task immediately or just log time
-- Time entry recorded for analytics
+### ⚠️ Gaps That Need Fixing
+| Area | Risk Level | Issue |
+|------|------------|-------|
+| **Security Findings** | 🔴 CRITICAL | 5 error-level issues from security scan (OAuth tokens, API keys, entitlements) |
+| **Missing Status Constraint** | 🟡 Medium | No CHECK constraint on `tasks.status` column |
+| **Missing Foreign Keys** | 🟡 Medium | No FK constraints on `project_id`, `section_id`, `cycle_id` references |
+| **Missing Compound Index** | 🟡 Low | No `idx_tasks_user_created_desc` for recent tasks query |
+| **Query Limit Enforcement** | 🟡 Medium | Frontend hooks don't enforce explicit limits or show warnings |
+| **RLS Test Suite** | 🟡 Medium | No automated test to verify RLS can't be bypassed |
 
 ---
 
-## User Interface Changes
+## Implementation Plan
 
-### Task Cards
-Add a timer toggle button to each task card:
+### Phase 1: Add Missing Database Indexes (15 min)
 
-```text
-┌─────────────────────────────────────────────────────┐
-│ ☐ Write blog post about productivity tips          │
-│   📁 Content  ⏱ Est: 45min  ▶️ Start Timer         │
-└─────────────────────────────────────────────────────┘
+Add these performance-critical indexes that are missing:
 
-When timing:
-┌─────────────────────────────────────────────────────┐
-│ ☐ Write blog post about productivity tips          │
-│   📁 Content  ⏱ Est: 45min  ⏱ 12:34 ⏸ ⏹           │
-└─────────────────────────────────────────────────────┘
+```sql
+-- Task queries: user + created_at for smart filter
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tasks_user_created_at 
+  ON public.tasks(user_id, created_at DESC);
+
+-- Task queries: user + is_completed for incomplete filter
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tasks_user_incomplete
+  ON public.tasks(user_id) WHERE is_completed = false;
+
+-- Journal pages: user_id (if missing)
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_journal_pages_user_id 
+  ON public.journal_pages(user_id);
+
+-- Journal pages: compound for date queries
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_journal_pages_user_date
+  ON public.journal_pages(user_id, page_date DESC);
+
+-- Ideas: GIN index for tags search
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_ideas_db_tags 
+  ON public.ideas_db USING GIN (tags) WHERE tags IS NOT NULL;
+
+-- Weekly plans: user + cycle for hierarchy queries
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_weekly_plans_user_cycle 
+  ON public.weekly_plans(user_id, cycle_id);
 ```
 
-### Floating Timer Bar
-A persistent bar that shows on all pages when a timer is running:
+### Phase 2: Add Data Integrity Constraints (20 min)
 
-```text
-┌──────────────────────────────────────────────────────────┐
-│  ⏱ 12:34  │  Write blog post...  │  ⏸ Pause  │  ✓ Done  │
-└──────────────────────────────────────────────────────────┘
+Add CHECK constraints and foreign keys for data integrity:
+
+```sql
+-- Status constraint for tasks (with safe values)
+ALTER TABLE public.tasks 
+ADD CONSTRAINT tasks_status_check 
+CHECK (status IS NULL OR status IN ('todo', 'in_progress', 'done', 'blocked', 'someday', 'scheduled'));
+
+-- Foreign key: tasks.project_id → projects.id
+ALTER TABLE public.tasks
+ADD CONSTRAINT fk_tasks_project
+FOREIGN KEY (project_id) REFERENCES public.projects(id)
+ON DELETE SET NULL;
+
+-- Foreign key: tasks.section_id → project_sections.id
+ALTER TABLE public.tasks
+ADD CONSTRAINT fk_tasks_section
+FOREIGN KEY (section_id) REFERENCES public.project_sections(id)
+ON DELETE SET NULL;
+
+-- Foreign key: tasks.cycle_id → cycles_90_day.cycle_id
+ALTER TABLE public.tasks
+ADD CONSTRAINT fk_tasks_cycle
+FOREIGN KEY (cycle_id) REFERENCES public.cycles_90_day(cycle_id)
+ON DELETE SET NULL;
+
+-- Foreign key: daily_plans.cycle_id → cycles_90_day.cycle_id
+ALTER TABLE public.daily_plans
+ADD CONSTRAINT fk_daily_plans_cycle
+FOREIGN KEY (cycle_id) REFERENCES public.cycles_90_day(cycle_id)
+ON DELETE SET NULL;
+
+-- Foreign key: daily_plans.week_id → weekly_plans.week_id
+ALTER TABLE public.daily_plans
+ADD CONSTRAINT fk_daily_plans_week
+FOREIGN KEY (week_id) REFERENCES public.weekly_plans(week_id)
+ON DELETE SET NULL;
+
+-- Foreign key: project_sections.project_id → projects.id
+ALTER TABLE public.project_sections
+ADD CONSTRAINT fk_sections_project
+FOREIGN KEY (project_id) REFERENCES public.projects(id)
+ON DELETE CASCADE;
 ```
 
-Position: Fixed at bottom of viewport, above mobile nav
-Behavior: Visible on all pages while timer is active
+### Phase 3: Fix Critical Security Findings (45 min)
 
----
+The security scan found 5 error-level issues. Here's the fix approach:
 
-## Technical Implementation
+#### 3a. User Profiles RLS (Currently accessible without auth)
+```sql
+-- Drop existing policies and recreate with proper auth check
+DROP POLICY IF EXISTS "user_profiles_select" ON public.user_profiles;
 
-### New Hook: `useTaskTimer`
+CREATE POLICY "Users can only view own profile"
+ON public.user_profiles FOR SELECT
+USING (auth.uid() = id);
+```
 
-Central state management for the stopwatch:
+#### 3b. Google Calendar Secrets (Should never be client-accessible)
+```sql
+-- Restrict to service role only - no client access ever
+DROP POLICY IF EXISTS "Users can manage their own secrets" ON public.google_calendar_secrets;
 
+-- No SELECT policy = no client read access
+CREATE POLICY "Service role only"
+ON public.google_calendar_secrets 
+USING (false) 
+WITH CHECK (false);
+```
+
+#### 3c. Google Calendar Connection (Tokens shouldn't be client-readable)
+```sql
+-- Remove token columns from client reads
+CREATE OR REPLACE VIEW public.google_calendar_connection_safe AS
+SELECT 
+  user_id,
+  email,
+  calendar_id,
+  is_active,
+  created_at
+FROM public.google_calendar_connection;
+-- Grant access to the view instead of the table
+```
+
+#### 3d. Entitlements Table (Admin-only access)
+```sql
+-- Verify admin check is secure
+DROP POLICY IF EXISTS "Admin can view all entitlements" ON public.entitlements;
+
+CREATE POLICY "Admins only can view entitlements"
+ON public.entitlements FOR SELECT
+USING (public.is_admin(auth.uid()));
+```
+
+#### 3e. User Settings AI API Key (Should be encrypted/hidden)
+The `ai_api_key` column should never be returned to the client. Two options:
+1. Create a view that excludes this column
+2. Use column-level security with a security definer function
+
+### Phase 4: Add Query Safety & Performance Monitoring (30 min)
+
+#### 4a. Create useQueryPerformance hook
 ```typescript
-interface TaskTimerState {
-  activeTaskId: string | null;
-  activeTaskText: string;
-  startTime: Date | null;
-  pausedAt: Date | null;
-  accumulatedSeconds: number;
-  isRunning: boolean;
-  isPaused: boolean;
-}
-
-interface UseTaskTimerReturn {
-  timerState: TaskTimerState;
-  elapsedSeconds: number;
-  startTimer: (task: Task) => void;
-  pauseTimer: () => void;
-  resumeTimer: () => void;
-  stopTimer: () => Promise<number>; // Returns total minutes
-  completeAndStop: () => Promise<void>;
-  formatElapsed: (seconds: number) => string;
-  isTimingTask: (taskId: string) => boolean;
+// src/hooks/useQueryPerformance.ts
+export function useQueryPerformance(query, options) {
+  // Log warnings when queries take > 1 second
+  // Log errors when queries take > 3 seconds
+  // Emit custom events for UI warnings
 }
 ```
 
-Features:
-- Persists timer state to localStorage (survives page refresh)
-- Calculates elapsed time in real-time
-- Handles pause/resume with accumulated time
-- Auto-saves time entry when stopping
+#### 4b. Update useTasks to use explicit limits
+The current `useTasks` hook doesn't warn when hitting limits. Add:
+- Explicit limit parameter (default 500)
+- Console warning when approaching limit
+- Performance tracking
 
-### New Component: `FloatingTimerBar`
+#### 4c. Create QueryPerformanceWarning component
+A toast/alert that appears when slow queries are detected, helping you identify performance issues before users complain.
 
-Persistent UI element showing active timer:
+### Phase 5: Create RLS Bypass Test Suite (20 min)
 
-```typescript
-interface FloatingTimerBarProps {
-  // Uses useTaskTimer hook internally
-}
-```
+Create a migration that:
+1. Creates two test users with known UUIDs
+2. Inserts test data for user 1 across all core tables
+3. Switches to user 2 context and verifies they CANNOT see user 1's data
+4. Tests INSERT/UPDATE/DELETE protection
+5. Cleans up all test data
+6. Fails the migration if any test fails
 
-Renders:
-- Current elapsed time (updating every second)
-- Task name (truncated)
-- Pause/Resume button
-- Stop button (logs time only)
-- Done button (logs time + completes task)
-
-Positioned:
-- Fixed at bottom of screen
-- Above mobile navigation (with safe-area padding)
-- Z-index above other content
-- Dismissable (stop timer)
-
-### New Component: `TaskTimerButton`
-
-Inline button for task cards:
-
-```typescript
-interface TaskTimerButtonProps {
-  task: Task;
-  compact?: boolean;
-}
-```
-
-States:
-- **Idle**: Shows play icon, "Start Timer" tooltip
-- **Active (this task)**: Shows elapsed time + pause/stop buttons
-- **Active (other task)**: Shows play icon, tooltip "Switch timer here"
-
-### Updated TaskCard Component
-
-Add timer button to task cards:
-- Place next to estimated time display
-- Show elapsed time when this task is being timed
-- Visual indicator (subtle glow/border) when active
+This runs on every deployment to ensure RLS is never accidentally broken.
 
 ---
 
-## Database Changes
-
-### Update `time_entries` table
-
-Add columns to support timer-based entries:
-
-| Column | Type | Purpose |
-|--------|------|---------|
-| started_at | TIMESTAMPTZ | When timer was started |
-| ended_at | TIMESTAMPTZ | When timer was stopped |
-| entry_type | TEXT | 'manual' or 'timer' |
-
-This distinguishes between:
-- Manual entries (user typed in minutes after completion)
-- Timer entries (user ran the stopwatch)
-
----
-
-## Integration Points
-
-### Layout Component
-Add FloatingTimerBar to the main Layout so it appears on all pages:
-
-```typescript
-// In Layout.tsx
-<FloatingTimerBar />
-```
-
-### Task Card
-Add TaskTimerButton to each task card display.
-
-### Focus Mode Integration
-The existing BlitzTimer (countdown) can coexist with this stopwatch:
-- Countdown timer: For timeboxing ("I'll work on this for 25 minutes")
-- Stopwatch timer: For tracking ("Let me see how long this takes")
-
-Option: Add a toggle in Focus Mode to switch between modes.
-
-### Time Analytics
-The Progress page analytics already support time entries - no changes needed there.
-
----
-
-## Files Summary
+## Files to Create/Modify
 
 ### New Files
-
 | File | Purpose |
 |------|---------|
-| `src/hooks/useTaskTimer.ts` | Central stopwatch state management |
-| `src/components/timer/FloatingTimerBar.tsx` | Persistent timer UI |
-| `src/components/timer/TaskTimerButton.tsx` | Inline timer control for tasks |
-| `src/components/timer/index.ts` | Exports |
+| `supabase/migrations/[timestamp]_sprint1_indexes.sql` | Add missing indexes |
+| `supabase/migrations/[timestamp]_sprint1_constraints.sql` | Add FK and CHECK constraints |
+| `supabase/migrations/[timestamp]_sprint1_security_fixes.sql` | Fix critical RLS issues |
+| `supabase/migrations/[timestamp]_sprint1_rls_test.sql` | RLS bypass test suite |
+| `src/hooks/useQueryPerformance.ts` | Query performance monitoring |
+| `src/components/system/QueryPerformanceWarning.tsx` | UI warning for slow queries |
 
-### Files to Modify
-
+### Modified Files
 | File | Changes |
 |------|---------|
-| `src/components/Layout.tsx` | Add FloatingTimerBar |
-| `src/components/tasks/TaskCard.tsx` | Add TaskTimerButton |
-| `src/components/daily-plan/DailyAgendaCard.tsx` | Add timer button |
-| Database migration | Add timer columns to time_entries |
+| `src/hooks/useTasks.tsx` | Add explicit limits and performance tracking |
+| `src/components/Layout.tsx` | Include QueryPerformanceWarning component |
 
 ---
 
-## User Flow Example
+## Risk Assessment
 
-1. **Start**: User clicks ▶️ on "Write blog post" task
-2. **Work**: Timer counts up: 00:00 → 00:01 → 00:02...
-3. **Navigate**: User goes to different page - floating bar stays visible showing "⏱ 12:34 | Write blog post..."
-4. **Pause**: User takes a break, clicks pause - timer freezes at 12:34
-5. **Resume**: User clicks resume - timer continues from 12:34
-6. **Complete**: User clicks "Done" - timer stops, task marked complete, 13 minutes logged
-
----
-
-## Mobile Considerations
-
-- Timer button: 44px touch target
-- Floating bar: Full width, above bottom nav
-- Safe area padding for notched devices
-- Swipe to dismiss floating bar (stops timer)
+| Change | Risk | Mitigation |
+|--------|------|------------|
+| Adding indexes | 🟢 Low | CONCURRENTLY prevents locks |
+| Adding constraints | 🟡 Medium | Validate existing data first with DO blocks |
+| RLS policy changes | 🔴 High | Test each policy change individually, verify user can still access own data |
+| Query limit changes | 🟢 Low | Backwards compatible, just adds warnings |
 
 ---
 
-## Settings Integration
+## Pre-Flight Validation Queries
 
-Add to task settings:
-- **Default timer mode**: Stopwatch vs Countdown
-- **Auto-start timer**: When opening task detail
-- **Show floating bar**: Always / Only when timing / Never
+Before running migrations, verify existing data won't violate new constraints:
+
+```sql
+-- Check for invalid status values
+SELECT DISTINCT status, COUNT(*) FROM tasks GROUP BY status;
+
+-- Check for orphaned project_id references
+SELECT COUNT(*) FROM tasks t 
+WHERE t.project_id IS NOT NULL 
+AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.id = t.project_id);
+
+-- Check for orphaned section_id references
+SELECT COUNT(*) FROM tasks t 
+WHERE t.section_id IS NOT NULL 
+AND NOT EXISTS (SELECT 1 FROM project_sections s WHERE s.id = t.section_id);
+```
 
 ---
 
-## Implementation Phases
+## Expected Outcomes
 
-### Phase 1: Core Timer Logic
-1. Create `useTaskTimer` hook with localStorage persistence
-2. Create basic FloatingTimerBar component
-3. Add to Layout
+After Sprint 1:
+- ✅ All queries use indexed lookups (no full table scans)
+- ✅ RLS verified working with automated test
+- ✅ Critical security vulnerabilities fixed
+- ✅ Data integrity enforced at database level
+- ✅ Query performance monitored with warnings
+- ✅ Explicit limits prevent runaway queries
 
-### Phase 2: Task Integration
-1. Create TaskTimerButton component
-2. Add to TaskCard
-3. Add database columns for timer entries
-
-### Phase 3: Polish
-1. Add to DailyAgendaCard and other task displays
-2. Add settings options
-3. PiP support for floating timer
-4. Mobile optimizations
+Ready to implement when you approve!
