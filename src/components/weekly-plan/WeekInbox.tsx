@@ -46,7 +46,8 @@ export function WeekInbox({
   const inboxTasks = tasks.filter(t => {
     if (t.planned_day !== null) return false;
     if (t.is_completed) return false;
-    if (t.status && !['backlog', 'waiting', 'scheduled'].includes(t.status)) return false;
+    // Show tasks that don't have a planned day, excluding those blocked on something
+    // Blocked tasks are identified by waiting_on field, not status
     
     if (energyFilter !== 'all' && t.energy_level !== energyFilter) return false;
     if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;

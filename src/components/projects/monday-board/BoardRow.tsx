@@ -41,14 +41,6 @@ interface BoardRowProps {
   currentSectionId: string | null;
 }
 
-const STATUS_OPTIONS = [
-  { value: 'focus', label: 'Focus', color: 'bg-status-focus/20 text-status-focus' },
-  { value: 'scheduled', label: 'Scheduled', color: 'bg-status-scheduled/20 text-status-scheduled' },
-  { value: 'backlog', label: 'Backlog', color: 'bg-status-backlog/20 text-status-backlog' },
-  { value: 'waiting', label: 'Waiting', color: 'bg-status-waiting/20 text-status-waiting' },
-  { value: 'someday', label: 'Someday', color: 'bg-status-someday/20 text-status-someday' },
-];
-
 const PRIORITY_OPTIONS = [
   { value: 'high', label: 'High', color: 'bg-priority-high/20 text-priority-high' },
   { value: 'medium', label: 'Medium', color: 'bg-priority-medium/20 text-priority-medium' },
@@ -123,30 +115,6 @@ export function BoardRow({
                 {task.task_text}
               </span>
             )}
-          </div>
-        );
-
-      case 'status':
-        const statusOption = STATUS_OPTIONS.find(s => s.value === task.status);
-        return (
-          <div key={columnId} className={cellClass} style={{ width, minWidth: width }}>
-            <Select
-              value={task.status || 'backlog'}
-              onValueChange={(value) => onUpdate(task.task_id, { status: value as any })}
-            >
-              <SelectTrigger className="h-7 border-0 shadow-none p-0">
-                <Badge className={cn('text-xs', statusOption?.color || 'bg-muted')}>
-                  {statusOption?.label || 'None'}
-                </Badge>
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map(option => (
-                  <SelectItem key={option.value} value={option.value}>
-                    <Badge className={cn('text-xs', option.color)}>{option.label}</Badge>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
         );
 

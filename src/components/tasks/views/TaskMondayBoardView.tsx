@@ -33,16 +33,7 @@ interface TaskMondayBoardViewProps {
   onAddTask: () => void;
 }
 
-type GroupByOption = 'status' | 'date' | 'priority' | 'project';
-
-const STATUS_GROUPS = [
-  { id: 'focus', name: 'Focus', color: 'hsl(var(--status-focus))' },
-  { id: 'scheduled', name: 'Scheduled', color: 'hsl(var(--status-scheduled))' },
-  { id: 'backlog', name: 'Backlog', color: 'hsl(var(--status-backlog))' },
-  { id: 'waiting', name: 'Waiting', color: 'hsl(var(--status-waiting))' },
-  { id: 'someday', name: 'Someday', color: 'hsl(var(--status-someday))' },
-  { id: 'none', name: 'No Status', color: 'hsl(var(--muted-foreground))' },
-];
+type GroupByOption = 'date' | 'priority' | 'project';
 
 const DATE_GROUPS = [
   { id: 'overdue', name: 'Overdue', color: 'hsl(var(--destructive))' },
@@ -76,7 +67,7 @@ export function TaskMondayBoardView({
   const [sortConfig, setSortConfig] = useState<{ field: string; direction: 'asc' | 'desc' } | null>(null);
   const [visibleColumns, setVisibleColumns] = useState<string[]>(DEFAULT_VISIBLE_COLUMNS);
   const [showColumnCustomizer, setShowColumnCustomizer] = useState(false);
-  const [groupBy, setGroupBy] = useState<GroupByOption>('status');
+  const [groupBy, setGroupBy] = useState<GroupByOption>('date');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   // Get date group for a task
@@ -138,9 +129,6 @@ export function TaskMondayBoardView({
       let groupId: string;
 
       switch (groupBy) {
-        case 'status':
-          groupId = task.status || 'none';
-          break;
         case 'date':
           groupId = getDateGroup(task);
           break;
@@ -166,8 +154,6 @@ export function TaskMondayBoardView({
   // Get groups config based on groupBy
   const getGroups = () => {
     switch (groupBy) {
-      case 'status':
-        return STATUS_GROUPS;
       case 'date':
         return DATE_GROUPS;
       case 'priority':
@@ -186,7 +172,7 @@ export function TaskMondayBoardView({
         projectGroups.push({ id: 'no_project', name: 'No Project', color: '#9CA3AF' });
         return projectGroups;
       default:
-        return STATUS_GROUPS;
+        return DATE_GROUPS;
     }
   };
 
@@ -241,7 +227,6 @@ export function TaskMondayBoardView({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="status">Status</SelectItem>
               <SelectItem value="date">Due Date</SelectItem>
               <SelectItem value="priority">Priority</SelectItem>
               <SelectItem value="project">Project</SelectItem>

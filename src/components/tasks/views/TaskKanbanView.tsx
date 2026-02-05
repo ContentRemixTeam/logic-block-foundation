@@ -14,7 +14,7 @@ import {
   Plus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { startOfDay, endOfDay, addDays, startOfWeek, endOfWeek, addWeeks, addMonths } from 'date-fns';
+import { startOfDay, addDays, startOfWeek, addWeeks, addMonths, differenceInDays } from 'date-fns';
 
 interface TaskKanbanViewProps {
   tasks: Task[];
@@ -92,54 +92,31 @@ const columns: KanbanColumn[] = [
 function getTaskColumn(task: Task): string {
   const now = new Date();
   const today = startOfDay(now);
-  const todayEnd = endOfDay(now);
-  const thisWeekStart = startOfWeek(now, { weekStartsOn: 1 });
-  const thisWeekEnd = endOfWeek(now, { weekStartsOn: 1 });
-  const nextWeekStart = addWeeks(thisWeekStart, 1);
-  const nextWeekEnd = addWeeks(thisWeekEnd, 1);
-  const quarterEnd = addMonths(now, 3);
-
-  // Check for someday status first
-  if (task.status === 'someday') {
-    return 'someday';
-  }
 
   // Get the effective date (planned_day takes priority, then scheduled_date)
   const dateStr = task.planned_day || task.scheduled_date;
-  
+
   // No date = unscheduled
   if (!dateStr) {
     return 'unscheduled';
   }
 
   const taskDate = startOfDay(new Date(dateStr));
+  const daysUntil = differenceInDays(taskDate, today);
 
-  // Today
-  if (taskDate >= today && taskDate <= todayEnd) {
-    return 'today';
-  }
+  // Overdue or today
+  if (daysUntil <= 0) return 'today';
 
-  // Past due - show in today
-  if (taskDate < today) {
-    return 'today';
-  }
+  // This week (1-7 days)
+  if (daysUntil <= 7) return 'this_week';
 
-  // This week (after today)
-  if (taskDate > todayEnd && taskDate <= thisWeekEnd) {
-    return 'this_week';
-  }
+  // Next week (8-14 days)
+  if (daysUntil <= 14) return 'next_week';
 
-  // Next week
-  if (taskDate >= nextWeekStart && taskDate <= nextWeekEnd) {
-    return 'next_week';
-  }
+  // Next quarter (15-90 days)
+  if (daysUntil <= 90) return 'next_quarter';
 
-  // Next quarter (anything in the next 3 months after next week)
-  if (taskDate > nextWeekEnd && taskDate <= quarterEnd) {
-    return 'next_quarter';
-  }
-
-  // Beyond next quarter = someday
+  // Someday (>90 days)
   return 'someday';
 }
 
@@ -167,8 +144,11 @@ function getColumnTargetDate(columnId: string): { date: string | null; status?: 
       const nextMonth = addMonths(now, 1);
       return { date: nextMonth.toISOString().split('T')[0] };
     }
-    case 'someday':
-      return { date: null, status: 'someday' };
+    case 'someday': {
+      // Set date to 6 months from now (signals "far future")
+      const somedayDate = addMonths(now, 6);
+      return { date: somedayDate.toISOString().split('T')[0] };
+    }
     default:
       return { date: null };
   }
@@ -248,7 +228,7 @@ export function TaskKanbanView({
     if (onQuickReschedule) {
       // Use reschedule for date-based columns
       const targetDate = target.date ? new Date(target.date) : null;
-      onQuickReschedule(taskId, targetDate, target.status);
+      onQuickReschedule(taskId, targetDate);
     } else {
       // Fallback to update
       const updates: Partial<Task> = {};
@@ -258,12 +238,6 @@ export function TaskKanbanView({
       } else {
         updates.planned_day = null;
         updates.scheduled_date = null;
-      }
-      if (target.status) {
-        updates.status = target.status as Task['status'];
-      } else if (columnId !== 'someday') {
-        // Clear someday status when moving to a date-based column
-        updates.status = null;
       }
       onUpdateTask(taskId, updates);
     }
