@@ -98,7 +98,8 @@ const SOPs = lazyWithRetry(() => import('./pages/SOPs'));
 const Wins = lazyWithRetry(() => import('./pages/Wins'));
 const Support = lazyWithRetry(() => import('./pages/Support'));
 const CaptureLaunchPage = lazyWithRetry(() => import('./pages/CaptureLaunchPage'));
-const InstallApp = lazyWithRetry(() => import('./pages/InstallApp'));
+const Install = lazyWithRetry(() => import('./pages/Install'));
+const InstallSuccess = lazyWithRetry(() => import('./pages/InstallSuccess'));
 const Projects = lazyWithRetry(() => import('./pages/Projects'));
 const ProjectDetail = lazyWithRetry(() => import('./pages/ProjectDetail'));
 const MastermindHub = lazyWithRetry(() => import('./pages/MastermindHub'));
@@ -251,7 +252,8 @@ const App = () => (
                       
                       {/* Public routes with lazy loading */}
                       <Route path="/capture" element={<PageSuspense><CaptureLaunchPage /></PageSuspense>} />
-                      <Route path="/install" element={<PageSuspense><InstallApp /></PageSuspense>} />
+                      <Route path="/install" element={<PageSuspense><Install /></PageSuspense>} />
+                      <Route path="/install/success" element={<PageSuspense><InstallSuccess /></PageSuspense>} />
                       <Route path="/workshop-planner" element={<PageSuspense><WorkshopPlanner /></PageSuspense>} />
                       <Route path="/workshop-planner/create" element={<PageSuspense><WorkshopPlanner /></PageSuspense>} />
                       <Route path="/trial" element={<PageSuspense><TrialSignup /></PageSuspense>} />
