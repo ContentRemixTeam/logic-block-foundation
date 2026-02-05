@@ -112,6 +112,23 @@ export type RecurrencePattern = 'none' | 'daily' | 'weekdays' | 'weekly' | 'biwe
 export type DeleteType = 'single' | 'future' | 'all';
 export type ViewMode = 'list' | 'board' | 'calendar';
 export type EnergyLevel = 'high_focus' | 'medium' | 'low_energy';
+export type GroupByOption = 'date' | 'priority' | 'project' | 'energy';
+export type SortByOption = 'scheduled_date' | 'priority' | 'created_at' | 'task_text';
+export type SortDirection = 'asc' | 'desc';
+
+export const GROUP_BY_OPTIONS = [
+  { value: 'date' as const, label: 'Due Date' },
+  { value: 'priority' as const, label: 'Priority' },
+  { value: 'project' as const, label: 'Project' },
+  { value: 'energy' as const, label: 'Energy Level' },
+];
+
+export const SORT_BY_OPTIONS = [
+  { value: 'scheduled_date' as const, label: 'Due Date' },
+  { value: 'priority' as const, label: 'Priority' },
+  { value: 'created_at' as const, label: 'Created Date' },
+  { value: 'task_text' as const, label: 'Name' },
+];
 
 /**
  * @deprecated Status field is redundant. Use:
