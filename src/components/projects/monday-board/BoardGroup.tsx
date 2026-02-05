@@ -53,6 +53,7 @@ export function BoardGroup({
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskText, setNewTaskText] = useState('');
    const [isCreating, setIsCreating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { updateSection, deleteSection, reorderSections } = useProjectSectionMutations(projectId);
 
@@ -70,9 +71,19 @@ export function BoardGroup({
     updateSection.mutate({ id: section.id, color });
   };
 
-  const handleDelete = () => {
-    if (confirm(`Delete "${section.name}" group? Tasks will be moved to Uncategorized.`)) {
-      deleteSection.mutate(section.id);
+  const handleDelete = async () => {
+    const taskCount = tasks.length;
+    const message = taskCount > 0 
+      ? `Delete "${section.name}" group? ${taskCount} task(s) will be moved to Uncategorized.`
+      : `Delete "${section.name}" group?`;
+      
+    if (confirm(message)) {
+      setIsDeleting(true);
+      try {
+        await deleteSection.mutateAsync(section.id);
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 
@@ -185,9 +196,9 @@ export function BoardGroup({
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleDelete} className="text-destructive">
+              <DropdownMenuItem onClick={handleDelete} className="text-destructive" disabled={isDeleting}>
                 <Trash2 className="h-4 w-4 mr-2" />
-                Delete group
+                {isDeleting ? 'Deleting...' : 'Delete group'}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

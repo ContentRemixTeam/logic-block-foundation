@@ -138,6 +138,19 @@ export function useTaskMutations() {
     mutationFn: async (params: Partial<Task> & { task_text: string }) => {
       const session = await getSession();
       
+      // Validate section belongs to project if both provided
+      if (params.section_id && params.project_id) {
+        const { data: section } = await supabase
+          .from('project_sections')
+          .select('project_id')
+          .eq('id', params.section_id)
+          .maybeSingle();
+        
+        if (section && section.project_id !== params.project_id) {
+          throw new Error('Section does not belong to this project');
+        }
+      }
+      
       // Log mutation start
       const logId = mutationLogger.log({
         type: 'create',

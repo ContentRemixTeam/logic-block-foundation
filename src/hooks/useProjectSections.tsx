@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { ProjectSection, ProjectBoardSettings } from '@/types/project';
+import { taskQueryKeys } from '@/hooks/useTasks';
 
 export const sectionQueryKeys = {
   byProject: (projectId: string) => ['project-sections', projectId] as const,
@@ -111,16 +112,44 @@ export function useProjectSectionMutations(projectId: string) {
 
   const deleteSection = useMutation({
     mutationFn: async (sectionId: string) => {
+      // Count tasks that will be affected
+      const { count, error: countError } = await supabase
+        .from('tasks')
+        .select('*', { count: 'exact', head: true })
+        .eq('section_id', sectionId);
+
+      if (countError) throw countError;
+
+      // Move tasks to uncategorized BEFORE deleting section
+      if (count && count > 0) {
+        const { error: updateError } = await supabase
+          .from('tasks')
+          .update({ section_id: null })
+          .eq('section_id', sectionId);
+
+        if (updateError) throw updateError;
+      }
+
+      // Now delete the section
       const { error } = await supabase
         .from('project_sections')
         .delete()
         .eq('id', sectionId);
 
       if (error) throw error;
+      
+      return { deletedSectionId: sectionId, taskCount: count || 0 };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: sectionQueryKeys.byProject(projectId) });
-      toast.success('Group deleted');
+      // CRITICAL: Also invalidate tasks so they refresh from server
+      queryClient.invalidateQueries({ queryKey: taskQueryKeys.all });
+      
+      if (result.taskCount > 0) {
+        toast.success(`Group deleted. ${result.taskCount} task(s) moved to Uncategorized.`);
+      } else {
+        toast.success('Group deleted');
+      }
     },
     onError: () => {
       toast.error('Failed to delete group');
