@@ -33,9 +33,12 @@ export function useTasks(options: { loadAll?: boolean } = {}) {
   const queryClient = useQueryClient();
   const { loadAll = false } = options;
 
+  // Create the full query key including options
+  const fullQueryKey = useMemo(() => [...taskQueryKeys.all, { loadAll }], [loadAll]);
+
   // Main tasks query - uses smart filtering by default (last 90 days + incomplete)
   const query = useQuery({
-    queryKey: [...taskQueryKeys.all, { loadAll }],
+    queryKey: fullQueryKey,
     queryFn: async (): Promise<Task[]> => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
@@ -78,37 +81,40 @@ export function useTasks(options: { loadAll?: boolean } = {}) {
         },
         (payload) => {
           console.log('Task realtime update:', payload.eventType);
-           console.log('Task realtime details:', {
-             event: payload.eventType,
-             taskId: (payload.new as Task)?.task_id?.slice(0, 8) || (payload.old as Task)?.task_id?.slice(0, 8),
-             section_id: (payload.new as Task)?.section_id,
-             project_id: (payload.new as Task)?.project_id,
-           });
           
           // Update the cache based on the event type
-          queryClient.setQueryData<Task[]>(taskQueryKeys.all, (oldTasks) => {
-            if (!oldTasks) return oldTasks;
+          // Update ALL possible cache entries (loadAll: true and loadAll: false)
+          const cacheKeys = [
+            [...taskQueryKeys.all, { loadAll: false }],
+            [...taskQueryKeys.all, { loadAll: true }],
+          ];
+          
+          cacheKeys.forEach((cacheKey) => {
+            queryClient.setQueryData<Task[]>(cacheKey, (oldTasks) => {
+              if (!oldTasks) return oldTasks;
 
-            switch (payload.eventType) {
-              case 'INSERT':
-                // Check if task already exists (avoid duplicates from optimistic updates)
-                const exists = oldTasks.some(t => t.task_id === (payload.new as Task).task_id);
-                if (exists) return oldTasks;
-                return [payload.new as Task, ...oldTasks];
+              switch (payload.eventType) {
+                case 'INSERT':
+                  // Check if task already exists (avoid duplicates)
+                  const exists = oldTasks.some(t => t.task_id === (payload.new as Task).task_id);
+                  if (exists) return oldTasks;
+                  // Add with null project/sop - UI will show it, invalidation gets full data
+                  return [{ ...payload.new as Task, project: null, sop: null }, ...oldTasks];
 
-              case 'UPDATE':
-                return oldTasks.map(t => 
-                  t.task_id === (payload.new as Task).task_id 
-                    ? { ...t, ...(payload.new as Task) }
-                    : t
-                );
+                case 'UPDATE':
+                  return oldTasks.map(t => 
+                    t.task_id === (payload.new as Task).task_id 
+                      ? { ...t, ...(payload.new as Task) }
+                      : t
+                  );
 
-              case 'DELETE':
-                return oldTasks.filter(t => t.task_id !== (payload.old as Task).task_id);
+                case 'DELETE':
+                  return oldTasks.filter(t => t.task_id !== (payload.old as Task).task_id);
 
-              default:
-                return oldTasks;
-            }
+                default:
+                  return oldTasks;
+              }
+            });
           });
         }
       )
@@ -117,7 +123,7 @@ export function useTasks(options: { loadAll?: boolean } = {}) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, queryClient]);
+  }, [user, queryClient, fullQueryKey]);
 
   return query;
 }
