@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Target, ArrowRight, RotateCcw, Rocket, Mail, Zap, DollarSign, History, ExternalLink, Lightbulb, Sparkles } from 'lucide-react';
+import { Target, ArrowRight, RotateCcw, Rocket, Mail, Zap, DollarSign, History, ExternalLink, Lightbulb, Sparkles, Kanban } from 'lucide-react';
 import { WizardTemplate, WizardCompletion } from '@/types/wizard';
 import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from 'sonner';
@@ -19,6 +19,7 @@ const IMPLEMENTED_WIZARDS = [
   'content-planner',
   'summit-planner',
   'money_momentum',
+  'project-designer',
 ];
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -27,6 +28,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   Mail: <Mail className="h-8 w-8" />,
   Zap: <Zap className="h-8 w-8" />,
   DollarSign: <DollarSign className="h-8 w-8" />,
+  Kanban: <Kanban className="h-8 w-8" />,
 };
 
 const ICON_MAP_SMALL: Record<string, React.ReactNode> = {
@@ -35,6 +37,7 @@ const ICON_MAP_SMALL: Record<string, React.ReactNode> = {
   Mail: <Mail className="h-5 w-5" />,
   Zap: <Zap className="h-5 w-5" />,
   DollarSign: <DollarSign className="h-5 w-5" />,
+  Kanban: <Kanban className="h-5 w-5" />,
 };
 
 export default function WizardHub() {
@@ -111,6 +114,8 @@ export default function WizardHub() {
       navigate('/wizards/summit');
     } else if (templateName === 'money_momentum') {
       navigate('/wizards/money-momentum');
+    } else if (templateName === 'project-designer') {
+      navigate('/wizards/project-designer');
     } else {
       toast.info('This wizard is coming soon!');
     }

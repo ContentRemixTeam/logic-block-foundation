@@ -3898,32 +3898,141 @@ export type Database = {
           },
         ]
       }
+      project_board_templates: {
+        Row: {
+          card_fields: Json
+          columns: Json
+          created_at: string
+          description: string | null
+          id: string
+          is_public: boolean
+          name: string
+          settings: Json
+          updated_at: string
+          use_case: string
+          user_id: string
+        }
+        Insert: {
+          card_fields?: Json
+          columns?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          name: string
+          settings?: Json
+          updated_at?: string
+          use_case: string
+          user_id: string
+        }
+        Update: {
+          card_fields?: Json
+          columns?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          name?: string
+          settings?: Json
+          updated_at?: string
+          use_case?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       project_boards: {
         Row: {
+          card_fields: Json | null
           created_at: string
           id: string
           is_default: boolean | null
           name: string
+          settings: Json | null
+          template_id: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          card_fields?: Json | null
           created_at?: string
           id?: string
           is_default?: boolean | null
           name: string
+          settings?: Json | null
+          template_id?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          card_fields?: Json | null
           created_at?: string
           id?: string
           is_default?: boolean | null
           name?: string
+          settings?: Json | null
+          template_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "project_boards_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "project_board_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_card_fields: {
+        Row: {
+          board_id: string
+          created_at: string
+          field_key: string
+          field_name: string
+          field_type: string
+          id: string
+          is_required: boolean
+          options: Json | null
+          show_on_card: boolean
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          board_id: string
+          created_at?: string
+          field_key: string
+          field_name: string
+          field_type: string
+          id?: string
+          is_required?: boolean
+          options?: Json | null
+          show_on_card?: boolean
+          sort_order?: number
+          user_id: string
+        }
+        Update: {
+          board_id?: string
+          created_at?: string
+          field_key?: string
+          field_name?: string
+          field_type?: string
+          id?: string
+          is_required?: boolean
+          options?: Json | null
+          show_on_card?: boolean
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_card_fields_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "project_boards"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_columns: {
         Row: {
@@ -4003,6 +4112,54 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "project_custom_fields_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_custom_values: {
+        Row: {
+          created_at: string
+          field_id: string
+          id: string
+          project_id: string
+          updated_at: string
+          value_date: string | null
+          value_number: number | null
+          value_text: string | null
+        }
+        Insert: {
+          created_at?: string
+          field_id: string
+          id?: string
+          project_id: string
+          updated_at?: string
+          value_date?: string | null
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          created_at?: string
+          field_id?: string
+          id?: string
+          project_id?: string
+          updated_at?: string
+          value_date?: string | null
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_custom_values_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "project_card_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_custom_values_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
