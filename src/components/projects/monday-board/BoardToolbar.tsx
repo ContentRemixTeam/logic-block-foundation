@@ -8,8 +8,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Search, Filter, ArrowUpDown, Columns, Plus, FolderPlus, X } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, Columns, Plus, FolderPlus, X, Check } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface BoardToolbarProps {
   searchQuery: string;
@@ -83,31 +84,46 @@ export function BoardToolbar({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-48">
           <DropdownMenuLabel>Priority</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {/* Show All option */}
+          <DropdownMenuItem
+            onClick={() => onFiltersChange({})}
+            className={cn(
+              "gap-2",
+              !filters.priority && "bg-accent"
+            )}
+          >
+            <Check className={cn(
+              "h-4 w-4",
+              !filters.priority ? "opacity-100" : "opacity-0"
+            )} />
+            All Priorities
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           {PRIORITY_OPTIONS.map(option => (
             <DropdownMenuItem
               key={option.value}
               onClick={() => onFiltersChange({ ...filters, priority: option.value })}
-              className={filters.priority === option.value ? 'bg-accent' : ''}
+              className={cn(
+                "gap-2",
+                filters.priority === option.value && "bg-accent"
+              )}
             >
+              <Check className={cn(
+                "h-4 w-4",
+                filters.priority === option.value ? "opacity-100" : "opacity-0"
+              )} />
               {option.label}
             </DropdownMenuItem>
           ))}
-          {activeFiltersCount > 0 && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => onFiltersChange({})}>
-                Clear all filters
-              </DropdownMenuItem>
-            </>
-          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
       {/* Active filters badges */}
       {filters.priority && (
-        <Badge variant="secondary" className="gap-1">
+        <Badge variant="secondary" className="gap-1 cursor-pointer hover:bg-destructive/20 transition-colors" onClick={() => clearFilter('priority')}>
           Priority: {filters.priority}
-          <X className="h-3 w-3 cursor-pointer" onClick={() => clearFilter('priority')} />
+          <X className="h-3 w-3" />
         </Badge>
       )}
 

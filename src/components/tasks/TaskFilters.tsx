@@ -4,12 +4,19 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { Filter, Zap, Battery, BatteryLow, Tag, Target, X } from 'lucide-react';
+import { Zap, Battery, BatteryLow, Tag, X, Check } from 'lucide-react';
 import { EnergyLevel, ENERGY_LEVELS } from './types';
 import { useContextTags } from '@/hooks/useContextTags';
 
@@ -56,7 +63,8 @@ export function TaskFilters({
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <TooltipProvider>
+    <div className="flex items-center gap-2 flex-wrap">
       {/* Energy Filter */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -77,8 +85,23 @@ export function TaskFilters({
             )}
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
+        <DropdownMenuContent align="start" className="min-w-[180px]">
           <DropdownMenuLabel>Filter by Energy Level</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {/* Show All option */}
+          <DropdownMenuItem
+            onClick={() => onEnergyChange([])}
+            className={cn(
+              "gap-2 cursor-pointer",
+              selectedEnergy.length === 0 && "bg-accent"
+            )}
+          >
+            <Check className={cn(
+              "h-4 w-4",
+              selectedEnergy.length === 0 ? "opacity-100" : "opacity-0"
+            )} />
+            Show All
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           {ENERGY_LEVELS.map(level => (
             <DropdownMenuCheckboxItem
@@ -115,8 +138,23 @@ export function TaskFilters({
             )}
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
+        <DropdownMenuContent align="start" className="min-w-[180px]">
           <DropdownMenuLabel>Filter by Context</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {/* Show All option */}
+          <DropdownMenuItem
+            onClick={() => onTagsChange([])}
+            className={cn(
+              "gap-2 cursor-pointer",
+              selectedTags.length === 0 && "bg-accent"
+            )}
+          >
+            <Check className={cn(
+              "h-4 w-4",
+              selectedTags.length === 0 ? "opacity-100" : "opacity-0"
+            )} />
+            Show All
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           {contextTags.map(tag => (
             <DropdownMenuCheckboxItem
@@ -139,10 +177,10 @@ export function TaskFilters({
           variant="ghost" 
           size="sm" 
           onClick={onClearFilters}
-          className="gap-1 text-muted-foreground"
+          className="gap-1 text-muted-foreground hover:text-destructive"
         >
           <X className="h-4 w-4" />
-          Clear
+          Clear All
         </Button>
       )}
 
@@ -152,34 +190,47 @@ export function TaskFilters({
           {selectedEnergy.map(energy => {
             const level = ENERGY_LEVELS.find(l => l.value === energy);
             return (
-              <Badge 
-                key={energy} 
-                variant="secondary" 
-                className="gap-1 cursor-pointer hover:bg-destructive/20"
-                onClick={() => toggleEnergy(energy)}
-              >
-                {getEnergyIcon(energy)}
-                {level?.label}
-                <X className="h-3 w-3" />
-              </Badge>
+              <Tooltip key={energy}>
+                <TooltipTrigger asChild>
+                  <Badge 
+                    variant="secondary" 
+                    className="gap-1 cursor-pointer hover:bg-destructive/20 transition-colors"
+                    onClick={() => toggleEnergy(energy)}
+                  >
+                    {getEnergyIcon(energy)}
+                    {level?.label}
+                    <X className="h-3 w-3" />
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">
+                  Click to remove filter
+                </TooltipContent>
+              </Tooltip>
             );
           })}
           {selectedTags.map(tag => {
             const tagInfo = contextTags.find(t => t.value === tag);
             return (
-              <Badge 
-                key={tag} 
-                variant="secondary" 
-                className="gap-1 cursor-pointer hover:bg-destructive/20"
-                onClick={() => toggleTag(tag)}
-              >
-                {tagInfo?.icon} {tagInfo?.label || tag}
-                <X className="h-3 w-3" />
-              </Badge>
+              <Tooltip key={tag}>
+                <TooltipTrigger asChild>
+                  <Badge 
+                    variant="secondary" 
+                    className="gap-1 cursor-pointer hover:bg-destructive/20 transition-colors"
+                    onClick={() => toggleTag(tag)}
+                  >
+                    {tagInfo?.icon} {tagInfo?.label || tag}
+                    <X className="h-3 w-3" />
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">
+                  Click to remove filter
+                </TooltipContent>
+              </Tooltip>
             );
           })}
         </div>
       )}
     </div>
+    </TooltipProvider>
   );
 }
