@@ -67,6 +67,7 @@ const MAIN_NAV = [
   { name: 'Wizards', href: '/wizards', icon: Sparkles, questIcon: '🪄', isActiveCheck: (path: string) => path.startsWith('/wizards') },
   { name: 'Planning', href: '/planning', icon: CalendarDays, questIcon: '🧭', isActiveCheck: (path: string) => path.startsWith('/planning') || path.startsWith('/cycles') || path.startsWith('/cycle-') },
   { name: 'Tasks', href: '/tasks', icon: ListTodo, questIcon: '📜' },
+  { name: 'All Tasks', href: '/all-tasks', icon: CheckSquare, questIcon: '✅' },
 ];
 
 const ORGANIZE_NAV = [
