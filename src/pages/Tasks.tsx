@@ -57,6 +57,8 @@ import { CycleTimeline } from '@/components/CycleTimeline';
 import { SOPSelector } from '@/components/tasks/SOPSelector';
 import { TagManager } from '@/components/tasks/TagManager';
 import { TaskRecoveryBanner } from '@/components/tasks/TaskRecoveryBanner';
+import { useProjects } from '@/hooks/useProjects';
+import { useLaunches } from '@/hooks/useLaunches';
 
 export default function Tasks() {
   const queryClient = useQueryClient();
@@ -91,7 +93,13 @@ export default function Tasks() {
     tags: [] as string[],
     cycle: 'all' as string,
     energy: [] as EnergyLevel[],
+    projectIds: [] as string[],
+    launchIds: [] as string[],
   });
+  
+  // Fetch projects and launches for filter dropdowns
+  const { data: projects = [] } = useProjects();
+  const { launches = [] } = useLaunches();
   
   // Get active cycle for filtering
   const { data: activeCycle } = useActiveCycle();
@@ -288,6 +296,30 @@ export default function Tasks() {
       
       if (filters.energy.length > 0) {
         if (!task.energy_level || !filters.energy.includes(task.energy_level)) return;
+      }
+      
+      // STEP 4: Project filter
+      if (filters.projectIds.length > 0) {
+        const hasNoProjectFilter = filters.projectIds.includes('no_project');
+        // If task has no project and "No Project" filter is active, include it
+        if (!task.project_id && hasNoProjectFilter) {
+          // Pass - include this task
+        } else if (!task.project_id) {
+          // Task has no project but "No Project" isn't selected
+          return;
+        } else if (!filters.projectIds.includes(task.project_id)) {
+          // Task has a project but it's not in the selected filters
+          return;
+        }
+      }
+      
+      // STEP 5: Launch filter
+      if (filters.launchIds.length > 0) {
+        // Check if task belongs to a launch project
+        const taskLaunchId = task.project?.is_launch ? task.project_id : null;
+        if (!taskLaunchId || !filters.launchIds.includes(taskLaunchId)) {
+          return;
+        }
       }
       
       regular.push(task);
@@ -780,6 +812,8 @@ export default function Tasks() {
           filters={filters}
           onFiltersChange={setFilters}
           counts={counts}
+          projects={projects}
+          launches={launches}
         />
 
         {/* Import Modal */}
