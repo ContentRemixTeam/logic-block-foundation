@@ -66,8 +66,8 @@ const MAIN_NAV = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, questIcon: '🗺️' },
   { name: 'Wizards', href: '/wizards', icon: Sparkles, questIcon: '🪄', isActiveCheck: (path: string) => path.startsWith('/wizards') },
   { name: 'Planning', href: '/planning', icon: CalendarDays, questIcon: '🧭', isActiveCheck: (path: string) => path.startsWith('/planning') || path.startsWith('/cycles') || path.startsWith('/cycle-') },
-  { name: 'Tasks', href: '/tasks', icon: ListTodo, questIcon: '📜' },
-  { name: 'All Tasks', href: '/all-tasks', icon: CheckSquare, questIcon: '✅' },
+  { name: 'Todo List', href: '/tasks', icon: ListTodo, questIcon: '📜' },
+  { name: 'Editorial Calendar', href: '/editorial-calendar', icon: CalendarRange, questIcon: '📅' },
 ];
 
 const ORGANIZE_NAV = [
@@ -75,7 +75,6 @@ const ORGANIZE_NAV = [
   { name: 'Ideas', href: '/ideas', icon: Lightbulb, questIcon: '💡' },
   { name: 'Learning', href: '/courses', icon: GraduationCap, questIcon: '🎓' },
   { name: 'Content Vault', href: '/content-vault', icon: Library, questIcon: '📚' },
-  { name: 'Editorial Calendar', href: '/editorial-calendar', icon: CalendarRange, questIcon: '📅' },
   { name: 'SOPs', href: '/sops', icon: ClipboardList, questIcon: '📖' },
   { name: 'Finances', href: '/finances', icon: DollarSign, questIcon: '💰', settingsKey: 'show_income_tracker' },
 ];

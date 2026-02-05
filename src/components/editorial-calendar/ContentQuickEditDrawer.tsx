@@ -27,6 +27,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -38,7 +40,7 @@ import {
 } from '@/components/ui/select';
 import { CalendarItem, PLATFORM_LABELS, SCHEDULE_COLORS } from '@/lib/calendarConstants';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { CalendarIcon, ExternalLink, Loader2, Trash2 } from 'lucide-react';
+import { CalendarIcon, ExternalLink, Loader2, Trash2, Image, FileText, X, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { useLaunches } from '@/hooks/useLaunches';
@@ -68,6 +70,9 @@ export function ContentQuickEditDrawer({
   const [publishDate, setPublishDate] = useState<Date | undefined>(undefined);
   const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [copyText, setCopyText] = useState('');
+  const [graphicsUrls, setGraphicsUrls] = useState<string[]>([]);
+  const [newGraphicUrl, setNewGraphicUrl] = useState('');
   
   const { launches, formatLaunchOption } = useLaunches();
 
@@ -81,24 +86,43 @@ export function ContentQuickEditDrawer({
       if (item.source === 'content_item' && item.sourceId) {
         supabase
           .from('content_items')
-          .select('launch_id')
+          .select('launch_id, body, graphics_urls')
           .eq('id', item.sourceId)
           .single()
           .then(({ data }) => {
             setSelectedCampaign(data?.launch_id || null);
+            setCopyText(data?.body || '');
+            setGraphicsUrls((data?.graphics_urls as string[]) || []);
           });
       } else {
         setSelectedCampaign(null);
+        setCopyText('');
+        setGraphicsUrls([]);
       }
     }
   }, [item]);
+
+  const handleAddGraphicUrl = () => {
+    if (newGraphicUrl.trim() && !graphicsUrls.includes(newGraphicUrl.trim())) {
+      setGraphicsUrls([...graphicsUrls, newGraphicUrl.trim()]);
+      setNewGraphicUrl('');
+    }
+  };
+
+  const handleRemoveGraphic = (url: string) => {
+    setGraphicsUrls(graphicsUrls.filter(u => u !== url));
+  };
 
   const handleSave = async () => {
     // Update campaign if content_item
     if (item?.source === 'content_item' && item.sourceId) {
       await supabase
         .from('content_items')
-        .update({ launch_id: selectedCampaign })
+        .update({ 
+          launch_id: selectedCampaign,
+          body: copyText || null,
+          graphics_urls: graphicsUrls.length > 0 ? graphicsUrls : null,
+        })
         .eq('id', item.sourceId);
     }
     
@@ -242,6 +266,84 @@ export function ContentQuickEditDrawer({
       </div>
 
       {/* Source info */}
+      {/* Graphics/Images Section - only for content_items */}
+      {item.source === 'content_item' && (
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <Image className="h-4 w-4" />
+            Graphics
+          </Label>
+          
+          {/* Display existing graphics */}
+          {graphicsUrls.length > 0 && (
+            <div className="grid grid-cols-2 gap-2">
+              {graphicsUrls.map((url, index) => (
+                <div key={index} className="relative group">
+                  <img 
+                    src={url} 
+                    alt={`Graphic ${index + 1}`}
+                    className="w-full h-20 object-cover rounded-md border"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23f0f0f0" width="100%" height="100%"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23999" font-size="12">Image</text></svg>';
+                    }}
+                  />
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => handleRemoveGraphic(url)}
+                    disabled={isSaving}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Add new graphic URL */}
+          <div className="flex gap-2">
+            <Input
+              placeholder="Paste image URL..."
+              value={newGraphicUrl}
+              onChange={(e) => setNewGraphicUrl(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddGraphicUrl()}
+              disabled={isSaving}
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleAddGraphicUrl}
+              disabled={isSaving || !newGraphicUrl.trim()}
+            >
+              <Upload className="h-4 w-4" />
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Add image URLs for your content graphics
+          </p>
+        </div>
+      )}
+
+      {/* Copy/Body Text Section - only for content_items */}
+      {item.source === 'content_item' && (
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Copy / Caption
+          </Label>
+          <Textarea
+            placeholder="Enter your content copy, caption, or notes..."
+            value={copyText}
+            onChange={(e) => setCopyText(e.target.value)}
+            rows={4}
+            className="resize-none"
+            disabled={isSaving}
+          />
+        </div>
+      )}
+
+      {/* Source info */}
       <div className="text-xs text-muted-foreground border-t pt-4">
         Source: {item.source === 'content_item' ? 'Content Vault' : item.source === 'content_plan_item' ? 'Content Plan' : 'Task'}
       </div>
@@ -336,7 +438,7 @@ export function ContentQuickEditDrawer({
             <DrawerHeader>
               <DrawerTitle>Edit Content Schedule</DrawerTitle>
             </DrawerHeader>
-            <div className="px-4">{content}</div>
+            <ScrollArea className="max-h-[60vh] px-4">{content}</ScrollArea>
             <DrawerFooter>{footer}</DrawerFooter>
           </DrawerContent>
         </Drawer>
@@ -348,7 +450,7 @@ export function ContentQuickEditDrawer({
     <>
       {deleteConfirmDialog}
       <Sheet open={open} onOpenChange={isSaving || isDeleting ? undefined : onOpenChange}>
-        <SheetContent>
+        <SheetContent className="overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Edit Content Schedule</SheetTitle>
           </SheetHeader>
