@@ -19,6 +19,10 @@ import { Zap, ListTodo, Lightbulb, LogIn, Calendar, Plus, Mic, MicOff, FolderKan
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { getStorageItem, setStorageItem } from '@/lib/storage';
+
+ // Draft persistence key
+ const QUICK_CAPTURE_DRAFT_KEY = 'quick-capture-draft';
+
 import {
   CaptureType,
   detectCaptureTypeWithConfidence,
@@ -120,6 +124,7 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
   const [justSaved, setJustSaved] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const amountInputRef = useRef<HTMLInputElement>(null);
+  const draftSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Recent tags and projects from localStorage
   const [recentTags, setRecentTags] = useState<string[]>(() => {
@@ -246,6 +251,32 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
         description: '',
         date: format(new Date(), 'yyyy-MM-dd'),
       });
+      
+      // Restore draft if exists
+      try {
+        const savedDraft = localStorage.getItem(QUICK_CAPTURE_DRAFT_KEY);
+        if (savedDraft) {
+          const draft = JSON.parse(savedDraft);
+          // Only restore if less than 24 hours old
+          if (Date.now() - draft.timestamp < 24 * 60 * 60 * 1000) {
+            if (draft.input) {
+              setInput(draft.input);
+              toast.info('Restored unsaved draft', { duration: 2000 });
+            }
+            if (draft.captureType) {
+              setCaptureType(draft.captureType);
+              setLastCaptureType(draft.captureType);
+              setUserOverrodeType(true);
+            }
+          } else {
+            // Draft too old, remove it
+            localStorage.removeItem(QUICK_CAPTURE_DRAFT_KEY);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to restore draft:', e);
+      }
+      
       // Small delay to ensure modal is rendered
       setTimeout(() => {
         if (lastCaptureType === 'income' || lastCaptureType === 'expense') {
@@ -276,8 +307,47 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
       if (isListening) {
         stopListening();
       }
+      // Clear draft save timeout
+      if (draftSaveTimeoutRef.current) {
+        clearTimeout(draftSaveTimeoutRef.current);
+      }
     }
   }, [open, lastCaptureType, isListening, stopListening, isMobile]);
+
+  // Auto-save draft as user types (debounced)
+  useEffect(() => {
+    if (!open) return;
+    
+    // Clear any pending save
+    if (draftSaveTimeoutRef.current) {
+      clearTimeout(draftSaveTimeoutRef.current);
+    }
+    
+    // Don't save empty input
+    if (!input.trim()) {
+      localStorage.removeItem(QUICK_CAPTURE_DRAFT_KEY);
+      return;
+    }
+    
+    // Debounce save to localStorage
+    draftSaveTimeoutRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(QUICK_CAPTURE_DRAFT_KEY, JSON.stringify({
+          input,
+          captureType,
+          timestamp: Date.now(),
+        }));
+      } catch (e) {
+        console.error('Failed to save draft:', e);
+      }
+    }, 500);
+    
+    return () => {
+      if (draftSaveTimeoutRef.current) {
+        clearTimeout(draftSaveTimeoutRef.current);
+      }
+    };
+  }, [open, input, captureType]);
 
   // Handle paste to show convert chips
   const handlePaste = useCallback(() => {
@@ -605,6 +675,9 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
           date: format(new Date(), 'yyyy-MM-dd'),
         });
         
+        // Clear draft since save was successful
+        localStorage.removeItem(QUICK_CAPTURE_DRAFT_KEY);
+        
         // Update session count
         setSavedThisSession(prev => prev + 1);
         
@@ -635,6 +708,9 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
       } else {
         // Close modal and show actionable toast
         onOpenChange(false);
+        
+        // Clear draft since save was successful
+        localStorage.removeItem(QUICK_CAPTURE_DRAFT_KEY);
         
         if (captureType !== 'income' && captureType !== 'expense') {
           setTimeout(() => {
