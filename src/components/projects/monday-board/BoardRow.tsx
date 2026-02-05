@@ -3,8 +3,8 @@ import { Task, ENERGY_LEVELS, CONTEXT_TAGS, DURATION_OPTIONS } from '@/component
 import { ProjectSection, BOARD_COLUMNS } from '@/types/project';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
-import { Calendar, MoreHorizontal, Trash2, FileText, MoveRight, ClipboardList } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { Calendar as CalendarIcon, MoreHorizontal, Trash2, FileText, MoveRight, ClipboardList } from 'lucide-react';
 import { SOPSelector } from '@/components/tasks/SOPSelector';
 import {
   DropdownMenu,
@@ -60,6 +60,7 @@ export function BoardRow({
 }: BoardRowProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState(task.task_text);
+  const [datePopoverOpen, setDatePopoverOpen] = useState(false);
 
   const handleSaveTitle = () => {
     if (editTitle.trim() && editTitle !== task.task_text) {
@@ -121,23 +122,43 @@ export function BoardRow({
       case 'scheduled_date':
         return (
           <div key={columnId} className={cellClass} style={{ width, minWidth: width }}>
-            <Popover>
+            <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
               <PopoverTrigger asChild>
-                <Button variant="ghost" className="h-7 px-2 w-full justify-start text-left font-normal">
+                <Button variant="ghost" className={cn("h-7 px-2 w-full justify-start text-left font-normal", !task.scheduled_date && "text-muted-foreground")}>
+                  <CalendarIcon className="h-3 w-3 mr-1.5" />
                   {task.scheduled_date ? (
-                    format(new Date(task.scheduled_date), 'MMM d')
+                    format(parseISO(task.scheduled_date), 'MMM d')
                   ) : (
-                    <span className="text-muted-foreground">Set date</span>
+                    'Set date'
                   )}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <CalendarComponent
                   mode="single"
-                  selected={task.scheduled_date ? new Date(task.scheduled_date) : undefined}
-                  onSelect={(date) => onUpdate(task.task_id, { scheduled_date: date ? format(date, 'yyyy-MM-dd') : null })}
+                  selected={task.scheduled_date ? parseISO(task.scheduled_date) : undefined}
+                  onSelect={(date) => {
+                    onUpdate(task.task_id, { scheduled_date: date ? format(date, 'yyyy-MM-dd') : null });
+                    setDatePopoverOpen(false);
+                  }}
+                  initialFocus
                   className="pointer-events-auto"
                 />
+                {task.scheduled_date && (
+                  <div className="p-2 border-t">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full text-xs"
+                      onClick={() => {
+                        onUpdate(task.task_id, { scheduled_date: null });
+                        setDatePopoverOpen(false);
+                      }}
+                    >
+                      Clear date
+                    </Button>
+                  </div>
+                )}
               </PopoverContent>
             </Popover>
           </div>

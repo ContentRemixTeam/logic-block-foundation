@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Calendar as CalendarIcon, Trash2, Clock, ClipboardList, Cloud, CloudOff } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { cn } from '@/lib/utils';
@@ -59,6 +59,7 @@ export function TaskDetailsDrawer({ task, onClose, onUpdate, onDelete }: TaskDet
   const isOnline = useOnlineStatus();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const localStorageKey = `task_edit_draft_${task?.task_id}`;
+  const [datePopoverOpen, setDatePopoverOpen] = useState(false);
 
   useEffect(() => {
     setLocalTask(task);
@@ -254,21 +255,41 @@ export function TaskDetailsDrawer({ task, onClose, onUpdate, onDelete }: TaskDet
           {/* Due Date */}
           <div className="space-y-2">
             <Label>Due Date</Label>
-            <Popover>
+            <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full justify-start">
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {localTask.scheduled_date
-                    ? format(new Date(localTask.scheduled_date), 'PPP')
+                    ? format(parseISO(localTask.scheduled_date), 'PPP')
                     : 'Pick a date'}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
-                  selected={localTask.scheduled_date ? new Date(localTask.scheduled_date) : undefined}
-                  onSelect={(date) => handleChange('scheduled_date', date ? format(date, 'yyyy-MM-dd') : null)}
+                  selected={localTask.scheduled_date ? parseISO(localTask.scheduled_date) : undefined}
+                  onSelect={(date) => {
+                    handleChange('scheduled_date', date ? format(date, 'yyyy-MM-dd') : null);
+                    setDatePopoverOpen(false);
+                  }}
+                  initialFocus
+                  className="pointer-events-auto"
                 />
+                {localTask.scheduled_date && (
+                  <div className="p-2 border-t">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full text-sm"
+                      onClick={() => {
+                        handleChange('scheduled_date', null);
+                        setDatePopoverOpen(false);
+                      }}
+                    >
+                      Clear date
+                    </Button>
+                  </div>
+                )}
               </PopoverContent>
             </Popover>
           </div>

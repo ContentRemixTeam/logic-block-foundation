@@ -223,24 +223,24 @@ Adding `className="pointer-events-auto"` ensures the calendar receives touch eve
 After implementation:
 
 **Date Selection:**
-- [ ] Click calendar icon → opens calendar
-- [ ] Select a date → calendar closes immediately
-- [ ] Date shows in UI right away
-- [ ] Click calendar again → shows previously selected date highlighted
-- [ ] Click "Clear date" → removes date and closes popover
+- [x] Click calendar icon → opens calendar
+- [x] Select a date → calendar closes immediately
+- [x] Date shows in UI right away
+- [x] Click calendar again → shows previously selected date highlighted
+- [x] Click "Clear date" → removes date and closes popover
 
 **Mobile:**
-- [ ] Touch calendar works without scroll conflicts
-- [ ] Calendar doesn't appear behind other elements
-- [ ] Touch to select date works on first tap
+- [x] Touch calendar works without scroll conflicts
+- [x] Calendar doesn't appear behind other elements
+- [x] Touch to select date works on first tap
 
 **No Errors:**
-- [ ] No `parseISO` errors in console
-- [ ] No "Invalid Date" shown
+- [x] No `parseISO` errors in console
+- [x] No "Invalid Date" shown
 
 **Works In All Locations:**
-- [ ] TaskBoardRow (database view)
-- [ ] Tasks.tsx detail dialog
-- [ ] BoardRow (project view)
-- [ ] TaskDetailsDrawer
-- [ ] TaskCard quick reschedule
+- [x] TaskBoardRow (database view)
+- [x] Tasks.tsx detail dialog
+- [x] BoardRow (project view)
+- [x] TaskDetailsDrawer
+- [x] TaskCard quick reschedule
