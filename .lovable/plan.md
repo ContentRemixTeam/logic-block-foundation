@@ -1,173 +1,157 @@
 
 
-# Fix: Tasks Not Appearing After Creation
+# Standardize Filter UX Across the App
 
-## Problem Analysis
+## Problem Identified
 
-After investigating the code and network requests, I found **multiple issues** causing tasks to "disappear" after creation:
+The filter controls are inconsistent across the app, making them confusing:
 
-### Issue 1: Recurring Parent Tasks Are Hidden By Design
+| Location | Filter Type | How to Clear | Issue |
+|----------|-------------|--------------|-------|
+| Tasks Page (List View) | Dropdown with checkboxes | Click badge with X, or find "Clear" button | No "All" option in dropdown |
+| Weekly Inbox | Select dropdown | Select "All Energy/Priority" | Clear and intuitive |
+| Project Board Toolbar | Dropdown menu items | Click badge X or "Clear all filters" | Works but inconsistent |
 
-When you create a task with any recurrence pattern (daily, weekly, etc.), the system marks it as `is_recurring_parent: true`. These tasks are **templates**, not actionable items.
-
-**Current behavior (correct):**
-- Recurring parent tasks show in the "Recurring Tasks" collapsible section
-- They do NOT show in Today Agenda, Unscheduled, or any actionable lists
-- The system generates child instances from these templates
-
-**The problem:** The user may not realize this behavior. When they create a "daily" recurring task, they expect to see it in Today's list, but instead it's hidden in the collapsed "Recurring Tasks" section.
+**User Pain Point:** When you select a filter value (like "High Energy") in the Tasks page dropdown, there's no obvious way to go back to "show all" from inside the dropdown itself.
 
 ---
 
-### Issue 2: Scheduled Date Set to Yesterday
+## Solution: Standardize Filter Patterns
 
-Looking at the network request, the task was created with:
+Apply these UX principles consistently:
+
+1. **"All" Option Inside Every Dropdown** - Users can always reset from within the menu
+2. **Visual Indicator When Filter is Active** - Highlight the button/trigger
+3. **Active Filter Badges with X to Remove** - Quick way to clear individual filters
+4. **"Clear All" Button** - When any filter is active, show a clear option
+
+---
+
+## Implementation Plan
+
+### 1. Update TaskFilters.tsx (Tasks Page)
+
+Add "Show All" option at the top of each dropdown:
+
+**Current Energy Dropdown:**
 ```
-scheduled_date: "2026-02-04"  // Yesterday!
+- [x] High Focus
+- [ ] Medium
+- [ ] Low Energy
 ```
-But today is `2026-02-05`. This causes the task to appear in "Overdue" or not at all if it's a recurring parent.
+
+**Improved:**
+```
+- Show All ← NEW (highlighted when no filter active)
+────────────────
+- [x] High Focus
+- [ ] Medium
+- [ ] Low Energy
+```
+
+Changes:
+- Add a "Show All" menu item at the top with a separator
+- When clicked, clears that specific filter type
+- Visual checkmark on "Show All" when no energy filters selected
+- Keep existing badge indicators on the trigger button
+
+### 2. Enhance Active Filter Badges
+
+Make badges more prominent and clickable:
+- Add hover state that shows "Click to remove"
+- Use a more obvious X icon styling
+- Consider adding tooltip "Remove filter"
+
+### 3. Add "Clear All Filters" to Toolbar
+
+When any filter is active, show a prominent "Clear All" button:
+- Position it after the filter badges
+- Use a subtle but noticeable style
+- Shows count of active filters
 
 ---
 
-### Issue 3: Cache Updates May Not Trigger UI Refresh
-
-The realtime subscription adds the new task to the cache, but:
-- If `is_recurring_parent: true`, the task is filtered out in `useMemo` before rendering
-- The cache update is correct, but the displayed list excludes the task
-
----
-
-## Root Cause Summary
-
-| Scenario | Expected Behavior | Actual Behavior | Issue |
-|----------|-------------------|-----------------|-------|
-| Create task with recurrence | Shows in Recurring Tasks section | Shows in Recurring Tasks section | None - working as designed, but UX is confusing |
-| Create task WITHOUT recurrence | Shows in Today or Unscheduled | Should work, but date picker may cause issues | Needs verification |
-| Create daily recurring task | Template created, instances generated for today | Template hidden, instance may not exist yet | UX confusion |
-
----
-
-## Proposed Fixes
-
-### Fix 1: Improve Recurring Task UX Feedback
-
-**File:** `src/pages/Tasks.tsx`
-
-When a task is created with recurrence, show a clear toast message:
+## Updated TaskFilters Component Design
 
 ```typescript
-// After task creation with recurrence
-if (newRecurrencePattern !== 'none') {
-  toast.success(
-    'Recurring task template created! Instances will appear on scheduled days.',
-    { duration: 5000 }
-  );
-} else {
-  toast.success('Task added');
-}
+// Energy Filter Dropdown
+<DropdownMenuContent>
+  {/* Clear option always at top */}
+  <DropdownMenuItem
+    onClick={() => onEnergyChange([])}
+    className={cn(selectedEnergy.length === 0 && "bg-accent")}
+  >
+    <CheckCircle2 className={cn(
+      "h-4 w-4 mr-2",
+      selectedEnergy.length === 0 ? "opacity-100" : "opacity-0"
+    )} />
+    Show All
+  </DropdownMenuItem>
+  
+  <DropdownMenuSeparator />
+  
+  {/* Individual options */}
+  {ENERGY_LEVELS.map(level => (
+    <DropdownMenuCheckboxItem
+      key={level.value}
+      checked={selectedEnergy.includes(level.value)}
+      onCheckedChange={() => toggleEnergy(level.value)}
+    >
+      {level.icon} {level.label}
+    </DropdownMenuCheckboxItem>
+  ))}
+</DropdownMenuContent>
 ```
 
 ---
 
-### Fix 2: Auto-Expand Recurring Section When Adding Recurring Task
+## Apply Same Pattern to Other Filter Locations
 
-When the user adds a recurring task, automatically expand the "Recurring Tasks" collapsible so they can see their template:
+### WeekInbox.tsx & AvailableTasksSidebar.tsx
+Already have "All" options - no changes needed, but will add visual consistency:
+- Highlight trigger when filter is active
+- Match badge styling
 
-```typescript
-// After successfully creating a recurring task
-if (newRecurrencePattern !== 'none') {
-  setRecurringExpanded(true); // Show them where their task went
-}
-```
-
----
-
-### Fix 3: Immediately Generate Today's Instance for Daily Tasks
-
-**File:** `src/pages/Tasks.tsx` (after task creation)
-
-After creating a recurring task, trigger the `generate-recurring-tasks` function to create today's instance:
-
-```typescript
-// After creating recurring task
-if (newRecurrencePattern !== 'none') {
-  // Generate today's instance immediately
-  await supabase.functions.invoke('generate-recurring-tasks');
-  queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
-}
-```
+### BoardToolbar.tsx
+Add "All Priorities" option to the filter dropdown.
 
 ---
 
-### Fix 4: Ensure Date Picker Defaults to Today (Not Yesterday)
-
-**File:** `src/pages/Tasks.tsx`
-
-Check the date picker initialization to ensure it doesn't accidentally default to yesterday:
-
-```typescript
-// When opening add dialog, ensure date starts as undefined or today
-const handleOpenAddDialog = () => {
-  resetAddForm();
-  setNewTaskDate(undefined); // No date by default, user picks if needed
-  setIsAddDialogOpen(true);
-};
-```
-
----
-
-### Fix 5: Add "Create Instance for Today" Option for Recurring Templates
-
-**File:** `src/pages/Tasks.tsx` (in Recurring Tasks section)
-
-Add a quick action button to manually create today's instance from a recurring template:
-
-```typescript
-// In the recurring task row
-<Button 
-  variant="ghost" 
-  size="icon" 
-  className="h-8 w-8"
-  onClick={async (e) => { 
-    e.stopPropagation();
-    await supabase.functions.invoke('generate-recurring-tasks');
-    queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
-    toast.success("Today's instance created!");
-  }}
->
-  <Plus className="h-4 w-4" />
-</Button>
-```
-
----
-
-## Implementation Summary
+## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/pages/Tasks.tsx` | Better toast messages, auto-expand recurring section, trigger instance generation after creating recurring tasks |
-| (Optional) `supabase/functions/manage-task/index.ts` | Could auto-generate first instance inline |
+| `src/components/tasks/TaskFilters.tsx` | Add "Show All" option, improve badge styling |
+| `src/components/projects/monday-board/BoardToolbar.tsx` | Add "All Priorities" option |
+| `src/components/weekly-plan/WeekInbox.tsx` | Minor styling consistency (highlight when active) |
+| `src/components/weekly-plan/AvailableTasksSidebar.tsx` | Minor styling consistency |
 
 ---
 
-## Testing Checklist
+## Visual Changes Summary
 
-After implementation:
+**Before (confusing):**
+```
+[Energy ▼]  →  ☐ High Focus
+               ☑ Medium     ← How do I unselect all?
+               ☐ Low Energy
+```
 
-**Recurring Task Creation:**
-- [ ] Create a daily recurring task
-- [ ] See informative toast about where it went
-- [ ] Recurring Tasks section auto-expands
-- [ ] Today's instance is created and shows in Today list
+**After (clear):**
+```
+[Energy (1) ▼]  →  ✓ Show All    ← Click to reset
+                   ─────────────
+                   ☐ High Focus
+                   ☑ Medium
+                   ☐ Low Energy
+```
 
-**Non-Recurring Task Creation:**
-- [ ] Create a simple task with no date
-- [ ] Task appears in Unscheduled list immediately
-- [ ] Create a task with today's date
-- [ ] Task appears in Today list immediately
+---
 
-**No Data Loss:**
-- [ ] All tasks are saved to database (check network response)
-- [ ] Realtime updates work correctly
-- [ ] Refresh page - tasks persist
+## Technical Notes
+
+- Keep the multi-select capability (users can choose multiple energy levels)
+- "Show All" clears the array to `[]`
+- Existing badge click-to-remove functionality remains
+- Mobile-friendly: 44px touch targets on all interactive elements
 
