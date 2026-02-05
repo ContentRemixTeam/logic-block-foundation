@@ -111,6 +111,13 @@ export type RecurrencePattern = 'none' | 'daily' | 'weekdays' | 'weekly' | 'biwe
 export type DeleteType = 'single' | 'future' | 'all';
 export type ViewMode = 'list' | 'kanban' | 'timeline' | 'database' | 'board';
 export type EnergyLevel = 'high_focus' | 'medium' | 'low_energy';
+
+/**
+ * @deprecated Status field is redundant. Use:
+ * - scheduled_date/planned_day for scheduling
+ * - waiting_on for blocked tasks
+ * - project_column for project workflow
+ */
 export type TaskStatus = 'focus' | 'scheduled' | 'backlog' | 'waiting' | 'someday';
 
 export const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];

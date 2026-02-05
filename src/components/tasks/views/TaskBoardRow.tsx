@@ -50,14 +50,6 @@ interface TaskBoardRowProps {
   onDeleteTask: (task: Task) => void;
 }
 
-const STATUS_OPTIONS = [
-  { value: 'focus', label: 'Focus', className: 'bg-status-focus/10 text-status-focus dark:bg-status-focus/20' },
-  { value: 'scheduled', label: 'Scheduled', className: 'bg-status-scheduled/10 text-status-scheduled dark:bg-status-scheduled/20' },
-  { value: 'backlog', label: 'Backlog', className: 'bg-status-backlog/10 text-status-backlog dark:bg-status-backlog/20' },
-  { value: 'waiting', label: 'Waiting', className: 'bg-status-waiting/10 text-status-waiting dark:bg-status-waiting/20' },
-  { value: 'someday', label: 'Someday', className: 'bg-status-someday/10 text-status-someday dark:bg-status-someday/20' },
-];
-
 const PRIORITY_OPTIONS = [
   { value: 'high', label: 'High', className: 'bg-priority-high/10 text-priority-high dark:bg-priority-high/20' },
   { value: 'medium', label: 'Medium', className: 'bg-priority-medium/10 text-priority-medium dark:bg-priority-medium/20' },
@@ -147,28 +139,6 @@ export function TaskBoardRow({
               </span>
             )}
           </div>
-        );
-
-      case 'status':
-        const statusOption = STATUS_OPTIONS.find(s => s.value === task.status);
-        return (
-          <Select
-            value={task.status || 'backlog'}
-            onValueChange={(value) => onUpdateTask(task.task_id, { status: value as Task['status'] })}
-          >
-            <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/50">
-              <Badge className={cn("text-xs font-medium", statusOption?.className)}>
-                {statusOption?.label || 'Backlog'}
-              </Badge>
-            </SelectTrigger>
-            <SelectContent>
-              {STATUS_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  <Badge className={cn("text-xs", option.className)}>{option.label}</Badge>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         );
 
       case 'scheduled_date':

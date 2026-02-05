@@ -48,7 +48,8 @@ function AvailableTasksSidebarInner({
     return tasks.filter((t) => {
       if (t.planned_day !== null) return false;
       if (t.is_completed) return false;
-      if (t.status && !['backlog', 'waiting', 'scheduled'].includes(t.status)) return false;
+      // Show all unscheduled, incomplete tasks
+      // Note: Blocked tasks are identified by waiting_on field, not status
 
       // Search filter
       if (searchQuery.trim() && !t.task_text.toLowerCase().includes(searchQuery.toLowerCase())) {
