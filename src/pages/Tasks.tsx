@@ -442,6 +442,8 @@ export default function Tasks() {
     }
 
     try {
+      const isRecurringTask = newRecurrencePattern !== 'none';
+      
       await manageMutation.mutateAsync({
         action: 'create',
         task_text: newTaskText,
@@ -466,7 +468,27 @@ export default function Tasks() {
         context_tags: newContextTags,
         status: 'backlog',
       });
-      toast.success('Task added');
+      
+      // For recurring tasks: show informative toast, expand section, generate today's instance
+      if (isRecurringTask) {
+        toast.success(
+          'Recurring task template created! Instances will appear on scheduled days.',
+          { duration: 5000 }
+        );
+        setRecurringExpanded(true);
+        
+        // Generate today's instance immediately
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          await supabase.functions.invoke('generate-recurring-tasks', {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
+          queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
+        }
+      } else {
+        toast.success('Task added');
+      }
+      
       resetAddForm();
       setIsAddDialogOpen(false);
     } catch (error) {
