@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useBoardMutations } from '@/hooks/useProjectBoards';
 import { BOARD_TEMPLATES } from '@/types/project';
+import { Wand2 } from 'lucide-react';
 
 interface CreateBoardModalProps {
   open: boolean;
@@ -19,6 +21,7 @@ interface CreateBoardModalProps {
 }
 
 export function CreateBoardModal({ open, onOpenChange }: CreateBoardModalProps) {
+  const navigate = useNavigate();
   const [name, setName] = useState('');
   const [templateIndex, setTemplateIndex] = useState<number | null>(null);
   const { createBoard } = useBoardMutations();
@@ -45,6 +48,11 @@ export function CreateBoardModal({ open, onOpenChange }: CreateBoardModalProps) 
         },
       }
     );
+  };
+
+  const handleDesignCustom = () => {
+    onOpenChange(false);
+    navigate('/wizards/project-designer');
   };
 
   return (
@@ -106,13 +114,24 @@ export function CreateBoardModal({ open, onOpenChange }: CreateBoardModalProps) 
             </RadioGroup>
           </div>
 
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+          <div className="flex justify-between gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDesignCustom}
+              className="gap-2"
+            >
+              <Wand2 className="h-4 w-4" />
+              Design Custom
             </Button>
-            <Button type="submit" disabled={!name.trim() || createBoard.isPending}>
-              {createBoard.isPending ? 'Creating...' : 'Create Board'}
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={!name.trim() || createBoard.isPending}>
+                {createBoard.isPending ? 'Creating...' : 'Create Board'}
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>
