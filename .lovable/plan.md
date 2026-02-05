@@ -1,325 +1,394 @@
 
 
-# Deep Audit & Fix: Project Task Manager Date Glitches
+# Bulletproof Task Saving: Complete Data Protection Implementation
 
-## Root Cause Identified
+## Problem Statement
 
-The error **"Rendered more hooks than during the previous render"** is caused by a **React Hooks violation** in `TaskDetailsDrawer.tsx`:
+Currently, when a user adds a task to the app:
 
-```typescript
-// Line 120 - Early return BEFORE hooks
-if (!task || !localTask) return null;
+1. **Network failure = data loss** - If the API call fails, the task is gone
+2. **Browser crash = data loss** - Input in Quick Capture is not persisted
+3. **Tab close = data loss** - Unsaved changes aren't recovered
+4. **No retry mechanism** - Failed saves require manual re-entry
 
-// Line 125 - useCallback is called AFTER the early return!
-const handleChange = useCallback((field: keyof Task, value: any) => {
-  // ...
-}, [task?.task_id, onUpdate, localStorageKey]);
+The existing data protection system (emergency saves, offline queue, IndexedDB) exists but **is not connected to task creation**.
+
+---
+
+## Solution Overview
+
+```text
++------------------+     +-------------------+     +------------------+
+|   User Types     | --> | Multi-Layer Save  | --> | Task Saved!      |
+|   Task Text      |     |                   |     |                  |
++------------------+     | 1. Try API        |     +------------------+
+                         | 2. Queue Offline  |            |
+                         | 3. Save to IDB    |            v
+                         | 4. localStorage   |     (Recovery if needed)
+                         +-------------------+
 ```
 
-This violates React's Rules of Hooks: hooks must be called in the same order on every render. When `task` becomes `null` or changes, the early return causes `useCallback` to be skipped, breaking React's hook tracking.
-
 ---
 
-## All Issues Found
+## Implementation Plan
 
-| # | Issue | File | Severity |
-|---|-------|------|----------|
-| 1 | **`useCallback` after early return** | `TaskDetailsDrawer.tsx:120-125` | CRITICAL |
-| 2 | **STATUS_OPTIONS still exists** (should be removed per previous plan) | `TaskDetailsDrawer.tsx:30-36` | Medium |
-| 3 | **STATUS_OPTIONS still exists** | `BoardToolbar.tsx:26-32` | Medium |
-| 4 | **Status dropdown still renders** | `TaskDetailsDrawer.tsx:214-232` | Medium |
-| 5 | **Status filter still active** | `BoardToolbar.tsx:92-102` | Medium |
-| 6 | **Status filter badge** | `BoardToolbar.tsx:126-130` | Medium |
+### Phase 1: Resilient Task Mutation Hook
 
----
+Create a new hook that wraps task creation with offline fallback.
 
-## Fix #1: Move `useCallback` Before Early Return (CRITICAL)
-
-**File:** `src/components/projects/monday-board/TaskDetailsDrawer.tsx`
-
-The `handleChange`, `handleTagToggle`, `handleChecklistToggle`, and `isChecklistItemCompleted` functions need to be refactored. Since they depend on `localTask`, we need to either:
-
-**Option A (Recommended):** Move the early return to after all hooks are declared, and guard the function bodies instead
-
-**Option B:** Convert functions to regular functions (not hooks) and handle null cases inside
-
-### Implementation (Option A):
-
-Move all hooks to the top, before any conditional returns:
+**New File: `src/hooks/useResilientTaskMutation.tsx`**
 
 ```typescript
-export function TaskDetailsDrawer({ task, onClose, onUpdate, onDelete }: TaskDetailsDrawerProps) {
-  // ALL hooks MUST come first, before any returns
-  const [localTask, setLocalTask] = useState<Task | null>(task);
-  const [showCoachingModal, setShowCoachingModal] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const { data: sops = [] } = useSOPs();
+export function useResilientTaskMutation() {
+  const { createTask } = useTaskMutations();
   const isOnline = useOnlineStatus();
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const localStorageKey = `task_edit_draft_${task?.task_id}`;
-  const [datePopoverOpen, setDatePopoverOpen] = useState(false);
-
-  // Effects must come before conditional returns
-  useEffect(() => {
-    setLocalTask(task);
-    setHasUnsavedChanges(false);
-    setSaveStatus('idle');
-  }, [task]);
-
-  useEffect(() => {
-    if (localTask && hasUnsavedChanges) {
-      try {
-        localStorage.setItem(localStorageKey, JSON.stringify({
-          data: localTask,
-          timestamp: new Date().toISOString(),
-        }));
-      } catch (e) {
-        console.error('Failed to save task draft:', e);
-      }
-    }
-  }, [localTask, hasUnsavedChanges, localStorageKey]);
-
-  useEffect(() => {
-    if (task) {
-      try {
-        const stored = localStorage.getItem(localStorageKey);
-        if (stored) {
-          const { data, timestamp } = JSON.parse(stored);
-          const age = Date.now() - new Date(timestamp).getTime();
-          if (age < 60 * 60 * 1000 && JSON.stringify(data) !== JSON.stringify(task)) {
-            setLocalTask(data);
-            setHasUnsavedChanges(true);
-          } else {
-            localStorage.removeItem(localStorageKey);
-          }
-        }
-      } catch (e) {
-        console.error('Failed to restore task draft:', e);
-      }
-    }
-  }, [task?.task_id, localStorageKey]);
-
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault();
-        e.returnValue = 'You have unsaved changes.';
-        return e.returnValue;
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [hasUnsavedChanges]);
-
-  // useCallback MUST come BEFORE early return
-  const handleChange = useCallback((field: keyof Task, value: any) => {
-    if (!task) return; // Guard inside the callback
+  const { queueOfflineMutation } = useOfflineSync();
+  
+  const resilientCreate = async (taskData: CreateTaskParams) => {
+    // Save to localStorage immediately as draft
+    savePendingTaskDraft(taskData);
     
-    setLocalTask(prev => prev ? { ...prev, [field]: value } : null);
-    setHasUnsavedChanges(true);
-    setSaveStatus('saving');
-
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
+    if (!isOnline) {
+      // Queue for later sync
+      await queueOfflineMutation('create', 'tasks', taskData);
+      toast.info('Task saved locally. Will sync when online.');
+      clearPendingTaskDraft(taskData);
+      return;
     }
+    
+    try {
+      const result = await createTask.mutateAsync(taskData);
+      clearPendingTaskDraft(taskData);
+      return result;
+    } catch (error) {
+      // Network failed - queue for retry
+      await queueOfflineMutation('create', 'tasks', taskData);
+      toast.warning('Task saved locally. Will retry automatically.');
+    }
+  };
+  
+  return { resilientCreate, isOnline };
+}
+```
 
-    saveTimeoutRef.current = setTimeout(async () => {
-      try {
-        onUpdate(task.task_id, { [field]: value });
-        setSaveStatus('saved');
-        setHasUnsavedChanges(false);
-        localStorage.removeItem(localStorageKey);
-        setTimeout(() => setSaveStatus('idle'), 2000);
-      } catch (error) {
-        console.error('Failed to save task:', error);
-        setSaveStatus('error');
+**Key features:**
+- Save draft to localStorage immediately (sync, survives crash)
+- Queue to IndexedDB if offline or on failure
+- Auto-sync when online (existing infrastructure)
+
+---
+
+### Phase 2: Quick Capture Draft Persistence
+
+Update Quick Capture Modal to persist input as user types.
+
+**File: `src/components/quick-capture/QuickCaptureModal.tsx`**
+
+Changes:
+1. Add `useEffect` to save input to localStorage on change (debounced)
+2. Restore draft on modal open
+3. Clear draft on successful save
+4. Add "Restore draft" prompt if draft exists
+
+```typescript
+// Draft persistence
+const DRAFT_KEY = 'quick-capture-draft';
+
+// Save draft on input change (debounced)
+useEffect(() => {
+  if (!input.trim()) {
+    localStorage.removeItem(DRAFT_KEY);
+    return;
+  }
+  
+  const timer = setTimeout(() => {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({
+      input,
+      captureType,
+      parsedTask,
+      timestamp: Date.now(),
+    }));
+  }, 500);
+  
+  return () => clearTimeout(timer);
+}, [input, captureType, parsedTask]);
+
+// Restore on mount
+useEffect(() => {
+  if (open) {
+    const saved = localStorage.getItem(DRAFT_KEY);
+    if (saved) {
+      const draft = JSON.parse(saved);
+      // Only restore if less than 24 hours old
+      if (Date.now() - draft.timestamp < 24 * 60 * 60 * 1000) {
+        setInput(draft.input);
+        // Optionally show toast: "Restored your unsaved draft"
       }
-    }, 1000);
-  }, [task, onUpdate, localStorageKey]);
+    }
+  }
+}, [open]);
+```
 
-  // NOW the early return is safe
-  if (!task || !localTask) return null;
+---
 
-  // Rest of component...
+### Phase 3: Tasks Page Emergency Save Integration
+
+Add emergency save protection to the Tasks page.
+
+**File: `src/pages/Tasks.tsx`**
+
+Add:
+1. Track "pending" task creation (text user is typing in add dialog)
+2. Use `useBeforeUnload` with emergency config
+3. Use `useMobileProtection` for tab backgrounding
+
+```typescript
+const [pendingNewTask, setPendingNewTask] = useState<{
+  text: string;
+  date?: Date;
+  priority?: string;
+} | null>(null);
+
+// Track pending task as user types in add dialog
+const handleNewTaskChange = (text: string) => {
+  setNewTaskText(text);
+  if (text.trim()) {
+    setPendingNewTask({ text, date: newTaskDate, priority: newTaskPriority });
+  } else {
+    setPendingNewTask(null);
+  }
+};
+
+// Emergency save
+useBeforeUnload({
+  hasUnsavedChanges: !!pendingNewTask,
+  onFinalSave: () => {
+    if (pendingNewTask) {
+      localStorage.setItem('task-emergency-draft', JSON.stringify({
+        ...pendingNewTask,
+        timestamp: Date.now(),
+      }));
+    }
+  },
+  enabled: true,
+});
+
+useMobileProtection({
+  getData: () => pendingNewTask,
+  onSave: (data) => {
+    localStorage.setItem('task-emergency-draft', JSON.stringify({
+      ...data,
+      timestamp: Date.now(),
+    }));
+  },
+  enabled: !!pendingNewTask,
+});
+```
+
+---
+
+### Phase 4: Failed Task Recovery UI
+
+Add a recovery banner when pending/failed tasks exist.
+
+**New File: `src/components/tasks/TaskRecoveryBanner.tsx`**
+
+```typescript
+export function TaskRecoveryBanner() {
+  const { pendingCount, failedCount, triggerSync, isOnline } = useOfflineSync();
+  const [localDrafts, setLocalDrafts] = useState<any[]>([]);
+  
+  // Check for emergency drafts
+  useEffect(() => {
+    const drafts = [];
+    
+    // Quick capture draft
+    const quickDraft = localStorage.getItem('quick-capture-draft');
+    if (quickDraft) drafts.push({ type: 'quick', data: JSON.parse(quickDraft) });
+    
+    // Task page draft
+    const taskDraft = localStorage.getItem('task-emergency-draft');
+    if (taskDraft) drafts.push({ type: 'task', data: JSON.parse(taskDraft) });
+    
+    setLocalDrafts(drafts);
+  }, []);
+  
+  if (pendingCount === 0 && failedCount === 0 && localDrafts.length === 0) {
+    return null;
+  }
+  
+  return (
+    <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mb-4">
+      <div className="flex items-center gap-2">
+        <AlertCircle className="h-4 w-4 text-amber-500" />
+        <span className="text-sm">
+          {pendingCount > 0 && `${pendingCount} tasks pending sync. `}
+          {failedCount > 0 && `${failedCount} tasks failed to sync. `}
+          {localDrafts.length > 0 && `${localDrafts.length} unsaved drafts found.`}
+        </span>
+        {isOnline && (pendingCount > 0 || failedCount > 0) && (
+          <Button size="sm" variant="outline" onClick={triggerSync}>
+            Sync Now
+          </Button>
+        )}
+      </div>
+    </div>
+  );
 }
 ```
 
----
-
-## Fix #2: Remove STATUS_OPTIONS from TaskDetailsDrawer
-
-**File:** `src/components/projects/monday-board/TaskDetailsDrawer.tsx`
-
-**Remove lines 30-36:**
-```typescript
-// DELETE THIS:
-const STATUS_OPTIONS = [
-  { value: 'focus', label: 'Focus' },
-  { value: 'scheduled', label: 'Scheduled' },
-  { value: 'backlog', label: 'Backlog' },
-  { value: 'waiting', label: 'Waiting' },
-  { value: 'someday', label: 'Someday' },
-];
-```
-
-**Remove lines 214-232 (Status dropdown):**
-```typescript
-// DELETE THIS ENTIRE BLOCK:
-<div className="space-y-2">
-  <Label>Status</Label>
-  <Select
-    value={localTask.status || ''}
-    onValueChange={(value) => handleChange('status', value)}
-  >
-    <SelectTrigger>
-      <SelectValue placeholder="Select status" />
-    </SelectTrigger>
-    <SelectContent>
-      {STATUS_OPTIONS.map(option => (
-        <SelectItem key={option.value} value={option.value}>
-          {option.label}
-        </SelectItem>
-      ))}
-    </SelectContent>
-  </Select>
-</div>
-```
-
-The Priority dropdown on the same row should expand to full width.
+Add this banner to:
+- Tasks page (top of content)
+- Quick Capture Modal (if drafts exist)
+- Dashboard (optional)
 
 ---
 
-## Fix #3: Remove STATUS_OPTIONS from BoardToolbar
+### Phase 5: Enhance Offline Sync for Tasks
 
-**File:** `src/components/projects/monday-board/BoardToolbar.tsx`
+Update the offline sync system to handle task mutations properly.
 
-**Remove lines 26-32:**
+**File: `src/lib/offlineSync.ts`**
+
+The existing `processMutation` function already handles tasks:
 ```typescript
-// DELETE THIS:
-const STATUS_OPTIONS = [
-  { value: 'focus', label: 'Focus' },
-  { value: 'scheduled', label: 'Scheduled' },
-  { value: 'backlog', label: 'Backlog' },
-  { value: 'waiting', label: 'Waiting' },
-  { value: 'someday', label: 'Someday' },
-];
+case 'tasks':
+  endpoint = 'manage-task';
+  body = { action: mutation.type, ...mutation.data };
+  break;
 ```
 
-**Remove lines 92-102 (Status filter in dropdown):**
-```typescript
-// DELETE THIS:
-<DropdownMenuLabel>Status</DropdownMenuLabel>
-{STATUS_OPTIONS.map(option => (
-  <DropdownMenuItem
-    key={option.value}
-    onClick={() => onFiltersChange({ ...filters, status: option.value })}
-    className={filters.status === option.value ? 'bg-accent' : ''}
-  >
-    {option.label}
-  </DropdownMenuItem>
-))}
-<DropdownMenuSeparator />
-```
+We just need to ensure the task data format is correct when queuing.
 
-**Remove lines 126-130 (Status filter badge):**
-```typescript
-// DELETE THIS:
-{filters.status && (
-  <Badge variant="secondary" className="gap-1">
-    Status: {filters.status}
-    <X className="h-3 w-3 cursor-pointer" onClick={() => clearFilter('status')} />
-  </Badge>
-)}
+---
+
+## Files to Create/Modify
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/hooks/useResilientTaskMutation.tsx` | **CREATE** | Wrap task creation with offline fallback |
+| `src/components/tasks/TaskRecoveryBanner.tsx` | **CREATE** | Show pending/failed tasks UI |
+| `src/components/quick-capture/QuickCaptureModal.tsx` | **MODIFY** | Add draft persistence |
+| `src/pages/Tasks.tsx` | **MODIFY** | Add emergency save hooks |
+| `src/hooks/useTasks.tsx` | **MODIFY** | Add resilience option to createTask |
+| `src/App.tsx` | **MODIFY** | Add global recovery check on mount |
+
+---
+
+## How It Works: Save Flow
+
+```text
+User clicks "Add Task"
+         |
+         v
+    +--------------------+
+    | Save to localStorage|  <-- Immediate (sync)
+    +--------------------+
+              |
+              v
+    +--------------------+
+    | Try API call       |
+    +--------------------+
+         |         \
+     Success      Failure
+         |            \
+    Clear draft    Queue to IndexedDB
+         |                \
+      Done!          Wait for online
+                          |
+                   Auto-retry on reconnect
+                          |
+                       Sync to API
+                          |
+                       Done!
 ```
 
 ---
 
-## Fix #4: Update MondayBoardView Filter Logic
+## How It Works: Recovery Flow
 
-**File:** `src/components/projects/monday-board/MondayBoardView.tsx`
-
-**Remove line 54 (status filter check):**
-```typescript
-// DELETE THIS LINE:
-if (filters.status && task.status !== filters.status) return;
-```
-
-The priority filter on line 55 should remain.
-
----
-
-## Fix #5: Remove Debug Logging (Cleanup)
-
-**File:** `src/components/projects/monday-board/MondayBoardView.tsx`
-
-**Remove lines 57-65 and 88-91 (debug console.log statements):**
-```typescript
-// DELETE THESE DEBUG BLOCKS:
-// DEBUG: Log task grouping (remove after testing)
-if (task.project_id === projectId) {
-  console.log('[TaskGrouping]', {
-    id: task.task_id.slice(0, 8),
-    text: task.task_text.slice(0, 30),
-    section_id: task.section_id,
-    has_section_bucket: task.section_id ? !!grouped[task.section_id] : false
-  });
-}
-
-// DEBUG: Log final grouping (remove after testing)
-console.log('[TaskGrouping] Result:', 
-  Object.entries(grouped).map(([k, v]) => `${k.slice(0, 8)}: ${v.length}`).join(', ')
-);
+```text
+Page Load / App Start
+         |
+         v
+    +------------------------+
+    | Check localStorage for |
+    | emergency drafts       |
+    +------------------------+
+              |
+              v
+    +------------------------+
+    | Check IndexedDB for    |
+    | pending mutations      |
+    +------------------------+
+              |
+              v
+    +------------------------+
+    | Show recovery UI if    |
+    | any exist              |
+    +------------------------+
+              |
+         User action
+              |
+    +--------+--------+
+    |                 |
+  Restore         Discard
+  (Re-add task)   (Clear data)
 ```
 
 ---
 
-## Summary of Changes
+## Testing Scenarios
 
-| File | Changes |
-|------|---------|
-| `TaskDetailsDrawer.tsx` | Move `useCallback` before early return, remove STATUS_OPTIONS and status dropdown |
-| `BoardToolbar.tsx` | Remove STATUS_OPTIONS, status filter dropdown, and status badge |
-| `MondayBoardView.tsx` | Remove status filter logic and debug console.log statements |
+After implementation, verify:
+
+1. **Offline Task Creation**
+   - Turn off network
+   - Add a task
+   - Task appears in local UI
+   - Turn network back on
+   - Task syncs automatically
+
+2. **Network Failure Recovery**
+   - Add a task while online
+   - Simulate network failure mid-request
+   - Error shows but task is queued
+   - Task syncs when retry occurs
+
+3. **Browser Crash Recovery**
+   - Start typing in Quick Capture
+   - Force close browser
+   - Reopen - draft is restored
+
+4. **Tab Close Recovery**
+   - Start typing in Add Task dialog
+   - Close tab
+   - Reopen - draft is restored
+
+5. **Mobile Background**
+   - Start typing task on mobile
+   - Switch to another app
+   - Return - input is preserved
 
 ---
 
-## Integration Points Verified
+## User Experience
 
-After these fixes, the project board will:
+**Before:**
+- Network fails → "Error creating task" → Task lost forever
 
-1. **Use date-based organization** - Consistent with TaskKanbanView changes
-2. **Use priority and tags for filtering** - No redundant status field
-3. **Properly handle null tasks** - No more hooks violation
-4. **Calendar date selection works** - Fixed in previous changes, preserved here
+**After:**
+- Network fails → "Task saved locally. Will sync when online." → Task queues
+- Browser crash → Reopen → "We found an unsaved draft. Restore?"
+- Offline mode → Tasks save to IndexedDB → Auto-sync later
 
 ---
 
-## Testing Checklist
+## Technical Notes
 
-After implementation:
-
-**Critical - No Crashes:**
-- [ ] Open project detail page - no error
-- [ ] Click on a task to open drawer - no error
-- [ ] Close drawer - no error
-- [ ] Open drawer again - no error
-
-**Date Selection:**
-- [ ] Click date field in task row - calendar opens
-- [ ] Select a date - calendar closes, date updates
-- [ ] Click "Clear date" - date removed
-- [ ] Open task drawer - date shows correctly
-- [ ] Change date in drawer - updates and saves
-
-**Filtering:**
-- [ ] Filter by priority - works
-- [ ] Status filter option - REMOVED (expected)
-- [ ] Clear filters - works
-
-**Task Operations:**
-- [ ] Create new task - works
-- [ ] Toggle completion - works
-- [ ] Delete task - works
-- [ ] Move between sections - works
+- Uses existing infrastructure (`offlineDb`, `offlineSync`, `emergencySave`)
+- No new database tables required
+- Minimal bundle size impact (reuses existing code)
+- Backwards compatible with current behavior
+- Progressive enhancement (works if IndexedDB unavailable)
 
