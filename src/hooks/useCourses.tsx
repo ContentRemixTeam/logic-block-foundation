@@ -352,7 +352,7 @@ export function useStudyPlanMutations() {
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+       queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       if (data.created_count > 0) {
         toast.success(`Generated ${data.created_count} study session${data.created_count > 1 ? 's' : ''}`);
@@ -384,7 +384,7 @@ export function useStudyPlanMutations() {
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+       queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
       toast.success(`Regenerated ${data.created_count} future session${data.created_count !== 1 ? 's' : ''}`);
     },
     onError: (error: Error) => {

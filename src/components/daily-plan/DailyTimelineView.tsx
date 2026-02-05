@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { format, parseISO, isToday, startOfDay, addMinutes } from 'date-fns';
+ import { useState, useEffect, useMemo } from 'react';
+ import { format, parseISO, startOfDay } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,8 +10,9 @@ import { CurrentTimeIndicator } from '@/components/tasks/views/CurrentTimeIndica
 import { TimelineTaskBlock } from './TimelineTaskBlock';
 import { Task } from '@/components/tasks/types';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+ import { useTasks, useTaskMutations } from '@/hooks/useTasks';
+ import { getTasksForDate, separateScheduledTasks } from '@/lib/taskFilters';
+ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { 
   Calendar, 
@@ -32,93 +33,56 @@ const END_HOUR = 22;
 const HOUR_HEIGHT = 60;
 
 export function DailyTimelineView({ onTaskToggle, onTaskClick }: DailyTimelineViewProps) {
-  const { user } = useAuth();
   const { status: calendarStatus, syncing, syncNow, connect } = useGoogleCalendar();
-  
-  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loadingEvents, setLoadingEvents] = useState(true);
-  const [loadingTasks, setLoadingTasks] = useState(true);
+   const { data: allTasks = [], isLoading: loadingTasks } = useTasks();
+   const { toggleComplete } = useTaskMutations();
 
   const today = useMemo(() => startOfDay(new Date()), []);
   const todayStr = format(today, 'yyyy-MM-dd');
 
-  // Fetch calendar events
-  useEffect(() => {
-    const fetchCalendarEvents = async () => {
-      if (!calendarStatus.connected || !calendarStatus.calendarSelected) {
-        setLoadingEvents(false);
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase.functions.invoke('get-calendar-events', {
-          body: {
-            startDate: todayStr,
-            endDate: todayStr,
-          },
-        });
-
-        if (error) throw error;
-        setCalendarEvents(data?.events || []);
-      } catch (error) {
-        console.error('Error fetching calendar events:', error);
-      } finally {
-        setLoadingEvents(false);
-      }
-    };
-
-    fetchCalendarEvents();
-  }, [calendarStatus.connected, calendarStatus.calendarSelected, todayStr]);
-
-  // Fetch tasks for today
-  useEffect(() => {
-    const fetchTasks = async () => {
-      if (!user) {
-        setLoadingTasks(false);
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase.functions.invoke('get-all-tasks');
-
-        if (error) throw error;
-
-        // Filter tasks for today
-        const todayTasks = (data?.tasks || []).filter((task: Task) => {
-          const isScheduledToday = task.scheduled_date === todayStr;
-          const isPlannedToday = task.planned_day === todayStr;
-          const hasTimeBlockToday = task.time_block_start?.startsWith(todayStr);
-          
-          return (isScheduledToday || isPlannedToday || hasTimeBlockToday) && !task.is_recurring_parent;
-        });
-
-        setTasks(todayTasks);
-      } catch (error) {
-        console.error('Error fetching tasks:', error);
-      } finally {
-        setLoadingTasks(false);
-      }
-    };
-
-    fetchTasks();
-  }, [user, todayStr]);
+   // Filter tasks for today using centralized utility
+   const tasks = useMemo(() => 
+     getTasksForDate(allTasks, todayStr),
+     [allTasks, todayStr]
+   );
 
   // Separate scheduled and unscheduled tasks
   const { scheduledTasks, unscheduledTasks } = useMemo(() => {
-    const scheduled: Task[] = [];
-    const unscheduled: Task[] = [];
-
-    tasks.forEach(task => {
-      if (task.time_block_start) {
-        scheduled.push(task);
-      } else {
-        unscheduled.push(task);
-      }
-    });
-
-    return { scheduledTasks: scheduled, unscheduledTasks: unscheduled };
+     const { scheduled, unscheduled } = separateScheduledTasks(tasks);
+     return { scheduledTasks: scheduled, unscheduledTasks: unscheduled };
   }, [tasks]);
+   
+   // Calendar events state (keep local for calendar-specific data)
+   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+   const [loadingEvents, setLoadingEvents] = useState(true);
+ 
+   // Fetch calendar events
+   useEffect(() => {
+     const fetchCalendarEvents = async () => {
+       if (!calendarStatus.connected || !calendarStatus.calendarSelected) {
+         setLoadingEvents(false);
+         return;
+       }
+ 
+       try {
+         const { data, error } = await supabase.functions.invoke('get-calendar-events', {
+           body: {
+             startDate: todayStr,
+             endDate: todayStr,
+           },
+         });
+ 
+         if (error) throw error;
+         setCalendarEvents(data?.events || []);
+       } catch (error) {
+         console.error('Error fetching calendar events:', error);
+       } finally {
+         setLoadingEvents(false);
+       }
+     };
+ 
+     fetchCalendarEvents();
+   }, [calendarStatus.connected, calendarStatus.calendarSelected, todayStr]);
 
   // Group events and tasks by hour
   const timelineItems = useMemo(() => {
@@ -152,29 +116,10 @@ export function DailyTimelineView({ onTaskToggle, onTaskClick }: DailyTimelineVi
     return items;
   }, [calendarEvents, scheduledTasks]);
 
-  const handleTaskToggle = async (taskId: string, currentStatus: boolean) => {
-    // Optimistic update
-    setTasks(prev => prev.map(t => 
-      t.task_id === taskId ? { ...t, is_completed: !currentStatus } : t
-    ));
-
-    try {
-      await supabase.functions.invoke('manage-task', {
-        body: {
-          action: 'update',
-          task_id: taskId,
-          is_completed: !currentStatus,
-        },
-      });
-      
-      onTaskToggle?.(taskId, currentStatus);
-    } catch (error) {
-      // Revert on error
-      setTasks(prev => prev.map(t => 
-        t.task_id === taskId ? { ...t, is_completed: currentStatus } : t
-      ));
-      console.error('Error toggling task:', error);
-    }
+   // Use centralized mutation for task toggle
+   const handleTaskToggle = (taskId: string, currentStatus: boolean) => {
+     toggleComplete.mutate(taskId);
+     onTaskToggle?.(taskId, currentStatus);
   };
 
   const hours = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i);

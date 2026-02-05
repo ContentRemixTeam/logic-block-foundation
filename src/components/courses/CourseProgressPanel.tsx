@@ -64,7 +64,7 @@ export function CourseProgressPanel() {
       if (updateError) throw updateError;
 
       toast.success(`Rescheduled ${overdueTasks.length} session(s) to tomorrow`);
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+       queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['course-weekly-progress'] });
     } catch (err: any) {
       toast.error('Failed to reschedule', { description: err.message });
