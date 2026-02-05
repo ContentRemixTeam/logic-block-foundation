@@ -470,7 +470,7 @@ export default function Tasks() {
   // Handlers - Use optimistic mutations for instant UI feedback
   const handleToggleComplete = useCallback((taskId: string) => {
     // Uses optimistic update - UI updates immediately before server confirms
-    toggleComplete.mutate(taskId);
+    toggleComplete.mutate({ taskId });
   }, [toggleComplete]);
 
   const handleUpdateTask = useCallback((taskId: string, updates: Partial<Task>) => {

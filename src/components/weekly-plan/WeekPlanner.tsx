@@ -101,7 +101,7 @@ export function WeekPlanner({ initialCollapsed = false, highlightTaskId }: WeekP
   };
 
   const handleTaskToggle = async (taskId: string, currentCompleted: boolean) => {
-    toggleComplete.mutate(taskId);
+    toggleComplete.mutate({ taskId });
   };
 
   const handlePullUnfinished = async () => {

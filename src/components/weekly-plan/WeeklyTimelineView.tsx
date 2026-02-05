@@ -158,7 +158,7 @@ export function WeeklyTimelineView({ onTaskToggle, onTaskClick }: WeeklyTimeline
   }, [tasks]);
 
   const handleTaskToggle = async (taskId: string, currentStatus: boolean) => {
-    toggleComplete.mutate(taskId);
+    toggleComplete.mutate({ taskId });
     onTaskToggle?.(taskId, currentStatus);
   };
 

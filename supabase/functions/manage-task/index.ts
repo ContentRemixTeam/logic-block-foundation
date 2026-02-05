@@ -114,6 +114,7 @@ const DeleteTaskSchema = z.object({
 const ToggleTaskSchema = z.object({
   action: z.literal('toggle'),
   task_id: z.string().uuid('Invalid task ID'),
+  actual_minutes: z.number().min(0).optional(), // Time tracking: log actual time on completion
 });
 
 const ToggleChecklistSchema = z.object({
@@ -564,12 +565,12 @@ Deno.serve(async (req) => {
       }
 
       case 'toggle': {
-        const { task_id } = validatedData;
+        const { task_id, actual_minutes } = validatedData;
         
-        // Get current state
+        // Get current state including parent info for time tracking
         const { data: currentTask } = await supabase
           .from('tasks')
-          .select('is_completed')
+          .select('is_completed, estimated_minutes, parent_task_id')
           .eq('task_id', task_id)
           .eq('user_id', userId)
           .single();
@@ -583,11 +584,29 @@ Deno.serve(async (req) => {
 
         const newState = !currentTask.is_completed;
 
+        // If completing AND actual_minutes provided, log time entry
+        if (newState && actual_minutes !== undefined) {
+          const { error: timeEntryError } = await supabase.from('time_entries').insert({
+            user_id: userId,
+            task_id: task_id,
+            parent_task_id: currentTask.parent_task_id,
+            estimated_minutes: currentTask.estimated_minutes,
+            actual_minutes: actual_minutes,
+            logged_at: new Date().toISOString(),
+          });
+          
+          if (timeEntryError) {
+            console.error('Failed to log time entry:', timeEntryError);
+            // Don't fail the toggle, just log the error
+          }
+        }
+
         result = await supabase
           .from('tasks')
           .update({
             is_completed: newState,
             completed_at: newState ? new Date().toISOString() : null,
+            actual_minutes: actual_minutes !== undefined ? actual_minutes : undefined,
             updated_at: new Date().toISOString(),
           })
           .eq('task_id', task_id)

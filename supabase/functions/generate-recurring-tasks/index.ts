@@ -216,6 +216,23 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      // Check for average actual time from past instances (for smart estimation)
+      let smartEstimatedMinutes = parentTask.estimated_minutes;
+      
+      if (parentTask.task_id) {
+        const { data: avgData } = await supabase
+          .from('recurring_task_averages')
+          .select('avg_actual_minutes, instance_count')
+          .eq('parent_task_id', parentTask.task_id)
+          .single();
+
+        // Use average if 3+ instances exist
+        if (avgData && avgData.instance_count >= 3 && avgData.avg_actual_minutes) {
+          smartEstimatedMinutes = Math.round(Number(avgData.avg_actual_minutes));
+          console.log('Using smart estimate for task', parentTask.task_id, ':', smartEstimatedMinutes, 'min (avg of', avgData.instance_count, 'instances)');
+        }
+      }
+
       // Create new instance
       const { error: insertError } = await supabase
         .from('tasks')
@@ -231,7 +248,7 @@ Deno.serve(async (req) => {
           recurrence_pattern: null, // Instance doesn't recur
           is_recurring_parent: false,
           sop_id: parentTask.sop_id,
-          estimated_minutes: parentTask.estimated_minutes,
+          estimated_minutes: smartEstimatedMinutes,
           energy_level: parentTask.energy_level,
           context_tags: parentTask.context_tags,
         });

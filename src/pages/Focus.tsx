@@ -163,7 +163,7 @@ export default function Focus() {
     // User can click "Done" in the toast to complete the task
     const task = blitzTasks.find(t => t.id === taskId);
     if (task && task.taskId) {
-      toggleComplete.mutate(task.taskId);
+      toggleComplete.mutate({ taskId: task.taskId });
     } else if (planningMode === 'top3') {
       // Local task completion
       setLocalTop3(prev => prev.map(t => 
@@ -208,7 +208,7 @@ export default function Focus() {
 
     if (task.taskId) {
       // Complete linked task in database
-      toggleComplete.mutate(task.taskId);
+      toggleComplete.mutate({ taskId: task.taskId });
     }
     
     if (planningMode === 'top3') {

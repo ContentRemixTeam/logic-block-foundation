@@ -3,8 +3,9 @@ import { Link } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown, Minus, BarChart3, ArrowRight, Target } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, BarChart3, ArrowRight, Target, Clock } from "lucide-react";
 import { WinsCard } from "@/components/dashboard/WinsCard";
+import { TimeAnalytics } from "@/components/progress/TimeAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -439,6 +440,15 @@ export default function Progress() {
               weeklyData={getWeeklyDataForMetric(5)}
             />
           </div>
+        </div>
+
+        {/* Time Tracking Analytics */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Time Tracking
+          </h2>
+          <TimeAnalytics />
         </div>
 
         {/* Recent Wins */}
