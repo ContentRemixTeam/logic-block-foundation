@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { format, parseISO } from 'date-fns';
 import { Calendar as CalendarIcon, Trash2, Clock, ClipboardList, Cloud, CloudOff } from 'lucide-react';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { SOPSelector } from '@/components/tasks/SOPSelector';
 import { useSOPs } from '@/hooks/useSOPs';
@@ -26,14 +26,6 @@ interface TaskDetailsDrawerProps {
   onUpdate: (taskId: string, updates: Partial<Task>) => void;
   onDelete: (taskId: string) => void;
 }
-
-const STATUS_OPTIONS = [
-  { value: 'focus', label: 'Focus' },
-  { value: 'scheduled', label: 'Scheduled' },
-  { value: 'backlog', label: 'Backlog' },
-  { value: 'waiting', label: 'Waiting' },
-  { value: 'someday', label: 'Someday' },
-];
 
 const PRIORITY_OPTIONS = [
   { value: 'high', label: 'High' },
@@ -58,7 +50,7 @@ export function TaskDetailsDrawer({ task, onClose, onUpdate, onDelete }: TaskDet
   const { data: sops = [] } = useSOPs();
   const isOnline = useOnlineStatus();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const localStorageKey = `task_edit_draft_${task?.task_id}`;
+  const localStorageKey = useMemo(() => `task_edit_draft_${task?.task_id}`, [task?.task_id]);
   const [datePopoverOpen, setDatePopoverOpen] = useState(false);
 
   useEffect(() => {
@@ -101,7 +93,7 @@ export function TaskDetailsDrawer({ task, onClose, onUpdate, onDelete }: TaskDet
         console.error('Failed to restore task draft:', e);
       }
     }
-  }, [task?.task_id]);
+  }, [task?.task_id, localStorageKey]);
 
   // Beforeunload warning
   useEffect(() => {
@@ -117,12 +109,10 @@ export function TaskDetailsDrawer({ task, onClose, onUpdate, onDelete }: TaskDet
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
-  if (!task || !localTask) return null;
-
-  // Get the full SOP data if a task has an SOP attached
-  const attachedSop = localTask.sop_id ? sops.find(s => s.sop_id === localTask.sop_id) : null;
-
+  // useCallback MUST come BEFORE early return to avoid hooks violation
   const handleChange = useCallback((field: keyof Task, value: any) => {
+    if (!task) return; // Guard inside the callback
+    
     setLocalTask(prev => prev ? { ...prev, [field]: value } : null);
     setHasUnsavedChanges(true);
     setSaveStatus('saving');
@@ -135,7 +125,7 @@ export function TaskDetailsDrawer({ task, onClose, onUpdate, onDelete }: TaskDet
     // Debounced save
     saveTimeoutRef.current = setTimeout(async () => {
       try {
-        onUpdate(task.task_id, { [field]: value });
+        onUpdate(task!.task_id, { [field]: value });
         setSaveStatus('saved');
         setHasUnsavedChanges(false);
         // Clear localStorage on successful save
@@ -147,17 +137,19 @@ export function TaskDetailsDrawer({ task, onClose, onUpdate, onDelete }: TaskDet
         setSaveStatus('error');
       }
     }, 1000);
-  }, [task?.task_id, onUpdate, localStorageKey]);
+  }, [task, onUpdate, localStorageKey]);
 
-  const handleTagToggle = (tag: string) => {
+  const handleTagToggle = useCallback((tag: string) => {
+    if (!localTask) return;
     const currentTags = localTask.context_tags || [];
     const newTags = currentTags.includes(tag)
       ? currentTags.filter(t => t !== tag)
       : [...currentTags, tag];
     handleChange('context_tags', newTags);
-  };
+  }, [localTask, handleChange]);
 
-  const handleChecklistToggle = (itemId: string) => {
+  const handleChecklistToggle = useCallback((itemId: string) => {
+    if (!localTask) return;
     const currentProgress = localTask.checklist_progress || [];
     const existingItem = currentProgress.find((p: ChecklistProgress) => p.item_id === itemId);
     
@@ -171,13 +163,23 @@ export function TaskDetailsDrawer({ task, onClose, onUpdate, onDelete }: TaskDet
     }
     
     handleChange('checklist_progress', newProgress);
-  };
+  }, [localTask, handleChange]);
 
-  const isChecklistItemCompleted = (itemId: string): boolean => {
+  const isChecklistItemCompleted = useCallback((itemId: string): boolean => {
+    if (!localTask) return false;
     const progress = localTask.checklist_progress || [];
     const item = progress.find((p: ChecklistProgress) => p.item_id === itemId);
     return item?.completed || false;
-  };
+  }, [localTask]);
+
+  // Get the full SOP data if a task has an SOP attached
+  const attachedSop = useMemo(() => {
+    if (!localTask?.sop_id) return null;
+    return sops.find(s => s.sop_id === localTask.sop_id) || null;
+  }, [localTask?.sop_id, sops]);
+
+  // NOW the early return is safe - all hooks are declared above
+  if (!task || !localTask) return null;
 
   return (
     <Sheet open={!!task} onOpenChange={(open) => !open && onClose()}>
@@ -211,45 +213,24 @@ export function TaskDetailsDrawer({ task, onClose, onUpdate, onDelete }: TaskDet
             </div>
           </div>
 
-          {/* Status & Priority */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select
-                value={localTask.status || ''}
-                onValueChange={(value) => handleChange('status', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_OPTIONS.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Priority</Label>
-              <Select
-                value={localTask.priority || ''}
-                onValueChange={(value) => handleChange('priority', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  {PRIORITY_OPTIONS.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Priority */}
+          <div className="space-y-2">
+            <Label>Priority</Label>
+            <Select
+              value={localTask.priority || ''}
+              onValueChange={(value) => handleChange('priority', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select priority" />
+              </SelectTrigger>
+              <SelectContent>
+                {PRIORITY_OPTIONS.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Due Date */}

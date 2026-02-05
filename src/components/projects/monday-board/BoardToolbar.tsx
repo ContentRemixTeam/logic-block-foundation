@@ -23,14 +23,6 @@ interface BoardToolbarProps {
   onAddGroup: () => void;
 }
 
-const STATUS_OPTIONS = [
-  { value: 'focus', label: 'Focus' },
-  { value: 'scheduled', label: 'Scheduled' },
-  { value: 'backlog', label: 'Backlog' },
-  { value: 'waiting', label: 'Waiting' },
-  { value: 'someday', label: 'Someday' },
-];
-
 const PRIORITY_OPTIONS = [
   { value: 'high', label: 'High' },
   { value: 'medium', label: 'Medium' },
@@ -90,17 +82,6 @@ export function BoardToolbar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-48">
-          <DropdownMenuLabel>Status</DropdownMenuLabel>
-          {STATUS_OPTIONS.map(option => (
-            <DropdownMenuItem
-              key={option.value}
-              onClick={() => onFiltersChange({ ...filters, status: option.value })}
-              className={filters.status === option.value ? 'bg-accent' : ''}
-            >
-              {option.label}
-            </DropdownMenuItem>
-          ))}
-          <DropdownMenuSeparator />
           <DropdownMenuLabel>Priority</DropdownMenuLabel>
           {PRIORITY_OPTIONS.map(option => (
             <DropdownMenuItem
@@ -123,12 +104,6 @@ export function BoardToolbar({
       </DropdownMenu>
 
       {/* Active filters badges */}
-      {filters.status && (
-        <Badge variant="secondary" className="gap-1">
-          Status: {filters.status}
-          <X className="h-3 w-3 cursor-pointer" onClick={() => clearFilter('status')} />
-        </Badge>
-      )}
       {filters.priority && (
         <Badge variant="secondary" className="gap-1">
           Priority: {filters.priority}
