@@ -107,9 +107,10 @@ export interface Task {
 }
 
 export type FilterTab = 'today' | 'week' | 'future' | 'all' | 'completed';
+export type PrimaryTab = 'today' | 'week' | 'all' | 'completed';
 export type RecurrencePattern = 'none' | 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'custom';
 export type DeleteType = 'single' | 'future' | 'all';
-export type ViewMode = 'list' | 'kanban' | 'timeline' | 'database' | 'board';
+export type ViewMode = 'list' | 'board' | 'calendar';
 export type EnergyLevel = 'high_focus' | 'medium' | 'low_energy';
 
 /**
