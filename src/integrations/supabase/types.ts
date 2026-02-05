@@ -5633,6 +5633,27 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_tasks_cycle"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+          {
+            foreignKeyName: "fk_tasks_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tasks_section"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "project_sections"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tasks_content_item_id_fkey"
             columns: ["content_item_id"]
             isOneToOne: false

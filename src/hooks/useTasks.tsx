@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo } from 'react';
+import { useEffect, useCallback, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -11,6 +11,10 @@ import { showOperationError } from '@/components/system/ErrorToast';
 
 // Re-export the Task type for convenience
 export type { Task } from '@/components/tasks/types';
+
+// Query limits - explicit safety caps
+const DEFAULT_LIMIT = 500;
+const WARN_THRESHOLD = 400;
 
 // Query key factory for consistent cache management
 export const taskQueryKeys = {
@@ -32,6 +36,7 @@ export function useTasks(options: { loadAll?: boolean } = {}) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { loadAll = false } = options;
+  const fetchStartTime = useRef<number | null>(null);
 
   // Create the full query key including options
   const fullQueryKey = useMemo(() => [...taskQueryKeys.all, { loadAll }], [loadAll]);
@@ -40,6 +45,8 @@ export function useTasks(options: { loadAll?: boolean } = {}) {
   const query = useQuery({
     queryKey: fullQueryKey,
     queryFn: async (): Promise<Task[]> => {
+      fetchStartTime.current = Date.now();
+      
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
@@ -48,16 +55,30 @@ export function useTasks(options: { loadAll?: boolean } = {}) {
       const response = await supabase.functions.invoke('get-all-tasks', {
         body: { 
           load_all: loadAll,
-          // No limit/offset = server uses smart filtering
+          limit: DEFAULT_LIMIT,
         },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
       if (response.error) throw response.error;
       
-      // Extract just the tasks array for backwards compatibility
-      // The metadata (hasMore, totalCount) is available if needed in the future
-      return (response.data?.data || []) as Task[];
+      const tasks = (response.data?.data || []) as Task[];
+      
+      // Performance warnings
+      const fetchTime = Date.now() - (fetchStartTime.current || Date.now());
+      if (fetchTime > 1000) {
+        console.warn(`⚠️ [useTasks] Slow query: ${fetchTime}ms for ${tasks.length} tasks`);
+      }
+      
+      // Limit warning
+      if (tasks.length >= WARN_THRESHOLD) {
+        console.warn(
+          `⚠️ [useTasks] Approaching limit: ${tasks.length}/${DEFAULT_LIMIT} tasks loaded.`,
+          'Consider filtering by project or date range to improve performance.'
+        );
+      }
+      
+      return tasks;
     },
     enabled: !!user,
     staleTime: 1000 * 60 * 2, // 2 minutes - data stays fresh longer
