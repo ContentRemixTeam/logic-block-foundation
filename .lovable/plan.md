@@ -1,157 +1,304 @@
 
+# Production Stability Fix: Centralized Task Data Layer
 
-# Standardize Filter UX Across the App
+## Executive Summary
 
-## Problem Identified
+The audit is **accurate and verified**. I've confirmed the following critical issues in the codebase:
 
-The filter controls are inconsistent across the app, making them confusing:
-
-| Location | Filter Type | How to Clear | Issue |
-|----------|-------------|--------------|-------|
-| Tasks Page (List View) | Dropdown with checkboxes | Click badge with X, or find "Clear" button | No "All" option in dropdown |
-| Weekly Inbox | Select dropdown | Select "All Energy/Priority" | Clear and intuitive |
-| Project Board Toolbar | Dropdown menu items | Click badge X or "Clear all filters" | Works but inconsistent |
-
-**User Pain Point:** When you select a filter value (like "High Energy") in the Tasks page dropdown, there's no obvious way to go back to "show all" from inside the dropdown itself.
+| Issue | Verified | Location | Impact |
+|-------|----------|----------|--------|
+| Direct Supabase calls bypassing `useTasks()` | Yes | 3 components | Duplicate API calls, stale data |
+| Inconsistent date filtering logic | Yes | 4+ locations | Tasks appear/disappear unpredictably |
+| Query key mismatches | Yes | 6+ files | Cache invalidation failures |
+| Optimistic updates without centralized rollback | Yes | 3 components | UI shows wrong state after errors |
 
 ---
 
-## Solution: Standardize Filter Patterns
+## Files Analysis
 
-Apply these UX principles consistently:
+### Components Bypassing Centralized Hook
 
-1. **"All" Option Inside Every Dropdown** - Users can always reset from within the menu
-2. **Visual Indicator When Filter is Active** - Highlight the button/trigger
-3. **Active Filter Badges with X to Remove** - Quick way to clear individual filters
-4. **"Clear All" Button** - When any filter is active, show a clear option
+**Confirmed problematic files:**
+
+1. **`DailyTimelineView.tsx`** (lines 75-105)
+   - Direct `supabase.functions.invoke('get-all-tasks')` in useEffect
+   - Local `useState` for tasks
+   - Manual optimistic updates with local rollback
+
+2. **`DailyScheduleView.tsx`** (lines 142-183)
+   - Direct API call in useEffect
+   - Duplicate filtering logic
+   - Manual optimistic updates
+
+3. **`InlineCalendarAgenda.tsx`** (lines 344-366)
+   - `fetchTasks` callback with direct API call
+   - Local state management
+   - Manual optimistic updates
+
+### Component Using Centralized Hook Correctly
+
+**`DailyAgendaCard.tsx`** (line 55):
+```typescript
+const { data: allTasks = [], isLoading: loadingTasks } = useTasks();
+const { toggleComplete } = useTaskMutations();
+```
+This is the correct pattern.
+
+---
+
+## Query Key Inconsistencies Found
+
+```text
+CORRECT:
+- useTasks.tsx: ['all-tasks']
+
+INCORRECT:
+- DailyAgendaCard.tsx (line 244): ['tasks'] 
+- CourseProgressPanel.tsx (line 67): ['tasks']
+- AddContentDialog.tsx (lines 345, 497): ['tasks']
+- ContentPlannerWizard.tsx (line 314): ['tasks']
+- Tasks.tsx (line 745): ['tasks']
+```
+
+This mismatch means cache invalidations don't work properly.
 
 ---
 
 ## Implementation Plan
 
-### 1. Update TaskFilters.tsx (Tasks Page)
+### Phase 1: Create Unified Task Filter Utility
 
-Add "Show All" option at the top of each dropdown:
+**New File: `src/lib/taskFilters.ts`**
 
-**Current Energy Dropdown:**
-```
-- [x] High Focus
-- [ ] Medium
-- [ ] Low Energy
-```
-
-**Improved:**
-```
-- Show All ← NEW (highlighted when no filter active)
-────────────────
-- [x] High Focus
-- [ ] Medium
-- [ ] Low Energy
-```
-
-Changes:
-- Add a "Show All" menu item at the top with a separator
-- When clicked, clears that specific filter type
-- Visual checkmark on "Show All" when no energy filters selected
-- Keep existing badge indicators on the trigger button
-
-### 2. Enhance Active Filter Badges
-
-Make badges more prominent and clickable:
-- Add hover state that shows "Click to remove"
-- Use a more obvious X icon styling
-- Consider adding tooltip "Remove filter"
-
-### 3. Add "Clear All Filters" to Toolbar
-
-When any filter is active, show a prominent "Clear All" button:
-- Position it after the filter badges
-- Use a subtle but noticeable style
-- Shows count of active filters
-
----
-
-## Updated TaskFilters Component Design
+Create a single source of truth for filtering tasks by date:
 
 ```typescript
-// Energy Filter Dropdown
-<DropdownMenuContent>
-  {/* Clear option always at top */}
-  <DropdownMenuItem
-    onClick={() => onEnergyChange([])}
-    className={cn(selectedEnergy.length === 0 && "bg-accent")}
-  >
-    <CheckCircle2 className={cn(
-      "h-4 w-4 mr-2",
-      selectedEnergy.length === 0 ? "opacity-100" : "opacity-0"
-    )} />
-    Show All
-  </DropdownMenuItem>
-  
-  <DropdownMenuSeparator />
-  
-  {/* Individual options */}
-  {ENERGY_LEVELS.map(level => (
-    <DropdownMenuCheckboxItem
-      key={level.value}
-      checked={selectedEnergy.includes(level.value)}
-      onCheckedChange={() => toggleEnergy(level.value)}
-    >
-      {level.icon} {level.label}
-    </DropdownMenuCheckboxItem>
-  ))}
-</DropdownMenuContent>
+import { Task } from '@/components/tasks/types';
+
+/**
+ * Unified task filtering for a specific date.
+ * Checks all date fields consistently.
+ */
+export function getTasksForDate(tasks: Task[], dateStr: string): Task[] {
+  return tasks.filter(task => {
+    if (task.is_recurring_parent) return false;
+    
+    const isScheduledForDate = task.scheduled_date === dateStr;
+    const isPlannedForDate = task.planned_day === dateStr;
+    const hasTimeBlockForDate = task.time_block_start?.startsWith(dateStr);
+    
+    return isScheduledForDate || isPlannedForDate || hasTimeBlockForDate;
+  });
+}
+
+/**
+ * Get incomplete tasks for a date (most common use case)
+ */
+export function getIncompleteTasksForDate(tasks: Task[], dateStr: string): Task[] {
+  return getTasksForDate(tasks, dateStr).filter(t => !t.is_completed);
+}
+
+/**
+ * Separate tasks into scheduled (has time) and unscheduled (pool)
+ */
+export function separateScheduledTasks(tasks: Task[]) {
+  const scheduled: Task[] = [];
+  const unscheduled: Task[] = [];
+
+  tasks.forEach(task => {
+    if (task.time_block_start || task.scheduled_time) {
+      scheduled.push(task);
+    } else {
+      unscheduled.push(task);
+    }
+  });
+
+  return { scheduled, unscheduled };
+}
 ```
 
 ---
 
-## Apply Same Pattern to Other Filter Locations
+### Phase 2: Refactor DailyTimelineView
 
-### WeekInbox.tsx & AvailableTasksSidebar.tsx
-Already have "All" options - no changes needed, but will add visual consistency:
-- Highlight trigger when filter is active
-- Match badge styling
+**File: `src/components/daily-plan/DailyTimelineView.tsx`**
 
-### BoardToolbar.tsx
-Add "All Priorities" option to the filter dropdown.
+Changes:
+1. Remove local task state and fetching
+2. Import and use `useTasks()` and `useTaskMutations()`
+3. Use unified filter from `taskFilters.ts`
+4. Replace direct API calls with centralized mutations
+
+```typescript
+// REMOVE these:
+// - useState for tasks
+// - useState for loadingTasks  
+// - useEffect that calls supabase.functions.invoke('get-all-tasks')
+// - handleTaskToggle function with direct API call
+
+// ADD these:
+import { useTasks, useTaskMutations } from '@/hooks/useTasks';
+import { getTasksForDate, separateScheduledTasks } from '@/lib/taskFilters';
+
+// In component:
+const { data: allTasks = [], isLoading: loadingTasks } = useTasks();
+const { toggleComplete } = useTaskMutations();
+
+const tasks = useMemo(() => 
+  getTasksForDate(allTasks, todayStr),
+  [allTasks, todayStr]
+);
+
+const { scheduled: scheduledTasks, unscheduled: unscheduledTasks } = useMemo(() =>
+  separateScheduledTasks(tasks),
+  [tasks]
+);
+
+// Replace handleTaskToggle:
+const handleTaskToggle = (taskId: string) => {
+  toggleComplete.mutate(taskId);
+  onTaskToggle?.(taskId, false);
+};
+```
 
 ---
 
-## Files to Modify
+### Phase 3: Refactor DailyScheduleView
 
-| File | Changes |
-|------|---------|
-| `src/components/tasks/TaskFilters.tsx` | Add "Show All" option, improve badge styling |
-| `src/components/projects/monday-board/BoardToolbar.tsx` | Add "All Priorities" option |
-| `src/components/weekly-plan/WeekInbox.tsx` | Minor styling consistency (highlight when active) |
-| `src/components/weekly-plan/AvailableTasksSidebar.tsx` | Minor styling consistency |
+**File: `src/components/daily-plan/DailyScheduleView.tsx`**
 
----
+Same pattern as DailyTimelineView:
 
-## Visual Changes Summary
+1. Remove lines 79, 80-82 (local state)
+2. Remove lines 142-183 (useEffect fetching)
+3. Remove lines 222-246 (handleTaskToggle with direct API)
+4. Remove lines 249-269 (handleTaskUpdate with direct API)
+5. Remove lines 272-300 (handleTaskRemove with direct API)
+6. Remove lines 430-466 (handleRefresh with direct API)
 
-**Before (confusing):**
-```
-[Energy ▼]  →  ☐ High Focus
-               ☑ Medium     ← How do I unselect all?
-               ☐ Low Energy
-```
+Replace with centralized hook usage and mutation calls.
 
-**After (clear):**
-```
-[Energy (1) ▼]  →  ✓ Show All    ← Click to reset
-                   ─────────────
-                   ☐ High Focus
-                   ☑ Medium
-                   ☐ Low Energy
-```
+**Note:** This component has complex drag-and-drop logic. The mutations for scheduling (`setTimeBlock`, `updateTask`) should use `useTaskMutations()` instead of direct API calls.
 
 ---
 
-## Technical Notes
+### Phase 4: Refactor InlineCalendarAgenda
 
-- Keep the multi-select capability (users can choose multiple energy levels)
-- "Show All" clears the array to `[]`
-- Existing badge click-to-remove functionality remains
-- Mobile-friendly: 44px touch targets on all interactive elements
+**File: `src/components/daily-plan/InlineCalendarAgenda.tsx`**
 
+1. Remove lines 275, 277-278 (local state for tasks/loading)
+2. Remove lines 344-366 (fetchTasks callback and useEffect)
+3. Replace with `useTasks()` hook
+4. Use `useTaskMutations()` for toggle/update operations
+
+---
+
+### Phase 5: Fix Query Key Inconsistencies
+
+Update all files using wrong query key:
+
+| File | Line | Change |
+|------|------|--------|
+| `DailyAgendaCard.tsx` | 244 | `['tasks']` → `['all-tasks']` |
+| `CourseProgressPanel.tsx` | 67 | `['tasks']` → `['all-tasks']` |
+| `AddContentDialog.tsx` | 345, 497 | `['tasks']` → `['all-tasks']` |
+| `ContentPlannerWizard.tsx` | 314 | `['tasks']` → `['all-tasks']` |
+| `Tasks.tsx` | 745 | `['tasks']` → `['all-tasks']` |
+| `useCourses.tsx` | 355 | `['tasks']` → `['all-tasks']` |
+
+Better approach - use the exported constant:
+```typescript
+import { taskQueryKeys } from '@/hooks/useTasks';
+queryClient.invalidateQueries({ queryKey: taskQueryKeys.all });
+```
+
+---
+
+### Phase 6: Update useTasksForDate to Include time_block_start
+
+**File: `src/hooks/useTasks.tsx`** (lines 431-439)
+
+Current code is missing `time_block_start` check:
+```typescript
+// BEFORE
+return task.scheduled_date === dateStr || task.planned_day === dateStr;
+
+// AFTER (use the utility)
+import { getTasksForDate } from '@/lib/taskFilters';
+// OR inline:
+return task.scheduled_date === dateStr || 
+       task.planned_day === dateStr ||
+       task.time_block_start?.startsWith(dateStr);
+```
+
+---
+
+### Phase 7: Add Error Boundaries to Daily Plan Components
+
+**File: `src/pages/DailyPlan.tsx`**
+
+Wrap major sections with `WidgetErrorBoundary`:
+
+```typescript
+import { WidgetErrorBoundary } from '@/components/dashboard';
+
+// Wrap each major component:
+<WidgetErrorBoundary title="Daily Schedule">
+  <DailyScheduleView {...props} />
+</WidgetErrorBoundary>
+```
+
+---
+
+## Files to Modify Summary
+
+| File | Action | Priority |
+|------|--------|----------|
+| `src/lib/taskFilters.ts` | **CREATE** | High |
+| `src/components/daily-plan/DailyTimelineView.tsx` | **MAJOR REFACTOR** | Critical |
+| `src/components/daily-plan/DailyScheduleView.tsx` | **MAJOR REFACTOR** | Critical |
+| `src/components/daily-plan/InlineCalendarAgenda.tsx` | **MAJOR REFACTOR** | Critical |
+| `src/hooks/useTasks.tsx` | **MINOR UPDATE** | High |
+| `src/components/daily-plan/DailyAgendaCard.tsx` | **FIX QUERY KEY** | High |
+| `src/components/courses/CourseProgressPanel.tsx` | **FIX QUERY KEY** | Medium |
+| `src/components/editorial-calendar/AddContentDialog.tsx` | **FIX QUERY KEY** | Medium |
+| `src/components/wizards/content-planner/ContentPlannerWizard.tsx` | **FIX QUERY KEY** | Medium |
+| `src/pages/Tasks.tsx` | **FIX QUERY KEY** | Medium |
+| `src/hooks/useCourses.tsx` | **FIX QUERY KEY** | Medium |
+| `src/pages/DailyPlan.tsx` | **ADD ERROR BOUNDARIES** | Medium |
+
+---
+
+## Expected Results After Fix
+
+| Metric | Before | After |
+|--------|--------|-------|
+| API calls when opening Daily Plan | 3+ duplicate calls | 1 shared call |
+| Cache consistency | Components show different data | All views show same data |
+| Update propagation | Manual refresh needed | Automatic via realtime |
+| Error recovery | UI stuck in wrong state | Automatic rollback |
+| Date filtering | Inconsistent across views | Single unified logic |
+
+---
+
+## Testing Plan
+
+After implementation:
+
+1. **Cross-view consistency test**
+   - Open Tasks page, toggle a task complete
+   - Navigate to Daily Plan - task should show as complete
+   - Navigate to Weekly Plan - same state
+
+2. **Cache invalidation test**
+   - Add a task via Quick Capture
+   - All views should show the new task without refresh
+
+3. **Error recovery test**
+   - Disable network
+   - Toggle a task
+   - Should revert after error
+
+4. **Date filtering test**
+   - Create task with `time_block_start` for today
+   - Should appear in all "today" views
