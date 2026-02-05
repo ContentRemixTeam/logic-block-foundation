@@ -18,6 +18,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 
+// HTML escape function to prevent XSS in PDF export
+function escapeHtml(text: string | number | null | undefined): string {
+  if (text === null || text === undefined) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 interface Offer {
   name: string;
   price: string;
@@ -287,6 +298,32 @@ export default function WorkshopPlanner() {
   };
 
   const generatePrintContent = () => {
+    // Escape all user data to prevent XSS
+    const safeGoal = escapeHtml(data.goal);
+    const safeWhy = escapeHtml(data.why);
+    const safeIdentity = escapeHtml(data.identity);
+    const safeFeeling = escapeHtml(data.feeling);
+    const safeBottleneck = escapeHtml(data.biggestBottleneck);
+    const safeAudienceTarget = escapeHtml(data.audienceTarget);
+    const safeAudienceFrustration = escapeHtml(data.audienceFrustration);
+    const safeSignatureMessage = escapeHtml(data.signatureMessage);
+    const safeLeadPlatform = escapeHtml(data.leadPlatform === 'other' ? data.leadPlatformCustom : data.leadPlatform);
+    const safeLeadContentType = escapeHtml(data.leadContentType === 'other' ? data.leadContentTypeCustom : data.leadContentType);
+    const safeLeadFrequency = escapeHtml(data.leadFrequency);
+    const safeLeadPostingDays = escapeHtml(data.leadPostingDays);
+    const safeLeadPostingTime = escapeHtml(data.leadPostingTime);
+    const safeLeadBatchDay = escapeHtml(data.leadBatchDay);
+    const safeNurtureMethod = escapeHtml(data.nurtureMethod);
+    const safeNurtureMethod2 = escapeHtml(data.nurtureMethod2);
+    const safeNurtureMethod3 = escapeHtml(data.nurtureMethod3);
+    const safeNurtureFrequency = escapeHtml(data.nurtureFrequency);
+    const safeNurturePostingDays = escapeHtml(data.nurturePostingDays);
+    const safeNurturePostingTime = escapeHtml(data.nurturePostingTime);
+    const safeFreeTransformation = escapeHtml(data.freeTransformation);
+    const safeRevenueGoal = escapeHtml(data.revenueGoal);
+    const safePricePerSale = escapeHtml(data.pricePerSale);
+    const safeLaunchSchedule = escapeHtml(data.launchSchedule);
+
     return `
 <!DOCTYPE html>
 <html>
@@ -314,10 +351,10 @@ export default function WorkshopPlanner() {
   
   <div class="section">
     <h2>The Goal</h2>
-    <p><strong>${data.goal || 'Not set'}</strong></p>
-    ${data.why ? `<p><em>Why:</em> ${data.why}</p>` : ''}
-    ${data.identity ? `<p><em>Identity:</em> ${data.identity}</p>` : ''}
-    ${data.feeling ? `<p><em>Target feeling:</em> ${data.feeling}</p>` : ''}
+    <p><strong>${safeGoal || 'Not set'}</strong></p>
+    ${safeWhy ? `<p><em>Why:</em> ${safeWhy}</p>` : ''}
+    ${safeIdentity ? `<p><em>Identity:</em> ${safeIdentity}</p>` : ''}
+    ${safeFeeling ? `<p><em>Target feeling:</em> ${safeFeeling}</p>` : ''}
   </div>
 
   <div class="section">
@@ -328,40 +365,40 @@ export default function WorkshopPlanner() {
       <div class="stat"><div class="stat-label">Convert</div><div class="stat-value">${data.convertScore}/10</div></div>
       <div class="stat"><div class="stat-label">Focus Area</div><div class="stat-value">${focusArea}</div></div>
     </div>
-    ${data.biggestBottleneck ? `<p><strong>Biggest Bottleneck:</strong> ${data.biggestBottleneck}</p>` : ''}
+    ${safeBottleneck ? `<p><strong>Biggest Bottleneck:</strong> ${safeBottleneck}</p>` : ''}
   </div>
 
   <div class="section">
     <h2>Audience & Message</h2>
-    ${data.audienceTarget ? `<p><strong>Target Audience:</strong> ${data.audienceTarget}</p>` : ''}
-    ${data.audienceFrustration ? `<p><strong>Their Frustration:</strong> ${data.audienceFrustration}</p>` : ''}
-    ${data.signatureMessage ? `<p><strong>Signature Message:</strong> ${data.signatureMessage}</p>` : ''}
+    ${safeAudienceTarget ? `<p><strong>Target Audience:</strong> ${safeAudienceTarget}</p>` : ''}
+    ${safeAudienceFrustration ? `<p><strong>Their Frustration:</strong> ${safeAudienceFrustration}</p>` : ''}
+    ${safeSignatureMessage ? `<p><strong>Signature Message:</strong> ${safeSignatureMessage}</p>` : ''}
   </div>
 
   <div class="section">
     <h2>Strategy</h2>
     <h3>Lead Generation</h3>
     <ul>
-      ${data.leadPlatform ? `<li><strong>Platform:</strong> ${data.leadPlatform === 'other' ? data.leadPlatformCustom : data.leadPlatform}</li>` : ''}
-      ${data.leadContentType ? `<li><strong>Content Type:</strong> ${data.leadContentType === 'other' ? data.leadContentTypeCustom : data.leadContentType}</li>` : ''}
-      ${data.leadFrequency ? `<li><strong>Frequency:</strong> ${data.leadFrequency}</li>` : ''}
-      ${data.leadPostingDays ? `<li><strong>Posting Days:</strong> ${data.leadPostingDays}</li>` : ''}
-      ${data.leadPostingTime ? `<li><strong>Posting Time:</strong> ${data.leadPostingTime}</li>` : ''}
-      ${data.leadBatchDay ? `<li><strong>Batch Creation Day:</strong> ${data.leadBatchDay}</li>` : ''}
+      ${safeLeadPlatform ? `<li><strong>Platform:</strong> ${safeLeadPlatform}</li>` : ''}
+      ${safeLeadContentType ? `<li><strong>Content Type:</strong> ${safeLeadContentType}</li>` : ''}
+      ${safeLeadFrequency ? `<li><strong>Frequency:</strong> ${safeLeadFrequency}</li>` : ''}
+      ${safeLeadPostingDays ? `<li><strong>Posting Days:</strong> ${safeLeadPostingDays}</li>` : ''}
+      ${safeLeadPostingTime ? `<li><strong>Posting Time:</strong> ${safeLeadPostingTime}</li>` : ''}
+      ${safeLeadBatchDay ? `<li><strong>Batch Creation Day:</strong> ${safeLeadBatchDay}</li>` : ''}
       <li><strong>90-Day Commitment:</strong> ${data.leadCommitted ? '✅ Yes' : '❌ No'}</li>
-      ${data.secondaryPlatforms.length > 0 ? `<li><strong>Secondary Platforms:</strong> ${data.secondaryPlatforms.map(s => `${s.platform} (${s.contentType}${s.frequency ? `, ${s.frequency}` : ''})`).join(', ')}</li>` : ''}
+      ${data.secondaryPlatforms.length > 0 ? `<li><strong>Secondary Platforms:</strong> ${data.secondaryPlatforms.map(s => `${escapeHtml(s.platform)} (${escapeHtml(s.contentType)}${s.frequency ? `, ${escapeHtml(s.frequency)}` : ''})`).join(', ')}</li>` : ''}
     </ul>
     
     <h3>Nurture</h3>
     <ul>
-      ${data.nurtureMethod ? `<li><strong>Primary Method:</strong> ${data.nurtureMethod}</li>` : ''}
-      ${data.nurtureMethod2 ? `<li><strong>Secondary Method:</strong> ${data.nurtureMethod2}</li>` : ''}
-      ${data.nurtureMethod3 ? `<li><strong>Tertiary Method:</strong> ${data.nurtureMethod3}</li>` : ''}
-      ${data.nurtureFrequency ? `<li><strong>Frequency:</strong> ${data.nurtureFrequency}</li>` : ''}
-      ${data.nurturePostingDays ? `<li><strong>Posting Days:</strong> ${data.nurturePostingDays}</li>` : ''}
-      ${data.nurturePostingTime ? `<li><strong>Posting Time:</strong> ${data.nurturePostingTime}</li>` : ''}
-      ${data.freeTransformation ? `<li><strong>Free Transformation:</strong> ${data.freeTransformation}</li>` : ''}
-      ${data.proofMethods.length > 0 ? `<li><strong>Proof Methods:</strong> ${data.proofMethods.join(', ')}</li>` : ''}
+      ${safeNurtureMethod ? `<li><strong>Primary Method:</strong> ${safeNurtureMethod}</li>` : ''}
+      ${safeNurtureMethod2 ? `<li><strong>Secondary Method:</strong> ${safeNurtureMethod2}</li>` : ''}
+      ${safeNurtureMethod3 ? `<li><strong>Tertiary Method:</strong> ${safeNurtureMethod3}</li>` : ''}
+      ${safeNurtureFrequency ? `<li><strong>Frequency:</strong> ${safeNurtureFrequency}</li>` : ''}
+      ${safeNurturePostingDays ? `<li><strong>Posting Days:</strong> ${safeNurturePostingDays}</li>` : ''}
+      ${safeNurturePostingTime ? `<li><strong>Posting Time:</strong> ${safeNurturePostingTime}</li>` : ''}
+      ${safeFreeTransformation ? `<li><strong>Free Transformation:</strong> ${safeFreeTransformation}</li>` : ''}
+      ${data.proofMethods.length > 0 ? `<li><strong>Proof Methods:</strong> ${data.proofMethods.map(m => escapeHtml(m)).join(', ')}</li>` : ''}
     </ul>
   </div>
 
@@ -369,13 +406,13 @@ export default function WorkshopPlanner() {
     <h2>Offers</h2>
     ${data.offers.filter(o => o.name).map(offer => `
       <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 15px; margin-bottom: 10px;">
-        <p><strong>${offer.name}</strong> ${offer.isPrimary ? '<span class="badge">Primary</span>' : ''}</p>
-        ${offer.price ? `<p>Price: $${offer.price}</p>` : ''}
-        ${offer.frequency ? `<p>Sales Frequency: ${offer.frequency}</p>` : ''}
-        ${offer.transformation ? `<p>Transformation: ${offer.transformation}</p>` : ''}
-        ${offer.launchWeek ? `<p>Launch Week: ${offer.launchWeek}</p>` : ''}
-        ${offer.launchDate ? `<p>Launch Date: ${offer.launchDate}</p>` : ''}
-        ${offer.cartOpenDate && offer.cartCloseDate ? `<p>Cart Window: ${offer.cartOpenDate} to ${offer.cartCloseDate}</p>` : ''}
+        <p><strong>${escapeHtml(offer.name)}</strong> ${offer.isPrimary ? '<span class="badge">Primary</span>' : ''}</p>
+        ${offer.price ? `<p>Price: $${escapeHtml(offer.price)}</p>` : ''}
+        ${offer.frequency ? `<p>Sales Frequency: ${escapeHtml(offer.frequency)}</p>` : ''}
+        ${offer.transformation ? `<p>Transformation: ${escapeHtml(offer.transformation)}</p>` : ''}
+        ${offer.launchWeek ? `<p>Launch Week: ${escapeHtml(offer.launchWeek)}</p>` : ''}
+        ${offer.launchDate ? `<p>Launch Date: ${escapeHtml(offer.launchDate)}</p>` : ''}
+        ${offer.cartOpenDate && offer.cartCloseDate ? `<p>Cart Window: ${escapeHtml(offer.cartOpenDate)} to ${escapeHtml(offer.cartCloseDate)}</p>` : ''}
       </div>
     `).join('')}
   </div>
@@ -383,28 +420,28 @@ export default function WorkshopPlanner() {
   <div class="section">
     <h2>Revenue Plan</h2>
     <div class="grid">
-      <div class="stat"><div class="stat-label">Revenue Goal</div><div class="stat-value">$${data.revenueGoal || '0'}</div></div>
-      <div class="stat"><div class="stat-label">Price Per Sale</div><div class="stat-value">$${data.pricePerSale || '0'}</div></div>
+      <div class="stat"><div class="stat-label">Revenue Goal</div><div class="stat-value">$${safeRevenueGoal || '0'}</div></div>
+      <div class="stat"><div class="stat-label">Price Per Sale</div><div class="stat-value">$${safePricePerSale || '0'}</div></div>
       <div class="stat"><div class="stat-label">Sales Needed</div><div class="stat-value">${salesNeeded}</div></div>
     </div>
-    ${data.launchSchedule ? `<p style="margin-top: 20px;"><strong>Launch Schedule:</strong> ${data.launchSchedule}</p>` : ''}
+    ${safeLaunchSchedule ? `<p style="margin-top: 20px;"><strong>Launch Schedule:</strong> ${safeLaunchSchedule}</p>` : ''}
   </div>
 
   <div class="section">
     <h2>Month-by-Month Plan</h2>
     ${data.monthPlans.map((month, idx) => `
       <div class="month">
-        <h3>${month.monthName || `Month ${idx + 1}`}</h3>
-        ${month.mainFocus ? `<p><strong>Focus:</strong> ${month.mainFocus}</p>` : ''}
-        ${month.projects ? `<p><strong>Projects:</strong> ${month.projects}</p>` : ''}
-        ${month.salesPromos ? `<p><strong>Sales & Promos:</strong> ${month.salesPromos}</p>` : ''}
+        <h3>${escapeHtml(month.monthName) || `Month ${idx + 1}`}</h3>
+        ${month.mainFocus ? `<p><strong>Focus:</strong> ${escapeHtml(month.mainFocus)}</p>` : ''}
+        ${month.projects ? `<p><strong>Projects:</strong> ${escapeHtml(month.projects)}</p>` : ''}
+        ${month.salesPromos ? `<p><strong>Sales & Promos:</strong> ${escapeHtml(month.salesPromos)}</p>` : ''}
         <div style="margin-top: 10px; padding: 10px; background: #f8fafc; border-radius: 6px;">
           <p style="font-size: 12px; font-weight: bold; margin-bottom: 8px;">Weekly Breakdown:</p>
           <ul style="font-size: 12px; margin: 0; padding-left: 20px;">
-            ${month.week1Focus ? `<li><strong>Week ${idx * 4 + 1}:</strong> ${month.week1Focus}</li>` : ''}
-            ${month.week2Focus ? `<li><strong>Week ${idx * 4 + 2}:</strong> ${month.week2Focus}</li>` : ''}
-            ${month.week3Focus ? `<li><strong>Week ${idx * 4 + 3}:</strong> ${month.week3Focus}</li>` : ''}
-            ${month.week4Focus ? `<li><strong>Week ${idx * 4 + 4}:</strong> ${month.week4Focus}</li>` : ''}
+            ${month.week1Focus ? `<li><strong>Week ${idx * 4 + 1}:</strong> ${escapeHtml(month.week1Focus)}</li>` : ''}
+            ${month.week2Focus ? `<li><strong>Week ${idx * 4 + 2}:</strong> ${escapeHtml(month.week2Focus)}</li>` : ''}
+            ${month.week3Focus ? `<li><strong>Week ${idx * 4 + 3}:</strong> ${escapeHtml(month.week3Focus)}</li>` : ''}
+            ${month.week4Focus ? `<li><strong>Week ${idx * 4 + 4}:</strong> ${escapeHtml(month.week4Focus)}</li>` : ''}
           </ul>
         </div>
       </div>
