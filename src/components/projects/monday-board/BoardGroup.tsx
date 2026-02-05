@@ -52,6 +52,7 @@ export function BoardGroup({
   const [editName, setEditName] = useState(section.name);
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskText, setNewTaskText] = useState('');
+   const [isCreating, setIsCreating] = useState(false);
 
   const { updateSection, deleteSection, reorderSections } = useProjectSectionMutations(projectId);
 
@@ -76,10 +77,13 @@ export function BoardGroup({
   };
 
   const handleAddTask = () => {
-    if (newTaskText.trim()) {
+     if (newTaskText.trim() && !isCreating) {
+       setIsCreating(true);
       onCreateTask(newTaskText.trim());
       setNewTaskText('');
       setIsAddingTask(false);
+       // Delay clearing to allow real-time to catch up
+       setTimeout(() => setIsCreating(false), 500);
     }
   };
 
@@ -226,7 +230,14 @@ export function BoardGroup({
                 }}
                 autoFocus
               />
-              <Button size="sm" className="h-7" onClick={handleAddTask}>Add</Button>
+               <Button 
+                 size="sm" 
+                 className="h-7" 
+                 onClick={handleAddTask}
+                 disabled={isCreating || !newTaskText.trim()}
+               >
+                 {isCreating ? 'Adding...' : 'Add'}
+               </Button>
               <Button size="sm" variant="ghost" className="h-7" onClick={() => { setIsAddingTask(false); setNewTaskText(''); }}>
                 Cancel
               </Button>

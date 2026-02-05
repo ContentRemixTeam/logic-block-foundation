@@ -54,6 +54,16 @@ export function MondayBoardView({ projectId, tasks }: MondayBoardViewProps) {
       if (filters.status && task.status !== filters.status) return;
       if (filters.priority && task.priority !== filters.priority) return;
 
+       // DEBUG: Log task grouping (remove after testing)
+       if (task.project_id === projectId) {
+         console.log('[TaskGrouping]', {
+           id: task.task_id.slice(0, 8),
+           text: task.task_text.slice(0, 30),
+           section_id: task.section_id,
+           has_section_bucket: task.section_id ? !!grouped[task.section_id] : false
+         });
+       }
+ 
       if (task.section_id && grouped[task.section_id]) {
         grouped[task.section_id].push(task);
       } else {
@@ -75,6 +85,11 @@ export function MondayBoardView({ projectId, tasks }: MondayBoardViewProps) {
       });
     }
 
+     // DEBUG: Log final grouping (remove after testing)
+     console.log('[TaskGrouping] Result:', 
+       Object.entries(grouped).map(([k, v]) => `${k.slice(0, 8)}: ${v.length}`).join(', ')
+     );
+ 
     return grouped;
   }, [tasks, sections, searchQuery, filters, sortConfig]);
 

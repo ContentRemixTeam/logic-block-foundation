@@ -78,6 +78,12 @@ export function useTasks(options: { loadAll?: boolean } = {}) {
         },
         (payload) => {
           console.log('Task realtime update:', payload.eventType);
+           console.log('Task realtime details:', {
+             event: payload.eventType,
+             taskId: (payload.new as Task)?.task_id?.slice(0, 8) || (payload.old as Task)?.task_id?.slice(0, 8),
+             section_id: (payload.new as Task)?.section_id,
+             project_id: (payload.new as Task)?.project_id,
+           });
           
           // Update the cache based on the event type
           queryClient.setQueryData<Task[]>(taskQueryKeys.all, (oldTasks) => {
@@ -162,73 +168,18 @@ export function useTaskMutations() {
       }
     },
     onMutate: async (newTask) => {
-      // Cancel outgoing queries
-      await queryClient.cancelQueries({ queryKey: taskQueryKeys.all });
-
-      // Snapshot previous value
-      const previousTasks = queryClient.getQueryData<Task[]>(taskQueryKeys.all);
-
-      // Optimistically add the new task with a temporary ID
-      const optimisticTask: Partial<Task> & { task_id: string; task_text: string } = {
-        task_id: `temp-${Date.now()}`,
-        task_text: newTask.task_text,
-        task_description: null,
-        scheduled_date: newTask.scheduled_date || null,
-        planned_day: newTask.planned_day || null,
-        priority: newTask.priority || null,
-        status: (newTask.status as Task['status']) || 'backlog',
-        is_completed: false,
-        completed_at: null,
-        estimated_minutes: newTask.estimated_minutes || null,
-        context_tags: newTask.context_tags || null,
-        created_at: new Date().toISOString(),
-        is_recurring_parent: false,
-        recurrence_pattern: null,
-        recurrence_days: null,
-        parent_task_id: null,
-        sop_id: null,
-        sop: null,
-        checklist_progress: null,
-        priority_order: null,
-        actual_minutes: null,
-        time_block_start: null,
-        time_block_end: null,
-        energy_level: null,
-        goal_id: null,
-        waiting_on: null,
-        subtasks: null,
-        notes: null,
-        position_in_column: null,
-        day_order: newTask.day_order || null,
-        source: newTask.source || null,
-        project_id: newTask.project_id || null,
-        section_id: newTask.section_id || null,
-      };
-
-      queryClient.setQueryData<Task[]>(taskQueryKeys.all, (old) => 
-        old ? [optimisticTask as Task, ...old] : [optimisticTask as Task]
-      );
-
-      return { previousTasks };
-    },
-    onError: (err, _newTask, context) => {
-      // Rollback on error
-      if (context?.previousTasks) {
-        queryClient.setQueryData(taskQueryKeys.all, context.previousTasks);
-      }
+     // NO optimistic update - rely on real-time subscription for UI update
+     // This prevents race conditions between optimistic updates and real-time events
+     },
+     onError: (err) => {
       showOperationError('create', 'Task', err);
     },
-    onSuccess: (createdTask, _variables, context) => {
-      // Replace the optimistic task with the real one
-      queryClient.setQueryData<Task[]>(taskQueryKeys.all, (old) => {
-        if (!old) return [createdTask];
-        // Remove temp task and add the real one
-        const withoutTemp = old.filter(t => !t.task_id.startsWith('temp-'));
-        // Check if the real task is already there (from realtime)
-        const hasReal = withoutTemp.some(t => t.task_id === createdTask.task_id);
-        if (hasReal) return withoutTemp;
-        return [createdTask, ...withoutTemp];
-      });
+     onSuccess: () => {
+       // Backup: If real-time didn't fire within 1 second, invalidate queries
+       setTimeout(() => {
+         queryClient.invalidateQueries({ queryKey: taskQueryKeys.all });
+       }, 1000);
+       toast.success('Task created');
     },
   });
 
