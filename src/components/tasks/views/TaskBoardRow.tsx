@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { 
   MoreHorizontal, 
   Trash2, 
@@ -93,6 +93,7 @@ export function TaskBoardRow({
 }: TaskBoardRowProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState(task.task_text);
+  const [datePopoverOpen, setDatePopoverOpen] = useState(false);
 
   const handleSaveTitle = () => {
     if (editTitle.trim() !== task.task_text) {
@@ -143,7 +144,7 @@ export function TaskBoardRow({
 
       case 'scheduled_date':
         return (
-          <Popover>
+          <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="ghost"
@@ -155,20 +156,38 @@ export function TaskBoardRow({
               >
                 <CalendarIcon className="h-3 w-3" />
                 {task.scheduled_date
-                  ? format(new Date(task.scheduled_date), 'MMM d')
+                  ? format(parseISO(task.scheduled_date), 'MMM d')
                   : 'Set date'}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={task.scheduled_date ? new Date(task.scheduled_date) : undefined}
-                onSelect={(date) =>
+                selected={task.scheduled_date ? parseISO(task.scheduled_date) : undefined}
+                onSelect={(date) => {
                   onUpdateTask(task.task_id, {
                     scheduled_date: date ? format(date, 'yyyy-MM-dd') : null,
-                  })
-                }
+                  });
+                  setDatePopoverOpen(false);
+                }}
+                initialFocus
+                className="pointer-events-auto"
               />
+              {task.scheduled_date && (
+                <div className="p-2 border-t">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="w-full text-xs"
+                    onClick={() => {
+                      onUpdateTask(task.task_id, { scheduled_date: null });
+                      setDatePopoverOpen(false);
+                    }}
+                  >
+                    Clear date
+                  </Button>
+                </div>
+              )}
             </PopoverContent>
           </Popover>
         );

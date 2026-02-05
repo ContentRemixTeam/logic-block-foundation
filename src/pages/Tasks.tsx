@@ -113,6 +113,7 @@ export default function Tasks() {
   const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
   const [isOverdueModalOpen, setIsOverdueModalOpen] = useState(false);
   const [isProcessingOverdue, setIsProcessingOverdue] = useState(false);
+  const [detailDatePopoverOpen, setDetailDatePopoverOpen] = useState(false);
   
   // Form state for new task
   const [newTaskText, setNewTaskText] = useState('');
@@ -1458,7 +1459,7 @@ export default function Tasks() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Scheduled For</Label>
-                    <Popover>
+                    <Popover open={detailDatePopoverOpen} onOpenChange={setDetailDatePopoverOpen}>
                       <PopoverTrigger asChild>
                         <Button variant="outline" className="w-full justify-start mt-1">
                           <CalendarIcon className="h-4 w-4 mr-2" />
@@ -1469,9 +1470,28 @@ export default function Tasks() {
                         <Calendar
                           mode="single"
                           selected={selectedTask.scheduled_date ? parseISO(selectedTask.scheduled_date) : undefined}
-                          onSelect={(date) => setSelectedTask({ ...selectedTask, scheduled_date: date ? format(date, 'yyyy-MM-dd') : null })}
+                          onSelect={(date) => {
+                            setSelectedTask({ ...selectedTask, scheduled_date: date ? format(date, 'yyyy-MM-dd') : null });
+                            setDetailDatePopoverOpen(false);
+                          }}
+                          initialFocus
                           className="pointer-events-auto"
                         />
+                        {selectedTask.scheduled_date && (
+                          <div className="p-2 border-t">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="w-full text-sm"
+                              onClick={() => {
+                                setSelectedTask({ ...selectedTask, scheduled_date: null });
+                                setDetailDatePopoverOpen(false);
+                              }}
+                            >
+                              Clear date
+                            </Button>
+                          </div>
+                        )}
                       </PopoverContent>
                     </Popover>
                   </div>

@@ -423,7 +423,14 @@ export function TaskCard({
               </Button>
             </div>
             <div className="border-t p-1">
-              <Popover>
+              <Popover
+                onOpenChange={(open) => {
+                  // When this calendar popover closes after selection, we want the outer popover to close too
+                  if (!open) {
+                    // Handled by onSelect below
+                  }
+                }}
+              >
                 <PopoverTrigger asChild>
                   <Button variant="ghost" size="sm" className="w-full justify-start text-sm h-9">
                     <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -434,7 +441,10 @@ export function TaskCard({
                   <Calendar
                     mode="single"
                     selected={task.scheduled_date ? parseISO(task.scheduled_date) : undefined}
-                    onSelect={(date) => onQuickReschedule(task.task_id, date || null, 'scheduled')}
+                    onSelect={(date) => {
+                      onQuickReschedule(task.task_id, date || null, 'scheduled');
+                    }}
+                    initialFocus
                     className="pointer-events-auto"
                   />
                 </PopoverContent>
