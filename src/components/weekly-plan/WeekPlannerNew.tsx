@@ -291,7 +291,7 @@ export function WeekPlannerNew({
   };
 
   const handleTaskToggle = useCallback((taskId: string, currentCompleted: boolean) => {
-    toggleComplete.mutate(taskId);
+    toggleComplete.mutate({ taskId });
   }, [toggleComplete]);
 
   const handlePullUnfinished = async () => {

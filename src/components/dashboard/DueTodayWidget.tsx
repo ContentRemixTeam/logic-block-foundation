@@ -93,7 +93,7 @@ export function DueTodayWidget() {
           >
             <Checkbox
               checked={task.is_completed}
-              onCheckedChange={() => toggleComplete.mutate(task.task_id)}
+              onCheckedChange={() => toggleComplete.mutate({ taskId: task.task_id })}
               className="mt-0.5"
             />
             <div className="flex-1 min-w-0">

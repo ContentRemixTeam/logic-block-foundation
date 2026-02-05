@@ -221,7 +221,7 @@ export function DailyAgendaCard({ date = new Date(), onTaskToggle }: DailyAgenda
   }, [timedEvents, scheduledTasks]);
 
   const handleTaskToggle = async (taskId: string, currentCompleted: boolean) => {
-    toggleComplete.mutate(taskId);
+    toggleComplete.mutate({ taskId });
     onTaskToggle?.(taskId, currentCompleted);
   };
 

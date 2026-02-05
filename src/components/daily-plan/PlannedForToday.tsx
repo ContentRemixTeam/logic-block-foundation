@@ -30,7 +30,7 @@ export function PlannedForToday({ date = new Date(), onTaskToggle }: PlannedForT
   }, [allTasks, dateStr]);
 
   const handleToggle = async (taskId: string, currentCompleted: boolean) => {
-    toggleComplete.mutate(taskId);
+    toggleComplete.mutate({ taskId });
     
     if (onTaskToggle) {
       onTaskToggle(taskId, currentCompleted);

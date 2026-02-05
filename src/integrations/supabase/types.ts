@@ -5225,6 +5225,7 @@ export type Database = {
           id: string
           preferred_view: string | null
           show_completed_tasks: boolean | null
+          time_completion_modal: string | null
           updated_at: string | null
           user_id: string
           week_start_day: number | null
@@ -5239,6 +5240,7 @@ export type Database = {
           id?: string
           preferred_view?: string | null
           show_completed_tasks?: boolean | null
+          time_completion_modal?: string | null
           updated_at?: string | null
           user_id: string
           week_start_day?: number | null
@@ -5253,6 +5255,7 @@ export type Database = {
           id?: string
           preferred_view?: string | null
           show_completed_tasks?: boolean | null
+          time_completion_modal?: string | null
           updated_at?: string | null
           user_id?: string
           week_start_day?: number | null
@@ -5548,6 +5551,54 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "journal_pages"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      time_entries: {
+        Row: {
+          actual_minutes: number
+          created_at: string | null
+          estimated_minutes: number | null
+          id: string
+          logged_at: string | null
+          parent_task_id: string | null
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          actual_minutes: number
+          created_at?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          logged_at?: string | null
+          parent_task_id?: string | null
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          actual_minutes?: number
+          created_at?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          logged_at?: string | null
+          parent_task_id?: string | null
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entries_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "time_entries_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
           },
         ]
       }
@@ -6522,7 +6573,24 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      recurring_task_averages: {
+        Row: {
+          avg_actual_minutes: number | null
+          avg_estimated_minutes: number | null
+          instance_count: number | null
+          parent_task_id: string | null
+          stddev_minutes: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entries_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
+          },
+        ]
+      }
     }
     Functions: {
       check_feature_flag: { Args: { p_key: string }; Returns: boolean }

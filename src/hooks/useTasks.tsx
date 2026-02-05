@@ -254,18 +254,18 @@ export function useTaskMutations() {
     },
   });
 
-  // Toggle task completion
+  // Toggle task completion (with optional time tracking)
   const toggleComplete = useMutation({
-    mutationFn: async (taskId: string) => {
+    mutationFn: async ({ taskId, actual_minutes }: { taskId: string; actual_minutes?: number }) => {
       const session = await getSession();
       const response = await supabase.functions.invoke('manage-task', {
-        body: { action: 'toggle', task_id: taskId },
+        body: { action: 'toggle', task_id: taskId, actual_minutes },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (response.error) throw response.error;
       return response.data?.data as Task;
     },
-    onMutate: async (taskId) => {
+    onMutate: async ({ taskId }) => {
       await queryClient.cancelQueries({ queryKey: taskQueryKeys.all });
       const previousTasks = queryClient.getQueryData<Task[]>(taskQueryKeys.all);
 
@@ -279,7 +279,7 @@ export function useTaskMutations() {
 
       return { previousTasks };
     },
-    onError: (err, _taskId, context) => {
+    onError: (err, _vars, context) => {
       if (context?.previousTasks) {
         queryClient.setQueryData(taskQueryKeys.all, context.previousTasks);
       }

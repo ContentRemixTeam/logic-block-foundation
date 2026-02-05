@@ -94,7 +94,7 @@ export function MondayBoardView({ projectId, tasks }: MondayBoardViewProps) {
   };
 
   const handleToggleComplete = (taskId: string) => {
-    toggleComplete.mutate(taskId);
+    toggleComplete.mutate({ taskId });
   };
 
   const handleUpdateTask = (taskId: string, updates: Partial<Task>) => {

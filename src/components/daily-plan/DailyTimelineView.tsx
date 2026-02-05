@@ -118,7 +118,7 @@ export function DailyTimelineView({ onTaskToggle, onTaskClick }: DailyTimelineVi
 
    // Use centralized mutation for task toggle
    const handleTaskToggle = (taskId: string, currentStatus: boolean) => {
-     toggleComplete.mutate(taskId);
+     toggleComplete.mutate({ taskId });
      onTaskToggle?.(taskId, currentStatus);
   };
 

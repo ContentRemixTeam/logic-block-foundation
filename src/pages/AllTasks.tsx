@@ -212,7 +212,7 @@
  
  const handleToggleComplete = (task: UnifiedTask) => {
    if (task.originalTask) {
-     toggleComplete.mutate(task.originalTask.task_id);
+     toggleComplete.mutate({ taskId: task.originalTask.task_id });
    }
  };
  
