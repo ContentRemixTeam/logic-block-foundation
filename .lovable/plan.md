@@ -1,248 +1,236 @@
 
-# Critical Task Manager Fixes for Group Assignment
+
+# Complete Project Task Manager Fix - All Issues
 
 ## Overview
 
-After auditing the code, I've confirmed the following:
+After auditing the codebase and database, I've identified **4 remaining issues** to fix. Some fixes from the plan have already been partially implemented:
 
-- **Backend (Edge Function)**: `section_id` IS properly handled and saved
-- **Frontend Wiring**: The parent component correctly passes `section_id` when calling `onCreateTask`
-- **Main Issue**: Race condition between optimistic updates and real-time causing potential duplicates/misplacement
+**Already Done:**
+- createTask mutation has optimistic updates removed (lines 170-183)
+- Loading state `isCreating` added to BoardGroup (lines 55, 80-88)
+- Debug logging added to MondayBoardView (lines 57-65, 88-91)
+- Real-time logging enhanced in useTasks (lines 81-86)
+
+**Still Needed:**
+1. Section deletion doesn't update tasks (no foreign key constraint)
+2. No validation that section belongs to project
+3. deleteSection doesn't refresh tasks query
+4. Missing confirmation with task count on delete
 
 ---
 
-## Root Cause Analysis
+## Issue Analysis
 
-The current `createTask` mutation has this flow:
+### Database Finding
+The `tasks` table has **NO foreign key constraints** on `section_id` or `project_id`. This means:
+- Deleting a section leaves tasks with orphan `section_id` values
+- Tasks with orphan `section_id` won't appear in any group OR in "Uncategorized"
+- Must manually clear `section_id` before deleting section
 
-```text
-1. User clicks "Add" in BoardGroup
-2. onCreateTask(text) called → parent adds section_id
-3. createTask.mutate() fires with { task_text, project_id, section_id }
-4. onMutate creates TEMP task (temp-{timestamp}) and adds to cache
-5. Edge function creates REAL task in database
-6. Real-time subscription fires INSERT event → adds REAL task to cache
-7. onSuccess fires → tries to remove temp + add real (might already exist from step 6)
+### Current deleteSection Behavior
 ```
-
-**Problems:**
-- Step 6 and 7 can race, causing duplicates to briefly appear
-- If real-time fires before onSuccess, the deduplication logic handles it, but there may be visual jank
-- The optimistic task doesn't have all the server-generated fields
+1. User clicks "Delete group"
+2. Section is deleted from project_sections
+3. Tasks still have old section_id (now orphaned)
+4. Tasks disappear from UI (not in any valid group)
+5. Tasks only invalidated: ['project-sections', projectId]
+6. Task cache NOT refreshed - orphaned tasks invisible
+```
 
 ---
 
 ## Fixes to Implement
 
-### Fix 1: Simplify createTask Mutation (Remove Race Condition)
+### Fix 1: Update deleteSection to Handle Orphaned Tasks
 
-**File**: `src/hooks/useTasks.tsx` (lines 131-233)
+**File:** `src/hooks/useProjectSections.tsx`
 
-**Changes**:
-1. Remove the `onMutate` optimistic update entirely
-2. Keep the mutation simple - let real-time handle the UI update
-3. Add a backup invalidation in `onSuccess` in case real-time is slow
+Update the `deleteSection` mutation to:
+1. Count tasks in the section before deletion
+2. Set those tasks' `section_id` to NULL (move to uncategorized)
+3. Then delete the section
+4. Invalidate both section AND task queries
 
 ```typescript
-// Simplified mutation - no optimistic updates, rely on real-time
-const createTask = useMutation({
-  mutationFn: async (params: Partial<Task> & { task_text: string }) => {
-    const session = await getSession();
+const deleteSection = useMutation({
+  mutationFn: async (sectionId: string) => {
+    // Count tasks that will be affected
+    const { count, error: countError } = await supabase
+      .from('tasks')
+      .select('*', { count: 'exact', head: true })
+      .eq('section_id', sectionId);
+
+    if (countError) throw countError;
+
+    // Move tasks to uncategorized BEFORE deleting section
+    if (count && count > 0) {
+      const { error: updateError } = await supabase
+        .from('tasks')
+        .update({ section_id: null })
+        .eq('section_id', sectionId);
+
+      if (updateError) throw updateError;
+    }
+
+    // Now delete the section
+    const { error } = await supabase
+      .from('project_sections')
+      .delete()
+      .eq('id', sectionId);
+
+    if (error) throw error;
     
-    const logId = mutationLogger.log({
-      type: 'create',
-      taskText: params.task_text,
-      updates: params,
-      status: 'pending',
-    });
-    const startTime = Date.now();
+    return { deletedSectionId: sectionId, taskCount: count || 0 };
+  },
+  onSuccess: (result) => {
+    queryClient.invalidateQueries({ queryKey: sectionQueryKeys.byProject(projectId) });
+    // CRITICAL: Also invalidate tasks so they refresh from server
+    queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
     
-    try {
-      const response = await supabase.functions.invoke('manage-task', {
-        body: { action: 'create', ...params },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      
-      if (checkAndHandleRateLimit(response)) {
-        throw new Error('Rate limit exceeded');
-      }
-      
-      if (response.error) throw response.error;
-      
-      mutationLogger.updateStatus(logId, 'success', undefined, Date.now() - startTime);
-      return response.data?.data as Task;
-    } catch (error: any) {
-      mutationLogger.updateStatus(logId, 'error', error?.message, Date.now() - startTime);
-      throw error;
+    if (result.taskCount > 0) {
+      toast.success(`Group deleted. ${result.taskCount} task(s) moved to Uncategorized.`);
+    } else {
+      toast.success('Group deleted');
     }
   },
-  // NO onMutate - rely on real-time subscription for UI update
-  onSuccess: (createdTask) => {
-    // Backup: If real-time didn't fire within 1 second, invalidate queries
-    setTimeout(() => {
-      queryClient.invalidateQueries({ queryKey: taskQueryKeys.all });
-    }, 1000);
-    toast.success('Task created');
-  },
-  onError: (err) => {
-    showOperationError('create', 'Task', err);
+  onError: () => {
+    toast.error('Failed to delete group');
   },
 });
 ```
 
 ---
 
-### Fix 2: Add Loading State to BoardGroup
+### Fix 2: Improve Section Delete Confirmation in BoardGroup
 
-**File**: `src/components/projects/monday-board/BoardGroup.tsx` (lines 78-84)
+**File:** `src/components/projects/monday-board/BoardGroup.tsx`
 
-**Changes**:
-Add a loading state to give visual feedback while task is being created.
+Update `handleDelete` to show task count and add loading state:
 
 ```typescript
-// Add new state
-const [isCreating, setIsCreating] = useState(false);
+const [isDeleting, setIsDeleting] = useState(false);
 
-// Update handleAddTask to be async
-const handleAddTask = async () => {
-  if (newTaskText.trim() && !isCreating) {
-    setIsCreating(true);
+const handleDelete = async () => {
+  const taskCount = tasks.length;
+  const message = taskCount > 0 
+    ? `Delete "${section.name}" group? ${taskCount} task(s) will be moved to Uncategorized.`
+    : `Delete "${section.name}" group?`;
+    
+  if (confirm(message)) {
+    setIsDeleting(true);
     try {
-      onCreateTask(newTaskText.trim());
-      setNewTaskText('');
-      setIsAddingTask(false);
+      await deleteSection.mutateAsync(section.id);
     } finally {
-      // Delay clearing to allow real-time to catch up
-      setTimeout(() => setIsCreating(false), 500);
+      setIsDeleting(false);
     }
   }
 };
+```
 
-// Update the Add button to show loading state
-<Button 
-  size="sm" 
-  className="h-7" 
-  onClick={handleAddTask}
-  disabled={isCreating || !newTaskText.trim()}
+Update the delete menu item to show loading state:
+
+```typescript
+<DropdownMenuItem 
+  onClick={handleDelete} 
+  className="text-destructive"
+  disabled={isDeleting}
 >
-  {isCreating ? 'Adding...' : 'Add'}
-</Button>
+  <Trash2 className="h-4 w-4 mr-2" />
+  {isDeleting ? 'Deleting...' : 'Delete group'}
+</DropdownMenuItem>
 ```
 
 ---
 
-### Fix 3: Add Debug Logging (Temporary)
+### Fix 3: Add Section/Project Validation to createTask
 
-**File**: `src/components/projects/monday-board/MondayBoardView.tsx` (lines 40-79)
+**File:** `src/hooks/useTasks.tsx`
 
-**Changes**:
-Add temporary logging to verify task grouping is working correctly.
+Add validation in the mutation function to prevent section/project mismatch:
 
 ```typescript
-// Add debug logging in tasksBySection useMemo
-const tasksBySection = useMemo(() => {
-  const grouped: Record<string, Task[]> = { unsectioned: [] };
-  
-  sections.forEach(section => {
-    grouped[section.id] = [];
-  });
-
-  tasks.forEach(task => {
-    // Apply search filter
-    if (searchQuery && !task.task_text.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return;
+const createTask = useMutation({
+  mutationFn: async (params: Partial<Task> & { task_text: string }) => {
+    const session = await getSession();
+    
+    // Validate section belongs to project if both provided
+    if (params.section_id && params.project_id) {
+      const { data: section } = await supabase
+        .from('project_sections')
+        .select('project_id')
+        .eq('id', params.section_id)
+        .maybeSingle();
+      
+      if (section && section.project_id !== params.project_id) {
+        throw new Error('Section does not belong to this project');
+      }
     }
-
-    // Apply other filters
-    if (filters.status && task.status !== filters.status) return;
-    if (filters.priority && task.priority !== filters.priority) return;
-
-    // DEBUG: Log task grouping (remove after testing)
-    if (task.project_id === projectId) {
-      console.log('[TaskGrouping]', {
-        id: task.task_id.slice(0, 8),
-        text: task.task_text.slice(0, 30),
-        section_id: task.section_id,
-        has_section_bucket: task.section_id ? !!grouped[task.section_id] : false
-      });
-    }
-
-    if (task.section_id && grouped[task.section_id]) {
-      grouped[task.section_id].push(task);
-    } else {
-      grouped.unsectioned.push(task);
-    }
-  });
-
-  // DEBUG: Log final grouping (remove after testing)
-  console.log('[TaskGrouping] Result:', 
-    Object.entries(grouped).map(([k, v]) => `${k.slice(0, 8)}: ${v.length}`).join(', ')
-  );
-
-  // Apply sorting...
-  return grouped;
-}, [tasks, sections, searchQuery, filters, sortConfig, projectId]);
+    
+    // ... rest of mutation function (unchanged)
+  },
+  // ... rest unchanged
+});
 ```
 
 ---
 
-### Fix 4: Improve Real-time Handler Logging
+### Fix 4: Add Database Foreign Key Constraint (Optional but Recommended)
 
-**File**: `src/hooks/useTasks.tsx` (lines 66-114)
+**Migration SQL:**
 
-**Changes**:
-Add more detailed logging to the real-time handler.
+Add a proper foreign key constraint with ON DELETE SET NULL to prevent future orphan issues:
 
-```typescript
-// In the real-time subscription callback
-(payload) => {
-  console.log('Task realtime update:', {
-    event: payload.eventType,
-    taskId: (payload.new as Task)?.task_id?.slice(0, 8) || (payload.old as Task)?.task_id?.slice(0, 8),
-    section_id: (payload.new as Task)?.section_id,
-    project_id: (payload.new as Task)?.project_id,
-  });
-  
-  // ... rest of handler
-}
+```sql
+-- Add foreign key constraint for section_id with ON DELETE SET NULL
+-- This ensures if a section is deleted, tasks automatically get section_id = NULL
+ALTER TABLE tasks 
+ADD CONSTRAINT tasks_section_id_fkey 
+FOREIGN KEY (section_id) 
+REFERENCES project_sections(id) 
+ON DELETE SET NULL;
 ```
+
+This is optional since Fix 1 handles it at the application level, but provides defense-in-depth.
 
 ---
 
-## Summary of Changes
+## Summary of File Changes
 
-| File | Change | Priority |
-|------|--------|----------|
-| `src/hooks/useTasks.tsx` | Remove optimistic update from createTask, add backup invalidation | HIGH |
-| `src/hooks/useTasks.tsx` | Add detailed logging to real-time handler | MEDIUM |
-| `src/components/projects/monday-board/BoardGroup.tsx` | Add loading state and disable button while creating | MEDIUM |
-| `src/components/projects/monday-board/MondayBoardView.tsx` | Add debug logging for task grouping | LOW (temporary) |
+| File | Change |
+|------|--------|
+| `src/hooks/useProjectSections.tsx` | Update `deleteSection` to move tasks before deleting, invalidate task queries |
+| `src/components/projects/monday-board/BoardGroup.tsx` | Add `isDeleting` state, improve confirmation message with task count |
+| `src/hooks/useTasks.tsx` | Add section/project validation to `createTask` |
+| Database migration (optional) | Add foreign key constraint with ON DELETE SET NULL |
 
 ---
 
 ## Testing Checklist
 
 After implementation:
-- [ ] Create task in a group - appears in correct group within 1-2 seconds
-- [ ] Check browser console for `[TaskGrouping]` logs showing correct section_id
+
+**Task Creation:**
+- [ ] Create task in a group - appears in that group within 1-2 seconds
 - [ ] No duplicate tasks appearing
-- [ ] "Add" button shows "Adding..." while creating
-- [ ] Task doesn't flash to "Uncategorized" before moving to correct group
+- [ ] Check console for `[TaskGrouping]` logs showing correct `section_id`
 - [ ] Reload page - tasks remain in correct groups
-- [ ] Check console for real-time logs confirming section_id is populated
+
+**Section Deletion:**
+- [ ] Delete a group with tasks - confirmation shows task count
+- [ ] After delete - tasks appear in "Uncategorized"
+- [ ] Delete empty group - deletes cleanly with no task message
+- [ ] Tasks don't disappear after section delete
+
+**Validation:**
+- [ ] Create task with mismatched section/project - should show error (edge case)
 
 ---
 
-## Verification SQL
+## Cleanup (After Testing)
 
-Run this in the database to verify `section_id` is saved correctly:
+Remove debug logging from these files once verified working:
 
-```sql
-SELECT task_id, task_text, project_id, section_id, created_at 
-FROM tasks 
-WHERE project_id = 'your-project-id'
-ORDER BY created_at DESC 
-LIMIT 10;
-```
+1. `src/components/projects/monday-board/MondayBoardView.tsx` - Remove lines 57-65 and 88-91 (console.log statements)
+2. `src/hooks/useTasks.tsx` - Remove lines 81-86 (realtime detail logging)
 
-If `section_id` is NULL for tasks that should be in groups, there's a bug in the frontend passing the value. If `section_id` is correct but UI shows them in "Uncategorized", there's a grouping logic issue.
