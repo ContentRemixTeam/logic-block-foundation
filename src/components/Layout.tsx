@@ -15,6 +15,7 @@ import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { MobileQuickActions } from '@/components/mobile/MobileQuickActions';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { LaunchDebriefBanner } from '@/components/LaunchDebriefBanner';
+import { FloatingTimerBar } from '@/components/timer';
 import { Loader2, Sparkles, ArrowRight, X } from 'lucide-react';
 
 // Lazy load heavy arcade components - only loaded when arcade is enabled
@@ -137,6 +138,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         {/* Floating Actions */}
         <QuickCaptureButton />
         <MobileQuickActions />
+        <FloatingTimerBar />
         
         {/* Arcade Drawer - lazy loaded */}
         {settings.arcade_enabled && (

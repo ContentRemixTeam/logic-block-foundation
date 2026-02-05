@@ -5715,30 +5715,39 @@ export type Database = {
         Row: {
           actual_minutes: number
           created_at: string | null
+          ended_at: string | null
+          entry_type: string | null
           estimated_minutes: number | null
           id: string
           logged_at: string | null
           parent_task_id: string | null
+          started_at: string | null
           task_id: string
           user_id: string
         }
         Insert: {
           actual_minutes: number
           created_at?: string | null
+          ended_at?: string | null
+          entry_type?: string | null
           estimated_minutes?: number | null
           id?: string
           logged_at?: string | null
           parent_task_id?: string | null
+          started_at?: string | null
           task_id: string
           user_id: string
         }
         Update: {
           actual_minutes?: number
           created_at?: string | null
+          ended_at?: string | null
+          entry_type?: string | null
           estimated_minutes?: number | null
           id?: string
           logged_at?: string | null
           parent_task_id?: string | null
+          started_at?: string | null
           task_id?: string
           user_id?: string
         }
