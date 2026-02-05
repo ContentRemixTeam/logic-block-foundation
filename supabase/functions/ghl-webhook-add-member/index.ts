@@ -5,11 +5,53 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Verify webhook request using API key authentication
+function verifyWebhookAuth(req: Request): boolean {
+  const GHL_WEBHOOK_SECRET = Deno.env.get('GHL_WEBHOOK_SECRET');
+  
+  // If no secret is configured, reject all requests (fail secure)
+  if (!GHL_WEBHOOK_SECRET) {
+    console.error('GHL_WEBHOOK_SECRET not configured - rejecting request');
+    return false;
+  }
+  
+  // Check for API key in headers (GoHighLevel custom header or Authorization)
+  const apiKey = req.headers.get('X-GHL-Api-Key') || 
+                 req.headers.get('X-Webhook-Secret') ||
+                 req.headers.get('Authorization')?.replace('Bearer ', '');
+  
+  if (!apiKey) {
+    console.error('No API key provided in request headers');
+    return false;
+  }
+  
+  // Constant-time comparison to prevent timing attacks
+  if (apiKey.length !== GHL_WEBHOOK_SECRET.length) {
+    return false;
+  }
+  
+  let result = 0;
+  for (let i = 0; i < apiKey.length; i++) {
+    result |= apiKey.charCodeAt(i) ^ GHL_WEBHOOK_SECRET.charCodeAt(i);
+  }
+  
+  return result === 0;
+}
+
 Deno.serve(async (req) => {
   console.log('GHL Webhook: Add Member called');
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+  
+  // Verify webhook authentication
+  if (!verifyWebhookAuth(req)) {
+    console.error('Webhook authentication failed');
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized - Invalid or missing API key' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   try {
