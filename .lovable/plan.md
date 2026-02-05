@@ -1,191 +1,220 @@
 
-# Task Manager Simplification: Remove Redundant Status Field
+# Comprehensive Task Manager Date Fixing - All Glitches
 
 ## Overview
 
-After auditing the codebase, the user's analysis is **correct** - the `status` field is indeed redundant and creates confusion. Here's what I found:
+After auditing the codebase, I've confirmed **7 critical issues** with date selection across multiple files. The core problems are:
 
-### Current Confusing State
-
-The task system has **overlapping organization methods**:
-
-| Concept | Current Implementation | Problem |
-|---------|----------------------|---------|
-| **When?** | `scheduled_date`, `planned_day` | Works correctly |
-| **How important?** | `priority` (high/medium/low) | Works correctly |
-| **Energy needed?** | `energy_level` | Works correctly |
-| **Is it blocked?** | `waiting_on` (text field) | Works correctly |
-| **Project workflow?** | `project_column` (todo/in_progress/done) | Works correctly |
-| **Generic status?** | `status` (focus/scheduled/backlog/waiting/someday) | REDUNDANT - overlaps with dates |
-
-**Key Problem:** The Kanban view (TaskKanbanView.tsx) uses `status === 'someday'` as a **special case** that overrides date-based logic (line 102-105), causing confusion about whether "Someday" is a date range or a status.
+1. **parseISO errors** - Using `new Date(string)` instead of `parseISO(string)` for date string parsing
+2. **Popovers don't close** - Calendar popovers remain open after date selection
+3. **Inconsistent date handling** - Mix of `new Date()` and `parseISO()` across files
+4. **No clear date button** - Users can't easily remove a date once set
+5. **Missing initialFocus** - Calendar doesn't focus properly when opened
+6. **Nested popover issues** - TaskCard has nested popovers causing interaction problems
+7. **Mobile touch issues** - Calendar touch interactions conflict with scroll
 
 ---
 
-## Proposed Changes
+## Files Requiring Changes
 
-### Phase 1: Update Kanban View Logic (Date-Only)
+| File | Location | Issues |
+|------|----------|--------|
+| `src/components/tasks/views/TaskBoardRow.tsx` | Lines 144-174 | `new Date()` instead of `parseISO`, no controlled state, no close after select |
+| `src/components/projects/monday-board/BoardRow.tsx` | Lines 121-144 | Same issues |
+| `src/components/projects/monday-board/TaskDetailsDrawer.tsx` | Lines 257-274 | Same issues |
+| `src/pages/Tasks.tsx` | Lines 1461-1476 | No controlled state, no close after select |
+| `src/components/tasks/TaskCard.tsx` | Lines 426-441 | Nested popover issues, no controlled state |
+| `src/components/notes/CreateFromSelectionModal.tsx` | Lines 246-260 | Already correct (uses `Date` object, not string) |
+| `src/components/content/ContentSaveModal.tsx` | Lines 340-364, 384-408 | Already correct (uses `parseISO` properly) |
 
-**File:** `src/components/tasks/views/TaskKanbanView.tsx`
+---
 
-Replace the `getTaskColumn` function to use pure date-based logic:
+## Fix #1: TaskBoardRow.tsx - Calendar Date Selection
 
+**Current Problem (lines 144-174):**
 ```typescript
-function getTaskColumn(task: Task): string {
-  const now = new Date();
-  const today = startOfDay(now);
-  
-  // Get the effective date (planned_day takes priority, then scheduled_date)
-  const dateStr = task.planned_day || task.scheduled_date;
-  
-  // No date = unscheduled
-  if (!dateStr) {
-    return 'unscheduled';
-  }
-
-  const taskDate = startOfDay(new Date(dateStr));
-  const daysUntil = Math.floor((taskDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-  // Overdue or today
-  if (daysUntil <= 0) return 'today';
-  
-  // This week (1-7 days)
-  if (daysUntil <= 7) return 'this_week';
-  
-  // Next week (8-14 days)
-  if (daysUntil <= 14) return 'next_week';
-  
-  // Next quarter (15-90 days)
-  if (daysUntil <= 90) return 'next_quarter';
-  
-  // Someday (>90 days)
-  return 'someday';
-}
+// Uses new Date() which can cause parsing issues
+selected={task.scheduled_date ? new Date(task.scheduled_date) : undefined}
+// No controlled open state - popover doesn't close after selection
 ```
 
-Update the `getColumnTargetDate` function to set far-future dates for "Someday" instead of using status:
+**Fix:**
+1. Add `parseISO` to imports
+2. Add controlled popover state: `const [datePopoverOpen, setDatePopoverOpen] = useState(false)`
+3. Use controlled `Popover`: `open={datePopoverOpen} onOpenChange={setDatePopoverOpen}`
+4. Use `parseISO()` for date parsing
+5. Close popover in `onSelect`: `setDatePopoverOpen(false)`
+6. Add `initialFocus` to Calendar
+7. Add "Clear date" button
 
+---
+
+## Fix #2: BoardRow.tsx - Project Board Date Selection
+
+**Current Problem (lines 121-144):**
 ```typescript
-case 'someday':
-  // Set date to 6 months from now (signals "far future")
-  const somedayDate = addMonths(now, 6);
-  return { date: somedayDate.toISOString().split('T')[0] };
+selected={task.scheduled_date ? new Date(task.scheduled_date) : undefined}
+// Same issues as TaskBoardRow
 ```
 
-Also update the drag-drop handler to stop setting/clearing status.
+**Fix:**
+Same pattern as Fix #1:
+- Add `parseISO` import
+- Add controlled state for the popover
+- Use `parseISO()` for date string parsing
+- Close popover on selection
+- Add clear button
 
 ---
 
-### Phase 2: Remove Status Dropdown from Board Views
+## Fix #3: TaskDetailsDrawer.tsx - Drawer Date Picker
 
-**Files to update:**
-
-1. **`src/components/projects/monday-board/BoardRow.tsx`**
-   - Remove `STATUS_OPTIONS` constant (lines 44-50)
-   - Remove the status case from `renderCell` (lines 129-151)
-   - Update the `BOARD_COLUMNS` reference to exclude status
-
-2. **`src/components/tasks/views/TaskBoardRow.tsx`**
-   - Remove `STATUS_OPTIONS` constant (lines 53-59)
-   - Remove the status case from `renderCell` (lines 152-172)
-
-3. **`src/types/project.ts`**
-   - Remove 'status' from `BOARD_COLUMNS` array if present
-
----
-
-### Phase 3: Replace Status-Based Filtering with "Blocked" Filter
-
-Instead of filtering by status, add a "Blocked Tasks" filter based on the `waiting_on` field:
-
-**Files to update:**
-
-1. **`src/components/weekly-plan/AvailableTasksSidebar.tsx`**
-   - Change filter from `status === 'waiting'` to `waiting_on !== null`
-
-2. **`src/components/weekly-plan/WeekInbox.tsx`**
-   - Same change as above
-
-3. **`src/pages/Tasks.tsx`**
-   - Update `handleQuickReschedule` to stop setting status
-   - Update overdue task handling to use dates only
-
----
-
-### Phase 4: Update TaskMondayBoardView Grouping
-
-**File:** `src/components/tasks/views/TaskMondayBoardView.tsx`
-
-- Remove 'status' from `GroupByOption` type
-- Remove `STATUS_GROUPS` constant
-- Update grouping logic to default to 'date' instead of 'status'
-- Keep date, priority, and project grouping options
-
----
-
-### Phase 5: Cleanup Type Definitions
-
-**File:** `src/components/tasks/types.ts`
-
-Mark status field as deprecated (don't remove yet for backward compatibility):
-
+**Current Problem (lines 257-274):**
 ```typescript
-/**
- * @deprecated Status field is redundant. Use:
- * - scheduled_date/planned_day for scheduling
- * - waiting_on for blocked tasks
- * - project_column for project workflow
- */
-status: 'focus' | 'scheduled' | 'backlog' | 'waiting' | 'someday' | null;
+selected={localTask.scheduled_date ? new Date(localTask.scheduled_date) : undefined}
+// No controlled popover state
 ```
 
-Remove the `TaskStatus` type export since it won't be used.
+**Fix:**
+Same pattern:
+- Add `parseISO` to imports from `date-fns`
+- Add controlled state: `const [datePopoverOpen, setDatePopoverOpen] = useState(false)`
+- Convert to controlled Popover
+- Use `parseISO()` for parsing
+- Close on selection
+- Add clear button
 
 ---
 
-### Phase 6: Update Theme Colors (Optional Cleanup)
+## Fix #4: Tasks.tsx - Detail Dialog Date Selection
 
-**File:** `src/lib/themeColors.ts`
+**Current Problem (lines 1461-1476):**
+```typescript
+// Uses parseISO correctly but no controlled state
+<Popover>
+  // Never closes after selection
+```
 
-Keep the color utilities but add deprecation notice - the colors can still be used for other UI elements.
-
----
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/components/tasks/views/TaskKanbanView.tsx` | Use pure date logic, remove status handling |
-| `src/components/tasks/views/TaskBoardRow.tsx` | Remove STATUS_OPTIONS and status cell |
-| `src/components/projects/monday-board/BoardRow.tsx` | Remove STATUS_OPTIONS and status cell |
-| `src/components/tasks/views/TaskMondayBoardView.tsx` | Remove status grouping option |
-| `src/pages/Tasks.tsx` | Update reschedule handlers to not set status |
-| `src/components/weekly-plan/AvailableTasksSidebar.tsx` | Use `waiting_on` instead of status |
-| `src/components/weekly-plan/WeekInbox.tsx` | Use `waiting_on` instead of status |
-| `src/components/tasks/types.ts` | Add deprecation comment |
-| `src/lib/themeColors.ts` | Add deprecation notice |
-| `src/hooks/useTasks.tsx` | Update filter logic in `unplannedTasks` |
+**Fix:**
+- Add controlled popover state near other state variables
+- Use controlled `Popover` component
+- Close after selection
+- Add clear button
 
 ---
 
-## What NOT to Change
+## Fix #5: TaskCard.tsx - Quick Reschedule Calendar
 
-1. **Database column** - Keep the `status` column for now (backward compatibility)
-2. **`waiting_on` field** - This is useful and should stay
-3. **`project_column`** - This serves a different purpose for project workflows
-4. **Priority/Energy/Tags** - These are valuable and independent
+**Current Problem (lines 426-441):**
+```typescript
+// Nested popover inside another popover
+// Uses parseISO correctly but no controlled state
+<Popover>
+  <PopoverTrigger>Pick a date...</PopoverTrigger>
+  <PopoverContent>
+    <Calendar />  // Inside outer popover
+  </PopoverContent>
+</Popover>
+```
+
+**Fix:**
+- Add controlled state for inner calendar popover
+- Close inner popover after date selection
+- The outer popover will naturally close when calendar closes
 
 ---
 
-## Expected Behavior After Changes
+## Summary of Pattern to Apply
 
-| Scenario | Before | After |
-|----------|--------|-------|
-| View Kanban | "Someday" status overrides dates | Pure date-based columns |
-| Drag to "Someday" | Sets `status = 'someday'` | Sets date to 6 months out |
-| Blocked tasks | Filter by `status = 'waiting'` | Filter by `waiting_on IS NOT NULL` |
-| Board view | Shows redundant status column | Status column removed |
-| Task grouping | Can group by status | Group by date/priority/project |
+Every Calendar popover needs this pattern:
+
+```typescript
+// 1. Add controlled state
+const [dateOpen, setDateOpen] = useState(false);
+
+// 2. Use controlled Popover
+<Popover open={dateOpen} onOpenChange={setDateOpen}>
+  <PopoverTrigger asChild>
+    <Button variant="outline" className="...">
+      <CalendarIcon className="h-4 w-4 mr-2" />
+      {dateValue 
+        ? format(parseISO(dateValue), 'MMM d') 
+        : 'Set date'}
+    </Button>
+  </PopoverTrigger>
+  <PopoverContent className="w-auto p-0" align="start">
+    <Calendar
+      mode="single"
+      selected={dateValue ? parseISO(dateValue) : undefined}
+      onSelect={(date) => {
+        onUpdate({ scheduled_date: date ? format(date, 'yyyy-MM-dd') : null });
+        setDateOpen(false); // Close after selection
+      }}
+      initialFocus
+      className="pointer-events-auto"
+    />
+    {/* Clear button */}
+    {dateValue && (
+      <div className="p-2 border-t">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="w-full text-sm"
+          onClick={() => {
+            onUpdate({ scheduled_date: null });
+            setDateOpen(false);
+          }}
+        >
+          Clear date
+        </Button>
+      </div>
+    )}
+  </PopoverContent>
+</Popover>
+```
+
+---
+
+## Files Already Correct
+
+These files already handle dates correctly:
+- **`CreateFromSelectionModal.tsx`** - Uses `Date` objects directly (not string parsing)
+- **`ContentSaveModal.tsx`** - Uses `parseISO()` correctly with `initialFocus`
+
+---
+
+## Import Changes Required
+
+For files using `new Date(dateString)`:
+```typescript
+// Before
+import { format } from 'date-fns';
+
+// After
+import { format, parseISO } from 'date-fns';
+```
+
+---
+
+## Technical Details
+
+### Why parseISO vs new Date?
+
+| Method | Input | Behavior |
+|--------|-------|----------|
+| `new Date('2024-01-15')` | ISO string | Parses in UTC, may cause timezone shift |
+| `parseISO('2024-01-15')` | ISO string | Parses correctly as local date |
+
+### Why Controlled Popover?
+
+Uncontrolled popovers stay open because:
+- The `onSelect` callback doesn't trigger the popover to close
+- User must click outside to dismiss
+- Poor UX - expected behavior is close-on-select
+
+### Mobile Touch Optimization
+
+Adding `className="pointer-events-auto"` ensures the calendar receives touch events properly within the popover portal.
 
 ---
 
@@ -193,21 +222,25 @@ Keep the color utilities but add deprecation notice - the colors can still be us
 
 After implementation:
 
-**Kanban View:**
-- [ ] Drag task to Unscheduled - clears date, no status change
-- [ ] Drag task to Today - sets today's date
-- [ ] Drag task to Someday - sets date 6 months out
-- [ ] Tasks appear in correct columns based on dates only
+**Date Selection:**
+- [ ] Click calendar icon → opens calendar
+- [ ] Select a date → calendar closes immediately
+- [ ] Date shows in UI right away
+- [ ] Click calendar again → shows previously selected date highlighted
+- [ ] Click "Clear date" → removes date and closes popover
 
-**Board Views:**
-- [ ] Status column no longer appears
-- [ ] All other columns work correctly
-- [ ] No errors when loading board views
+**Mobile:**
+- [ ] Touch calendar works without scroll conflicts
+- [ ] Calendar doesn't appear behind other elements
+- [ ] Touch to select date works on first tap
 
-**Filters:**
-- [ ] "Show Blocked Tasks" filter uses `waiting_on` field
-- [ ] Weekly planning filters work correctly
+**No Errors:**
+- [ ] No `parseISO` errors in console
+- [ ] No "Invalid Date" shown
 
-**Backward Compatibility:**
-- [ ] Existing tasks with old status values still appear correctly
-- [ ] No database errors or data loss
+**Works In All Locations:**
+- [ ] TaskBoardRow (database view)
+- [ ] Tasks.tsx detail dialog
+- [ ] BoardRow (project view)
+- [ ] TaskDetailsDrawer
+- [ ] TaskCard quick reschedule
