@@ -6,7 +6,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { 
   Search, Target, Calendar, CheckSquare, RefreshCw, ClipboardList, 
   BarChart3, Brain, Lightbulb, Zap, Clock, LayoutList, Columns,
-  Trophy, Repeat, FileText, Sparkles, Smartphone
+  Trophy, Repeat, FileText, Sparkles, Smartphone, CalendarRange, Layers, ArrowUpDown
 } from 'lucide-react';
 
 interface FeatureSection {
@@ -147,15 +147,17 @@ const featuresData: FeatureSection[] = [
     description: 'Your workflow command center for managing all tasks, with multiple views and smart filtering.',
     details: [
       'Three views: List (grouped by date), Kanban (drag-and-drop columns), Timeline (calendar-based)',
-      'Timeline has sub-views: Day, 3-Day, Week, and Month views',
-      'Filter tasks by energy level (High Focus, Medium, Low) or context tags',
+      'List view supports flexible grouping: by Date, Priority, Project, or Energy Level',
+      'Sort tasks by Due Date, Priority, Created Date, or Name (ascending/descending)',
+      'Timeline has sub-views: Day, 3-Day, Week views',
+      'Filter tasks by energy level (High Focus, Medium, Low) and context tags',
       'Capacity Indicator shows how much of your 8-hour workday is scheduled',
       'Tasks integrate with Google Calendar for time blocking'
     ],
     tips: [
       'Use List view for quick task management, Kanban for workflow visualization',
-      'Timeline view is great for time blocking and seeing your day at a glance',
-      'The unscheduled sidebar in Timeline view helps you drag tasks onto your calendar'
+      'Group by Project to see all tasks for a specific project in one place',
+      'Timeline view is great for time blocking and seeing your day at a glance'
     ]
   },
   {
@@ -475,10 +477,52 @@ const featuresData: FeatureSection[] = [
       'The app updates automatically when you\'re online',
       'Use the mobile bottom navigation bar for quick access to all sections'
     ]
+  },
+  {
+    id: 'editorial-calendar',
+    category: 'Other Features',
+    title: 'Editorial Calendar',
+    icon: CalendarRange,
+    description: 'Plan and visualize your content publishing schedule across all platforms.',
+    details: [
+      'Week-by-week calendar view with Create and Publish lanes',
+      'Drag-and-drop content items between days',
+      'Add graphics URLs and copy/caption text to each content item',
+      'Link content to marketing campaigns for organized launches',
+      'Filter by platform, content type, or campaign',
+      'Unscheduled pool for content ideas not yet assigned to dates',
+      'Campaign layers show active promotional periods as colored bars'
+    ],
+    tips: [
+      'Use the Create lane for content creation dates, Publish lane for go-live dates',
+      'Attach graphics URLs to keep visual assets organized with your content',
+      'Add copy/captions directly in the content drawer for easy reference',
+      'Link content to campaigns for coordinated launch planning'
+    ]
+  },
+  {
+    id: 'task-sorting-grouping',
+    category: 'Task Management',
+    title: 'Task Sorting & Grouping',
+    icon: Layers,
+    description: 'Organize your task list view by grouping and sorting options to find what you need quickly.',
+    details: [
+      'Group by Due Date: Overdue, Today, Tomorrow, This Week, Later, No Date',
+      'Group by Priority: High, Medium, Low, No Priority',
+      'Group by Project: See tasks organized by their assigned project',
+      'Group by Energy Level: High Focus, Medium, Low Energy',
+      'Sort within groups by Due Date, Priority, Created Date, or Name',
+      'Toggle ascending/descending sort order'
+    ],
+    tips: [
+      'Group by Project when focusing on a specific initiative',
+      'Group by Energy Level to batch similar-effort tasks together',
+      'Use Priority sorting to always see your most important tasks first'
+    ]
   }
 ];
 
-const categories = ['All', 'Core Planning', 'Task Management', 'Reviews & Reflection', 'Habits & Mindset', 'Other Features'];
+const categories = ['All', 'Core Planning', 'Task Management', 'Reviews & Reflection', 'Habits & Mindset', 'Other Features', 'Content'];
 
 export function FeaturesGuide() {
   const [searchQuery, setSearchQuery] = useState('');
