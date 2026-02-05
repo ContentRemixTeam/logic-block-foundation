@@ -742,7 +742,7 @@ export default function Tasks() {
         <TaskImportModal
           open={isImportModalOpen}
           onOpenChange={setIsImportModalOpen}
-          onImportComplete={() => queryClient.invalidateQueries({ queryKey: ['tasks'] })}
+           onImportComplete={() => queryClient.invalidateQueries({ queryKey: ['all-tasks'] })}
         />
 
         {/* Timeline view type selector */}

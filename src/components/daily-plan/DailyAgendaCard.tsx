@@ -241,7 +241,7 @@ export function DailyAgendaCard({ date = new Date(), onTaskToggle }: DailyAgenda
     }
 
     // Refresh tasks list
-    queryClient.invalidateQueries({ queryKey: ['tasks'] });
+     queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
   };
 
   const formatDuration = (minutes: number | null): string => {

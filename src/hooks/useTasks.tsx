@@ -431,8 +431,11 @@ export function useTasksForDate(date: Date | string) {
   const tasksForDate = useMemo(() => {
     return allTasks.filter(task => {
       if (task.is_recurring_parent) return false;
-      // Check both scheduled_date and planned_day
-      return task.scheduled_date === dateStr || task.planned_day === dateStr;
+       // Check all date fields consistently (matches getTasksForDate utility)
+       const isScheduledForDate = task.scheduled_date === dateStr;
+       const isPlannedForDate = task.planned_day === dateStr;
+       const hasTimeBlockForDate = task.time_block_start?.startsWith(dateStr);
+       return isScheduledForDate || isPlannedForDate || hasTimeBlockForDate;
     });
   }, [allTasks, dateStr]);
 

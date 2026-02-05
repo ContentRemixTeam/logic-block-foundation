@@ -311,7 +311,7 @@ export function ContentPlannerWizard() {
       queryClient.invalidateQueries({ queryKey: ['editorial-calendar-plans'] });
       queryClient.invalidateQueries({ queryKey: ['editorial-calendar-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['editorial-calendar-unscheduled'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+       queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['content-for-planner'] });
       
       // Navigate to editorial calendar or project page
