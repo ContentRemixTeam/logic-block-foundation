@@ -1,260 +1,155 @@
 
-# Sprint 1: "Stop the Bleeding" - Security & Performance Fixes
 
-## Current State Analysis
+# RLS Security Test Suite - Implementation Plan
 
-After thoroughly reviewing your database, I found that **your foundation is stronger than expected**:
+## Overview
 
-### ✅ Already In Place
-| Area | Status | Details |
-|------|--------|---------|
-| **RLS Enabled** | ✅ Complete | All 18 core user tables have RLS enabled with 4-6 policies each |
-| **user_id NOT NULL** | ✅ Complete | All core tables (tasks, daily_plans, projects, etc.) have `user_id NOT NULL` |
-| **Core Indexes** | ✅ Mostly done | `idx_tasks_user_status`, `idx_daily_plans_user_date`, `idx_cycles_user_id`, etc. exist |
-| **Smart Filtering** | ✅ Complete | `get-all-tasks` already uses 90-day + incomplete filter |
-| **Pagination Support** | ✅ Partial | Edge function supports pagination via limit/offset |
+Create a comprehensive Supabase migration that tests Row Level Security (RLS) policies to verify that users cannot access each other's data. This is a critical security verification that should run during deployment.
 
-### ⚠️ Gaps That Need Fixing
-| Area | Risk Level | Issue |
-|------|------------|-------|
-| **Security Findings** | 🔴 CRITICAL | 5 error-level issues from security scan (OAuth tokens, API keys, entitlements) |
-| **Missing Status Constraint** | 🟡 Medium | No CHECK constraint on `tasks.status` column |
-| **Missing Foreign Keys** | 🟡 Medium | No FK constraints on `project_id`, `section_id`, `cycle_id` references |
-| **Missing Compound Index** | 🟡 Low | No `idx_tasks_user_created_desc` for recent tasks query |
-| **Query Limit Enforcement** | 🟡 Medium | Frontend hooks don't enforce explicit limits or show warnings |
-| **RLS Test Suite** | 🟡 Medium | No automated test to verify RLS can't be bypassed |
+## What This Test Will Do
 
----
+1. **Create two test users** with predictable UUIDs
+2. **Insert test data** for User 1 across all core tables
+3. **Switch context** to User 2 and verify they CANNOT see User 1's data
+4. **Verify protection** for all CRUD operations (SELECT, INSERT, UPDATE, DELETE)
+5. **Verify User 1 CAN see** their own data (positive test)
+6. **Clean up** all test data automatically
+7. **Fail the migration** if any security test fails
 
-## Implementation Plan
+## Tables Being Tested
 
-### Phase 1: Add Missing Database Indexes (15 min)
+| Table | Primary Key | Test Data |
+|-------|-------------|-----------|
+| `tasks` | `task_id` | "User 1 Secret Task" |
+| `cycles_90_day` | `cycle_id` | "User 1 Secret Goal" |
+| `daily_plans` | `day_id` | "User 1 Secret Plan" |
+| `projects` | `id` | "User 1 Secret Project" |
+| `ideas_db` | `idea_id` | "User 1 Secret Idea" |
+| `journal_pages` | `id` | "User 1 Secret Journal" |
 
-Add these performance-critical indexes that are missing:
+## Test Cases
 
+### Data Isolation Tests (6 tests)
+- ✅ User 2 cannot SELECT User 1's tasks
+- ✅ User 2 cannot SELECT User 1's cycles
+- ✅ User 2 cannot SELECT User 1's daily plans
+- ✅ User 2 cannot SELECT User 1's projects
+- ✅ User 2 cannot SELECT User 1's ideas
+- ✅ User 2 cannot SELECT User 1's journal pages
+
+### Positive Access Test (1 test)
+- ✅ User 1 CAN see their own data
+
+### Write Protection Tests (3 tests)
+- ✅ User 2 cannot INSERT data as User 1
+- ✅ User 2 cannot UPDATE User 1's data
+- ✅ User 2 cannot DELETE User 1's data
+
+**Total: 10 tests**
+
+## Technical Implementation
+
+### Test User IDs
 ```sql
--- Task queries: user + created_at for smart filter
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tasks_user_created_at 
-  ON public.tasks(user_id, created_at DESC);
-
--- Task queries: user + is_completed for incomplete filter
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tasks_user_incomplete
-  ON public.tasks(user_id) WHERE is_completed = false;
-
--- Journal pages: user_id (if missing)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_journal_pages_user_id 
-  ON public.journal_pages(user_id);
-
--- Journal pages: compound for date queries
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_journal_pages_user_date
-  ON public.journal_pages(user_id, page_date DESC);
-
--- Ideas: GIN index for tags search
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_ideas_db_tags 
-  ON public.ideas_db USING GIN (tags) WHERE tags IS NOT NULL;
-
--- Weekly plans: user + cycle for hierarchy queries
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_weekly_plans_user_cycle 
-  ON public.weekly_plans(user_id, cycle_id);
+test_user_1 UUID := '10000000-0000-0000-0000-000000000001'
+test_user_2 UUID := '20000000-0000-0000-0000-000000000002'
 ```
 
-### Phase 2: Add Data Integrity Constraints (20 min)
-
-Add CHECK constraints and foreign keys for data integrity:
-
+### Context Switching Pattern
 ```sql
--- Status constraint for tasks (with safe values)
-ALTER TABLE public.tasks 
-ADD CONSTRAINT tasks_status_check 
-CHECK (status IS NULL OR status IN ('todo', 'in_progress', 'done', 'blocked', 'someday', 'scheduled'));
+-- Switch to authenticated user context
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claims.sub = 'user-uuid-here';
 
--- Foreign key: tasks.project_id → projects.id
-ALTER TABLE public.tasks
-ADD CONSTRAINT fk_tasks_project
-FOREIGN KEY (project_id) REFERENCES public.projects(id)
-ON DELETE SET NULL;
+-- Run test query
+SELECT ... 
 
--- Foreign key: tasks.section_id → project_sections.id
-ALTER TABLE public.tasks
-ADD CONSTRAINT fk_tasks_section
-FOREIGN KEY (section_id) REFERENCES public.project_sections(id)
-ON DELETE SET NULL;
-
--- Foreign key: tasks.cycle_id → cycles_90_day.cycle_id
-ALTER TABLE public.tasks
-ADD CONSTRAINT fk_tasks_cycle
-FOREIGN KEY (cycle_id) REFERENCES public.cycles_90_day(cycle_id)
-ON DELETE SET NULL;
-
--- Foreign key: daily_plans.cycle_id → cycles_90_day.cycle_id
-ALTER TABLE public.daily_plans
-ADD CONSTRAINT fk_daily_plans_cycle
-FOREIGN KEY (cycle_id) REFERENCES public.cycles_90_day(cycle_id)
-ON DELETE SET NULL;
-
--- Foreign key: daily_plans.week_id → weekly_plans.week_id
-ALTER TABLE public.daily_plans
-ADD CONSTRAINT fk_daily_plans_week
-FOREIGN KEY (week_id) REFERENCES public.weekly_plans(week_id)
-ON DELETE SET NULL;
-
--- Foreign key: project_sections.project_id → projects.id
-ALTER TABLE public.project_sections
-ADD CONSTRAINT fk_sections_project
-FOREIGN KEY (project_id) REFERENCES public.projects(id)
-ON DELETE CASCADE;
+-- Reset role
+RESET ROLE;
 ```
 
-### Phase 3: Fix Critical Security Findings (45 min)
+### Result Tracking
+- Track passed/failed count
+- Accumulate results in TEXT variable
+- RAISE EXCEPTION if any test fails (stops deployment)
 
-The security scan found 5 error-level issues. Here's the fix approach:
+## File to Create
 
-#### 3a. User Profiles RLS (Currently accessible without auth)
-```sql
--- Drop existing policies and recreate with proper auth check
-DROP POLICY IF EXISTS "user_profiles_select" ON public.user_profiles;
-
-CREATE POLICY "Users can only view own profile"
-ON public.user_profiles FOR SELECT
-USING (auth.uid() = id);
-```
-
-#### 3b. Google Calendar Secrets (Should never be client-accessible)
-```sql
--- Restrict to service role only - no client access ever
-DROP POLICY IF EXISTS "Users can manage their own secrets" ON public.google_calendar_secrets;
-
--- No SELECT policy = no client read access
-CREATE POLICY "Service role only"
-ON public.google_calendar_secrets 
-USING (false) 
-WITH CHECK (false);
-```
-
-#### 3c. Google Calendar Connection (Tokens shouldn't be client-readable)
-```sql
--- Remove token columns from client reads
-CREATE OR REPLACE VIEW public.google_calendar_connection_safe AS
-SELECT 
-  user_id,
-  email,
-  calendar_id,
-  is_active,
-  created_at
-FROM public.google_calendar_connection;
--- Grant access to the view instead of the table
-```
-
-#### 3d. Entitlements Table (Admin-only access)
-```sql
--- Verify admin check is secure
-DROP POLICY IF EXISTS "Admin can view all entitlements" ON public.entitlements;
-
-CREATE POLICY "Admins only can view entitlements"
-ON public.entitlements FOR SELECT
-USING (public.is_admin(auth.uid()));
-```
-
-#### 3e. User Settings AI API Key (Should be encrypted/hidden)
-The `ai_api_key` column should never be returned to the client. Two options:
-1. Create a view that excludes this column
-2. Use column-level security with a security definer function
-
-### Phase 4: Add Query Safety & Performance Monitoring (30 min)
-
-#### 4a. Create useQueryPerformance hook
-```typescript
-// src/hooks/useQueryPerformance.ts
-export function useQueryPerformance(query, options) {
-  // Log warnings when queries take > 1 second
-  // Log errors when queries take > 3 seconds
-  // Emit custom events for UI warnings
-}
-```
-
-#### 4b. Update useTasks to use explicit limits
-The current `useTasks` hook doesn't warn when hitting limits. Add:
-- Explicit limit parameter (default 500)
-- Console warning when approaching limit
-- Performance tracking
-
-#### 4c. Create QueryPerformanceWarning component
-A toast/alert that appears when slow queries are detected, helping you identify performance issues before users complain.
-
-### Phase 5: Create RLS Bypass Test Suite (20 min)
-
-Create a migration that:
-1. Creates two test users with known UUIDs
-2. Inserts test data for user 1 across all core tables
-3. Switches to user 2 context and verifies they CANNOT see user 1's data
-4. Tests INSERT/UPDATE/DELETE protection
-5. Cleans up all test data
-6. Fails the migration if any test fails
-
-This runs on every deployment to ensure RLS is never accidentally broken.
-
----
-
-## Files to Create/Modify
-
-### New Files
 | File | Purpose |
 |------|---------|
-| `supabase/migrations/[timestamp]_sprint1_indexes.sql` | Add missing indexes |
-| `supabase/migrations/[timestamp]_sprint1_constraints.sql` | Add FK and CHECK constraints |
-| `supabase/migrations/[timestamp]_sprint1_security_fixes.sql` | Fix critical RLS issues |
-| `supabase/migrations/[timestamp]_sprint1_rls_test.sql` | RLS bypass test suite |
-| `src/hooks/useQueryPerformance.ts` | Query performance monitoring |
-| `src/components/system/QueryPerformanceWarning.tsx` | UI warning for slow queries |
+| `supabase/migrations/[timestamp]_rls_security_test.sql` | Comprehensive RLS bypass test suite |
 
-### Modified Files
-| File | Changes |
-|------|---------|
-| `src/hooks/useTasks.tsx` | Add explicit limits and performance tracking |
-| `src/components/Layout.tsx` | Include QueryPerformanceWarning component |
+## Expected Console Output
 
----
+```
+===========================================
+RLS SECURITY TEST SUITE
+Testing data isolation between users
+===========================================
+
+Setting up test data...
+Test data created ✓
+
+TEST 1: Tasks table RLS
+TEST 2: Cycles table RLS
+TEST 3: Daily Plans table RLS
+TEST 4: Projects table RLS
+TEST 5: Ideas table RLS
+TEST 6: Journal Pages table RLS
+TEST 7: User can see own data
+TEST 8: INSERT protection
+TEST 9: UPDATE protection
+TEST 10: DELETE protection
+
+Cleaning up test data...
+Cleanup complete ✓
+
+===========================================
+TEST RESULTS
+===========================================
+✅ Tasks: User 2 cannot see User 1 data
+✅ Cycles: User 2 cannot see User 1 data
+✅ Daily Plans: User 2 cannot see User 1 data
+✅ Projects: User 2 cannot see User 1 data
+✅ Ideas: User 2 cannot see User 1 data
+✅ Journal Pages: User 2 cannot see User 1 data
+✅ User 1 can see their own data
+✅ INSERT protection: User 2 cannot insert as User 1
+✅ UPDATE protection: User 2 cannot update User 1 data
+✅ DELETE protection: User 2 cannot delete User 1 data
+
+Passed: 10 | Failed: 0
+===========================================
+
+✅ ALL TESTS PASSED - RLS is properly configured
+```
+
+## Failure Behavior
+
+If any test fails:
+```
+❌ CRITICAL: User 2 can see User 1 tasks!
+
+...
+
+Passed: 8 | Failed: 2
+===========================================
+
+ERROR: SECURITY VULNERABILITIES DETECTED! 2 test(s) failed. FIX IMMEDIATELY before proceeding.
+```
+
+The migration will FAIL, preventing deployment until RLS issues are fixed.
 
 ## Risk Assessment
 
-| Change | Risk | Mitigation |
-|--------|------|------------|
-| Adding indexes | 🟢 Low | CONCURRENTLY prevents locks |
-| Adding constraints | 🟡 Medium | Validate existing data first with DO blocks |
-| RLS policy changes | 🔴 High | Test each policy change individually, verify user can still access own data |
-| Query limit changes | 🟢 Low | Backwards compatible, just adds warnings |
+| Aspect | Risk | Notes |
+|--------|------|-------|
+| Test execution | 🟢 None | Read-only tests wrapped in transaction |
+| Data cleanup | 🟢 None | Cleanup runs in same transaction |
+| Production impact | 🟢 None | Uses fake UUIDs that don't exist |
+| False positives | 🟢 Low | Tests clear expectations |
 
----
+## Implementation Ready
 
-## Pre-Flight Validation Queries
+This migration will be self-contained and can be run immediately after approval.
 
-Before running migrations, verify existing data won't violate new constraints:
-
-```sql
--- Check for invalid status values
-SELECT DISTINCT status, COUNT(*) FROM tasks GROUP BY status;
-
--- Check for orphaned project_id references
-SELECT COUNT(*) FROM tasks t 
-WHERE t.project_id IS NOT NULL 
-AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.id = t.project_id);
-
--- Check for orphaned section_id references
-SELECT COUNT(*) FROM tasks t 
-WHERE t.section_id IS NOT NULL 
-AND NOT EXISTS (SELECT 1 FROM project_sections s WHERE s.id = t.section_id);
-```
-
----
-
-## Expected Outcomes
-
-After Sprint 1:
-- ✅ All queries use indexed lookups (no full table scans)
-- ✅ RLS verified working with automated test
-- ✅ Critical security vulnerabilities fixed
-- ✅ Data integrity enforced at database level
-- ✅ Query performance monitored with warnings
-- ✅ Explicit limits prevent runaway queries
-
-Ready to implement when you approve!
