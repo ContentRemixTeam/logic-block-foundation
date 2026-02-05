@@ -488,6 +488,8 @@ export type Database = {
           creation_task_id: string | null
           cta: string | null
           cycle_id: string | null
+          graphics_url: string | null
+          graphics_urls: string[] | null
           hook: string | null
           id: string
           idea_id: string | null
@@ -537,6 +539,8 @@ export type Database = {
           creation_task_id?: string | null
           cta?: string | null
           cycle_id?: string | null
+          graphics_url?: string | null
+          graphics_urls?: string[] | null
           hook?: string | null
           id?: string
           idea_id?: string | null
@@ -586,6 +590,8 @@ export type Database = {
           creation_task_id?: string | null
           cta?: string | null
           cycle_id?: string | null
+          graphics_url?: string | null
+          graphics_urls?: string[] | null
           hook?: string | null
           id?: string
           idea_id?: string | null
