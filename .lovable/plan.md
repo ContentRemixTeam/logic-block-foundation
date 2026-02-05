@@ -1,460 +1,517 @@
 
-# Time Tracking Feature - Complete Implementation Plan
+# Custom Project Designer - Implementation Plan
 
 ## Overview
 
-Add comprehensive time tracking to your task management system. This feature enables:
-- Tracking estimated vs actual time spent on tasks
-- Automatic duration learning for recurring tasks
-- Time analytics and reports on the Progress page
-- Estimation accuracy insights
+Create an intelligent wizard that guides users through designing their own custom project board. Instead of picking a generic template, users answer questions about their use case, and the wizard generates a tailored project board with appropriate columns, suggested fields, and structure.
 
 ---
 
-## What You'll Get
+## Use Case Examples
 
-### 1. Task Completion Modal
-When completing a task with an estimated duration, a modal prompts for actual time:
+The wizard will recognize and optimize for these business scenarios (and more):
+
+| Use Case | Suggested Columns | Key Features |
+|----------|-------------------|--------------|
+| **Coaching/Consulting** | Lead → Discovery Call → Proposal → Client → Follow-up | Contact info, revenue tracking |
+| **Product Launch** | Ideas → Planning → Creating → Launch → Post-Launch | Launch dates, revenue goals |
+| **Content Creation** | Brainstorm → Drafting → Editing → Scheduled → Published | Due dates, platform tags |
+| **Client Projects** | Briefing → In Progress → Review → Revision → Delivered | Client name, deadlines |
+| **Event Planning** | Planning → Vendors → Promotion → Event Day → Wrap-up | Event date, budget |
+| **Sales Pipeline** | Lead → Qualified → Proposal → Negotiation → Won/Lost | Deal value, probability |
+| **Hiring/Recruitment** | Sourcing → Screening → Interview → Offer → Hired | Candidate info, role |
+| **Course/Program** | Module Planning → Creating → Review → Published | Module numbers, duration |
+
+---
+
+## Wizard Flow (5 Steps)
+
+### Step 1: What Are You Tracking?
+
+Ask the user what type of work they want to manage:
 
 ```text
-+-----------------------------------------------+
-|  Task Completed!                          [X] |
-|                                               |
-|  "Write blog post about SEO tips"             |
-|                                               |
-|  Estimated: 45 min                            |
-|                                               |
-|  How long did it actually take?               |
-|                                               |
-|  [15m] [30m] [45m] [1h] [1.5h] [2h]           |
-|                                               |
-|  [_______________] minutes                    |
-|                                               |
-|  [Use Estimate]  [Skip]  [Save]               |
-+-----------------------------------------------+
+What would you like to track?
+
+( ) Clients or Leads (coaching, consulting, sales)
+( ) Content (blog posts, videos, podcasts)
+( ) Products or Offers (launches, digital products)
+( ) Events (webinars, summits, workshops)
+( ) Projects (client work, internal projects)
+( ) Custom (I'll describe my own workflow)
+
+[Or describe it yourself: _______________]
 ```
 
-### 2. Smart Recurring Tasks
-For recurring tasks, the system learns from history:
-- Calculates average actual time from past instances
-- Auto-sets estimates on new instances
-- Shows "Usually takes ~45 min" badge
+If "Custom" or text entered, use AI to analyze and suggest appropriate columns.
 
-### 3. Progress Page Analytics
-New "Time Tracking" section with:
-- Weekly Time Chart (estimated vs actual)
-- Estimation Accuracy Score
-- Time by Project breakdown
-- Time by Tag breakdown
-- Recurring Task Averages table
+### Step 2: Define Your Workflow Stages
+
+Based on Step 1, present suggested columns that users can:
+- Keep as-is
+- Rename
+- Remove
+- Add new columns
+- Reorder (drag-and-drop)
+
+```text
+Here's a suggested workflow for tracking leads:
+
+[Lead] → [Discovery Call] → [Proposal Sent] → [Client] → [Follow-up]
+  ↑          ↑                   ↑               ↑           ↑
+[Edit]    [Edit]             [Edit]          [Edit]      [Edit]
+
+[+ Add Stage]
+
+Colors for each stage can be customized.
+```
+
+### Step 3: What Information Do You Need?
+
+Ask what data fields they want on each card/project:
+
+```text
+What information do you want to track for each item?
+
+[✓] Name (required)
+[✓] Description
+[ ] Contact Email
+[ ] Contact Phone
+[ ] Company Name
+[ ] Revenue/Deal Value
+[✓] Due Date
+[✓] Priority
+[ ] Tags/Labels
+[ ] Notes
+[ ] Assigned To (for teams - coming soon)
+[ ] Custom Field: [___________]
+```
+
+For coaching/leads use case, pre-select contact fields.
+For launches, pre-select revenue and dates.
+
+### Step 4: Appearance & Settings
+
+```text
+Board Settings
+
+Name your board: [_______________]
+Example: "Client Pipeline" or "Q1 Launches"
+
+Default view:
+( ) Kanban Board (drag cards between columns)
+( ) List View (sortable table)
+
+Card display:
+[✓] Show progress bar
+[✓] Show due date on card
+[ ] Show revenue on card
+[✓] Compact cards (less padding)
+
+Theme color: [color picker]
+```
+
+### Step 5: Review & Create
+
+Show a preview of the board with sample cards:
+
+```text
+Your Custom Board: Client Pipeline
+
+[Lead]          [Discovery]      [Proposal]       [Client]
+┌──────────┐   ┌──────────┐    ┌──────────┐    ┌──────────┐
+│ Jane Doe │   │ Bob Smith│    │ Acme Corp│    │ XYZ Inc  │
+│ Consult  │   │ Call Tue │    │ $5,000   │    │ Active   │
+│ $2,500   │   │ $3,000   │    │ Pending  │    │ $4,000   │
+└──────────┘   └──────────┘    └──────────┘    └──────────┘
+
+Ready to create?
+
+[Create Board]  [Save as Template]  [Back to Edit]
+```
 
 ---
 
 ## Database Changes
 
-### New Table: `time_entries`
+### New Table: `project_board_templates`
 
-Stores time logs for detailed reporting:
+Store user-created board configurations as reusable templates:
 
 | Column | Type | Purpose |
 |--------|------|---------|
 | id | UUID | Primary key |
-| user_id | UUID | Owner (references auth.users) |
-| task_id | UUID | Task completed (references tasks) |
-| parent_task_id | UUID | Recurring parent (nullable) |
-| estimated_minutes | INTEGER | Estimate at completion time |
-| actual_minutes | INTEGER | Logged actual time |
-| logged_at | TIMESTAMPTZ | When logged |
-| created_at | TIMESTAMPTZ | Record creation |
+| user_id | UUID | Owner |
+| name | TEXT | Template name |
+| description | TEXT | What it's for |
+| use_case | TEXT | Category (leads, content, etc.) |
+| columns | JSONB | Array of column definitions |
+| card_fields | JSONB | Which fields to show |
+| settings | JSONB | Display preferences |
+| is_public | BOOLEAN | Share with community (future) |
+| created_at | TIMESTAMPTZ | |
 
-### New View: `recurring_task_averages`
+### Update: `project_boards` table
 
-Pre-computed averages for recurring tasks:
+Add optional reference to template:
 
-```sql
-SELECT 
-  parent_task_id,
-  COUNT(*) as instance_count,
-  AVG(actual_minutes) as avg_actual_minutes,
-  AVG(estimated_minutes) as avg_estimated_minutes,
-  STDDEV(actual_minutes) as stddev_minutes
-FROM time_entries
-WHERE parent_task_id IS NOT NULL
-GROUP BY parent_task_id;
-```
+| Column | Type | Purpose |
+|--------|------|---------|
+| template_id | UUID | Link to source template (nullable) |
+| card_fields | JSONB | Which fields are visible on cards |
+| settings | JSONB | Board-specific display settings |
 
-### Settings Table Update
+### New Table: `project_card_fields`
 
-Add column to `task_settings`:
+Define custom fields for projects within a board:
 
-| Column | Type | Values |
-|--------|------|--------|
-| time_completion_modal | TEXT | 'always' / 'when_estimated' / 'never' |
+| Column | Type | Purpose |
+|--------|------|---------|
+| id | UUID | Primary key |
+| board_id | UUID | Which board |
+| user_id | UUID | Owner |
+| field_name | TEXT | Display name |
+| field_key | TEXT | Internal key |
+| field_type | TEXT | text, number, date, select, email, phone, url |
+| options | JSONB | For select type, list of options |
+| sort_order | INTEGER | Order in forms/cards |
+| is_required | BOOLEAN | Validation |
+| show_on_card | BOOLEAN | Display on card preview |
 
-The existing `enable_time_tracking` column (already present) will control the overall feature toggle.
+### New Table: `project_custom_values`
 
----
+Store values for custom fields:
 
-## Implementation Phases
-
-### Phase 1: Database Foundation
-
-**Migration 1 - Create time_entries table:**
-- Create table with all columns
-- Add RLS policies (users can only access their own)
-- Create index on (user_id, logged_at) for performance
-- Create the recurring_task_averages view
-
-**Migration 2 - Update task_settings:**
-- Add time_completion_modal column with default 'when_estimated'
-
-### Phase 2: Edge Function Updates
-
-**Update `manage-task/index.ts`:**
-
-Modify the toggle action schema to accept optional actual_minutes:
-
-```typescript
-const ToggleTaskSchema = z.object({
-  action: z.literal('toggle'),
-  task_id: z.string().uuid('Invalid task ID'),
-  actual_minutes: z.number().min(0).optional(), // NEW
-});
-```
-
-In the toggle case, when completing a task:
-
-```typescript
-case 'toggle': {
-  const { task_id, actual_minutes } = validatedData;
-  
-  // Get current state including parent info
-  const { data: currentTask } = await supabase
-    .from('tasks')
-    .select('is_completed, estimated_minutes, parent_task_id')
-    .eq('task_id', task_id)
-    .eq('user_id', userId)
-    .single();
-
-  const newState = !currentTask.is_completed;
-
-  // If completing AND actual_minutes provided, log time entry
-  if (newState && actual_minutes !== undefined) {
-    await supabase.from('time_entries').insert({
-      user_id: userId,
-      task_id: task_id,
-      parent_task_id: currentTask.parent_task_id,
-      estimated_minutes: currentTask.estimated_minutes,
-      actual_minutes: actual_minutes,
-      logged_at: new Date().toISOString(),
-    });
-    
-    // Also update task's actual_minutes
-    await supabase
-      .from('tasks')
-      .update({ actual_minutes })
-      .eq('task_id', task_id);
-  }
-
-  // ... rest of toggle logic
-}
-```
-
-**Update `generate-recurring-tasks/index.ts`:**
-
-When creating new recurring instance, check for average:
-
-```typescript
-// Query average from past instances
-const { data: avg } = await supabase
-  .from('recurring_task_averages')
-  .select('avg_actual_minutes, instance_count')
-  .eq('parent_task_id', parentTask.task_id)
-  .single();
-
-// Use average if 3+ instances exist
-const estimatedMinutes = avg?.instance_count >= 3
-  ? Math.round(avg.avg_actual_minutes)
-  : parentTask.estimated_minutes;
-```
-
-**Create `get-time-analytics/index.ts`:**
-
-New edge function returning:
-- weeklyTimeData: Last 13 weeks of estimated vs actual
-- projectBreakdown: Time by project (last 30 days)
-- tagBreakdown: Time by context tag (last 30 days)
-- recurringTaskAverages: From view with task names
-- accuracyMetrics: Overall accuracy, tendency, best/worst categories
-
-### Phase 3: Frontend Components
-
-**Create `src/components/tasks/TaskCompletionModal.tsx`:**
-
-Dialog component with:
-- Task name display
-- Estimated time shown (if exists)
-- Quick-select duration buttons (15m, 30m, 1h, etc.)
-- Custom minutes input field
-- "Use Estimate" button
-- Skip and Save actions
-
-Props interface:
-```typescript
-interface TaskCompletionModalProps {
-  open: boolean;
-  task: Task;
-  onClose: () => void;
-  onSave: (actualMinutes: number) => void;
-  onSkip: () => void;
-}
-```
-
-**Create `src/hooks/useTaskCompletion.tsx`:**
-
-Centralized hook that:
-- Checks task_settings.enable_time_tracking
-- Checks task_settings.time_completion_modal preference
-- Returns handleTaskComplete function and modal component
-- Shows modal based on settings/task state
-- Calls toggleComplete mutation with actual_minutes
-
-```typescript
-export function useTaskCompletion() {
-  const [pendingTask, setPendingTask] = useState<Task | null>(null);
-  const { toggleComplete } = useTaskMutations();
-  const { settings } = useTaskSettings();
-
-  const handleTaskComplete = useCallback((task: Task) => {
-    // Check if should show modal
-    if (!settings?.enable_time_tracking) {
-      toggleComplete.mutate(task.task_id);
-      return;
-    }
-
-    const modalPref = settings?.time_completion_modal || 'when_estimated';
-    
-    if (modalPref === 'never') {
-      toggleComplete.mutate(task.task_id);
-    } else if (modalPref === 'always' || task.estimated_minutes) {
-      setPendingTask(task);
-    } else {
-      toggleComplete.mutate(task.task_id);
-    }
-  }, [settings, toggleComplete]);
-
-  const handleSave = (actualMinutes: number) => {
-    if (pendingTask) {
-      toggleComplete.mutate({ 
-        taskId: pendingTask.task_id, 
-        actual_minutes: actualMinutes 
-      });
-      setPendingTask(null);
-    }
-  };
-
-  return {
-    handleTaskComplete,
-    TaskCompletionModal: pendingTask ? (
-      <TaskCompletionModal
-        open={!!pendingTask}
-        task={pendingTask}
-        onClose={() => setPendingTask(null)}
-        onSave={handleSave}
-        onSkip={() => {
-          toggleComplete.mutate(pendingTask.task_id);
-          setPendingTask(null);
-        }}
-      />
-    ) : null,
-  };
-}
-```
-
-**Create `src/components/tasks/TimeEntryBadge.tsx`:**
-
-Small badge for recurring task instances showing average time:
-
-```typescript
-interface TimeEntryBadgeProps {
-  parentTaskId: string;
-  currentEstimate: number | null;
-}
-```
-
-Shows: "Usually ~45 min" with clock icon
-Warning icon if current estimate differs >20% from average
-
-### Phase 4: Update Existing Components
-
-**Update `src/hooks/useTasks.tsx`:**
-
-Modify toggleComplete mutation signature:
-
-```typescript
-const toggleComplete = useMutation({
-  mutationFn: async ({ 
-    taskId, 
-    actual_minutes 
-  }: { 
-    taskId: string; 
-    actual_minutes?: number 
-  }) => {
-    const session = await getSession();
-    const response = await supabase.functions.invoke('manage-task', {
-      body: { 
-        action: 'toggle', 
-        task_id: taskId,
-        actual_minutes 
-      },
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
-    // ... rest unchanged
-  },
-  // Optimistic update unchanged
-});
-```
-
-**Update Task Views:**
-
-Files to update to use useTaskCompletion:
-- `src/pages/DailyPlan.tsx`
-- `src/pages/Tasks.tsx`
-- `src/components/tasks/views/TaskListView.tsx`
-- `src/components/tasks/views/TaskKanbanView.tsx`
-- `src/components/weekly-plan/WeekPlanner.tsx`
-
-Pattern for each:
-```typescript
-const { handleTaskComplete, TaskCompletionModal } = useTaskCompletion();
-
-// Replace direct toggleComplete calls with handleTaskComplete(task)
-
-// At end of component:
-return (
-  <>
-    {/* existing UI */}
-    {TaskCompletionModal}
-  </>
-);
-```
-
-### Phase 5: Progress Page Analytics
-
-**Create `src/hooks/useTimeAnalytics.tsx`:**
-
-```typescript
-export function useTimeAnalytics() {
-  return useQuery({
-    queryKey: ['time-analytics'],
-    queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const { data } = await supabase.functions.invoke('get-time-analytics', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      return data;
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-}
-```
-
-**Create Progress Page Components:**
-
-| Component | Purpose |
-|-----------|---------|
-| `TimeAccuracyCard.tsx` | Shows accuracy %, tendency, tips |
-| `WeeklyTimeChart.tsx` | Line chart: estimated vs actual over 13 weeks |
-| `TimeByProjectChart.tsx` | Pie chart of hours by project |
-| `TimeByTagChart.tsx` | Bar chart of hours by context tag |
-| `RecurringTasksTable.tsx` | Table of recurring tasks with averages |
-| `TimeAnalytics.tsx` | Container combining all above |
-
-**Update `src/pages/Progress.tsx`:**
-
-Add new section after existing metrics:
-
-```typescript
-{/* After WinsCard */}
-<div className="space-y-4">
-  <h2 className="text-lg font-semibold flex items-center gap-2">
-    <Clock className="h-5 w-5" />
-    Time Tracking
-  </h2>
-  <TimeAnalytics />
-</div>
-```
+| Column | Type | Purpose |
+|--------|------|---------|
+| id | UUID | Primary key |
+| project_id | UUID | Which project |
+| field_id | UUID | Which custom field |
+| value_text | TEXT | Text/select values |
+| value_number | NUMERIC | Number values |
+| value_date | DATE | Date values |
 
 ---
 
-## Files Summary
+## Frontend Components
 
 ### New Files to Create
 
-| File | Type |
-|------|------|
-| `src/components/tasks/TaskCompletionModal.tsx` | Component |
-| `src/components/tasks/TimeEntryBadge.tsx` | Component |
-| `src/hooks/useTaskCompletion.tsx` | Hook |
-| `src/hooks/useTimeAnalytics.tsx` | Hook |
-| `src/components/progress/TimeAnalytics.tsx` | Component |
-| `src/components/progress/TimeAccuracyCard.tsx` | Component |
-| `src/components/progress/WeeklyTimeChart.tsx` | Component |
-| `src/components/progress/TimeByProjectChart.tsx` | Component |
-| `src/components/progress/TimeByTagChart.tsx` | Component |
-| `src/components/progress/RecurringTasksTable.tsx` | Component |
-| `supabase/functions/get-time-analytics/index.ts` | Edge Function |
+| File | Purpose |
+|------|---------|
+| `src/components/wizards/project-designer/ProjectDesignerWizard.tsx` | Main wizard component |
+| `src/components/wizards/project-designer/index.ts` | Exports |
+| `src/components/wizards/project-designer/steps/StepUseCase.tsx` | Step 1: What are you tracking? |
+| `src/components/wizards/project-designer/steps/StepWorkflow.tsx` | Step 2: Define workflow stages |
+| `src/components/wizards/project-designer/steps/StepFields.tsx` | Step 3: Information to track |
+| `src/components/wizards/project-designer/steps/StepSettings.tsx` | Step 4: Appearance |
+| `src/components/wizards/project-designer/steps/StepReview.tsx` | Step 5: Preview and create |
+| `src/components/wizards/project-designer/steps/index.ts` | Step exports |
+| `src/components/wizards/project-designer/BoardPreview.tsx` | Visual preview component |
+| `src/components/wizards/project-designer/ColumnEditor.tsx` | Edit/reorder columns |
+| `src/components/wizards/project-designer/FieldSelector.tsx` | Choose fields to track |
+| `src/types/projectDesigner.ts` | Type definitions |
+| `src/lib/projectDesignerTemplates.ts` | Pre-built use case suggestions |
+| `src/hooks/useProjectDesigner.ts` | Hook for wizard state/creation |
 
 ### Files to Modify
 
 | File | Changes |
 |------|---------|
-| `supabase/functions/manage-task/index.ts` | Add actual_minutes to toggle action |
-| `supabase/functions/generate-recurring-tasks/index.ts` | Use averages for estimates |
-| `src/hooks/useTasks.tsx` | Update toggleComplete signature |
-| `src/pages/DailyPlan.tsx` | Use useTaskCompletion hook |
-| `src/pages/Tasks.tsx` | Use useTaskCompletion hook |
-| `src/pages/Progress.tsx` | Add TimeAnalytics section |
-| `src/components/tasks/views/TaskListView.tsx` | Use completion handler |
-| `src/components/tasks/views/TaskKanbanView.tsx` | Use completion handler |
-| `src/components/weekly-plan/WeekPlanner.tsx` | Use completion handler |
+| `src/components/wizards/WizardHub.tsx` | Add Project Designer card |
+| `src/types/wizard.ts` | Add template name constant |
+| `src/App.tsx` | Add route for wizard |
+| `src/components/projects/CreateBoardModal.tsx` | Add "Use Designer" button |
+| `src/components/projects/ProjectBoardView.tsx` | Support custom fields display |
+| `src/components/projects/BoardCard.tsx` | Render custom field values |
+| `src/components/projects/NewProjectModal.tsx` | Add custom field inputs |
 
 ---
 
-## Technical Considerations
+## Type Definitions
 
-### Bulk Operations
-For bulk task completion (completing multiple tasks at once):
-- Skip modal for bulk operations
-- Use estimated time as actual time automatically
-- Or add "Skip time tracking for bulk" option in settings
+```typescript
+// src/types/projectDesigner.ts
 
-### Existing Data
-- The `tasks.actual_minutes` column already exists
-- The `task_settings.enable_time_tracking` column already exists
-- Historical tasks without time entries won't appear in analytics
+export type UseCaseType = 
+  | 'leads' 
+  | 'content' 
+  | 'products' 
+  | 'events' 
+  | 'projects' 
+  | 'custom';
 
-### Offline Support
-The app has offline sync capabilities. Time entries should:
-- Queue offline like other mutations
-- Sync when connection restored
+export interface ColumnDefinition {
+  name: string;
+  color: string;
+  description?: string;
+}
 
-### Performance
-- Index on `time_entries(user_id, logged_at)` for fast queries
-- Materialized view for recurring averages (or simple view with caching)
-- Limit analytics queries to last 90 days by default
+export type FieldType = 
+  | 'text' 
+  | 'number' 
+  | 'date' 
+  | 'email' 
+  | 'phone' 
+  | 'url' 
+  | 'select' 
+  | 'currency';
+
+export interface FieldDefinition {
+  key: string;
+  name: string;
+  type: FieldType;
+  required: boolean;
+  showOnCard: boolean;
+  options?: string[]; // For select type
+}
+
+export interface BoardSettings {
+  defaultView: 'kanban' | 'list';
+  showProgressBar: boolean;
+  showDueDate: boolean;
+  showRevenue: boolean;
+  compactCards: boolean;
+  themeColor: string;
+}
+
+export interface ProjectDesignerData {
+  useCase: UseCaseType;
+  customDescription: string;
+  columns: ColumnDefinition[];
+  fields: FieldDefinition[];
+  boardName: string;
+  settings: BoardSettings;
+  saveAsTemplate: boolean;
+  templateName: string;
+}
+
+export const DEFAULT_PROJECT_DESIGNER_DATA: ProjectDesignerData = {
+  useCase: 'projects',
+  customDescription: '',
+  columns: [
+    { name: 'To Do', color: '#94A3B8' },
+    { name: 'In Progress', color: '#F59E0B' },
+    { name: 'Done', color: '#10B981' },
+  ],
+  fields: [
+    { key: 'name', name: 'Name', type: 'text', required: true, showOnCard: true },
+    { key: 'description', name: 'Description', type: 'text', required: false, showOnCard: false },
+    { key: 'due_date', name: 'Due Date', type: 'date', required: false, showOnCard: true },
+  ],
+  boardName: '',
+  settings: {
+    defaultView: 'kanban',
+    showProgressBar: true,
+    showDueDate: true,
+    showRevenue: false,
+    compactCards: false,
+    themeColor: '#6366F1',
+  },
+  saveAsTemplate: false,
+  templateName: '',
+};
+```
 
 ---
 
-## Recommended Implementation Order
+## Use Case Templates
 
-1. **Database migration** - Create time_entries table and view
-2. **Edge function: manage-task** - Add time entry logging on toggle
-3. **Edge function: get-time-analytics** - Create analytics endpoint
-4. **TaskCompletionModal** - Build the UI component
-5. **useTaskCompletion hook** - Centralize completion logic
-6. **Update useTasks.tsx** - Modify toggleComplete signature
-7. **Update task views** - Integrate modal across all views
-8. **Update generate-recurring-tasks** - Add average-based estimates
-9. **Progress page components** - Build analytics UI
-10. **TimeEntryBadge** - Add to recurring task cards
+```typescript
+// src/lib/projectDesignerTemplates.ts
+
+export const USE_CASE_TEMPLATES: Record<UseCaseType, {
+  columns: ColumnDefinition[];
+  suggestedFields: FieldDefinition[];
+  defaultBoardName: string;
+}> = {
+  leads: {
+    columns: [
+      { name: 'Lead', color: '#94A3B8' },
+      { name: 'Discovery Call', color: '#3B82F6' },
+      { name: 'Proposal Sent', color: '#F59E0B' },
+      { name: 'Client', color: '#10B981' },
+      { name: 'Follow-up', color: '#8B5CF6' },
+    ],
+    suggestedFields: [
+      { key: 'contact_email', name: 'Email', type: 'email', required: false, showOnCard: true },
+      { key: 'contact_phone', name: 'Phone', type: 'phone', required: false, showOnCard: false },
+      { key: 'company', name: 'Company', type: 'text', required: false, showOnCard: true },
+      { key: 'deal_value', name: 'Deal Value', type: 'currency', required: false, showOnCard: true },
+      { key: 'next_action', name: 'Next Action Date', type: 'date', required: false, showOnCard: true },
+    ],
+    defaultBoardName: 'Client Pipeline',
+  },
+  content: {
+    columns: [
+      { name: 'Ideas', color: '#8B5CF6' },
+      { name: 'Drafting', color: '#F59E0B' },
+      { name: 'Editing', color: '#3B82F6' },
+      { name: 'Scheduled', color: '#06B6D4' },
+      { name: 'Published', color: '#10B981' },
+    ],
+    suggestedFields: [
+      { key: 'content_type', name: 'Type', type: 'select', required: false, showOnCard: true, options: ['Blog', 'Video', 'Podcast', 'Social'] },
+      { key: 'platform', name: 'Platform', type: 'select', required: false, showOnCard: true, options: ['Website', 'YouTube', 'Instagram', 'LinkedIn', 'Twitter'] },
+      { key: 'publish_date', name: 'Publish Date', type: 'date', required: false, showOnCard: true },
+      { key: 'word_count', name: 'Word Count', type: 'number', required: false, showOnCard: false },
+    ],
+    defaultBoardName: 'Content Calendar',
+  },
+  // ... other use cases
+};
+```
+
+---
+
+## Edge Function: `create-custom-board`
+
+Creates the board with all custom fields in a single transaction:
+
+```typescript
+// Request body
+interface CreateCustomBoardRequest {
+  name: string;
+  columns: ColumnDefinition[];
+  fields: FieldDefinition[];
+  settings: BoardSettings;
+  saveAsTemplate: boolean;
+  templateName?: string;
+}
+
+// Response
+interface CreateCustomBoardResponse {
+  success: boolean;
+  board_id: string;
+  template_id?: string;
+  message: string;
+}
+```
+
+Logic:
+1. Create `project_boards` entry
+2. Create `project_columns` entries for each column
+3. Create `project_card_fields` entries for custom fields
+4. Optionally create `project_board_templates` entry
+5. Return IDs
+
+---
+
+## UI/UX Details
+
+### Column Editor (Step 2)
+
+- Drag-and-drop reordering with @dnd-kit
+- Inline rename by clicking column name
+- Color picker popover for each column
+- Delete button with confirmation
+- Add column button at end
+- Minimum 2 columns, maximum 10
+
+### Field Selector (Step 3)
+
+- Checkbox list of available fields
+- Built-in fields (name, description, dates) at top
+- Custom fields section below
+- "Add Custom Field" expands inline form:
+  - Field name
+  - Field type dropdown
+  - Required toggle
+  - Show on card toggle
+  - Options list (for select type)
+
+### Board Preview (Step 5)
+
+- Mini Kanban board with sample cards
+- Uses actual column names and colors
+- Sample cards show selected fields
+- Responsive - stacks on mobile
+- Animated transitions when columns change
+
+---
+
+## Mobile Considerations
+
+- All wizard steps work on mobile
+- Column editor uses swipe to reorder on touch
+- Preview shows 2 columns at a time with horizontal scroll
+- Touch-friendly field checkboxes (44px targets)
+- Bottom sheet for color pickers
+
+---
+
+## Integration Points
+
+### Wizard Hub
+
+Add to `IMPLEMENTED_WIZARDS` array and create template in database.
+
+### Create Board Modal
+
+Add "Design Custom Board" button that links to the wizard:
+
+```typescript
+<Button variant="outline" onClick={() => navigate('/wizards/project-designer')}>
+  <Wand2 className="h-4 w-4 mr-2" />
+  Design Custom Board
+</Button>
+```
+
+### Project Cards
+
+Update `BoardCard.tsx` to render custom field values:
+
+```typescript
+// Fetch custom values for project
+const customValues = useProjectCustomValues(project.id);
+
+// Render configured fields
+{boardFields.filter(f => f.showOnCard).map(field => (
+  <div key={field.key} className="text-xs text-muted-foreground">
+    {formatFieldValue(customValues[field.key], field.type)}
+  </div>
+))}
+```
+
+---
+
+## Implementation Phases
+
+### Phase 1: Database & Types
+1. Create database migrations for new tables
+2. Add RLS policies
+3. Create TypeScript types
+4. Create use case templates
+
+### Phase 2: Wizard Core
+1. Create wizard data types and defaults
+2. Create `ProjectDesignerWizard` using existing `useWizard` hook
+3. Implement Step 1: Use Case Selection
+4. Implement Step 2: Workflow Stages (column editor)
+
+### Phase 3: Fields & Settings
+1. Implement Step 3: Field Selection
+2. Implement Step 4: Appearance Settings
+3. Create board preview component
+
+### Phase 4: Creation Logic
+1. Implement Step 5: Review
+2. Create `create-custom-board` edge function
+3. Handle board creation with custom fields
+4. Add to Wizard Hub
+
+### Phase 5: Integration
+1. Update `BoardCard` for custom fields
+2. Update `NewProjectModal` for custom field inputs
+3. Add custom field editing to project detail
+4. Add "Design Custom" option to Create Board Modal
+
+---
+
+## Success Metrics
+
+After implementation, users should be able to:
+- Create a coaching/leads pipeline in under 3 minutes
+- See relevant fields on their project cards
+- Save their configurations as reusable templates
+- Easily track custom data without workarounds
