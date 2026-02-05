@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format, parseISO, isBefore, startOfDay } from 'date-fns';
+import { format, parseISO, isBefore, startOfDay, startOfWeek, endOfWeek } from 'date-fns';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,19 +33,13 @@ import { cn } from '@/lib/utils';
 
 // Import new components
 import { TaskQuickAdd } from '@/components/tasks/TaskQuickAdd';
-import { TaskFilters } from '@/components/tasks/TaskFilters';
+import { TasksPageToolbar } from '@/components/tasks/TasksPageToolbar';
 import { HelpButton } from '@/components/ui/help-button';
 import { TaskListView } from '@/components/tasks/views/TaskListView';
 import { TaskKanbanView } from '@/components/tasks/views/TaskKanbanView';
 import { TaskTimelineView } from '@/components/tasks/views/TaskTimelineView';
-import { TaskWeekView } from '@/components/tasks/views/TaskWeekView';
-import { TaskMonthView } from '@/components/tasks/views/TaskMonthView';
 import { TaskThreeDayView } from '@/components/tasks/views/TaskThreeDayView';
 import { TaskMondayBoardView } from '@/components/tasks/views/TaskMondayBoardView';
-import { TimelineDayNavigation } from '@/components/tasks/views/TimelineDayNavigation';
-import { TimelineViewSelector, TimelineViewType } from '@/components/tasks/views/TimelineViewSelector';
-import { TaskPlanningCards } from '@/components/tasks/TaskPlanningCards';
-import { TaskViewsToolbar } from '@/components/tasks/TaskViewsToolbar';
 import { TaskImportModal } from '@/components/tasks/TaskImportModal';
 import { useTasks, useTaskMutations } from '@/hooks/useTasks';
 import { BulkActionsBar } from '@/components/tasks/BulkActionsBar';
@@ -53,11 +47,11 @@ import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { useBulkTaskSelection } from '@/hooks/useBulkTaskSelection';
 import { CalendarSelectionModal } from '@/components/google-calendar/CalendarSelectionModal';
 import { 
-  Task, SOP, ChecklistItem, SOPLink, ChecklistProgress, 
-  FilterTab, ViewMode, EnergyLevel, RecurrencePattern, DeleteType,
+  Task, SOP, ChecklistItem, SOPLink, ChecklistProgress,
+  PrimaryTab, ViewMode, EnergyLevel, RecurrencePattern, DeleteType,
   DAYS_OF_WEEK, DURATION_OPTIONS, ENERGY_LEVELS
 } from '@/components/tasks/types';
-import { CycleFilter, CycleFilterValue, CycleBadge } from '@/components/tasks/CycleFilter';
+import { CycleBadge } from '@/components/tasks/CycleFilter';
 import { useActiveCycle } from '@/hooks/useActiveCycle';
 import { CycleTimeline } from '@/components/CycleTimeline';
 import { SOPSelector } from '@/components/tasks/SOPSelector';
@@ -86,17 +80,18 @@ export default function Tasks() {
   }, []);
   
   // View state
-  const [viewMode, setViewMode] = useState<ViewMode>('database');
-  const [timelineViewType, setTimelineViewType] = useState<TimelineViewType>('day');
-  const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [activeTab, setActiveTab] = useState<PrimaryTab>('today');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
-  // Filter state
+  // Consolidated filter state
   const [searchQuery, setSearchQuery] = useState('');
-  const [energyFilter, setEnergyFilter] = useState<EnergyLevel[]>([]);
-  const [tagsFilter, setTagsFilter] = useState<string[]>([]);
-  const [cycleFilter, setCycleFilter] = useState<CycleFilterValue>('all');
-  const [systemOnly, setSystemOnly] = useState(false);
+  const [filters, setFilters] = useState({
+    priority: [] as string[],
+    tags: [] as string[],
+    cycle: 'all' as string,
+    energy: [] as EnergyLevel[],
+  });
   
   // Get active cycle for filtering
   const { data: activeCycle } = useActiveCycle();
@@ -206,29 +201,75 @@ export default function Tasks() {
 
   const overdueCount = overdueTasks.length;
 
-  // Separate recurring parent tasks and apply cycle filter + search
-  const { regularTasks, recurringParentTasks, totalTaskCount } = useMemo(() => {
+  // Calculate task counts for tabs
+  const counts = useMemo(() => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    const weekEnd = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    
+    const incomplete = tasks.filter((t: Task) => !t.is_completed && !t.is_recurring_parent);
+    
+    return {
+      today: incomplete.filter((t: Task) => 
+        t.scheduled_date === today || 
+        t.planned_day === today ||
+        t.time_block_start?.startsWith(today)
+      ).length,
+      
+      week: incomplete.filter((t: Task) => 
+        (t.planned_day && t.planned_day >= weekStart && t.planned_day <= weekEnd) ||
+        (t.scheduled_date && t.scheduled_date >= weekStart && t.scheduled_date <= weekEnd)
+      ).length,
+      
+      all: incomplete.length,
+      completed: tasks.filter((t: Task) => t.is_completed && !t.is_recurring_parent).length
+    };
+  }, [tasks]);
+
+  // Filter tasks based on activeTab, search, and filters
+  const { filteredTasks, recurringParentTasks } = useMemo(() => {
     const regular: Task[] = [];
     const recurring: Task[] = [];
-    let totalBeforeSearch = 0;
     
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    const weekEnd = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
     const searchLower = searchQuery.toLowerCase().trim();
     
     tasks.forEach((task: Task) => {
-      // Apply cycle filter
-      if (cycleFilter === 'active' && activeCycle) {
-        if (task.cycle_id !== activeCycle.cycle_id) return;
-      } else if (cycleFilter !== 'all' && cycleFilter !== 'active') {
-        if (task.cycle_id !== cycleFilter) return;
+      // Handle recurring parents separately
+      if (task.is_recurring_parent) {
+        recurring.push(task);
+        return;
       }
       
-      // Apply system-generated filter
-      if (systemOnly && !task.is_system_generated) return;
+      // STEP 1: Primary tab filter
+      switch (activeTab) {
+        case 'today':
+          if (task.is_completed) return;
+          const isToday = task.scheduled_date === today || 
+                          task.planned_day === today ||
+                          task.time_block_start?.startsWith(today);
+          if (!isToday) return;
+          break;
+          
+        case 'week':
+          if (task.is_completed) return;
+          const isThisWeek = (task.planned_day && task.planned_day >= weekStart && task.planned_day <= weekEnd) ||
+                             (task.scheduled_date && task.scheduled_date >= weekStart && task.scheduled_date <= weekEnd);
+          if (!isThisWeek) return;
+          break;
+          
+        case 'all':
+          if (task.is_completed) return;
+          break;
+          
+        case 'completed':
+          if (!task.is_completed) return;
+          break;
+      }
       
-      // Count tasks before search filter
-      totalBeforeSearch++;
-      
-      // Apply search filter
+      // STEP 2: Search filter
       if (searchLower) {
         const matchesText = task.task_text?.toLowerCase().includes(searchLower);
         const matchesDescription = task.task_description?.toLowerCase().includes(searchLower);
@@ -240,19 +281,23 @@ export default function Tasks() {
         }
       }
       
-      if (task.is_recurring_parent) {
-        recurring.push(task);
-      } else {
-        regular.push(task);
+      // STEP 3: Advanced filters
+      if (filters.priority.length > 0) {
+        if (!task.priority || !filters.priority.includes(task.priority)) return;
       }
+      
+      if (filters.energy.length > 0) {
+        if (!task.energy_level || !filters.energy.includes(task.energy_level)) return;
+      }
+      
+      regular.push(task);
     });
     
     return { 
-      regularTasks: regular, 
-      recurringParentTasks: recurring,
-      totalTaskCount: totalBeforeSearch
+      filteredTasks: regular, 
+      recurringParentTasks: recurring
     };
-  }, [tasks, cycleFilter, activeCycle, systemOnly, searchQuery]);
+  }, [tasks, activeTab, searchQuery, filters]);
 
   // Bulk selection hook
   const {
@@ -263,7 +308,7 @@ export default function Tasks() {
     clearSelection,
     isSelected,
     getSelectedTasks,
-  } = useBulkTaskSelection(regularTasks);
+  } = useBulkTaskSelection(filteredTasks);
 
   // Bulk action handlers
   const handleBulkReschedule = async (date: Date) => {
@@ -724,18 +769,17 @@ export default function Tasks() {
           />
         )}
 
-        {/* Task Planning Cards */}
-        <TaskPlanningCards />
-
-        {/* Views Toolbar */}
-        <TaskViewsToolbar
+        {/* New unified toolbar */}
+        <TasksPageToolbar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
-          onAddTask={() => setIsAddDialogOpen(true)}
-          onImportCSV={() => setIsImportModalOpen(true)}
-          overdueCount={overdueCount}
-          isCalendarConnected={calendarStatus.connected && calendarStatus.calendarSelected}
-          onConnectCalendar={() => connectCalendar()}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          filters={filters}
+          onFiltersChange={setFilters}
+          counts={counts}
         />
 
         {/* Import Modal */}
@@ -744,25 +788,6 @@ export default function Tasks() {
           onOpenChange={setIsImportModalOpen}
            onImportComplete={() => queryClient.invalidateQueries({ queryKey: ['all-tasks'] })}
         />
-
-        {/* Timeline view type selector */}
-        {viewMode === 'timeline' && (
-          <div className="flex items-center gap-3">
-            <TimelineViewSelector
-              viewType={timelineViewType}
-              onViewTypeChange={setTimelineViewType}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/weekly-plan')}
-              className="gap-2"
-            >
-              <CalendarRange className="h-4 w-4" />
-              Weekly Planner
-            </Button>
-          </div>
-        )}
 
         {/* Quick Add Bar */}
         <div className="space-y-1">
@@ -830,88 +855,43 @@ export default function Tasks() {
           </Collapsible>
         )}
 
-        {/* Search and Filters */}
-        <div className="flex flex-col gap-4">
+        {/* Recovery and task count */}
+        <div className="space-y-2">
           {/* Recovery banner for pending syncs/drafts */}
           <TaskRecoveryBanner />
-          
-          {/* Search bar */}
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search tasks..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-9"
-              />
-              {searchQuery && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
-                  onClick={() => setSearchQuery('')}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-            {searchQuery && (
-              <span className="text-sm text-muted-foreground whitespace-nowrap">
-                Showing {regularTasks.length + recurringParentTasks.length} of {totalTaskCount} tasks
-              </span>
-            )}
-          </div>
 
-          {/* Cycle filter */}
-          <div className="flex flex-wrap items-center gap-3">
-            <CycleFilter
-              value={cycleFilter}
-              onChange={setCycleFilter}
-              showSystemFilter={true}
-              systemOnly={systemOnly}
-              onSystemOnlyChange={setSystemOnly}
-            />
-            <CycleBadge />
-          </div>
-          
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            {viewMode === 'list' && (
-              <Tabs value={activeFilter} onValueChange={(v) => setActiveFilter(v as FilterTab)}>
-                <TabsList>
-                  <TabsTrigger value="today" className="text-xs sm:text-sm">Today</TabsTrigger>
-                  <TabsTrigger value="week" className="text-xs sm:text-sm">This Week</TabsTrigger>
-                  <TabsTrigger value="all" className="text-xs sm:text-sm">All Open</TabsTrigger>
-                  <TabsTrigger value="completed" className="text-xs sm:text-sm">Completed</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            )}
-            
-            <TaskFilters
-              selectedEnergy={energyFilter}
-              onEnergyChange={setEnergyFilter}
-              selectedTags={tagsFilter}
-              onTagsChange={setTagsFilter}
-              onClearFilters={() => {
-                setSearchQuery('');
-                setEnergyFilter([]);
-                setTagsFilter([]);
-                setCycleFilter('all');
-                setSystemOnly(false);
-              }}
-            />
-          </div>
+          {/* Task count */}
+          {!isLoading && (
+            <div className="text-sm text-muted-foreground">
+              Showing {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}
+            </div>
+          )}
         </div>
 
         {/* Main content */}
         {isLoading ? (
           <div className="text-center py-12 text-muted-foreground">Loading tasks...</div>
+        ) : filteredTasks.length === 0 ? (
+          <div className="text-center py-12">
+            <CheckSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No tasks found</h3>
+            <p className="text-muted-foreground mb-4">
+              {searchQuery ? 'Try adjusting your search' : 
+               activeTab === 'today' ? "You're all caught up for today!" :
+               activeTab === 'completed' ? "No completed tasks yet" :
+               'Create your first task to get started'}
+            </p>
+            <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              New Task
+            </Button>
+          </div>
         ) : viewMode === 'list' ? (
           <TaskListView
-            tasks={regularTasks}
-            activeFilter={activeFilter}
-            energyFilter={energyFilter}
-            tagsFilter={tagsFilter}
+            tasks={filteredTasks}
+            activeFilter={activeTab}
+            energyFilter={filters.energy}
+            tagsFilter={filters.tags}
             onToggleComplete={handleToggleComplete}
             onUpdateTask={handleUpdateTask}
             onDeleteTask={initiateDelete}
@@ -923,19 +903,9 @@ export default function Tasks() {
             onSelectAllInGroup={handleSelectAllInGroup}
             showSelectionCheckboxes={true}
           />
-        ) : viewMode === 'kanban' ? (
-          <TaskKanbanView
-            tasks={regularTasks}
-            onToggleComplete={handleToggleComplete}
-            onUpdateTask={handleUpdateTask}
-            onDeleteTask={initiateDelete}
-            onOpenDetail={openTaskDetail}
-            onQuickReschedule={handleQuickReschedule}
-            onAddTask={() => setIsAddDialogOpen(true)}
-          />
         ) : viewMode === 'board' ? (
           <TaskMondayBoardView
-            tasks={regularTasks}
+            tasks={filteredTasks}
             onToggleComplete={handleToggleComplete}
             onUpdateTask={handleUpdateTask}
             onDeleteTask={initiateDelete}
@@ -944,54 +914,15 @@ export default function Tasks() {
           />
         ) : (
           <div className="space-y-4">
-            {/* Day Navigation for day and 3-day views */}
-            {(timelineViewType === 'day' || timelineViewType === '3-day') && (
-              <TimelineDayNavigation
-                selectedDate={selectedDate}
-                onDateChange={setSelectedDate}
-              />
-            )}
-            
-            {/* Render appropriate timeline view */}
-            {timelineViewType === 'day' && (
-              <TaskTimelineView
-                tasks={regularTasks}
-                selectedDate={selectedDate}
-                onUpdateTask={handleUpdateTask}
-                onOpenDetail={openTaskDetail}
-                onAddTaskAtTime={handleAddTaskAtTime}
-              />
-            )}
-            
-            {timelineViewType === '3-day' && (
-              <TaskThreeDayView
-                tasks={regularTasks}
-                selectedDate={selectedDate}
-                onDateChange={setSelectedDate}
-                onUpdateTask={handleUpdateTask}
-                onOpenDetail={openTaskDetail}
-                onAddTaskAtTime={handleAddTaskAtTime}
-              />
-            )}
-            
-            {timelineViewType === 'week' && (
-              <TaskWeekView
-                tasks={regularTasks}
-                selectedDate={selectedDate}
-                onDateChange={setSelectedDate}
-                onUpdateTask={handleUpdateTask}
-                onOpenDetail={openTaskDetail}
-              />
-            )}
-            
-            {timelineViewType === 'month' && (
-              <TaskMonthView
-                tasks={regularTasks}
-                selectedDate={selectedDate}
-                onDateChange={setSelectedDate}
-                onOpenDetail={openTaskDetail}
-              />
-            )}
+            {/* Calendar view - use TaskThreeDayView */}
+            <TaskThreeDayView
+              tasks={filteredTasks}
+              selectedDate={selectedDate}
+              onDateChange={setSelectedDate}
+              onUpdateTask={handleUpdateTask}
+              onOpenDetail={openTaskDetail}
+              onAddTaskAtTime={handleAddTaskAtTime}
+            />
           </div>
         )}
       </div>

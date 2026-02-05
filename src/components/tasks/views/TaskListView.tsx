@@ -8,13 +8,13 @@ import {
   ListTodo, AlertTriangle, Sun, Sunrise, Calendar, Clock, 
   Inbox, CheckCircle2, ChevronRight, PartyPopper, Plus
 } from 'lucide-react';
-import { Task, FilterTab, EnergyLevel } from '../types';
+import { Task, FilterTab, PrimaryTab, EnergyLevel } from '../types';
 import { TaskCard } from '../TaskCard';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface TaskListViewProps {
   tasks: Task[];
-  activeFilter: FilterTab;
+  activeFilter: FilterTab | PrimaryTab;
   energyFilter: EnergyLevel[];
   tagsFilter: string[];
   onToggleComplete: (taskId: string) => void;
