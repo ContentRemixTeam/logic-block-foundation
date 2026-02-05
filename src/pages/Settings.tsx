@@ -380,7 +380,7 @@ export default function Settings() {
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </Link>
             <Link 
-              to="/install-quick-add" 
+              to="/install" 
               className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
             >
               <div className="flex items-center gap-3">
