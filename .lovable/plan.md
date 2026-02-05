@@ -1,304 +1,180 @@
 
-# Production Stability Fix: Centralized Task Data Layer
+# Add Sort and Group Controls to Task List View
 
-## Executive Summary
+## Overview
 
-The audit is **accurate and verified**. I've confirmed the following critical issues in the codebase:
+Add the ability to **sort** and **group** tasks in the List view on the Tasks page. Currently, the List view only groups tasks by date (hardcoded). This change will let you organize your tasks by different categories like Project, Priority, or Energy Level.
 
-| Issue | Verified | Location | Impact |
-|-------|----------|----------|--------|
-| Direct Supabase calls bypassing `useTasks()` | Yes | 3 components | Duplicate API calls, stale data |
-| Inconsistent date filtering logic | Yes | 4+ locations | Tasks appear/disappear unpredictably |
-| Query key mismatches | Yes | 6+ files | Cache invalidation failures |
-| Optimistic updates without centralized rollback | Yes | 3 components | UI shows wrong state after errors |
+## What You'll Get
 
----
+### Group By Options
+- **Due Date** (current default) - Overdue, Today, Tomorrow, This Week, Later, No Date
+- **Priority** - High, Medium, Low, No Priority
+- **Project** - Tasks grouped by their associated project
+- **Energy Level** - High Focus, Medium, Low Energy
 
-## Files Analysis
+### Sort Options
+- **Due Date** - Earliest first or latest first
+- **Priority** - High to Low or Low to High
+- **Created Date** - Newest first or oldest first
+- **Name** - A-Z or Z-A
 
-### Components Bypassing Centralized Hook
+## UI Design
 
-**Confirmed problematic files:**
-
-1. **`DailyTimelineView.tsx`** (lines 75-105)
-   - Direct `supabase.functions.invoke('get-all-tasks')` in useEffect
-   - Local `useState` for tasks
-   - Manual optimistic updates with local rollback
-
-2. **`DailyScheduleView.tsx`** (lines 142-183)
-   - Direct API call in useEffect
-   - Duplicate filtering logic
-   - Manual optimistic updates
-
-3. **`InlineCalendarAgenda.tsx`** (lines 344-366)
-   - `fetchTasks` callback with direct API call
-   - Local state management
-   - Manual optimistic updates
-
-### Component Using Centralized Hook Correctly
-
-**`DailyAgendaCard.tsx`** (line 55):
-```typescript
-const { data: allTasks = [], isLoading: loadingTasks } = useTasks();
-const { toggleComplete } = useTaskMutations();
-```
-This is the correct pattern.
-
----
-
-## Query Key Inconsistencies Found
+A small control bar will appear above the task list (only in List view):
 
 ```text
-CORRECT:
-- useTasks.tsx: ['all-tasks']
-
-INCORRECT:
-- DailyAgendaCard.tsx (line 244): ['tasks'] 
-- CourseProgressPanel.tsx (line 67): ['tasks']
-- AddContentDialog.tsx (lines 345, 497): ['tasks']
-- ContentPlannerWizard.tsx (line 314): ['tasks']
-- Tasks.tsx (line 745): ['tasks']
++--------------------------------------------------+
+|  Group by: [Due Date ▼]   Sort by: [Priority ▼]  |
++--------------------------------------------------+
+|  ▼ Overdue (2)                                   |
+|     [ ] Task 1                                   |
+|     [ ] Task 2                                   |
+|  ▼ Today (3)                                     |
+|     [ ] Task 3                                   |
+|     ...                                          |
++--------------------------------------------------+
 ```
 
-This mismatch means cache invalidations don't work properly.
+- **Group By dropdown** - Select how tasks are organized into sections
+- **Sort By dropdown** - Select the order within each group
+- Controls only visible in List view (not Board or Calendar)
 
 ---
 
-## Implementation Plan
+## Implementation Details
 
-### Phase 1: Create Unified Task Filter Utility
+### Files to Modify
 
-**New File: `src/lib/taskFilters.ts`**
+| File | Changes |
+|------|---------|
+| `src/components/tasks/TasksPageToolbar.tsx` | Add `groupBy` and `sortBy` to filters state |
+| `src/components/tasks/views/TaskListView.tsx` | Add grouping/sorting dropdowns and logic |
+| `src/pages/Tasks.tsx` | Pass new filter state to TaskListView |
+| `src/components/tasks/types.ts` | Add type definitions for options |
 
-Create a single source of truth for filtering tasks by date:
+### New Types
 
 ```typescript
-import { Task } from '@/components/tasks/types';
+// In types.ts
+export type GroupByOption = 'date' | 'priority' | 'project' | 'energy';
+export type SortByOption = 'scheduled_date' | 'priority' | 'created_at' | 'task_text';
+export type SortDirection = 'asc' | 'desc';
+```
 
-/**
- * Unified task filtering for a specific date.
- * Checks all date fields consistently.
- */
-export function getTasksForDate(tasks: Task[], dateStr: string): Task[] {
-  return tasks.filter(task => {
-    if (task.is_recurring_parent) return false;
+### TaskListView Changes
+
+1. Add local state for `groupBy` and `sortBy` options
+2. Add a mini-toolbar with two Select dropdowns above the task list
+3. Update `groupedTasks` useMemo to support dynamic grouping:
+   - `date` → Current logic (Overdue, Today, Tomorrow, etc.)
+   - `priority` → High, Medium, Low, No Priority groups
+   - `project` → Group by project name, plus "No Project"
+   - `energy` → High Focus, Medium, Low Energy groups
+
+4. Add sorting within each group based on `sortBy` selection
+
+### Grouping Logic Pattern
+
+```typescript
+// Simplified example of dynamic grouping
+const groupedTasks = useMemo(() => {
+  const groups: Map<string, Task[]> = new Map();
+  
+  sortedTasks.forEach(task => {
+    let groupId: string;
     
-    const isScheduledForDate = task.scheduled_date === dateStr;
-    const isPlannedForDate = task.planned_day === dateStr;
-    const hasTimeBlockForDate = task.time_block_start?.startsWith(dateStr);
+    switch (groupBy) {
+      case 'date':
+        groupId = getDateGroup(task); // existing logic
+        break;
+      case 'priority':
+        groupId = task.priority || 'none';
+        break;
+      case 'project':
+        groupId = task.project_id || 'no_project';
+        break;
+      case 'energy':
+        groupId = task.energy_level || 'none';
+        break;
+    }
     
-    return isScheduledForDate || isPlannedForDate || hasTimeBlockForDate;
+    if (!groups.has(groupId)) {
+      groups.set(groupId, []);
+    }
+    groups.get(groupId)!.push(task);
   });
-}
+  
+  return groups;
+}, [sortedTasks, groupBy]);
+```
 
-/**
- * Get incomplete tasks for a date (most common use case)
- */
-export function getIncompleteTasksForDate(tasks: Task[], dateStr: string): Task[] {
-  return getTasksForDate(tasks, dateStr).filter(t => !t.is_completed);
-}
+### Group Configurations
 
-/**
- * Separate tasks into scheduled (has time) and unscheduled (pool)
- */
-export function separateScheduledTasks(tasks: Task[]) {
-  const scheduled: Task[] = [];
-  const unscheduled: Task[] = [];
+```typescript
+const DATE_GROUPS = [
+  { id: 'overdue', name: 'Overdue', icon: AlertTriangle, color: 'text-destructive' },
+  { id: 'today', name: 'Today', icon: Sun, color: 'text-amber-500' },
+  { id: 'tomorrow', name: 'Tomorrow', icon: Sunrise, color: 'text-blue-500' },
+  { id: 'thisWeek', name: 'This Week', icon: Calendar },
+  { id: 'later', name: 'Later', icon: Calendar },
+  { id: 'unscheduled', name: 'No Date', icon: Inbox },
+];
 
+const PRIORITY_GROUPS = [
+  { id: 'high', name: 'High Priority', color: 'text-destructive' },
+  { id: 'medium', name: 'Medium Priority', color: 'text-warning' },
+  { id: 'low', name: 'Low Priority', color: 'text-muted-foreground' },
+  { id: 'none', name: 'No Priority' },
+];
+
+const ENERGY_GROUPS = [
+  { id: 'high_focus', name: 'High Focus', color: 'text-destructive' },
+  { id: 'medium', name: 'Medium Energy', color: 'text-warning' },
+  { id: 'low_energy', name: 'Low Energy', color: 'text-success' },
+  { id: 'none', name: 'No Energy Level' },
+];
+```
+
+### Dynamic Project Groups
+
+Projects are fetched from existing task data:
+
+```typescript
+const projectGroups = useMemo(() => {
+  const projectMap = new Map<string, { id: string; name: string; color: string }>();
+  
   tasks.forEach(task => {
-    if (task.time_block_start || task.scheduled_time) {
-      scheduled.push(task);
-    } else {
-      unscheduled.push(task);
+    if (task.project_id && task.project) {
+      projectMap.set(task.project_id, {
+        id: task.project_id,
+        name: task.project.name,
+        color: task.project.color,
+      });
     }
   });
-
-  return { scheduled, unscheduled };
-}
+  
+  return [
+    ...Array.from(projectMap.values()),
+    { id: 'no_project', name: 'No Project', color: '#9CA3AF' },
+  ];
+}, [tasks]);
 ```
 
 ---
 
-### Phase 2: Refactor DailyTimelineView
+## User Experience
 
-**File: `src/components/daily-plan/DailyTimelineView.tsx`**
-
-Changes:
-1. Remove local task state and fetching
-2. Import and use `useTasks()` and `useTaskMutations()`
-3. Use unified filter from `taskFilters.ts`
-4. Replace direct API calls with centralized mutations
-
-```typescript
-// REMOVE these:
-// - useState for tasks
-// - useState for loadingTasks  
-// - useEffect that calls supabase.functions.invoke('get-all-tasks')
-// - handleTaskToggle function with direct API call
-
-// ADD these:
-import { useTasks, useTaskMutations } from '@/hooks/useTasks';
-import { getTasksForDate, separateScheduledTasks } from '@/lib/taskFilters';
-
-// In component:
-const { data: allTasks = [], isLoading: loadingTasks } = useTasks();
-const { toggleComplete } = useTaskMutations();
-
-const tasks = useMemo(() => 
-  getTasksForDate(allTasks, todayStr),
-  [allTasks, todayStr]
-);
-
-const { scheduled: scheduledTasks, unscheduled: unscheduledTasks } = useMemo(() =>
-  separateScheduledTasks(tasks),
-  [tasks]
-);
-
-// Replace handleTaskToggle:
-const handleTaskToggle = (taskId: string) => {
-  toggleComplete.mutate(taskId);
-  onTaskToggle?.(taskId, false);
-};
-```
+1. **Default**: Group by Date, Sort by Priority (current behavior maintained)
+2. **Persistence**: Selection remembered during session (resets on page reload)
+3. **Empty groups hidden**: Groups with no tasks are not shown
+4. **Collapsible**: Each group can be expanded/collapsed (existing functionality)
 
 ---
 
-### Phase 3: Refactor DailyScheduleView
+## Mobile Considerations
 
-**File: `src/components/daily-plan/DailyScheduleView.tsx`**
-
-Same pattern as DailyTimelineView:
-
-1. Remove lines 79, 80-82 (local state)
-2. Remove lines 142-183 (useEffect fetching)
-3. Remove lines 222-246 (handleTaskToggle with direct API)
-4. Remove lines 249-269 (handleTaskUpdate with direct API)
-5. Remove lines 272-300 (handleTaskRemove with direct API)
-6. Remove lines 430-466 (handleRefresh with direct API)
-
-Replace with centralized hook usage and mutation calls.
-
-**Note:** This component has complex drag-and-drop logic. The mutations for scheduling (`setTimeBlock`, `updateTask`) should use `useTaskMutations()` instead of direct API calls.
-
----
-
-### Phase 4: Refactor InlineCalendarAgenda
-
-**File: `src/components/daily-plan/InlineCalendarAgenda.tsx`**
-
-1. Remove lines 275, 277-278 (local state for tasks/loading)
-2. Remove lines 344-366 (fetchTasks callback and useEffect)
-3. Replace with `useTasks()` hook
-4. Use `useTaskMutations()` for toggle/update operations
-
----
-
-### Phase 5: Fix Query Key Inconsistencies
-
-Update all files using wrong query key:
-
-| File | Line | Change |
-|------|------|--------|
-| `DailyAgendaCard.tsx` | 244 | `['tasks']` → `['all-tasks']` |
-| `CourseProgressPanel.tsx` | 67 | `['tasks']` → `['all-tasks']` |
-| `AddContentDialog.tsx` | 345, 497 | `['tasks']` → `['all-tasks']` |
-| `ContentPlannerWizard.tsx` | 314 | `['tasks']` → `['all-tasks']` |
-| `Tasks.tsx` | 745 | `['tasks']` → `['all-tasks']` |
-| `useCourses.tsx` | 355 | `['tasks']` → `['all-tasks']` |
-
-Better approach - use the exported constant:
-```typescript
-import { taskQueryKeys } from '@/hooks/useTasks';
-queryClient.invalidateQueries({ queryKey: taskQueryKeys.all });
-```
-
----
-
-### Phase 6: Update useTasksForDate to Include time_block_start
-
-**File: `src/hooks/useTasks.tsx`** (lines 431-439)
-
-Current code is missing `time_block_start` check:
-```typescript
-// BEFORE
-return task.scheduled_date === dateStr || task.planned_day === dateStr;
-
-// AFTER (use the utility)
-import { getTasksForDate } from '@/lib/taskFilters';
-// OR inline:
-return task.scheduled_date === dateStr || 
-       task.planned_day === dateStr ||
-       task.time_block_start?.startsWith(dateStr);
-```
-
----
-
-### Phase 7: Add Error Boundaries to Daily Plan Components
-
-**File: `src/pages/DailyPlan.tsx`**
-
-Wrap major sections with `WidgetErrorBoundary`:
-
-```typescript
-import { WidgetErrorBoundary } from '@/components/dashboard';
-
-// Wrap each major component:
-<WidgetErrorBoundary title="Daily Schedule">
-  <DailyScheduleView {...props} />
-</WidgetErrorBoundary>
-```
-
----
-
-## Files to Modify Summary
-
-| File | Action | Priority |
-|------|--------|----------|
-| `src/lib/taskFilters.ts` | **CREATE** | High |
-| `src/components/daily-plan/DailyTimelineView.tsx` | **MAJOR REFACTOR** | Critical |
-| `src/components/daily-plan/DailyScheduleView.tsx` | **MAJOR REFACTOR** | Critical |
-| `src/components/daily-plan/InlineCalendarAgenda.tsx` | **MAJOR REFACTOR** | Critical |
-| `src/hooks/useTasks.tsx` | **MINOR UPDATE** | High |
-| `src/components/daily-plan/DailyAgendaCard.tsx` | **FIX QUERY KEY** | High |
-| `src/components/courses/CourseProgressPanel.tsx` | **FIX QUERY KEY** | Medium |
-| `src/components/editorial-calendar/AddContentDialog.tsx` | **FIX QUERY KEY** | Medium |
-| `src/components/wizards/content-planner/ContentPlannerWizard.tsx` | **FIX QUERY KEY** | Medium |
-| `src/pages/Tasks.tsx` | **FIX QUERY KEY** | Medium |
-| `src/hooks/useCourses.tsx` | **FIX QUERY KEY** | Medium |
-| `src/pages/DailyPlan.tsx` | **ADD ERROR BOUNDARIES** | Medium |
-
----
-
-## Expected Results After Fix
-
-| Metric | Before | After |
-|--------|--------|-------|
-| API calls when opening Daily Plan | 3+ duplicate calls | 1 shared call |
-| Cache consistency | Components show different data | All views show same data |
-| Update propagation | Manual refresh needed | Automatic via realtime |
-| Error recovery | UI stuck in wrong state | Automatic rollback |
-| Date filtering | Inconsistent across views | Single unified logic |
-
----
-
-## Testing Plan
-
-After implementation:
-
-1. **Cross-view consistency test**
-   - Open Tasks page, toggle a task complete
-   - Navigate to Daily Plan - task should show as complete
-   - Navigate to Weekly Plan - same state
-
-2. **Cache invalidation test**
-   - Add a task via Quick Capture
-   - All views should show the new task without refresh
-
-3. **Error recovery test**
-   - Disable network
-   - Toggle a task
-   - Should revert after error
-
-4. **Date filtering test**
-   - Create task with `time_block_start` for today
-   - Should appear in all "today" views
+On mobile, the dropdowns will be compact:
+- Shorter labels ("Group" / "Sort" instead of "Group by" / "Sort by")
+- Full-width dropdowns when opened
+- Touch-friendly 44px tap targets
