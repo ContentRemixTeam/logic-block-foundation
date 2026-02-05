@@ -13,7 +13,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { X, Loader2, Save, FileText, Mail, Video, Mic, PenTool, Megaphone, ExternalLink, Clock, Tag, CheckCircle, BarChart3, Eye, MousePointer, Heart, MessageCircle, Share2, Bookmark, Users, DollarSign, CalendarIcon } from 'lucide-react';
+import { X, Loader2, Save, FileText, Mail, Video, Mic, PenTool, Megaphone, ExternalLink, Clock, Tag, CheckCircle, BarChart3, Eye, MousePointer, Heart, MessageCircle, Share2, Bookmark, Users, DollarSign, CalendarIcon, Image, Plus, Trash2 } from 'lucide-react';
 import { 
   ContentItem, 
   ContentType, 
@@ -61,6 +61,7 @@ export function ContentSaveModal({
   defaultType,
 }: ContentSaveModalProps) {
   const [tagInput, setTagInput] = useState('');
+  const [graphicInput, setGraphicInput] = useState('');
   
   const {
     formData,
@@ -100,6 +101,7 @@ export function ContentSaveModal({
     if (!open) {
       reset();
       setTagInput('');
+      setGraphicInput('');
     }
   }, [open, reset]);
 
@@ -806,6 +808,79 @@ export function ContentSaveModal({
 
                   {/* LINKS TAB */}
                   <TabsContent value="links" className="space-y-5 mt-6">
+                    {/* Graphics URLs */}
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium flex items-center gap-2">
+                        <Image className="h-4 w-4" />
+                        Graphics / Media URLs
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Link to images, graphics, or media files for this content
+                      </p>
+                      <div className="flex gap-2">
+                        <Input
+                          type="url"
+                          value={graphicInput}
+                          onChange={(e) => setGraphicInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              if (graphicInput.trim()) {
+                                updateField('graphics_urls', [...formData.graphics_urls, graphicInput.trim()]);
+                                setGraphicInput('');
+                              }
+                            }
+                          }}
+                          placeholder="https://drive.google.com/... or https://canva.com/..."
+                          className="h-11"
+                        />
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => {
+                            if (graphicInput.trim()) {
+                              updateField('graphics_urls', [...formData.graphics_urls, graphicInput.trim()]);
+                              setGraphicInput('');
+                            }
+                          }}
+                          className="h-11"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      {formData.graphics_urls.length > 0 && (
+                        <div className="space-y-2">
+                          {formData.graphics_urls.map((url, index) => (
+                            <div key={index} className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 border">
+                              <Image className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <a 
+                                href={url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-sm text-primary hover:underline truncate flex-1"
+                              >
+                                {url}
+                              </a>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                                onClick={() => {
+                                  updateField('graphics_urls', formData.graphics_urls.filter((_, i) => i !== index));
+                                }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <Separator />
+
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Link URL</Label>
                       <Input

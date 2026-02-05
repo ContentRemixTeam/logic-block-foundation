@@ -43,6 +43,9 @@ export interface ContentItem {
   planned_publish_date: string | null;
   creation_task_id: string | null;
   publish_task_id: string | null;
+  // Graphics
+  graphics_url: string | null;
+  graphics_urls: string[] | null;
 }
 
 export interface ContentSendLog {
@@ -236,6 +239,8 @@ export async function createContentItem(item: Partial<ContentItem>): Promise<Con
     user_id: user.id,
     planned_creation_date: item.planned_creation_date || null,
     planned_publish_date: item.planned_publish_date || null,
+    graphics_url: item.graphics_url || null,
+    graphics_urls: item.graphics_urls || null,
   };
 
   const { data, error } = await supabase
