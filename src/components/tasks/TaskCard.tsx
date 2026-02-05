@@ -36,6 +36,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { TaskTimerButton } from '@/components/timer';
 
 interface TaskCardProps {
   task: Task;
@@ -244,6 +245,9 @@ export function TaskCard({
               <span>{getDurationLabel()}</span>
             </div>
           )}
+
+          {/* Timer Button */}
+          <TaskTimerButton task={{ task_id: task.task_id, task_text: task.task_text }} />
 
           {/* Priority */}
           {task.priority && (
