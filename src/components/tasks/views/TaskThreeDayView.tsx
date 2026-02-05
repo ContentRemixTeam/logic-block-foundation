@@ -10,11 +10,11 @@ import {
 } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Task } from '../types';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { getTasksForDate, separateScheduledTasks } from '@/lib/taskFilters';
 
 interface TaskThreeDayViewProps {
   tasks: Task[];
@@ -38,41 +38,62 @@ export function TaskThreeDayView({
 }: TaskThreeDayViewProps) {
   const threeDays = [selectedDate, addDays(selectedDate, 1), addDays(selectedDate, 2)];
 
-  // Group tasks by day and hour
-  const tasksByDayAndHour = useMemo(() => {
+  // Get tasks for the 3-day range and separate into scheduled/unscheduled
+  const { tasksByDayAndHour, unscheduledByDay } = useMemo(() => {
     const grouped: Record<string, Record<number, Task[]>> = {};
+    const unscheduled: Record<string, Task[]> = {};
 
     threeDays.forEach(day => {
       const dateKey = format(day, 'yyyy-MM-dd');
       grouped[dateKey] = {};
+      unscheduled[dateKey] = [];
       HOURS.forEach(hour => {
         grouped[dateKey][hour] = [];
       });
     });
 
-    tasks.forEach(task => {
-      if (task.is_completed) return;
-      if (!task.scheduled_date) return;
-      if (!task.time_block_start) return;
-
-      const dateKey = task.scheduled_date;
-      if (!grouped[dateKey]) return;
-
-      const startTime = parseISO(task.time_block_start);
-      const hour = startTime.getHours();
+    // Process each day
+    threeDays.forEach(day => {
+      const dateKey = format(day, 'yyyy-MM-dd');
+      const dayTasks = getTasksForDate(tasks, dateKey).filter(t => !t.is_completed);
+      const { scheduled, unscheduled: pool } = separateScheduledTasks(dayTasks);
       
-      // Find the closest 2-hour block
-      const blockHour = HOURS.reduce((prev, curr) => 
-        Math.abs(curr - hour) < Math.abs(prev - hour) ? curr : prev
-      );
+      // Add unscheduled to pool
+      unscheduled[dateKey] = pool;
+      
+      // Group scheduled by hour
+      scheduled.forEach(task => {
+        if (!task.time_block_start) return;
+        
+        const startTime = parseISO(task.time_block_start);
+        const hour = startTime.getHours();
+        
+        // Find the closest 2-hour block
+        const blockHour = HOURS.reduce((prev, curr) => 
+          Math.abs(curr - hour) < Math.abs(prev - hour) ? curr : prev
+        );
 
-      if (grouped[dateKey][blockHour]) {
-        grouped[dateKey][blockHour].push(task);
-      }
+        if (grouped[dateKey][blockHour]) {
+          grouped[dateKey][blockHour].push(task);
+        }
+      });
     });
 
-    return grouped;
+    return { tasksByDayAndHour: grouped, unscheduledByDay: unscheduled };
   }, [tasks, threeDays]);
+
+  // Check if any day has unscheduled tasks
+  const hasUnscheduledTasks = useMemo(() => {
+    return threeDays.some(day => {
+      const dateKey = format(day, 'yyyy-MM-dd');
+      return (unscheduledByDay[dateKey]?.length || 0) > 0;
+    });
+  }, [unscheduledByDay, threeDays]);
+
+  const handleDragStart = (e: React.DragEvent, taskId: string) => {
+    e.dataTransfer.setData('taskId', taskId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -91,11 +112,6 @@ export function TaskThreeDayView({
         status: 'scheduled' 
       });
     }
-  };
-
-  const handleDragStart = (e: React.DragEvent, taskId: string) => {
-    e.dataTransfer.setData('taskId', taskId);
-    e.dataTransfer.effectAllowed = 'move';
   };
 
   const currentHour = new Date().getHours();
@@ -128,6 +144,54 @@ export function TaskThreeDayView({
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
+
+      {/* Unscheduled Tasks Pool - Only show if there are unscheduled tasks */}
+      {hasUnscheduledTasks && (
+        <Card className="bg-muted/30 border-dashed">
+          <CardContent className="p-3">
+            <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
+              Unscheduled — Drag to a time slot
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {threeDays.map(day => {
+                const dateKey = format(day, 'yyyy-MM-dd');
+                const poolTasks = unscheduledByDay[dateKey] || [];
+                
+                return (
+                  <div key={dateKey} className="space-y-1">
+                    <p className="text-[10px] text-muted-foreground text-center">
+                      {format(day, 'EEE')}
+                    </p>
+                    {poolTasks.length > 0 ? (
+                      poolTasks.slice(0, 3).map(task => (
+                        <div
+                          key={task.task_id}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, task.task_id)}
+                          onClick={() => onOpenDetail(task)}
+                          className={cn(
+                            "p-1.5 rounded text-xs cursor-grab active:cursor-grabbing transition-all",
+                            "bg-background border hover:border-primary/50 hover:shadow-sm"
+                          )}
+                        >
+                          <p className="font-medium truncate">{task.task_text}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground/50 text-center py-1">—</p>
+                    )}
+                    {poolTasks.length > 3 && (
+                      <p className="text-[10px] text-muted-foreground text-center">
+                        +{poolTasks.length - 3} more
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Three Day Grid */}
       <div className="grid grid-cols-[60px_1fr_1fr_1fr] gap-2">
