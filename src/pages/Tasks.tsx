@@ -62,6 +62,7 @@ import { useActiveCycle } from '@/hooks/useActiveCycle';
 import { CycleTimeline } from '@/components/CycleTimeline';
 import { SOPSelector } from '@/components/tasks/SOPSelector';
 import { TagManager } from '@/components/tasks/TagManager';
+import { TaskRecoveryBanner } from '@/components/tasks/TaskRecoveryBanner';
 
 export default function Tasks() {
   const queryClient = useQueryClient();
@@ -809,6 +810,9 @@ export default function Tasks() {
 
         {/* Search and Filters */}
         <div className="flex flex-col gap-4">
+          {/* Recovery banner for pending syncs/drafts */}
+          <TaskRecoveryBanner />
+          
           {/* Search bar */}
           <div className="flex items-center gap-3">
             <div className="relative flex-1 max-w-md">
