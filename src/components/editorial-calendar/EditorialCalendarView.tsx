@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { 
   DndContext, 
   DragOverlay, 
@@ -13,7 +13,8 @@ import { format, addWeeks, subWeeks, startOfWeek } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { 
   ChevronLeft, ChevronRight, Calendar, Plus, Rocket, 
-  Inbox, LayoutGrid, ChevronDown, ChevronUp, Layers, Settings2 
+  Inbox, LayoutGrid, ChevronDown, ChevronUp, Layers, Settings2,
+  Monitor, Smartphone, X,
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator } from '@/components/ui/select';
 import {
@@ -24,6 +25,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { useEditorialCalendar } from '@/hooks/useEditorialCalendar';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -43,6 +45,7 @@ import { PlatformConfigModal } from '@/components/editorial-calendar/PlatformCon
 import { CampaignSlideIn } from '@/components/editorial-calendar/CampaignSlideIn';
 import { CalendarStats } from '@/components/editorial-calendar/CalendarStats';
 import { DateModeSelector, CalendarDateMode } from '@/components/editorial-calendar/DateModeSelector';
+import { EditorialCalendarMobile } from '@/components/editorial-calendar/EditorialCalendarMobile';
 import { toast } from 'sonner';
 
 const DENSITY_LABELS: Record<CalendarDensity, string> = {
@@ -50,6 +53,8 @@ const DENSITY_LABELS: Record<CalendarDensity, string> = {
   comfortable: 'Comfortable',
   spacious: 'Spacious',
 };
+
+const MOBILE_VIEW_PREFERENCE_KEY = 'editorial-calendar-mobile-preference';
 
 export function EditorialCalendarView() {
   return (
@@ -83,10 +88,53 @@ function EditorialCalendarViewInner() {
   const [mobilePoolOpen, setMobilePoolOpen] = useState(false);
   const [statsVisible, setStatsVisible] = useState(true);
   
+  // Mobile view preference
+  const [useMobileView, setUseMobileView] = useState<boolean | null>(null);
+  const [showMobileBanner, setShowMobileBanner] = useState(true);
+  
   const hasSeenOnboarding = useCalendarOnboardingSeen();
   const isMobile = useIsMobile();
   const { density, setDensity } = useCalendarDensity();
   const { settings: calendarSettings, updateSettings } = useCalendarSettings();
+
+  // Load mobile view preference
+  useEffect(() => {
+    if (!isMobile) {
+      setUseMobileView(false);
+      return;
+    }
+    
+    const stored = localStorage.getItem(MOBILE_VIEW_PREFERENCE_KEY);
+    if (stored === 'desktop') {
+      setUseMobileView(false);
+      setShowMobileBanner(false);
+    } else if (stored === 'mobile') {
+      setUseMobileView(true);
+      setShowMobileBanner(false);
+    } else {
+      // Default to mobile view for mobile users
+      setUseMobileView(true);
+    }
+  }, [isMobile]);
+
+  // Handle switching to mobile view
+  const handleUseMobileView = () => {
+    setUseMobileView(true);
+    setShowMobileBanner(false);
+    localStorage.setItem(MOBILE_VIEW_PREFERENCE_KEY, 'mobile');
+  };
+
+  // Handle switching to desktop view
+  const handleUseDesktopView = () => {
+    setUseMobileView(false);
+    setShowMobileBanner(false);
+    localStorage.setItem(MOBILE_VIEW_PREFERENCE_KEY, 'desktop');
+  };
+
+  // Handle dismiss banner (use mobile view)
+  const handleDismissBanner = () => {
+    setShowMobileBanner(false);
+  };
 
   const { 
     items, 
@@ -238,8 +286,70 @@ function EditorialCalendarViewInner() {
     }
   };
 
+  // Show mobile view if user is on mobile and hasn't switched to desktop
+  if (isMobile && useMobileView) {
+    return (
+      <div className="flex flex-col h-full">
+        {/* Mobile View Toggle Banner */}
+        {showMobileBanner && (
+          <Alert className="mx-4 mt-4 mb-2 border-primary/50 bg-primary/5">
+            <Smartphone className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between gap-4">
+              <span className="text-sm">Using mobile-optimized view</span>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleUseDesktopView}
+                  className="h-8 text-xs"
+                >
+                  <Monitor className="h-3 w-3 mr-1" />
+                  Desktop
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleDismissBanner}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        <div className="flex-1 min-h-0">
+          <EditorialCalendarMobile onSwitchToDesktop={handleUseDesktopView} />
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop Warning Banner for mobile users who chose desktop
+  const showDesktopWarning = isMobile && useMobileView === false;
+
   return (
     <div className="flex flex-col h-full">
+      {/* Desktop Mode Warning for Mobile Users */}
+      {showDesktopWarning && (
+        <Alert className="mx-4 mt-4 mb-2 border-warning/50 bg-warning/10">
+          <Monitor className="h-4 w-4 text-warning" />
+          <AlertDescription className="flex items-center justify-between gap-4">
+            <span className="text-sm">Desktop mode may be difficult to use on mobile</span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleUseMobileView}
+              className="h-8 text-xs shrink-0"
+            >
+              <Smartphone className="h-3 w-3 mr-1" />
+              Mobile View
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Onboarding Banner */}
       {showOnboarding && !hasSeenOnboarding && (
         <CalendarOnboarding onDismiss={() => setShowOnboarding(false)} />
