@@ -1,44 +1,52 @@
 
-# Add Sort and Group Controls to Task List View
+
+# Add Project & Launch Filters to Task List
 
 ## Overview
 
-Add the ability to **sort** and **group** tasks in the List view on the Tasks page. Currently, the List view only groups tasks by date (hardcoded). This change will let you organize your tasks by different categories like Project, Priority, or Energy Level.
+Add the ability to filter tasks by **Project** and **Launch** in the Task List view on the Tasks page. Currently, the toolbar only supports filtering by Priority and Energy Level. This enhancement will let you quickly focus on tasks from specific projects or launches.
 
 ## What You'll Get
 
-### Group By Options
-- **Due Date** (current default) - Overdue, Today, Tomorrow, This Week, Later, No Date
-- **Priority** - High, Medium, Low, No Priority
-- **Project** - Tasks grouped by their associated project
-- **Energy Level** - High Focus, Medium, Low Energy
+### New Filter Options
+- **Project Filter** - Filter to show only tasks from one or more specific projects
+- **Launch Filter** - Filter to show only tasks linked to active launches
+- Both filters will appear in the existing Filters popover alongside Priority and Energy
 
-### Sort Options
-- **Due Date** - Earliest first or latest first
-- **Priority** - High to Low or Low to High
-- **Created Date** - Newest first or oldest first
-- **Name** - A-Z or Z-A
+### Filter Behavior
+- Multi-select enabled (can filter by multiple projects/launches simultaneously)
+- Badges show active filter count
+- Filter chips/badges display when filters are active
+- "Show All" / "Clear" option to reset each filter
 
 ## UI Design
 
-A small control bar will appear above the task list (only in List view):
+The filters popover will be enhanced with new sections:
 
 ```text
-+--------------------------------------------------+
-|  Group by: [Due Date ▼]   Sort by: [Priority ▼]  |
-+--------------------------------------------------+
-|  ▼ Overdue (2)                                   |
-|     [ ] Task 1                                   |
-|     [ ] Task 2                                   |
-|  ▼ Today (3)                                     |
-|     [ ] Task 3                                   |
-|     ...                                          |
-+--------------------------------------------------+
+┌─────────────────────────────────────────┐
+│  Filters                    [Clear all] │
+├─────────────────────────────────────────┤
+│  PRIORITY                               │
+│  [High] [Medium] [Low]                  │
+├─────────────────────────────────────────┤
+│  ENERGY LEVEL                           │
+│  [High Focus] [Medium] [Low Energy]     │
+├─────────────────────────────────────────┤
+│  PROJECT                                │
+│  [Project A] [Project B] [No Project]   │
+├─────────────────────────────────────────┤
+│  LAUNCH                                 │
+│  [Spring Launch] [Q2 Promo]             │
+└─────────────────────────────────────────┘
 ```
 
-- **Group By dropdown** - Select how tasks are organized into sections
-- **Sort By dropdown** - Select the order within each group
-- Controls only visible in List view (not Board or Calendar)
+Active filters will show as dismissible badges below the search bar:
+
+```text
+[Search...] [Filters (3)]
+Active: [Project: Website Redesign ✕] [Launch: Spring Sale ✕]
+```
 
 ---
 
@@ -48,133 +56,134 @@ A small control bar will appear above the task list (only in List view):
 
 | File | Changes |
 |------|---------|
-| `src/components/tasks/TasksPageToolbar.tsx` | Add `groupBy` and `sortBy` to filters state |
-| `src/components/tasks/views/TaskListView.tsx` | Add grouping/sorting dropdowns and logic |
-| `src/pages/Tasks.tsx` | Pass new filter state to TaskListView |
-| `src/components/tasks/types.ts` | Add type definitions for options |
+| `src/components/tasks/types.ts` | Add `projectIds` and `launchIds` to filter types |
+| `src/components/tasks/TasksPageToolbar.tsx` | Add Project and Launch filter sections to popover |
+| `src/pages/Tasks.tsx` | Extend filter state, pass data to toolbar, apply filters to tasks |
 
-### New Types
+### Type Updates (`types.ts`)
+
+No new types needed - we'll use string arrays for project and launch IDs in the existing filter object pattern.
+
+### Filter State Changes (`Tasks.tsx`)
+
+Extend the existing `filters` state object:
 
 ```typescript
-// In types.ts
-export type GroupByOption = 'date' | 'priority' | 'project' | 'energy';
-export type SortByOption = 'scheduled_date' | 'priority' | 'created_at' | 'task_text';
-export type SortDirection = 'asc' | 'desc';
+const [filters, setFilters] = useState({
+  priority: [] as string[],
+  tags: [] as string[],
+  cycle: 'all' as string,
+  energy: [] as EnergyLevel[],
+  projectIds: [] as string[],    // NEW
+  launchIds: [] as string[],     // NEW
+});
 ```
 
-### TaskListView Changes
+### Data Fetching
 
-1. Add local state for `groupBy` and `sortBy` options
-2. Add a mini-toolbar with two Select dropdowns above the task list
-3. Update `groupedTasks` useMemo to support dynamic grouping:
-   - `date` → Current logic (Overdue, Today, Tomorrow, etc.)
-   - `priority` → High, Medium, Low, No Priority groups
-   - `project` → Group by project name, plus "No Project"
-   - `energy` → High Focus, Medium, Low Energy groups
-
-4. Add sorting within each group based on `sortBy` selection
-
-### Grouping Logic Pattern
+The Tasks page will need to fetch projects and launches to populate the filter dropdowns:
 
 ```typescript
-// Simplified example of dynamic grouping
-const groupedTasks = useMemo(() => {
-  const groups: Map<string, Task[]> = new Map();
-  
-  sortedTasks.forEach(task => {
-    let groupId: string;
-    
-    switch (groupBy) {
-      case 'date':
-        groupId = getDateGroup(task); // existing logic
-        break;
-      case 'priority':
-        groupId = task.priority || 'none';
-        break;
-      case 'project':
-        groupId = task.project_id || 'no_project';
-        break;
-      case 'energy':
-        groupId = task.energy_level || 'none';
-        break;
-    }
-    
-    if (!groups.has(groupId)) {
-      groups.set(groupId, []);
-    }
-    groups.get(groupId)!.push(task);
-  });
-  
-  return groups;
-}, [sortedTasks, groupBy]);
+// Import existing hooks
+import { useProjects } from '@/hooks/useProjects';
+import { useLaunches } from '@/hooks/useLaunches';
+
+// In component
+const { data: projects = [] } = useProjects();
+const { launches } = useLaunches();
 ```
 
-### Group Configurations
+### TasksPageToolbar Changes
+
+1. Accept new props for available projects and launches
+2. Add new filter sections in the Filters popover
+3. Add toggle functions for project/launch selection
+4. Display project colors as visual indicators
 
 ```typescript
-const DATE_GROUPS = [
-  { id: 'overdue', name: 'Overdue', icon: AlertTriangle, color: 'text-destructive' },
-  { id: 'today', name: 'Today', icon: Sun, color: 'text-amber-500' },
-  { id: 'tomorrow', name: 'Tomorrow', icon: Sunrise, color: 'text-blue-500' },
-  { id: 'thisWeek', name: 'This Week', icon: Calendar },
-  { id: 'later', name: 'Later', icon: Calendar },
-  { id: 'unscheduled', name: 'No Date', icon: Inbox },
-];
-
-const PRIORITY_GROUPS = [
-  { id: 'high', name: 'High Priority', color: 'text-destructive' },
-  { id: 'medium', name: 'Medium Priority', color: 'text-warning' },
-  { id: 'low', name: 'Low Priority', color: 'text-muted-foreground' },
-  { id: 'none', name: 'No Priority' },
-];
-
-const ENERGY_GROUPS = [
-  { id: 'high_focus', name: 'High Focus', color: 'text-destructive' },
-  { id: 'medium', name: 'Medium Energy', color: 'text-warning' },
-  { id: 'low_energy', name: 'Low Energy', color: 'text-success' },
-  { id: 'none', name: 'No Energy Level' },
-];
+interface TasksPageToolbarProps {
+  // ...existing props
+  projects?: Array<{ id: string; name: string; color: string; is_launch?: boolean }>;
+  launches?: Array<{ id: string; name: string }>;
+}
 ```
 
-### Dynamic Project Groups
+### Filter Logic (`Tasks.tsx`)
 
-Projects are fetched from existing task data:
+Add project and launch filtering to the existing `filteredTasks` useMemo:
 
 ```typescript
-const projectGroups = useMemo(() => {
-  const projectMap = new Map<string, { id: string; name: string; color: string }>();
-  
-  tasks.forEach(task => {
-    if (task.project_id && task.project) {
-      projectMap.set(task.project_id, {
-        id: task.project_id,
-        name: task.project.name,
-        color: task.project.color,
-      });
-    }
-  });
-  
-  return [
-    ...Array.from(projectMap.values()),
-    { id: 'no_project', name: 'No Project', color: '#9CA3AF' },
-  ];
-}, [tasks]);
+// STEP 4: Project filter (new)
+if (filters.projectIds.length > 0) {
+  const hasNoProjectFilter = filters.projectIds.includes('no_project');
+  if (!task.project_id && !hasNoProjectFilter) return;
+  if (task.project_id && !filters.projectIds.includes(task.project_id)) return;
+}
+
+// STEP 5: Launch filter (new)
+if (filters.launchIds.length > 0) {
+  const taskLaunchId = task.project?.is_launch ? task.project_id : null;
+  if (!taskLaunchId || !filters.launchIds.includes(taskLaunchId)) return;
+}
+```
+
+### UI Components in Toolbar
+
+Projects section with color dots:
+
+```typescript
+{/* Projects */}
+<div className="space-y-2">
+  <label className="text-xs font-medium text-muted-foreground uppercase">
+    Project
+  </label>
+  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+    {projects.map(project => (
+      <Badge
+        key={project.id}
+        variant="outline"
+        className={cn(
+          "cursor-pointer transition-colors gap-1.5",
+          filters.projectIds.includes(project.id) && "bg-accent"
+        )}
+        onClick={() => toggleProject(project.id)}
+      >
+        <div 
+          className="h-2.5 w-2.5 rounded-full" 
+          style={{ backgroundColor: project.color }} 
+        />
+        {project.name}
+      </Badge>
+    ))}
+    <Badge
+      variant="outline"
+      className={cn(
+        "cursor-pointer",
+        filters.projectIds.includes('no_project') && "bg-accent"
+      )}
+      onClick={() => toggleProject('no_project')}
+    >
+      No Project
+    </Badge>
+  </div>
+</div>
 ```
 
 ---
 
 ## User Experience
 
-1. **Default**: Group by Date, Sort by Priority (current behavior maintained)
-2. **Persistence**: Selection remembered during session (resets on page reload)
-3. **Empty groups hidden**: Groups with no tasks are not shown
-4. **Collapsible**: Each group can be expanded/collapsed (existing functionality)
+1. **Consistency** - Filters work the same way as existing Priority/Energy filters
+2. **Multi-select** - Can combine multiple filters (e.g., 2 projects + high priority)
+3. **Visual clarity** - Project colors shown in filter badges
+4. **Clear feedback** - Active filter count updates in toolbar button
+5. **Easy reset** - "Clear all" removes all active filters at once
 
 ---
 
 ## Mobile Considerations
 
-On mobile, the dropdowns will be compact:
-- Shorter labels ("Group" / "Sort" instead of "Group by" / "Sort by")
-- Full-width dropdowns when opened
-- Touch-friendly 44px tap targets
+- Filter popover is already touch-friendly
+- Scrollable project list for users with many projects
+- Badge-style filters work well on smaller screens
+
