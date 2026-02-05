@@ -42,6 +42,8 @@ export interface ContentFormData {
   planned_creation_date: string;
   planned_publish_date: string;
   create_tasks_for_dates: boolean;
+  // Graphics
+  graphics_urls: string[];
 }
 
 const defaultFormData: ContentFormData = {
@@ -79,6 +81,8 @@ const defaultFormData: ContentFormData = {
   planned_creation_date: '',
   planned_publish_date: '',
   create_tasks_for_dates: true,
+  // Graphics
+  graphics_urls: [],
 };
 
 interface UseContentItemFormOptions {
@@ -142,6 +146,8 @@ export function useContentItemForm({
         planned_creation_date: item.planned_creation_date || '',
         planned_publish_date: item.planned_publish_date || '',
         create_tasks_for_dates: true,
+        // Graphics
+        graphics_urls: item.graphics_urls || [],
       });
       setIsDirty(false);
     } else {
@@ -197,6 +203,8 @@ export function useContentItemForm({
           saves: formData.saves ? parseInt(formData.saves) : null,
           subscribers_gained: formData.subscribers_gained ? parseInt(formData.subscribers_gained) : null,
           revenue: formData.revenue ? parseFloat(formData.revenue) : null,
+        // Graphics
+        graphics_urls: formData.graphics_urls.length > 0 ? formData.graphics_urls : null,
         });
         setLastSaved(new Date());
         setIsDirty(false);
@@ -281,6 +289,8 @@ export function useContentItemForm({
         // Task scheduling dates
         planned_creation_date: formData.planned_creation_date || null,
         planned_publish_date: formData.planned_publish_date || null,
+        // Graphics
+        graphics_urls: formData.graphics_urls.length > 0 ? formData.graphics_urls : null,
       };
 
       let result: ContentItem;
