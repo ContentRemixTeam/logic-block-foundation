@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { ProjectDesignerData, DEFAULT_PROJECT_DESIGNER_DATA } from '@/types/projectDesigner';
-import { USE_CASE_TEMPLATES } from '@/lib/projectDesignerTemplates';
+import { USE_CASE_TEMPLATES, BASE_FIELDS } from '@/lib/projectDesignerTemplates';
 
 export function useProjectDesigner() {
   const { user } = useAuth();
@@ -71,9 +71,15 @@ export function useProjectDesigner() {
     const template = USE_CASE_TEMPLATES[useCase];
     if (!template) return {};
 
+    // Always include base fields (name, description, due_date, priority) + template suggested fields
+    // Filter out any template fields that would duplicate base field keys
+    const baseFieldKeys = new Set(BASE_FIELDS.map(f => f.key));
+    const suggestedFieldsWithoutDupes = template.suggestedFields.filter(f => !baseFieldKeys.has(f.key));
+
     return {
       columns: template.columns,
-      fields: [...template.suggestedFields],
+      // Combine base fields with template-specific suggested fields
+      fields: [...BASE_FIELDS, ...suggestedFieldsWithoutDupes],
       boardName: template.defaultBoardName,
       settings: {
         ...DEFAULT_PROJECT_DESIGNER_DATA.settings,
