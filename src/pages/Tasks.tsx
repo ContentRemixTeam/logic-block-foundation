@@ -81,21 +81,58 @@ export default function Tasks() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
-  // View state
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [activeTab, setActiveTab] = useState<PrimaryTab>('today');
+  // View state - persist to localStorage
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const saved = localStorage.getItem('tasks-view-mode');
+    return (saved as ViewMode) || 'list';
+  });
+  const [activeTab, setActiveTab] = useState<PrimaryTab>(() => {
+    const saved = localStorage.getItem('tasks-active-tab');
+    return (saved as PrimaryTab) || 'today';
+  });
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
-  // Consolidated filter state
+  // Consolidated filter state - persist to localStorage
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({
-    priority: [] as string[],
-    tags: [] as string[],
-    cycle: 'all' as string,
-    energy: [] as EnergyLevel[],
-    projectIds: [] as string[],
-    launchIds: [] as string[],
+  const [filters, setFilters] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tasks-filters');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          priority: parsed.priority || [],
+          tags: parsed.tags || [],
+          cycle: parsed.cycle || 'all',
+          energy: parsed.energy || [],
+          projectIds: parsed.projectIds || [],
+          launchIds: parsed.launchIds || [],
+        };
+      }
+    } catch (e) {
+      // Invalid saved filters, use defaults
+    }
+    return {
+      priority: [] as string[],
+      tags: [] as string[],
+      cycle: 'all' as string,
+      energy: [] as EnergyLevel[],
+      projectIds: [] as string[],
+      launchIds: [] as string[],
+    };
   });
+  
+  // Persist view state to localStorage
+  useEffect(() => {
+    localStorage.setItem('tasks-view-mode', viewMode);
+  }, [viewMode]);
+  
+  useEffect(() => {
+    localStorage.setItem('tasks-active-tab', activeTab);
+  }, [activeTab]);
+  
+  useEffect(() => {
+    localStorage.setItem('tasks-filters', JSON.stringify(filters));
+  }, [filters]);
   
   // Fetch projects and launches for filter dropdowns
   const { data: projects = [] } = useProjects();
@@ -170,9 +207,22 @@ export default function Tasks() {
     },
   });
 
-  // Generate recurring tasks on page load
+  // Generate recurring tasks - debounced to run max once per hour per session
   useEffect(() => {
+    const RECURRING_GENERATION_KEY = 'tasks-recurring-last-generated';
+    const ONE_HOUR = 60 * 60 * 1000;
+    
     const generateRecurring = async () => {
+      // Check if we've generated recently
+      const lastGenerated = localStorage.getItem(RECURRING_GENERATION_KEY);
+      if (lastGenerated) {
+        const elapsed = Date.now() - parseInt(lastGenerated, 10);
+        if (elapsed < ONE_HOUR) {
+          console.log('[Tasks] Skipping recurring generation, ran', Math.round(elapsed / 1000 / 60), 'min ago');
+          return;
+        }
+      }
+      
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
@@ -180,6 +230,8 @@ export default function Tasks() {
         await supabase.functions.invoke('generate-recurring-tasks', {
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
+        // Mark as generated
+        localStorage.setItem(RECURRING_GENERATION_KEY, String(Date.now()));
         queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
       } catch (error) {
         console.error('Failed to generate recurring tasks:', error);
@@ -187,7 +239,7 @@ export default function Tasks() {
     };
 
     generateRecurring();
-  }, []);
+  }, [queryClient]);
 
   // Manage task mutation
   const manageMutation = useMutation({
@@ -354,23 +406,42 @@ export default function Tasks() {
     getSelectedTasks,
   } = useBulkTaskSelection(filteredTasks);
 
-  // Bulk action handlers
+  // Helper function to chunk arrays for batch processing
+  const chunk = <T,>(arr: T[], size: number): T[][] => {
+    const result: T[][] = [];
+    for (let i = 0; i < arr.length; i += size) {
+      result.push(arr.slice(i, i + size));
+    }
+    return result;
+  };
+
+  // Bulk action handlers - now with batch processing for performance
   const handleBulkReschedule = async (date: Date) => {
     setIsBulkActionLoading(true);
     try {
       const selectedTasks = getSelectedTasks();
-      for (const task of selectedTasks) {
-        await manageMutation.mutateAsync({
-          action: 'update',
-          task_id: task.task_id,
-          scheduled_date: format(date, 'yyyy-MM-dd'),
-          status: 'scheduled',
-        });
+      const batches = chunk(selectedTasks, 10);
+      let processed = 0;
+      
+      for (const batch of batches) {
+        // Process batch in parallel
+        await Promise.all(batch.map(task => 
+          manageMutation.mutateAsync({
+            action: 'update',
+            task_id: task.task_id,
+            scheduled_date: format(date, 'yyyy-MM-dd'),
+            status: 'scheduled',
+          })
+        ));
+        processed += batch.length;
+        if (batches.length > 1) {
+          toast.loading(`Rescheduling... (${processed}/${selectedTasks.length})`, { id: 'bulk-reschedule' });
+        }
       }
-      toast.success(`${selectedTasks.length} tasks rescheduled`);
+      toast.success(`${selectedTasks.length} tasks rescheduled`, { id: 'bulk-reschedule' });
       clearSelection();
     } catch (error) {
-      toast.error('Failed to reschedule tasks');
+      toast.error('Failed to reschedule some tasks', { id: 'bulk-reschedule' });
     } finally {
       setIsBulkActionLoading(false);
     }
@@ -380,13 +451,22 @@ export default function Tasks() {
     setIsBulkActionLoading(true);
     try {
       const selectedTasks = getSelectedTasks();
-      for (const task of selectedTasks) {
-        await manageMutation.mutateAsync({ action: 'delete', task_id: task.task_id });
+      const batches = chunk(selectedTasks, 10);
+      let processed = 0;
+      
+      for (const batch of batches) {
+        await Promise.all(batch.map(task => 
+          manageMutation.mutateAsync({ action: 'delete', task_id: task.task_id })
+        ));
+        processed += batch.length;
+        if (batches.length > 1) {
+          toast.loading(`Deleting... (${processed}/${selectedTasks.length})`, { id: 'bulk-delete' });
+        }
       }
-      toast.success(`${selectedTasks.length} tasks deleted`);
+      toast.success(`${selectedTasks.length} tasks deleted`, { id: 'bulk-delete' });
       clearSelection();
     } catch (error) {
-      toast.error('Failed to delete tasks');
+      toast.error('Failed to delete some tasks', { id: 'bulk-delete' });
     } finally {
       setIsBulkActionLoading(false);
     }
@@ -396,13 +476,22 @@ export default function Tasks() {
     setIsBulkActionLoading(true);
     try {
       const selectedTasks = getSelectedTasks().filter(t => !t.is_completed);
-      for (const task of selectedTasks) {
-        await manageMutation.mutateAsync({ action: 'toggle', task_id: task.task_id });
+      const batches = chunk(selectedTasks, 10);
+      let processed = 0;
+      
+      for (const batch of batches) {
+        await Promise.all(batch.map(task => 
+          manageMutation.mutateAsync({ action: 'toggle', task_id: task.task_id })
+        ));
+        processed += batch.length;
+        if (batches.length > 1) {
+          toast.loading(`Completing... (${processed}/${selectedTasks.length})`, { id: 'bulk-complete' });
+        }
       }
-      toast.success(`${selectedTasks.length} tasks completed`);
+      toast.success(`${selectedTasks.length} tasks completed`, { id: 'bulk-complete' });
       clearSelection();
     } catch (error) {
-      toast.error('Failed to complete tasks');
+      toast.error('Failed to complete some tasks', { id: 'bulk-complete' });
     } finally {
       setIsBulkActionLoading(false);
     }
@@ -412,17 +501,26 @@ export default function Tasks() {
     setIsBulkActionLoading(true);
     try {
       const selectedTasks = getSelectedTasks();
-      for (const task of selectedTasks) {
-        await manageMutation.mutateAsync({
-          action: 'update',
-          task_id: task.task_id,
-          priority,
-        });
+      const batches = chunk(selectedTasks, 10);
+      let processed = 0;
+      
+      for (const batch of batches) {
+        await Promise.all(batch.map(task => 
+          manageMutation.mutateAsync({
+            action: 'update',
+            task_id: task.task_id,
+            priority,
+          })
+        ));
+        processed += batch.length;
+        if (batches.length > 1) {
+          toast.loading(`Updating... (${processed}/${selectedTasks.length})`, { id: 'bulk-priority' });
+        }
       }
-      toast.success(`Priority updated for ${selectedTasks.length} tasks`);
+      toast.success(`Priority updated for ${selectedTasks.length} tasks`, { id: 'bulk-priority' });
       clearSelection();
     } catch (error) {
-      toast.error('Failed to update priority');
+      toast.error('Failed to update priority', { id: 'bulk-priority' });
     } finally {
       setIsBulkActionLoading(false);
     }
