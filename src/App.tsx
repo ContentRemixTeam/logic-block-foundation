@@ -135,6 +135,7 @@ const MoneyMomentumWizardPage = lazyWithRetry(() => import('./pages/MoneyMomentu
 const SprintDashboardPage = lazyWithRetry(() => import('./pages/SprintDashboardPage'));
 const AllTasks = lazyWithRetry(() => import('./pages/AllTasks'));
 const ProjectDesignerPage = lazyWithRetry(() => import('./pages/ProjectDesignerPage'));
+const AICopywriting = lazyWithRetry(() => import('./pages/AICopywriting'));
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -252,6 +253,7 @@ const App = () => (
                       <Route path="/settings/daily-page" element={<ProtectedRoute><PageSuspense><DailyPageSettings /></PageSuspense></ProtectedRoute>} />
                       <Route path="/finances" element={<ProtectedRoute><PageSuspense><FinancialTracker /></PageSuspense></ProtectedRoute>} />
                       <Route path="/launch-debrief/:launchId" element={<ProtectedRoute><PageSuspense><LaunchDebrief /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/ai-copywriting/*" element={<ProtectedRoute><PageSuspense><AICopywriting /></PageSuspense></ProtectedRoute>} />
                       
                       {/* Public routes with lazy loading */}
                       <Route path="/capture" element={<PageSuspense><CaptureLaunchPage /></PageSuspense>} />
