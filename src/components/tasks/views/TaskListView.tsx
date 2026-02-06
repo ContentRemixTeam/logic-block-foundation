@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { 
   ListTodo, AlertTriangle, Sun, Sunrise, Calendar, Clock, ArrowUpDown,
   Inbox, CheckCircle2, ChevronRight, PartyPopper, Plus, Layers, Folder,
-  Zap, Flag, ArrowUp, ArrowDown
+  Zap, Flag, ArrowUp, ArrowDown, Loader2
 } from 'lucide-react';
 import { Task, FilterTab, PrimaryTab, EnergyLevel, GroupByOption, SortByOption, SortDirection, GROUP_BY_OPTIONS, SORT_BY_OPTIONS } from '../types';
 import { TaskCard } from '../TaskCard';
@@ -30,6 +30,10 @@ interface TaskListViewProps {
   onToggleTaskSelection?: (taskId: string) => void;
   onSelectAllInGroup?: (tasks: Task[]) => void;
   showSelectionCheckboxes?: boolean;
+  // Pagination props
+  hasMore?: boolean;
+  onLoadMore?: () => void;
+  isLoadingMore?: boolean;
 }
 
 // Group configuration types
@@ -104,6 +108,9 @@ export function TaskListView({
   onToggleTaskSelection,
   onSelectAllInGroup,
   showSelectionCheckboxes = false,
+  hasMore = false,
+  onLoadMore,
+  isLoadingMore = false,
 }: TaskListViewProps) {
   const [completedExpanded, setCompletedExpanded] = useState(false);
   const [groupBy, setGroupBy] = useState<GroupByOption>('date');
@@ -531,6 +538,25 @@ export function TaskListView({
               )}
             </CollapsibleContent>
           </Collapsible>
+        )}
+
+        {/* Load More Button */}
+        {hasMore && !isLoadingMore && (
+          <Button 
+            onClick={onLoadMore} 
+            variant="outline" 
+            className="w-full mt-4"
+          >
+            Load More Tasks
+          </Button>
+        )}
+        
+        {/* Loading More Indicator */}
+        {isLoadingMore && (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-5 w-5 animate-spin mr-2" />
+            <span className="text-muted-foreground">Loading more tasks...</span>
+          </div>
         )}
       </div>
     </div>

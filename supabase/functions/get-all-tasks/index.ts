@@ -38,6 +38,10 @@ async function getAuthenticatedUserId(req: Request): Promise<{ userId: string | 
   return { userId, error: null };
 }
 
+// Pagination defaults
+const DEFAULT_PAGE_SIZE = 50;
+const MAX_PAGE_SIZE = 100;
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -61,44 +65,51 @@ Deno.serve(async (req) => {
 
     // Parse pagination and filter params from URL or body
     const url = new URL(req.url);
-    let limit = parseInt(url.searchParams.get('limit') || '0', 10);
-    let offset = parseInt(url.searchParams.get('offset') || '0', 10);
-    let dateFrom: string | null = url.searchParams.get('date_from');
-    let dateTo: string | null = url.searchParams.get('date_to');
-    let includeIncomplete = url.searchParams.get('include_incomplete') === 'true';
+    let pageSize = parseInt(url.searchParams.get('page_size') || '0', 10);
+    let cursor: string | null = url.searchParams.get('cursor');
     let loadAll = url.searchParams.get('load_all') === 'true';
+    let filters: { status?: string; project_id?: string; section_id?: string } = {};
 
     // Also check request body for POST requests
     if (req.method === 'POST') {
       try {
         const body = await req.json();
-        if (body.limit) limit = parseInt(body.limit, 10);
-        if (body.offset) offset = parseInt(body.offset, 10);
-        if (body.date_from) dateFrom = body.date_from;
-        if (body.date_to) dateTo = body.date_to;
-        if (body.include_incomplete !== undefined) includeIncomplete = body.include_incomplete;
+        if (body.page_size) pageSize = parseInt(body.page_size, 10);
+        if (body.cursor) cursor = body.cursor;
         if (body.load_all !== undefined) loadAll = body.load_all;
+        if (body.filters) filters = body.filters;
+        // Legacy support for 'limit' parameter
+        if (body.limit && !body.page_size) pageSize = parseInt(body.limit, 10);
       } catch {
         // No body or invalid JSON, use URL params
       }
     }
 
-    // Smart filtering mode: last 90 days + incomplete if no explicit params
-    const useSmartFilter = !loadAll && !dateFrom && !dateTo && limit === 0;
+    // Enforce page size limits
+    if (pageSize <= 0) pageSize = DEFAULT_PAGE_SIZE;
+    if (pageSize > MAX_PAGE_SIZE) pageSize = MAX_PAGE_SIZE;
+
+    // Smart filtering mode: last 90 days + incomplete if load_all is false
+    const useSmartFilter = !loadAll;
     
     // Calculate smart filter dates
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
     const smartDateFrom = ninetyDaysAgo.toISOString().split('T')[0];
 
-    // If no limit specified, return all (backwards compatible) or use smart limit
-    const isPaginated = limit > 0;
-
-    // First, get total count
-    const { count, error: countError } = await supabase
+    // First, get total count for the filtered query
+    let countQuery = supabase
       .from('tasks')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .is('deleted_at', null);
+
+    // Apply smart filtering to count query too
+    if (useSmartFilter) {
+      countQuery = countQuery.or(`created_at.gte.${smartDateFrom},is_completed.eq.false`);
+    }
+
+    const { count, error: countError } = await countQuery;
 
     if (countError) {
       console.error('Error counting tasks:', countError);
@@ -110,7 +121,7 @@ Deno.serve(async (req) => {
 
     const totalCount = count || 0;
 
-    // Build query with pagination and filtering
+    // Build main query with cursor-based pagination
     let query = supabase
       .from('tasks')
       .select(`
@@ -123,27 +134,30 @@ Deno.serve(async (req) => {
 
     // Apply smart filtering: get tasks from last 90 days + all incomplete tasks
     if (useSmartFilter) {
-      // Use OR: (created recently) OR (not completed)
       query = query.or(`created_at.gte.${smartDateFrom},is_completed.eq.false`);
-    } else if (dateFrom || dateTo) {
-      // Apply explicit date filters
-      if (dateFrom) {
-        query = query.gte('created_at', dateFrom);
-      }
-      if (dateTo) {
-        query = query.lte('created_at', dateTo);
-      }
-      if (includeIncomplete) {
-        // This is more complex - we'd need to restructure
-        // For now, just apply the date filter
-      }
     }
 
+    // Apply optional filters
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    }
+    if (filters.project_id) {
+      query = query.eq('project_id', filters.project_id);
+    }
+    if (filters.section_id) {
+      query = query.eq('section_id', filters.section_id);
+    }
+
+    // Cursor-based pagination: fetch tasks with created_at < cursor
+    if (cursor) {
+      query = query.lt('created_at', cursor);
+    }
+
+    // Order by created_at descending (newest first) for consistent cursor pagination
     query = query.order('created_at', { ascending: false });
 
-    if (isPaginated) {
-      query = query.range(offset, offset + limit - 1);
-    }
+    // Limit to page_size
+    query = query.limit(pageSize);
 
     const { data: tasks, error } = await query;
 
@@ -156,15 +170,26 @@ Deno.serve(async (req) => {
     }
 
     const fetchedCount = tasks?.length || 0;
-    const hasMore = isPaginated ? (offset + fetchedCount) < totalCount : false;
+    
+    // hasMore = we fetched exactly pageSize items (more might exist)
+    const hasMore = fetchedCount === pageSize;
+    
+    // nextCursor = created_at of the last task if there are more
+    const nextCursor = hasMore && tasks && tasks.length > 0 
+      ? tasks[tasks.length - 1].created_at 
+      : null;
 
     return new Response(JSON.stringify({ 
       data: tasks || [],
-      totalCount,
-      hasMore,
-      offset,
-      limit: isPaginated ? limit : totalCount,
-      useSmartFilter,
+      metadata: {
+        count: fetchedCount,
+        totalCount,
+        hasMore,
+        nextCursor,
+        pageSize,
+        filters,
+        useSmartFilter,
+      }
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

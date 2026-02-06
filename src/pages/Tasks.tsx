@@ -136,11 +136,23 @@ export default function Tasks() {
   const [newEnergyLevel, setNewEnergyLevel] = useState<EnergyLevel | null>(null);
   const [newContextTags, setNewContextTags] = useState<string[]>([]);
 
-  // Fetch all tasks with optimistic updates
-  const { data: tasks = [], isLoading } = useTasks();
+  // Fetch all tasks with cursor-based pagination
+  const { 
+    tasks = [], 
+    isLoading, 
+    isFetching,
+    hasMore, 
+    loadMore, 
+    reset: resetTasks 
+  } = useTasks();
   
   // Task mutations with optimistic updates for instant UI feedback
   const { toggleComplete, updateTask: optimisticUpdateTask, deleteTask: optimisticDeleteTask, createTask: optimisticCreateTask } = useTaskMutations();
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    resetTasks();
+  }, [activeTab, filters, searchQuery]);
 
   // Fetch SOPs for dropdown
   const { data: sops = [] } = useQuery({
@@ -898,6 +910,7 @@ export default function Tasks() {
           {!isLoading && (
             <div className="text-sm text-muted-foreground">
               Showing {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}
+              {hasMore && ' (more available)'}
             </div>
           )}
         </div>
@@ -936,6 +949,9 @@ export default function Tasks() {
             onToggleTaskSelection={toggleTaskSelection}
             onSelectAllInGroup={handleSelectAllInGroup}
             showSelectionCheckboxes={true}
+            hasMore={hasMore}
+            onLoadMore={loadMore}
+            isLoadingMore={isFetching && tasks.length > 0}
           />
         ) : viewMode === 'board' ? (
           <TaskMondayBoardView
