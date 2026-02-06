@@ -8,6 +8,7 @@ import { checkAndHandleRateLimit } from '@/lib/rateLimitHandler';
 import { Task } from '@/components/tasks/types';
 import { mutationLogger } from '@/components/dev/DevDebugPanel';
 import { showOperationError } from '@/components/system/ErrorToast';
+import { emitQueryMetric } from '@/components/dev/PerformanceMonitor';
 
 // Re-export the Task type for convenience
 export type { Task } from '@/components/tasks/types';
@@ -127,6 +128,58 @@ export function useTasks(options: UseTasksOptions = {}) {
       );
     }
   }, [allTasks.length]);
+
+  // Emit performance metrics when data loads
+  useEffect(() => {
+    if (query.dataUpdatedAt && !query.isFetching && fetchStartTime.current) {
+      const queryTime = Date.now() - fetchStartTime.current;
+      
+      // Emit custom event for performance monitor
+      emitQueryMetric({
+        queryKey: 'tasks',
+        time: queryTime,
+        timestamp: Date.now(),
+        dataSize: allTasks.length,
+      });
+    }
+  }, [query.dataUpdatedAt, query.isFetching, allTasks.length]);
+
+  // Prefetch next page for instant loading
+  const prefetchNextPage = useCallback(() => {
+    if (query.data?.metadata?.hasMore && query.data?.metadata?.nextCursor) {
+      const nextCursor = query.data.metadata.nextCursor;
+      
+      queryClient.prefetchQuery({
+        queryKey: [...taskQueryKeys.all, { loadAll, cursor: nextCursor, pageSize, filters }],
+        queryFn: async (): Promise<TasksResponse> => {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) throw new Error('Not authenticated');
+
+          const response = await supabase.functions.invoke('get-all-tasks', {
+            body: { 
+              load_all: loadAll,
+              page_size: pageSize,
+              cursor: nextCursor,
+              filters,
+            },
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
+
+          if (response.error) throw response.error;
+          return response.data as TasksResponse;
+        },
+        staleTime: 2 * 60 * 1000, // Cache prefetched data for 2 minutes
+      });
+    }
+  }, [query.data?.metadata, loadAll, pageSize, filters, queryClient]);
+
+  // Trigger prefetch 2 seconds after current page loads
+  useEffect(() => {
+    if (!query.isFetching && query.data?.metadata?.hasMore) {
+      const timer = setTimeout(prefetchNextPage, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [query.isFetching, query.data?.metadata?.hasMore, prefetchNextPage]);
 
   // Load more function for pagination
   const loadMore = useCallback(() => {
