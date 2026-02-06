@@ -245,7 +245,12 @@ export function TaskDetailsDrawer({ task, onClose, onUpdate, onDelete }: TaskDet
                     : 'Pick a date'}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent 
+                className="w-auto p-0 z-[100]" 
+                align="start"
+                onInteractOutside={(e) => e.preventDefault()}
+                onPointerDownOutside={(e) => e.preventDefault()}
+              >
                 <Calendar
                   mode="single"
                   selected={localTask.scheduled_date ? parseISO(localTask.scheduled_date) : undefined}
@@ -262,7 +267,8 @@ export function TaskDetailsDrawer({ task, onClose, onUpdate, onDelete }: TaskDet
                       variant="ghost" 
                       size="sm" 
                       className="w-full text-sm"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         handleChange('scheduled_date', null);
                         setDatePopoverOpen(false);
                       }}
