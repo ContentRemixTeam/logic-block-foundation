@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { format, parseISO, isToday, isTomorrow, isPast, isThisWeek } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,9 +11,9 @@ import {
 } from 'lucide-react';
 import { Task, FilterTab, PrimaryTab, EnergyLevel, GroupByOption, SortByOption, SortDirection, GROUP_BY_OPTIONS, SORT_BY_OPTIONS } from '../types';
 import { TaskCard } from '../TaskCard';
+import { VirtualizedTaskList } from '../VirtualizedTaskList';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
 interface TaskListViewProps {
   tasks: Task[];
   activeFilter: FilterTab | PrimaryTab;
@@ -116,6 +116,36 @@ export function TaskListView({
   const [groupBy, setGroupBy] = useState<GroupByOption>('date');
   const [sortBy, setSortBy] = useState<SortByOption>('priority');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerHeight, setContainerHeight] = useState(600);
+  
+  // Calculate total open tasks for virtualization decision
+  const totalOpenTasks = useMemo(() => {
+    let count = 0;
+    tasks.forEach(task => {
+      if (!task.is_completed && !task.is_recurring_parent) count++;
+    });
+    return count;
+  }, [tasks]);
+
+  // Virtualization threshold - use virtualized view when we have many tasks
+  const VIRTUALIZATION_THRESHOLD = 50;
+  const shouldUseVirtualizedView = totalOpenTasks > VIRTUALIZATION_THRESHOLD;
+
+  // Calculate container height for virtualization
+  useEffect(() => {
+    const updateHeight = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const availableHeight = window.innerHeight - rect.top - 100;
+        setContainerHeight(Math.max(400, availableHeight));
+      }
+    };
+
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
+    return () => window.removeEventListener('resize', updateHeight);
+  }, []);
 
   // Filter tasks
   const filteredTasks = useMemo(() => {
@@ -252,8 +282,8 @@ export function TaskListView({
     return { groups, completed: sortTasks(completedTasks) };
   }, [filteredTasks, groupBy, sortBy, sortDirection]);
 
-  // Get group config based on current groupBy
-  const getGroupConfigs = (): GroupConfig[] => {
+  // Get group configs as a memoized value (to avoid hook-after-return issues)
+  const groupConfigs = useMemo((): GroupConfig[] => {
     switch (groupBy) {
       case 'date':
         return DATE_GROUPS;
@@ -266,7 +296,17 @@ export function TaskListView({
       default:
         return DATE_GROUPS;
     }
-  };
+  }, [groupBy, projectGroups]);
+
+  // Get all open tasks flattened for virtualized view (must be before early returns)
+  const allOpenTasksFlattened = useMemo(() => {
+    const flattened: Task[] = [];
+    groupConfigs.forEach(config => {
+      const tasksInGroup = groupedTasks.groups.get(config.id) || [];
+      flattened.push(...tasksInGroup);
+    });
+    return flattened;
+  }, [groupConfigs, groupedTasks.groups]);
 
   // Toggle sort direction
   const toggleSortDirection = () => {
@@ -457,9 +497,6 @@ export function TaskListView({
     );
   }
 
-  // Get appropriate group configs based on groupBy selection
-  const groupConfigs = getGroupConfigs();
-  
   // Check for empty state in Today filter
   if (activeFilter === 'today' && !groupedTasks.groups.has('today') && !groupedTasks.groups.has('overdue')) {
     return (
@@ -489,7 +526,79 @@ export function TaskListView({
     }
   }
 
-  // Render grouped tasks dynamically
+  // Render virtualized view for large task lists
+  if (shouldUseVirtualizedView) {
+    return (
+      <div className="space-y-6" ref={containerRef}>
+        {renderControls()}
+        
+        {/* Task count indicator */}
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>
+            Showing {allOpenTasksFlattened.length} task{allOpenTasksFlattened.length !== 1 ? 's' : ''}
+            {hasMore && ' (more available)'}
+          </span>
+          <span className="text-xs">⚡ Virtualized for performance</span>
+        </div>
+        
+        <VirtualizedTaskList
+          tasks={allOpenTasksFlattened}
+          onToggleComplete={onToggleComplete}
+          onUpdate={onUpdateTask}
+          onDelete={onDeleteTask}
+          onOpenDetail={onOpenDetail}
+          onQuickReschedule={onQuickReschedule}
+          onLoadMore={onLoadMore}
+          hasMore={hasMore}
+          isFetching={isLoadingMore}
+          containerHeight={containerHeight}
+          selectedTaskIds={selectedTaskIds}
+          onToggleTaskSelection={onToggleTaskSelection}
+          showSelectionCheckboxes={showSelectionCheckboxes}
+        />
+        
+        {/* Completed Section - Collapsible at bottom */}
+        {groupedTasks.completed.length > 0 && (activeFilter as string) !== 'completed' && (
+          <Collapsible open={completedExpanded} onOpenChange={setCompletedExpanded}>
+            <CollapsibleTrigger className="flex items-center gap-2 w-full py-2 hover:bg-muted/50 rounded-lg px-2 transition-colors">
+              <ChevronRight className={cn(
+                "h-4 w-4 transition-transform",
+                completedExpanded && "rotate-90"
+              )} />
+              <CheckCircle2 className="h-5 w-5 text-muted-foreground" />
+              <span className="text-lg font-semibold text-muted-foreground">
+                Completed
+              </span>
+              <Badge variant="outline">{groupedTasks.completed.length}</Badge>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-2 mt-3">
+              {groupedTasks.completed.slice(0, 10).map(task => (
+                <TaskCard
+                  key={task.task_id}
+                  task={task}
+                  onToggleComplete={onToggleComplete}
+                  onUpdate={onUpdateTask}
+                  onDelete={onDeleteTask}
+                  onOpenDetail={onOpenDetail}
+                  onQuickReschedule={onQuickReschedule}
+                  isSelected={selectedTaskIds.has(task.task_id)}
+                  onToggleSelection={onToggleTaskSelection}
+                  showSelectionCheckbox={false}
+                />
+              ))}
+              {groupedTasks.completed.length > 10 && (
+                <p className="text-sm text-muted-foreground text-center py-2">
+                  And {groupedTasks.completed.length - 10} more completed tasks...
+                </p>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+      </div>
+    );
+  }
+
+  // Render grouped tasks dynamically (non-virtualized for small lists)
   return (
     <div className="space-y-6">
       {renderControls()}
