@@ -38,6 +38,62 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_copy_generations: {
+        Row: {
+          content_type: string
+          created_at: string | null
+          feedback_tags: string[] | null
+          feedback_text: string | null
+          generated_copy: string
+          generation_time_ms: number | null
+          id: string
+          product_promoted: string | null
+          prompt_context: Json | null
+          tokens_used: number | null
+          user_edited_version: string | null
+          user_id: string
+          user_rating: number | null
+        }
+        Insert: {
+          content_type: string
+          created_at?: string | null
+          feedback_tags?: string[] | null
+          feedback_text?: string | null
+          generated_copy: string
+          generation_time_ms?: number | null
+          id?: string
+          product_promoted?: string | null
+          prompt_context?: Json | null
+          tokens_used?: number | null
+          user_edited_version?: string | null
+          user_id: string
+          user_rating?: number | null
+        }
+        Update: {
+          content_type?: string
+          created_at?: string | null
+          feedback_tags?: string[] | null
+          feedback_text?: string | null
+          generated_copy?: string
+          generation_time_ms?: number | null
+          id?: string
+          product_promoted?: string | null
+          prompt_context?: Json | null
+          tokens_used?: number | null
+          user_edited_version?: string | null
+          user_id?: string
+          user_rating?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_copy_generations_product_promoted_fkey"
+            columns: ["product_promoted"]
+            isOneToOne: false
+            referencedRelation: "user_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_themes: {
         Row: {
           config_json: Json
@@ -358,6 +414,51 @@ export type Database = {
           updated_at?: string | null
           upgraded_belief?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      brand_profiles: {
+        Row: {
+          business_name: string
+          created_at: string | null
+          customer_reviews: string[] | null
+          id: string
+          industry: string | null
+          target_customer: string | null
+          transcript_samples: string[] | null
+          updated_at: string | null
+          user_id: string
+          voice_profile: Json | null
+          voice_samples: string[] | null
+          what_you_sell: string | null
+        }
+        Insert: {
+          business_name: string
+          created_at?: string | null
+          customer_reviews?: string[] | null
+          id?: string
+          industry?: string | null
+          target_customer?: string | null
+          transcript_samples?: string[] | null
+          updated_at?: string | null
+          user_id: string
+          voice_profile?: Json | null
+          voice_samples?: string[] | null
+          what_you_sell?: string | null
+        }
+        Update: {
+          business_name?: string
+          created_at?: string | null
+          customer_reviews?: string[] | null
+          id?: string
+          industry?: string | null
+          target_customer?: string | null
+          transcript_samples?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+          voice_profile?: Json | null
+          voice_samples?: string[] | null
+          what_you_sell?: string | null
         }
         Relationships: []
       }
@@ -4353,6 +4454,39 @@ export type Database = {
           },
         ]
       }
+      prompt_refinements: {
+        Row: {
+          avg_rating: number | null
+          content_type: string
+          id: string
+          learned_preferences: Json | null
+          tone_adjustments: Json | null
+          total_generations: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          avg_rating?: number | null
+          content_type: string
+          id?: string
+          learned_preferences?: Json | null
+          tone_adjustments?: Json | null
+          total_generations?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          avg_rating?: number | null
+          content_type?: string
+          id?: string
+          learned_preferences?: Json | null
+          tone_adjustments?: Json | null
+          total_generations?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       rate_limits: {
         Row: {
           created_at: string | null
@@ -5824,6 +5958,36 @@ export type Database = {
           },
         ]
       }
+      user_api_keys: {
+        Row: {
+          created_at: string | null
+          encrypted_key: string
+          id: string
+          key_status: string | null
+          last_tested: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          encrypted_key: string
+          id?: string
+          key_status?: string | null
+          last_tested?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          encrypted_key?: string
+          id?: string
+          key_status?: string | null
+          last_tested?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_content_platforms: {
         Row: {
           color: string
@@ -6110,6 +6274,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_products: {
+        Row: {
+          affiliate_link: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          price: number | null
+          product_name: string
+          product_type: string
+          user_id: string
+        }
+        Insert: {
+          affiliate_link?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          price?: number | null
+          product_name: string
+          product_type: string
+          user_id: string
+        }
+        Update: {
+          affiliate_link?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          price?: number | null
+          product_name?: string
+          product_type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_profiles: {
         Row: {
