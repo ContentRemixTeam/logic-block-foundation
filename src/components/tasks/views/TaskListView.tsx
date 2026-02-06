@@ -12,6 +12,7 @@ import {
 import { Task, FilterTab, PrimaryTab, EnergyLevel, GroupByOption, SortByOption, SortDirection, GROUP_BY_OPTIONS, SORT_BY_OPTIONS } from '../types';
 import { TaskCard } from '../TaskCard';
 import { VirtualizedTaskList } from '../VirtualizedTaskList';
+import { TaskListSkeleton, LoadingMoreSkeleton } from '../TaskSkeleton';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 interface TaskListViewProps {
@@ -34,6 +35,8 @@ interface TaskListViewProps {
   hasMore?: boolean;
   onLoadMore?: () => void;
   isLoadingMore?: boolean;
+  // Initial loading state
+  isLoading?: boolean;
 }
 
 // Group configuration types
@@ -111,6 +114,7 @@ export function TaskListView({
   hasMore = false,
   onLoadMore,
   isLoadingMore = false,
+  isLoading = false,
 }: TaskListViewProps) {
   const [completedExpanded, setCompletedExpanded] = useState(false);
   const [groupBy, setGroupBy] = useState<GroupByOption>('date');
@@ -437,6 +441,16 @@ export function TaskListView({
     </div>
   );
 
+  // Show loading skeleton on initial load
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        {renderControls()}
+        <TaskListSkeleton count={8} />
+      </div>
+    );
+  }
+
   // Check if showing completed filter
   if (activeFilter === 'completed' as string) {
     if (groupedTasks.completed.length === 0) {
@@ -660,12 +674,9 @@ export function TaskListView({
           </Button>
         )}
         
-        {/* Loading More Indicator */}
+        {/* Loading More Skeleton */}
         {isLoadingMore && (
-          <div className="flex items-center justify-center py-4">
-            <Loader2 className="h-5 w-5 animate-spin mr-2" />
-            <span className="text-muted-foreground">Loading more tasks...</span>
-          </div>
+          <LoadingMoreSkeleton count={3} />
         )}
       </div>
     </div>

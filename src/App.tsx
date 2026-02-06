@@ -19,6 +19,7 @@ import { ManifestSwitcher } from "@/components/pwa/ManifestSwitcher";
 import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
 import { DevDebugPanel } from "@/components/dev/DevDebugPanel";
 import { LoadingState } from "@/components/system/LoadingState";
+import { PerformanceMonitor } from "@/components/dev/PerformanceMonitor";
 
 // Eagerly load critical auth pages (small, needed immediately)
 import Auth from "./pages/Auth";
@@ -266,6 +267,7 @@ const App = () => (
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                     <DevDebugPanel />
+                    <PerformanceMonitor />
                   </QuickCaptureProvider>
                 </ArcadeProvider>
               </MembershipProvider>

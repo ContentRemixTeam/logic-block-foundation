@@ -47,6 +47,8 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+
   try {
     // SECURE: Validate JWT with Supabase Auth
     const { userId, error: authError } = await getAuthenticatedUserId(req);
@@ -179,6 +181,21 @@ Deno.serve(async (req) => {
       ? tasks[tasks.length - 1].created_at 
       : null;
 
+    // Calculate query time and log performance
+    const queryTime = Date.now() - startTime;
+    console.log(`[get-all-tasks] Query completed in ${queryTime}ms`, {
+      userId,
+      pageSize,
+      resultCount: fetchedCount,
+      hasMore,
+      cursor: cursor ? 'set' : 'none',
+    });
+
+    // Warn if query is slow
+    if (queryTime > 1000) {
+      console.warn(`[get-all-tasks] SLOW QUERY: ${queryTime}ms`);
+    }
+
     return new Response(JSON.stringify({ 
       data: tasks || [],
       metadata: {
@@ -189,13 +206,15 @@ Deno.serve(async (req) => {
         pageSize,
         filters,
         useSmartFilter,
+        queryTime, // Include for client-side monitoring
       }
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Unexpected error:', error);
+    const queryTime = Date.now() - startTime;
+    console.error('Unexpected error:', error, `(after ${queryTime}ms)`);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
