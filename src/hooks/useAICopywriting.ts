@@ -64,6 +64,12 @@ export function useSaveBrandProfile() {
     mutationFn: async (profile: Partial<BrandProfile>) => {
       if (!user) throw new Error('Not authenticated');
       
+      // Ensure we have a valid session before making the request
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        throw new Error('Session expired. Please refresh the page and try again.');
+      }
+      
       // Convert VoiceProfile to Json for Supabase
       const dbProfile = {
         ...profile,
@@ -74,7 +80,7 @@ export function useSaveBrandProfile() {
         .from('brand_profiles')
         .select('id')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       
       if (existing) {
         const { data, error } = await supabase
@@ -93,7 +99,7 @@ export function useSaveBrandProfile() {
         }
         const { data, error } = await supabase
           .from('brand_profiles')
-          .insert([{ 
+          .insert({ 
             business_name: dbProfile.business_name,
             industry: dbProfile.industry,
             what_you_sell: dbProfile.what_you_sell,
@@ -103,7 +109,7 @@ export function useSaveBrandProfile() {
             transcript_samples: dbProfile.transcript_samples,
             customer_reviews: dbProfile.customer_reviews,
             user_id: user.id 
-          }])
+          })
           .select()
           .single();
         

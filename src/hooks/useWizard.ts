@@ -167,7 +167,15 @@ export function useWizard<T extends Record<string, unknown>>({
     setSyncError(null);
     
     try {
-      // Check if draft exists
+      // Ensure we have a valid session before making the request
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        console.warn('No valid session for wizard save, skipping server sync');
+        setSyncError('Session expired');
+        return;
+      }
+      
+      // Check if draft exists - use maybeSingle to avoid error when no rows
       const { data: existing } = await supabase
         .from('wizard_completions')
         .select('id')
@@ -175,7 +183,7 @@ export function useWizard<T extends Record<string, unknown>>({
         .eq('template_name', templateName)
         .is('completed_at', null)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         await supabase
@@ -187,11 +195,11 @@ export function useWizard<T extends Record<string, unknown>>({
       } else {
         await supabase
           .from('wizard_completions')
-          .insert([{
+          .insert({
             user_id: user.id,
             template_name: templateName,
             answers: JSON.parse(JSON.stringify(draftPayload)),
-          }]);
+          });
       }
       
       const now = new Date();
