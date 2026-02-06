@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
       .select(`
         *,
         sop:sops(sop_id, sop_name, description, checklist_items, links, notes),
-        project:projects(id, name, color, is_launch, launch_start_date, launch_end_date)
+        project:projects!fk_tasks_project(id, name, color, is_launch, launch_start_date, launch_end_date)
       `)
       .eq('user_id', userId)
       .is('deleted_at', null); // Exclude soft-deleted tasks
