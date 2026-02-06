@@ -107,6 +107,7 @@ export interface PromptRefinement {
 
 // Brand Wizard Data
 export interface BrandWizardData {
+  [key: string]: unknown;
   // Step 1: Business Basics
   businessName: string;
   industry: string;
