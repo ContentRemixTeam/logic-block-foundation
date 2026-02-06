@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,9 +12,9 @@ import { showOperationError } from '@/components/system/ErrorToast';
 // Re-export the Task type for convenience
 export type { Task } from '@/components/tasks/types';
 
-// Query limits - explicit safety caps
-const DEFAULT_LIMIT = 500;
-const WARN_THRESHOLD = 400;
+// Pagination defaults
+const DEFAULT_PAGE_SIZE = 50;
+const WARN_THRESHOLD = 500;
 
 // Query key factory for consistent cache management
 export const taskQueryKeys = {
@@ -23,68 +23,124 @@ export const taskQueryKeys = {
   byWeek: (weekStart: string) => ['tasks', 'week', weekStart] as const,
 };
 
-// Response type from edge function
-interface TasksResponse {
-  tasks: Task[];
-  hasMore: boolean;
+// Response type from edge function with cursor-based pagination
+interface TasksMetadata {
+  count: number;
   totalCount: number;
+  hasMore: boolean;
+  nextCursor: string | null;
+  pageSize: number;
+  filters: Record<string, string>;
   useSmartFilter: boolean;
 }
 
-// Main hook for fetching all tasks with smart filtering
-export function useTasks(options: { loadAll?: boolean } = {}) {
+interface TasksResponse {
+  data: Task[];
+  metadata: TasksMetadata;
+}
+
+// Options for useTasks hook
+interface UseTasksOptions {
+  loadAll?: boolean;
+  pageSize?: number;
+  filters?: { status?: string; project_id?: string };
+  enabled?: boolean;
+}
+
+// Main hook for fetching all tasks with cursor-based pagination
+export function useTasks(options: UseTasksOptions = {}) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { loadAll = false } = options;
+  const { loadAll = false, pageSize = DEFAULT_PAGE_SIZE, filters, enabled = true } = options;
   const fetchStartTime = useRef<number | null>(null);
+  
+  // Pagination state
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
 
   // Create the full query key including options
-  const fullQueryKey = useMemo(() => [...taskQueryKeys.all, { loadAll }], [loadAll]);
+  const fullQueryKey = useMemo(() => [
+    ...taskQueryKeys.all, 
+    { loadAll, cursor, pageSize, filters }
+  ], [loadAll, cursor, pageSize, filters]);
 
-  // Main tasks query - uses smart filtering by default (last 90 days + incomplete)
+  // Main tasks query - uses cursor-based pagination
   const query = useQuery({
     queryKey: fullQueryKey,
-    queryFn: async (): Promise<Task[]> => {
+    queryFn: async (): Promise<TasksResponse> => {
       fetchStartTime.current = Date.now();
       
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      // Smart filtering: fetch last 90 days + all incomplete tasks
-      // This prevents the "500 task ceiling" issue while keeping the UI fast
       const response = await supabase.functions.invoke('get-all-tasks', {
         body: { 
           load_all: loadAll,
-          limit: DEFAULT_LIMIT,
+          page_size: pageSize,
+          cursor,
+          filters,
         },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
       if (response.error) throw response.error;
       
-      const tasks = (response.data?.data || []) as Task[];
+      const result = response.data as TasksResponse;
       
       // Performance warnings
       const fetchTime = Date.now() - (fetchStartTime.current || Date.now());
       if (fetchTime > 1000) {
-        console.warn(`⚠️ [useTasks] Slow query: ${fetchTime}ms for ${tasks.length} tasks`);
+        console.warn(`⚠️ [useTasks] Slow query: ${fetchTime}ms for ${result.data.length} tasks`);
       }
       
-      // Limit warning
-      if (tasks.length >= WARN_THRESHOLD) {
-        console.warn(
-          `⚠️ [useTasks] Approaching limit: ${tasks.length}/${DEFAULT_LIMIT} tasks loaded.`,
-          'Consider filtering by project or date range to improve performance.'
-        );
-      }
-      
-      return tasks;
+      return result;
     },
-    enabled: !!user,
+    enabled: !!user && enabled,
     staleTime: 1000 * 60 * 2, // 2 minutes - data stays fresh longer
     gcTime: 1000 * 60 * 5, // Keep in cache for 5 minutes
     refetchOnWindowFocus: false, // Don't refetch on window focus (realtime handles updates)
   });
+
+  // Accumulate tasks when data changes
+  useEffect(() => {
+    if (query.data?.data) {
+      if (cursor === null) {
+        // First page - replace all tasks
+        setAllTasks(query.data.data);
+      } else {
+        // Subsequent pages - append (avoiding duplicates)
+        setAllTasks(prev => {
+          const existingIds = new Set(prev.map(t => t.task_id));
+          const newTasks = query.data.data.filter(t => !existingIds.has(t.task_id));
+          return [...prev, ...newTasks];
+        });
+      }
+    }
+  }, [query.data?.data, cursor]);
+
+  // Performance warning for large datasets
+  useEffect(() => {
+    if (allTasks.length > WARN_THRESHOLD) {
+      console.warn(
+        `⚠️ [useTasks] Loaded ${allTasks.length} tasks. ` +
+        `Consider archiving completed tasks for better performance.`
+      );
+    }
+  }, [allTasks.length]);
+
+  // Load more function for pagination
+  const loadMore = useCallback(() => {
+    if (query.data?.metadata?.hasMore && !query.isFetching) {
+      setCursor(query.data.metadata.nextCursor);
+    }
+  }, [query.data?.metadata, query.isFetching]);
+
+  // Reset function for filter changes
+  const reset = useCallback(() => {
+    setCursor(null);
+    setAllTasks([]);
+    queryClient.invalidateQueries({ queryKey: taskQueryKeys.all });
+  }, [queryClient]);
 
   // Set up real-time subscription for tasks
   useEffect(() => {
@@ -103,38 +159,61 @@ export function useTasks(options: { loadAll?: boolean } = {}) {
         (payload) => {
           console.log('Task realtime update:', payload.eventType);
           
-          // Update the cache based on the event type
-          // Update ALL possible cache entries (loadAll: true and loadAll: false)
+          // Update accumulated tasks in-memory
+          setAllTasks(prev => {
+            switch (payload.eventType) {
+              case 'INSERT':
+                // Check if task already exists (avoid duplicates)
+                const exists = prev.some(t => t.task_id === (payload.new as Task).task_id);
+                if (exists) return prev;
+                // Add with null project/sop - prepend to start (newest first)
+                return [{ ...payload.new as Task, project: null, sop: null }, ...prev];
+
+              case 'UPDATE':
+                return prev.map(t => 
+                  t.task_id === (payload.new as Task).task_id 
+                    ? { ...t, ...(payload.new as Task) }
+                    : t
+                );
+
+              case 'DELETE':
+                return prev.filter(t => t.task_id !== (payload.old as Task).task_id);
+
+              default:
+                return prev;
+            }
+          });
+
+          // Also update cache for backwards compatibility
           const cacheKeys = [
             [...taskQueryKeys.all, { loadAll: false }],
             [...taskQueryKeys.all, { loadAll: true }],
           ];
           
           cacheKeys.forEach((cacheKey) => {
-            queryClient.setQueryData<Task[]>(cacheKey, (oldTasks) => {
-              if (!oldTasks) return oldTasks;
+            queryClient.setQueryData<TasksResponse>(cacheKey, (oldData) => {
+              if (!oldData) return oldData;
 
+              const updatedData = { ...oldData };
               switch (payload.eventType) {
                 case 'INSERT':
-                  // Check if task already exists (avoid duplicates)
-                  const exists = oldTasks.some(t => t.task_id === (payload.new as Task).task_id);
-                  if (exists) return oldTasks;
-                  // Add with null project/sop - UI will show it, invalidation gets full data
-                  return [{ ...payload.new as Task, project: null, sop: null }, ...oldTasks];
-
+                  const exists = oldData.data.some(t => t.task_id === (payload.new as Task).task_id);
+                  if (!exists) {
+                    updatedData.data = [{ ...payload.new as Task, project: null, sop: null }, ...oldData.data];
+                  }
+                  break;
                 case 'UPDATE':
-                  return oldTasks.map(t => 
+                  updatedData.data = oldData.data.map(t => 
                     t.task_id === (payload.new as Task).task_id 
                       ? { ...t, ...(payload.new as Task) }
                       : t
                   );
-
+                  break;
                 case 'DELETE':
-                  return oldTasks.filter(t => t.task_id !== (payload.old as Task).task_id);
-
-                default:
-                  return oldTasks;
+                  updatedData.data = oldData.data.filter(t => t.task_id !== (payload.old as Task).task_id);
+                  break;
               }
+              return updatedData;
             });
           });
         }
@@ -144,9 +223,24 @@ export function useTasks(options: { loadAll?: boolean } = {}) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, queryClient, fullQueryKey]);
+  }, [user, queryClient]);
 
-  return query;
+  return {
+    // Return accumulated tasks for backwards compatibility
+    data: allTasks,
+    tasks: allTasks,
+    isLoading: query.isLoading && cursor === null,
+    isFetching: query.isFetching,
+    isError: query.isError,
+    error: query.error,
+    // Pagination
+    hasMore: query.data?.metadata?.hasMore || false,
+    loadMore,
+    reset,
+    refetch: query.refetch,
+    // Metadata
+    metadata: query.data?.metadata,
+  };
 }
 
 // Hook for task mutations with optimistic updates
