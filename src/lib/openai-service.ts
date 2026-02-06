@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { decryptAPIKey } from './encryption';
 import { VoiceProfile, BrandProfile, UserProduct, AICopyGeneration } from '@/types/aiCopywriting';
+import { checkAIDetection } from './ai-detection-checker';
 
 interface GenerateOptions {
   contentType: string;
@@ -59,11 +60,16 @@ export class OpenAIService {
   
   /**
    * Multi-pass generation system for highest quality
+   * Pass 1: Generate draft (temp 0.8)
+   * Pass 2: Critique draft (temp 0.3)
+   * Pass 3: Rewrite from critique (temp 0.7)
+   * Pass 4: AI detection refinement if needed (temp 0.8)
    */
   static async generateCopy(userId: string, options: GenerateOptions): Promise<{
     copy: string;
     tokensUsed: number;
     generationTime: number;
+    aiDetectionScore: number;
   }> {
     const startTime = Date.now();
     const apiKey = await this.getUserAPIKey(userId);
@@ -86,25 +92,57 @@ export class OpenAIService {
 2. Vague language (not specific enough)
 3. Missing emotional hooks
 4. Weak CTAs (not action-oriented)
-5. Areas that don't match the brand voice`,
+5. Areas that don't match the brand voice
+6. Any phrases that sound robotic or AI-generated`,
       userPrompt: `COPY TO CRITIQUE:\n${draft1.content}\n\nBRAND VOICE SAMPLES:\n${options.context.businessProfile?.voice_samples?.join('\n\n') || 'None provided'}`,
       temperature: 0.3 // More analytical
     });
     
     // PASS 3: Regenerate based on critique
-    const finalCopy = await this.callOpenAI(apiKey, {
+    const pass3Copy = await this.callOpenAI(apiKey, {
       systemPrompt: this.buildSystemPrompt(options.context),
       userPrompt: `ORIGINAL COPY:\n${draft1.content}\n\nCRITIQUE:\n${critique.content}\n\nRewrite the copy addressing all critique points. Make it tighter, more specific, more emotional, and more aligned with the brand voice.`,
       temperature: 0.7
     });
     
-    const totalTokens = draft1.tokens + critique.tokens + finalCopy.tokens;
+    let finalContent = pass3Copy.content;
+    let totalTokens = draft1.tokens + critique.tokens + pass3Copy.tokens;
+    
+    // Check AI detection score
+    let aiCheck = checkAIDetection(finalContent);
+    
+    // PASS 4: Additional refinement if AI score is high
+    if (aiCheck.score > 3) {
+      const refinement = await this.callOpenAI(apiKey, {
+        systemPrompt: `${this.buildSystemPrompt(options.context)}
+
+CRITICAL: This copy scored ${aiCheck.score}/10 for AI detection. Rewrite to sound completely human.
+
+Issues found:
+${aiCheck.warnings.join('\n')}
+
+MUST FIX:
+${aiCheck.suggestions.join('\n')}
+
+Write like a real person - imperfect, conversational, authentic.`,
+        userPrompt: `Make this sound 100% human:\n\n${finalContent}`,
+        temperature: 0.8
+      });
+      
+      finalContent = refinement.content;
+      totalTokens += refinement.tokens;
+      
+      // Re-check AI detection
+      aiCheck = checkAIDetection(finalContent);
+    }
+    
     const generationTime = Date.now() - startTime;
     
     return {
-      copy: finalCopy.content,
+      copy: finalContent,
       tokensUsed: totalTokens,
-      generationTime
+      generationTime,
+      aiDetectionScore: aiCheck.score
     };
   }
   

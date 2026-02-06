@@ -12,6 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { 
   useProducts, 
   useGenerateCopy, 
@@ -24,6 +30,7 @@ import {
   CONTENT_TYPE_OPTIONS,
   FEEDBACK_TAGS
 } from '@/types/aiCopywriting';
+import { getAIDetectionAssessment } from '@/lib/ai-detection-checker';
 import { 
   Sparkles, 
   Loader2, 
@@ -32,7 +39,10 @@ import {
   RefreshCw,
   CheckCircle2,
   Star,
-  AlertTriangle
+  AlertTriangle,
+  Shield,
+  ShieldCheck,
+  ShieldAlert
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -53,6 +63,7 @@ export function ContentGenerator() {
     copy: string;
     tokensUsed: number;
     generationTime: number;
+    aiDetectionScore: number;
   } | null>(null);
   const [rating, setRating] = useState<number | null>(null);
   const [feedbackTags, setFeedbackTags] = useState<string[]>([]);
@@ -68,11 +79,16 @@ export function ContentGenerator() {
       additionalContext: additionalContext || undefined,
     });
 
+    // Calculate AI detection score from the copy if not returned directly
+    const { checkAIDetection } = await import('@/lib/ai-detection-checker');
+    const aiCheck = checkAIDetection(result.generated_copy);
+
     setGeneratedCopy({
       id: result.id,
       copy: result.generated_copy,
       tokensUsed: result.tokens_used || 0,
       generationTime: result.generation_time_ms || 0,
+      aiDetectionScore: aiCheck.score,
     });
     setRating(null);
     setFeedbackTags([]);
@@ -275,9 +291,43 @@ export function ContentGenerator() {
                   </Button>
                 </div>
               </div>
-              <CardDescription>
-                {generatedCopy.tokensUsed} tokens • {Math.round(generatedCopy.generationTime / 1000)}s
-              </CardDescription>
+              <div className="flex items-center gap-3">
+                <CardDescription>
+                  {generatedCopy.tokensUsed} tokens • {Math.round(generatedCopy.generationTime / 1000)}s
+                </CardDescription>
+                {/* AI Detection Score Badge */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge 
+                        variant={generatedCopy.aiDetectionScore <= 2 ? 'default' : generatedCopy.aiDetectionScore <= 4 ? 'secondary' : 'destructive'}
+                        className={cn(
+                          "gap-1",
+                          generatedCopy.aiDetectionScore <= 2 && "bg-green-500/10 text-green-600 border-green-500/20",
+                          generatedCopy.aiDetectionScore > 2 && generatedCopy.aiDetectionScore <= 4 && "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                        )}
+                      >
+                        {generatedCopy.aiDetectionScore <= 2 ? (
+                          <ShieldCheck className="h-3 w-3" />
+                        ) : generatedCopy.aiDetectionScore <= 4 ? (
+                          <Shield className="h-3 w-3" />
+                        ) : (
+                          <ShieldAlert className="h-3 w-3" />
+                        )}
+                        AI Score: {generatedCopy.aiDetectionScore}/10
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="font-medium">
+                        {getAIDetectionAssessment(generatedCopy.aiDetectionScore).label}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {getAIDetectionAssessment(generatedCopy.aiDetectionScore).description}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Generated Copy */}
