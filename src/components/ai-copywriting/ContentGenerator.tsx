@@ -195,13 +195,16 @@ export function ContentGenerator() {
             {/* Product to Promote */}
             <div className="space-y-2">
               <Label>What to promote? (Optional)</Label>
-              <Select value={productId} onValueChange={setProductId}>
+              <Select 
+                value={productId} 
+                onValueChange={(v) => setProductId(v === 'none' ? '' : v)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="None - Pure value, no pitch" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None - Pure value, no pitch</SelectItem>
-                  {products?.map((product) => (
+                  <SelectItem value="none">None - Pure value, no pitch</SelectItem>
+                  {products?.filter(p => p.id).map((product) => (
                     <SelectItem key={product.id} value={product.id}>
                       {product.product_name}
                       {product.price && ` - $${product.price}`}
