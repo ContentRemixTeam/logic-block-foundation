@@ -581,6 +581,7 @@ export type Database = {
       }
       content_items: {
         Row: {
+          ai_generation_id: string | null
           body: string | null
           channel: string | null
           click_rate: number | null
@@ -632,6 +633,7 @@ export type Database = {
           views: number | null
         }
         Insert: {
+          ai_generation_id?: string | null
           body?: string | null
           channel?: string | null
           click_rate?: number | null
@@ -683,6 +685,7 @@ export type Database = {
           views?: number | null
         }
         Update: {
+          ai_generation_id?: string | null
           body?: string | null
           channel?: string | null
           click_rate?: number | null
@@ -734,6 +737,13 @@ export type Database = {
           views?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "content_items_ai_generation_id_fkey"
+            columns: ["ai_generation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_copy_generations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "content_items_cycle_id_fkey"
             columns: ["cycle_id"]
