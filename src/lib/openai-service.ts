@@ -24,6 +24,87 @@ interface CallOpenAIResult {
   tokens: number;
 }
 
+// Email sequence configuration
+const EMAIL_SEQUENCE_CONFIG: Record<string, {
+  purpose: string;
+  tone: string;
+  structure: string[];
+  avoid: string[];
+  length: string;
+  subjectLineCount: number;
+}> = {
+  welcome_email_1: {
+    purpose: "Deliver lead magnet + build initial relationship",
+    tone: "Warm welcome, like inviting a friend into your home",
+    structure: [
+      "Thank them for downloading (briefly)",
+      "Quick personal story showing you understand their struggle",
+      "ONE specific actionable tip they can use this week",
+      "Clear CTA: Reply and share [specific thing]"
+    ],
+    avoid: ["Selling anything", "Overwhelming with too much", "Generic inspiration"],
+    length: "250-350 words",
+    subjectLineCount: 3
+  },
+  welcome_email_2: {
+    purpose: "Share your origin story + position yourself as guide",
+    tone: "Vulnerable storytelling, real and relatable",
+    structure: [
+      "Brief recap of where they are now (mirror their struggle)",
+      "Your story: how you were in their exact position",
+      "The specific moment/realization that shifted everything for you",
+      "What you learned that they can apply",
+      "CTA: Which part of this story resonated most?"
+    ],
+    avoid: ["Humble bragging", "Vague 'transformation' language", "Pitching"],
+    length: "300-400 words",
+    subjectLineCount: 3
+  },
+  welcome_email_3: {
+    purpose: "Establish authority + provide high-value content",
+    tone: "Confident teacher, generous with knowledge",
+    structure: [
+      "Address common mistake/misconception in their industry",
+      "Explain why this mistake happens (empathy)",
+      "Share your framework/process for doing it right",
+      "Give them step 1 they can implement today",
+      "CTA: Try this and let me know what happens"
+    ],
+    avoid: ["Gatekeeping the best advice", "Being preachy", "Too theoretical"],
+    length: "350-450 words",
+    subjectLineCount: 3
+  },
+  welcome_email_4: {
+    purpose: "Social proof + soft intro to your offer",
+    tone: "Excited storytelling about client wins",
+    structure: [
+      "Client success story with specific details (name, situation, result)",
+      "What made the difference for them",
+      "Connect their situation to the reader's",
+      "Mention your offer exists (soft intro, not a pitch)",
+      "CTA: Want to learn more about [program]?"
+    ],
+    avoid: ["Making it sound too easy", "Salesy language", "Fake urgency"],
+    length: "300-400 words",
+    subjectLineCount: 3
+  },
+  welcome_email_5: {
+    purpose: "Make the offer + invite to next step",
+    tone: "Direct invitation, friend recommending something that helped them",
+    structure: [
+      "You've been getting [benefit from emails], here's how to go deeper",
+      "What your program/offer is and who it's for",
+      "Specific outcomes they can expect",
+      "Investment + what's included",
+      "Clear CTA with urgency (enrollment closes, spots limited, etc.)",
+      "Reassurance: address main objection"
+    ],
+    avoid: ["Pushy sales tactics", "Fake scarcity", "Manipulation"],
+    length: "400-500 words",
+    subjectLineCount: 3
+  }
+};
+
 export class OpenAIService {
   
   /**
@@ -59,6 +140,228 @@ export class OpenAIService {
   }
   
   /**
+   * Build system prompt with voice matching and anti-AI rules
+   */
+  private static buildSystemPrompt(context: GenerateOptions['context']): string {
+    const profile = context.businessProfile;
+    const voiceProfile = profile?.voice_profile as VoiceProfile | undefined;
+    
+    let prompt = `You are an elite copywriter writing as ${profile?.business_name || 'this business owner'}.
+
+CRITICAL: This copy must sound EXACTLY like the writing samples provided. Not like AI. Not like a professional copywriter. Like THIS SPECIFIC PERSON.
+
+`;
+
+    // Add voice profile if available
+    if (voiceProfile) {
+      prompt += `VOICE PROFILE (match this exactly):
+- Formality level: ${voiceProfile.tone_scores?.formality || 5}/10 ${(voiceProfile.tone_scores?.formality || 5) < 4 ? '(very casual)' : (voiceProfile.tone_scores?.formality || 5) > 7 ? '(more formal)' : '(conversational)'}
+- Energy level: ${voiceProfile.tone_scores?.energy || 5}/10 ${(voiceProfile.tone_scores?.energy || 5) > 7 ? '(high energy, enthusiastic)' : (voiceProfile.tone_scores?.energy || 5) < 4 ? '(calm, measured)' : '(moderate)'}
+- Emotional expression: ${voiceProfile.tone_scores?.emotion || 5}/10 ${(voiceProfile.tone_scores?.emotion || 5) > 7 ? '(very expressive)' : '(balanced)'}
+- Humor level: ${voiceProfile.tone_scores?.humor || 5}/10
+
+SENTENCE STYLE:
+- Average length: ${voiceProfile.sentence_structure?.avg_length || 15} words
+- Style: ${voiceProfile.sentence_structure?.style || 'mixed'}
+
+`;
+
+      if (voiceProfile.signature_phrases && voiceProfile.signature_phrases.length > 0) {
+        prompt += `SIGNATURE PHRASES (use these naturally):
+${voiceProfile.signature_phrases.slice(0, 8).map(p => `- "${p}"`).join('\n')}
+
+`;
+      }
+
+      if (voiceProfile.style_summary) {
+        prompt += `STYLE SUMMARY: ${voiceProfile.style_summary}
+
+`;
+      }
+    }
+
+    // Add business context
+    if (profile) {
+      prompt += `BUSINESS CONTEXT:
+Business: ${profile.business_name || 'Not specified'}
+Industry: ${profile.industry || 'Not specified'}
+What they sell: ${profile.what_you_sell || 'Not specified'}
+Target customer: ${profile.target_customer || 'Not specified'}
+
+`;
+    }
+
+    // Add voice samples if available
+    if (profile?.voice_samples && profile.voice_samples.length > 0) {
+      const validSamples = profile.voice_samples.filter(s => s && s.trim().length > 0);
+      if (validSamples.length > 0) {
+        prompt += `WRITING SAMPLES (study these and match the style):
+
+${validSamples.slice(0, 3).map((sample: string, i: number) => 
+  `Sample ${i + 1}:\n${sample.substring(0, 500)}\n`
+).join('\n---\n\n')}
+
+`;
+      }
+    }
+
+    // Anti-AI detection rules
+    prompt += `CRITICAL ANTI-AI RULES (follow religiously):
+
+❌ NEVER USE THESE PHRASES:
+- "Here's what changed everything"
+- "I realized that"
+- "embark on a journey" / "journey"
+- "delve into" / "dive deep"
+- "unlock the secrets"
+- "game-changer" / "game changer"
+- "transform your life"
+- "at the end of the day"
+- "in today's world/landscape"
+- "let's be honest"
+- "picture this" / "imagine this"
+- "the bottom line is"
+- "harness the power"
+- "it's worth noting that"
+- "feel free to" / "don't hesitate to"
+
+❌ AVOID AI PATTERNS:
+- Starting with "Here's what/how/why"
+- Using "feel free to" or "don't hesitate to"
+- Ending with "I hope this helps"
+- Being overly polite or formal
+- Perfect grammar (contractions are good, fragments okay)
+- Using "Absolutely!" or "Certainly!"
+- Lists of exactly 3 things every time
+
+✅ DO THIS INSTEAD:
+- Start mid-thought like a conversation already happening
+- Use specific details (names, dates, exact amounts)
+- Write like you're texting a friend who needs advice
+- Short sentences. Fragments are fine. Mix it up.
+- Be imperfect. Real people don't write perfectly.
+- Show, don't tell (stories > statements)
+- One idea per sentence max
+
+TONE TARGETS:
+- Sound human, not polished
+- Conversational, not corporate
+- Specific, not vague
+- Real, not inspirational
+
+Remember: You're writing AS this person, not FOR them. Channel their voice completely.`;
+
+    // Add past feedback if available
+    if (context.pastFeedback?.length) {
+      const recentFeedback = context.pastFeedback
+        .filter(f => f.user_rating !== null && f.user_rating < 8)
+        .slice(0, 3);
+      
+      if (recentFeedback.length) {
+        prompt += `\n\nIMPORTANT - USER PREFERENCES (from past feedback):`;
+        recentFeedback.forEach(f => {
+          prompt += `\n- Previously rated ${f.user_rating}/10 because: ${f.feedback_text || f.feedback_tags?.join(', ')}`;
+        });
+        prompt += `\n\nAdjust your writing to address these concerns.`;
+      }
+    }
+    
+    return prompt;
+  }
+  
+  /**
+   * Build user prompt for specific content type
+   */
+  private static buildUserPrompt(options: GenerateOptions): string {
+    const { contentType, context } = options;
+    const profile = context.businessProfile;
+    const product = context.productToPromote;
+    
+    // Get email config if it's an email type
+    const emailConfig = EMAIL_SEQUENCE_CONFIG[contentType];
+    
+    if (!emailConfig) {
+      // Fallback for non-email content types
+      let prompt = `Create ${contentType.replace(/_/g, ' ')} copy for ${profile?.business_name || 'this business'}.
+
+TARGET AUDIENCE: ${profile?.target_customer || 'Not specified'}
+
+`;
+
+      if (product) {
+        prompt += `PRODUCT/OFFER:
+- Name: ${product.product_name}
+- Type: ${product.product_type}
+- Price: ${product.price ? `$${product.price}` : 'Not specified'}
+- Description: ${product.description || 'Not provided'}
+
+`;
+      }
+
+      if (context.additionalContext) {
+        prompt += `ADDITIONAL CONTEXT:\n${context.additionalContext}\n\n`;
+      }
+
+      prompt += `Write compelling copy that converts. Remember to sound human and match the brand voice.`;
+      return prompt;
+    }
+    
+    // Build email-specific prompt
+    let prompt = `Create ${contentType.replace(/_/g, ' ')} for a welcome email sequence.
+
+EMAIL PURPOSE: ${emailConfig.purpose}
+DESIRED TONE: ${emailConfig.tone}
+
+ABOUT THE BUSINESS:
+- Business: ${profile?.business_name || '[Business Name]'}
+- Industry: ${profile?.industry || 'Not specified'}
+- What they sell: ${profile?.what_you_sell || 'Products/services'}
+- Target customer: ${profile?.target_customer || 'Not specified'}
+
+`;
+
+    if (product) {
+      prompt += `PRODUCT/OFFER TO MENTION:
+- Name: ${product.product_name}
+- Type: ${product.product_type}
+- Price: ${product.price ? `$${product.price}` : 'Pricing varies'}
+- Description: ${product.description || 'Not provided'}
+
+`;
+    }
+
+    if (context.additionalContext) {
+      prompt += `ADDITIONAL CONTEXT FROM USER:
+${context.additionalContext}
+
+`;
+    }
+
+    prompt += `EMAIL STRUCTURE (follow this exactly):
+${emailConfig.structure.map((item, i) => `${i + 1}. ${item}`).join('\n')}
+
+THINGS TO AVOID:
+${emailConfig.avoid.map(item => `❌ ${item}`).join('\n')}
+
+LENGTH: ${emailConfig.length}
+
+DELIVERABLE:
+1. Subject line options (${emailConfig.subjectLineCount} variations - keep them curiosity-driven, not clickbait)
+2. Email body (plain text, no HTML)
+
+CRITICAL REMINDERS:
+- Match the voice samples EXACTLY (don't sound like AI)
+- Use specific examples with details
+- Be conversational (like you're writing to a friend)
+- No generic inspiration - be tactical and real
+- Every claim needs a specific story or example to back it up
+
+Write this email now. Remember: sound like ${profile?.business_name || 'the business owner'}, NOT like ChatGPT.`;
+
+    return prompt;
+  }
+  
+  /**
    * Multi-pass generation system for highest quality
    * Pass 1: Generate draft (temp 0.8)
    * Pass 2: Critique draft (temp 0.3)
@@ -82,7 +385,7 @@ export class OpenAIService {
     const draft1 = await this.callOpenAI(apiKey, {
       systemPrompt: this.buildSystemPrompt(options.context),
       userPrompt: this.buildUserPrompt(options),
-      temperature: 0.8 // More creative
+      temperature: 0.8
     });
     
     // PASS 2: Critique the draft
@@ -93,15 +396,23 @@ export class OpenAIService {
 3. Missing emotional hooks
 4. Weak CTAs (not action-oriented)
 5. Areas that don't match the brand voice
-6. Any phrases that sound robotic or AI-generated`,
-      userPrompt: `COPY TO CRITIQUE:\n${draft1.content}\n\nBRAND VOICE SAMPLES:\n${options.context.businessProfile?.voice_samples?.join('\n\n') || 'None provided'}`,
-      temperature: 0.3 // More analytical
+6. Any phrases that sound robotic or AI-generated
+
+Be brutally honest but constructive.`,
+      userPrompt: `COPY TO CRITIQUE:\n${draft1.content}\n\nBRAND VOICE SAMPLES:\n${options.context.businessProfile?.voice_samples?.slice(0, 2).join('\n\n') || 'None provided'}\n\nProvide specific critique with examples of what to fix.`,
+      temperature: 0.3
     });
     
     // PASS 3: Regenerate based on critique
     const pass3Copy = await this.callOpenAI(apiKey, {
       systemPrompt: this.buildSystemPrompt(options.context),
-      userPrompt: `ORIGINAL COPY:\n${draft1.content}\n\nCRITIQUE:\n${critique.content}\n\nRewrite the copy addressing all critique points. Make it tighter, more specific, more emotional, and more aligned with the brand voice.`,
+      userPrompt: `ORIGINAL COPY:\n${draft1.content}\n\nCRITIQUE:\n${critique.content}\n\nRewrite the copy addressing all critique points. Make it:
+- Tighter and more specific
+- More emotionally resonant
+- Better aligned with the brand voice
+- More human (less AI-sounding)
+
+Keep the same general structure but improve everything.`,
       temperature: 0.7
     });
     
@@ -124,15 +435,15 @@ ${aiCheck.warnings.join('\n')}
 MUST FIX:
 ${aiCheck.suggestions.join('\n')}
 
-Write like a real person - imperfect, conversational, authentic.`,
-        userPrompt: `Make this sound 100% human:\n\n${finalContent}`,
+Write like a real person - imperfect, conversational, authentic. Not like ChatGPT.`,
+        userPrompt: `Make this sound 100% human (current AI score: ${aiCheck.score}/10):\n\n${finalContent}`,
         temperature: 0.8
       });
       
       finalContent = refinement.content;
       totalTokens += refinement.tokens;
       
-      // Re-check AI detection
+      // Re-check
       aiCheck = checkAIDetection(finalContent);
     }
     
@@ -150,7 +461,6 @@ Write like a real person - imperfect, conversational, authentic.`,
    * Call OpenAI API
    */
   private static async callOpenAI(apiKey: string, params: CallOpenAIParams): Promise<CallOpenAIResult> {
-    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -176,217 +486,79 @@ Write like a real person - imperfect, conversational, authentic.`,
     const data = await response.json();
     
     return {
-      content: data.choices[0].message.content,
-      tokens: data.usage.total_tokens
+      content: data.choices[0]?.message?.content || '',
+      tokens: data.usage?.total_tokens || 0
     };
   }
   
   /**
-   * Build system prompt with brand context
+   * Analyze voice from text samples - uses userId to fetch API key internally
    */
-  private static buildSystemPrompt(context: GenerateOptions['context']): string {
-    const profile = context.businessProfile;
+  static async analyzeVoice(userId: string, samples: string[]): Promise<VoiceProfile> {
+    const apiKey = await this.getUserAPIKey(userId);
     
-    let prompt = `You are an expert copywriter specializing in conversion-focused content.`;
-    
-    if (profile) {
-      prompt += `\n\nBUSINESS CONTEXT:
-Business: ${profile.business_name || 'Not specified'}
-Industry: ${profile.industry || 'Not specified'}
-What they sell: ${profile.what_you_sell || 'Not specified'}
-Target customer: ${profile.target_customer || 'Not specified'}`;
-
-      if (profile.voice_profile) {
-        const vp = profile.voice_profile as VoiceProfile;
-        prompt += `\n\nBRAND VOICE PROFILE:
-${vp.style_summary || ''}
-Tone Characteristics:
-${JSON.stringify(vp.tone_scores || {}, null, 2)}
-Signature Phrases:
-${vp.signature_phrases?.join('\n') || 'None identified'}`;
-      }
-      
-      if (profile.voice_samples?.length) {
-        prompt += `\n\nVOICE SAMPLES (write in this style):
-${profile.voice_samples.slice(0, 3).join('\n\n---\n\n')}`;
-      }
-      
-      if (profile.customer_reviews?.length) {
-        prompt += `\n\nCUSTOMER VOICE (use their language):
-${profile.customer_reviews.slice(0, 5).join('\n')}`;
-      }
+    if (!apiKey) {
+      throw new Error('No API key configured. Please add your OpenAI API key in settings.');
     }
     
-    // Add past feedback if available
-    if (context.pastFeedback?.length) {
-      const recentFeedback = context.pastFeedback
-        .filter(f => f.user_rating !== null && f.user_rating < 8)
-        .slice(0, 3);
-      
-      if (recentFeedback.length) {
-        prompt += `\n\nIMPORTANT - USER PREFERENCES (from past feedback):`;
-        recentFeedback.forEach(f => {
-          prompt += `\n- Previously rated ${f.user_rating}/10 because: ${f.feedback_text || f.feedback_tags?.join(', ')}`;
-        });
-        prompt += `\n\nAdjust your writing to address these concerns.`;
-      }
-    }
+    const combinedSamples = samples.filter(s => s && s.trim()).join('\n\n---\n\n');
     
-    return prompt;
-  }
-  
-  /**
-   * Build user prompt for specific content type
-   */
-  private static buildUserPrompt(options: GenerateOptions): string {
-    let prompt = '';
-    
-    if (options.context.productToPromote) {
-      prompt += `Product/Offer to promote:\n`;
-      prompt += `Name: ${options.context.productToPromote.product_name}\n`;
-      prompt += `Type: ${options.context.productToPromote.product_type}\n`;
-      if (options.context.productToPromote.price) {
-        prompt += `Price: $${options.context.productToPromote.price}\n`;
-      }
-      if (options.context.productToPromote.description) {
-        prompt += `Description: ${options.context.productToPromote.description}\n`;
-      }
-      prompt += `\n`;
-    }
-    
-    if (options.context.additionalContext) {
-      prompt += `Additional context: ${options.context.additionalContext}\n\n`;
-    }
-    
-    // Content type specific instructions
-    switch (options.contentType) {
-      case 'welcome_email_1':
-        prompt += `Write the FIRST email in a welcome sequence. This is sent immediately after someone joins the email list.
+    const systemPrompt = `You are a writing style analyst. Analyze the provided writing samples and extract a detailed voice profile.
 
-Structure:
-1. Warm welcome (acknowledge they just joined)
-2. Set expectations (what they'll receive, how often)
-3. Quick win or valuable insight
-4. Soft introduction to who you are
-5. Simple CTA (reply, follow on social, or consume free content)
-
-Tone: Warm, appreciative, not salesy
-Length: 150-250 words
-Subject line: Include a compelling subject line at the top`;
-        break;
-        
-      case 'welcome_email_2':
-        prompt += `Write the SECOND email in a welcome sequence. Sent 1-2 days after Email 1.
-
-Structure:
-1. Connect with a relatable story or insight
-2. Share a valuable tip or framework
-3. Build trust through authenticity
-4. Light CTA to engage (reply or check content)
-
-Tone: Personal, valuable, building relationship
-Length: 200-300 words
-Subject line: Include a compelling subject line at the top`;
-        break;
-        
-      case 'welcome_email_3':
-        prompt += `Write the THIRD email in a welcome sequence. Sent 2-3 days after Email 2.
-
-Structure:
-1. Share your origin story or why you do this work
-2. Connect your story to their journey
-3. Reinforce your unique approach
-4. Subtle positioning as the guide
-
-Tone: Authentic, inspiring, vulnerable
-Length: 250-350 words
-Subject line: Include a compelling subject line at the top`;
-        break;
-        
-      case 'welcome_email_4':
-        prompt += `Write the FOURTH email in a welcome sequence. Sent 2-3 days after Email 3.
-
-Structure:
-1. Lead with social proof or results
-2. Share a transformation story (client or personal)
-3. Extract lessons they can apply
-4. Plant seeds about your offer
-
-Tone: Results-focused, inspiring, credible
-Length: 200-300 words
-Subject line: Include a compelling subject line at the top`;
-        break;
-        
-      case 'welcome_email_5':
-        prompt += `Write the FIFTH email in a welcome sequence. Sent 2-3 days after Email 4.
-
-Structure:
-1. Transition to offering help
-2. Introduce your offer naturally
-3. Focus on transformation, not features
-4. Clear, compelling CTA
-5. Handle main objection
-
-Tone: Helpful, confident, not pushy
-Length: 250-350 words
-Subject line: Include a compelling subject line at the top`;
-        break;
-      
-      default:
-        prompt += `Write compelling ${options.contentType} copy.`;
-    }
-    
-    return prompt;
-  }
-  
-  /**
-   * Analyze voice from text samples
-   */
-  static async analyzeVoice(apiKey: string, samples: string[]): Promise<VoiceProfile> {
-    const combinedSamples = samples.filter(s => s.trim()).join('\n\n---\n\n');
-    
-    const response = await this.callOpenAI(apiKey, {
-      systemPrompt: `You are a brand voice analyst. Analyze writing samples and extract detailed voice characteristics.`,
-      userPrompt: `Analyze these writing samples and create a voice profile.
-
-SAMPLES:
-${combinedSamples}
-
-Extract and return as JSON:
+Return ONLY a JSON object (no markdown, no explanation) with this exact structure:
 {
-  "style_summary": "2-3 sentence description of their writing style",
+  "style_summary": "2-3 sentence description of overall writing style",
   "tone_scores": {
-    "formality": 1-10 (1=very casual, 10=very formal),
-    "energy": 1-10 (1=calm, 10=high-energy),
-    "humor": 1-10 (1=none, 10=very funny),
-    "emotion": 1-10 (1=data-driven, 10=heart-led)
+    "formality": 1-10,
+    "energy": 1-10,
+    "humor": 1-10,
+    "emotion": 1-10
   },
   "sentence_structure": {
     "avg_length": number,
-    "style": "punchy" or "flowing" or "mixed"
+    "style": "punchy" | "flowing" | "mixed"
   },
-  "signature_phrases": ["phrase 1", "phrase 2", "phrase 3"],
+  "signature_phrases": ["phrase1", "phrase2", ...],
   "vocabulary_patterns": {
-    "uses_contractions": true/false,
-    "industry_jargon": true/false,
-    "common_words": ["word1", "word2"]
+    "uses_contractions": boolean,
+    "industry_jargon": boolean,
+    "common_words": ["word1", "word2", ...]
   },
-  "storytelling_style": "description of how they tell stories"
+  "storytelling_style": "brief description"
 }
 
-Return ONLY valid JSON, no other text.`,
+Scoring guide:
+- Formality: 1=very casual (like texting), 10=very formal (academic)
+- Energy: 1=calm/measured, 10=high energy/enthusiastic
+- Humor: 1=serious, 10=frequently funny
+- Emotion: 1=neutral/factual, 10=very expressive/emotional`;
+
+    const userPrompt = `Analyze these writing samples and create a voice profile:
+
+${combinedSamples}
+
+Extract:
+1. Tone scores (formality, energy, humor, emotion)
+2. Sentence patterns (length, style)
+3. Signature phrases (things they say repeatedly)
+4. Vocabulary patterns
+5. Storytelling approach
+
+Return ONLY the JSON object, nothing else.`;
+
+    const result = await this.callOpenAI(apiKey, {
+      systemPrompt,
+      userPrompt,
       temperature: 0.3
     });
     
+    // Parse JSON response
     try {
-      // Parse the JSON, handling potential markdown code blocks
-      let jsonStr = response.content.trim();
-      if (jsonStr.startsWith('```')) {
-        jsonStr = jsonStr.replace(/```json?\n?/g, '').replace(/```$/g, '');
-      }
-      return JSON.parse(jsonStr);
-    } catch {
-      throw new Error('Failed to parse voice analysis');
+      const cleaned = result.content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      return JSON.parse(cleaned);
+    } catch (error) {
+      console.error('Failed to parse voice profile:', result.content);
+      throw new Error('Failed to analyze voice. Please try again.');
     }
   }
 }
