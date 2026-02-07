@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { 
   Megaphone, PenTool, Layers, Plus, X, ListChecks, Mail, Zap, FileText, 
-  ArrowRight, Star, Calendar, AlertTriangle 
+  ArrowRight, Star, Calendar, AlertTriangle, Sparkles 
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
@@ -362,6 +362,12 @@ export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyP
 
         {data.salesPageStatus !== 'existing' && (
           <div className="space-y-2 pl-4 border-l-2 border-primary/20">
+            {data.salesPageStatus === 'needs-creation' && (
+              <div className="flex items-center gap-2 text-xs text-primary">
+                <Sparkles className="h-3 w-3" />
+                <span>Generate sales page copy with AI in the Review step</span>
+              </div>
+            )}
             <Label className="text-sm flex items-center gap-2">
               <Calendar className="h-4 w-4" />
               When will it be complete?
@@ -535,14 +541,20 @@ export function StepPreLaunchStrategy({ data, onChange }: StepPreLaunchStrategyP
                     </RadioGroup>
                     
                     {sequence?.status === 'needs-creation' && (
-                      <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">Deadline (optional)</Label>
-                        <Input
-                          type="date"
-                          value={sequence?.deadline || ''}
-                          onChange={(e) => updateEmailSequenceStatus(option.key, 'needs-creation', e.target.value)}
-                          className="w-auto"
-                        />
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-xs text-primary">
+                          <Sparkles className="h-3 w-3" />
+                          <span>AI can write this for you in the Review step</span>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Deadline (optional)</Label>
+                          <Input
+                            type="date"
+                            value={sequence?.deadline || ''}
+                            onChange={(e) => updateEmailSequenceStatus(option.key, 'needs-creation', e.target.value)}
+                            className="w-auto"
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
