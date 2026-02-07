@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { decryptAPIKey } from './encryption';
 import { VoiceProfile, BrandProfile, UserProduct, AICopyGeneration } from '@/types/aiCopywriting';
 import { checkAIDetection } from './ai-detection-checker';
+import { STRATEGIC_EMAIL_CONFIGS, type EmailStrategyConfig } from './email-sequence-strategy';
 
 interface GenerateOptions {
   contentType: string;
@@ -23,87 +24,6 @@ interface CallOpenAIResult {
   content: string;
   tokens: number;
 }
-
-// Email sequence configuration
-const EMAIL_SEQUENCE_CONFIG: Record<string, {
-  purpose: string;
-  tone: string;
-  structure: string[];
-  avoid: string[];
-  length: string;
-  subjectLineCount: number;
-}> = {
-  welcome_email_1: {
-    purpose: "Deliver lead magnet + build initial relationship",
-    tone: "Warm welcome, like inviting a friend into your home",
-    structure: [
-      "Thank them for downloading (briefly)",
-      "Quick personal story showing you understand their struggle",
-      "ONE specific actionable tip they can use this week",
-      "Clear CTA: Reply and share [specific thing]"
-    ],
-    avoid: ["Selling anything", "Overwhelming with too much", "Generic inspiration"],
-    length: "250-350 words",
-    subjectLineCount: 3
-  },
-  welcome_email_2: {
-    purpose: "Share your origin story + position yourself as guide",
-    tone: "Vulnerable storytelling, real and relatable",
-    structure: [
-      "Brief recap of where they are now (mirror their struggle)",
-      "Your story: how you were in their exact position",
-      "The specific moment/realization that shifted everything for you",
-      "What you learned that they can apply",
-      "CTA: Which part of this story resonated most?"
-    ],
-    avoid: ["Humble bragging", "Vague 'transformation' language", "Pitching"],
-    length: "300-400 words",
-    subjectLineCount: 3
-  },
-  welcome_email_3: {
-    purpose: "Establish authority + provide high-value content",
-    tone: "Confident teacher, generous with knowledge",
-    structure: [
-      "Address common mistake/misconception in their industry",
-      "Explain why this mistake happens (empathy)",
-      "Share your framework/process for doing it right",
-      "Give them step 1 they can implement today",
-      "CTA: Try this and let me know what happens"
-    ],
-    avoid: ["Gatekeeping the best advice", "Being preachy", "Too theoretical"],
-    length: "350-450 words",
-    subjectLineCount: 3
-  },
-  welcome_email_4: {
-    purpose: "Social proof + soft intro to your offer",
-    tone: "Excited storytelling about client wins",
-    structure: [
-      "Client success story with specific details (name, situation, result)",
-      "What made the difference for them",
-      "Connect their situation to the reader's",
-      "Mention your offer exists (soft intro, not a pitch)",
-      "CTA: Want to learn more about [program]?"
-    ],
-    avoid: ["Making it sound too easy", "Salesy language", "Fake urgency"],
-    length: "300-400 words",
-    subjectLineCount: 3
-  },
-  welcome_email_5: {
-    purpose: "Make the offer + invite to next step",
-    tone: "Direct invitation, friend recommending something that helped them",
-    structure: [
-      "You've been getting [benefit from emails], here's how to go deeper",
-      "What your program/offer is and who it's for",
-      "Specific outcomes they can expect",
-      "Investment + what's included",
-      "Clear CTA with urgency (enrollment closes, spots limited, etc.)",
-      "Reassurance: address main objection"
-    ],
-    avoid: ["Pushy sales tactics", "Fake scarcity", "Manipulation"],
-    length: "400-500 words",
-    subjectLineCount: 3
-  }
-};
 
 export class OpenAIService {
   
@@ -140,7 +60,7 @@ export class OpenAIService {
   }
   
   /**
-   * Build system prompt with voice matching and anti-AI rules
+   * Build system prompt with deep voice matching and anti-AI rules
    */
   private static buildSystemPrompt(context: GenerateOptions['context']): string {
     const profile = context.businessProfile;
@@ -154,27 +74,106 @@ CRITICAL: This copy must sound EXACTLY like the writing samples provided. Not li
 
     // Add voice profile if available
     if (voiceProfile) {
-      prompt += `VOICE PROFILE (match this exactly):
-- Formality level: ${voiceProfile.tone_scores?.formality || 5}/10 ${(voiceProfile.tone_scores?.formality || 5) < 4 ? '(very casual)' : (voiceProfile.tone_scores?.formality || 5) > 7 ? '(more formal)' : '(conversational)'}
-- Energy level: ${voiceProfile.tone_scores?.energy || 5}/10 ${(voiceProfile.tone_scores?.energy || 5) > 7 ? '(high energy, enthusiastic)' : (voiceProfile.tone_scores?.energy || 5) < 4 ? '(calm, measured)' : '(moderate)'}
-- Emotional expression: ${voiceProfile.tone_scores?.emotion || 5}/10 ${(voiceProfile.tone_scores?.emotion || 5) > 7 ? '(very expressive)' : '(balanced)'}
-- Humor level: ${voiceProfile.tone_scores?.humor || 5}/10
+      prompt += `VOICE PROFILE (match this EXACTLY - this is HOW they think):
 
-SENTENCE STYLE:
-- Average length: ${voiceProfile.sentence_structure?.avg_length || 15} words
-- Style: ${voiceProfile.sentence_structure?.style || 'mixed'}
+TONE SCORES:
+- Formality: ${voiceProfile.tone_scores?.formality || 5}/10 ${(voiceProfile.tone_scores?.formality || 5) < 4 ? '(very casual, like texting)' : (voiceProfile.tone_scores?.formality || 5) > 7 ? '(professional/formal)' : '(conversational)'}
+- Energy: ${voiceProfile.tone_scores?.energy || 5}/10 ${(voiceProfile.tone_scores?.energy || 5) > 7 ? '(high energy, enthusiastic)' : (voiceProfile.tone_scores?.energy || 5) < 4 ? '(calm, measured)' : '(moderate energy)'}
+- Emotion: ${voiceProfile.tone_scores?.emotion || 5}/10 ${(voiceProfile.tone_scores?.emotion || 5) > 7 ? '(very expressive, storytelling)' : '(balanced emotion)'}
+- Humor: ${voiceProfile.tone_scores?.humor || 5}/10
 
 `;
 
+      // Add deep writing patterns
+      if (voiceProfile.writing_patterns) {
+        const wp = voiceProfile.writing_patterns;
+        prompt += `WRITING PATTERNS (replicate these decision-making habits):
+- When making a point: ${wp.decision_making_style === 'data-driven' ? 'Leads with data/stats/numbers' : wp.decision_making_style === 'story-driven' ? 'Tells a story first, then makes the point' : wp.decision_making_style === 'authority-driven' ? 'Makes authoritative statements backed by experience' : 'Mixes data, stories, and authority'}
+- Transitions between ideas: ${wp.transition_style === 'abrupt' ? 'Jumps quickly, short bridges' : wp.transition_style === 'smooth' ? 'Smooth, flowing connections' : 'Conversational asides and natural pivots'}
+- Provides examples using: ${wp.example_usage === 'specific-numbers' ? 'Concrete numbers, dates, amounts' : wp.example_usage === 'relatable-scenarios' ? 'Relatable "imagine this" scenarios' : wp.example_usage === 'client-stories' ? 'Real client/customer stories' : 'Mix of numbers, scenarios, and stories'}
+- Handles objections: ${wp.objection_handling === 'direct-address' ? 'Addresses them head-on' : wp.objection_handling === 'story-reframe' ? 'Reframes through stories' : wp.objection_handling === 'preemptive' ? 'Preempts before reader thinks it' : 'Varies approach'}
+- CTAs (calls to action): ${wp.cta_style === 'direct-command' ? 'Direct commands ("Do this")' : wp.cta_style === 'soft-invitation' ? 'Soft invitations ("Want to try?")' : wp.cta_style === 'question-based' ? 'Questions ("Ready to X?")' : 'Varies style'}
+
+`;
+      }
+
+      // Add structural preferences
+      if (voiceProfile.structural_preferences) {
+        const sp = voiceProfile.structural_preferences;
+        prompt += `STRUCTURAL HABITS:
+- Paragraph length: ${sp.paragraph_length === 'short' ? '1-3 sentences max' : sp.paragraph_length === 'medium' ? '3-5 sentences' : sp.paragraph_length === 'long' ? '5+ sentences' : 'Varies strategically'}
+- Sentence variety: ${sp.sentence_variety}/10 ${sp.sentence_variety > 7 ? '(dramatic mix of 3-word and 30-word sentences)' : sp.sentence_variety < 4 ? '(consistent length)' : '(moderate variety)'}
+- Uses lists/bullets: ${sp.list_usage}
+- Uses questions: ${sp.question_usage === 'rhetorical' ? 'Rhetorical (for emphasis)' : sp.question_usage === 'engagement' ? 'For engagement (expects replies)' : sp.question_usage === 'clarifying' ? 'To clarify/teach' : 'Mixed usage'}
+
+`;
+      }
+
+      // Add psychological style
+      if (voiceProfile.psychological_style) {
+        const ps = voiceProfile.psychological_style;
+        prompt += `PSYCHOLOGICAL APPROACH:
+- Empathy level: ${ps.empathy_level}/10 ${ps.empathy_level > 7 ? '(highly empathetic, "I get it" energy)' : ps.empathy_level < 4 ? '(more logical/practical)' : '(balanced)'}
+- Projects as: ${ps.authority_projection === 'expert' ? 'Expert/Authority' : ps.authority_projection === 'peer' ? 'Peer/Friend' : ps.authority_projection === 'guide' ? 'Experienced Guide' : 'Mix'}
+- Vulnerability: ${ps.vulnerability_index}/10 ${ps.vulnerability_index > 7 ? '(shares struggles openly)' : ps.vulnerability_index < 4 ? '(mostly shows wins)' : '(balanced)'}
+- Urgency: ${ps.urgency_tendency === 'soft' ? 'Gentle suggestions' : ps.urgency_tendency === 'moderate' ? 'Moderate nudges' : 'Strong pushes/deadlines'}
+
+`;
+      }
+
+      // Add pattern examples (MOST IMPORTANT - show GPT actual examples)
+      if (voiceProfile.pattern_examples) {
+        const pe = voiceProfile.pattern_examples;
+        
+        if (pe.typical_opening && pe.typical_opening.length > 0) {
+          prompt += `HOW THEY TYPICALLY OPEN MESSAGES (use these patterns):
+${pe.typical_opening.slice(0, 3).map(ex => `"${ex}"`).join('\n')}
+
+`;
+        }
+        
+        if (pe.typical_transition && pe.typical_transition.length > 0) {
+          prompt += `HOW THEY TRANSITION BETWEEN IDEAS (replicate this style):
+${pe.typical_transition.slice(0, 3).map(ex => `"${ex}"`).join('\n')}
+
+`;
+        }
+        
+        if (pe.typical_cta && pe.typical_cta.length > 0) {
+          prompt += `HOW THEY ASK FOR ACTION (match this CTA style):
+${pe.typical_cta.slice(0, 3).map(ex => `"${ex}"`).join('\n')}
+
+`;
+        }
+        
+        if (pe.typical_proof && pe.typical_proof.length > 0) {
+          prompt += `HOW THEY BUILD CREDIBILITY (use this proof style):
+${pe.typical_proof.slice(0, 3).map(ex => `"${ex}"`).join('\n')}
+
+`;
+        }
+      }
+
+      // Sentence style
+      if (voiceProfile.sentence_structure) {
+        prompt += `SENTENCE STYLE:
+- Average length: ${voiceProfile.sentence_structure.avg_length || 15} words
+- Overall style: ${voiceProfile.sentence_structure.style}
+
+`;
+      }
+
+      // Signature phrases
       if (voiceProfile.signature_phrases && voiceProfile.signature_phrases.length > 0) {
-        prompt += `SIGNATURE PHRASES (use these naturally):
+        prompt += `SIGNATURE PHRASES (use sparingly and naturally - don't force these):
 ${voiceProfile.signature_phrases.slice(0, 8).map(p => `- "${p}"`).join('\n')}
 
 `;
       }
 
+      // Style summary
       if (voiceProfile.style_summary) {
-        prompt += `STYLE SUMMARY: ${voiceProfile.style_summary}
+        prompt += `OVERALL STYLE: ${voiceProfile.style_summary}
 
 `;
       }
@@ -249,7 +248,15 @@ TONE TARGETS:
 - Specific, not vague
 - Real, not inspirational
 
-Remember: You're writing AS this person, not FOR them. Channel their voice completely.`;
+CRITICAL VOICE MATCHING RULES:
+1. Don't just match TONE - match their THINKING PATTERNS
+2. Use the pattern examples as templates for structure
+3. If they lead with stories, YOU lead with stories
+4. If they use specific numbers, YOU use specific numbers  
+5. If their CTAs are questions, YOUR CTAs should be questions
+6. Match their paragraph and sentence rhythm exactly
+
+You're not "writing like them" - you're THINKING like them and writing what they would write.`;
 
     // Add past feedback if available
     if (context.pastFeedback?.length) {
@@ -270,17 +277,17 @@ Remember: You're writing AS this person, not FOR them. Channel their voice compl
   }
   
   /**
-   * Build user prompt for specific content type
+   * Build user prompt for specific content type with strategic intelligence
    */
   private static buildUserPrompt(options: GenerateOptions): string {
     const { contentType, context } = options;
     const profile = context.businessProfile;
     const product = context.productToPromote;
     
-    // Get email config if it's an email type
-    const emailConfig = EMAIL_SEQUENCE_CONFIG[contentType];
+    // Get strategic email config if it's an email type
+    const strategyConfig = STRATEGIC_EMAIL_CONFIGS[contentType];
     
-    if (!emailConfig) {
+    if (!strategyConfig) {
       // Fallback for non-email content types
       let prompt = `Create ${contentType.replace(/_/g, ' ')} copy for ${profile?.business_name || 'this business'}.
 
@@ -306,13 +313,40 @@ TARGET AUDIENCE: ${profile?.target_customer || 'Not specified'}
       return prompt;
     }
     
-    // Build email-specific prompt
-    let prompt = `Create ${contentType.replace(/_/g, ' ')} for a welcome email sequence.
+    // Build strategic email-specific prompt
+    let prompt = `Create ${contentType.replace(/_/g, ' ')} for a strategic welcome email sequence.
 
-EMAIL PURPOSE: ${emailConfig.purpose}
-DESIRED TONE: ${emailConfig.tone}
+=== STRATEGIC CONTEXT ===
 
-ABOUT THE BUSINESS:
+CUSTOMER JOURNEY STAGE:
+${strategyConfig.strategicFramework.customerStage}
+
+PSYCHOLOGICAL STATE (what they're thinking/feeling):
+${strategyConfig.strategicFramework.psychologicalState}
+
+OBJECTIONS TO PREEMPT:
+${strategyConfig.strategicFramework.objectionsToPreempt.map(obj => `- ${obj}`).join('\n')}
+
+PROOF REQUIRED:
+${strategyConfig.strategicFramework.proofRequired}
+
+TRUST BUILDING STRATEGY:
+${strategyConfig.strategicFramework.trustBuilding}
+
+=== CONVERSION MECHANICS ===
+
+PRIMARY GOAL: ${strategyConfig.conversionMechanics.primaryGoal}
+${strategyConfig.conversionMechanics.secondaryGoal ? `SECONDARY GOAL: ${strategyConfig.conversionMechanics.secondaryGoal}` : ''}
+
+CTA STRATEGY: ${strategyConfig.conversionMechanics.ctaStrategy}
+
+CRITICAL - AVOID AT ALL COSTS:
+${strategyConfig.conversionMechanics.avoidAtAllCosts.map(item => `❌ ${item}`).join('\n')}
+
+=== PSYCHOLOGICAL HOOKS TO ACTIVATE ===
+${strategyConfig.psychologicalHooks.map(hook => `✓ ${hook}`).join('\n')}
+
+=== BUSINESS CONTEXT ===
 - Business: ${profile?.business_name || '[Business Name]'}
 - Industry: ${profile?.industry || 'Not specified'}
 - What they sell: ${profile?.what_you_sell || 'Products/services'}
@@ -320,8 +354,9 @@ ABOUT THE BUSINESS:
 
 `;
 
+    // Add product context if available
     if (product) {
-      prompt += `PRODUCT/OFFER TO MENTION:
+      prompt += `=== PRODUCT/OFFER TO MENTION ===
 - Name: ${product.product_name}
 - Type: ${product.product_type}
 - Price: ${product.price ? `$${product.price}` : 'Pricing varies'}
@@ -330,33 +365,40 @@ ABOUT THE BUSINESS:
 `;
     }
 
+    // Add additional context if provided
     if (context.additionalContext) {
-      prompt += `ADDITIONAL CONTEXT FROM USER:
+      prompt += `=== ADDITIONAL CONTEXT FROM USER ===
 ${context.additionalContext}
 
 `;
     }
 
-    prompt += `EMAIL STRUCTURE (follow this exactly):
-${emailConfig.structure.map((item, i) => `${i + 1}. ${item}`).join('\n')}
+    // Add structure and guidelines
+    prompt += `=== EMAIL STRUCTURE ===
+${strategyConfig.structure.map((item, i) => `${i + 1}. ${item}`).join('\n')}
 
 THINGS TO AVOID:
-${emailConfig.avoid.map(item => `❌ ${item}`).join('\n')}
+${strategyConfig.avoid.map(item => `❌ ${item}`).join('\n')}
 
-LENGTH: ${emailConfig.length}
+LENGTH: ${strategyConfig.length}
+TONE: ${strategyConfig.tone}
 
-DELIVERABLE:
-1. Subject line options (${emailConfig.subjectLineCount} variations - keep them curiosity-driven, not clickbait)
+=== DELIVERABLE ===
+1. Subject line options (${strategyConfig.subjectLineCount} variations - curiosity-driven, not clickbait)
 2. Email body (plain text, no HTML)
 
-CRITICAL REMINDERS:
-- Match the voice samples EXACTLY (don't sound like AI)
-- Use specific examples with details
+=== CRITICAL REMINDERS ===
+- Match the voice profile EXACTLY (sound like the business owner, not ChatGPT)
+- Use the strategic context above - this isn't just an email, it's a specific moment in their journey
+- Activate the psychological hooks listed
+- Preempt the objections listed
+- Provide the proof type required at this stage
+- Follow the CTA strategy specified
+- Use specific examples with details (names, dates, exact amounts)
 - Be conversational (like you're writing to a friend)
 - No generic inspiration - be tactical and real
-- Every claim needs a specific story or example to back it up
 
-Write this email now. Remember: sound like ${profile?.business_name || 'the business owner'}, NOT like ChatGPT.`;
+Write this email now. Remember: You're not just writing an email, you're engineering a specific psychological moment in their customer journey.`;
 
     return prompt;
   }
@@ -492,7 +534,7 @@ Write like a real person - imperfect, conversational, authentic. Not like ChatGP
   }
   
   /**
-   * Analyze voice from text samples - uses userId to fetch API key internally
+   * Analyze voice from text samples - deep pattern extraction
    */
   static async analyzeVoice(userId: string, samples: string[]): Promise<VoiceProfile> {
     const apiKey = await this.getUserAPIKey(userId);
@@ -503,11 +545,44 @@ Write like a real person - imperfect, conversational, authentic. Not like ChatGP
     
     const combinedSamples = samples.filter(s => s && s.trim()).join('\n\n---\n\n');
     
-    const systemPrompt = `You are a writing style analyst. Analyze the provided writing samples and extract a detailed voice profile.
+    const systemPrompt = `You are a writing forensics expert analyzing HOW someone thinks through writing, not just what they write.
 
-Return ONLY a JSON object (no markdown, no explanation) with this exact structure:
+Your job is to extract the DECISION-MAKING PATTERNS behind their writing so AI can replicate their thought process.
+
+Analyze these writing samples for:
+
+1. DECISION-MAKING PATTERNS:
+   - When facing a point to make, do they lead with data/stats, stories, or authority statements?
+   - How do they handle potential objections? (Address directly? Reframe with story? Preempt before reader thinks it?)
+   - What type of proof do they typically use? (Specific numbers? Client stories? Relatable scenarios?)
+
+2. STRUCTURAL DNA:
+   - How do they transition between ideas? (Abrupt jumps? Smooth bridges? Conversational asides?)
+   - Do they use questions to engage readers, clarify points, or rhetorically?
+   - How varied are their sentence lengths? (Consistent? Wildly mixed? Strategic variety?)
+   - How do they use lists/bullets vs. prose paragraphs?
+
+3. PSYCHOLOGICAL FINGERPRINT:
+   - How empathetic vs. authoritative is their tone? (Rate 1-10)
+   - How vulnerable do they get? Share struggles/failures? (Rate 1-10)
+   - Do they project as expert, peer, or guide?
+   - How aggressive is their urgency? (Soft suggestions? Moderate nudges? Strong pushes?)
+
+4. CONVERSION MECHANICS:
+   - How do they typically ask for action? (Direct commands? Soft invitations? Questions?)
+   - How do they open messages? (Mid-thought? Greeting? Hook?)
+   - How do they build credibility? (Stories? Stats? Credentials? Results?)
+
+5. PATTERN EXTRACTION:
+   - Find 3-5 examples of how they TYPICALLY open a message
+   - Find 3-5 examples of how they TRANSITION between ideas
+   - Find 3-5 examples of how they ASK for action (CTAs)
+   - Find 3-5 examples of how they provide PROOF/credibility
+
+Return ONLY a JSON object (no markdown, no explanation) with this EXACT structure:
+
 {
-  "style_summary": "2-3 sentence description of overall writing style",
+  "style_summary": "2-3 sentence description",
   "tone_scores": {
     "formality": 1-10,
     "energy": 1-10,
@@ -520,31 +595,62 @@ Return ONLY a JSON object (no markdown, no explanation) with this exact structur
   },
   "signature_phrases": ["phrase1", "phrase2", ...],
   "vocabulary_patterns": {
-    "uses_contractions": boolean,
-    "industry_jargon": boolean,
+    "uses_contractions": true/false,
+    "industry_jargon": true/false,
     "common_words": ["word1", "word2", ...]
   },
-  "storytelling_style": "brief description"
+  "storytelling_style": "brief description",
+  "writing_patterns": {
+    "decision_making_style": "data-driven" | "story-driven" | "authority-driven" | "mixed",
+    "transition_style": "abrupt" | "smooth" | "conversational",
+    "example_usage": "specific-numbers" | "relatable-scenarios" | "client-stories" | "mixed",
+    "objection_handling": "direct-address" | "story-reframe" | "preemptive" | "mixed",
+    "cta_style": "direct-command" | "soft-invitation" | "question-based" | "mixed"
+  },
+  "structural_preferences": {
+    "paragraph_length": "short" | "medium" | "long" | "mixed",
+    "sentence_variety": 1-10,
+    "list_usage": "frequent" | "occasional" | "rare",
+    "question_usage": "rhetorical" | "engagement" | "clarifying" | "mixed"
+  },
+  "psychological_style": {
+    "empathy_level": 1-10,
+    "authority_projection": "expert" | "peer" | "guide" | "mixed",
+    "vulnerability_index": 1-10,
+    "urgency_tendency": "soft" | "moderate" | "aggressive"
+  },
+  "pattern_examples": {
+    "typical_opening": ["example 1", "example 2", "example 3"],
+    "typical_transition": ["example 1", "example 2", "example 3"],
+    "typical_cta": ["example 1", "example 2", "example 3"],
+    "typical_proof": ["example 1", "example 2", "example 3"]
+  }
 }
 
-Scoring guide:
-- Formality: 1=very casual (like texting), 10=very formal (academic)
-- Energy: 1=calm/measured, 10=high energy/enthusiastic
-- Humor: 1=serious, 10=frequently funny
-- Emotion: 1=neutral/factual, 10=very expressive/emotional`;
+SCORING GUIDES:
+- Formality: 1=texting a friend, 10=academic paper
+- Energy: 1=calm professor, 10=motivational speaker
+- Humor: 1=serious/professional, 10=comedian
+- Emotion: 1=neutral/factual, 10=passionate storyteller
+- Empathy: 1=pure logic, 10=deeply understanding
+- Vulnerability: 1=only shows wins, 10=shares all struggles
+- Sentence Variety: 1=all same length, 10=wild mix of short and long
 
-    const userPrompt = `Analyze these writing samples and create a voice profile:
+CRITICAL: Base ALL ratings and categorizations on ACTUAL PATTERNS you see in the samples, not assumptions. Quote specific examples to yourself before categorizing.`;
+
+    const userPrompt = `Analyze these writing samples and extract the deep patterns:
 
 ${combinedSamples}
 
-Extract:
-1. Tone scores (formality, energy, humor, emotion)
-2. Sentence patterns (length, style)
-3. Signature phrases (things they say repeatedly)
-4. Vocabulary patterns
-5. Storytelling approach
+For each category, find SPECIFIC EVIDENCE in the samples before making your determination.
 
-Return ONLY the JSON object, nothing else.`;
+For pattern_examples, PULL DIRECT QUOTES from the samples that show:
+- How they typically open messages
+- How they transition between ideas  
+- How they ask for action
+- How they provide proof/build credibility
+
+Return ONLY the JSON object matching the schema above. No explanations, no markdown formatting.`;
 
     const result = await this.callOpenAI(apiKey, {
       systemPrompt,
