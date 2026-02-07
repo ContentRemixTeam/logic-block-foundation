@@ -64,14 +64,18 @@ export interface UserAPIKey {
 
 // Generation Types
 export type ContentType = 
+  // Welcome Email Sequence
   | 'welcome_email_1'
   | 'welcome_email_2'
   | 'welcome_email_3'
   | 'welcome_email_4'
   | 'welcome_email_5'
+  // Sales Page
   | 'sales_page_headline'
   | 'sales_page_body'
+  // Social Media
   | 'social_post'
+  // Promotional Emails
   | 'promo_email';
 
 export interface AICopyGeneration {
@@ -145,13 +149,62 @@ export const BRAND_WIZARD_STEPS = [
   { title: 'Setup Complete', description: 'Ready to generate copy' },
 ];
 
-// Content Type Options
-export const CONTENT_TYPE_OPTIONS: { value: ContentType; label: string; description: string }[] = [
-  { value: 'welcome_email_1', label: 'Welcome Email #1', description: 'First email after signup' },
-  { value: 'welcome_email_2', label: 'Welcome Email #2', description: 'Build connection and trust' },
-  { value: 'welcome_email_3', label: 'Welcome Email #3', description: 'Share your story/values' },
-  { value: 'welcome_email_4', label: 'Welcome Email #4', description: 'Social proof and results' },
-  { value: 'welcome_email_5', label: 'Welcome Email #5', description: 'Soft offer introduction' },
+// Content Type Options with categories
+export const CONTENT_TYPE_OPTIONS: { value: ContentType; label: string; description: string; category: string }[] = [
+  { 
+    value: 'welcome_email_1', 
+    label: 'Welcome Email #1', 
+    category: 'Email Sequences',
+    description: 'First email: deliver lead magnet + build relationship'
+  },
+  { 
+    value: 'welcome_email_2', 
+    label: 'Welcome Email #2', 
+    category: 'Email Sequences',
+    description: 'Share your story + position yourself as guide'
+  },
+  { 
+    value: 'welcome_email_3', 
+    label: 'Welcome Email #3', 
+    category: 'Email Sequences',
+    description: 'High-value teaching content'
+  },
+  { 
+    value: 'welcome_email_4', 
+    label: 'Welcome Email #4', 
+    category: 'Email Sequences',
+    description: 'Social proof + soft intro to your offer'
+  },
+  { 
+    value: 'welcome_email_5', 
+    label: 'Welcome Email #5', 
+    category: 'Email Sequences',
+    description: 'Make the offer + invite next step'
+  },
+  { 
+    value: 'sales_page_headline', 
+    label: 'Sales Page Headline', 
+    category: 'Sales Pages',
+    description: 'Attention-grabbing headline for sales page'
+  },
+  { 
+    value: 'sales_page_body', 
+    label: 'Sales Page Body', 
+    category: 'Sales Pages',
+    description: 'Full long-form sales page copy'
+  },
+  { 
+    value: 'social_post', 
+    label: 'Social Media Post', 
+    category: 'Social Media',
+    description: 'Platform-optimized social content'
+  },
+  { 
+    value: 'promo_email', 
+    label: 'Promotional Email', 
+    category: 'Emails',
+    description: 'One-off promotional or launch email'
+  },
 ];
 
 // Industry Options
