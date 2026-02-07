@@ -29,7 +29,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useGenerations, useDeleteGeneration } from '@/hooks/useAICopywriting';
-import { AICopyGeneration, CONTENT_TYPE_OPTIONS } from '@/types/aiCopywriting';
+import { AICopyGeneration, CONTENT_TYPE_OPTIONS, ContentType } from '@/types/aiCopywriting';
+import { AddToCalendarModal } from './AddToCalendarModal';
 import { 
   FileText, 
   Search, 
@@ -38,7 +39,8 @@ import {
   Star,
   Loader2,
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  CalendarPlus
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from 'sonner';
@@ -58,6 +60,7 @@ export function CopyLibrary() {
   const [ratingFilter, setRatingFilter] = useState<RatingFilter>('all');
   const [selectedGeneration, setSelectedGeneration] = useState<AICopyGeneration | null>(null);
   const [copied, setCopied] = useState(false);
+  const [calendarModalOpen, setCalendarModalOpen] = useState(false);
 
   // Apply filters
   const filteredGenerations = generations?.filter((gen) => {
@@ -294,7 +297,7 @@ export function CopyLibrary() {
                 )}
 
                 {/* Actions */}
-                <div className="flex gap-2 pt-4 border-t">
+                <div className="flex gap-2 pt-4 border-t flex-wrap">
                   <Button 
                     onClick={() => handleCopy(selectedGeneration.generated_copy)}
                     className="flex-1"
@@ -304,7 +307,16 @@ export function CopyLibrary() {
                     ) : (
                       <Copy className="h-4 w-4 mr-2" />
                     )}
-                    {copied ? 'Copied!' : 'Copy to Clipboard'}
+                    {copied ? 'Copied!' : 'Copy'}
+                  </Button>
+
+                  <Button 
+                    variant="outline"
+                    onClick={() => setCalendarModalOpen(true)}
+                    className="flex-1"
+                  >
+                    <CalendarPlus className="h-4 w-4 mr-2" />
+                    Add to Calendar
                   </Button>
 
                   <AlertDialog>
@@ -337,6 +349,18 @@ export function CopyLibrary() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Add to Calendar Modal */}
+      {selectedGeneration && (
+        <AddToCalendarModal
+          open={calendarModalOpen}
+          onOpenChange={setCalendarModalOpen}
+          generatedCopy={selectedGeneration.generated_copy}
+          contentType={selectedGeneration.content_type as ContentType}
+          generationId={selectedGeneration.id}
+          onSuccess={() => setSelectedGeneration(null)}
+        />
+      )}
     </div>
   );
 }

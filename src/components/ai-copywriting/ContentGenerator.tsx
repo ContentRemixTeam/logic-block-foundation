@@ -31,18 +31,19 @@ import {
   FEEDBACK_TAGS
 } from '@/types/aiCopywriting';
 import { getAIDetectionAssessment } from '@/lib/ai-detection-checker';
+import { AddToCalendarModal } from './AddToCalendarModal';
 import { 
   Sparkles, 
   Loader2, 
   Copy, 
-  Save, 
   RefreshCw,
   CheckCircle2,
   Star,
   AlertTriangle,
   Shield,
   ShieldCheck,
-  ShieldAlert
+  ShieldAlert,
+  CalendarPlus
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -69,6 +70,7 @@ export function ContentGenerator() {
   const [feedbackTags, setFeedbackTags] = useState<string[]>([]);
   const [feedbackText, setFeedbackText] = useState('');
   const [copied, setCopied] = useState(false);
+  const [calendarModalOpen, setCalendarModalOpen] = useState(false);
 
   const hasApiKey = apiKey?.key_status === 'valid';
 
@@ -270,7 +272,7 @@ export function ContentGenerator() {
                 <CardTitle className="flex items-center gap-2">
                   📧 {getContentTypeLabel(contentType)}
                 </CardTitle>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <Button 
                     variant="outline" 
                     size="sm"
@@ -282,6 +284,14 @@ export function ContentGenerator() {
                       <Copy className="h-4 w-4 mr-1" />
                     )}
                     {copied ? 'Copied!' : 'Copy'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setCalendarModalOpen(true)}
+                  >
+                    <CalendarPlus className="h-4 w-4 mr-1" />
+                    Add to Calendar
                   </Button>
                   <Button 
                     variant="outline" 
@@ -446,6 +456,17 @@ export function ContentGenerator() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Add to Calendar Modal */}
+      {generatedCopy && (
+        <AddToCalendarModal
+          open={calendarModalOpen}
+          onOpenChange={setCalendarModalOpen}
+          generatedCopy={generatedCopy.copy}
+          contentType={contentType}
+          generationId={generatedCopy.id}
+        />
+      )}
     </div>
   );
 }

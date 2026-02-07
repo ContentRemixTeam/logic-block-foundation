@@ -25,7 +25,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ScrollIndicator } from '@/components/ui/scroll-indicator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarIcon, Loader2, Repeat, Clock, Rocket, Lightbulb, Settings, Library, Plus, Search } from 'lucide-react';
+import { CalendarIcon, Loader2, Repeat, Clock, Rocket, Lightbulb, Settings, Library, Plus, Search, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useUserPlatforms } from '@/hooks/useUserPlatforms';
@@ -50,6 +50,7 @@ import {
 } from '@/lib/recurrenceUtils';
 import { useFormDraftProtection } from '@/hooks/useFormDraftProtection';
 import { useIdeasForContent, IdeaForContent } from '@/hooks/useIdeasForContent';
+import { AIGenerateTab } from './AIGenerateTab';
 interface AddContentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -57,7 +58,7 @@ interface AddContentDialogProps {
   initialLane?: 'create' | 'publish';
 }
 
-type DialogMode = 'new' | 'reuse' | 'from-idea';
+type DialogMode = 'new' | 'reuse' | 'from-idea' | 'ai-generate';
 
 export function AddContentDialog({ 
   open, 
@@ -524,11 +525,16 @@ export function AddContentDialog({
           onValueChange={(v) => setMode(v as DialogMode)} 
           className="flex-1 flex flex-col min-h-0 overflow-hidden"
         >
-          <TabsList className="grid w-full grid-cols-3 flex-shrink-0 relative z-10">
+          <TabsList className="grid w-full grid-cols-4 flex-shrink-0 relative z-10">
             <TabsTrigger value="new" className="flex items-center gap-2" type="button">
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Create New</span>
               <span className="sm:hidden">New</span>
+            </TabsTrigger>
+            <TabsTrigger value="ai-generate" className="flex items-center gap-2" type="button">
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden sm:inline">AI Generate</span>
+              <span className="sm:hidden">AI</span>
             </TabsTrigger>
             <TabsTrigger value="from-idea" className="flex items-center gap-2" type="button">
               <Lightbulb className="h-4 w-4" />
@@ -541,6 +547,15 @@ export function AddContentDialog({
               <span className="sm:hidden">Vault</span>
             </TabsTrigger>
           </TabsList>
+
+          {/* AI Generate Tab */}
+          <TabsContent value="ai-generate" className="mt-4 flex-1 min-h-0 overflow-hidden">
+            <AIGenerateTab 
+              initialDate={initialDate} 
+              initialLane={initialLane}
+              onSuccess={() => onOpenChange(false)}
+            />
+          </TabsContent>
 
           {/* Reuse from Vault Tab */}
           <TabsContent value="reuse" className="mt-4 flex-1 min-h-0 overflow-hidden">
