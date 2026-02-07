@@ -1,237 +1,273 @@
 
-# AI Copywriting + Editorial Calendar Integration
+# AI Copywriting + Editorial Calendar Integration Enhancement
 
 ## Overview
 
-This plan implements bidirectional integration between the AI Copywriting feature and the Editorial Calendar, enabling two key workflows:
+This plan adds two key features:
 
-1. **From Copywriting → Calendar**: Add generated copy directly to the Editorial Calendar
-2. **From Calendar → Copywriting**: Generate AI copy when scheduling content
+1. **Save to Content Vault** from AI Copywriting - allow users to save generated copy to the Vault for future reuse without scheduling
+2. **Wizard → Editorial Calendar Integration** - route content-related wizard outputs (emails, social posts) to the Editorial Calendar instead of tasks
 
-## Data Flow
+---
+
+## Part 1: Save to Content Vault from AI Copywriting
+
+### Current State
+
+Currently, the AI Copywriting feature has an "Add to Calendar" button that creates a `content_items` record with dates. However, users may want to save copy to the Vault for later without scheduling it immediately.
+
+### Changes Required
+
+#### 1.1 Create `SaveToVaultModal.tsx`
+
+A new modal component similar to `AddToCalendarModal` but focused on vault storage:
+
+- **Fields**:
+  - Title (pre-filled based on content type)
+  - Content type (post, email, page, etc.)
+  - Platform/Channel (optional - for organizational purposes)
+  - Tags (optional - for searchability)
+- **No date fields** - content goes straight to vault unscheduled
+- **Sets**: `show_in_vault: true`, no dates
+
+#### 1.2 Create `useSaveToVault` Hook
+
+New mutation hook that:
+- Creates a `content_items` record with `show_in_vault: true`
+- Links to `ai_generation_id` for traceability
+- Invalidates `content-vault-items` and related queries
+
+#### 1.3 Update `ContentGenerator.tsx`
+
+Add "Save to Vault" button alongside existing "Add to Calendar":
+- Button with Archive/Library icon
+- Opens `SaveToVaultModal`
+- Available after copy is generated
+
+#### 1.4 Update `CopyLibrary.tsx`
+
+Add "Save to Vault" button in the detail dialog:
+- Alongside existing "Copy" and "Add to Calendar" buttons
+- Opens `SaveToVaultModal`
+- Allows saving any past generation to vault
+
+---
+
+## Part 2: Wizard → Editorial Calendar Integration
+
+### Current State
+
+The wizard edge functions (`create-launch-from-wizard`, `create-summit`) currently create all outputs as `tasks`. Content items like emails, social posts, and videos are created as tasks with content metadata fields.
+
+### Problem
+
+Content items (emails, social media posts, blog posts) should appear on the Editorial Calendar for content planning, not just as tasks. The current approach means:
+- Email sequences appear as tasks, not in the calendar lanes
+- Social posts are tasks instead of calendar content
+- No visual content calendar for launch content planning
+
+### Solution
+
+Modify wizard edge functions to create **dual entries**:
+1. `content_items` record (for Editorial Calendar)
+2. `tasks` record linked to the content item (for task management)
+
+This approach:
+- Uses existing `wizardContentHelpers.ts` patterns
+- Maintains backward compatibility with task views
+- Enables content to appear in both Calendar and Planner
+
+### Changes Required
+
+#### 2.1 Update `create-launch-from-wizard/index.ts`
+
+Add content item creation for applicable task types:
 
 ```text
-┌─────────────────────────────────────────────────────────────────────┐
-│                        AI COPYWRITING                               │
-│  ┌──────────────────┐     ┌──────────────────┐                     │
-│  │ ContentGenerator │ ──► │ CopyLibrary      │                     │
-│  │ (generates copy) │     │ (stores history) │                     │
-│  └──────────────────┘     └──────────────────┘                     │
-│           │                        │                                │
-│           ▼                        ▼                                │
-│   "Add to Calendar"        "Add to Calendar"                       │
-│      (new button)             (new button)                          │
-└─────────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                      content_items TABLE                            │
-│  - body: stores the generated copy                                  │
-│  - type: email, social_post, etc.                                  │
-│  - channel: platform (email, instagram, etc.)                       │
-│  - planned_creation_date / planned_publish_date                     │
-│  - ai_generation_id: (NEW) links back to ai_copy_generations        │
-└─────────────────────────────────────────────────────────────────────┘
-                              ▲
-                              │
-┌─────────────────────────────────────────────────────────────────────┐
-│                       EDITORIAL CALENDAR                            │
-│  ┌──────────────────┐     ┌──────────────────────────┐             │
-│  │ AddContentDialog │     │ ContentQuickEditDrawer   │             │
-│  │ (new tab: AI)    │     │ (new: "Generate Copy")   │             │
-│  └──────────────────┘     └──────────────────────────┘             │
-└─────────────────────────────────────────────────────────────────────┘
+Content Types to Route to Editorial Calendar:
+┌─────────────────────────────────┬──────────────────┬────────────┐
+│ Wizard Output                   │ Calendar Type    │ Channel    │
+├─────────────────────────────────┼──────────────────┼────────────┤
+│ Email sequences (warmup/launch) │ email            │ email      │
+│ Pre-launch emails               │ email            │ email      │
+│ Urgency emails                  │ email            │ email      │
+│ Post-launch follow-up           │ email            │ email      │
+│ Social content batch            │ post             │ (varies)   │
+│ Ad creatives                    │ visual           │ ads        │
+│ Lead magnet                     │ document         │ website    │
+└─────────────────────────────────┴──────────────────┴────────────┘
+```
+
+**Implementation approach:**
+1. Before inserting tasks, check if task type is content-related
+2. If yes, first create a `content_items` record
+3. Link the task to the content item via `content_item_id`
+4. Task appears in planner, content appears in calendar
+
+#### 2.2 Update `create-summit/index.ts`
+
+Similar updates for summit-related content:
+- Speaker promo emails
+- Social media posts
+- Swipe emails for affiliates
+- Replay notification emails
+
+#### 2.3 Create Content Type Detection Helper
+
+Add a helper function in both edge functions:
+
+```typescript
+interface ContentMapping {
+  type: string;       // content_items.type
+  channel: string;    // content_items.channel
+}
+
+function getContentMapping(taskText: string, taskType: string): ContentMapping | null {
+  // Email patterns
+  if (taskText.includes('email') || taskType === 'email') {
+    return { type: 'email', channel: 'email' };
+  }
+  // Social patterns
+  if (taskText.includes('social') || taskType === 'social') {
+    return { type: 'post', channel: 'social' };
+  }
+  // ... more patterns
+  return null; // Not content-related
+}
+```
+
+#### 2.4 Dual Insert Pattern
+
+For each content-related task, the flow becomes:
+
+```text
+1. Detect if task is content-related
+   │
+   ├─ NO  → Insert task only (current behavior)
+   │
+   └─ YES → Insert content_items first
+            │
+            ↓
+          Insert task with content_item_id linked
 ```
 
 ---
 
-## Part 1: Database Changes
-
-### Add column to link content items to AI generations
-
-A new nullable column on `content_items` to track which AI generation produced the copy:
-
-- **Column**: `ai_generation_id UUID REFERENCES ai_copy_generations(id)`
-- **Purpose**: Enables traceability between calendar content and its AI-generated source
-
----
-
-## Part 2: AI Copywriting Changes
-
-### 2.1 ContentGenerator.tsx - Add "Add to Calendar" button
-
-After generating copy, add a new button next to "Copy" and "Regenerate":
-
-- **Button**: "Add to Calendar" with Calendar icon
-- **Action**: Opens a modal/dialog to schedule the content
-- **Fields in modal**:
-  - Title (pre-filled based on content type, e.g., "Welcome Email #1")
-  - Platform (auto-mapped from content type: email, social, etc.)
-  - Creation Date (optional)
-  - Publish Date (required)
-  - Campaign/Launch (optional dropdown)
-- **On submit**: Creates a `content_items` record with:
-  - `body`: the generated copy
-  - `type`: mapped from content type
-  - `channel`: mapped from content type (email, instagram, etc.)
-  - `ai_generation_id`: the ID of the generation
-  - `show_in_vault`: true
-  - Dates as specified
-
-### 2.2 CopyLibrary.tsx - Add "Add to Calendar" in detail dialog
-
-In the existing detail dialog, add a button alongside "Copy to Clipboard":
-
-- **Button**: "Add to Calendar"
-- **Opens same scheduling modal as ContentGenerator**
-
-### 2.3 Create new component: AddToCalendarModal
-
-A reusable modal component that:
-- Accepts generated copy text, content type, and generation ID
-- Shows scheduling form (title, platform, dates, campaign)
-- Creates the content_items record
-- Invalidates Editorial Calendar queries
-
----
-
-## Part 3: Editorial Calendar Changes
-
-### 3.1 AddContentDialog.tsx - New "AI Generate" tab
-
-Add a fourth tab alongside "Create New", "From Ideas", and "From Vault":
-
-- **Tab**: "AI Generate" with Sparkles icon
-- **Content**:
-  - Content type dropdown (matching AI Copywriting types)
-  - Product to promote dropdown (optional)
-  - Additional context textarea
-  - "Generate Copy" button
-  - Preview of generated copy
-  - Date selection (creation + publish)
-  - Campaign selection
-- **Flow**:
-  1. User selects content type and optional product
-  2. Clicks "Generate Copy"
-  3. AI generates copy (shows loading state with progress)
-  4. Copy appears in preview area
-  5. User reviews, sets dates, clicks "Add to Calendar"
-  6. Creates content_items with the generated body
-
-### 3.2 ContentQuickEditDrawer.tsx - Add "Generate Copy" button
-
-For existing calendar items that have no body copy:
-
-- **Button**: "Generate with AI" in the Copy/Caption section
-- **Pre-condition**: Item must be a content_item (not task/plan)
-- **Action**: Opens inline generation UI or redirects to AI Copywriting
-- **Alternative flow**: If body is empty, show a quick CTA to generate
-
-### 3.3 Tier gating
-
-The AI generation features require Entrepreneur or Mastermind tier:
-- Check tier before showing AI tab/buttons
-- Show upgrade prompt for Personal tier users
-
----
-
-## Part 4: Content Type Mapping
-
-Map AI content types to Editorial Calendar formats:
-
-| AI Content Type | Calendar Type | Calendar Channel |
-|-----------------|---------------|------------------|
-| welcome_email_1-5 | email | email |
-| promo_email | email | email |
-| sales_page_headline | page | website |
-| sales_page_body | page | website |
-| social_post | post | (user selects) |
-
----
-
-## Part 5: Files to Create/Modify
+## Part 3: Files to Create/Modify
 
 ### New Files
 
-1. **`src/components/ai-copywriting/AddToCalendarModal.tsx`**
-   - Reusable modal for scheduling AI-generated copy
-   - Props: copy text, content type, generation ID, onSuccess callback
-   - Form: title, platform, dates, campaign
-   - Creates content_items record
-
-2. **`src/hooks/useAddCopyToCalendar.ts`**
-   - Mutation hook for creating content_items from AI generations
-   - Handles the content type → calendar type mapping
-   - Invalidates appropriate query keys
+| File | Purpose |
+|------|---------|
+| `src/components/ai-copywriting/SaveToVaultModal.tsx` | Modal for saving to vault without scheduling |
+| `src/hooks/useSaveToVault.ts` | Mutation hook for vault saves |
 
 ### Modified Files
 
-1. **`src/components/ai-copywriting/ContentGenerator.tsx`**
-   - Add "Add to Calendar" button after generation
-   - Import and use AddToCalendarModal
-   - Track modal open state
-
-2. **`src/components/ai-copywriting/CopyLibrary.tsx`**
-   - Add "Add to Calendar" button in detail dialog
-   - Import and use AddToCalendarModal
-
-3. **`src/components/editorial-calendar/AddContentDialog.tsx`**
-   - Add "AI Generate" tab (4th tab)
-   - Import content type options from AI types
-   - Add generation state and preview
-   - Integrate with OpenAI service for generation
-
-4. **`src/components/editorial-calendar/ContentQuickEditDrawer.tsx`**
-   - Add "Generate with AI" button when body is empty
-   - Optional: inline quick generation
-
-5. **Database migration**
-   - Add `ai_generation_id` column to content_items
+| File | Changes |
+|------|---------|
+| `src/components/ai-copywriting/ContentGenerator.tsx` | Add "Save to Vault" button |
+| `src/components/ai-copywriting/CopyLibrary.tsx` | Add "Save to Vault" in detail dialog |
+| `supabase/functions/create-launch-from-wizard/index.ts` | Add content_items creation for email/social tasks |
+| `supabase/functions/create-summit/index.ts` | Add content_items creation for email/social tasks |
 
 ---
 
 ## Technical Details
 
-### Query Invalidation
+### Content Items Schema Usage
 
-When adding copy to calendar, invalidate:
-- `editorial-calendar-content`
-- `editorial-calendar-unscheduled`
-- `content-vault-items`
-- `content-for-planner`
-
-### Tier Check Pattern
+When wizards create content items:
 
 ```typescript
-const { tier } = useUserTier();
-const canUseAI = tier === 'entrepreneur' || tier === 'mastermind';
-```
-
-### Content Type Mapping Helper
-
-```typescript
-function mapContentTypeToCalendar(aiType: ContentType): { type: string; channel: string } {
-  if (aiType.includes('email')) {
-    return { type: 'email', channel: 'email' };
-  }
-  if (aiType.includes('sales_page')) {
-    return { type: 'page', channel: 'website' };
-  }
-  if (aiType === 'social_post') {
-    return { type: 'post', channel: '' }; // User selects
-  }
-  return { type: 'post', channel: '' };
+{
+  user_id: userId,
+  title: taskText.replace(/^(✉️|📱|📧)\s*/, ''), // Clean emoji prefix
+  type: contentMapping.type,
+  channel: contentMapping.channel,
+  status: 'Draft',
+  project_id: projectId,
+  launch_id: launchId,
+  planned_creation_date: calculateCreationDate(scheduledDate),
+  planned_publish_date: scheduledDate,
+  show_in_vault: true,
+  tags: ['launch', 'wizard-generated'],
 }
 ```
+
+### Task Linking
+
+Tasks link to content via:
+
+```typescript
+{
+  // ... existing task fields
+  content_item_id: contentItem.id,  // Links to calendar item
+  content_type: contentMapping.type,
+  content_channel: contentMapping.channel,
+  content_creation_date: createDate,
+  content_publish_date: publishDate,
+}
+```
+
+### Query Invalidation
+
+Both new hooks invalidate:
+- `content-vault-items`
+- `editorial-calendar-content`
+- `editorial-calendar-unscheduled`
+- `content-for-planner`
 
 ---
 
 ## Success Criteria
 
-- From ContentGenerator: "Add to Calendar" button schedules copy with dates
-- From CopyLibrary: Can schedule any past generation to calendar
-- From AddContentDialog: New "AI Generate" tab generates and schedules in one flow
-- From ContentQuickEditDrawer: Can generate copy for empty content items
-- All features gated to Entrepreneur/Mastermind tiers
-- Generated copy appears correctly in calendar with proper dates/lanes
-- Content appears in Content Vault with AI-generated body
+1. **Save to Vault** button visible in ContentGenerator after generation
+2. **Save to Vault** button visible in CopyLibrary detail dialog
+3. Saved vault items appear in Content Vault with `show_in_vault: true`
+4. Saved vault items have no dates (unscheduled)
+5. Launch wizard creates email content in Editorial Calendar
+6. Launch wizard creates social content in Editorial Calendar
+7. Created tasks still link to content items
+8. Content appears in both Calendar lanes (Create/Publish)
+9. Summit wizard similarly routes content to calendar
+10. Existing task functionality remains intact
+
+---
+
+## User Experience Flow
+
+### Flow 1: Save to Vault from AI Copywriting
+
+```text
+User generates copy
+    ↓
+Clicks "Save to Vault"
+    ↓
+Modal opens with title pre-filled
+    ↓
+User confirms (optional: adds tags)
+    ↓
+Content saved to Vault
+    ↓
+Toast: "Saved to Content Vault!"
+    ↓
+User can later schedule via Editorial Calendar → "From Vault" tab
+```
+
+### Flow 2: Wizard Content in Calendar
+
+```text
+User completes Launch Wizard
+    ↓
+System creates launch + project
+    ↓
+For each email/social task:
+    ├─ Creates content_items record
+    └─ Creates linked task
+    ↓
+Content appears in Editorial Calendar
+Tasks appear in Daily/Weekly Planner
+    ↓
+User sees launch content visually on calendar
+```
