@@ -43,8 +43,10 @@ import {
   Shield,
   ShieldCheck,
   ShieldAlert,
-  CalendarPlus
+  CalendarPlus,
+  Archive
 } from 'lucide-react';
+import { SaveToVaultModal } from './SaveToVaultModal';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -71,6 +73,7 @@ export function ContentGenerator() {
   const [feedbackText, setFeedbackText] = useState('');
   const [copied, setCopied] = useState(false);
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
+  const [vaultModalOpen, setVaultModalOpen] = useState(false);
 
   const hasApiKey = apiKey?.key_status === 'valid';
 
@@ -296,6 +299,14 @@ export function ContentGenerator() {
                   <Button 
                     variant="outline" 
                     size="sm"
+                    onClick={() => setVaultModalOpen(true)}
+                  >
+                    <Archive className="h-4 w-4 mr-1" />
+                    Save to Vault
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
                     onClick={handleGenerate}
                     disabled={generateCopy.isPending}
                   >
@@ -462,6 +473,17 @@ export function ContentGenerator() {
         <AddToCalendarModal
           open={calendarModalOpen}
           onOpenChange={setCalendarModalOpen}
+          generatedCopy={generatedCopy.copy}
+          contentType={contentType}
+          generationId={generatedCopy.id}
+        />
+      )}
+
+      {/* Save to Vault Modal */}
+      {generatedCopy && (
+        <SaveToVaultModal
+          open={vaultModalOpen}
+          onOpenChange={setVaultModalOpen}
           generatedCopy={generatedCopy.copy}
           contentType={contentType}
           generationId={generatedCopy.id}

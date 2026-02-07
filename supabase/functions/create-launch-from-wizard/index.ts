@@ -52,6 +52,38 @@ function generateTemplateKey(prefix: string, launchId: string, suffix?: string):
   return `${prefix}_${launchId}${suffix ? `_${suffix}` : ''}`;
 }
 
+interface ContentMapping {
+  type: string;
+  channel: string;
+}
+
+// Check if a task should also create a content_items record
+function getContentMapping(taskText: string, category: string): ContentMapping | null {
+  const lower = taskText.toLowerCase();
+  
+  // Email-related tasks
+  if (lower.includes('email') || category === 'Email Campaign') {
+    return { type: 'email', channel: 'email' };
+  }
+  
+  // Social content tasks
+  if (lower.includes('social') || category === 'Content Prep' && lower.includes('social')) {
+    return { type: 'post', channel: 'social' };
+  }
+  
+  // Ad creatives
+  if (lower.includes('ad creative') || lower.includes('ads')) {
+    return { type: 'visual', channel: 'ads' };
+  }
+  
+  // Lead magnet
+  if (lower.includes('lead magnet')) {
+    return { type: 'document', channel: 'website' };
+  }
+  
+  return null;
+}
+
 interface PreLaunchTaskConfig {
   salesPage?: boolean;
   salesPageDeadline?: string;
@@ -165,7 +197,28 @@ interface TaskToCreate {
   template_key: string;
   context_tags?: string[];
   estimated_minutes?: number;
-  content_topic_id?: string; // Link to original content item
+  content_topic_id?: string;
+  // New content-related fields
+  content_item_id?: string;
+  content_type?: string;
+  content_channel?: string;
+  content_creation_date?: string;
+  content_publish_date?: string;
+}
+
+interface ContentItemToCreate {
+  user_id: string;
+  title: string;
+  body?: string;
+  type: string;
+  channel: string;
+  status: string;
+  project_id: string;
+  launch_id?: string;
+  planned_creation_date?: string;
+  planned_publish_date?: string;
+  show_in_vault: boolean;
+  tags: string[];
 }
 
 Deno.serve(async (req) => {
@@ -286,7 +339,13 @@ Deno.serve(async (req) => {
 
     // ==================== GENERATE TASKS ====================
     const tasksToCreate: TaskToCreate[] = [];
+    const contentItemsToCreate: ContentItemToCreate[] = [];
     const launchId = launch?.id || projectId;
+
+    // Helper to calculate creation date (3 days before publish)
+    const calculateCreationDate = (publishDate: string): string => {
+      return subtractDays(publishDate, 3);
+    };
 
     // --- Content Repurpose Tasks (from selected content) ---
     if (wizardData.selectedContentIds && wizardData.selectedContentIds.length > 0) {
@@ -412,6 +471,22 @@ Deno.serve(async (req) => {
           // Calculate date relative to cart opens/closes
           const baseDate = seq === 'post-launch' ? wizardData.cartCloses : wizardData.cartOpens;
           const taskDate = addDays(baseDate, schedule.days);
+          const cleanTitle = schedule.label;
+
+          // Create content_items record for email sequences
+          contentItemsToCreate.push({
+            user_id: userId,
+            title: cleanTitle,
+            type: 'email',
+            channel: 'email',
+            status: 'Draft',
+            project_id: projectId,
+            launch_id: launch?.id,
+            planned_creation_date: calculateCreationDate(taskDate),
+            planned_publish_date: taskDate,
+            show_in_vault: true,
+            tags: ['launch', 'wizard-generated', seq],
+          });
 
           tasksToCreate.push({
             user_id: userId,
@@ -427,6 +502,10 @@ Deno.serve(async (req) => {
             template_key: generateTemplateKey(`email_${seq}`, launchId),
             context_tags: ['launch', 'email'],
             estimated_minutes: 60,
+            content_type: 'email',
+            content_channel: 'email',
+            content_creation_date: calculateCreationDate(taskDate),
+            content_publish_date: taskDate,
           });
         }
       }
@@ -517,30 +596,33 @@ Deno.serve(async (req) => {
         priority: 'high' | 'medium' | 'low';
         minutes: number;
         category: string;
+        isContent?: boolean;
+        contentType?: string;
+        contentChannel?: string;
       }> = [
         // Sales Assets - High priority, ready 2 weeks early
-        { key: 'salesPage', deadlineKey: 'salesPageDeadline', emoji: '📄', text: 'Build Sales Page', defaultDays: -14, priority: 'high', minutes: 240, category: 'Sales Assets' },
+        { key: 'salesPage', deadlineKey: 'salesPageDeadline', emoji: '📄', text: 'Build Sales Page', defaultDays: -14, priority: 'high', minutes: 240, category: 'Sales Assets', isContent: true, contentType: 'page', contentChannel: 'website' },
         { key: 'checkoutFlow', deadlineKey: 'checkoutFlowDeadline', emoji: '💳', text: 'Set Up Checkout & Payment', defaultDays: -14, priority: 'high', minutes: 90, category: 'Sales Assets' },
-        { key: 'waitlistPage', deadlineKey: 'waitlistDeadline', emoji: '🔔', text: 'Create Waitlist Page', defaultDays: -21, priority: 'medium', minutes: 60, category: 'Sales Assets' },
+        { key: 'waitlistPage', deadlineKey: 'waitlistDeadline', emoji: '🔔', text: 'Create Waitlist Page', defaultDays: -21, priority: 'medium', minutes: 60, category: 'Sales Assets', isContent: true, contentType: 'page', contentChannel: 'website' },
         { key: 'orderBumpUpsell', deadlineKey: 'orderBumpDeadline', emoji: '⚡', text: 'Create Order Bump / Upsell', defaultDays: -10, priority: 'medium', minutes: 90, category: 'Sales Assets' },
         { key: 'bonuses', deadlineKey: 'bonusesDeadline', emoji: '🎁', text: 'Create Launch Bonuses', defaultDays: -10, priority: 'medium', minutes: 120, category: 'Sales Assets' },
         
         // Social Proof - Medium priority, ready 10 days early
         { key: 'testimonials', deadlineKey: 'testimonialDeadline', emoji: '💬', text: 'Collect Testimonials', defaultDays: -10, priority: 'medium', minutes: 60, category: 'Social Proof' },
-        { key: 'caseStudies', deadlineKey: 'caseStudiesDeadline', emoji: '📋', text: 'Create Case Studies', defaultDays: -10, priority: 'medium', minutes: 180, category: 'Social Proof' },
+        { key: 'caseStudies', deadlineKey: 'caseStudiesDeadline', emoji: '📋', text: 'Create Case Studies', defaultDays: -10, priority: 'medium', minutes: 180, category: 'Social Proof', isContent: true, contentType: 'document', contentChannel: 'website' },
         { key: 'videoTestimonials', deadlineKey: 'videoTestimonialsDeadline', emoji: '🎥', text: 'Record Video Testimonials', defaultDays: -10, priority: 'medium', minutes: 120, category: 'Social Proof' },
         { key: 'resultsScreenshots', deadlineKey: 'resultsScreenshotsDeadline', emoji: '📸', text: 'Gather Results Screenshots', defaultDays: -7, priority: 'low', minutes: 45, category: 'Social Proof' },
         
         // Tech Setup - Medium priority, ready 1 week early
-        { key: 'emailSequences', deadlineKey: 'emailSequencesDeadline', emoji: '✉️', text: 'Write Email Sequences', defaultDays: -7, priority: 'high', minutes: 180, category: 'Tech Setup' },
+        { key: 'emailSequences', deadlineKey: 'emailSequencesDeadline', emoji: '✉️', text: 'Write Email Sequences', defaultDays: -7, priority: 'high', minutes: 180, category: 'Tech Setup', isContent: true, contentType: 'email', contentChannel: 'email' },
         { key: 'automations', deadlineKey: 'automationsDeadline', emoji: '⚙️', text: 'Set Up Automations', defaultDays: -7, priority: 'medium', minutes: 90, category: 'Tech Setup' },
         { key: 'trackingPixels', deadlineKey: 'trackingPixelsDeadline', emoji: '📊', text: 'Install Tracking & Analytics', defaultDays: -5, priority: 'low', minutes: 45, category: 'Tech Setup' },
         
         // Content Prep - Lower priority, final polish
         { key: 'liveEventContent', deadlineKey: 'liveEventContentDeadline', emoji: '🎤', text: 'Prepare Live Event Content', defaultDays: -7, priority: 'medium', minutes: 180, category: 'Content Prep' },
-        { key: 'socialContent', deadlineKey: 'socialContentDeadline', emoji: '📱', text: 'Batch Create Social Content', defaultDays: -5, priority: 'low', minutes: 120, category: 'Content Prep' },
-        { key: 'adCreatives', deadlineKey: 'adCreativesDeadline', emoji: '📣', text: 'Design Ad Creatives', defaultDays: -5, priority: 'low', minutes: 120, category: 'Content Prep' },
-        { key: 'leadMagnet', deadlineKey: 'leadMagnetDeadline', emoji: '🧲', text: 'Create Lead Magnet', defaultDays: -14, priority: 'medium', minutes: 180, category: 'Content Prep' },
+        { key: 'socialContent', deadlineKey: 'socialContentDeadline', emoji: '📱', text: 'Batch Create Social Content', defaultDays: -5, priority: 'low', minutes: 120, category: 'Content Prep', isContent: true, contentType: 'post', contentChannel: 'social' },
+        { key: 'adCreatives', deadlineKey: 'adCreativesDeadline', emoji: '📣', text: 'Design Ad Creatives', defaultDays: -5, priority: 'low', minutes: 120, category: 'Content Prep', isContent: true, contentType: 'visual', contentChannel: 'ads' },
+        { key: 'leadMagnet', deadlineKey: 'leadMagnetDeadline', emoji: '🧲', text: 'Create Lead Magnet', defaultDays: -14, priority: 'medium', minutes: 180, category: 'Content Prep', isContent: true, contentType: 'document', contentChannel: 'website' },
       ];
 
       for (const taskDef of preLaunchTaskDefinitions) {
@@ -550,6 +632,23 @@ Deno.serve(async (req) => {
           // Use user-provided deadline or calculate default
           const userDeadline = preLaunchTasks[taskDef.deadlineKey] as string | undefined;
           const deadline = userDeadline || addDays(wizardData.cartOpens, taskDef.defaultDays);
+          
+          // Create content item if this is a content-related task
+          if (taskDef.isContent && taskDef.contentType && taskDef.contentChannel) {
+            contentItemsToCreate.push({
+              user_id: userId,
+              title: taskDef.text,
+              type: taskDef.contentType,
+              channel: taskDef.contentChannel,
+              status: 'Draft',
+              project_id: projectId,
+              launch_id: launch?.id,
+              planned_creation_date: calculateCreationDate(deadline),
+              planned_publish_date: deadline,
+              show_in_vault: true,
+              tags: ['launch', 'wizard-generated', taskDef.category.toLowerCase().replace(' ', '-')],
+            });
+          }
           
           tasksToCreate.push({
             user_id: userId,
@@ -565,6 +664,13 @@ Deno.serve(async (req) => {
             template_key: generateTemplateKey(`prelaunch_${taskDef.key}`, launchId),
             context_tags: ['launch', 'pre-launch', taskDef.category.toLowerCase().replace(' ', '-')],
             estimated_minutes: taskDef.minutes,
+            // Add content metadata if applicable
+            ...(taskDef.isContent ? {
+              content_type: taskDef.contentType,
+              content_channel: taskDef.contentChannel,
+              content_creation_date: calculateCreationDate(deadline),
+              content_publish_date: deadline,
+            } : {}),
           });
         }
       }
@@ -625,12 +731,54 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ==================== INSERT CONTENT ITEMS FIRST ====================
+    let contentItemsCreated = 0;
+    const contentItemIdMap: Map<string, string> = new Map();
+    
+    if (contentItemsToCreate.length > 0) {
+      const { data: createdContentItems, error: contentError } = await supabase
+        .from('content_items')
+        .insert(contentItemsToCreate)
+        .select();
+
+      if (contentError) {
+        console.error('[create-launch-from-wizard] Error creating content items:', contentError);
+      } else {
+        contentItemsCreated = createdContentItems?.length || 0;
+        console.log(`[create-launch-from-wizard] Created ${contentItemsCreated} content items`);
+        
+        // Build a map of title -> id for linking tasks to content items
+        createdContentItems?.forEach((item) => {
+          contentItemIdMap.set(item.title, item.id);
+        });
+      }
+    }
+
     // ==================== INSERT ALL TASKS ====================
+    // Link tasks to content items where applicable
+    const tasksWithContentLinks = tasksToCreate.map(task => {
+      // Try to find matching content item by cleaned title
+      const cleanedTitle = task.task_text.replace(/^[^\w]+/, '').trim();
+      let matchedContentId: string | undefined;
+      
+      for (const [title, id] of contentItemIdMap.entries()) {
+        if (cleanedTitle.includes(title) || title.includes(cleanedTitle.replace(/^(✉️|📄|📱|📋|🧲|📣)\s*/, ''))) {
+          matchedContentId = id;
+          break;
+        }
+      }
+      
+      return {
+        ...task,
+        content_item_id: matchedContentId,
+      };
+    });
+
     let tasksCreated = 0;
-    if (tasksToCreate.length > 0) {
+    if (tasksWithContentLinks.length > 0) {
       const { data: createdTasks, error: tasksError } = await supabase
         .from('tasks')
-        .insert(tasksToCreate)
+        .insert(tasksWithContentLinks)
         .select();
 
       if (tasksError) {
@@ -666,7 +814,8 @@ Deno.serve(async (req) => {
         project_id: projectId,
         launch_id: launch?.id || null,
         tasks_created: tasksCreated,
-        message: `Created launch "${wizardData.name}" with ${tasksCreated} tasks`,
+        content_items_created: contentItemsCreated,
+        message: `Created launch "${wizardData.name}" with ${tasksCreated} tasks and ${contentItemsCreated} calendar items`,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
