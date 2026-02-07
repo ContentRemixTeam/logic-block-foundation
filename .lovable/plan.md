@@ -1,273 +1,237 @@
 
-# AI Copywriting + Editorial Calendar Integration Enhancement
+
+# OpenAI API Key Instructions & Cost Information Implementation
 
 ## Overview
 
-This plan adds two key features:
-
-1. **Save to Content Vault** from AI Copywriting - allow users to save generated copy to the Vault for future reuse without scheduling
-2. **Wizard → Editorial Calendar Integration** - route content-related wizard outputs (emails, social posts) to the Editorial Calendar instead of tasks
+This implementation adds comprehensive instructions about connecting an OpenAI API key and expected costs/fees across multiple touchpoints in the application.
 
 ---
 
-## Part 1: Save to Content Vault from AI Copywriting
+## Part 1: Enhance API Key Settings Page
 
-### Current State
+### File: `src/components/ai-copywriting/APIKeySettings.tsx`
 
-Currently, the AI Copywriting feature has an "Add to Calendar" button that creates a `content_items` record with dates. However, users may want to save copy to the Vault for later without scheduling it immediately.
+**Changes:**
 
-### Changes Required
+1. **Expand "Why your own key?" section** with detailed cost breakdown:
+   - Specific cost per email generation (~$0.02-0.08)
+   - Monthly estimates for different usage levels
+   - Comparison to ChatGPT Plus and other copywriting tools
 
-#### 1.1 Create `SaveToVaultModal.tsx`
+2. **Enhance "How to Get a Key" dialog** with comprehensive step-by-step:
+   - Step 1: Go to platform.openai.com and sign up
+   - Step 2: Add a payment method (required for API access)
+   - Step 3: Set a spending limit (recommend $10-20/month)
+   - Step 4: Create new secret key, name it "90 Day Planner"
+   - Step 5: Copy immediately (it won't show again!)
+   - Include link directly to OpenAI API keys page
 
-A new modal component similar to `AddToCalendarModal` but focused on vault storage:
-
-- **Fields**:
-  - Title (pre-filled based on content type)
-  - Content type (post, email, page, etc.)
-  - Platform/Channel (optional - for organizational purposes)
-  - Tags (optional - for searchability)
-- **No date fields** - content goes straight to vault unscheduled
-- **Sets**: `show_in_vault: true`, no dates
-
-#### 1.2 Create `useSaveToVault` Hook
-
-New mutation hook that:
-- Creates a `content_items` record with `show_in_vault: true`
-- Links to `ai_generation_id` for traceability
-- Invalidates `content-vault-items` and related queries
-
-#### 1.3 Update `ContentGenerator.tsx`
-
-Add "Save to Vault" button alongside existing "Add to Calendar":
-- Button with Archive/Library icon
-- Opens `SaveToVaultModal`
-- Available after copy is generated
-
-#### 1.4 Update `CopyLibrary.tsx`
-
-Add "Save to Vault" button in the detail dialog:
-- Alongside existing "Copy" and "Add to Calendar" buttons
-- Opens `SaveToVaultModal`
-- Allows saving any past generation to vault
+3. **Add new collapsible section: "What will it cost?"** with:
+   - Token pricing explanation (GPT-4o: ~$0.0025/1K input, $0.01/1K output)
+   - Real-world examples:
+     - 1 welcome email: $0.02-0.05
+     - Full 5-email sequence: $0.15-0.25
+     - Social media post: $0.01-0.03
+   - Monthly estimates by usage level:
+     - Light (10 generations): $0.50-1.00
+     - Regular (30 generations): $1.50-3.00
+     - Heavy (100+ generations): $5.00-15.00
+   - Spending limit recommendation
 
 ---
 
-## Part 2: Wizard → Editorial Calendar Integration
+## Part 2: Add AI Copywriting FAQ Category
 
-### Current State
+### File: `src/components/support/FAQSection.tsx`
 
-The wizard edge functions (`create-launch-from-wizard`, `create-summit`) currently create all outputs as `tasks`. Content items like emails, social posts, and videos are created as tasks with content metadata fields.
+**Add 7 new FAQ entries in a new "AI Copywriting" category:**
 
-### Problem
+| Question | Answer Summary |
+|----------|---------------|
+| What is AI Copywriting and who can use it? | Mastermind-tier feature, uses your own OpenAI API key |
+| Why do I need my own OpenAI API key? | Pay-as-you-go, no markup, you control spending |
+| How do I get an OpenAI API key? | Step-by-step instructions with link |
+| How much does AI copywriting cost? | Cost breakdown per generation, monthly estimates |
+| Is my API key secure? | Encryption explanation, never logged/shared |
+| What if my API key runs out of credits? | Error handling, how to add credits |
+| How do I set a spending limit in OpenAI? | Navigate to Usage → Limits, recommend $10-20 |
 
-Content items (emails, social media posts, blog posts) should appear on the Editorial Calendar for content planning, not just as tasks. The current approach means:
-- Email sequences appear as tasks, not in the calendar lanes
-- Social posts are tasks instead of calendar content
-- No visual content calendar for launch content planning
+**Also update the categories array** to include 'AI Copywriting'.
 
-### Solution
+---
 
-Modify wizard edge functions to create **dual entries**:
-1. `content_items` record (for Editorial Calendar)
-2. `tasks` record linked to the content item (for task management)
+## Part 3: Add AI Copywriting Feature Guide
 
-This approach:
-- Uses existing `wizardContentHelpers.ts` patterns
-- Maintains backward compatibility with task views
-- Enables content to appear in both Calendar and Planner
+### File: `src/components/support/FeaturesGuide.tsx`
 
-### Changes Required
+**Add 2 new feature entries:**
 
-#### 2.1 Update `create-launch-from-wizard/index.ts`
-
-Add content item creation for applicable task types:
-
-```text
-Content Types to Route to Editorial Calendar:
-┌─────────────────────────────────┬──────────────────┬────────────┐
-│ Wizard Output                   │ Calendar Type    │ Channel    │
-├─────────────────────────────────┼──────────────────┼────────────┤
-│ Email sequences (warmup/launch) │ email            │ email      │
-│ Pre-launch emails               │ email            │ email      │
-│ Urgency emails                  │ email            │ email      │
-│ Post-launch follow-up           │ email            │ email      │
-│ Social content batch            │ post             │ (varies)   │
-│ Ad creatives                    │ visual           │ ads        │
-│ Lead magnet                     │ document         │ website    │
-└─────────────────────────────────┴──────────────────┴────────────┘
+**Entry 1: AI Copywriting Overview**
+```typescript
+{
+  id: 'ai-copywriting',
+  category: 'AI Copywriting',
+  title: 'AI Copywriting Overview',
+  icon: Sparkles,
+  description: 'Generate high-converting emails, social posts, and sales copy...',
+  details: [
+    'Complete Brand Wizard to teach AI your voice',
+    'Generate 5-email welcome sequences',
+    'Multi-pass generation: Draft → Critique → Refine',
+    'AI Detection scoring ensures human-sounding output',
+    'Rate generations to improve future results',
+    'Save to Vault or add to Editorial Calendar'
+  ],
+  tips: [
+    'Provide 2-3 writing samples of at least 50 characters',
+    'More diverse samples = better voice matching',
+    'Rate every generation to help AI learn',
+    'Use specific context for each generation'
+  ]
+}
 ```
 
-**Implementation approach:**
-1. Before inserting tasks, check if task type is content-related
-2. If yes, first create a `content_items` record
-3. Link the task to the content item via `content_item_id`
-4. Task appears in planner, content appears in calendar
+**Entry 2: API Key Setup & Costs**
+```typescript
+{
+  id: 'ai-copywriting-api',
+  category: 'AI Copywriting',
+  title: 'API Key Setup & Costs',
+  icon: Key,
+  description: 'Connect your OpenAI API key to power AI copywriting...',
+  details: [
+    'Create account at platform.openai.com (free to sign up)',
+    'Add payment method in Billing (required for API access)',
+    'Set a spending limit: Usage → Limits → $10-20 recommended',
+    'Generate API key: Settings → API Keys → Create new secret key',
+    'Key starts with "sk-" – copy immediately, won\'t show again',
+    'Paste key in AI Copywriting → Settings'
+  ],
+  tips: [
+    'Each email generation costs ~$0.02-0.08',
+    'Heavy users (50+ generations/month) might spend $5-15',
+    'Much cheaper than ChatGPT Plus ($20/month fixed)',
+    'Set a budget cap in OpenAI to avoid surprises'
+  ]
+}
+```
 
-#### 2.2 Update `create-summit/index.ts`
+**Update categories array** to include 'AI Copywriting'.
 
-Similar updates for summit-related content:
-- Speaker promo emails
-- Social media posts
-- Swipe emails for affiliates
-- Replay notification emails
+---
 
-#### 2.3 Create Content Type Detection Helper
+## Part 4: Add Intro Card to Brand Wizard
 
-Add a helper function in both edge functions:
+### File: `src/components/ai-copywriting/wizard-steps/StepBusinessBasics.tsx`
+
+**Add intro card at the top of the component before the form fields:**
+
+- **Title**: "Setting Up AI Copywriting"
+- **Content**:
+  - What the wizard does (teaches AI your unique voice)
+  - What you'll need (~10 minutes, business info, writing samples)
+  - API key requirement with link to Settings if not configured
+- **API Key Status Check**: 
+  - Import `useAPIKey` hook
+  - If no valid API key, show warning alert with link to Settings tab
+  - Allow users to continue but warn they'll need the key for voice analysis
+
+---
+
+## Part 5: Add HelpButton to Dashboard Cost Card
+
+### File: `src/components/ai-copywriting/AIDashboard.tsx`
+
+**Add HelpButton next to "Est. Cost" stat card:**
 
 ```typescript
-interface ContentMapping {
-  type: string;       // content_items.type
-  channel: string;    // content_items.channel
-}
-
-function getContentMapping(taskText: string, taskType: string): ContentMapping | null {
-  // Email patterns
-  if (taskText.includes('email') || taskType === 'email') {
-    return { type: 'email', channel: 'email' };
-  }
-  // Social patterns
-  if (taskText.includes('social') || taskType === 'social') {
-    return { type: 'post', channel: 'social' };
-  }
-  // ... more patterns
-  return null; // Not content-related
-}
-```
-
-#### 2.4 Dual Insert Pattern
-
-For each content-related task, the flow becomes:
-
-```text
-1. Detect if task is content-related
-   │
-   ├─ NO  → Insert task only (current behavior)
-   │
-   └─ YES → Insert content_items first
-            │
-            ↓
-          Insert task with content_item_id linked
+<HelpButton
+  title="Estimated Cost"
+  description="This estimate is based on your token usage this month."
+  tips={[
+    'Each generation uses ~3,000-8,000 tokens',
+    'Actual costs depend on content length',
+    'GPT-4o pricing: ~$0.0025/1K input, $0.01/1K output',
+    'Set spending limits in your OpenAI dashboard'
+  ]}
+  side="bottom"
+/>
 ```
 
 ---
 
-## Part 3: Files to Create/Modify
-
-### New Files
-
-| File | Purpose |
-|------|---------|
-| `src/components/ai-copywriting/SaveToVaultModal.tsx` | Modal for saving to vault without scheduling |
-| `src/hooks/useSaveToVault.ts` | Mutation hook for vault saves |
-
-### Modified Files
+## Files Summary
 
 | File | Changes |
 |------|---------|
-| `src/components/ai-copywriting/ContentGenerator.tsx` | Add "Save to Vault" button |
-| `src/components/ai-copywriting/CopyLibrary.tsx` | Add "Save to Vault" in detail dialog |
-| `supabase/functions/create-launch-from-wizard/index.ts` | Add content_items creation for email/social tasks |
-| `supabase/functions/create-summit/index.ts` | Add content_items creation for email/social tasks |
+| `src/components/ai-copywriting/APIKeySettings.tsx` | Enhanced cost info, better step-by-step instructions, new "What will it cost?" section |
+| `src/components/support/FAQSection.tsx` | Add AI Copywriting category with 7 new questions |
+| `src/components/support/FeaturesGuide.tsx` | Add AI Copywriting category with 2 feature sections |
+| `src/components/ai-copywriting/wizard-steps/StepBusinessBasics.tsx` | Add intro card with API key check |
+| `src/components/ai-copywriting/AIDashboard.tsx` | Add HelpButton to Est. Cost card |
 
 ---
 
-## Technical Details
+## Content Details
 
-### Content Items Schema Usage
+### Detailed Cost Information to Include
 
-When wizards create content items:
+**Token Pricing (GPT-4o)**
+- Input: ~$0.0025 per 1,000 tokens
+- Output: ~$0.01 per 1,000 tokens
 
-```typescript
-{
-  user_id: userId,
-  title: taskText.replace(/^(✉️|📱|📧)\s*/, ''), // Clean emoji prefix
-  type: contentMapping.type,
-  channel: contentMapping.channel,
-  status: 'Draft',
-  project_id: projectId,
-  launch_id: launchId,
-  planned_creation_date: calculateCreationDate(scheduledDate),
-  planned_publish_date: scheduledDate,
-  show_in_vault: true,
-  tags: ['launch', 'wizard-generated'],
-}
-```
+**Real-World Cost Examples**
+- Single welcome email: $0.02-0.05
+- Full 5-email sequence: $0.15-0.25
+- Voice analysis: $0.01-0.02
+- Social media post: $0.01-0.03
 
-### Task Linking
+**Monthly Estimates**
+- Light use (10 generations): $0.50-1.00/month
+- Regular use (30 generations): $1.50-3.00/month
+- Heavy use (100+ generations): $5.00-15.00/month
 
-Tasks link to content via:
+**Comparison to Alternatives**
+- ChatGPT Plus: $20/month (fixed)
+- Jasper AI: $49/month (fixed)
+- Your API usage: $2-10/month (pay for what you use)
 
-```typescript
-{
-  // ... existing task fields
-  content_item_id: contentItem.id,  // Links to calendar item
-  content_type: contentMapping.type,
-  content_channel: contentMapping.channel,
-  content_creation_date: createDate,
-  content_publish_date: publishDate,
-}
-```
+### Step-by-Step API Key Instructions
 
-### Query Invalidation
+1. **Create an OpenAI Account**
+   - Go to [platform.openai.com](https://platform.openai.com)
+   - Sign up with email or Google (free)
 
-Both new hooks invalidate:
-- `content-vault-items`
-- `editorial-calendar-content`
-- `editorial-calendar-unscheduled`
-- `content-for-planner`
+2. **Add a Payment Method**
+   - Click your profile icon → Billing
+   - Add a credit card (required for API access)
+   - Start with $10-20 credit
+
+3. **Set a Spending Limit (Recommended)**
+   - Go to Usage → Limits in the sidebar
+   - Set a monthly budget ($10-20 to start)
+   - This prevents unexpected charges
+
+4. **Create Your API Key**
+   - Go to API Keys in the sidebar
+   - Click "Create new secret key"
+   - Name it "90 Day Planner" for easy identification
+   - **Copy the key immediately** – it only shows once!
+
+5. **Add Key to Your Account**
+   - Go to AI Copywriting → Settings
+   - Paste your key and click Save
 
 ---
 
 ## Success Criteria
 
-1. **Save to Vault** button visible in ContentGenerator after generation
-2. **Save to Vault** button visible in CopyLibrary detail dialog
-3. Saved vault items appear in Content Vault with `show_in_vault: true`
-4. Saved vault items have no dates (unscheduled)
-5. Launch wizard creates email content in Editorial Calendar
-6. Launch wizard creates social content in Editorial Calendar
-7. Created tasks still link to content items
-8. Content appears in both Calendar lanes (Create/Publish)
-9. Summit wizard similarly routes content to calendar
-10. Existing task functionality remains intact
+- Users understand why they need their own API key before starting
+- Step-by-step instructions are clear and comprehensive
+- Cost expectations are set accurately with real examples
+- Information is available in multiple locations (Settings, FAQ, Features Guide, Wizard)
+- API key security is clearly communicated
+- Cost comparison demonstrates value vs. alternatives
+- Wizard shows warning if API key is missing
 
----
-
-## User Experience Flow
-
-### Flow 1: Save to Vault from AI Copywriting
-
-```text
-User generates copy
-    ↓
-Clicks "Save to Vault"
-    ↓
-Modal opens with title pre-filled
-    ↓
-User confirms (optional: adds tags)
-    ↓
-Content saved to Vault
-    ↓
-Toast: "Saved to Content Vault!"
-    ↓
-User can later schedule via Editorial Calendar → "From Vault" tab
-```
-
-### Flow 2: Wizard Content in Calendar
-
-```text
-User completes Launch Wizard
-    ↓
-System creates launch + project
-    ↓
-For each email/social task:
-    ├─ Creates content_items record
-    └─ Creates linked task
-    ↓
-Content appears in Editorial Calendar
-Tasks appear in Daily/Weekly Planner
-    ↓
-User sees launch content visually on calendar
-```
