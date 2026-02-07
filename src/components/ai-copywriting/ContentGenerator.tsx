@@ -422,14 +422,14 @@ export function ContentGenerator() {
 
                   <Button 
                     onClick={handleSubmitFeedback}
-                    disabled={rateCopy.isPending}
+                    disabled={rateCopy.isPending || generateCopy.isPending}
                   >
-                    {rateCopy.isPending ? (
+                    {rateCopy.isPending || generateCopy.isPending ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
                       <RefreshCw className="h-4 w-4 mr-2" />
                     )}
-                    Save Feedback & Regenerate
+                    {rateCopy.isPending ? 'Saving...' : generateCopy.isPending ? 'Regenerating...' : 'Save Feedback & Regenerate'}
                   </Button>
                 </div>
               )}
