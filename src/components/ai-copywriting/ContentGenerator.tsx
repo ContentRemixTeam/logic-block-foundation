@@ -133,6 +133,9 @@ export function ContentGenerator() {
       feedbackText: feedbackText || undefined,
       feedbackTags: feedbackTags.length > 0 ? feedbackTags : undefined,
     });
+    
+    // Regenerate with the new feedback incorporated
+    await handleGenerate();
   };
 
   const toggleFeedbackTag = (tag: string) => {
