@@ -59,6 +59,33 @@ interface SummitWizardData {
   excludedTasks: string[];
 }
 
+interface ContentMapping {
+  type: string;
+  channel: string;
+}
+
+// Check if a task should also create a content_items record
+function getContentMappingForSummit(taskId: string, taskText: string): ContentMapping | null {
+  const lower = taskText.toLowerCase();
+  
+  // Email-related tasks
+  if (taskId.includes('email') || lower.includes('email')) {
+    return { type: 'email', channel: 'email' };
+  }
+  
+  // Social content tasks  
+  if (taskId.includes('social') || lower.includes('social')) {
+    return { type: 'post', channel: 'social' };
+  }
+  
+  // Swipe copy (promotional emails for speakers)
+  if (taskId.includes('swipe')) {
+    return { type: 'email', channel: 'email' };
+  }
+  
+  return null;
+}
+
 interface Task {
   id: string;
   task_text: string;
@@ -66,6 +93,24 @@ interface Task {
   status: string;
   priority: string;
   estimated_minutes: number | null;
+  tags: string[];
+  isContent?: boolean;
+  contentType?: string;
+  contentChannel?: string;
+}
+
+interface ContentItemToCreate {
+  user_id: string;
+  title: string;
+  body?: string;
+  type: string;
+  channel: string;
+  status: string;
+  project_id: string;
+  summit_id?: string;
+  planned_creation_date?: string;
+  planned_publish_date?: string;
+  show_in_vault: boolean;
   tags: string[];
 }
 
@@ -101,6 +146,9 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
     priority: 'high',
     estimated_minutes: 60,
     tags: ['summit', 'speakers', 'recruitment'],
+    isContent: true,
+    contentType: 'email',
+    contentChannel: 'email',
   });
 
   tasks.push({
@@ -229,6 +277,9 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
       priority: 'high',
       estimated_minutes: 90,
       tags: ['summit', 'marketing', 'swipe'],
+      isContent: true,
+      contentType: 'email',
+      contentChannel: 'email',
     });
 
     tasks.push({
@@ -251,6 +302,9 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
       priority: 'medium',
       estimated_minutes: 120,
       tags: ['summit', 'marketing', 'design'],
+      isContent: true,
+      contentType: 'visual',
+      contentChannel: 'social',
     });
   }
 
@@ -272,6 +326,9 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
     priority: 'high',
     estimated_minutes: 90,
     tags: ['summit', 'email', 'automation'],
+    isContent: true,
+    contentType: 'email',
+    contentChannel: 'email',
   });
 
   if (data.hasAllAccessPass !== 'no') {
@@ -364,6 +421,9 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
     priority: 'high',
     estimated_minutes: 30,
     tags: ['summit', 'email', 'marketing'],
+    isContent: true,
+    contentType: 'email',
+    contentChannel: 'email',
   });
 
   if (data.promotionMethods.includes('social-media')) {
@@ -375,6 +435,9 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
       priority: 'medium',
       estimated_minutes: 30,
       tags: ['summit', 'social', 'marketing'],
+      isContent: true,
+      contentType: 'post',
+      contentChannel: 'social',
     });
   }
 
@@ -409,6 +472,9 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
     priority: 'high',
     estimated_minutes: 20,
     tags: ['summit', 'email', 'reminder'],
+    isContent: true,
+    contentType: 'email',
+    contentChannel: 'email',
   });
 
   // Phase 4: Summit Live
@@ -445,6 +511,9 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
       priority: 'high',
       estimated_minutes: 30,
       tags: ['summit', 'email', 'live'],
+      isContent: true,
+      contentType: 'email',
+      contentChannel: 'email',
     });
   }
 
@@ -457,6 +526,9 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
     priority: 'high',
     estimated_minutes: 20,
     tags: ['summit', 'email', 'post-summit'],
+    isContent: true,
+    contentType: 'email',
+    contentChannel: 'email',
   });
 
   if (data.hasAllAccessPass !== 'no') {
@@ -468,6 +540,9 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
       priority: 'high',
       estimated_minutes: 20,
       tags: ['summit', 'email', 'sales'],
+      isContent: true,
+      contentType: 'email',
+      contentChannel: 'email',
     });
 
     tasks.push({
@@ -478,6 +553,9 @@ function generateSummitTasks(data: SummitWizardData): Task[] {
       priority: 'high',
       estimated_minutes: 20,
       tags: ['summit', 'email', 'sales'],
+      isContent: true,
+      contentType: 'email',
+      contentChannel: 'email',
     });
   }
 
@@ -673,17 +751,74 @@ Deno.serve(async (req) => {
     const excludedTasks = wizardData.excludedTasks || [];
     const filteredTasks = allTasks.filter(task => !excludedTasks.includes(task.id));
     
-    const taskRecords = filteredTasks.map(task => ({
-      user_id: user.id,
-      project_id: project.id,
-      task_text: task.task_text,
-      scheduled_date: task.scheduled_date,
-      status: task.status,
-      priority: task.priority,
-      estimated_minutes: task.estimated_minutes,
-      is_system_generated: true,
-      system_source: 'summit_wizard',
-    }));
+    // Helper to calculate creation date
+    const calculateCreationDate = (publishDate: string): string => {
+      const date = new Date(publishDate);
+      date.setDate(date.getDate() - 3);
+      return date.toISOString().split('T')[0];
+    };
+    
+    // Create content items for content-related tasks
+    const contentItemsToCreate: ContentItemToCreate[] = [];
+    for (const task of filteredTasks) {
+      if (task.isContent && task.contentType && task.contentChannel && task.scheduled_date) {
+        contentItemsToCreate.push({
+          user_id: user.id,
+          title: task.task_text,
+          type: task.contentType,
+          channel: task.contentChannel,
+          status: 'Draft',
+          project_id: project.id,
+          summit_id: summit.id,
+          planned_creation_date: calculateCreationDate(task.scheduled_date),
+          planned_publish_date: task.scheduled_date,
+          show_in_vault: true,
+          tags: ['summit', 'wizard-generated'],
+        });
+      }
+    }
+    
+    // Insert content items first
+    let contentItemsCreated = 0;
+    const contentItemIdMap: Map<string, string> = new Map();
+    
+    if (contentItemsToCreate.length > 0) {
+      const { data: createdContentItems, error: contentError } = await supabase
+        .from('content_items')
+        .insert(contentItemsToCreate)
+        .select();
+
+      if (contentError) {
+        console.error('Error creating content items:', contentError);
+      } else {
+        contentItemsCreated = createdContentItems?.length || 0;
+        createdContentItems?.forEach((item) => {
+          contentItemIdMap.set(item.title, item.id);
+        });
+      }
+    }
+    
+    // Build task records with content item links
+    const taskRecords = filteredTasks.map(task => {
+      const contentItemId = contentItemIdMap.get(task.task_text);
+      
+      return {
+        user_id: user.id,
+        project_id: project.id,
+        task_text: task.task_text,
+        scheduled_date: task.scheduled_date,
+        status: task.status,
+        priority: task.priority,
+        estimated_minutes: task.estimated_minutes,
+        is_system_generated: true,
+        system_source: 'summit_wizard',
+        content_item_id: contentItemId || null,
+        content_type: task.isContent ? task.contentType : null,
+        content_channel: task.isContent ? task.contentChannel : null,
+        content_creation_date: task.isContent && task.scheduled_date ? calculateCreationDate(task.scheduled_date) : null,
+        content_publish_date: task.isContent ? task.scheduled_date : null,
+      };
+    });
 
     const { error: tasksError } = await supabase
       .from('tasks')
@@ -701,6 +836,7 @@ Deno.serve(async (req) => {
         summitId: summit.id,
         tasksCreated: taskRecords.length,
         tasksExcluded: excludedTasks.length,
+        contentItemsCreated: contentItemsCreated,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

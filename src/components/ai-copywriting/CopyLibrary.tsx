@@ -40,8 +40,10 @@ import {
   Loader2,
   CheckCircle2,
   Sparkles,
-  CalendarPlus
+  CalendarPlus,
+  Archive
 } from 'lucide-react';
+import { SaveToVaultModal } from './SaveToVaultModal';
 import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -61,6 +63,7 @@ export function CopyLibrary() {
   const [selectedGeneration, setSelectedGeneration] = useState<AICopyGeneration | null>(null);
   const [copied, setCopied] = useState(false);
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
+  const [vaultModalOpen, setVaultModalOpen] = useState(false);
 
   // Apply filters
   const filteredGenerations = generations?.filter((gen) => {
@@ -319,6 +322,15 @@ export function CopyLibrary() {
                     Add to Calendar
                   </Button>
 
+                  <Button 
+                    variant="outline"
+                    onClick={() => setVaultModalOpen(true)}
+                    className="flex-1"
+                  >
+                    <Archive className="h-4 w-4 mr-2" />
+                    Save to Vault
+                  </Button>
+
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="outline" className="text-destructive">
@@ -355,6 +367,18 @@ export function CopyLibrary() {
         <AddToCalendarModal
           open={calendarModalOpen}
           onOpenChange={setCalendarModalOpen}
+          generatedCopy={selectedGeneration.generated_copy}
+          contentType={selectedGeneration.content_type as ContentType}
+          generationId={selectedGeneration.id}
+          onSuccess={() => setSelectedGeneration(null)}
+        />
+      )}
+
+      {/* Save to Vault Modal */}
+      {selectedGeneration && (
+        <SaveToVaultModal
+          open={vaultModalOpen}
+          onOpenChange={setVaultModalOpen}
           generatedCopy={selectedGeneration.generated_copy}
           contentType={selectedGeneration.content_type as ContentType}
           generationId={selectedGeneration.id}
