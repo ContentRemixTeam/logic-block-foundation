@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { CONTENT_TYPE_OPTIONS } from '@/types/aiCopywriting';
+import { HelpButton } from '@/components/ui/help-button';
 
 export function AIDashboard() {
   const navigate = useNavigate();
@@ -85,7 +86,21 @@ export function AIDashboard() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Est. Cost</p>
+                <div className="flex items-center gap-1">
+                  <p className="text-sm text-muted-foreground">Est. Cost</p>
+                  <HelpButton
+                    title="Estimated Cost"
+                    description="This estimate is based on your token usage this month."
+                    tips={[
+                      'Each generation uses ~3,000-8,000 tokens',
+                      'Actual costs depend on content length',
+                      'GPT-4o pricing: ~$0.0025/1K input, $0.01/1K output',
+                      'Set spending limits in your OpenAI dashboard'
+                    ]}
+                    side="bottom"
+                    size="sm"
+                  />
+                </div>
                 <p className="text-2xl font-bold">${estimatedCost.toFixed(2)}</p>
                 <p className="text-xs text-muted-foreground">this month</p>
               </div>
