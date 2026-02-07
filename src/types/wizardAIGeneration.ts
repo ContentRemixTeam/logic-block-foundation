@@ -437,3 +437,22 @@ export const EMAIL_SEQUENCE_CONFIGS: Record<string, EmailSequenceConfig> = {
     ],
   },
 };
+
+// ============== Content Needs Item ==============
+export interface ContentNeedItem {
+  id: string;
+  type: 'email_sequence' | 'sales_page' | 'social_batch';
+  contentType: WizardContentType;
+  label: string;
+  emailCount?: number;
+  purpose: string;
+}
+
+// Map wizard sequence types to content types
+export const SEQUENCE_TYPE_TO_CONTENT_TYPE: Record<string, WizardContentType> = {
+  warmUp: 'launch_warmup_sequence',
+  launch: 'launch_open_sequence',
+  cartClose: 'launch_cartclose_sequence',
+  postPurchase: 'launch_postpurchase_sequence',
+  followUp: 'launch_followup_sequence',
+};

@@ -16,8 +16,10 @@ import {
   LAUNCH_TIMELINE_OPTIONS,
   REVENUE_GOAL_TIER_OPTIONS,
 } from '@/types/launchV2';
+import { WizardContentType } from '@/types/wizardAIGeneration';
 import { formatCurrency } from '@/lib/wizardHelpers';
 import { WizardTaskPreview } from '@/components/wizards/shared/WizardTaskPreview';
+import { ContentNeedsHub } from '@/components/wizards/shared/ContentNeedsHub';
 import { generateLaunchV2TasksPreview, LAUNCH_V2_PHASE_CONFIG } from '@/lib/launchV2TaskGenerator';
 
 interface StepReviewCompleteProps {
@@ -27,10 +29,16 @@ interface StepReviewCompleteProps {
 
 export function StepReviewComplete({ data, onChange }: StepReviewCompleteProps) {
   const [sliderValue, setSliderValue] = useState([data.readinessScore || 5]);
+  const [generatedContent, setGeneratedContent] = useState<Record<string, boolean>>({});
   
   // Generate task preview
   const allTasks = useMemo(() => generateLaunchV2TasksPreview(data), [data]);
   const selectedTaskCount = allTasks.filter(t => !(data.excludedTasks || []).includes(t.id)).length;
+  
+  // Handle AI generation completion
+  const handleGenerationComplete = (contentType: WizardContentType) => {
+    setGeneratedContent(prev => ({ ...prev, [contentType]: true }));
+  };
   
   const handleSliderChange = (value: number[]) => {
     setSliderValue(value);
@@ -199,6 +207,13 @@ export function StepReviewComplete({ data, onChange }: StepReviewCompleteProps) 
           </div>
         </CardContent>
       </Card>
+
+      {/* Content to Create Hub */}
+      <ContentNeedsHub 
+        data={data}
+        generatedContent={generatedContent}
+        onGenerationComplete={handleGenerationComplete}
+      />
 
       {/* Task Preview */}
       <Card>
