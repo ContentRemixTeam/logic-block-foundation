@@ -71,7 +71,7 @@ export function AddToCalendarModal({
 
   const handleSubmit = async () => {
     if (!title.trim()) return;
-    if (!creationDate && !publishDate) return;
+    if (!publishDate) return; // Only publish date required - content is already created
 
     await addToCalendar.mutateAsync({
       generatedCopy,
@@ -220,7 +220,7 @@ export function AddToCalendarModal({
           </Button>
           <Button 
             onClick={handleSubmit}
-            disabled={!title.trim() || (!creationDate && !publishDate) || addToCalendar.isPending}
+            disabled={!title.trim() || !publishDate || addToCalendar.isPending}
           >
             {addToCalendar.isPending ? (
               <>
