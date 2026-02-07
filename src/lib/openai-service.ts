@@ -1,9 +1,9 @@
 import { supabase } from '@/integrations/supabase/client';
 import { decryptAPIKey } from './encryption';
-import { VoiceProfile, BrandProfile, UserProduct, AICopyGeneration } from '@/types/aiCopywriting';
+import { VoiceProfile, BrandProfile, UserProduct, AICopyGeneration, ContentType } from '@/types/aiCopywriting';
 import { checkAIDetection } from './ai-detection-checker';
 import { STRATEGIC_EMAIL_CONFIGS, type EmailStrategyConfig } from './email-sequence-strategy';
-
+import AdaptiveLearningService, { AdaptiveParams } from './adaptive-learning-service';
 interface GenerateOptions {
   contentType: string;
   context: {
@@ -62,7 +62,10 @@ export class OpenAIService {
   /**
    * Build system prompt with deep voice matching and anti-AI rules
    */
-  private static buildSystemPrompt(context: GenerateOptions['context']): string {
+  private static buildSystemPrompt(
+    context: GenerateOptions['context'],
+    adaptiveParams?: AdaptiveParams
+  ): string {
     const profile = context.businessProfile;
     const voiceProfile = profile?.voice_profile as VoiceProfile | undefined;
     
@@ -273,6 +276,11 @@ You're not "writing like them" - you're THINKING like them and writing what they
       }
     }
     
+    // Add adaptive learning adjustments
+    if (adaptiveParams) {
+      prompt += AdaptiveLearningService.buildAdaptivePromptAdditions(adaptiveParams);
+    }
+    
     return prompt;
   }
   
@@ -423,11 +431,22 @@ Write this email now. Remember: You're not just writing an email, you're enginee
       throw new Error('No API key configured. Please add your OpenAI API key in settings.');
     }
     
-    // PASS 1: Generate initial draft
+    // Get adaptive learning parameters based on user's past feedback
+    const feedbackPattern = await AdaptiveLearningService.analyzeFeedbackPatterns(
+      userId, 
+      options.contentType as ContentType
+    );
+    
+    const adaptiveParams = AdaptiveLearningService.generateAdaptiveParams(feedbackPattern);
+    
+    // Adjust base temperature based on learning
+    const baseTemperature = 0.8 + adaptiveParams.temperatureAdjustment;
+    
+    // PASS 1: Generate initial draft (with adaptive temperature)
     const draft1 = await this.callOpenAI(apiKey, {
-      systemPrompt: this.buildSystemPrompt(options.context),
+      systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams),
       userPrompt: this.buildUserPrompt(options),
-      temperature: 0.8
+      temperature: baseTemperature
     });
     
     // PASS 2: Critique the draft
@@ -445,9 +464,9 @@ Be brutally honest but constructive.`,
       temperature: 0.3
     });
     
-    // PASS 3: Regenerate based on critique
+    // PASS 3: Regenerate based on critique (with adaptive params)
     const pass3Copy = await this.callOpenAI(apiKey, {
-      systemPrompt: this.buildSystemPrompt(options.context),
+      systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams),
       userPrompt: `ORIGINAL COPY:\n${draft1.content}\n\nCRITIQUE:\n${critique.content}\n\nRewrite the copy addressing all critique points. Make it:
 - Tighter and more specific
 - More emotionally resonant
@@ -455,7 +474,7 @@ Be brutally honest but constructive.`,
 - More human (less AI-sounding)
 
 Keep the same general structure but improve everything.`,
-      temperature: 0.7
+      temperature: 0.7 + (adaptiveParams.temperatureAdjustment * 0.5) // Partial adjustment for pass 3
     });
     
     let finalContent = pass3Copy.content;
@@ -467,7 +486,7 @@ Keep the same general structure but improve everything.`,
     // PASS 4: Additional refinement if AI score is high
     if (aiCheck.score > 3) {
       const refinement = await this.callOpenAI(apiKey, {
-        systemPrompt: `${this.buildSystemPrompt(options.context)}
+        systemPrompt: `${this.buildSystemPrompt(options.context, adaptiveParams)}
 
 CRITICAL: This copy scored ${aiCheck.score}/10 for AI detection. Rewrite to sound completely human.
 
@@ -479,7 +498,7 @@ ${aiCheck.suggestions.join('\n')}
 
 Write like a real person - imperfect, conversational, authentic. Not like ChatGPT.`,
         userPrompt: `Make this sound 100% human (current AI score: ${aiCheck.score}/10):\n\n${finalContent}`,
-        temperature: 0.8
+        temperature: baseTemperature // Use adaptive temperature
       });
       
       finalContent = refinement.content;
