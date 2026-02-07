@@ -1,5 +1,40 @@
 // Brand Profile Types
+
+// Deep Writing Patterns - How they THINK through writing
+export interface WritingPatterns {
+  decision_making_style: 'data-driven' | 'story-driven' | 'authority-driven' | 'mixed';
+  transition_style: 'abrupt' | 'smooth' | 'conversational';
+  example_usage: 'specific-numbers' | 'relatable-scenarios' | 'client-stories' | 'mixed';
+  objection_handling: 'direct-address' | 'story-reframe' | 'preemptive' | 'mixed';
+  cta_style: 'direct-command' | 'soft-invitation' | 'question-based' | 'mixed';
+}
+
+// Structural DNA - How they construct content
+export interface StructuralPreferences {
+  paragraph_length: 'short' | 'medium' | 'long' | 'mixed';
+  sentence_variety: number; // 1-10 scale
+  list_usage: 'frequent' | 'occasional' | 'rare';
+  question_usage: 'rhetorical' | 'engagement' | 'clarifying' | 'mixed';
+}
+
+// Psychological Fingerprint - Their persuasion approach
+export interface PsychologicalStyle {
+  empathy_level: number; // 1-10 scale
+  authority_projection: 'expert' | 'peer' | 'guide' | 'mixed';
+  vulnerability_index: number; // 1-10 scale
+  urgency_tendency: 'soft' | 'moderate' | 'aggressive';
+}
+
+// Pattern Examples - Actual quotes showing their style
+export interface PatternExamples {
+  typical_opening: string[]; // How they start emails/posts
+  typical_transition: string[]; // How they move between ideas
+  typical_cta: string[]; // How they ask for action
+  typical_proof: string[]; // How they build credibility
+}
+
 export interface VoiceProfile {
+  // Core voice attributes
   style_summary: string;
   tone_scores: {
     formality: number;
@@ -18,6 +53,12 @@ export interface VoiceProfile {
     common_words: string[];
   };
   storytelling_style?: string;
+  
+  // Deep Writing Patterns - NEW
+  writing_patterns?: WritingPatterns;
+  structural_preferences?: StructuralPreferences;
+  psychological_style?: PsychologicalStyle;
+  pattern_examples?: PatternExamples;
 }
 
 export interface BrandProfile {
