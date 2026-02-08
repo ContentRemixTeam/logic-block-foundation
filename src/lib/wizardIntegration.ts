@@ -124,6 +124,23 @@ export const WIZARD_INTEGRATIONS: WizardIntegrationConfig[] = [
     },
     phaseTracking: false,
   },
+  {
+    templateName: 'flash-sale-wizard',
+    displayName: 'Flash Sale Wizard',
+    creates: [
+      { table: 'projects', type: 'project' },
+      { table: 'flash_sales', type: 'record' },
+      { table: 'tasks', type: 'tasks' },
+    ],
+    integratesWith: {
+      dashboard: true,
+      dailyPlan: true,
+      weeklyPlan: true,
+      taskList: true,
+    },
+    phaseTracking: true,
+    phases: ['Pre-Sale', 'During Sale', 'Post-Sale'],
+  },
 ];
 
 /**

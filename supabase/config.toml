@@ -44,3 +44,9 @@ verify_jwt = false
 
 [functions.create-launch-v2]
 verify_jwt = false
+
+[functions.create-flash-sale]
+verify_jwt = false
+
+[functions.generate-flash-sale-copy]
+verify_jwt = false
