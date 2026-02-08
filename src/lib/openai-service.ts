@@ -2,13 +2,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { decryptAPIKey } from './encryption';
 import { VoiceProfile, BrandProfile, UserProduct, AICopyGeneration, ContentType } from '@/types/aiCopywriting';
 import { GenerationMode } from '@/types/generationModes';
+import { CopyControls, LENGTH_CONFIGS, EMOTION_CONFIGS, URGENCY_CONFIGS, TONE_CONFIGS } from '@/types/copyControls';
 import { checkAIDetection } from './ai-detection-checker';
 import { STRATEGIC_EMAIL_CONFIGS, type EmailStrategyConfig } from './email-sequence-strategy';
 import AdaptiveLearningService, { AdaptiveParams } from './adaptive-learning-service';
+import { QUALITY_EXAMPLES, QUALITY_RUBRIC, checkForBannedPhrases, validateTacticalTip, validateSubjectLines } from './quality-system';
 
 interface GenerateOptions {
   contentType: string;
   generationMode?: GenerationMode;
+  copyControls?: CopyControls;
   context: {
     businessProfile?: Partial<BrandProfile>;
     productToPromote?: UserProduct | null;
@@ -288,6 +291,29 @@ You're not "writing like them" - you're THINKING like them and writing what they
   }
   
   /**
+   * Build control-based prompt additions
+   */
+  private static buildControlPromptAdditions(controls?: CopyControls): string {
+    if (!controls) return '';
+    
+    let additions = '\n\n=== COPY CUSTOMIZATION REQUIREMENTS ===\n\n';
+    
+    // Length control
+    additions += `LENGTH REQUIREMENT:\n${LENGTH_CONFIGS[controls.length].promptAddition}\n\n`;
+    
+    // Emotional intensity
+    additions += `EMOTIONAL INTENSITY:\n${EMOTION_CONFIGS[controls.emotion].promptAddition}\n\n`;
+    
+    // Urgency level
+    additions += `URGENCY LEVEL:\n${URGENCY_CONFIGS[controls.urgency].promptAddition}\n\n`;
+    
+    // Tone style
+    additions += `TONE STYLE:\n${TONE_CONFIGS[controls.tone].promptAddition}\n\n`;
+    
+    return additions;
+  }
+  
+  /**
    * Build user prompt for specific content type with strategic intelligence
    */
   private static buildUserPrompt(options: GenerateOptions): string {
@@ -477,17 +503,18 @@ Write this email now. Remember: You're not just writing an email, you're enginee
     let aiCheck = { score: 0, warnings: [] as string[], suggestions: [] as string[] };
     
     if (useEfficientMode) {
-      // EFFICIENT MODE: 4-pass system
+      // EFFICIENT MODE: 4-pass system with quality examples
+      const controlAdditions = this.buildControlPromptAdditions(options.copyControls);
       
-      // Pass 1: Generate initial draft
+      // Pass 1: Generate initial draft with quality examples
       const draft = await this.callOpenAI(apiKey, {
-        systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams),
+        systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams) + QUALITY_EXAMPLES + controlAdditions,
         userPrompt: this.buildUserPrompt(options),
         temperature: baseTemperature,
       });
       totalTokens += draft.tokens;
       
-      // Pass 2: Combined critique (strategic + voice + conversion)
+      // Pass 2: Combined critique (strategic + voice + conversion + banned phrases)
       const critique = await this.callOpenAI(apiKey, {
         systemPrompt: `You are a direct-response copywriting expert. Review this ${options.contentType} and identify issues:
 
@@ -501,10 +528,16 @@ CRITICAL FOR EMAIL 1: Check if there is a TACTICAL TIP that:
 If the tactical tip is missing or vague, this is a CRITICAL FAILURE.
 ` : ''}
 
+CHECK FOR BANNED AI PHRASES (must be removed):
+- "here's what/how/why", "secret weapon", "game changer", "transform your"
+- "at the end of the day", "take it to the next level", "unlock the secrets"
+- "feel free to", "don't hesitate to", "I hope this helps"
+
 1. STRATEGIC: Does it match the customer journey stage and preempt objections?
 2. VOICE: Does it sound like the provided writing samples?
 3. CONVERSION: Are CTAs clear? Is proof appropriate?
-${options.contentType === 'welcome_email_1' ? '4. TACTICAL TIP: Is there a specific, actionable tip they can do today?' : ''}
+4. BANNED PHRASES: List any AI phrases that need removal.
+${options.contentType === 'welcome_email_1' ? '5. TACTICAL TIP: Is there a specific, actionable tip they can do today?' : ''}
 
 Be specific and actionable.`,
         userPrompt: `COPY TO CRITIQUE:\n${draft.content}\n\nProvide specific, actionable feedback.`,
@@ -514,8 +547,8 @@ Be specific and actionable.`,
       
       // Pass 3: Rewrite from critique
       const rewrite = await this.callOpenAI(apiKey, {
-        systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams),
-        userPrompt: `ORIGINAL COPY:\n${draft.content}\n\nCRITIQUE:\n${critique.content}\n\nRewrite addressing all feedback. Make it better.`,
+        systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams) + QUALITY_EXAMPLES + controlAdditions,
+        userPrompt: `ORIGINAL COPY:\n${draft.content}\n\nCRITIQUE:\n${critique.content}\n\nRewrite addressing all feedback. Make it better. Remove ALL banned phrases.`,
         temperature: 0.7,
       });
       totalTokens += rewrite.tokens;
@@ -539,92 +572,95 @@ Fix: ${aiCheck.suggestions.join(', ')}`,
       }
       
     } else {
-      // PREMIUM MODE: 7-pass system (original implementation)
+      // PREMIUM MODE: Quality-First Multi-Pass System with validation gates
+      const controlAdditions = this.buildControlPromptAdditions(options.copyControls);
       
-      // PASS 1: Generate initial draft (with adaptive temperature)
+      // PASS 1: Examples-First Draft with quality examples and controls
       const draft1 = await this.callOpenAI(apiKey, {
-        systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams),
+        systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams) + QUALITY_EXAMPLES + controlAdditions,
         userPrompt: this.buildUserPrompt(options),
         temperature: baseTemperature
       });
       
-      // PASS 2: Critique the draft
-      const critique = await this.callOpenAI(apiKey, {
-        systemPrompt: `You are a direct-response copywriting expert. Review this copy and identify:
-1. Weak headlines (not curiosity-driven)
-2. Vague language (not specific enough)
-3. Missing emotional hooks
-4. Weak CTAs (not action-oriented)
-5. Areas that don't match the brand voice
-6. Any phrases that sound robotic or AI-generated
-
-Be brutally honest but constructive.`,
-        userPrompt: `COPY TO CRITIQUE:\n${draft1.content}\n\nBRAND VOICE SAMPLES:\n${options.context.businessProfile?.voice_samples?.slice(0, 2).join('\n\n') || 'None provided'}\n\nProvide specific critique with examples of what to fix.`,
-        temperature: 0.3
+      // PASS 2: Self-Scoring with Rubric
+      const scoring = await this.callOpenAI(apiKey, {
+        systemPrompt: 'You are a quality auditor. Score this email against the rubric. Be brutally honest.',
+        userPrompt: `${QUALITY_RUBRIC}\n\nEMAIL TO SCORE:\n${draft1.content}`,
+        temperature: 0.2,
       });
       
-      // PASS 3: Regenerate based on critique (with adaptive params)
-      const pass3Copy = await this.callOpenAI(apiKey, {
-        systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams),
-        userPrompt: `ORIGINAL COPY:\n${draft1.content}\n\nCRITIQUE:\n${critique.content}\n\nRewrite the copy addressing all critique points. Make it:
-- Tighter and more specific
-- More emotionally resonant
-- Better aligned with the brand voice
-- More human (less AI-sounding)
-
-Keep the same general structure but improve everything.`,
-        temperature: 0.7 + (adaptiveParams.temperatureAdjustment * 0.5) // Partial adjustment for pass 3
-      });
+      // Parse overall score from scoring response
+      const scoreMatch = scoring.content.match(/AVERAGE:\s*(\d+(?:\.\d+)?)/);
+      const overallScore = scoreMatch ? parseFloat(scoreMatch[1]) : 10;
       
-      finalContent = pass3Copy.content;
-      totalTokens = draft1.tokens + critique.tokens + pass3Copy.tokens;
+      let currentDraft = draft1.content;
+      totalTokens = draft1.tokens + scoring.tokens;
       
-      // PASS 4: Strategic Audit for Email 1
-      if (options.contentType === 'welcome_email_1') {
-        const tacticalTipCheck = await this.callOpenAI(apiKey, {
-          systemPrompt: `You are auditing Email 1 for the most critical requirement: TACTICAL VALUE.
-
-Email 1's job is to deliver unexpected value through ONE specific, actionable tip.
-
-EVALUATION CRITERIA:
-1. Is there a tactical tip present?
-2. Is it specific (not vague advice)?
-3. Can someone do it within 30 minutes?
-4. Does it have clear steps?
-5. Is there an expected outcome?
-
-Rate the tactical tip: MISSING / VAGUE / GOOD / EXCELLENT
-
-If MISSING or VAGUE, explain exactly what's wrong and what should be there instead.`,
-          userPrompt: `EMAIL TO EVALUATE:\n${finalContent}\n\nEvaluate the tactical tip quality.`,
-          temperature: 0.2,
+      // VALIDATION GATE 1: Quality Score < 7 triggers rewrite
+      if (overallScore < 7) {
+        const rewrite1 = await this.callOpenAI(apiKey, {
+          systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams) + QUALITY_EXAMPLES + controlAdditions,
+          userPrompt: `ORIGINAL DRAFT:\n${currentDraft}\n\nQUALITY AUDIT:\n${scoring.content}\n\nRewrite fixing ALL issues identified. Must score 8+/10 on every criterion.`,
+          temperature: 0.7,
         });
-        totalTokens += tacticalTipCheck.tokens;
-        
-        // If tactical tip is missing or vague, regenerate with stronger enforcement
-        if (tacticalTipCheck.content.includes('MISSING') || tacticalTipCheck.content.includes('VAGUE')) {
-          const tacticalFix = await this.callOpenAI(apiKey, {
-            systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams),
-            userPrompt: `CURRENT EMAIL:\n${finalContent}\n\nTACTICAL TIP EVALUATION:\n${tacticalTipCheck.content}\n\nThe tactical tip is MISSING or VAGUE. Rewrite the email with a SPECIFIC, ACTIONABLE tactical tip that:
-1. Has concrete steps they can follow
-2. Can be done in 30 minutes or less
-3. Will produce a visible result
-4. Invites them to report back
-
-DO NOT use vague advice. Give them something they can DO RIGHT NOW.`,
+        totalTokens += rewrite1.tokens;
+        currentDraft = rewrite1.content;
+      }
+      
+      // VALIDATION GATE 2: Banned Phrases Check
+      const bannedCheck = checkForBannedPhrases(currentDraft);
+      if (!bannedCheck.passes) {
+        const phraseFix = await this.callOpenAI(apiKey, {
+          systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams) + controlAdditions,
+          userPrompt: `EMAIL:\n${currentDraft}\n\nFOUND BANNED AI PHRASES: ${bannedCheck.found.join(', ')}\n\nRewrite removing ALL these phrases. Replace with natural, human alternatives. Do not use any of these AI-sounding phrases.`,
+          temperature: 0.6,
+        });
+        totalTokens += phraseFix.tokens;
+        currentDraft = phraseFix.content;
+      }
+      
+      // VALIDATION GATE 3: Tactical Tip Check (Email 1 only)
+      if (options.contentType === 'welcome_email_1') {
+        const tipCheck = validateTacticalTip(currentDraft);
+        if (!tipCheck.passes) {
+          const tipFix = await this.callOpenAI(apiKey, {
+            systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams) + QUALITY_EXAMPLES + controlAdditions,
+            userPrompt: `EMAIL:\n${currentDraft}\n\nTACTICAL TIP ISSUES:\n${!tipCheck.hasNumberedSteps ? '- Missing numbered steps\n' : ''}${!tipCheck.hasTimeframe ? '- Missing specific timeframe (TODAY, this week, etc.)\n' : ''}${!tipCheck.hasOutcome ? '- Missing expected outcome\n' : ''}\n\nRewrite the tactical tip section with:\n1. Numbered steps (1. 2. 3.)\n2. Specific timeframe (today, this week, next 7 days)\n3. Expected outcome (what will happen)\n4. Invitation to report back\n\nUse the QUALITY EXAMPLES as reference. Make it SPECIFIC and ACTIONABLE.`,
             temperature: 0.7,
           });
-          totalTokens += tacticalFix.tokens;
-          finalContent = tacticalFix.content;
+          totalTokens += tipFix.tokens;
+          currentDraft = tipFix.content;
         }
       }
       
-      // Check AI detection score
-      aiCheck = checkAIDetection(finalContent);
+      // VALIDATION GATE 4: Subject Line Quality
+      const subjectLines = currentDraft.match(/Subject.*:\s*\n([\s\S]*?)(?=\n\n|Email Body|---)/i);
+      if (subjectLines) {
+        const lines = subjectLines[1].split('\n').filter(l => l.trim() && l.match(/^\d+\./));
+        const subjectCheck = validateSubjectLines(lines);
+        if (!subjectCheck.passes) {
+          const subjectFix = await this.callOpenAI(apiKey, {
+            systemPrompt: 'You are a subject line expert. Create specific, number-driven subject lines that reference the actual email content.',
+            userPrompt: `EMAIL BODY:\n${currentDraft}\n\nCURRENT SUBJECT LINES (too generic):\n${lines.join('\n')}\n\nRewrite 3 subject lines that:\n1. Include specific numbers from the email\n2. Reference the actual tactical tip/content\n3. Create curiosity without clickbait\n\nEXAMPLE GOOD SUBJECT LINES:\n"Answer 3 questions, get 10 DMs (15 minutes)"\n"The $4K launch I built in 7 days (no ads)"\n"Why 47 subscribers beat 4,700 (engagement math)"\n\nReturn just the 3 numbered subject lines, nothing else.`,
+            temperature: 0.7,
+          });
+          totalTokens += subjectFix.tokens;
+          
+          // Replace subject lines in draft
+          const newSubjects = subjectFix.content.split('\n').filter(l => l.trim());
+          if (newSubjects.length >= 1) {
+            currentDraft = currentDraft.replace(
+              /Subject.*:\s*\n[\s\S]*?(?=\n\n|Email Body|---)/i,
+              `Subject Line Options:\n${newSubjects.slice(0, 3).map((l, i) => `${i+1}. ${l.replace(/^\d+\.\s*/, '')}`).join('\n')}\n`
+            );
+          }
+        }
+      }
       
-      // PASS 5-7: Additional refinement if AI score is high
+      // PASS 5: Final AI Humanization if needed
+      aiCheck = checkAIDetection(currentDraft);
       if (aiCheck.score > 3) {
-        const refinement = await this.callOpenAI(apiKey, {
+        const humanize = await this.callOpenAI(apiKey, {
           systemPrompt: `${this.buildSystemPrompt(options.context, adaptiveParams)}
 
 CRITICAL: This copy scored ${aiCheck.score}/10 for AI detection. Rewrite to sound completely human.
@@ -636,16 +672,16 @@ MUST FIX:
 ${aiCheck.suggestions.join('\n')}
 
 Write like a real person - imperfect, conversational, authentic. Not like ChatGPT.`,
-          userPrompt: `Make this sound 100% human (current AI score: ${aiCheck.score}/10):\n\n${finalContent}`,
-          temperature: baseTemperature // Use adaptive temperature
+          userPrompt: `Make this sound 100% human (current AI score: ${aiCheck.score}/10):\n\n${currentDraft}`,
+          temperature: baseTemperature
         });
         
-        finalContent = refinement.content;
-        totalTokens += refinement.tokens;
-        
-        // Re-check
-        aiCheck = checkAIDetection(finalContent);
+        totalTokens += humanize.tokens;
+        currentDraft = humanize.content;
+        aiCheck = checkAIDetection(currentDraft);
       }
+      
+      finalContent = currentDraft;
     }
     
     const generationTime = Date.now() - startTime;

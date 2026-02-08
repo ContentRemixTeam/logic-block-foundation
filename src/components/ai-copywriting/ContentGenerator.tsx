@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,9 +31,11 @@ import {
   FEEDBACK_TAGS
 } from '@/types/aiCopywriting';
 import { GenerationMode, DEFAULT_GENERATION_MODE, GENERATION_MODE_CONFIGS } from '@/types/generationModes';
+import { CopyControls, CONTENT_TYPE_CONTROL_DEFAULTS, DEFAULT_COPY_CONTROLS } from '@/types/copyControls';
 import { getAIDetectionAssessment } from '@/lib/ai-detection-checker';
 import { AddToCalendarModal } from './AddToCalendarModal';
 import { GenerationModeSelector } from './GenerationModeSelector';
+import { CopyControlsPanel } from './CopyControlsPanel';
 import { 
   Sparkles, 
   Loader2, 
@@ -64,6 +66,9 @@ export function ContentGenerator() {
   const [productId, setProductId] = useState<string>('');
   const [additionalContext, setAdditionalContext] = useState('');
   const [generationMode, setGenerationMode] = useState<GenerationMode>(DEFAULT_GENERATION_MODE);
+  const [copyControls, setCopyControls] = useState<CopyControls>(
+    CONTENT_TYPE_CONTROL_DEFAULTS['welcome_email_1'] || DEFAULT_COPY_CONTROLS
+  );
   const [generatedCopy, setGeneratedCopy] = useState<{
     id: string;
     copy: string;
@@ -81,6 +86,12 @@ export function ContentGenerator() {
 
   const hasApiKey = apiKey?.key_status === 'valid';
 
+  // Auto-set controls when content type changes
+  useEffect(() => {
+    const defaults = CONTENT_TYPE_CONTROL_DEFAULTS[contentType] || DEFAULT_COPY_CONTROLS;
+    setCopyControls(defaults);
+  }, [contentType]);
+
   const handleGenerate = async () => {
     try {
       const result = await generateCopy.mutateAsync({
@@ -88,6 +99,7 @@ export function ContentGenerator() {
         productId: productId || undefined,
         additionalContext: additionalContext || undefined,
         generationMode,
+        copyControls,
       });
 
       // Calculate AI detection score from the copy if not returned directly
@@ -253,6 +265,12 @@ export function ContentGenerator() {
             <GenerationModeSelector
               value={generationMode}
               onChange={setGenerationMode}
+            />
+
+            {/* Copy Controls Panel */}
+            <CopyControlsPanel
+              value={copyControls}
+              onChange={setCopyControls}
             />
 
             {/* Generate Button */}

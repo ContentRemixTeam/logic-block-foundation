@@ -12,6 +12,7 @@ import {
   VoiceProfile
 } from '@/types/aiCopywriting';
 import { GenerationMode } from '@/types/generationModes';
+import { CopyControls } from '@/types/copyControls';
 import { toast } from 'sonner';
 import { Json } from '@/integrations/supabase/types';
 
@@ -414,11 +415,13 @@ export function useGenerateCopy() {
       productId,
       additionalContext,
       generationMode = 'premium',
+      copyControls,
     }: {
       contentType: ContentType;
       productId?: string;
       additionalContext?: string;
       generationMode?: GenerationMode;
+      copyControls?: CopyControls;
     }) => {
       if (!user) throw new Error('Not authenticated');
       
@@ -468,6 +471,7 @@ export function useGenerateCopy() {
       const result = await OpenAIService.generateCopy(user.id, {
         contentType,
         generationMode,
+        copyControls,
         context: {
           businessProfile,
           productToPromote: product,
