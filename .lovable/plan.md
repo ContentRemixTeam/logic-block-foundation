@@ -1,381 +1,261 @@
 
-
-# Hybrid AI Email Generation Integration for Launch Planner V2
+# Universal Content System + Brand DNA Implementation Plan
 
 ## Overview
 
-This plan implements a user-friendly AI copy generation flow that meets users where they are in their planning process, with three key integration points:
-
-1. **Step 4 (Pre-Launch Strategy)** - Lightweight hints when "Need to write" is selected
-2. **Step 8 (Review Step)** - Batch generation hub before creating the launch
-3. **Post-Wizard (Project Page)** - Persistent access to content generation
+This plan transforms the AI copywriting system from email-focused to a universal content generation engine with 10+ content types, adds Brand DNA features for deep personalization (custom banned phrases, frameworks, signature phrases, emoji preferences, and brand values), and integrates everything into the existing generation pipeline.
 
 ---
 
-## User Experience Flow
+## Current State Analysis
+
+### What Exists:
+- **Content Types**: 9 types defined in `CONTENT_TYPE_OPTIONS` (5 welcome emails, 2 sales page types, 1 social post, 1 promo email)
+- **Brand Profile**: Basic fields (business_name, industry, voice_profile, voice_samples) in `brand_profiles` table
+- **Copy Controls**: Length, emotion, urgency, tone controls with defaults per content type
+- **Quality System**: Multi-pass generation with AI detection, banned phrases, and tactical tip validation
+- **Generation Modes**: Efficient (4-pass) and Premium (7-pass)
+
+### What's Missing:
+- Universal content types (LinkedIn, Twitter threads, Facebook ads, blog posts, video scripts, Instagram)
+- Brand DNA features (custom banned words, frameworks, signature phrases, emoji control, brand values)
+- Content type selector UI organized by category
+- Integration of Brand DNA into the generation pipeline
+
+---
+
+## Implementation Phases
+
+### Phase 1: Database Schema Updates
+
+Add Brand DNA fields to the `brand_profiles` table:
+
+```sql
+ALTER TABLE brand_profiles
+ADD COLUMN IF NOT EXISTS custom_banned_phrases TEXT[] DEFAULT '{}',
+ADD COLUMN IF NOT EXISTS frameworks JSONB DEFAULT '[]',
+ADD COLUMN IF NOT EXISTS signature_phrases JSONB DEFAULT '[]',
+ADD COLUMN IF NOT EXISTS emoji_preferences JSONB DEFAULT '{"use_emojis": false, "preferred_emojis": []}',
+ADD COLUMN IF NOT EXISTS content_philosophies TEXT[] DEFAULT '{}',
+ADD COLUMN IF NOT EXISTS brand_values TEXT[] DEFAULT '{}';
+```
+
+**No new tables needed** - extends existing brand_profiles for data locality.
+
+---
+
+### Phase 2: Type Definitions
+
+#### 2.1 Universal Content Types (`src/types/contentTypes.ts`)
+
+Create a new organized content type system:
+
+| Category | Content Types |
+|----------|--------------|
+| **Email** | Welcome Emails 1-5, Newsletter, Promo Email |
+| **Social** | Instagram Post, LinkedIn Post, Twitter/X Thread |
+| **Ad** | Facebook Ad |
+| **Sales** | Sales Page Headline, Sales Page Body |
+| **Other** | Blog Post, Video Script |
+
+Each type includes:
+- **id**: Unique identifier
+- **category**: Email/Social/Ad/Sales/Other
+- **name**: Display name
+- **icon**: Emoji for UI
+- **description**: What it's for
+- **defaultControls**: Auto-set copy controls
+- **guidance**: Specific prompt instructions for that content type
+
+#### 2.2 Brand DNA Types (`src/types/brandDNA.ts`)
+
+```typescript
+interface BrandDNA {
+  custom_banned_phrases: string[];
+  frameworks: BrandFramework[];
+  signature_phrases: string[];
+  emoji_preferences: { use_emojis: boolean; preferred_emojis: string[] };
+  content_philosophies: string[];
+  brand_values: string[];
+}
+
+interface BrandFramework {
+  id: string;
+  name: string;
+  description: string;
+  example?: string;
+}
+```
+
+---
+
+### Phase 3: UI Components
+
+#### 3.1 Content Type Selector (`src/components/ai-copywriting/ContentTypeSelector.tsx`)
+
+**Design:**
+- Visual grid organized by category (Email, Social, Ad, Sales, Other)
+- Each type shows icon, name, and description
+- Selected state highlighted with primary color
+- Replaces current dropdown in ContentGenerator
+
+#### 3.2 Brand DNA Editor (`src/components/ai-copywriting/BrandDNAPanel.tsx`)
+
+**Tabbed interface with 4 sections:**
+
+| Tab | Features |
+|-----|----------|
+| **Banned Words** | Add/remove custom phrases to avoid |
+| **Frameworks** | Create named frameworks with descriptions and examples |
+| **Phrases** | Signature expressions + emoji preferences toggle |
+| **Values** | Content philosophies and brand values (text areas) |
+
+---
+
+### Phase 4: Hooks & Data Layer
+
+#### 4.1 Brand DNA Hook (`src/hooks/useBrandDNA.ts`)
+
+- `useBrandDNA()`: Fetches Brand DNA from brand_profiles, returns DEFAULT_BRAND_DNA for new users
+- `saveBrandDNA()`: Updates Brand DNA fields on brand_profiles
+
+#### 4.2 Update Existing Hooks
+
+- Extend `useBrandProfile` to include Brand DNA fields
+- Update `useGenerateCopy` to pass Brand DNA to OpenAIService
+
+---
+
+### Phase 5: Generation Pipeline Integration
+
+#### 5.1 Update OpenAI Service (`src/lib/openai-service.ts`)
+
+1. **Add Brand DNA to context interface:**
+```typescript
+context: {
+  businessProfile?: Partial<BrandProfile>;
+  brandDNA?: BrandDNA; // Add this
+  productToPromote?: UserProduct | null;
+  additionalContext?: string;
+  pastFeedback?: AICopyGeneration[];
+}
+```
+
+2. **Inject Brand DNA into system prompt:**
+```
+❌ NEVER USE THESE WORDS:
+- [custom_banned_phrases...]
+
+🎯 YOUR FRAMEWORKS:
+**Framework Name**: Description
+Example: "..."
+
+💬 SIGNATURE PHRASES (use when relevant):
+- "..."
+
+😊 Preferred emojis: 🎉 ✨ 💡 (or ❌ DO NOT USE EMOJIS)
+
+📚 CONTENT PHILOSOPHIES:
+- [philosophies...]
+```
+
+3. **Update banned phrase validation:**
+```typescript
+const allBanned = [
+  ...BANNED_PHRASES, // System defaults
+  ...(options.context.brandDNA?.custom_banned_phrases || [])
+];
+```
+
+4. **Add content type guidance:**
+```typescript
+const contentTypeDef = getContentType(options.contentType);
+if (contentTypeDef) {
+  prompt += `\n\n═══ CONTENT TYPE: ${contentTypeDef.name} ═══\n`;
+  prompt += contentTypeDef.guidance;
+}
+```
+
+---
+
+### Phase 6: Update ContentGenerator UI
+
+1. Replace dropdown with `<ContentTypeSelector>` component
+2. Auto-set copy controls when content type changes
+3. Fetch Brand DNA and pass to generation
+
+---
+
+### Phase 7: Navigation & Routing
+
+1. Add Brand DNA page route: `/ai-copywriting/brand-dna`
+2. Add navigation link in AI Dashboard or sidebar
+
+---
+
+## File Changes Summary
+
+| Action | File Path |
+|--------|-----------|
+| **Create** | `src/types/contentTypes.ts` |
+| **Create** | `src/types/brandDNA.ts` |
+| **Create** | `src/components/ai-copywriting/ContentTypeSelector.tsx` |
+| **Create** | `src/components/ai-copywriting/BrandDNAPanel.tsx` |
+| **Create** | `src/hooks/useBrandDNA.ts` |
+| **Modify** | `src/types/aiCopywriting.ts` (add new content types) |
+| **Modify** | `src/types/copyControls.ts` (add defaults for new types) |
+| **Modify** | `src/lib/openai-service.ts` (Brand DNA + content guidance) |
+| **Modify** | `src/hooks/useAICopywriting.ts` (fetch/pass Brand DNA) |
+| **Modify** | `src/components/ai-copywriting/ContentGenerator.tsx` (new selector) |
+| **Modify** | `src/components/ai-copywriting/AIDashboard.tsx` (Brand DNA link) |
+
+---
+
+## Technical Details
+
+### New Content Types with Defaults
 
 ```text
-Step 4: Pre-Launch Strategy
-    User selects "Warm-Up Sequence" → "Need to write"
-        ↓
-    See subtle hint: "✨ AI can write this for you"
-    (No action required here - just awareness)
-        ↓
-    Continue planning...
-        ↓
-Step 8: Review & Complete
-    See new "Content to Create" section showing:
-    ├── 📧 Warm-Up Sequence (5 emails) - Need to write
-    ├── 📧 Launch Sequence (7 emails) - Need to write
-    ├── 📄 Sales Page - In progress
-    └── [Generate All with AI] or [Generate] per item
-        ↓
-    User clicks "Generate Warm-Up Sequence"
-        ↓
-    Modal opens with context preview (offer, dates, customer)
-    Multi-pass generation (30-45s)
-    Preview 5 emails with AI detection scores
-        ↓
-    User can:
-    ├── Regenerate individual emails
-    ├── Edit inline
-    ├── "Add to Calendar" (schedules based on cart open date)
-    └── "Save to Vault" (for later)
-        ↓
-    Click "Create Launch"
-        ↓
-Project Page (after creation)
-    "Content Needs" card shows any ungenerated sequences
-    Same AI generation available post-wizard
+instagram_post:   short, high emotion, no urgency, casual
+linkedin_post:    medium, moderate emotion, no urgency, balanced
+twitter_thread:   medium, moderate emotion, no urgency, casual
+facebook_ad:      short, high emotion, soft urgency, casual
+blog_post:        long, moderate emotion, no urgency, balanced
+video_script:     medium, high emotion, no urgency, casual
+email_newsletter: medium, moderate emotion, no urgency, balanced
 ```
 
----
+### Content Type Guidance Examples
 
-## Part 1: Step 4 - Lightweight AI Hints
-
-### File: `src/components/wizards/launch-v2/steps/StepPreLaunchStrategy.tsx`
-
-**Changes:**
-
-Add subtle AI hint when user selects "Need to write" for any email sequence.
-
-**Current behavior** (lines 537-547):
-```tsx
-{sequence?.status === 'needs-creation' && (
-  <div className="space-y-1">
-    <Label className="text-xs text-muted-foreground">Deadline (optional)</Label>
-    <Input type="date" ... />
-  </div>
-)}
+**Instagram Post:**
+```
+REQUIREMENTS:
+- Hook in first 3 words
+- Line breaks for readability (2-3 lines max per paragraph)
+- One clear point
+- Engagement question at end
+- 100-300 words max
 ```
 
-**New behavior:**
-```tsx
-{sequence?.status === 'needs-creation' && (
-  <div className="space-y-2">
-    <div className="flex items-center gap-2 text-xs text-primary">
-      <Sparkles className="h-3 w-3" />
-      <span>AI can write this for you in the Review step</span>
-    </div>
-    <div className="space-y-1">
-      <Label className="text-xs text-muted-foreground">Deadline (optional)</Label>
-      <Input type="date" ... />
-    </div>
-  </div>
-)}
+**Video Script:**
 ```
-
-**Also add hint for Sales Page:**
-
-When `salesPageStatus === 'needs-creation'`:
-```tsx
-<div className="flex items-center gap-2 text-xs text-primary mt-2">
-  <Sparkles className="h-3 w-3" />
-  <span>Generate sales page copy with AI in the Review step</span>
-</div>
+REQUIREMENTS:
+- Hook in first 3 seconds
+- Pattern interrupts every 30s
+- Conversational (write how you speak)
+- Visual cues noted: [B-roll], [Show screen]
+- Strong CTA
+- 300-800 words (2-5 min)
 ```
-
----
-
-## Part 2: Step 8 - Content Generation Hub
-
-### File: `src/components/wizards/launch-v2/steps/StepReviewComplete.tsx`
-
-**New Section: Content to Create**
-
-Add this section between "Launch Summary" and "Task Preview" (around line 201):
-
-**Structure:**
-```tsx
-{/* Content to Create Hub */}
-<Card>
-  <CardHeader className="pb-3">
-    <CardTitle className="flex items-center gap-2 text-base">
-      <FileText className="h-5 w-5 text-primary" />
-      Content to Create
-    </CardTitle>
-    <p className="text-sm text-muted-foreground">
-      Generate high-quality copy with AI before creating your launch
-    </p>
-  </CardHeader>
-  <CardContent className="space-y-3">
-    {/* List of content needing creation */}
-    {contentNeedsCreation.map(item => (
-      <ContentNeedsItem 
-        key={item.id}
-        item={item}
-        onGenerate={() => openAIGenerator(item)}
-        hasAPIKey={hasValidAPIKey}
-      />
-    ))}
-    
-    {/* Batch generate button */}
-    {contentNeedsCreation.length > 1 && (
-      <div className="pt-3 border-t">
-        <Button onClick={handleGenerateAll} disabled={!hasValidAPIKey}>
-          <Sparkles className="h-4 w-4 mr-2" />
-          Generate All ({contentNeedsCreation.length} items)
-        </Button>
-      </div>
-    )}
-    
-    {/* No API key warning */}
-    {!hasValidAPIKey && (
-      <Alert variant="warning">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription>
-          <span>Connect your OpenAI API key to use AI generation. </span>
-          <Link to="/ai-copywriting" className="underline">Set up API key</Link>
-        </AlertDescription>
-      </Alert>
-    )}
-  </CardContent>
-</Card>
-```
-
-**ContentNeedsItem Component (inline):**
-```tsx
-function ContentNeedsItem({ item, onGenerate, hasAPIKey, isGenerated }) {
-  return (
-    <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
-      <div className="flex items-center gap-3">
-        <Mail className="h-4 w-4 text-muted-foreground" />
-        <div>
-          <p className="text-sm font-medium">{item.label}</p>
-          <p className="text-xs text-muted-foreground">
-            {item.emailCount} emails • {item.purpose}
-          </p>
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        {isGenerated ? (
-          <Badge className="bg-green-100 text-green-800">
-            <Check className="h-3 w-3 mr-1" />
-            Generated
-          </Badge>
-        ) : (
-          <Button 
-            size="sm" 
-            variant="outline" 
-            onClick={onGenerate}
-            disabled={!hasAPIKey}
-          >
-            <Sparkles className="h-3 w-3 mr-1" />
-            Generate
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-}
-```
-
-**Helper function to build content needs list:**
-```tsx
-const buildContentNeedsList = useMemo(() => {
-  const needs: ContentNeedItem[] = [];
-  
-  // Email sequences that need creation
-  const sequences = data.emailSequences || [];
-  sequences.forEach(seq => {
-    if (seq.status === 'needs-creation') {
-      const config = EMAIL_SEQUENCE_CONFIGS[`launch_${seq.type}_sequence`];
-      if (config) {
-        needs.push({
-          id: seq.type,
-          type: 'email_sequence',
-          contentType: `launch_${seq.type}_sequence` as WizardContentType,
-          label: config.label,
-          emailCount: config.emailCount,
-          purpose: config.emails[0]?.purpose || 'Email sequence',
-        });
-      }
-    }
-  });
-  
-  // Sales page
-  if (data.salesPageStatus === 'needs-creation' || data.salesPageStatus === 'in-progress') {
-    needs.push({
-      id: 'sales_page',
-      type: 'sales_page',
-      contentType: 'launch_sales_page',
-      label: 'Sales Page',
-      purpose: 'Full long-form sales page copy',
-    });
-  }
-  
-  return needs;
-}, [data.emailSequences, data.salesPageStatus]);
-```
-
----
-
-## Part 3: Generated Content State Management
-
-### New State in StepReviewComplete
-
-Track which content has been generated within the wizard session:
-
-```tsx
-const [generatedContent, setGeneratedContent] = useState<Record<string, boolean>>({});
-const [openGeneratorType, setOpenGeneratorType] = useState<WizardContentType | null>(null);
-
-// After successful generation
-const handleGenerationComplete = (contentType: WizardContentType) => {
-  setGeneratedContent(prev => ({ ...prev, [contentType]: true }));
-  setOpenGeneratorType(null);
-};
-```
-
----
-
-## Part 4: Integrate WizardAIGeneratorModal
-
-### In StepReviewComplete
-
-Add the modal component and connect it to the Review step:
-
-```tsx
-{/* AI Generation Modal */}
-<WizardAIGeneratorModal
-  open={openGeneratorType !== null}
-  onOpenChange={(open) => !open && setOpenGeneratorType(null)}
-  wizardType="launch-v2"
-  wizardData={data}
-  contentType={openGeneratorType || 'launch_warmup_sequence'}
-  baseDate={data.cartOpensDate}
-  onScheduleToCalendar={(emails, baseDate) => {
-    // Will be scheduled when calendar is set up
-  }}
-  onSaveToVault={(emails) => {
-    // Will be saved to vault
-  }}
-/>
-```
-
----
-
-## Part 5: API Key Status Check
-
-### New Hook Usage
-
-Add API key status check to StepReviewComplete:
-
-```tsx
-import { useAPIKey } from '@/hooks/useAICopywriting';
-
-// In component
-const { data: apiKey } = useAPIKey();
-const hasValidAPIKey = apiKey?.key_status === 'valid';
-```
-
----
-
-## Part 6: Visual Flow Indicators
-
-### Generated Content Indicator
-
-When content is generated, update the UI:
-
-**Before generation:**
-```
-📧 Warm-Up Sequence (5 emails)    [Generate]
-```
-
-**After generation:**
-```
-✅ Warm-Up Sequence (5 emails)    [View] [Regenerate]
-   └── Scheduled to calendar • Est. cost: $0.18
-```
-
----
-
-## Part 7: Files Summary
-
-| File | Changes |
-|------|---------|
-| `src/components/wizards/launch-v2/steps/StepPreLaunchStrategy.tsx` | Add AI hints for email sequences and sales page |
-| `src/components/wizards/launch-v2/steps/StepReviewComplete.tsx` | Add "Content to Create" hub section with AI generation |
-| `src/components/wizards/shared/ContentNeedsHub.tsx` | **NEW** - Reusable component for content generation list |
-| `src/types/wizardAIGeneration.ts` | Add `ContentNeedItem` type |
-
----
-
-## Part 8: Technical Details
-
-### New Type: ContentNeedItem
-
-Add to `src/types/wizardAIGeneration.ts`:
-
-```tsx
-export interface ContentNeedItem {
-  id: string;
-  type: 'email_sequence' | 'sales_page' | 'social_batch';
-  contentType: WizardContentType;
-  label: string;
-  emailCount?: number;
-  purpose: string;
-}
-```
-
-### Mapping Email Sequence Types
-
-| Wizard Selection | WizardContentType |
-|-----------------|-------------------|
-| warmUp | `launch_warmup_sequence` |
-| launch | `launch_open_sequence` |
-| cartClose | `launch_cartclose_sequence` |
-| postPurchase | `launch_postpurchase_sequence` |
-| (follow-up) | `launch_followup_sequence` |
-
----
-
-## Part 9: Edge Cases Handled
-
-1. **No API key configured**: Show warning with link to settings, disable generate buttons
-2. **No brand profile**: Modal shows requirement message
-3. **No sequences marked "needs creation"**: Hide the entire Content to Create section
-4. **User skips generation**: Content is still available post-wizard on project page
-5. **Partial generation**: Track which items are generated, allow individual regeneration
-
----
-
-## Part 10: Future Enhancement - Post-Wizard Access
-
-After the launch is created, the Project page will have a "Content Needs" card that lists any sequences marked as "needs-creation" that weren't generated. This ensures users can always access AI generation even after completing the wizard.
-
-**Implementation deferred to next phase** - will use the same `ContentNeedsHub` component.
 
 ---
 
 ## Success Criteria
 
-1. Users see subtle AI hints in Step 4 when selecting "Need to write"
-2. Step 8 shows clear list of content needing creation
-3. Users can generate individual sequences or batch generate all
-4. Generated content shows AI detection scores
-5. Content can be scheduled to calendar or saved to vault
-6. Missing API key shows clear guidance
-7. Generated state persists within wizard session
-8. Smooth UX with loading states and progress indicators
-
+- 10+ content types available, organized by category
+- Content type selection auto-sets appropriate copy controls
+- Brand DNA page allows managing custom banned phrases, frameworks, signature phrases, emoji preferences, and values
+- All Brand DNA elements appear in generated content
+- Custom banned phrases are enforced (added to existing banned phrase check)
+- Each content type has specific guidance in the prompt
+- Generation quality remains consistent (8+/10 for Premium mode)
