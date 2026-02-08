@@ -12,6 +12,20 @@ export interface EmojiPreferences {
   preferred_emojis: string[];
 }
 
+export interface ContentExamples {
+  email: string[];      // Up to 2 examples
+  social: string[];     // Up to 2 examples
+  sales: string[];      // Up to 2 examples
+  longform: string[];   // Up to 2 examples
+}
+
+export const DEFAULT_CONTENT_EXAMPLES: ContentExamples = {
+  email: ['', ''],
+  social: ['', ''],
+  sales: ['', ''],
+  longform: ['', '']
+};
+
 export interface BrandDNA {
   custom_banned_phrases: string[];
   frameworks: BrandFramework[];
@@ -19,6 +33,7 @@ export interface BrandDNA {
   emoji_preferences: EmojiPreferences;
   content_philosophies: string[];
   brand_values: string[];
+  content_examples: ContentExamples;
 }
 
 export const DEFAULT_BRAND_DNA: BrandDNA = {
@@ -30,7 +45,8 @@ export const DEFAULT_BRAND_DNA: BrandDNA = {
     preferred_emojis: []
   },
   content_philosophies: [],
-  brand_values: []
+  brand_values: [],
+  content_examples: DEFAULT_CONTENT_EXAMPLES
 };
 
 // Helper to parse Brand DNA from database JSON
@@ -41,6 +57,7 @@ export function parseBrandDNA(data: {
   emoji_preferences?: unknown;
   content_philosophies?: string[] | null;
   brand_values?: string[] | null;
+  content_examples?: unknown;
 }): BrandDNA {
   return {
     custom_banned_phrases: data.custom_banned_phrases || [],
@@ -50,6 +67,9 @@ export function parseBrandDNA(data: {
       ? data.emoji_preferences 
       : DEFAULT_BRAND_DNA.emoji_preferences) as EmojiPreferences,
     content_philosophies: data.content_philosophies || [],
-    brand_values: data.brand_values || []
+    brand_values: data.brand_values || [],
+    content_examples: (data.content_examples && typeof data.content_examples === 'object'
+      ? data.content_examples
+      : DEFAULT_CONTENT_EXAMPLES) as ContentExamples
   };
 }

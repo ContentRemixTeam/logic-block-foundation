@@ -424,6 +424,7 @@ export type Database = {
         Row: {
           brand_values: string[] | null
           business_name: string
+          content_examples: Json | null
           content_philosophies: string[] | null
           created_at: string | null
           custom_banned_phrases: string[] | null
@@ -444,6 +445,7 @@ export type Database = {
         Insert: {
           brand_values?: string[] | null
           business_name: string
+          content_examples?: Json | null
           content_philosophies?: string[] | null
           created_at?: string | null
           custom_banned_phrases?: string[] | null
@@ -464,6 +466,7 @@ export type Database = {
         Update: {
           brand_values?: string[] | null
           business_name?: string
+          content_examples?: Json | null
           content_philosophies?: string[] | null
           created_at?: string | null
           custom_banned_phrases?: string[] | null

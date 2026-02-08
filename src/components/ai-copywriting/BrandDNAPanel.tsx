@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { X, Plus, Save, Loader2 } from 'lucide-react';
 import { BrandDNA, BrandFramework } from '@/types/brandDNA';
+import { BrandDNAExamplesTab } from './BrandDNAExamplesTab';
 
 interface BrandDNAPanelProps {
   brandDNA: BrandDNA;
@@ -78,11 +79,12 @@ export function BrandDNAPanel({ brandDNA, onChange, onSave, isSaving }: BrandDNA
       </div>
       
       <Tabs defaultValue="banned" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="banned">Banned Words</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="banned">Banned</TabsTrigger>
           <TabsTrigger value="frameworks">Frameworks</TabsTrigger>
           <TabsTrigger value="phrases">Phrases</TabsTrigger>
           <TabsTrigger value="values">Values</TabsTrigger>
+          <TabsTrigger value="examples">Examples</TabsTrigger>
         </TabsList>
         
         {/* Banned Words Tab */}
@@ -311,6 +313,17 @@ export function BrandDNAPanel({ brandDNA, onChange, onSave, isSaving }: BrandDNA
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+        
+        {/* Examples Tab */}
+        <TabsContent value="examples" className="space-y-4">
+          <BrandDNAExamplesTab
+            contentExamples={brandDNA.content_examples}
+            onChange={(examples) => onChange({
+              ...brandDNA,
+              content_examples: examples
+            })}
+          />
         </TabsContent>
       </Tabs>
     </div>
