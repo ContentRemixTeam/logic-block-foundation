@@ -6851,6 +6851,192 @@ export type Database = {
           },
         ]
       }
+      webinars: {
+        Row: {
+          attendee_bonus_deadline: string | null
+          attendee_bonus_description: string | null
+          cart_close_date: string | null
+          checkout_url: string | null
+          confirmation_email_status: string | null
+          content_outline: Json | null
+          content_style: string | null
+          conversion_goal_percent: number | null
+          created_at: string
+          cycle_id: string | null
+          description: string | null
+          duration_minutes: number | null
+          event_date: string | null
+          event_time: string | null
+          event_type: string
+          experience_level: string | null
+          followup_email_status: string | null
+          followup_sequence_length: number | null
+          has_attendee_bonus: boolean | null
+          has_payment_plan: boolean | null
+          has_practice_run: boolean | null
+          has_replay: boolean | null
+          id: string
+          ideal_attendee: string | null
+          include_qa: boolean | null
+          is_live: boolean | null
+          main_problem: string | null
+          name: string
+          offer_description: string | null
+          offer_name: string | null
+          offer_price: number | null
+          offer_timing: string | null
+          payment_plan_details: string | null
+          platform: string | null
+          practice_date: string | null
+          project_id: string | null
+          qa_duration_minutes: number | null
+          registration_bullets: Json | null
+          registration_goal: number | null
+          registration_headline: string | null
+          registration_open_date: string | null
+          registration_platform: string | null
+          registration_url: string | null
+          reminder_sequence_count: number | null
+          replay_access_hours: number | null
+          replay_duration_hours: number | null
+          sales_page_url: string | null
+          show_up_goal_percent: number | null
+          status: string | null
+          timezone: string | null
+          topic: string | null
+          transformation: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attendee_bonus_deadline?: string | null
+          attendee_bonus_description?: string | null
+          cart_close_date?: string | null
+          checkout_url?: string | null
+          confirmation_email_status?: string | null
+          content_outline?: Json | null
+          content_style?: string | null
+          conversion_goal_percent?: number | null
+          created_at?: string
+          cycle_id?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          event_date?: string | null
+          event_time?: string | null
+          event_type?: string
+          experience_level?: string | null
+          followup_email_status?: string | null
+          followup_sequence_length?: number | null
+          has_attendee_bonus?: boolean | null
+          has_payment_plan?: boolean | null
+          has_practice_run?: boolean | null
+          has_replay?: boolean | null
+          id?: string
+          ideal_attendee?: string | null
+          include_qa?: boolean | null
+          is_live?: boolean | null
+          main_problem?: string | null
+          name: string
+          offer_description?: string | null
+          offer_name?: string | null
+          offer_price?: number | null
+          offer_timing?: string | null
+          payment_plan_details?: string | null
+          platform?: string | null
+          practice_date?: string | null
+          project_id?: string | null
+          qa_duration_minutes?: number | null
+          registration_bullets?: Json | null
+          registration_goal?: number | null
+          registration_headline?: string | null
+          registration_open_date?: string | null
+          registration_platform?: string | null
+          registration_url?: string | null
+          reminder_sequence_count?: number | null
+          replay_access_hours?: number | null
+          replay_duration_hours?: number | null
+          sales_page_url?: string | null
+          show_up_goal_percent?: number | null
+          status?: string | null
+          timezone?: string | null
+          topic?: string | null
+          transformation?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attendee_bonus_deadline?: string | null
+          attendee_bonus_description?: string | null
+          cart_close_date?: string | null
+          checkout_url?: string | null
+          confirmation_email_status?: string | null
+          content_outline?: Json | null
+          content_style?: string | null
+          conversion_goal_percent?: number | null
+          created_at?: string
+          cycle_id?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          event_date?: string | null
+          event_time?: string | null
+          event_type?: string
+          experience_level?: string | null
+          followup_email_status?: string | null
+          followup_sequence_length?: number | null
+          has_attendee_bonus?: boolean | null
+          has_payment_plan?: boolean | null
+          has_practice_run?: boolean | null
+          has_replay?: boolean | null
+          id?: string
+          ideal_attendee?: string | null
+          include_qa?: boolean | null
+          is_live?: boolean | null
+          main_problem?: string | null
+          name?: string
+          offer_description?: string | null
+          offer_name?: string | null
+          offer_price?: number | null
+          offer_timing?: string | null
+          payment_plan_details?: string | null
+          platform?: string | null
+          practice_date?: string | null
+          project_id?: string | null
+          qa_duration_minutes?: number | null
+          registration_bullets?: Json | null
+          registration_goal?: number | null
+          registration_headline?: string | null
+          registration_open_date?: string | null
+          registration_platform?: string | null
+          registration_url?: string | null
+          reminder_sequence_count?: number | null
+          replay_access_hours?: number | null
+          replay_duration_hours?: number | null
+          sales_page_url?: string | null
+          show_up_goal_percent?: number | null
+          status?: string | null
+          timezone?: string | null
+          topic?: string | null
+          transformation?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webinars_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+          {
+            foreignKeyName: "webinars_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       weekly_goals: {
         Row: {
           created_at: string
