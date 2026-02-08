@@ -11,6 +11,7 @@ import {
   ContentType,
   VoiceProfile
 } from '@/types/aiCopywriting';
+import { GenerationMode } from '@/types/generationModes';
 import { toast } from 'sonner';
 import { Json } from '@/integrations/supabase/types';
 
@@ -412,10 +413,12 @@ export function useGenerateCopy() {
       contentType,
       productId,
       additionalContext,
+      generationMode = 'premium',
     }: {
       contentType: ContentType;
       productId?: string;
       additionalContext?: string;
+      generationMode?: GenerationMode;
     }) => {
       if (!user) throw new Error('Not authenticated');
       
@@ -458,11 +461,13 @@ export function useGenerateCopy() {
         ...f,
         content_type: f.content_type as ContentType,
         prompt_context: f.prompt_context as Record<string, unknown>,
+        generation_mode: f.generation_mode as GenerationMode | undefined,
       }));
       
       // Generate copy
       const result = await OpenAIService.generateCopy(user.id, {
         contentType,
+        generationMode,
         context: {
           businessProfile,
           productToPromote: product,
@@ -485,13 +490,17 @@ export function useGenerateCopy() {
           product_promoted: productId || null,
           tokens_used: result.tokensUsed,
           generation_time_ms: result.generationTime,
+          generation_mode: generationMode,
         })
         .select()
         .single();
       
       if (error) throw error;
       
-      return generation as AICopyGeneration;
+      return {
+        ...generation,
+        generation_mode: generation.generation_mode as GenerationMode | undefined,
+      } as AICopyGeneration;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: aiCopywritingKeys.generations(user?.id || '') });

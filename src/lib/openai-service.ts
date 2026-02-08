@@ -1,11 +1,14 @@
 import { supabase } from '@/integrations/supabase/client';
 import { decryptAPIKey } from './encryption';
 import { VoiceProfile, BrandProfile, UserProduct, AICopyGeneration, ContentType } from '@/types/aiCopywriting';
+import { GenerationMode } from '@/types/generationModes';
 import { checkAIDetection } from './ai-detection-checker';
 import { STRATEGIC_EMAIL_CONFIGS, type EmailStrategyConfig } from './email-sequence-strategy';
 import AdaptiveLearningService, { AdaptiveParams } from './adaptive-learning-service';
+
 interface GenerateOptions {
   contentType: string;
+  generationMode?: GenerationMode;
   context: {
     businessProfile?: Partial<BrandProfile>;
     productToPromote?: UserProduct | null;
@@ -395,6 +398,29 @@ TONE: ${strategyConfig.tone}
 1. Subject line options (${strategyConfig.subjectLineCount} variations - curiosity-driven, not clickbait)
 2. Email body (plain text, no HTML)
 
+${options.contentType === 'welcome_email_1' && strategyConfig.tacticalTipRequirements ? `
+=== CRITICAL: TACTICAL TIP REQUIREMENT ===
+
+Email 1 MUST include ONE tactical tip that meets ALL these criteria:
+
+MUST HAVE:
+${strategyConfig.tacticalTipRequirements.mustHave.map(req => `✓ ${req}`).join('\n')}
+
+MUST AVOID:
+${strategyConfig.tacticalTipRequirements.mustAvoid.map(avoid => `❌ ${avoid}`).join('\n')}
+
+GOLD STANDARD: ${strategyConfig.tacticalTipRequirements.goldStandard}
+
+=== TACTICAL TIP EXAMPLES (Study These) ===
+${strategyConfig.tacticalTipExamples?.slice(0, 2).map((ex, i) => `
+EXAMPLE ${i + 1}: ${ex.topic}
+❌ BAD: "${ex.badExample}"
+✅ GOOD: "${ex.goodExample}"
+`).join('\n---\n') || ''}
+
+DO NOT write vague advice. GIVE THEM SOMETHING VALUABLE THEY CAN DO RIGHT NOW.
+` : ''}
+
 === CRITICAL REMINDERS ===
 - Match the voice profile EXACTLY (sound like the business owner, not ChatGPT)
 - Use the strategic context above - this isn't just an email, it's a specific moment in their journey
@@ -442,16 +468,89 @@ Write this email now. Remember: You're not just writing an email, you're enginee
     // Adjust base temperature based on learning
     const baseTemperature = 0.8 + adaptiveParams.temperatureAdjustment;
     
-    // PASS 1: Generate initial draft (with adaptive temperature)
-    const draft1 = await this.callOpenAI(apiKey, {
-      systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams),
-      userPrompt: this.buildUserPrompt(options),
-      temperature: baseTemperature
-    });
+    // Determine which mode to use
+    const generationMode = options.generationMode || 'premium';
+    const useEfficientMode = generationMode === 'efficient';
     
-    // PASS 2: Critique the draft
-    const critique = await this.callOpenAI(apiKey, {
-      systemPrompt: `You are a direct-response copywriting expert. Review this copy and identify:
+    let finalContent = '';
+    let totalTokens = 0;
+    let aiCheck = { score: 0, warnings: [] as string[], suggestions: [] as string[] };
+    
+    if (useEfficientMode) {
+      // EFFICIENT MODE: 4-pass system
+      
+      // Pass 1: Generate initial draft
+      const draft = await this.callOpenAI(apiKey, {
+        systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams),
+        userPrompt: this.buildUserPrompt(options),
+        temperature: baseTemperature,
+      });
+      totalTokens += draft.tokens;
+      
+      // Pass 2: Combined critique (strategic + voice + conversion)
+      const critique = await this.callOpenAI(apiKey, {
+        systemPrompt: `You are a direct-response copywriting expert. Review this ${options.contentType} and identify issues:
+
+${options.contentType === 'welcome_email_1' ? `
+CRITICAL FOR EMAIL 1: Check if there is a TACTICAL TIP that:
+1. Gives specific steps (not "think about" or "consider")
+2. Can be done within 30 minutes
+3. Has a clear expected outcome
+4. Is actionable TODAY
+
+If the tactical tip is missing or vague, this is a CRITICAL FAILURE.
+` : ''}
+
+1. STRATEGIC: Does it match the customer journey stage and preempt objections?
+2. VOICE: Does it sound like the provided writing samples?
+3. CONVERSION: Are CTAs clear? Is proof appropriate?
+${options.contentType === 'welcome_email_1' ? '4. TACTICAL TIP: Is there a specific, actionable tip they can do today?' : ''}
+
+Be specific and actionable.`,
+        userPrompt: `COPY TO CRITIQUE:\n${draft.content}\n\nProvide specific, actionable feedback.`,
+        temperature: 0.3,
+      });
+      totalTokens += critique.tokens;
+      
+      // Pass 3: Rewrite from critique
+      const rewrite = await this.callOpenAI(apiKey, {
+        systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams),
+        userPrompt: `ORIGINAL COPY:\n${draft.content}\n\nCRITIQUE:\n${critique.content}\n\nRewrite addressing all feedback. Make it better.`,
+        temperature: 0.7,
+      });
+      totalTokens += rewrite.tokens;
+      finalContent = rewrite.content;
+      
+      // Pass 4: AI detection refinement if needed
+      aiCheck = checkAIDetection(finalContent);
+      if (aiCheck.score > 3) {
+        const refinement = await this.callOpenAI(apiKey, {
+          systemPrompt: `Rewrite to sound 100% human. Current AI score: ${aiCheck.score}/10.
+
+Issues: ${aiCheck.warnings.join(', ')}
+
+Fix: ${aiCheck.suggestions.join(', ')}`,
+          userPrompt: finalContent,
+          temperature: 0.8,
+        });
+        totalTokens += refinement.tokens;
+        finalContent = refinement.content;
+        aiCheck = checkAIDetection(finalContent);
+      }
+      
+    } else {
+      // PREMIUM MODE: 7-pass system (original implementation)
+      
+      // PASS 1: Generate initial draft (with adaptive temperature)
+      const draft1 = await this.callOpenAI(apiKey, {
+        systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams),
+        userPrompt: this.buildUserPrompt(options),
+        temperature: baseTemperature
+      });
+      
+      // PASS 2: Critique the draft
+      const critique = await this.callOpenAI(apiKey, {
+        systemPrompt: `You are a direct-response copywriting expert. Review this copy and identify:
 1. Weak headlines (not curiosity-driven)
 2. Vague language (not specific enough)
 3. Missing emotional hooks
@@ -460,33 +559,73 @@ Write this email now. Remember: You're not just writing an email, you're enginee
 6. Any phrases that sound robotic or AI-generated
 
 Be brutally honest but constructive.`,
-      userPrompt: `COPY TO CRITIQUE:\n${draft1.content}\n\nBRAND VOICE SAMPLES:\n${options.context.businessProfile?.voice_samples?.slice(0, 2).join('\n\n') || 'None provided'}\n\nProvide specific critique with examples of what to fix.`,
-      temperature: 0.3
-    });
-    
-    // PASS 3: Regenerate based on critique (with adaptive params)
-    const pass3Copy = await this.callOpenAI(apiKey, {
-      systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams),
-      userPrompt: `ORIGINAL COPY:\n${draft1.content}\n\nCRITIQUE:\n${critique.content}\n\nRewrite the copy addressing all critique points. Make it:
+        userPrompt: `COPY TO CRITIQUE:\n${draft1.content}\n\nBRAND VOICE SAMPLES:\n${options.context.businessProfile?.voice_samples?.slice(0, 2).join('\n\n') || 'None provided'}\n\nProvide specific critique with examples of what to fix.`,
+        temperature: 0.3
+      });
+      
+      // PASS 3: Regenerate based on critique (with adaptive params)
+      const pass3Copy = await this.callOpenAI(apiKey, {
+        systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams),
+        userPrompt: `ORIGINAL COPY:\n${draft1.content}\n\nCRITIQUE:\n${critique.content}\n\nRewrite the copy addressing all critique points. Make it:
 - Tighter and more specific
 - More emotionally resonant
 - Better aligned with the brand voice
 - More human (less AI-sounding)
 
 Keep the same general structure but improve everything.`,
-      temperature: 0.7 + (adaptiveParams.temperatureAdjustment * 0.5) // Partial adjustment for pass 3
-    });
-    
-    let finalContent = pass3Copy.content;
-    let totalTokens = draft1.tokens + critique.tokens + pass3Copy.tokens;
-    
-    // Check AI detection score
-    let aiCheck = checkAIDetection(finalContent);
-    
-    // PASS 4: Additional refinement if AI score is high
-    if (aiCheck.score > 3) {
-      const refinement = await this.callOpenAI(apiKey, {
-        systemPrompt: `${this.buildSystemPrompt(options.context, adaptiveParams)}
+        temperature: 0.7 + (adaptiveParams.temperatureAdjustment * 0.5) // Partial adjustment for pass 3
+      });
+      
+      finalContent = pass3Copy.content;
+      totalTokens = draft1.tokens + critique.tokens + pass3Copy.tokens;
+      
+      // PASS 4: Strategic Audit for Email 1
+      if (options.contentType === 'welcome_email_1') {
+        const tacticalTipCheck = await this.callOpenAI(apiKey, {
+          systemPrompt: `You are auditing Email 1 for the most critical requirement: TACTICAL VALUE.
+
+Email 1's job is to deliver unexpected value through ONE specific, actionable tip.
+
+EVALUATION CRITERIA:
+1. Is there a tactical tip present?
+2. Is it specific (not vague advice)?
+3. Can someone do it within 30 minutes?
+4. Does it have clear steps?
+5. Is there an expected outcome?
+
+Rate the tactical tip: MISSING / VAGUE / GOOD / EXCELLENT
+
+If MISSING or VAGUE, explain exactly what's wrong and what should be there instead.`,
+          userPrompt: `EMAIL TO EVALUATE:\n${finalContent}\n\nEvaluate the tactical tip quality.`,
+          temperature: 0.2,
+        });
+        totalTokens += tacticalTipCheck.tokens;
+        
+        // If tactical tip is missing or vague, regenerate with stronger enforcement
+        if (tacticalTipCheck.content.includes('MISSING') || tacticalTipCheck.content.includes('VAGUE')) {
+          const tacticalFix = await this.callOpenAI(apiKey, {
+            systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams),
+            userPrompt: `CURRENT EMAIL:\n${finalContent}\n\nTACTICAL TIP EVALUATION:\n${tacticalTipCheck.content}\n\nThe tactical tip is MISSING or VAGUE. Rewrite the email with a SPECIFIC, ACTIONABLE tactical tip that:
+1. Has concrete steps they can follow
+2. Can be done in 30 minutes or less
+3. Will produce a visible result
+4. Invites them to report back
+
+DO NOT use vague advice. Give them something they can DO RIGHT NOW.`,
+            temperature: 0.7,
+          });
+          totalTokens += tacticalFix.tokens;
+          finalContent = tacticalFix.content;
+        }
+      }
+      
+      // Check AI detection score
+      aiCheck = checkAIDetection(finalContent);
+      
+      // PASS 5-7: Additional refinement if AI score is high
+      if (aiCheck.score > 3) {
+        const refinement = await this.callOpenAI(apiKey, {
+          systemPrompt: `${this.buildSystemPrompt(options.context, adaptiveParams)}
 
 CRITICAL: This copy scored ${aiCheck.score}/10 for AI detection. Rewrite to sound completely human.
 
@@ -497,15 +636,16 @@ MUST FIX:
 ${aiCheck.suggestions.join('\n')}
 
 Write like a real person - imperfect, conversational, authentic. Not like ChatGPT.`,
-        userPrompt: `Make this sound 100% human (current AI score: ${aiCheck.score}/10):\n\n${finalContent}`,
-        temperature: baseTemperature // Use adaptive temperature
-      });
-      
-      finalContent = refinement.content;
-      totalTokens += refinement.tokens;
-      
-      // Re-check
-      aiCheck = checkAIDetection(finalContent);
+          userPrompt: `Make this sound 100% human (current AI score: ${aiCheck.score}/10):\n\n${finalContent}`,
+          temperature: baseTemperature // Use adaptive temperature
+        });
+        
+        finalContent = refinement.content;
+        totalTokens += refinement.tokens;
+        
+        // Re-check
+        aiCheck = checkAIDetection(finalContent);
+      }
     }
     
     const generationTime = Date.now() - startTime;
