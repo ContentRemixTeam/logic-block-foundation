@@ -422,11 +422,17 @@ export type Database = {
       }
       brand_profiles: {
         Row: {
+          brand_values: string[] | null
           business_name: string
+          content_philosophies: string[] | null
           created_at: string | null
+          custom_banned_phrases: string[] | null
           customer_reviews: string[] | null
+          emoji_preferences: Json | null
+          frameworks: Json | null
           id: string
           industry: string | null
+          signature_phrases: Json | null
           target_customer: string | null
           transcript_samples: string[] | null
           updated_at: string | null
@@ -436,11 +442,17 @@ export type Database = {
           what_you_sell: string | null
         }
         Insert: {
+          brand_values?: string[] | null
           business_name: string
+          content_philosophies?: string[] | null
           created_at?: string | null
+          custom_banned_phrases?: string[] | null
           customer_reviews?: string[] | null
+          emoji_preferences?: Json | null
+          frameworks?: Json | null
           id?: string
           industry?: string | null
+          signature_phrases?: Json | null
           target_customer?: string | null
           transcript_samples?: string[] | null
           updated_at?: string | null
@@ -450,11 +462,17 @@ export type Database = {
           what_you_sell?: string | null
         }
         Update: {
+          brand_values?: string[] | null
           business_name?: string
+          content_philosophies?: string[] | null
           created_at?: string | null
+          custom_banned_phrases?: string[] | null
           customer_reviews?: string[] | null
+          emoji_preferences?: Json | null
+          frameworks?: Json | null
           id?: string
           industry?: string | null
+          signature_phrases?: Json | null
           target_customer?: string | null
           transcript_samples?: string[] | null
           updated_at?: string | null

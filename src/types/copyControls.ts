@@ -153,6 +153,42 @@ export const CONTENT_TYPE_CONTROL_DEFAULTS: Record<string, CopyControls> = {
     urgency: 'soft',
     tone: 'balanced'
   },
+  email_newsletter: {
+    length: 'medium',
+    emotion: 'moderate',
+    urgency: 'none',
+    tone: 'balanced'
+  },
+  promo_email: {
+    length: 'medium',
+    emotion: 'moderate',
+    urgency: 'soft',
+    tone: 'balanced'
+  },
+  instagram_post: {
+    length: 'short',
+    emotion: 'high',
+    urgency: 'none',
+    tone: 'casual'
+  },
+  linkedin_post: {
+    length: 'medium',
+    emotion: 'moderate',
+    urgency: 'none',
+    tone: 'balanced'
+  },
+  twitter_thread: {
+    length: 'medium',
+    emotion: 'moderate',
+    urgency: 'none',
+    tone: 'casual'
+  },
+  facebook_ad: {
+    length: 'short',
+    emotion: 'high',
+    urgency: 'soft',
+    tone: 'casual'
+  },
   social_post: {
     length: 'short',
     emotion: 'high',
@@ -163,7 +199,7 @@ export const CONTENT_TYPE_CONTROL_DEFAULTS: Record<string, CopyControls> = {
     length: 'short',
     emotion: 'high',
     urgency: 'soft',
-    tone: 'professional'
+    tone: 'balanced'
   },
   sales_page_body: {
     length: 'long',
@@ -171,11 +207,17 @@ export const CONTENT_TYPE_CONTROL_DEFAULTS: Record<string, CopyControls> = {
     urgency: 'strong',
     tone: 'professional'
   },
-  promo_email: {
-    length: 'medium',
+  blog_post: {
+    length: 'long',
     emotion: 'moderate',
-    urgency: 'soft',
+    urgency: 'none',
     tone: 'balanced'
+  },
+  video_script: {
+    length: 'medium',
+    emotion: 'high',
+    urgency: 'none',
+    tone: 'casual'
   }
 };
 

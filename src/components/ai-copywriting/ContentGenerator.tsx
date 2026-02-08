@@ -25,17 +25,16 @@ import {
   useRecentGenerations,
   useAPIKey
 } from '@/hooks/useAICopywriting';
-import { 
-  ContentType, 
-  CONTENT_TYPE_OPTIONS,
-  FEEDBACK_TAGS
-} from '@/types/aiCopywriting';
+import { useBrandDNA } from '@/hooks/useBrandDNA';
+import { ContentType } from '@/types/aiCopywriting';
+import { getContentType, CONTENT_TYPES } from '@/types/contentTypes';
 import { GenerationMode, DEFAULT_GENERATION_MODE, GENERATION_MODE_CONFIGS } from '@/types/generationModes';
-import { CopyControls, CONTENT_TYPE_CONTROL_DEFAULTS, DEFAULT_COPY_CONTROLS } from '@/types/copyControls';
+import { CopyControls, DEFAULT_COPY_CONTROLS } from '@/types/copyControls';
 import { getAIDetectionAssessment } from '@/lib/ai-detection-checker';
 import { AddToCalendarModal } from './AddToCalendarModal';
 import { GenerationModeSelector } from './GenerationModeSelector';
 import { CopyControlsPanel } from './CopyControlsPanel';
+import { ContentTypeSelector } from './ContentTypeSelector';
 import { 
   Sparkles, 
   Loader2, 
@@ -54,11 +53,13 @@ import { SaveToVaultModal } from './SaveToVaultModal';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { FEEDBACK_TAGS } from '@/types/aiCopywriting';
 
 export function ContentGenerator() {
   const { data: products } = useProducts();
   const { data: apiKey } = useAPIKey();
   const { data: recentGenerations } = useRecentGenerations(5);
+  const { brandDNA } = useBrandDNA();
   const generateCopy = useGenerateCopy();
   const rateCopy = useRateCopy();
 
@@ -67,7 +68,7 @@ export function ContentGenerator() {
   const [additionalContext, setAdditionalContext] = useState('');
   const [generationMode, setGenerationMode] = useState<GenerationMode>(DEFAULT_GENERATION_MODE);
   const [copyControls, setCopyControls] = useState<CopyControls>(
-    CONTENT_TYPE_CONTROL_DEFAULTS['welcome_email_1'] || DEFAULT_COPY_CONTROLS
+    getContentType('welcome_email_1')?.defaultControls || DEFAULT_COPY_CONTROLS
   );
   const [generatedCopy, setGeneratedCopy] = useState<{
     id: string;
@@ -88,8 +89,10 @@ export function ContentGenerator() {
 
   // Auto-set controls when content type changes
   useEffect(() => {
-    const defaults = CONTENT_TYPE_CONTROL_DEFAULTS[contentType] || DEFAULT_COPY_CONTROLS;
-    setCopyControls(defaults);
+    const ct = getContentType(contentType);
+    if (ct) {
+      setCopyControls(ct.defaultControls);
+    }
   }, [contentType]);
 
   const handleGenerate = async () => {
@@ -100,6 +103,7 @@ export function ContentGenerator() {
         additionalContext: additionalContext || undefined,
         generationMode,
         copyControls,
+        brandDNA,
       });
 
       // Calculate AI detection score from the copy if not returned directly
@@ -170,7 +174,8 @@ export function ContentGenerator() {
   };
 
   const getContentTypeLabel = (type: string) => {
-    return CONTENT_TYPE_OPTIONS.find(o => o.value === type)?.label || type;
+    const ct = getContentType(type);
+    return ct?.name || type.replace(/_/g, ' ');
   };
 
   if (!hasApiKey) {
@@ -198,30 +203,11 @@ export function ContentGenerator() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Content Type */}
-            <div className="space-y-2">
-              <Label>Content Type</Label>
-              <Select 
-                value={contentType} 
-                onValueChange={(v) => setContentType(v as ContentType)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select content type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CONTENT_TYPE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div className="flex flex-col">
-                        <span>{option.label}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {option.description}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Content Type Selector */}
+            <ContentTypeSelector
+              value={contentType}
+              onChange={(v) => setContentType(v as ContentType)}
+            />
 
             {/* Product to Promote */}
             <div className="space-y-2">
