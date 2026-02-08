@@ -78,26 +78,31 @@ export function ContentGenerator() {
   const hasApiKey = apiKey?.key_status === 'valid';
 
   const handleGenerate = async () => {
-    const result = await generateCopy.mutateAsync({
-      contentType,
-      productId: productId || undefined,
-      additionalContext: additionalContext || undefined,
-    });
+    try {
+      const result = await generateCopy.mutateAsync({
+        contentType,
+        productId: productId || undefined,
+        additionalContext: additionalContext || undefined,
+      });
 
-    // Calculate AI detection score from the copy if not returned directly
-    const { checkAIDetection } = await import('@/lib/ai-detection-checker');
-    const aiCheck = checkAIDetection(result.generated_copy);
+      // Calculate AI detection score from the copy if not returned directly
+      const { checkAIDetection } = await import('@/lib/ai-detection-checker');
+      const aiCheck = checkAIDetection(result.generated_copy);
 
-    setGeneratedCopy({
-      id: result.id,
-      copy: result.generated_copy,
-      tokensUsed: result.tokens_used || 0,
-      generationTime: result.generation_time_ms || 0,
-      aiDetectionScore: aiCheck.score,
-    });
-    setRating(null);
-    setFeedbackTags([]);
-    setFeedbackText('');
+      setGeneratedCopy({
+        id: result.id,
+        copy: result.generated_copy,
+        tokensUsed: result.tokens_used || 0,
+        generationTime: result.generation_time_ms || 0,
+        aiDetectionScore: aiCheck.score,
+      });
+      setRating(null);
+      setFeedbackTags([]);
+      setFeedbackText('');
+    } catch (error) {
+      console.error('Generation failed:', error);
+      // Error toast is already shown by the mutation's onError handler
+    }
   };
 
   const handleCopy = async () => {
