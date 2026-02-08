@@ -205,10 +205,10 @@ export function AIDashboard() {
                   onClick={() => navigate('/ai-copywriting/library')}
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">
+                    <p className="font-medium text-sm break-words">
                       {getContentTypeLabel(gen.content_type)}
                     </p>
-                    <p className="text-sm text-muted-foreground truncate">
+                    <p className="text-sm text-muted-foreground break-words">
                       {gen.generated_copy.slice(0, 60)}...
                     </p>
                   </div>
