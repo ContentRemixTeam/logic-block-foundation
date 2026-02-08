@@ -294,9 +294,28 @@ You're not "writing like them" - you're THINKING like them and writing what they
   }
   
   /**
+   * Get the content family for a given content type (for example matching)
+   */
+  private static getContentFamily(contentType: string): keyof BrandDNA['content_examples'] | null {
+    if (contentType.startsWith('welcome_email') || contentType.includes('email') || contentType === 'newsletter' || contentType === 'promo_email') {
+      return 'email';
+    }
+    if (contentType.includes('instagram') || contentType.includes('linkedin') || contentType.includes('twitter') || contentType.includes('facebook') || contentType === 'social_post') {
+      return 'social';
+    }
+    if (contentType.includes('sales') || contentType.includes('headline') || contentType.includes('landing')) {
+      return 'sales';
+    }
+    if (contentType.includes('blog') || contentType.includes('video') || contentType.includes('article')) {
+      return 'longform';
+    }
+    return null;
+  }
+
+  /**
    * Build Brand DNA prompt additions
    */
-  private static buildBrandDNAPromptAdditions(brandDNA?: BrandDNA): string {
+  private static buildBrandDNAPromptAdditions(brandDNA?: BrandDNA, contentType?: string): string {
     if (!brandDNA) return '';
     
     let additions = '\n\n=== BRAND DNA ===\n';
@@ -344,6 +363,23 @@ You're not "writing like them" - you're THINKING like them and writing what they
     if (brandDNA.brand_values.length > 0) {
       additions += '\n🎯 BRAND VALUES (reflect these in messaging):\n';
       brandDNA.brand_values.forEach(v => additions += `- ${v}\n`);
+    }
+    
+    // Content examples for this type (few-shot learning)
+    if (contentType && brandDNA.content_examples) {
+      const contentFamily = this.getContentFamily(contentType);
+      if (contentFamily) {
+        const examples = brandDNA.content_examples[contentFamily];
+        const validExamples = examples?.filter(ex => ex && ex.trim().length > 0);
+        
+        if (validExamples && validExamples.length > 0) {
+          additions += '\n\n📝 YOUR OWN COPY EXAMPLES (match this style EXACTLY):\n';
+          validExamples.forEach((ex, i) => {
+            additions += `\n--- Example ${i + 1} ---\n${ex.trim()}\n`;
+          });
+          additions += '\n⚠️ CRITICAL: Study these examples closely. Match the structure, sentence patterns, rhythm, and personality. Write like THIS person, not like a generic copywriter.\n';
+        }
+      }
     }
     
     return additions;
@@ -577,10 +613,11 @@ Write this email now. Remember: You're not just writing an email, you're enginee
     if (useEfficientMode) {
       // EFFICIENT MODE: 4-pass system with quality examples
       const controlAdditions = this.buildControlPromptAdditions(options.copyControls);
+      const brandDNAAdditions = this.buildBrandDNAPromptAdditions(options.context.brandDNA, options.contentType);
       
       // Pass 1: Generate initial draft with quality examples
       const draft = await this.callOpenAI(apiKey, {
-        systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams) + QUALITY_EXAMPLES + controlAdditions,
+        systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams) + QUALITY_EXAMPLES + controlAdditions + brandDNAAdditions,
         userPrompt: this.buildUserPrompt(options),
         temperature: baseTemperature,
       });
@@ -646,10 +683,11 @@ Fix: ${aiCheck.suggestions.join(', ')}`,
     } else {
       // PREMIUM MODE: Quality-First Multi-Pass System with validation gates
       const controlAdditions = this.buildControlPromptAdditions(options.copyControls);
+      const brandDNAAdditions = this.buildBrandDNAPromptAdditions(options.context.brandDNA, options.contentType);
       
       // PASS 1: Examples-First Draft with quality examples and controls
       const draft1 = await this.callOpenAI(apiKey, {
-        systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams) + QUALITY_EXAMPLES + controlAdditions,
+        systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams) + QUALITY_EXAMPLES + controlAdditions + brandDNAAdditions,
         userPrompt: this.buildUserPrompt(options),
         temperature: baseTemperature
       });

@@ -20,7 +20,7 @@ export function useBrandDNA() {
       
       const { data, error } = await supabase
         .from('brand_profiles')
-        .select('custom_banned_phrases, frameworks, signature_phrases, emoji_preferences, content_philosophies, brand_values')
+        .select('custom_banned_phrases, frameworks, signature_phrases, emoji_preferences, content_philosophies, brand_values, content_examples')
         .eq('user_id', user.id)
         .single();
       
@@ -50,6 +50,7 @@ export function useBrandDNA() {
         emoji_preferences: dna.emoji_preferences as unknown as Json,
         content_philosophies: dna.content_philosophies,
         brand_values: dna.brand_values,
+        content_examples: dna.content_examples as unknown as Json,
         updated_at: new Date().toISOString()
       };
       
