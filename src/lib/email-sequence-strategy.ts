@@ -16,6 +16,19 @@ export interface EmailConversionMechanics {
   avoidAtAllCosts: string[]; // Critical mistakes
 }
 
+export interface TacticalTipExample {
+  topic: string;
+  badExample: string;
+  goodExample: string;
+  why: string;
+}
+
+export interface TacticalTipRequirements {
+  mustHave: string[];
+  mustAvoid: string[];
+  goldStandard: string;
+}
+
 export interface EmailStrategyConfig {
   // Basic config
   purpose: string;
@@ -29,6 +42,10 @@ export interface EmailStrategyConfig {
   strategicFramework: EmailStrategicFramework;
   conversionMechanics: EmailConversionMechanics;
   psychologicalHooks: string[]; // Specific triggers to activate
+  
+  // Tactical tip enforcement (Email 1 only)
+  tacticalTipExamples?: TacticalTipExample[];
+  tacticalTipRequirements?: TacticalTipRequirements;
 }
 
 export const STRATEGIC_EMAIL_CONFIGS: Record<string, EmailStrategyConfig> = {
@@ -74,7 +91,106 @@ export const STRATEGIC_EMAIL_CONFIGS: Record<string, EmailStrategyConfig> = {
       "Achievability (they can do this TODAY, not 'someday')",
       "Community feeling (they're not alone in this struggle)",
       "Reciprocity (you gave first, freely)"
-    ]
+    ],
+    
+    // Tactical tip examples for Email 1
+    tacticalTipExamples: [
+      {
+        topic: 'Visibility/Traffic',
+        badExample: 'Think about where your ideal clients hang out online.',
+        goodExample: `Pick ONE platform where your ideal client hangs out (Facebook group, LinkedIn, Reddit).
+
+Spend 15 minutes TODAY answering 3 questions people are asking—genuinely helpful, no pitch, no link to your stuff. Just help.
+
+Do this 3x this week. Watch what happens to your DMs.
+
+Try it and let me know what you discover.`,
+        why: 'Good example is: (1) Specific (ONE platform, 3 questions), (2) Achievable TODAY (15 min), (3) Measurable (3x this week), (4) Has expected outcome (DMs increase)'
+      },
+      {
+        topic: 'List Building',
+        badExample: 'Consider asking your audience what they need help with.',
+        goodExample: `Go to your Instagram/Facebook and post this exact question:
+
+"Quick question: What's your biggest struggle with [your niche's main problem]?"
+
+Pin it to your profile. 
+
+When people comment, DM them: "Can I send you a free resource that helped me with that exact thing?"
+
+Boom. New subscriber who's already engaged.
+
+Do it today. Let me know how many people respond.`,
+        why: 'Good example provides: (1) Exact wording to use, (2) Specific platform, (3) Clear next steps, (4) Expected outcome (subscribers + engagement), (5) Can do in 5 minutes'
+      },
+      {
+        topic: 'Content Strategy',
+        badExample: 'Try to make your content more valuable.',
+        goodExample: `Before creating ANY content this week, ask yourself these 3 questions:
+
+1. What problem does this solve?
+2. Can they implement it in under 30 minutes?
+3. Will they think "I need to save this"?
+
+If you can't answer all 3 with "yes," don't post it.
+
+Go look at your last 5 posts. Which ones pass the test?
+
+Reply and tell me what you find—I'm curious.`,
+        why: 'Good example gives: (1) Clear framework (3 questions), (2) Immediate application (review last 5 posts), (3) Aha moment likely, (4) Invitation to engage'
+      },
+      {
+        topic: 'Email Marketing',
+        badExample: 'Focus on connecting with your subscribers.',
+        goodExample: `Here's what I want you to do this week:
+
+Email your list (even if it's just 10 people) and ask ONE specific question:
+
+"What's the biggest obstacle stopping you from [their desired outcome]?"
+
+Don't overthink it. Just send it.
+
+Then create your next piece of content answering what they tell you.
+
+Bonus: You'll get a 20-30% response rate. That's real engagement.`,
+        why: 'Good example: (1) Specific action (send email with exact question), (2) Works for any list size, (3) Clear next step (create content from answers), (4) Expected outcome (20-30% response)'
+      },
+      {
+        topic: 'Mindset/Productivity',
+        badExample: 'Try to stay focused on what matters most.',
+        goodExample: `Do this exercise right now (takes 2 minutes):
+
+Write down the 3 things you did for your business this week.
+
+Now ask: "Which ONE of these, if I did it every single day, would 10x my results?"
+
+That's your ONE THING.
+
+For the next 7 days, do ONLY that thing. Say no to everything else.
+
+Send me a message on Day 7 and tell me what happened.`,
+        why: 'Good example: (1) Takes 2 minutes, (2) Clear process, (3) Specific timeframe (7 days), (4) Forces prioritization, (5) Accountability built in'
+      }
+    ],
+    
+    // Tactical tip requirements
+    tacticalTipRequirements: {
+      mustHave: [
+        'Specific action they can take (not "think about" or "consider")',
+        'Timeframe (TODAY, this week, next 7 days)',
+        'Clear steps (numbered or sequenced)',
+        'Expected outcome (what will happen if they do it)',
+        'Invitation to report back (engagement loop)'
+      ],
+      mustAvoid: [
+        'Vague advice ("focus on your strategy", "find your leverage")',
+        'Questions without answers ("What\'s your gap?")',
+        'Generic inspiration ("You\'ve got this!")',
+        'Advice that requires tools/budget they might not have',
+        'Multi-step processes that take hours/days'
+      ],
+      goldStandard: 'A tactical tip should be so clear that someone could do it within 30 minutes of reading the email and see/feel a result.'
+    }
   },
 
   welcome_email_2: {

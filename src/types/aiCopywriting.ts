@@ -119,6 +119,8 @@ export type ContentType =
   // Promotional Emails
   | 'promo_email';
 
+import { GenerationMode } from './generationModes';
+
 export interface AICopyGeneration {
   id: string;
   user_id: string;
@@ -132,6 +134,7 @@ export interface AICopyGeneration {
   product_promoted: string | null;
   tokens_used: number | null;
   generation_time_ms: number | null;
+  generation_mode?: GenerationMode;
   created_at: string;
 }
 

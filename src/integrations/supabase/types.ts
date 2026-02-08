@@ -45,6 +45,7 @@ export type Database = {
           feedback_tags: string[] | null
           feedback_text: string | null
           generated_copy: string
+          generation_mode: string | null
           generation_time_ms: number | null
           id: string
           product_promoted: string | null
@@ -60,6 +61,7 @@ export type Database = {
           feedback_tags?: string[] | null
           feedback_text?: string | null
           generated_copy: string
+          generation_mode?: string | null
           generation_time_ms?: number | null
           id?: string
           product_promoted?: string | null
@@ -75,6 +77,7 @@ export type Database = {
           feedback_tags?: string[] | null
           feedback_text?: string | null
           generated_copy?: string
+          generation_mode?: string | null
           generation_time_ms?: number | null
           id?: string
           product_promoted?: string | null

@@ -30,8 +30,10 @@ import {
   CONTENT_TYPE_OPTIONS,
   FEEDBACK_TAGS
 } from '@/types/aiCopywriting';
+import { GenerationMode, DEFAULT_GENERATION_MODE, GENERATION_MODE_CONFIGS } from '@/types/generationModes';
 import { getAIDetectionAssessment } from '@/lib/ai-detection-checker';
 import { AddToCalendarModal } from './AddToCalendarModal';
+import { GenerationModeSelector } from './GenerationModeSelector';
 import { 
   Sparkles, 
   Loader2, 
@@ -61,12 +63,14 @@ export function ContentGenerator() {
   const [contentType, setContentType] = useState<ContentType>('welcome_email_1');
   const [productId, setProductId] = useState<string>('');
   const [additionalContext, setAdditionalContext] = useState('');
+  const [generationMode, setGenerationMode] = useState<GenerationMode>(DEFAULT_GENERATION_MODE);
   const [generatedCopy, setGeneratedCopy] = useState<{
     id: string;
     copy: string;
     tokensUsed: number;
     generationTime: number;
     aiDetectionScore: number;
+    generationMode: GenerationMode;
   } | null>(null);
   const [rating, setRating] = useState<number | null>(null);
   const [feedbackTags, setFeedbackTags] = useState<string[]>([]);
@@ -83,6 +87,7 @@ export function ContentGenerator() {
         contentType,
         productId: productId || undefined,
         additionalContext: additionalContext || undefined,
+        generationMode,
       });
 
       // Calculate AI detection score from the copy if not returned directly
@@ -95,6 +100,7 @@ export function ContentGenerator() {
         tokensUsed: result.tokens_used || 0,
         generationTime: result.generation_time_ms || 0,
         aiDetectionScore: aiCheck.score,
+        generationMode,
       });
       setRating(null);
       setFeedbackTags([]);
@@ -243,6 +249,12 @@ export function ContentGenerator() {
               </p>
             </div>
 
+            {/* Generation Mode Selector */}
+            <GenerationModeSelector
+              value={generationMode}
+              onChange={setGenerationMode}
+            />
+
             {/* Generate Button */}
             <Button 
               onClick={handleGenerate}
@@ -253,7 +265,7 @@ export function ContentGenerator() {
               {generateCopy.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating elite copy... (30-45s)
+                  {generationMode === 'efficient' ? 'Generating... (20-30s)' : 'Generating elite copy... (40-60s)'}
                 </>
               ) : (
                 <>
@@ -269,7 +281,13 @@ export function ContentGenerator() {
                 <p>✓ Analyzing your voice</p>
                 <p>✓ Drafting copy</p>
                 <p>✓ Critiquing</p>
-                <p className="animate-pulse">⏳ Refining...</p>
+                {generationMode === 'premium' && (
+                  <>
+                    <p>✓ Strategic audit</p>
+                    <p>✓ Deep refinement</p>
+                  </>
+                )}
+                <p className="animate-pulse">⏳ {generationMode === 'efficient' ? 'Final polish...' : 'AI detection pass...'}</p>
               </div>
             )}
           </CardContent>
@@ -323,10 +341,17 @@ export function ContentGenerator() {
                   </Button>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <CardDescription>
-                  {generatedCopy.tokensUsed} tokens • {Math.round(generatedCopy.generationTime / 1000)}s
+                  {generatedCopy.tokensUsed.toLocaleString()} tokens • {Math.round(generatedCopy.generationTime / 1000)}s
                 </CardDescription>
+                
+                {/* Generation Mode Badge */}
+                <Badge variant="outline" className="gap-1">
+                  {generatedCopy.generationMode === 'efficient' ? '⚡' : '✨'}
+                  {generatedCopy.generationMode === 'efficient' ? 'Efficient' : 'Premium'}
+                </Badge>
+                
                 {/* AI Detection Score Badge */}
                 <TooltipProvider>
                   <Tooltip>
