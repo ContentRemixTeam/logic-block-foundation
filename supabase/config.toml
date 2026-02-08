@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.generate-flash-sale-copy]
 verify_jwt = false
+
+[functions.create-webinar]
+verify_jwt = false

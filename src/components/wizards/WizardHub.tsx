@@ -22,6 +22,7 @@ const IMPLEMENTED_WIZARDS = [
   'project-designer',
   'lead-magnet-wizard',
   'flash-sale-wizard',
+  'webinar-wizard',
 ];
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -31,6 +32,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   Zap: <Zap className="h-8 w-8" />,
   DollarSign: <DollarSign className="h-8 w-8" />,
   Kanban: <Kanban className="h-8 w-8" />,
+  Video: <Rocket className="h-8 w-8" />, // Using Rocket as fallback for Video
 };
 
 const ICON_MAP_SMALL: Record<string, React.ReactNode> = {
@@ -40,6 +42,7 @@ const ICON_MAP_SMALL: Record<string, React.ReactNode> = {
   Zap: <Zap className="h-5 w-5" />,
   DollarSign: <DollarSign className="h-5 w-5" />,
   Kanban: <Kanban className="h-5 w-5" />,
+  Video: <Rocket className="h-5 w-5" />,
 };
 
 export default function WizardHub() {
@@ -122,6 +125,8 @@ export default function WizardHub() {
       navigate('/wizards/lead-magnet');
     } else if (templateName === 'flash-sale-wizard') {
       navigate('/wizards/flash-sale');
+    } else if (templateName === 'webinar-wizard') {
+      navigate('/wizards/webinar');
     } else {
       toast.info('This wizard is coming soon!');
     }
