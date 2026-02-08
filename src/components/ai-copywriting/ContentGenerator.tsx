@@ -398,7 +398,7 @@ export function ContentGenerator() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Generated Copy */}
-              <div className="bg-muted/50 rounded-lg p-4 whitespace-pre-wrap text-sm">
+              <div className="bg-muted/50 rounded-lg p-4 whitespace-pre-wrap break-words overflow-x-hidden text-sm max-w-full">
                 {generatedCopy.copy}
               </div>
 
