@@ -2705,6 +2705,135 @@ export type Database = {
           },
         ]
       }
+      flash_sales: {
+        Row: {
+          bullets: Json | null
+          created_at: string | null
+          discount_type: string | null
+          discount_value: number | null
+          early_bird_bonus: string | null
+          early_bird_hours: number | null
+          email_sequence_type: string | null
+          emails_planned: Json | null
+          end_date: string
+          flash_bonus: string | null
+          flash_bonus_deadline: string | null
+          headline: string | null
+          id: string
+          limited_quantity: number | null
+          name: string
+          original_price: number | null
+          pain_points: Json | null
+          product_id: string | null
+          product_name: string | null
+          project_id: string | null
+          promotion_platforms: string[] | null
+          promotion_schedule: Json | null
+          sale_price: number | null
+          start_date: string
+          status: string | null
+          subheadline: string | null
+          target_audience: string | null
+          timezone: string | null
+          total_revenue: number | null
+          total_sales: number | null
+          updated_at: string | null
+          urgency_hook: string | null
+          urgency_type: string | null
+          user_id: string
+          why_now: string | null
+        }
+        Insert: {
+          bullets?: Json | null
+          created_at?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
+          early_bird_bonus?: string | null
+          early_bird_hours?: number | null
+          email_sequence_type?: string | null
+          emails_planned?: Json | null
+          end_date: string
+          flash_bonus?: string | null
+          flash_bonus_deadline?: string | null
+          headline?: string | null
+          id?: string
+          limited_quantity?: number | null
+          name: string
+          original_price?: number | null
+          pain_points?: Json | null
+          product_id?: string | null
+          product_name?: string | null
+          project_id?: string | null
+          promotion_platforms?: string[] | null
+          promotion_schedule?: Json | null
+          sale_price?: number | null
+          start_date: string
+          status?: string | null
+          subheadline?: string | null
+          target_audience?: string | null
+          timezone?: string | null
+          total_revenue?: number | null
+          total_sales?: number | null
+          updated_at?: string | null
+          urgency_hook?: string | null
+          urgency_type?: string | null
+          user_id: string
+          why_now?: string | null
+        }
+        Update: {
+          bullets?: Json | null
+          created_at?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
+          early_bird_bonus?: string | null
+          early_bird_hours?: number | null
+          email_sequence_type?: string | null
+          emails_planned?: Json | null
+          end_date?: string
+          flash_bonus?: string | null
+          flash_bonus_deadline?: string | null
+          headline?: string | null
+          id?: string
+          limited_quantity?: number | null
+          name?: string
+          original_price?: number | null
+          pain_points?: Json | null
+          product_id?: string | null
+          product_name?: string | null
+          project_id?: string | null
+          promotion_platforms?: string[] | null
+          promotion_schedule?: Json | null
+          sale_price?: number | null
+          start_date?: string
+          status?: string | null
+          subheadline?: string | null
+          target_audience?: string | null
+          timezone?: string | null
+          total_revenue?: number | null
+          total_sales?: number | null
+          updated_at?: string | null
+          urgency_hook?: string | null
+          urgency_type?: string | null
+          user_id?: string
+          why_now?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flash_sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "user_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flash_sales_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_calendar_connection: {
         Row: {
           access_token_encrypted: string | null
