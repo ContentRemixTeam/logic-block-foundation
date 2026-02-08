@@ -535,7 +535,7 @@ export function ContentGenerator() {
                     key={gen.id}
                     className="p-2 rounded border text-sm"
                   >
-                    <p className="font-medium truncate">
+                    <p className="font-medium text-sm break-words">
                       {getContentTypeLabel(gen.content_type)}
                     </p>
                     <p className="text-xs text-muted-foreground">
