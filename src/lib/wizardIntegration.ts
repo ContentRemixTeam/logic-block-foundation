@@ -108,6 +108,22 @@ export const WIZARD_INTEGRATIONS: WizardIntegrationConfig[] = [
     },
     phaseTracking: false,
   },
+  {
+    templateName: 'lead-magnet-wizard',
+    displayName: 'Lead Magnet Creator',
+    creates: [
+      { table: 'projects', type: 'project' },
+      { table: 'lead_magnets', type: 'record' },
+      { table: 'tasks', type: 'tasks' },
+    ],
+    integratesWith: {
+      dashboard: true,
+      dailyPlan: true,
+      weeklyPlan: true,
+      taskList: true,
+    },
+    phaseTracking: false,
+  },
 ];
 
 /**

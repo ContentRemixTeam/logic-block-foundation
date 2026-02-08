@@ -3669,6 +3669,138 @@ export type Database = {
           },
         ]
       }
+      lead_magnets: {
+        Row: {
+          bonus_description: string | null
+          bullets: Json | null
+          created_at: string | null
+          cycle_id: string | null
+          deliverables: Json | null
+          delivery_method: string | null
+          description: string | null
+          email_provider: string | null
+          email_sequence_deadline: string | null
+          email_sequence_length: number | null
+          email_sequence_purpose: string | null
+          email_sequence_status: string | null
+          estimated_length: string | null
+          format: string | null
+          has_bonus: boolean | null
+          headline: string | null
+          id: string
+          ideal_subscriber: string | null
+          landing_page_platform: string | null
+          landing_page_status: string | null
+          landing_page_url: string | null
+          main_problem: string | null
+          name: string
+          platforms: string[] | null
+          project_id: string | null
+          promotion_duration: string | null
+          promotion_method: string | null
+          promotion_platforms: string[] | null
+          promotion_start_date: string | null
+          result_promise: string | null
+          status: string | null
+          subheadline: string | null
+          transformation: string | null
+          updated_at: string | null
+          user_id: string
+          weekly_commitment: number | null
+        }
+        Insert: {
+          bonus_description?: string | null
+          bullets?: Json | null
+          created_at?: string | null
+          cycle_id?: string | null
+          deliverables?: Json | null
+          delivery_method?: string | null
+          description?: string | null
+          email_provider?: string | null
+          email_sequence_deadline?: string | null
+          email_sequence_length?: number | null
+          email_sequence_purpose?: string | null
+          email_sequence_status?: string | null
+          estimated_length?: string | null
+          format?: string | null
+          has_bonus?: boolean | null
+          headline?: string | null
+          id?: string
+          ideal_subscriber?: string | null
+          landing_page_platform?: string | null
+          landing_page_status?: string | null
+          landing_page_url?: string | null
+          main_problem?: string | null
+          name: string
+          platforms?: string[] | null
+          project_id?: string | null
+          promotion_duration?: string | null
+          promotion_method?: string | null
+          promotion_platforms?: string[] | null
+          promotion_start_date?: string | null
+          result_promise?: string | null
+          status?: string | null
+          subheadline?: string | null
+          transformation?: string | null
+          updated_at?: string | null
+          user_id: string
+          weekly_commitment?: number | null
+        }
+        Update: {
+          bonus_description?: string | null
+          bullets?: Json | null
+          created_at?: string | null
+          cycle_id?: string | null
+          deliverables?: Json | null
+          delivery_method?: string | null
+          description?: string | null
+          email_provider?: string | null
+          email_sequence_deadline?: string | null
+          email_sequence_length?: number | null
+          email_sequence_purpose?: string | null
+          email_sequence_status?: string | null
+          estimated_length?: string | null
+          format?: string | null
+          has_bonus?: boolean | null
+          headline?: string | null
+          id?: string
+          ideal_subscriber?: string | null
+          landing_page_platform?: string | null
+          landing_page_status?: string | null
+          landing_page_url?: string | null
+          main_problem?: string | null
+          name?: string
+          platforms?: string[] | null
+          project_id?: string | null
+          promotion_duration?: string | null
+          promotion_method?: string | null
+          promotion_platforms?: string[] | null
+          promotion_start_date?: string | null
+          result_promise?: string | null
+          status?: string | null
+          subheadline?: string | null
+          transformation?: string | null
+          updated_at?: string | null
+          user_id?: string
+          weekly_commitment?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_magnets_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+          {
+            foreignKeyName: "lead_magnets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messaging_frameworks: {
         Row: {
           core_narrative: string | null

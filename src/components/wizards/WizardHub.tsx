@@ -20,6 +20,7 @@ const IMPLEMENTED_WIZARDS = [
   'summit-planner',
   'money_momentum',
   'project-designer',
+  'lead-magnet-wizard',
 ];
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -116,6 +117,8 @@ export default function WizardHub() {
       navigate('/wizards/money-momentum');
     } else if (templateName === 'project-designer') {
       navigate('/wizards/project-designer');
+    } else if (templateName === 'lead-magnet-wizard') {
+      navigate('/wizards/lead-magnet');
     } else {
       toast.info('This wizard is coming soon!');
     }
