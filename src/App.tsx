@@ -139,6 +139,7 @@ const AICopywriting = lazyWithRetry(() => import('./pages/AICopywriting'));
 const LeadMagnetWizardPage = lazyWithRetry(() => import('./pages/LeadMagnetWizardPage'));
 const FlashSaleWizardPage = lazyWithRetry(() => import('./pages/FlashSaleWizardPage'));
 const WebinarWizardPage = lazyWithRetry(() => import('./pages/WebinarWizardPage'));
+const ContentChallengeWizardPage = lazyWithRetry(() => import('./pages/ContentChallengeWizardPage'));
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -254,6 +255,7 @@ const App = () => (
                       <Route path="/wizards/lead-magnet" element={<ProtectedRoute><PageSuspense><LeadMagnetWizardPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/wizards/flash-sale" element={<ProtectedRoute><PageSuspense><FlashSaleWizardPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/wizards/webinar" element={<ProtectedRoute><PageSuspense><WebinarWizardPage /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/wizards/content-challenge" element={<ProtectedRoute><PageSuspense><ContentChallengeWizardPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/sprint-dashboard" element={<ProtectedRoute><PageSuspense><SprintDashboardPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/settings/planner" element={<ProtectedRoute><PageSuspense><PlannerSettings /></PageSuspense></ProtectedRoute>} />
                       <Route path="/settings/daily-page" element={<ProtectedRoute><PageSuspense><DailyPageSettings /></PageSuspense></ProtectedRoute>} />

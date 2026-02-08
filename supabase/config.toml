@@ -53,3 +53,15 @@ verify_jwt = false
 
 [functions.create-webinar]
 verify_jwt = false
+
+[functions.generate-content-pillars]
+verify_jwt = false
+
+[functions.generate-platform-content]
+verify_jwt = false
+
+[functions.generate-single-post]
+verify_jwt = false
+
+[functions.create-content-challenge]
+verify_jwt = false
