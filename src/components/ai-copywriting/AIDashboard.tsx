@@ -8,6 +8,7 @@ import {
   useAPIKey,
   useGenerations
 } from '@/hooks/useAICopywriting';
+import { LearningInsightsCard } from './LearningInsightsCard';
 import { 
   Sparkles, 
   FileText, 
@@ -17,7 +18,8 @@ import {
   Lightbulb,
   ArrowRight,
   Star,
-  Loader2
+  Loader2,
+  Brain
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { CONTENT_TYPE_OPTIONS } from '@/types/aiCopywriting';
@@ -127,48 +129,54 @@ export function AIDashboard() {
         </Card>
       </div>
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Button 
-              variant="outline" 
-              className="h-auto py-4 flex-col gap-2"
-              onClick={() => navigate('/ai-copywriting/generate')}
-            >
-              <Sparkles className="h-5 w-5" />
-              <span>Generate Email</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-auto py-4 flex-col gap-2"
-              onClick={() => navigate('/ai-copywriting/library')}
-            >
-              <FileText className="h-5 w-5" />
-              <span>View Library</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-auto py-4 flex-col gap-2"
-              onClick={() => navigate('/ai-copywriting/setup')}
-            >
-              <Package className="h-5 w-5" />
-              <span>Manage Products</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-auto py-4 flex-col gap-2"
-              onClick={() => navigate('/ai-copywriting/settings')}
-            >
-              <Settings className="h-5 w-5" />
-              <span>Settings</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Learning Insights + Quick Actions Row */}
+      <div className="grid md:grid-cols-2 gap-4">
+        {/* Learning Insights Card */}
+        <LearningInsightsCard />
+
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              <Button 
+                variant="outline" 
+                className="h-auto py-4 flex-col gap-2"
+                onClick={() => navigate('/ai-copywriting/generate')}
+              >
+                <Sparkles className="h-5 w-5" />
+                <span>Generate Copy</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                className="h-auto py-4 flex-col gap-2"
+                onClick={() => navigate('/ai-copywriting/library')}
+              >
+                <FileText className="h-5 w-5" />
+                <span>View Library</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                className="h-auto py-4 flex-col gap-2"
+                onClick={() => navigate('/ai-copywriting/brand-dna')}
+              >
+                <Brain className="h-5 w-5" />
+                <span>Brand DNA</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                className="h-auto py-4 flex-col gap-2"
+                onClick={() => navigate('/ai-copywriting/settings')}
+              >
+                <Settings className="h-5 w-5" />
+                <span>Settings</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Recent Activity */}
       <Card>

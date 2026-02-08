@@ -267,8 +267,8 @@ export const INDUSTRY_OPTIONS = [
   'Other',
 ];
 
-// Feedback Tags
-export const FEEDBACK_TAGS = [
+// Negative Feedback Tags (for ratings < 8)
+export const NEGATIVE_FEEDBACK_TAGS = [
   'too_formal',
   'too_casual',
   'too_long',
@@ -278,5 +278,41 @@ export const FEEDBACK_TAGS = [
   'bland_generic',
   'wrong_tone',
   'missing_cta',
+  'weak_hook',
+  'confusing_structure',
+  'off_brand',
+];
+
+// Positive Feedback Tags (for ratings >= 8)
+export const POSITIVE_FEEDBACK_TAGS = [
   'great_hook',
+  'perfect_tone',
+  'love_the_story',
+  'excellent_cta',
+  'great_length',
+  'perfect_emotion',
+  'love_the_specifics',
+  'on_brand',
+  'natural_voice',
+  'great_structure',
+];
+
+// Combined for backward compatibility
+export const FEEDBACK_TAGS = [...NEGATIVE_FEEDBACK_TAGS, ...POSITIVE_FEEDBACK_TAGS];
+
+// Content Type Families for Cross-Learning
+export const CONTENT_TYPE_FAMILIES: Record<string, string[]> = {
+  email: [
+    'welcome_email_1', 'welcome_email_2', 'welcome_email_3',
+    'welcome_email_4', 'welcome_email_5', 'email_newsletter', 'promo_email'
+  ],
+  social: ['instagram_post', 'linkedin_post', 'twitter_thread', 'facebook_ad'],
+  sales: ['sales_page_headline', 'sales_page_body'],
+  longform: ['blog_post', 'video_script'],
+};
+
+// Universal learnings that apply across all content types
+export const UNIVERSAL_LEARNING_TAGS = [
+  'too_formal', 'too_casual', 'wrong_tone', 'natural_voice',
+  'on_brand', 'off_brand', 'bland_generic', 'perfect_tone'
 ];
