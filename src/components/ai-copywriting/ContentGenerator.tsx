@@ -26,7 +26,8 @@ import {
   useAPIKey
 } from '@/hooks/useAICopywriting';
 import { useBrandDNA } from '@/hooks/useBrandDNA';
-import { ContentType } from '@/types/aiCopywriting';
+import { useLearningInsights } from '@/hooks/useLearningInsights';
+import { ContentType, POSITIVE_FEEDBACK_TAGS, NEGATIVE_FEEDBACK_TAGS } from '@/types/aiCopywriting';
 import { getContentType, CONTENT_TYPES } from '@/types/contentTypes';
 import { GenerationMode, DEFAULT_GENERATION_MODE, GENERATION_MODE_CONFIGS } from '@/types/generationModes';
 import { CopyControls, DEFAULT_COPY_CONTROLS } from '@/types/copyControls';
@@ -35,6 +36,8 @@ import { AddToCalendarModal } from './AddToCalendarModal';
 import { GenerationModeSelector } from './GenerationModeSelector';
 import { CopyControlsPanel } from './CopyControlsPanel';
 import { ContentTypeSelector } from './ContentTypeSelector';
+import { LearningNotice } from './LearningNotice';
+import { FeedbackTagsSelector } from './FeedbackTagsSelector';
 import { 
   Sparkles, 
   Loader2, 
@@ -53,13 +56,13 @@ import { SaveToVaultModal } from './SaveToVaultModal';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { FEEDBACK_TAGS } from '@/types/aiCopywriting';
 
 export function ContentGenerator() {
   const { data: products } = useProducts();
   const { data: apiKey } = useAPIKey();
   const { data: recentGenerations } = useRecentGenerations(5);
   const { brandDNA } = useBrandDNA();
+  const { insights: learningInsights } = useLearningInsights();
   const generateCopy = useGenerateCopy();
   const rateCopy = useRateCopy();
 
@@ -259,6 +262,9 @@ export function ContentGenerator() {
               onChange={setCopyControls}
             />
 
+            {/* Learning Notice - Pre-generation */}
+            <LearningNotice insights={learningInsights} />
+
             {/* Generate Button */}
             <Button 
               onClick={handleGenerate}
@@ -426,24 +432,18 @@ export function ContentGenerator() {
                 </div>
               </div>
 
-              {/* Feedback Form (for ratings < 8) */}
+              {/* Feedback Form (for ratings < 8 - show negative tags) */}
               {rating !== null && rating < 8 && (
                 <div className="space-y-4 pt-4 border-t">
                   <Label>What would make this better?</Label>
                   
-                  {/* Quick Tags */}
-                  <div className="flex flex-wrap gap-2">
-                    {FEEDBACK_TAGS.map((tag) => (
-                      <Badge
-                        key={tag}
-                        variant={feedbackTags.includes(tag) ? 'default' : 'outline'}
-                        className="cursor-pointer"
-                        onClick={() => toggleFeedbackTag(tag)}
-                      >
-                        {tag.replace('_', ' ')}
-                      </Badge>
-                    ))}
-                  </div>
+                  {/* Quick Tags - Negative */}
+                  <FeedbackTagsSelector
+                    tags={NEGATIVE_FEEDBACK_TAGS}
+                    selected={feedbackTags}
+                    onToggle={toggleFeedbackTag}
+                    variant="improvement"
+                  />
 
                   {/* Additional Feedback */}
                   <Textarea
@@ -465,6 +465,55 @@ export function ContentGenerator() {
                     )}
                     {rateCopy.isPending ? 'Saving...' : generateCopy.isPending ? 'Regenerating...' : 'Save Feedback & Regenerate'}
                   </Button>
+                </div>
+              )}
+
+              {/* Feedback Form (for ratings >= 8 - show positive tags) */}
+              {rating !== null && rating >= 8 && (
+                <div className="space-y-4 pt-4 border-t">
+                  <Label className="text-green-600">What did you love about this?</Label>
+                  
+                  {/* Quick Tags - Positive */}
+                  <FeedbackTagsSelector
+                    tags={POSITIVE_FEEDBACK_TAGS}
+                    selected={feedbackTags}
+                    onToggle={toggleFeedbackTag}
+                    variant="success"
+                  />
+
+                  {/* Additional Feedback */}
+                  <Textarea
+                    placeholder="Any additional notes? (optional)"
+                    value={feedbackText}
+                    onChange={(e) => setFeedbackText(e.target.value)}
+                    className="min-h-[60px]"
+                    maxLength={200}
+                  />
+
+                  {(feedbackTags.length > 0 || feedbackText) && (
+                    <Button 
+                      onClick={async () => {
+                        if (!generatedCopy) return;
+                        await rateCopy.mutateAsync({
+                          generationId: generatedCopy.id,
+                          rating,
+                          feedbackText: feedbackText || undefined,
+                          feedbackTags: feedbackTags.length > 0 ? feedbackTags : undefined,
+                        });
+                        toast.success('Feedback saved! This helps improve future generations.');
+                      }}
+                      disabled={rateCopy.isPending}
+                      variant="outline"
+                      className="border-green-500/30 text-green-600 hover:bg-green-500/10"
+                    >
+                      {rateCopy.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                      )}
+                      Save What Worked
+                    </Button>
+                  )}
                 </div>
               )}
             </CardContent>
