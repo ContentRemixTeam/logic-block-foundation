@@ -603,6 +603,130 @@ export type Database = {
           },
         ]
       }
+      content_challenge_days: {
+        Row: {
+          challenge_id: string
+          content_idea: string | null
+          content_item_id: string | null
+          created_at: string
+          date: string
+          day_number: number
+          full_copy: string | null
+          hook: string | null
+          id: string
+          pillar_id: string | null
+          platform: string
+          status: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          content_idea?: string | null
+          content_item_id?: string | null
+          created_at?: string
+          date: string
+          day_number: number
+          full_copy?: string | null
+          hook?: string | null
+          id?: string
+          pillar_id?: string | null
+          platform: string
+          status?: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          content_idea?: string | null
+          content_item_id?: string | null
+          created_at?: string
+          date?: string
+          day_number?: number
+          full_copy?: string | null
+          hook?: string | null
+          id?: string
+          pillar_id?: string | null
+          platform?: string
+          status?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_challenge_days_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "content_challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_challenge_days_content_item_id_fkey"
+            columns: ["content_item_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_challenge_days_pillar_id_fkey"
+            columns: ["pillar_id"]
+            isOneToOne: false
+            referencedRelation: "content_pillars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_challenges: {
+        Row: {
+          completion_rate: number | null
+          created_at: string
+          end_date: string
+          id: string
+          ideal_customer: string | null
+          name: string
+          pillar_ids: string[] | null
+          platforms: string[]
+          promotion_context: Json | null
+          start_date: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completion_rate?: number | null
+          created_at?: string
+          end_date: string
+          id?: string
+          ideal_customer?: string | null
+          name: string
+          pillar_ids?: string[] | null
+          platforms?: string[]
+          promotion_context?: Json | null
+          start_date: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completion_rate?: number | null
+          created_at?: string
+          end_date?: string
+          id?: string
+          ideal_customer?: string | null
+          name?: string
+          pillar_ids?: string[] | null
+          platforms?: string[]
+          promotion_context?: Json | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       content_items: {
         Row: {
           ai_generation_id: string | null
@@ -842,6 +966,45 @@ export type Database = {
             referencedColumns: ["cycle_id"]
           },
         ]
+      }
+      content_pillars: {
+        Row: {
+          color: string
+          created_at: string
+          description: string | null
+          emoji: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       content_plan_items: {
         Row: {
