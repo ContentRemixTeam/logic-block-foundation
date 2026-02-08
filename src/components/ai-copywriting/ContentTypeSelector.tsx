@@ -41,10 +41,10 @@ export function ContentTypeSelector({ value, onChange }: ContentTypeSelectorProp
                         : 'border-muted hover:border-muted-foreground/30'
                     )}
                   >
-                    <span className="text-lg">{type.icon}</span>
+                    <span className="text-lg shrink-0">{type.icon}</span>
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-sm truncate">{type.name}</p>
-                      <p className="text-xs text-muted-foreground line-clamp-2">
+                      <p className="font-medium text-sm break-words">{type.name}</p>
+                      <p className="text-xs text-muted-foreground break-words">
                         {type.description}
                       </p>
                     </div>
