@@ -1,423 +1,361 @@
 
-# Lead Magnet Creator Wizard with AI Brainstorm Assistant
+# 30 Days of Content Wizard - Quality-First Implementation Plan
 
 ## Overview
 
-Build a comprehensive 8-step Lead Magnet Creator wizard that guides users from initial idea through to a fully-planned freebie with landing page copy, email sequences, and promotional tasks. The wizard includes an AI-powered "Brainstorm Bot" to help users generate freebie ideas when they're stuck.
+A 6-step wizard that prioritizes copy quality over quantity, generating one platform at a time with full editing control before calendar scheduling. The wizard checks for existing launches/promotions, helps users discover strategic content pillars, and uses **deep platform-specific instructions** to generate high-converting content.
 
----
+## Key Architecture Addition: Platform Content Strategy Configs
 
-## Why This Wizard is High Value
+Similar to how `email-sequence-strategy.ts` provides deep conversion intelligence for email types, we will create `platform-content-strategy.ts` with comprehensive, platform-specific instructions for generating high-converting content on each platform.
 
-- **Foundational for list building**: Every online business needs a lead magnet
-- **Reduces overwhelm**: Breaking the process into guided steps prevents paralysis
-- **AI-assisted ideation**: The Brainstorm Bot removes the "blank page" problem
-- **End-to-end automation**: Creates project, tasks, and content items automatically
-- **Integrates with 90-day plan**: Tasks surface in weekly/daily planning views
-- **AI copywriting ready**: All copy needs are identified for batch generation
+### Platform Strategy Config Structure
 
----
-
-## Step-by-Step Wizard Flow
-
-### Step 1: Brainstorm & Select Your Freebie Idea
-**Purpose**: Help users identify or validate their lead magnet concept
-
-**Fields**:
-- "Do you have an idea already?" (Yes/No toggle)
-- If Yes: Freebie name + description
-- If No: Opens **Brainstorm Bot** inline component
-
-**Brainstorm Bot Features**:
-- Chat-style interface within the step
-- User provides: Target audience, main problem they solve, what they're selling
-- AI generates 5 freebie ideas with:
-  - Title
-  - Format (PDF, video, template, quiz, etc.)
-  - Hook/promise
-  - Why it works for their audience
-- User can "Pick this one" or "Generate more ideas"
-- Selected idea auto-populates wizard fields
-
-**Teaching callout**: "Your freebie should give a quick win that leads naturally to your paid offer."
-
----
-
-### Step 2: Define Your Ideal Subscriber
-**Purpose**: Get clear on who this freebie attracts
-
-**Fields**:
-- Target audience description (with AI suggestions based on Step 1)
-- Main problem they're experiencing
-- What transformation do they want?
-- Where do they hang out online? (multi-select: Instagram, Facebook, LinkedIn, Pinterest, YouTube, TikTok, Other)
-
-**Cross-reference**: Can pull `ideal_customer` from brand profile if available
-
----
-
-### Step 3: Freebie Format & Deliverables
-**Purpose**: Define what exactly they're creating
-
-**Fields**:
-- Format type:
-  - PDF Guide/eBook
-  - Checklist
-  - Template/Swipe File
-  - Workbook
-  - Video Training
-  - Audio/Podcast
-  - Quiz/Assessment
-  - Resource List
-  - Mini Course (email-based)
-  - Toolkit/Bundle
-  - Other
-- Estimated pages/length/duration
-- Deliverables list (multi-input for what's included)
-- Has bonus incentive? (optional additional item for urgency)
-
----
-
-### Step 4: Your Opt-in Promise
-**Purpose**: Craft the hook that makes people sign up
-
-**Fields**:
-- Headline options (AI can suggest 3 based on previous answers)
-- Subheadline/supporting copy
-- 3 bullet points of what they'll get/learn
-- "After downloading, they'll be able to..." (result promise)
-
-**AI hint**: "Let AI write your landing page copy" button appears here
-
----
-
-### Step 5: Landing Page & Tech Setup
-**Purpose**: Plan the tech side
-
-**Fields**:
-- Where will you host the landing page?
-  - ConvertKit
-  - Flodesk
-  - Mailchimp
-  - Leadpages
-  - Squarespace
-  - WordPress
-  - Stan Store
-  - Systeme.io
-  - Other
-- Landing page status: Existing / Need to create / Using platform default
-- Email provider (same list)
-- Delivery method: Email automation / Redirect to page / Both
-
----
-
-### Step 6: Email Follow-Up Sequence
-**Purpose**: Plan what happens after someone opts in
-
-**Fields**:
-- Delivery email: Immediate welcome + download link
-- Nurture sequence length: 3 / 5 / 7 emails (or custom)
-- Sequence purpose:
-  - Pure value (build trust)
-  - Soft sell at end
-  - Lead to discovery call
-  - Lead to paid offer
-- Email sequence status: Existing / Need to create
-- Sequence deadline (if creating)
-
-**AI hint**: "Generate my entire email sequence" CTA appears here
-
----
-
-### Step 7: Promotion Plan
-**Purpose**: How will they get the freebie in front of people?
-
-**Fields**:
-- Primary promotion method:
-  - Social media posts
-  - Email to existing list
-  - Collaborations/swaps
-  - Paid ads
-  - SEO/Blog
-  - Podcast mentions
-  - Direct outreach
-  - Combination
-- Which platforms? (multi-select)
-- Promotion timeline: Start date + duration
-- Weekly promotion commitment (posts/emails per week)
-
----
-
-### Step 8: Review & Create
-**Purpose**: Confirm everything and create project + tasks
-
-**Displays**:
-- Summary of all answers
-- Task preview with toggle to include/exclude individual tasks
-- Date picker to adjust task dates
-- Content to Create hub showing what AI can generate:
-  - Landing page headline + bullets
-  - Welcome email
-  - Nurture sequence (3-7 emails)
-  - Social promo posts (3-5)
-  - Bio link text
-
-**Actions**:
-- "Create Lead Magnet Project" button
-- Creates:
-  - Project in projects table
-  - Lead magnet record (new table: `lead_magnets`)
-  - Tasks with proper phases
-  - Content items for Editorial Calendar
-
----
-
-## Brainstorm Bot Technical Design
-
-### UI Component: `BrainstormBot.tsx`
+Each platform will have a complete strategy configuration including:
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│ 🧠 Freebie Brainstorm Assistant                             │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Let me help you come up with the perfect lead magnet!       │
-│ Tell me a bit about your business:                          │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ Who is your ideal customer?                             │ │
-│ │ [Textarea - pulls from brand profile if available]      │ │
-│ └─────────────────────────────────────────────────────────┘ │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ What main problem do you solve for them?                │ │
-│ │ [Textarea]                                              │ │
-│ └─────────────────────────────────────────────────────────┘ │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ What do you sell? (paid offer)                          │ │
-│ │ [Textarea - pulls from brand profile if available]      │ │
-│ └─────────────────────────────────────────────────────────┘ │
-│                                                             │
-│         [✨ Generate 5 Freebie Ideas]                       │
-│                                                             │
-├─────────────────────────────────────────────────────────────┤
-│ 💡 IDEA 1: "The 5-Day Content Clarity Challenge"            │
-│ Format: Email mini-course                                   │
-│ Hook: "Get a month of content ideas in just 5 days"         │
-│ Why it works: Delivers quick wins, builds email habit       │
-│                                    [Use This Idea →]        │
-├─────────────────────────────────────────────────────────────┤
-│ 💡 IDEA 2: "Content Pillars Workbook"                       │
-│ Format: PDF Workbook (10 pages)                             │
-│ Hook: "Define your 4 content pillars in 30 minutes"         │
-│ Why it works: Actionable, reference material they keep      │
-│                                    [Use This Idea →]        │
-├─────────────────────────────────────────────────────────────┤
-│ ... (3 more ideas)                                          │
-│                                                             │
-│ [🔄 Generate More Ideas] [✍️ I'll write my own instead]     │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### AI Model Selection
-
-Use **Lovable AI** (no API key required) via edge function:
-- Model: `google/gemini-2.5-flash` (fast, cost-effective for brainstorming)
-- Fallback: `openai/gpt-5-mini` if needed
-
-### Edge Function: `brainstorm-freebie-ideas`
-
-```typescript
-// Inputs
-{
-  idealCustomer: string;
-  mainProblem: string;
-  paidOffer: string;
-  industry?: string; // from brand profile
-  previousIdeas?: string[]; // for "generate more" to avoid duplicates
-}
-
-// Output
-{
-  ideas: Array<{
-    title: string;
-    format: string;
-    hook: string;
-    whyItWorks: string;
-  }>;
+PlatformStrategyConfig {
+  // Platform fundamentals
+  platform: string
+  displayName: string
+  description: string
+  
+  // Audience & psychology
+  audienceBehavior: {
+    whyTheyreHere: string
+    scrollingMindset: string
+    engagementTriggers: string[]
+  }
+  
+  // Content format rules
+  formatRules: {
+    optimalLength: { min: number, max: number, unit: 'words' | 'characters' }
+    structure: string[]  // Required structural elements
+    hookRequirements: string[]
+    visualNotes: string[]
+  }
+  
+  // Conversion psychology
+  conversionMechanics: {
+    primaryGoal: string
+    secondaryGoals: string[]
+    ctaStrategy: string
+    avoidAtAllCosts: string[]
+  }
+  
+  // Platform-specific patterns
+  psychologicalHooks: string[]
+  bestPerformingFormats: string[]
+  
+  // Examples (10/10 quality standards)
+  goldStandardExamples: {
+    hook: string[]
+    fullPost: string
+    whyItWorks: string[]
+  }
+  
+  // Anti-patterns
+  platformSpecificMistakes: string[]
 }
 ```
 
----
+### Platform Configurations
 
-## Database Schema
+#### Instagram
 
-### New Table: `lead_magnets`
-
-```sql
-CREATE TABLE public.lead_magnets (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  project_id UUID REFERENCES public.projects(id) ON DELETE SET NULL,
-  
-  -- Core info
-  name TEXT NOT NULL,
-  description TEXT,
-  format TEXT, -- pdf, video, template, quiz, etc.
-  
-  -- Target audience
-  ideal_subscriber TEXT,
-  main_problem TEXT,
-  transformation TEXT,
-  platforms TEXT[], -- where they hang out
-  
-  -- Content
-  deliverables JSONB DEFAULT '[]',
-  has_bonus BOOLEAN DEFAULT false,
-  bonus_description TEXT,
-  
-  -- Copy
-  headline TEXT,
-  subheadline TEXT,
-  bullets JSONB DEFAULT '[]',
-  result_promise TEXT,
-  
-  -- Tech
-  landing_page_platform TEXT,
-  landing_page_status TEXT, -- existing, need-to-create
-  email_provider TEXT,
-  landing_page_url TEXT,
-  
-  -- Email sequence
-  email_sequence_length INTEGER DEFAULT 5,
-  email_sequence_purpose TEXT,
-  email_sequence_status TEXT,
-  
-  -- Promotion
-  promotion_method TEXT,
-  promotion_platforms TEXT[],
-  promotion_start_date DATE,
-  promotion_duration TEXT,
-  weekly_commitment INTEGER,
-  
-  -- Metadata
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- RLS
-ALTER TABLE public.lead_magnets ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can manage own lead magnets"
-  ON public.lead_magnets FOR ALL
-  USING (auth.uid() = user_id);
+```text
+Instagram Strategy:
+- Audience: Visual learners seeking inspiration/entertainment, thumb-stopping in a fast scroll
+- Psychology: "Will this make me look/feel good if I save/share it?"
+- Format: 
+  - Hook in first 5 words (visible above "...more")
+  - 100-150 words optimal (carousel captions can go longer)
+  - Line breaks every 1-2 sentences
+  - End with question OR soft CTA
+  - 3-5 hashtags at end (not in middle)
+- Hooks that work:
+  - "The [X] mistake that cost me [Y]"
+  - "Stop doing [X] if you want [Y]"
+  - "I was today years old when I learned..."
+  - "POV: You finally [desired outcome]"
+- Conversion: Drive saves (algorithm loves it) + comments (triggers replies)
+- Avoid: Long paragraphs, hard selling in feed, too many hashtags
 ```
 
----
+#### LinkedIn
 
-## Task Generation
+```text
+LinkedIn Strategy:
+- Audience: Professionals seeking industry insights, career growth, business wisdom
+- Psychology: "Will this make me look smart if I engage with it?"
+- Format:
+  - Hook line standalone (first 210 characters visible before "...see more")
+  - Short paragraphs (1-2 sentences each)
+  - One clear insight or story
+  - 150-300 words optimal
+  - End with thought-provoking question
+- Hooks that work:
+  - "I [did unexpected thing]. Here's what happened:"
+  - "Everyone's talking about [X]. Here's what they're missing:"
+  - "My worst [professional thing] taught me [lesson]"
+  - Contrarian takes on industry norms
+- Conversion: Drive comments (algorithm prioritizes) + follows
+- Avoid: Being too sales-y, generic inspiration, hashtag spam
+```
 
-### Created Tasks (grouped by phase)
+#### Twitter/X
 
-**Setup Phase** (Week 1):
-- Define target audience and problem
-- Outline freebie content
-- Create freebie deliverable
-- Design cover/thumbnail
+```text
+Twitter/X Strategy:
+- Audience: Information seekers, news junkies, niche communities
+- Psychology: "Is this quotable? Can I look smart by sharing this?"
+- Format:
+  - Single tweet: Max 280 chars, punchiest possible
+  - Thread: 5-12 tweets, numbered, each standalone valuable
+  - First tweet MUST hook + hint at value coming
+  - Last tweet: Summary + CTA
+- Hooks that work:
+  - "Unpopular opinion: [contrarian take]"
+  - "[Number] things I wish I knew about [topic]:"
+  - "The difference between [A] and [B]:"
+  - "Most people [common mistake]. Top [1%/performers] [better approach]:"
+- Conversion: Drive retweets (reach) + replies (engagement)
+- Avoid: Threads that could be one tweet, generic motivation
+```
 
-**Tech Phase** (Week 1-2):
-- Set up landing page
-- Connect email automation
-- Test opt-in flow
-- Add tracking/analytics
+#### TikTok
 
-**Copy Phase** (Week 2):
-- Write landing page headline + bullets
-- Create welcome email
-- Write nurture email 1
-- Write nurture email 2
-- (etc. based on sequence length)
+```text
+TikTok Strategy:
+- Audience: Entertainment-first, educational content must feel fun
+- Psychology: "Will I look good if I share this?"
+- Format:
+  - Script hook: First 3 seconds determine watch-through
+  - Pattern interrupt every 5-10 seconds
+  - Total: 15-60 seconds optimal (under 3 min for longer form)
+  - Text overlay captions for soundless viewing
+- Hooks that work:
+  - "Wait, you're still doing [X]?!"
+  - "The reason your [X] isn't working..."
+  - "I can't believe I'm sharing this but..."
+  - "This changed everything for my [niche]"
+- Conversion: Watch time > likes (algorithm cares about completion)
+- Avoid: Slow starts, no text overlays, too polished (raw feels authentic)
+```
 
-**Promotion Phase** (Ongoing):
-- Create social promo graphics
-- Write promo post 1
-- Write promo post 2
-- (recurring weekly based on commitment)
+#### Facebook
 
----
+```text
+Facebook Strategy:
+- Audience: Community-focused, longer attention spans, older demographic
+- Psychology: "Does this resonate with my life/values?"
+- Format:
+  - 100-250 words optimal
+  - Personal stories perform best
+  - Can be more casual/personal than LinkedIn
+  - Questions drive comments
+- Hooks that work:
+  - Personal stories and milestones
+  - "Can I be honest about something?"
+  - Community-building questions
+  - Behind-the-scenes of business/life
+- Conversion: Comments + shares (shares = massive reach)
+- Avoid: Too promotional, link-heavy posts, impersonal content
+```
 
-## Integration Points
+#### Blog Post
 
-### 1. 90-Day Cycle Integration
-- Tasks automatically link to active cycle
-- Freebie creation appears in weekly priorities
+```text
+Blog Strategy:
+- Audience: Active searchers, problem-aware, seeking solutions
+- Psychology: "Will this actually solve my problem?"
+- Format:
+  - 1200-2500 words for SEO
+  - H2/H3 headers every 200-300 words
+  - Bullet points and numbered lists
+  - Introduction: Hook + promise + roadmap
+  - Conclusion: Summary + clear next step
+- Structure:
+  1. Hook (story or problem statement)
+  2. Why this matters (stakes)
+  3. Main teaching (3-5 key points)
+  4. Examples/stories for each point
+  5. Action steps
+  6. CTA
+- Conversion: Email opt-in + related content
+- Avoid: Fluff intros, walls of text, no clear takeaways
+```
 
-### 2. Weekly/Daily Plan Integration
-- All tasks surface in normal planning views
-- Content tasks show in Editorial Calendar
+#### YouTube
 
-### 3. AI Copywriting Integration
-- "Content to Create" hub on Review step
-- Same pattern as Launch V2 wizard
-- Generates:
-  - Landing page copy
-  - Welcome email
-  - Nurture sequence
-  - Promo posts
+```text
+YouTube Strategy:
+- Audience: Lean-back viewers, seeking entertainment + education
+- Psychology: "Will I feel smarter/better after watching?"
+- Format:
+  - Hook: First 10 seconds determine watch-through
+  - Pattern interrupts every 30-60 seconds
+  - Timestamps for long-form
+  - Optimal: 8-15 minutes for algorithm
+- Script structure:
+  1. Hook (promise or curiosity gap) - 0-10s
+  2. Intro/credibility - 10-30s
+  3. Content delivery with pattern interrupts
+  4. CTA placement at 80% mark (before drop-off)
+  5. End screen CTA
+- Conversion: Watch time + subscribers + comments
+- Avoid: Long intros, asking for subscribe too early
+```
 
-### 4. Editorial Calendar Integration
-- Content items created for each email
-- Promo posts scheduled on calendar
+#### Email Newsletter
 
----
+```text
+Newsletter Strategy:
+- Audience: Opted-in readers, warmer than social
+- Psychology: "Was this worth opening? Will next week's be worth it?"
+- Format:
+  - 300-600 words optimal for weekly
+  - One main topic/teaching per issue
+  - Personal touch (feels 1:1, not 1:many)
+  - Consistent structure readers can expect
+- Structure:
+  - Subject line: Specific + curiosity
+  - Opening: Personal hook or quick story
+  - Main teaching: One actionable insight
+  - CTA: Soft (reply) or specific (click)
+  - Sign-off: Consistent, personal
+- Conversion: Replies (relationship) + click-throughs (offers)
+- Avoid: Selling every email, being too long, inconsistency
+```
 
 ## Files to Create
 
+### New Strategy/Config Files
+
 | File | Purpose |
 |------|---------|
-| `src/types/leadMagnet.ts` | Type definitions + defaults |
-| `src/components/wizards/lead-magnet/` | Wizard component folder |
-| `src/components/wizards/lead-magnet/LeadMagnetWizard.tsx` | Main wizard component |
-| `src/components/wizards/lead-magnet/steps/` | Individual step components |
-| `src/components/wizards/lead-magnet/BrainstormBot.tsx` | AI brainstorm component |
-| `supabase/functions/brainstorm-freebie-ideas/index.ts` | AI brainstorm edge function |
-| `supabase/functions/create-lead-magnet/index.ts` | Project/task creation |
-| `supabase/migrations/XXXXX_create_lead_magnets.sql` | Database table |
+| `src/lib/platform-content-strategy.ts` | Deep platform-specific conversion configs (similar to email-sequence-strategy.ts) |
+| `src/types/contentChallenge.ts` | TypeScript interfaces for wizard data, defaults, validation |
 
----
+### Database Tables
 
-## Files to Modify
+| Table | Purpose |
+|-------|---------|
+| `content_challenges` | Challenge metadata (platforms, promotion context, dates) |
+| `content_pillars` | Reusable content pillars with names, descriptions, colors |
 
-| File | Change |
-|------|--------|
-| `src/lib/wizardIntegration.ts` | Add lead-magnet-wizard config |
-| `src/components/wizards/WizardHub.tsx` | Add to IMPLEMENTED_WIZARDS |
-| `src/pages/Wizards.tsx` | Already lazy-loads WizardHub |
-| `src/App.tsx` | Add route `/wizards/lead-magnet` |
+### Wizard Components
 
----
+| Component | Purpose |
+|-----------|---------|
+| `ContentChallengeWizard.tsx` | Main orchestrator using useWizard hook |
+| `StepContextCheck.tsx` | Detect/select active promotions |
+| `StepPillarsDiscovery.tsx` | Ideal customer + AI pillar suggestions |
+| `StepPlatformSelection.tsx` | Choose 1-3 platforms |
+| `StepGenerateEdit.tsx` | Per-platform generation with inline editing |
+| `StepScheduleCalendar.tsx` | 30-day grid with drag-drop |
+| `StepReviewLaunch.tsx` | Final review and content item creation |
 
-## Implementation Priority
+### Edge Functions
 
-1. **Database**: Create `lead_magnets` table with RLS
-2. **Types**: Define `LeadMagnetWizardData` interface
-3. **Brainstorm Edge Function**: Create `brainstorm-freebie-ideas` using Lovable AI
-4. **Wizard Steps**: Build all 8 steps with proper validation
-5. **Brainstorm Bot UI**: Interactive component for Step 1
-6. **Create Edge Function**: Build `create-lead-magnet` for project/task generation
-7. **Integration Config**: Add to `wizardIntegration.ts`
-8. **Route + Hub**: Wire up navigation
+| Function | Purpose |
+|----------|---------|
+| `generate-content-pillars` | AI pillar discovery based on ideal customer |
+| `generate-platform-content` | Batch 30-day idea generation per platform |
+| `generate-single-post` | High-quality copy generation for individual post |
+| `create-content-challenge` | Automation for content_items + publishing tasks |
 
----
+### Hooks
 
-## Estimated Scope
+| Hook | Purpose |
+|------|---------|
+| `useActivePromotions.ts` | Aggregates launches, flash sales, webinars, lead magnets, summits |
+| `useContentPillars.ts` | CRUD for reusable content pillars |
 
-- **8 step components** (~200-300 lines each)
-- **1 main wizard component** (~200 lines)
-- **1 brainstorm bot component** (~300 lines)
-- **2 edge functions** (~400 lines total)
-- **1 types file** (~200 lines)
-- **1 database migration** (~50 lines)
+## Integration Strategy
 
-Total: ~2,500-3,000 lines of new code
+### AI Generation Flow
+
+1. **Pillar Generation** (Step 2)
+   - Model: `google/gemini-3-flash-preview`
+   - Input: Ideal customer, problems solved, topics of interest
+   - Output: 5-7 pillar suggestions
+
+2. **Batch Idea Generation** (Step 4)
+   - Model: `google/gemini-3-flash-preview`
+   - Input: Platform strategy config + pillars + promotion context
+   - Output: 30 content ideas with hooks (one API call per platform)
+
+3. **Individual Copy Generation** (Step 4)
+   - Model: `google/gemini-2.5-flash` (higher quality for final copy)
+   - Input: Platform strategy config + idea + pillar + Brand DNA
+   - Output: Full platform-optimized post with proper formatting
+   - Includes validation against platform-specific rules
+
+### Quality Enforcement
+
+Each generated post will be validated against its platform strategy:
+- Character/word count within platform range
+- Required structural elements present
+- No platform-specific anti-patterns
+- Passes general banned phrases check
+
+### Editorial Calendar Integration
+
+All finalized content creates:
+- `content_items` record with `show_in_vault: true`
+- Publishing task for scheduled date
+- Platform and type properly mapped for calendar display
+
+## Technical Implementation Sequence
+
+1. Database migration (content_challenges, content_pillars)
+2. Create `platform-content-strategy.ts` with all platform configs
+3. Types file with interfaces and validation
+4. `useActivePromotions` hook
+5. `useContentPillars` hook  
+6. Edge functions (4 functions)
+7. Step 1-2 components
+8. Step 3-4 components (with ContentIdeaCard for inline editing)
+9. Step 5-6 components
+10. Main wizard orchestrator
+11. Page wrapper and routing
+12. WizardHub and integration registration
+13. wizard_templates database entry
+14. Edge function deployment
+
+## User Experience Summary
+
+```text
+Step 1: "You have 'Summer Sale' launching June 15. Create content supporting it?"
+         → Auto-detects active promotions from database
+         → Falls back to asking about freebies/events/products
+
+Step 2: "Who is your ideal customer?"
+         → AI suggests 5-7 content pillars based on customer + business
+         → User selects 3-5 pillars with custom colors
+
+Step 3: "Which platforms?" (select 1-3)
+         → Instagram, LinkedIn, Twitter/X, TikTok, Facebook, Blog, YouTube, Email
+
+Step 4: Platform 1 - Instagram
+         → AI generates 30 ideas with hooks using deep platform strategy
+         → User reviews, edits, clicks "Generate Copy" on each
+         → Rich text editor for final polish
+         → Mark as "Finalized" when satisfied
+         → Repeat for each selected platform
+
+Step 5: 30-day calendar grid
+         → Drag-drop to reorder
+         → Assign specific posting times
+         → Visual pillar color coding
+
+Step 6: Review + Create
+         → Summary by platform and pillar
+         → Creates content_items + publishing tasks
+         → Navigate to Editorial Calendar
+```
+
+## Key Differentiator
+
+The `platform-content-strategy.ts` file will contain the same depth of strategic intelligence that `email-sequence-strategy.ts` has for emails - including psychological frameworks, conversion mechanics, format rules, gold standard examples, and anti-patterns - ensuring every generated post is optimized for the specific platform's algorithm, audience behavior, and conversion goals.
