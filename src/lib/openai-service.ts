@@ -7,6 +7,8 @@ import { checkAIDetection } from './ai-detection-checker';
 import { STRATEGIC_EMAIL_CONFIGS, type EmailStrategyConfig } from './email-sequence-strategy';
 import AdaptiveLearningService, { AdaptiveParams } from './adaptive-learning-service';
 import { QUALITY_EXAMPLES, QUALITY_RUBRIC, checkForBannedPhrases, validateTacticalTip, validateSubjectLines } from './quality-system';
+import { BrandDNA } from '@/types/brandDNA';
+import { getContentType } from '@/types/contentTypes';
 
 interface GenerateOptions {
   contentType: string;
@@ -14,6 +16,7 @@ interface GenerateOptions {
   copyControls?: CopyControls;
   context: {
     businessProfile?: Partial<BrandProfile>;
+    brandDNA?: BrandDNA;
     productToPromote?: UserProduct | null;
     additionalContext?: string;
     pastFeedback?: AICopyGeneration[];
@@ -291,6 +294,72 @@ You're not "writing like them" - you're THINKING like them and writing what they
   }
   
   /**
+   * Build Brand DNA prompt additions
+   */
+  private static buildBrandDNAPromptAdditions(brandDNA?: BrandDNA): string {
+    if (!brandDNA) return '';
+    
+    let additions = '\n\n=== BRAND DNA ===\n';
+    
+    // Custom banned phrases
+    if (brandDNA.custom_banned_phrases.length > 0) {
+      additions += '\n❌ NEVER USE THESE WORDS (brand-specific):\n';
+      brandDNA.custom_banned_phrases.forEach(phrase => {
+        additions += `- "${phrase}"\n`;
+      });
+    }
+    
+    // Frameworks
+    if (brandDNA.frameworks.length > 0) {
+      additions += '\n🎯 YOUR PROPRIETARY FRAMEWORKS (reference when relevant):\n';
+      brandDNA.frameworks.forEach(fw => {
+        additions += `\n**${fw.name}**: ${fw.description}`;
+        if (fw.example) additions += `\nExample: "${fw.example}"`;
+        additions += '\n';
+      });
+    }
+    
+    // Signature phrases
+    if (brandDNA.signature_phrases.length > 0) {
+      additions += '\n💬 SIGNATURE PHRASES (use naturally when fitting):\n';
+      brandDNA.signature_phrases.forEach(phrase => {
+        additions += `- "${phrase}"\n`;
+      });
+    }
+    
+    // Emoji preferences
+    if (!brandDNA.emoji_preferences.use_emojis) {
+      additions += '\n❌ DO NOT USE EMOJIS in generated content.\n';
+    } else if (brandDNA.emoji_preferences.preferred_emojis.length > 0) {
+      additions += `\n😊 Preferred emojis (use sparingly): ${brandDNA.emoji_preferences.preferred_emojis.join(' ')}\n`;
+    }
+    
+    // Content philosophies
+    if (brandDNA.content_philosophies.length > 0) {
+      additions += '\n📚 CONTENT PHILOSOPHIES (shape your tone):\n';
+      brandDNA.content_philosophies.forEach(p => additions += `- ${p}\n`);
+    }
+    
+    // Brand values
+    if (brandDNA.brand_values.length > 0) {
+      additions += '\n🎯 BRAND VALUES (reflect these in messaging):\n';
+      brandDNA.brand_values.forEach(v => additions += `- ${v}\n`);
+    }
+    
+    return additions;
+  }
+  
+  /**
+   * Build content type guidance from new content types system
+   */
+  private static buildContentTypeGuidance(contentTypeId: string): string {
+    const contentTypeDef = getContentType(contentTypeId);
+    if (!contentTypeDef) return '';
+    
+    return `\n\n═══ CONTENT TYPE: ${contentTypeDef.name} ═══\n${contentTypeDef.guidance}\n`;
+  }
+  
+  /**
    * Build control-based prompt additions
    */
   private static buildControlPromptAdditions(controls?: CopyControls): string {
@@ -325,15 +394,18 @@ You're not "writing like them" - you're THINKING like them and writing what they
     const strategyConfig = STRATEGIC_EMAIL_CONFIGS[contentType];
     
     if (!strategyConfig) {
-      // Fallback for non-email content types
+      // Fallback for non-email content types - use new content type system
       let prompt = `Create ${contentType.replace(/_/g, ' ')} copy for ${profile?.business_name || 'this business'}.
 
 TARGET AUDIENCE: ${profile?.target_customer || 'Not specified'}
 
 `;
 
+      // Add content type guidance from new system
+      prompt += this.buildContentTypeGuidance(contentType);
+
       if (product) {
-        prompt += `PRODUCT/OFFER:
+        prompt += `\nPRODUCT/OFFER:
 - Name: ${product.product_name}
 - Type: ${product.product_type}
 - Price: ${product.price ? `$${product.price}` : 'Not specified'}

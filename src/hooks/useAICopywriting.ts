@@ -13,6 +13,7 @@ import {
 } from '@/types/aiCopywriting';
 import { GenerationMode } from '@/types/generationModes';
 import { CopyControls } from '@/types/copyControls';
+import { BrandDNA } from '@/types/brandDNA';
 import { toast } from 'sonner';
 import { Json } from '@/integrations/supabase/types';
 
@@ -416,12 +417,14 @@ export function useGenerateCopy() {
       additionalContext,
       generationMode = 'premium',
       copyControls,
+      brandDNA,
     }: {
       contentType: ContentType;
       productId?: string;
       additionalContext?: string;
       generationMode?: GenerationMode;
       copyControls?: CopyControls;
+      brandDNA?: BrandDNA;
     }) => {
       if (!user) throw new Error('Not authenticated');
       
@@ -474,6 +477,7 @@ export function useGenerateCopy() {
         copyControls,
         context: {
           businessProfile,
+          brandDNA,
           productToPromote: product,
           additionalContext,
           pastFeedback: formattedFeedback,

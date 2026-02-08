@@ -12,11 +12,13 @@ import { BrandWizard } from '@/components/ai-copywriting/BrandWizard';
 import { ContentGenerator } from '@/components/ai-copywriting/ContentGenerator';
 import { CopyLibrary } from '@/components/ai-copywriting/CopyLibrary';
 import { APIKeySettings } from '@/components/ai-copywriting/APIKeySettings';
+import BrandDNAPage from '@/pages/BrandDNAPage';
 
 const TABS = [
   { value: 'dashboard', label: 'Dashboard', path: '' },
   { value: 'generate', label: 'Generate', path: '/generate' },
   { value: 'library', label: 'Library', path: '/library' },
+  { value: 'brand-dna', label: 'Brand DNA', path: '/brand-dna' },
   { value: 'settings', label: 'Settings', path: '/settings' },
 ];
 
@@ -57,7 +59,7 @@ export default function AICopywriting() {
             
             {isSetupComplete && (
               <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-                <TabsList className="grid w-full max-w-md grid-cols-4">
+                <TabsList className="grid w-full max-w-xl grid-cols-5">
                   {TABS.map((tab) => (
                     <TabsTrigger key={tab.value} value={tab.value}>
                       {tab.label}
@@ -87,6 +89,7 @@ export default function AICopywriting() {
             <Route path="/setup" element={<BrandWizard />} />
             <Route path="/generate" element={<ContentGenerator />} />
             <Route path="/library" element={<CopyLibrary />} />
+            <Route path="/brand-dna" element={<BrandDNAPage />} />
             <Route path="/settings" element={<APIKeySettings />} />
           </Routes>
         </div>
