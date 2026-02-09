@@ -1,361 +1,229 @@
 
-# 30 Days of Content Wizard - Quality-First Implementation Plan
+# LinkedIn Templates System - Revised Implementation Plan
 
-## Overview
+## Summary of Adjustments Made
 
-A 6-step wizard that prioritizes copy quality over quantity, generating one platform at a time with full editing control before calendar scheduling. The wizard checks for existing launches/promotions, helps users discover strategic content pillars, and uses **deep platform-specific instructions** to generate high-converting content.
+Based on your feedback, I've revised the plan to address all 5 issues:
 
-## Key Architecture Addition: Platform Content Strategy Configs
+| Issue | Original Plan | Revised Approach |
+|-------|---------------|------------------|
+| #1 Database Table | Create column in `brand_dna` table | Use `brand_profiles` table (the actual table where Brand DNA is stored) |
+| #2 Storage Efficiency | ~2000 tokens per template | ~700 tokens total with shared anti-AI rules |
+| #3 Template Storage | Store template definitions in database | Templates in CODE as constants, only user preferences in database |
+| #4 Brand DNA Integration | Separate anti-AI rules | Merge with existing `custom_banned_phrases` from Brand DNA |
+| #5 File Structure | 3 files | 4 files with clean separation |
 
-Similar to how `email-sequence-strategy.ts` provides deep conversion intelligence for email types, we will create `platform-content-strategy.ts` with comprehensive, platform-specific instructions for generating high-converting content on each platform.
-
-### Platform Strategy Config Structure
-
-Each platform will have a complete strategy configuration including:
-
-```text
-PlatformStrategyConfig {
-  // Platform fundamentals
-  platform: string
-  displayName: string
-  description: string
-  
-  // Audience & psychology
-  audienceBehavior: {
-    whyTheyreHere: string
-    scrollingMindset: string
-    engagementTriggers: string[]
-  }
-  
-  // Content format rules
-  formatRules: {
-    optimalLength: { min: number, max: number, unit: 'words' | 'characters' }
-    structure: string[]  // Required structural elements
-    hookRequirements: string[]
-    visualNotes: string[]
-  }
-  
-  // Conversion psychology
-  conversionMechanics: {
-    primaryGoal: string
-    secondaryGoals: string[]
-    ctaStrategy: string
-    avoidAtAllCosts: string[]
-  }
-  
-  // Platform-specific patterns
-  psychologicalHooks: string[]
-  bestPerformingFormats: string[]
-  
-  // Examples (10/10 quality standards)
-  goldStandardExamples: {
-    hook: string[]
-    fullPost: string
-    whyItWorks: string[]
-  }
-  
-  // Anti-patterns
-  platformSpecificMistakes: string[]
-}
-```
-
-### Platform Configurations
-
-#### Instagram
-
-```text
-Instagram Strategy:
-- Audience: Visual learners seeking inspiration/entertainment, thumb-stopping in a fast scroll
-- Psychology: "Will this make me look/feel good if I save/share it?"
-- Format: 
-  - Hook in first 5 words (visible above "...more")
-  - 100-150 words optimal (carousel captions can go longer)
-  - Line breaks every 1-2 sentences
-  - End with question OR soft CTA
-  - 3-5 hashtags at end (not in middle)
-- Hooks that work:
-  - "The [X] mistake that cost me [Y]"
-  - "Stop doing [X] if you want [Y]"
-  - "I was today years old when I learned..."
-  - "POV: You finally [desired outcome]"
-- Conversion: Drive saves (algorithm loves it) + comments (triggers replies)
-- Avoid: Long paragraphs, hard selling in feed, too many hashtags
-```
-
-#### LinkedIn
-
-```text
-LinkedIn Strategy:
-- Audience: Professionals seeking industry insights, career growth, business wisdom
-- Psychology: "Will this make me look smart if I engage with it?"
-- Format:
-  - Hook line standalone (first 210 characters visible before "...see more")
-  - Short paragraphs (1-2 sentences each)
-  - One clear insight or story
-  - 150-300 words optimal
-  - End with thought-provoking question
-- Hooks that work:
-  - "I [did unexpected thing]. Here's what happened:"
-  - "Everyone's talking about [X]. Here's what they're missing:"
-  - "My worst [professional thing] taught me [lesson]"
-  - Contrarian takes on industry norms
-- Conversion: Drive comments (algorithm prioritizes) + follows
-- Avoid: Being too sales-y, generic inspiration, hashtag spam
-```
-
-#### Twitter/X
-
-```text
-Twitter/X Strategy:
-- Audience: Information seekers, news junkies, niche communities
-- Psychology: "Is this quotable? Can I look smart by sharing this?"
-- Format:
-  - Single tweet: Max 280 chars, punchiest possible
-  - Thread: 5-12 tweets, numbered, each standalone valuable
-  - First tweet MUST hook + hint at value coming
-  - Last tweet: Summary + CTA
-- Hooks that work:
-  - "Unpopular opinion: [contrarian take]"
-  - "[Number] things I wish I knew about [topic]:"
-  - "The difference between [A] and [B]:"
-  - "Most people [common mistake]. Top [1%/performers] [better approach]:"
-- Conversion: Drive retweets (reach) + replies (engagement)
-- Avoid: Threads that could be one tweet, generic motivation
-```
-
-#### TikTok
-
-```text
-TikTok Strategy:
-- Audience: Entertainment-first, educational content must feel fun
-- Psychology: "Will I look good if I share this?"
-- Format:
-  - Script hook: First 3 seconds determine watch-through
-  - Pattern interrupt every 5-10 seconds
-  - Total: 15-60 seconds optimal (under 3 min for longer form)
-  - Text overlay captions for soundless viewing
-- Hooks that work:
-  - "Wait, you're still doing [X]?!"
-  - "The reason your [X] isn't working..."
-  - "I can't believe I'm sharing this but..."
-  - "This changed everything for my [niche]"
-- Conversion: Watch time > likes (algorithm cares about completion)
-- Avoid: Slow starts, no text overlays, too polished (raw feels authentic)
-```
-
-#### Facebook
-
-```text
-Facebook Strategy:
-- Audience: Community-focused, longer attention spans, older demographic
-- Psychology: "Does this resonate with my life/values?"
-- Format:
-  - 100-250 words optimal
-  - Personal stories perform best
-  - Can be more casual/personal than LinkedIn
-  - Questions drive comments
-- Hooks that work:
-  - Personal stories and milestones
-  - "Can I be honest about something?"
-  - Community-building questions
-  - Behind-the-scenes of business/life
-- Conversion: Comments + shares (shares = massive reach)
-- Avoid: Too promotional, link-heavy posts, impersonal content
-```
-
-#### Blog Post
-
-```text
-Blog Strategy:
-- Audience: Active searchers, problem-aware, seeking solutions
-- Psychology: "Will this actually solve my problem?"
-- Format:
-  - 1200-2500 words for SEO
-  - H2/H3 headers every 200-300 words
-  - Bullet points and numbered lists
-  - Introduction: Hook + promise + roadmap
-  - Conclusion: Summary + clear next step
-- Structure:
-  1. Hook (story or problem statement)
-  2. Why this matters (stakes)
-  3. Main teaching (3-5 key points)
-  4. Examples/stories for each point
-  5. Action steps
-  6. CTA
-- Conversion: Email opt-in + related content
-- Avoid: Fluff intros, walls of text, no clear takeaways
-```
-
-#### YouTube
-
-```text
-YouTube Strategy:
-- Audience: Lean-back viewers, seeking entertainment + education
-- Psychology: "Will I feel smarter/better after watching?"
-- Format:
-  - Hook: First 10 seconds determine watch-through
-  - Pattern interrupts every 30-60 seconds
-  - Timestamps for long-form
-  - Optimal: 8-15 minutes for algorithm
-- Script structure:
-  1. Hook (promise or curiosity gap) - 0-10s
-  2. Intro/credibility - 10-30s
-  3. Content delivery with pattern interrupts
-  4. CTA placement at 80% mark (before drop-off)
-  5. End screen CTA
-- Conversion: Watch time + subscribers + comments
-- Avoid: Long intros, asking for subscribe too early
-```
-
-#### Email Newsletter
-
-```text
-Newsletter Strategy:
-- Audience: Opted-in readers, warmer than social
-- Psychology: "Was this worth opening? Will next week's be worth it?"
-- Format:
-  - 300-600 words optimal for weekly
-  - One main topic/teaching per issue
-  - Personal touch (feels 1:1, not 1:many)
-  - Consistent structure readers can expect
-- Structure:
-  - Subject line: Specific + curiosity
-  - Opening: Personal hook or quick story
-  - Main teaching: One actionable insight
-  - CTA: Soft (reply) or specific (click)
-  - Sign-off: Consistent, personal
-- Conversion: Replies (relationship) + click-throughs (offers)
-- Avoid: Selling every email, being too long, inconsistency
-```
+---
 
 ## Files to Create
 
-### New Strategy/Config Files
+| File | Purpose | Size |
+|------|---------|------|
+| `src/types/linkedinTemplates.ts` | Type definitions for templates and preferences | ~60 lines |
+| `src/lib/linkedin-templates.ts` | Template constants + shared anti-AI rules | ~250 lines |
+| `src/lib/linkedin-prompt-builder.ts` | Builds efficient prompts from templates | ~150 lines |
+| `src/components/ai-copywriting/LinkedInTemplateSelector.tsx` | Visual template selection UI | ~200 lines |
 
-| File | Purpose |
+## Files to Modify
+
+| File | Changes |
 |------|---------|
-| `src/lib/platform-content-strategy.ts` | Deep platform-specific conversion configs (similar to email-sequence-strategy.ts) |
-| `src/types/contentChallenge.ts` | TypeScript interfaces for wizard data, defaults, validation |
+| `src/components/ai-copywriting/ContentGenerator.tsx` | Add template selection step when `contentType === 'linkedin_post'` |
+| `src/lib/openai-service.ts` | Route LinkedIn generation through template prompt builder when template selected |
+| `src/types/brandDNA.ts` | Add `linkedin_template_prefs` interface to BrandDNA type |
+| `src/hooks/useBrandDNA.ts` | Update to handle new preferences field |
 
-### Database Tables
+## Database Changes
 
-| Table | Purpose |
-|-------|---------|
-| `content_challenges` | Challenge metadata (platforms, promotion context, dates) |
-| `content_pillars` | Reusable content pillars with names, descriptions, colors |
+Add a JSONB column to `brand_profiles` for user preferences only (not template definitions):
 
-### Wizard Components
-
-| Component | Purpose |
-|-----------|---------|
-| `ContentChallengeWizard.tsx` | Main orchestrator using useWizard hook |
-| `StepContextCheck.tsx` | Detect/select active promotions |
-| `StepPillarsDiscovery.tsx` | Ideal customer + AI pillar suggestions |
-| `StepPlatformSelection.tsx` | Choose 1-3 platforms |
-| `StepGenerateEdit.tsx` | Per-platform generation with inline editing |
-| `StepScheduleCalendar.tsx` | 30-day grid with drag-drop |
-| `StepReviewLaunch.tsx` | Final review and content item creation |
-
-### Edge Functions
-
-| Function | Purpose |
-|----------|---------|
-| `generate-content-pillars` | AI pillar discovery based on ideal customer |
-| `generate-platform-content` | Batch 30-day idea generation per platform |
-| `generate-single-post` | High-quality copy generation for individual post |
-| `create-content-challenge` | Automation for content_items + publishing tasks |
-
-### Hooks
-
-| Hook | Purpose |
-|------|---------|
-| `useActivePromotions.ts` | Aggregates launches, flash sales, webinars, lead magnets, summits |
-| `useContentPillars.ts` | CRUD for reusable content pillars |
-
-## Integration Strategy
-
-### AI Generation Flow
-
-1. **Pillar Generation** (Step 2)
-   - Model: `google/gemini-3-flash-preview`
-   - Input: Ideal customer, problems solved, topics of interest
-   - Output: 5-7 pillar suggestions
-
-2. **Batch Idea Generation** (Step 4)
-   - Model: `google/gemini-3-flash-preview`
-   - Input: Platform strategy config + pillars + promotion context
-   - Output: 30 content ideas with hooks (one API call per platform)
-
-3. **Individual Copy Generation** (Step 4)
-   - Model: `google/gemini-2.5-flash` (higher quality for final copy)
-   - Input: Platform strategy config + idea + pillar + Brand DNA
-   - Output: Full platform-optimized post with proper formatting
-   - Includes validation against platform-specific rules
-
-### Quality Enforcement
-
-Each generated post will be validated against its platform strategy:
-- Character/word count within platform range
-- Required structural elements present
-- No platform-specific anti-patterns
-- Passes general banned phrases check
-
-### Editorial Calendar Integration
-
-All finalized content creates:
-- `content_items` record with `show_in_vault: true`
-- Publishing task for scheduled date
-- Platform and type properly mapped for calendar display
-
-## Technical Implementation Sequence
-
-1. Database migration (content_challenges, content_pillars)
-2. Create `platform-content-strategy.ts` with all platform configs
-3. Types file with interfaces and validation
-4. `useActivePromotions` hook
-5. `useContentPillars` hook  
-6. Edge functions (4 functions)
-7. Step 1-2 components
-8. Step 3-4 components (with ContentIdeaCard for inline editing)
-9. Step 5-6 components
-10. Main wizard orchestrator
-11. Page wrapper and routing
-12. WizardHub and integration registration
-13. wizard_templates database entry
-14. Edge function deployment
-
-## User Experience Summary
-
-```text
-Step 1: "You have 'Summer Sale' launching June 15. Create content supporting it?"
-         → Auto-detects active promotions from database
-         → Falls back to asking about freebies/events/products
-
-Step 2: "Who is your ideal customer?"
-         → AI suggests 5-7 content pillars based on customer + business
-         → User selects 3-5 pillars with custom colors
-
-Step 3: "Which platforms?" (select 1-3)
-         → Instagram, LinkedIn, Twitter/X, TikTok, Facebook, Blog, YouTube, Email
-
-Step 4: Platform 1 - Instagram
-         → AI generates 30 ideas with hooks using deep platform strategy
-         → User reviews, edits, clicks "Generate Copy" on each
-         → Rich text editor for final polish
-         → Mark as "Finalized" when satisfied
-         → Repeat for each selected platform
-
-Step 5: 30-day calendar grid
-         → Drag-drop to reorder
-         → Assign specific posting times
-         → Visual pillar color coding
-
-Step 6: Review + Create
-         → Summary by platform and pillar
-         → Creates content_items + publishing tasks
-         → Navigate to Editorial Calendar
+```sql
+ALTER TABLE public.brand_profiles
+ADD COLUMN IF NOT EXISTS linkedin_template_prefs jsonb DEFAULT '{
+  "preferredTemplate": null,
+  "usageStats": {}
+}'::jsonb;
 ```
 
-## Key Differentiator
+This column stores only:
+- `preferredTemplate`: Last used template ID (for default selection)
+- `usageStats`: Object tracking how many times each template was used
+- Future: `customTemplates` array for user-created templates
 
-The `platform-content-strategy.ts` file will contain the same depth of strategic intelligence that `email-sequence-strategy.ts` has for emails - including psychological frameworks, conversion mechanics, format rules, gold standard examples, and anti-patterns - ensuring every generated post is optimized for the specific platform's algorithm, audience behavior, and conversion goals.
+---
+
+## Technical Implementation Details
+
+### 1. Template Constants (src/lib/linkedin-templates.ts)
+
+Templates stored efficiently in code:
+
+```text
+LINKEDIN_ANTI_AI_RULES (shared - 150 tokens)
+├── bannedPhrases: string[]       // "delve", "unlock potential", etc.
+├── requiredPatterns: string[]    // Contractions, specific numbers
+└── engagementRules: string[]     // Question endings, etc.
+
+LINKEDIN_TEMPLATES (5 templates - ~550 tokens total)
+├── vulnerable_pivot
+│   ├── id, name, description
+│   ├── hookPattern: "[Shocking admission] + context"
+│   ├── structure: 5 required steps
+│   └── example: One gold-standard post (~100 words)
+├── numbers_story
+├── if_i_started_over
+├── contrarian_take
+└── mistake_autopsy
+```
+
+### 2. Prompt Builder (src/lib/linkedin-prompt-builder.ts)
+
+The builder will:
+1. Take the selected template + user's topic/brain dump
+2. Merge banned phrases from:
+   - `LINKEDIN_ANTI_AI_RULES.bannedPhrases` (system defaults)
+   - `brandDNA.custom_banned_phrases` (user's custom list)
+3. Build a compact prompt (~1000 tokens total) with:
+   - Template structure requirements
+   - One gold-standard example
+   - Combined anti-AI rules with strong enforcement language
+   - Platform strategy from existing `LINKEDIN_STRATEGY`
+
+```typescript
+export function buildLinkedInTemplatePrompt(
+  template: LinkedInTemplate,
+  topic: string,
+  brandDNA: BrandDNA,
+  brainDump?: string
+): { systemPrompt: string; userPrompt: string }
+```
+
+### 3. Type Definitions (src/types/linkedinTemplates.ts)
+
+```typescript
+interface LinkedInTemplate {
+  id: string;
+  name: string;
+  description: string;
+  hookPattern: string;
+  structure: string[];
+  example: string;
+  exampleWhyItWorks: string[];
+}
+
+interface LinkedInTemplatePrefs {
+  preferredTemplate: string | null;
+  usageStats: Record<string, number>;
+}
+```
+
+### 4. Template Selector UI
+
+Visual card-based selection showing:
+- Template name and description
+- Hook pattern preview
+- "View Example" button to see full gold-standard post
+- Selection state (highlighted border when selected)
+- Optional "Surprise Me" button for random selection
+
+Integration into ContentGenerator flow:
+```text
+1. User selects "LinkedIn Post" content type
+2. (Optional) Social Post Ideation for topic/brain dump
+3. NEW: Template selection appears
+4. User clicks Generate
+5. Result shows "Generated using: [Template Name]" badge
+```
+
+---
+
+## Token Efficiency Breakdown
+
+| Component | Tokens |
+|-----------|--------|
+| Shared anti-AI rules | ~150 |
+| Template structure (1 of 5) | ~80 |
+| Template example (1 of 5) | ~200 |
+| Platform strategy context | ~100 |
+| User context (topic, brain dump) | ~100-300 |
+| **Total per generation** | **~630-830 tokens** |
+
+This is well under the 1000-token target you specified.
+
+---
+
+## Anti-AI Rules Merge Logic
+
+```typescript
+// In linkedin-prompt-builder.ts
+const allBannedPhrases = [
+  ...LINKEDIN_ANTI_AI_RULES.bannedPhrases,  // System defaults (15+ phrases)
+  ...(brandDNA.custom_banned_phrases || [])  // User's custom banned phrases
+];
+
+// Deduplicate and format for prompt
+const uniqueBanned = [...new Set(allBannedPhrases)];
+```
+
+This ensures that:
+- All users get the core anti-AI protections automatically
+- Users can add their own banned phrases in Brand DNA settings
+- Everything is merged seamlessly for generation
+
+---
+
+## Implementation Sequence
+
+1. **Types file** - Define LinkedInTemplate and LinkedInTemplatePrefs interfaces
+2. **Templates constants** - Create the 5 templates with shared anti-AI rules
+3. **Prompt builder** - Build efficient prompts that merge Brand DNA
+4. **Database migration** - Add `linkedin_template_prefs` column to `brand_profiles`
+5. **BrandDNA types update** - Add prefs to TypeScript types
+6. **Template selector UI** - Card-based selection component
+7. **ContentGenerator integration** - Add template step for LinkedIn content type
+8. **OpenAI service update** - Route to template prompts when applicable
+
+---
+
+## The 5 Template Definitions
+
+Each template will include:
+
+### Vulnerable Pivot
+- **Hook**: "[Shocking admission]"
+- **Structure**: Admission, context, pivot insight, lesson, question
+- **Example**: "I fired my best client last week..."
+
+### Numbers Story
+- **Hook**: "[Specific number] + contrast"
+- **Structure**: Number hook, context, insight, framework, question
+- **Example**: "I interviewed 47 candidates. Only 3 made it..."
+
+### If I Started Over
+- **Hook**: "[Time span] + hindsight"
+- **Structure**: Experience claim, what I'd change, lessons list, the big one, invitation
+- **Example**: "10 years in marketing. Here's what I'd tell my younger self..."
+
+### Contrarian Take
+- **Hook**: "Unpopular opinion: [challenge]"
+- **Structure**: Hot take, why most believe opposite, reasoning, evidence, question
+- **Example**: "Unpopular opinion: Hustle culture is killing your business..."
+
+### Mistake Autopsy
+- **Hook**: "My $X mistake"
+- **Structure**: Mistake intro, what happened, analysis, lessons, prevention, question
+- **Example**: "My $50,000 mistake (and what I'd do differently)..."
+
+---
+
+## Success Criteria
+
+After implementation, generate 5 test posts with topic "How I validated my SaaS idea before writing code" and verify:
+
+- [ ] Each post follows its template structure distinctly
+- [ ] All posts use contractions naturally
+- [ ] No banned phrases appear ("delve", "unlock potential", "landscape", etc.)
+- [ ] Each ends with a genuine question (not "Thoughts?" or "Agree?")
+- [ ] Specific numbers/examples are included
+- [ ] Posts sound human when read aloud
+- [ ] User's custom banned phrases from Brand DNA are respected
