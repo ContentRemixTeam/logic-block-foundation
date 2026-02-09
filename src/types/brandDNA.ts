@@ -1,5 +1,7 @@
 // Brand DNA Types - Deep brand customization for AI generation
 
+import { LinkedInTemplatePrefs, DEFAULT_LINKEDIN_TEMPLATE_PREFS, parseLinkedInTemplatePrefs } from './linkedinTemplates';
+
 export interface BrandFramework {
   id: string;
   name: string;
@@ -34,6 +36,7 @@ export interface BrandDNA {
   content_philosophies: string[];
   brand_values: string[];
   content_examples: ContentExamples;
+  linkedin_template_prefs: LinkedInTemplatePrefs;
 }
 
 export const DEFAULT_BRAND_DNA: BrandDNA = {
@@ -46,7 +49,8 @@ export const DEFAULT_BRAND_DNA: BrandDNA = {
   },
   content_philosophies: [],
   brand_values: [],
-  content_examples: DEFAULT_CONTENT_EXAMPLES
+  content_examples: DEFAULT_CONTENT_EXAMPLES,
+  linkedin_template_prefs: DEFAULT_LINKEDIN_TEMPLATE_PREFS
 };
 
 // Helper to parse Brand DNA from database JSON
@@ -58,6 +62,7 @@ export function parseBrandDNA(data: {
   content_philosophies?: string[] | null;
   brand_values?: string[] | null;
   content_examples?: unknown;
+  linkedin_template_prefs?: unknown;
 }): BrandDNA {
   return {
     custom_banned_phrases: data.custom_banned_phrases || [],
@@ -70,6 +75,7 @@ export function parseBrandDNA(data: {
     brand_values: data.brand_values || [],
     content_examples: (data.content_examples && typeof data.content_examples === 'object'
       ? data.content_examples
-      : DEFAULT_CONTENT_EXAMPLES) as ContentExamples
+      : DEFAULT_CONTENT_EXAMPLES) as ContentExamples,
+    linkedin_template_prefs: parseLinkedInTemplatePrefs(data.linkedin_template_prefs)
   };
 }

@@ -433,6 +433,7 @@ export type Database = {
           frameworks: Json | null
           id: string
           industry: string | null
+          linkedin_template_prefs: Json | null
           signature_phrases: Json | null
           target_customer: string | null
           transcript_samples: string[] | null
@@ -454,6 +455,7 @@ export type Database = {
           frameworks?: Json | null
           id?: string
           industry?: string | null
+          linkedin_template_prefs?: Json | null
           signature_phrases?: Json | null
           target_customer?: string | null
           transcript_samples?: string[] | null
@@ -475,6 +477,7 @@ export type Database = {
           frameworks?: Json | null
           id?: string
           industry?: string | null
+          linkedin_template_prefs?: Json | null
           signature_phrases?: Json | null
           target_customer?: string | null
           transcript_samples?: string[] | null

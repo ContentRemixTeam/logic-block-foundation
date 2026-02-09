@@ -39,6 +39,8 @@ import { ContentTypeSelector } from './ContentTypeSelector';
 import { LearningNotice } from './LearningNotice';
 import { FeedbackTagsSelector } from './FeedbackTagsSelector';
 import { SocialPostIdeation } from './SocialPostIdeation';
+import { LinkedInTemplateSelector } from './LinkedInTemplateSelector';
+import { getLinkedInTemplate } from '@/lib/linkedin-templates';
 import { 
   Sparkles, 
   Loader2, 
@@ -87,6 +89,7 @@ export function ContentGenerator() {
     generationTime: number;
     aiDetectionScore: number;
     generationMode: GenerationMode;
+    linkedInTemplateName?: string;
   } | null>(null);
   const [rating, setRating] = useState<number | null>(null);
   const [feedbackTags, setFeedbackTags] = useState<string[]>([]);
@@ -98,9 +101,15 @@ export function ContentGenerator() {
   // Social post ideation state
   const [showIdeation, setShowIdeation] = useState(false);
   const [ideationContext, setIdeationContext] = useState<{ topic: string; userThoughts: string } | null>(null);
+  
+  // LinkedIn template state
+  const [selectedLinkedInTemplate, setSelectedLinkedInTemplate] = useState<string | null>(
+    brandDNA.linkedin_template_prefs?.preferredTemplate || null
+  );
 
   const hasApiKey = apiKey?.key_status === 'valid';
   const isSocialContentType = SOCIAL_CONTENT_TYPES.includes(contentType);
+  const isLinkedInPost = (contentType as string) === 'linkedin_post';
 
   // Auto-set controls when content type changes and reset ideation
   useEffect(() => {
@@ -111,7 +120,14 @@ export function ContentGenerator() {
     // Reset ideation when switching content types
     setShowIdeation(false);
     setIdeationContext(null);
-  }, [contentType]);
+    // Reset LinkedIn template when switching away from LinkedIn
+    if ((contentType as string) !== 'linkedin_post') {
+      setSelectedLinkedInTemplate(null);
+    } else {
+      // Restore preferred template for LinkedIn
+      setSelectedLinkedInTemplate(brandDNA.linkedin_template_prefs?.preferredTemplate || null);
+    }
+  }, [contentType, brandDNA.linkedin_template_prefs?.preferredTemplate]);
 
   const handleGenerate = async () => {
     try {
@@ -128,11 +144,17 @@ export function ContentGenerator() {
         generationMode,
         copyControls,
         brandDNA,
+        linkedInTemplateId: isLinkedInPost ? selectedLinkedInTemplate || undefined : undefined,
       });
 
       // Calculate AI detection score from the copy if not returned directly
       const { checkAIDetection } = await import('@/lib/ai-detection-checker');
       const aiCheck = checkAIDetection(result.generated_copy);
+
+      // Get template name if used
+      const templateName = isLinkedInPost && selectedLinkedInTemplate 
+        ? getLinkedInTemplate(selectedLinkedInTemplate)?.name 
+        : undefined;
 
       setGeneratedCopy({
         id: result.id,
@@ -141,6 +163,7 @@ export function ContentGenerator() {
         generationTime: result.generation_time_ms || 0,
         aiDetectionScore: aiCheck.score,
         generationMode,
+        linkedInTemplateName: templateName,
       });
       setRating(null);
       setFeedbackTags([]);
@@ -315,6 +338,14 @@ export function ContentGenerator() {
               </Card>
             )}
 
+            {/* LinkedIn Template Selector */}
+            {isLinkedInPost && (
+              <LinkedInTemplateSelector
+                selectedTemplate={selectedLinkedInTemplate}
+                onSelect={setSelectedLinkedInTemplate}
+              />
+            )}
+
             {/* Product to Promote */}
             <div className="space-y-2">
               <Label>What to promote? (Optional)</Label>
@@ -464,6 +495,13 @@ export function ContentGenerator() {
                   {generatedCopy.generationMode === 'efficient' ? '⚡' : '✨'}
                   {generatedCopy.generationMode === 'efficient' ? 'Efficient' : 'Premium'}
                 </Badge>
+                
+                {/* LinkedIn Template Badge */}
+                {generatedCopy.linkedInTemplateName && (
+                  <Badge variant="secondary" className="gap-1">
+                    📋 {generatedCopy.linkedInTemplateName}
+                  </Badge>
+                )}
                 
                 {/* AI Detection Score Badge */}
                 <TooltipProvider>
