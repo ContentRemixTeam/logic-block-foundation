@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.create-content-challenge]
 verify_jwt = false
+
+[functions.openai-proxy]
+verify_jwt = false

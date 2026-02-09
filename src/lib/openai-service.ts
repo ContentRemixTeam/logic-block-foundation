@@ -589,7 +589,6 @@ Write this email now. Remember: You're not just writing an email, you're enginee
    * Uses the template-specific prompts and anti-AI rules
    */
   private static async generateLinkedInWithTemplate(
-    apiKey: string,
     templateId: string,
     context: GenerateOptions['context'],
     baseTemperature: number
@@ -621,7 +620,7 @@ Write this email now. Remember: You're not just writing an email, you're enginee
     let totalTokens = 0;
     
     // Pass 1: Generate initial draft using template
-    const draft = await this.callOpenAI(apiKey, {
+    const draft = await this.callOpenAI({
       systemPrompt,
       userPrompt,
       temperature: baseTemperature,
@@ -629,7 +628,7 @@ Write this email now. Remember: You're not just writing an email, you're enginee
     totalTokens += draft.tokens;
     
     // Pass 2: Quality check and refinement
-    const refinement = await this.callOpenAI(apiKey, {
+    const refinement = await this.callOpenAI({
       systemPrompt: `You are a LinkedIn content editor. Review this post and improve it.
 
 CRITICAL CHECKS:
@@ -672,11 +671,6 @@ Keep the post's structure and message intact while fixing issues.`,
     aiDetectionScore: number;
   }> {
     const startTime = Date.now();
-    const apiKey = await this.getUserAPIKey(userId);
-    
-    if (!apiKey) {
-      throw new Error('No API key configured. Please add your OpenAI API key in settings.');
-    }
     
     // Get adaptive learning parameters based on user's past feedback
     const feedbackPattern = await AdaptiveLearningService.analyzeFeedbackPatterns(
@@ -703,7 +697,6 @@ Keep the post's structure and message intact while fixing issues.`,
     // LINKEDIN TEMPLATE PATH: Specialized high-quality generation
     if (isLinkedInWithTemplate) {
       const templateResult = await this.generateLinkedInWithTemplate(
-        apiKey,
         options.linkedInTemplateId!,
         options.context,
         baseTemperature
@@ -717,7 +710,7 @@ Keep the post's structure and message intact while fixing issues.`,
       const brandDNAAdditions = this.buildBrandDNAPromptAdditions(options.context.brandDNA, options.contentType);
       
       // Pass 1: Generate initial draft with quality examples
-      const draft = await this.callOpenAI(apiKey, {
+      const draft = await this.callOpenAI({
         systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams) + QUALITY_EXAMPLES + controlAdditions + brandDNAAdditions,
         userPrompt: this.buildUserPrompt(options),
         temperature: baseTemperature,
@@ -725,7 +718,7 @@ Keep the post's structure and message intact while fixing issues.`,
       totalTokens += draft.tokens;
       
       // Pass 2: Combined critique (strategic + voice + conversion + banned phrases)
-      const critique = await this.callOpenAI(apiKey, {
+      const critique = await this.callOpenAI({
         systemPrompt: `You are a direct-response copywriting expert. Review this ${options.contentType} and identify issues:
 
 ${options.contentType === 'welcome_email_1' ? `
@@ -756,7 +749,7 @@ Be specific and actionable.`,
       totalTokens += critique.tokens;
       
       // Pass 3: Rewrite from critique
-      const rewrite = await this.callOpenAI(apiKey, {
+      const rewrite = await this.callOpenAI({
         systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams) + QUALITY_EXAMPLES + controlAdditions,
         userPrompt: `ORIGINAL COPY:\n${draft.content}\n\nCRITIQUE:\n${critique.content}\n\nRewrite addressing all feedback. Make it better. Remove ALL banned phrases.`,
         temperature: 0.7,
@@ -767,7 +760,7 @@ Be specific and actionable.`,
       // Pass 4: AI detection refinement if needed
       aiCheck = checkAIDetection(finalContent);
       if (aiCheck.score > 3) {
-        const refinement = await this.callOpenAI(apiKey, {
+        const refinement = await this.callOpenAI({
           systemPrompt: `Rewrite to sound 100% human. Current AI score: ${aiCheck.score}/10.
 
 Issues: ${aiCheck.warnings.join(', ')}
@@ -787,14 +780,14 @@ Fix: ${aiCheck.suggestions.join(', ')}`,
       const brandDNAAdditions = this.buildBrandDNAPromptAdditions(options.context.brandDNA, options.contentType);
       
       // PASS 1: Examples-First Draft with quality examples and controls
-      const draft1 = await this.callOpenAI(apiKey, {
+      const draft1 = await this.callOpenAI({
         systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams) + QUALITY_EXAMPLES + controlAdditions + brandDNAAdditions,
         userPrompt: this.buildUserPrompt(options),
         temperature: baseTemperature
       });
       
       // PASS 2: Self-Scoring with Rubric
-      const scoring = await this.callOpenAI(apiKey, {
+      const scoring = await this.callOpenAI({
         systemPrompt: 'You are a quality auditor. Score this email against the rubric. Be brutally honest.',
         userPrompt: `${QUALITY_RUBRIC}\n\nEMAIL TO SCORE:\n${draft1.content}`,
         temperature: 0.2,
@@ -809,7 +802,7 @@ Fix: ${aiCheck.suggestions.join(', ')}`,
       
       // VALIDATION GATE 1: Quality Score < 7 triggers rewrite
       if (overallScore < 7) {
-        const rewrite1 = await this.callOpenAI(apiKey, {
+        const rewrite1 = await this.callOpenAI({
           systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams) + QUALITY_EXAMPLES + controlAdditions,
           userPrompt: `ORIGINAL DRAFT:\n${currentDraft}\n\nQUALITY AUDIT:\n${scoring.content}\n\nRewrite fixing ALL issues identified. Must score 8+/10 on every criterion.`,
           temperature: 0.7,
@@ -821,7 +814,7 @@ Fix: ${aiCheck.suggestions.join(', ')}`,
       // VALIDATION GATE 2: Banned Phrases Check
       const bannedCheck = checkForBannedPhrases(currentDraft);
       if (!bannedCheck.passes) {
-        const phraseFix = await this.callOpenAI(apiKey, {
+        const phraseFix = await this.callOpenAI({
           systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams) + controlAdditions,
           userPrompt: `EMAIL:\n${currentDraft}\n\nFOUND BANNED AI PHRASES: ${bannedCheck.found.join(', ')}\n\nRewrite removing ALL these phrases. Replace with natural, human alternatives. Do not use any of these AI-sounding phrases.`,
           temperature: 0.6,
@@ -834,7 +827,7 @@ Fix: ${aiCheck.suggestions.join(', ')}`,
       if (options.contentType === 'welcome_email_1') {
         const tipCheck = validateTacticalTip(currentDraft);
         if (!tipCheck.passes) {
-          const tipFix = await this.callOpenAI(apiKey, {
+          const tipFix = await this.callOpenAI({
             systemPrompt: this.buildSystemPrompt(options.context, adaptiveParams) + QUALITY_EXAMPLES + controlAdditions,
             userPrompt: `EMAIL:\n${currentDraft}\n\nTACTICAL TIP ISSUES:\n${!tipCheck.hasNumberedSteps ? '- Missing numbered steps\n' : ''}${!tipCheck.hasTimeframe ? '- Missing specific timeframe (TODAY, this week, etc.)\n' : ''}${!tipCheck.hasOutcome ? '- Missing expected outcome\n' : ''}\n\nRewrite the tactical tip section with:\n1. Numbered steps (1. 2. 3.)\n2. Specific timeframe (today, this week, next 7 days)\n3. Expected outcome (what will happen)\n4. Invitation to report back\n\nUse the QUALITY EXAMPLES as reference. Make it SPECIFIC and ACTIONABLE.`,
             temperature: 0.7,
@@ -850,7 +843,7 @@ Fix: ${aiCheck.suggestions.join(', ')}`,
         const lines = subjectLines[1].split('\n').filter(l => l.trim() && l.match(/^\d+\./));
         const subjectCheck = validateSubjectLines(lines);
         if (!subjectCheck.passes) {
-          const subjectFix = await this.callOpenAI(apiKey, {
+          const subjectFix = await this.callOpenAI({
             systemPrompt: 'You are a subject line expert. Create specific, number-driven subject lines that reference the actual email content.',
             userPrompt: `EMAIL BODY:\n${currentDraft}\n\nCURRENT SUBJECT LINES (too generic):\n${lines.join('\n')}\n\nRewrite 3 subject lines that:\n1. Include specific numbers from the email\n2. Reference the actual tactical tip/content\n3. Create curiosity without clickbait\n\nEXAMPLE GOOD SUBJECT LINES:\n"Answer 3 questions, get 10 DMs (15 minutes)"\n"The $4K launch I built in 7 days (no ads)"\n"Why 47 subscribers beat 4,700 (engagement math)"\n\nReturn just the 3 numbered subject lines, nothing else.`,
             temperature: 0.7,
@@ -871,7 +864,7 @@ Fix: ${aiCheck.suggestions.join(', ')}`,
       // PASS 5: Final AI Humanization if needed
       aiCheck = checkAIDetection(currentDraft);
       if (aiCheck.score > 3) {
-        const humanize = await this.callOpenAI(apiKey, {
+        const humanize = await this.callOpenAI({
           systemPrompt: `${this.buildSystemPrompt(options.context, adaptiveParams)}
 
 CRITICAL: This copy scored ${aiCheck.score}/10 for AI detection. Rewrite to sound completely human.
@@ -906,36 +899,31 @@ Write like a real person - imperfect, conversational, authentic. Not like ChatGP
   }
   
   /**
-   * Call OpenAI API
+   * Call OpenAI API via backend proxy
    */
-  private static async callOpenAI(apiKey: string, params: CallOpenAIParams): Promise<CallOpenAIResult> {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
+  private static async callOpenAI(params: CallOpenAIParams): Promise<CallOpenAIResult> {
+    const { data, error } = await supabase.functions.invoke('openai-proxy', {
+      body: {
         messages: [
           { role: 'system', content: params.systemPrompt },
           { role: 'user', content: params.userPrompt }
         ],
         temperature: params.temperature,
         max_tokens: 2000
-      })
+      }
     });
     
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'OpenAI API call failed');
+    if (error) {
+      throw new Error(error.message || 'OpenAI API call failed');
     }
     
-    const data = await response.json();
+    if (data?.error) {
+      throw new Error(data.error);
+    }
     
     return {
-      content: data.choices[0]?.message?.content || '',
-      tokens: data.usage?.total_tokens || 0
+      content: data?.content || '',
+      tokens: data?.tokens || 0
     };
   }
   
@@ -943,11 +931,6 @@ Write like a real person - imperfect, conversational, authentic. Not like ChatGP
    * Analyze voice from text samples - deep pattern extraction
    */
   static async analyzeVoice(userId: string, samples: string[]): Promise<VoiceProfile> {
-    const apiKey = await this.getUserAPIKey(userId);
-    
-    if (!apiKey) {
-      throw new Error('No API key configured. Please add your OpenAI API key in settings.');
-    }
     
     const combinedSamples = samples.filter(s => s && s.trim()).join('\n\n---\n\n');
     
@@ -1058,7 +1041,7 @@ For pattern_examples, PULL DIRECT QUOTES from the samples that show:
 
 Return ONLY the JSON object matching the schema above. No explanations, no markdown formatting.`;
 
-    const result = await this.callOpenAI(apiKey, {
+    const result = await this.callOpenAI({
       systemPrompt,
       userPrompt,
       temperature: 0.3
