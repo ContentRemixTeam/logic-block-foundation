@@ -73,7 +73,7 @@ export default function AICopywriting() {
           {/* Routes */}
           <Routes>
             <Route 
-              path="/" 
+              path="" 
               element={
                 isSetupComplete ? (
                   <AIDashboard />
@@ -86,11 +86,11 @@ export default function AICopywriting() {
                 )
               } 
             />
-            <Route path="/setup" element={<BrandWizard />} />
-            <Route path="/generate" element={<ContentGenerator />} />
-            <Route path="/library" element={<CopyLibrary />} />
-            <Route path="/brand-dna" element={<BrandDNAPage />} />
-            <Route path="/settings" element={<APIKeySettings />} />
+            <Route path="setup" element={<BrandWizard />} />
+            <Route path="generate" element={<ContentGenerator />} />
+            <Route path="library" element={<CopyLibrary />} />
+            <Route path="brand-dna" element={<BrandDNAPage />} />
+            <Route path="settings" element={<APIKeySettings />} />
           </Routes>
         </div>
       </MastermindGate>
