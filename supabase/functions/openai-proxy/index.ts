@@ -111,16 +111,6 @@ serve(async (req) => {
       );
     }
 
-    if (keyData.key_status === "invalid") {
-      return new Response(
-        JSON.stringify({ error: "API key is marked as invalid" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
     // Decrypt the API key
     const apiKey = await decryptAPIKey(keyData.encrypted_key, userId);
 
@@ -159,14 +149,6 @@ serve(async (req) => {
       const errorData = await openaiResponse.json();
       const errorMessage =
         errorData.error?.message || "OpenAI API call failed";
-
-      // Mark key as invalid if auth error
-      if (openaiResponse.status === 401) {
-        await supabase
-          .from("user_api_keys")
-          .update({ key_status: "invalid" })
-          .eq("user_id", userId);
-      }
 
       return new Response(JSON.stringify({ error: errorMessage }), {
         status: openaiResponse.status,

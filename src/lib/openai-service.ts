@@ -50,7 +50,6 @@ export class OpenAIService {
       .single();
     
     if (error || !data) return null;
-    if (data.key_status === 'invalid') throw new Error('API key is invalid');
     
     return await decryptAPIKey(data.encrypted_key, userId);
   }
