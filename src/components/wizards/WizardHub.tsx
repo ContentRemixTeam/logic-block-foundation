@@ -23,6 +23,7 @@ const IMPLEMENTED_WIZARDS = [
   'lead-magnet-wizard',
   'flash-sale-wizard',
   'webinar-wizard',
+  'content-challenge-30-days',
 ];
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -127,6 +128,8 @@ export default function WizardHub() {
       navigate('/wizards/flash-sale');
     } else if (templateName === 'webinar-wizard') {
       navigate('/wizards/webinar');
+    } else if (templateName === 'content-challenge-30-days') {
+      navigate('/wizards/content-challenge');
     } else {
       toast.info('This wizard is coming soon!');
     }

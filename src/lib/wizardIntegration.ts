@@ -142,6 +142,25 @@ export const WIZARD_INTEGRATIONS: WizardIntegrationConfig[] = [
     phases: ['Pre-Sale', 'During Sale', 'Post-Sale'],
   },
   {
+    templateName: 'content-challenge-30-days',
+    displayName: '30 Days of Content',
+    creates: [
+      { table: 'content_challenges', type: 'record' },
+      { table: 'content_challenge_days', type: 'content_items' },
+      { table: 'content_items', type: 'content_items' },
+      { table: 'tasks', type: 'tasks' },
+    ],
+    integratesWith: {
+      dashboard: true,
+      dailyPlan: true,
+      weeklyPlan: true,
+      editorialCalendar: true,
+      taskList: true,
+    },
+    activeHook: 'useContentChallenges',
+    phaseTracking: false,
+  },
+  {
     templateName: 'webinar-wizard',
     displayName: 'Webinar/Masterclass Planner',
     creates: [
