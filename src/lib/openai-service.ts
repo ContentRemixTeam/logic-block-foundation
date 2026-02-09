@@ -318,51 +318,47 @@ You're not "writing like them" - you're THINKING like them and writing what they
   private static buildBrandDNAPromptAdditions(brandDNA?: BrandDNA, contentType?: string): string {
     if (!brandDNA) return '';
     
-    let additions = '\n\n=== BRAND DNA ===\n';
+    let additions = '\n\n=== BRAND DNA (CRITICAL COMPLIANCE REQUIRED) ===\n';
     
-    // Custom banned phrases
-    if (brandDNA.custom_banned_phrases.length > 0) {
-      additions += '\n❌ NEVER USE THESE WORDS (brand-specific):\n';
-      brandDNA.custom_banned_phrases.forEach(phrase => {
-        additions += `- "${phrase}"\n`;
-      });
+    // Custom banned phrases - CRITICAL enforcement at the top
+    if (brandDNA.custom_banned_phrases && brandDNA.custom_banned_phrases.length > 0) {
+      additions += `\n🚫 ABSOLUTELY FORBIDDEN PHRASES (never use these - this is non-negotiable):
+${brandDNA.custom_banned_phrases.map(phrase => `- "${phrase}"`).join('\n')}
+
+If you accidentally write any of these phrases, STOP immediately and rewrite that section without them.
+`;
     }
     
-    // Frameworks
-    if (brandDNA.frameworks.length > 0) {
-      additions += '\n🎯 YOUR PROPRIETARY FRAMEWORKS (reference when relevant):\n';
-      brandDNA.frameworks.forEach(fw => {
-        additions += `\n**${fw.name}**: ${fw.description}`;
-        if (fw.example) additions += `\nExample: "${fw.example}"`;
-        additions += '\n';
-      });
+    // Content Philosophies - shape the overall approach
+    if (brandDNA.content_philosophies && brandDNA.content_philosophies.length > 0) {
+      additions += `\n📚 CONTENT PHILOSOPHIES (follow these principles):
+${brandDNA.content_philosophies.map((p, i) => `${i + 1}. ${p}`).join('\n')}
+`;
+    }
+    
+    // Frameworks (if applicable to content type)
+    if (brandDNA.frameworks && brandDNA.frameworks.length > 0) {
+      additions += `\n🎯 PREFERRED FRAMEWORKS (structure content using these when relevant):
+${brandDNA.frameworks.map(f => `
+📋 ${f.name}
+Description: ${f.description}
+${f.example ? `Example:\n${f.example}` : ''}
+`).join('\n')}
+`;
+    }
+    
+    // Brand Values
+    if (brandDNA.brand_values && brandDNA.brand_values.length > 0) {
+      additions += `\n💎 BRAND VALUES (infuse these into the messaging):
+${brandDNA.brand_values.join(', ')}
+`;
     }
     
     // Signature phrases
-    if (brandDNA.signature_phrases.length > 0) {
-      additions += '\n💬 SIGNATURE PHRASES (use naturally when fitting):\n';
-      brandDNA.signature_phrases.forEach(phrase => {
-        additions += `- "${phrase}"\n`;
-      });
-    }
-    
-    // Emoji preferences
-    if (!brandDNA.emoji_preferences.use_emojis) {
-      additions += '\n❌ DO NOT USE EMOJIS in generated content.\n';
-    } else if (brandDNA.emoji_preferences.preferred_emojis.length > 0) {
-      additions += `\n😊 Preferred emojis (use sparingly): ${brandDNA.emoji_preferences.preferred_emojis.join(' ')}\n`;
-    }
-    
-    // Content philosophies
-    if (brandDNA.content_philosophies.length > 0) {
-      additions += '\n📚 CONTENT PHILOSOPHIES (shape your tone):\n';
-      brandDNA.content_philosophies.forEach(p => additions += `- ${p}\n`);
-    }
-    
-    // Brand values
-    if (brandDNA.brand_values.length > 0) {
-      additions += '\n🎯 BRAND VALUES (reflect these in messaging):\n';
-      brandDNA.brand_values.forEach(v => additions += `- ${v}\n`);
+    if (brandDNA.signature_phrases && brandDNA.signature_phrases.length > 0) {
+      additions += `\n💬 SIGNATURE PHRASES (use naturally when fitting - don't force):
+${brandDNA.signature_phrases.map(phrase => `- "${phrase}"`).join('\n')}
+`;
     }
     
     // Content examples for this type (few-shot learning)
@@ -370,15 +366,29 @@ You're not "writing like them" - you're THINKING like them and writing what they
       const contentFamily = this.getContentFamily(contentType);
       if (contentFamily) {
         const examples = brandDNA.content_examples[contentFamily];
-        const validExamples = examples?.filter(ex => ex && ex.trim().length > 0);
+        const validExamples = examples?.filter(ex => ex && ex.trim().length > 50);
         
         if (validExamples && validExamples.length > 0) {
-          additions += '\n\n📝 YOUR OWN COPY EXAMPLES (match this style EXACTLY):\n';
-          validExamples.forEach((ex, i) => {
-            additions += `\n--- Example ${i + 1} ---\n${ex.trim()}\n`;
-          });
-          additions += '\n⚠️ CRITICAL: Study these examples closely. Match the structure, sentence patterns, rhythm, and personality. Write like THIS person, not like a generic copywriter.\n';
+          additions += `\n\n📝 EXAMPLES OF EXCELLENT ${contentFamily.toUpperCase()} (match this quality):
+${validExamples.map((ex, i) => `
+Example ${i + 1}:
+${ex.substring(0, 800)}
+`).join('\n')}
+`;
         }
+      }
+    }
+    
+    // Emoji Preferences
+    if (brandDNA.emoji_preferences) {
+      const prefs = brandDNA.emoji_preferences;
+      if (prefs.use_emojis && prefs.preferred_emojis?.length > 0) {
+        additions += `\n😊 EMOJI USAGE:
+Use emojis sparingly. Preferred options: ${prefs.preferred_emojis.join(' ')}
+`;
+      } else if (!prefs.use_emojis) {
+        additions += `\n❌ EMOJI USAGE: Do NOT use emojis in this content.
+`;
       }
     }
     

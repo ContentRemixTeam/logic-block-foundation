@@ -446,9 +446,34 @@ BRIEF COMPONENTS:
 6. Platform-specific notes if applicable`;
 }
 
-// ============== Critique Prompt (Pass 2) ==============
-export function buildCritiquePrompt(generatedContent: string, contentType: WizardContentType): string {
-  return `You are a direct-response copywriting expert. Review this ${contentType.replace(/_/g, ' ')} and identify:
+// ============== Critique Prompt (Pass 2) with Voice Matching ==============
+export interface VoiceProfile {
+  tone_scores?: {
+    formality: number;
+    energy: number;
+    emotion: number;
+    humor: number;
+  };
+  signature_phrases?: string[];
+  style_summary?: string;
+  sentence_structure?: {
+    avg_length: number;
+    style: string;
+  };
+  [key: string]: unknown;
+}
+
+export function buildCritiquePrompt(
+  generatedContent: string, 
+  contentType: WizardContentType,
+  voiceSamples?: string[],
+  voiceProfile?: VoiceProfile
+): string {
+  // If no voice samples, fall back to basic critique
+  const validSamples = voiceSamples?.filter(s => s && s.length > 50).slice(0, 2) || [];
+  
+  if (validSamples.length === 0) {
+    return `You are a direct-response copywriting expert. Review this ${contentType.replace(/_/g, ' ')} and identify:
 
 1. HEADLINE/SUBJECT LINES: Are they curiosity-driven? Would they get opened/read?
 2. HOOKS: Does the opening immediately grab attention?
@@ -463,15 +488,82 @@ CONTENT TO CRITIQUE:
 ${generatedContent}
 
 Provide specific, actionable feedback. Point to exact phrases that need improvement.`;
+  }
+
+  // Enhanced critique with side-by-side voice comparison
+  return `Compare the generated content to these ACTUAL writing samples from the user:
+
+VOICE SAMPLES:
+${validSamples.map((s, i) => `
+=== Sample ${i + 1} ===
+${s.substring(0, 500)}
+`).join('\n')}
+
+GENERATED CONTENT TO CRITIQUE:
+${generatedContent}
+
+SIDE-BY-SIDE ANALYSIS:
+Identify specific differences between their actual writing and the generated content:
+
+1. Opening Style:
+   - Theirs: [quote first sentence from sample]
+   - Generated: [quote first sentence]
+   - Match? Yes/No - if No, explain why
+
+2. Sentence Rhythm:
+   - Theirs: [describe avg length, variety, flow]
+   - Generated: [describe]
+   - Match? Yes/No - if No, explain how to fix
+
+3. Signature Phrases:
+${voiceProfile?.signature_phrases?.slice(0, 5).map(p => `   - "${p}" - Used naturally? Forced? Missing?`).join('\n') || '   - No signature phrases provided'}
+
+4. Paragraph Structure:
+   - Theirs: [short/medium/long, how they break ideas]
+   - Generated: [describe]
+   - Match? Yes/No
+
+5. Emotional Arc:
+   - Theirs: [describe how emotion builds in samples]
+   - Generated: [describe]
+   - Match? Yes/No
+
+6. AI-Sounding Phrases (check generated content for):
+   - "Elevate your", "Unlock the power", "Transform your journey"
+   - "Dive deep", "Game-changer", "Next level"
+   - "Here's what/how", "I realized that", "Let's be honest"
+   - Mark each one found and provide natural alternatives from their samples
+
+SPECIFIC LINE-BY-LINE FEEDBACK:
+Quote exact sentences from generated content that don't match their voice, then show how to rewrite using patterns from their samples.`;
 }
 
-// ============== Rewrite Prompt (Pass 3) ==============
+// ============== Rewrite Prompt (Pass 3) with Pattern Matching ==============
 export function buildRewritePrompt(
   originalContent: string, 
   critique: string, 
   context: WizardGenerationContext
 ): string {
-  return `Rewrite this content addressing all the critique feedback.
+  const validSamples = context.voiceSamples?.filter(s => s && s.length > 50).slice(0, 2) || [];
+  
+  let voiceReference = '';
+  if (validSamples.length > 0) {
+    voiceReference = `
+VOICE REFERENCE (match these patterns EXACTLY):
+${validSamples.map((s, i) => `
+Sample ${i + 1}:
+${s.substring(0, 400)}
+`).join('\n---\n')}
+`;
+  }
+  
+  return `CRITICAL: You are REWRITING to match their EXACT patterns.
+Before writing each section, identify:
+1. What pattern do they use for this in their samples?
+2. How can I apply that exact pattern here?
+3. Am I using their rhythm, not my instincts?
+
+${voiceReference}
 
 ORIGINAL CONTENT:
 ${originalContent}
@@ -481,13 +573,16 @@ ${critique}
 
 ${buildVoicePrompt(context)}
 
-REQUIREMENTS:
+REWRITING REQUIREMENTS:
 - Fix every issue mentioned in the critique
-- Make it sound MORE human, not less
-- Add specific details where things were vague
-- Strengthen emotional hooks
-- Improve CTAs to be more compelling
-- Remove any AI-sounding phrases
+- MATCH the sentence length and paragraph structure from voice samples
+- USE their transition patterns between ideas
+- REPLICATE their opening and closing styles
+- ADD specific details where things were vague
+- STRENGTHEN emotional hooks using their emotional vocabulary
+- IMPROVE CTAs matching their CTA style
+- REMOVE any AI-sounding phrases and replace with patterns from samples
+- Use THEIR vocabulary, not copywriting jargon
 
 Output the improved version in the same format as the original.`;
 }
