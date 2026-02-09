@@ -1,79 +1,38 @@
 
 
-# Fix: "Failed to fetch" Error on AI Copy Generation
+# Security Hardening: Targeted Improvements
 
-## Problem
+## What We're Doing
 
-The AI Copywriter calls OpenAI's API directly from the browser (`fetch('https://api.openai.com/v1/chat/completions')`). The Lovable preview environment intercepts these requests, causing "Failed to fetch" errors. This affects ALL content generation (emails, LinkedIn posts, etc.), not just LinkedIn templates.
+Applying only the **meaningful** security improvements from the recommendations, while skipping changes that would hurt performance or add no real value.
 
-## Solution
+## What We're NOT Doing (and Why)
 
-Route OpenAI calls through a backend function that proxies the request server-side. The function will:
-1. Accept the authenticated user's request
-2. Retrieve their encrypted OpenAI API key from the database
-3. Decrypt it and call OpenAI server-side
-4. Return the result
+| Proposed Fix | Why We're Skipping It |
+|---|---|
+| Clear all caches on every startup | Destroys performance — every page load would wipe cached data and re-fetch everything. The existing user-change detection already handles cross-user scenarios. |
+| Validate session with getUser() on every load | Adds unnecessary latency. Supabase already validates tokens. A user ID mismatch between getSession and getUser can't happen in practice. |
+| RLS audit | Already ran it — all tables have RLS enabled with proper policies. No issues found. |
 
-## Files to Create
+## Changes
 
-| File | Purpose |
-|------|---------|
-| `supabase/functions/openai-proxy/index.ts` | Backend function that proxies OpenAI calls using the user's stored API key |
+### 1. Improve sign-out cache clearing (useAuth.tsx)
 
-## Files to Modify
+- Clear ALL service worker caches on sign-out, not just ones containing "supabase"
+- Add `sessionStorage.clear()` to remove any session-specific data
+- This is the only real gap in the current implementation
 
-| File | Change |
-|------|--------|
-| `src/lib/openai-service.ts` | Update `callOpenAI` method to call the backend proxy instead of OpenAI directly |
+### 2. Add auth event logging (useAuth.tsx)
+
+- Log auth state changes with event type, user ID, and email
+- These logs will be visible in development/preview for debugging
+- Production already suppresses console.log, so no noise in production
 
 ## Technical Details
 
-### 1. Backend Function: `openai-proxy`
+Both changes are in `src/hooks/useAuth.tsx`:
 
-The function will:
-- Authenticate the user via their JWT token
-- Look up their encrypted API key from `user_api_keys` table
-- Decrypt it (using the same encryption logic currently in the frontend)
-- Forward the chat completion request to OpenAI
-- Return the response
+**Sign-out improvement** — Remove the `.filter(name => name.includes('supabase'))` so all caches are cleared, and add `sessionStorage.clear()`.
 
-It accepts:
-```json
-{
-  "messages": [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}],
-  "temperature": 0.8,
-  "max_tokens": 2000
-}
-```
-
-### 2. Update `callOpenAI` in `openai-service.ts`
-
-Change from:
-```typescript
-// Direct browser call (broken)
-fetch('https://api.openai.com/v1/chat/completions', {
-  headers: { 'Authorization': `Bearer ${apiKey}` },
-  ...
-})
-```
-
-To:
-```typescript
-// Proxy through backend function
-supabase.functions.invoke('openai-proxy', {
-  body: { messages, temperature, max_tokens }
-})
-```
-
-The `apiKey` parameter can be removed from `callOpenAI` since the backend function handles key retrieval. The `getUserAPIKey` and `decryptAPIKey` logic moves server-side.
-
-### 3. Encryption Key Handling
-
-The current encryption uses a key derived from the user ID. The same decryption logic needs to be replicated in the edge function using Deno's Web Crypto API, or we can store/retrieve the encryption key as a backend secret.
-
-## Implementation Sequence
-
-1. Create the `openai-proxy` edge function with CORS headers, auth, key retrieval, and OpenAI forwarding
-2. Update `callOpenAI` in `openai-service.ts` to use `supabase.functions.invoke` instead of direct fetch
-3. Simplify the `generateCopy` flow since the API key no longer needs to be passed around on the frontend
+**Auth logging** — Add structured logging in the `onAuthStateChange` callback showing event type, previous/new user ID, and email.
 
