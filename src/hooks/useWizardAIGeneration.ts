@@ -1,13 +1,15 @@
 // Hook for generating AI copy within wizards
-// Provides multi-pass generation, calendar/vault integration, and progress tracking
+// Provides multi-pass generation, calendar/vault integration, progress tracking,
+// error recovery with progressive save, and rate limiting
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useBrandProfile, useAPIKey } from '@/hooks/useAICopywriting';
 import { useSaveToVault } from '@/hooks/useSaveToVault';
 import { useAddCopyToCalendar } from '@/hooks/useAddCopyToCalendar';
 import { OpenAIService } from '@/lib/openai-service';
 import { checkAIDetection } from '@/lib/ai-detection-checker';
+import { toast } from 'sonner';
 import {
   WizardGenerationContext,
   WizardContentType,
@@ -50,6 +52,19 @@ interface CallOpenAIResult {
   tokens: number;
 }
 
+interface SavedGenerationState {
+  draft?: string;
+  critique?: string;
+  draftTokens?: number;
+  critiqueTokens?: number;
+  contentType?: WizardContentType;
+  timestamp?: number;
+}
+
+const RATE_LIMIT_COOLDOWN_MS = 10000; // 10 seconds between generations
+const DAILY_LIMIT_WARNING = 30;
+const DAILY_LIMIT_HARD = 100;
+
 export function useWizardAIGeneration({ wizardType, wizardData }: UseWizardAIGenerationOptions) {
   const { user } = useAuth();
   const { data: brandProfile } = useBrandProfile();
@@ -64,6 +79,53 @@ export function useWizardAIGeneration({ wizardType, wizardData }: UseWizardAIGen
     result: null,
     error: null,
   });
+
+  // Rate limiting state
+  const [lastGenerationTime, setLastGenerationTime] = useState<number>(0);
+  const [generationsToday, setGenerationsToday] = useState<number>(0);
+  const [todayDate, setTodayDate] = useState<string>(new Date().toDateString());
+  const [hasRecoverableState, setHasRecoverableState] = useState<boolean>(false);
+
+  // Load rate limiting counts from localStorage on mount
+  useEffect(() => {
+    const today = new Date().toDateString();
+    const stored = localStorage.getItem('ai_generation_stats');
+    
+    if (stored) {
+      try {
+        const stats = JSON.parse(stored);
+        if (stats.date === today) {
+          setGenerationsToday(stats.count);
+        } else {
+          // New day, reset
+          setGenerationsToday(0);
+          localStorage.setItem('ai_generation_stats', JSON.stringify({ date: today, count: 0 }));
+        }
+      } catch {
+        localStorage.setItem('ai_generation_stats', JSON.stringify({ date: today, count: 0 }));
+      }
+    }
+    setTodayDate(today);
+
+    // Check for recoverable state
+    if (user) {
+      const recoveryKey = `wizard_generation_recovery_${user.id}`;
+      const recovered = localStorage.getItem(recoveryKey);
+      if (recovered) {
+        try {
+          const savedState = JSON.parse(recovered) as SavedGenerationState;
+          // Only consider recovery if saved within last hour
+          if (savedState.timestamp && Date.now() - savedState.timestamp < 3600000) {
+            setHasRecoverableState(true);
+          } else {
+            localStorage.removeItem(recoveryKey);
+          }
+        } catch {
+          localStorage.removeItem(recoveryKey);
+        }
+      }
+    }
+  }, [user]);
 
   // Check if AI generation is available
   const isAvailable = Boolean(user && apiKey?.key_status === 'valid' && brandProfile);
@@ -190,8 +252,105 @@ export function useWizardAIGeneration({ wizardType, wizardData }: UseWizardAIGen
     return emails;
   };
 
-  // Generate email sequence with multi-pass refinement
+  // Check rate limits before generation
+  const checkRateLimits = useCallback((): { allowed: boolean; message?: string } => {
+    const now = Date.now();
+    const timeSinceLastGen = now - lastGenerationTime;
+    
+    // Cooldown check
+    if (timeSinceLastGen < RATE_LIMIT_COOLDOWN_MS) {
+      const secondsLeft = Math.ceil((RATE_LIMIT_COOLDOWN_MS - timeSinceLastGen) / 1000);
+      return { 
+        allowed: false, 
+        message: `Please wait ${secondsLeft} seconds before generating again` 
+      };
+    }
+    
+    // Daily hard limit
+    if (generationsToday >= DAILY_LIMIT_HARD) {
+      return { 
+        allowed: false, 
+        message: 'You\'ve reached the daily limit of 100 generations. Please try again tomorrow.' 
+      };
+    }
+    
+    return { allowed: true };
+  }, [lastGenerationTime, generationsToday]);
+
+  // Update rate limiting counts after generation
+  const updateRateLimitCounts = useCallback(() => {
+    const now = Date.now();
+    setLastGenerationTime(now);
+    const newCount = generationsToday + 1;
+    setGenerationsToday(newCount);
+    
+    localStorage.setItem('ai_generation_stats', JSON.stringify({
+      date: todayDate,
+      count: newCount,
+    }));
+  }, [generationsToday, todayDate]);
+
+  // Clear recovery state
+  const clearRecoveryState = useCallback(() => {
+    if (user) {
+      localStorage.removeItem(`wizard_generation_recovery_${user.id}`);
+      setHasRecoverableState(false);
+    }
+  }, [user]);
+
+  // Resume from saved state - returns saved state or null
+  const getRecoverableState = useCallback((contentType: WizardContentType): SavedGenerationState | null => {
+    if (!user) return null;
+    
+    const recoveryKey = `wizard_generation_recovery_${user.id}`;
+    const recovered = localStorage.getItem(recoveryKey);
+    if (!recovered) return null;
+    
+    try {
+      const savedState = JSON.parse(recovered) as SavedGenerationState;
+      if (savedState.contentType !== contentType) {
+        // Different content type, can't resume
+        clearRecoveryState();
+        return null;
+      }
+      return savedState;
+    } catch {
+      clearRecoveryState();
+      return null;
+    }
+  }, [user, clearRecoveryState]);
+      
+  // Generate email sequence with multi-pass refinement, rate limiting, and error recovery
   const generateEmailSequence = useCallback(async (contentType: WizardContentType): Promise<WizardGenerationResult> => {
+    // Check rate limits first
+    const rateLimitCheck = checkRateLimits();
+    if (!rateLimitCheck.allowed) {
+      toast.error(rateLimitCheck.message);
+      throw new Error(rateLimitCheck.message);
+    }
+    
+    // Warn at threshold
+    if (generationsToday >= DAILY_LIMIT_WARNING && generationsToday < 50) {
+      const shouldContinue = window.confirm(
+        `You've generated ${generationsToday} pieces today. ` +
+        `Estimated API cost: $${(generationsToday * 0.05).toFixed(2)}. Continue?`
+      );
+      if (!shouldContinue) {
+        throw new Error('Generation cancelled by user');
+      }
+    }
+    
+    if (generationsToday >= 50) {
+      const shouldContinue = window.confirm(
+        `⚠️ WARNING: You've generated ${generationsToday} pieces today. ` +
+        `Estimated API cost: $${(generationsToday * 0.05).toFixed(2)}+. ` +
+        `This could be expensive. Are you sure you want to continue?`
+      );
+      if (!shouldContinue) {
+        throw new Error('Generation cancelled by user');
+      }
+    }
+
     const startTime = Date.now();
     let totalTokens = 0;
     
@@ -203,31 +362,84 @@ export function useWizardAIGeneration({ wizardType, wizardData }: UseWizardAIGen
       throw new Error(`Unknown sequence type: ${contentType}`);
     }
     
-    setState(prev => ({ ...prev, isGenerating: true, currentPass: 'draft', progress: 10, error: null }));
+    // Check for recoverable state
+    const recoveryKey = user ? `wizard_generation_recovery_${user.id}` : null;
+    let savedState: SavedGenerationState = {};
+    
+    if (hasRecoverableState && recoveryKey) {
+      const recoveredState = getRecoverableState(contentType);
+      if (recoveredState && recoveredState.draft) {
+        const shouldResume = window.confirm(
+          'We found a partially completed generation. Resume from where you left off?'
+        );
+        if (shouldResume) {
+          savedState = recoveredState;
+          toast.success('Resuming from saved progress...');
+        } else {
+          clearRecoveryState();
+        }
+      }
+    }
+    
+    setState(prev => ({ 
+      ...prev, 
+      isGenerating: true, 
+      currentPass: savedState.draft ? 'critique' : 'draft', 
+      progress: savedState.draft ? 35 : 10, 
+      error: null 
+    }));
     
     try {
-      // Pass 1: Generate draft
-      const draft = await callOpenAI({
-        systemPrompt: buildEmailSequenceSystemPrompt(context, sequenceConfig),
-        userPrompt: buildEmailSequenceUserPrompt(context, sequenceConfig),
-        temperature: 0.8,
-      });
-      totalTokens += draft.tokens;
+      // Pass 1: Generate draft (or use saved)
+      let draftContent = savedState.draft || '';
+      let draftTokens = savedState.draftTokens || 0;
+      
+      if (!draftContent) {
+        const draft = await callOpenAI({
+          systemPrompt: buildEmailSequenceSystemPrompt(context, sequenceConfig),
+          userPrompt: buildEmailSequenceUserPrompt(context, sequenceConfig),
+          temperature: 0.8,
+        });
+        draftContent = draft.content;
+        draftTokens = draft.tokens;
+        
+        // SAVE IMMEDIATELY after successful draft
+        if (recoveryKey) {
+          savedState = { draft: draftContent, draftTokens, contentType, timestamp: Date.now() };
+          localStorage.setItem(recoveryKey, JSON.stringify(savedState));
+        }
+      }
+      totalTokens += draftTokens;
       setState(prev => ({ ...prev, currentPass: 'critique', progress: 35 }));
       
-      // Pass 2: Critique
-      const critique = await callOpenAI({
-        systemPrompt: 'You are a direct-response copywriting expert providing specific, actionable feedback.',
-        userPrompt: buildCritiquePrompt(draft.content, contentType),
-        temperature: 0.3,
-      });
-      totalTokens += critique.tokens;
+      // Pass 2: Critique with voice samples (or use saved)
+      let critiqueContent = savedState.critique || '';
+      let critiqueTokens = savedState.critiqueTokens || 0;
+      
+      if (!critiqueContent) {
+        const critique = await callOpenAI({
+          systemPrompt: 'You are a direct-response copywriting expert providing specific, actionable feedback that compares generated copy against the user\'s actual writing samples.',
+          userPrompt: buildCritiquePrompt(draftContent, contentType, context.voiceSamples, context.voiceProfile as any),
+          temperature: 0.3,
+        });
+        critiqueContent = critique.content;
+        critiqueTokens = critique.tokens;
+        
+        // SAVE IMMEDIATELY after successful critique
+        if (recoveryKey) {
+          savedState.critique = critiqueContent;
+          savedState.critiqueTokens = critiqueTokens;
+          savedState.timestamp = Date.now();
+          localStorage.setItem(recoveryKey, JSON.stringify(savedState));
+        }
+      }
+      totalTokens += critiqueTokens;
       setState(prev => ({ ...prev, currentPass: 'rewrite', progress: 55 }));
       
       // Pass 3: Rewrite based on critique
       const rewrite = await callOpenAI({
         systemPrompt: buildEmailSequenceSystemPrompt(context, sequenceConfig),
-        userPrompt: buildRewritePrompt(draft.content, critique.content, context),
+        userPrompt: buildRewritePrompt(draftContent, critiqueContent, context),
         temperature: 0.7,
       });
       totalTokens += rewrite.tokens;
@@ -248,6 +460,13 @@ export function useWizardAIGeneration({ wizardType, wizardData }: UseWizardAIGen
         totalTokens += refinement.tokens;
         emails = parseEmailSequence(refinement.content, contentType);
       }
+      
+      // Success! Clear saved state and update rate limits
+      if (recoveryKey) {
+        localStorage.removeItem(recoveryKey);
+        setHasRecoverableState(false);
+      }
+      updateRateLimitCounts();
       
       setState(prev => ({ ...prev, currentPass: 'complete', progress: 100 }));
       
@@ -277,10 +496,19 @@ export function useWizardAIGeneration({ wizardType, wizardData }: UseWizardAIGen
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Generation failed';
+      
+      // If we have partial results, notify user
+      if (savedState.draft && recoveryKey) {
+        toast.error(
+          'Generation interrupted. Your progress has been saved. Click "Generate" again to resume.',
+          { duration: 10000 }
+        );
+      }
+      
       setState(prev => ({ ...prev, isGenerating: false, error: errorMessage }));
       throw error;
     }
-  }, [buildContext, callOpenAI]);
+  }, [buildContext, callOpenAI, checkRateLimits, updateRateLimitCounts, generationsToday, hasRecoverableState, getRecoverableState, clearRecoveryState, user]);
 
   // Schedule generated emails to calendar
   const scheduleToCalendar = useCallback(async (
@@ -338,11 +566,16 @@ export function useWizardAIGeneration({ wizardType, wizardData }: UseWizardAIGen
     isAvailable,
     missingRequirements,
     
+    // Rate limiting info
+    generationsToday,
+    hasRecoverableState,
+    
     // Actions
     generateEmailSequence,
     scheduleToCalendar,
     saveSequenceToVault,
     reset,
+    clearRecoveryState,
     
     // Context builder (for preview)
     buildContext,
