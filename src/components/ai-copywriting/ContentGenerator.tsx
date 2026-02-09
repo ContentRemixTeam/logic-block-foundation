@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +38,7 @@ import { CopyControlsPanel } from './CopyControlsPanel';
 import { ContentTypeSelector } from './ContentTypeSelector';
 import { LearningNotice } from './LearningNotice';
 import { FeedbackTagsSelector } from './FeedbackTagsSelector';
+import { SocialPostIdeation } from './SocialPostIdeation';
 import { 
   Sparkles, 
   Loader2, 
@@ -57,6 +58,9 @@ import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 
+// Social content types that should show ideation flow
+const SOCIAL_CONTENT_TYPES = ['instagram_post', 'linkedin_post', 'twitter_thread', 'social_post'];
+
 export function ContentGenerator() {
   const { data: products } = useProducts();
   const { data: apiKey } = useAPIKey();
@@ -65,6 +69,9 @@ export function ContentGenerator() {
   const { insights: learningInsights } = useLearningInsights();
   const generateCopy = useGenerateCopy();
   const rateCopy = useRateCopy();
+
+  // Ref for scrolling to result
+  const resultRef = useRef<HTMLDivElement>(null);
 
   const [contentType, setContentType] = useState<ContentType>('welcome_email_1');
   const [productId, setProductId] = useState<string>('');
@@ -87,23 +94,37 @@ export function ContentGenerator() {
   const [copied, setCopied] = useState(false);
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
   const [vaultModalOpen, setVaultModalOpen] = useState(false);
+  
+  // Social post ideation state
+  const [showIdeation, setShowIdeation] = useState(false);
+  const [ideationContext, setIdeationContext] = useState<{ topic: string; userThoughts: string } | null>(null);
 
   const hasApiKey = apiKey?.key_status === 'valid';
+  const isSocialContentType = SOCIAL_CONTENT_TYPES.includes(contentType);
 
-  // Auto-set controls when content type changes
+  // Auto-set controls when content type changes and reset ideation
   useEffect(() => {
     const ct = getContentType(contentType);
     if (ct) {
       setCopyControls(ct.defaultControls);
     }
+    // Reset ideation when switching content types
+    setShowIdeation(false);
+    setIdeationContext(null);
   }, [contentType]);
 
   const handleGenerate = async () => {
     try {
+      // Build context including ideation if available
+      let fullContext = additionalContext || '';
+      if (ideationContext) {
+        fullContext = `TOPIC: ${ideationContext.topic}\n\nUSER'S THOUGHTS & IDEAS:\n${ideationContext.userThoughts}\n\n${fullContext}`.trim();
+      }
+
       const result = await generateCopy.mutateAsync({
         contentType,
         productId: productId || undefined,
-        additionalContext: additionalContext || undefined,
+        additionalContext: fullContext || undefined,
         generationMode,
         copyControls,
         brandDNA,
@@ -124,6 +145,18 @@ export function ContentGenerator() {
       setRating(null);
       setFeedbackTags([]);
       setFeedbackText('');
+
+      // Show success toast and scroll to result
+      toast.success('Your copy is ready! 🎉', {
+        description: 'Scroll up to see your generated content',
+        duration: 5000,
+      });
+
+      // Scroll to result after a short delay to ensure it's rendered
+      setTimeout(() => {
+        resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+
     } catch (error) {
       console.error('Generation failed:', error);
       // Error toast is already shown by the mutation's onError handler
@@ -211,6 +244,76 @@ export function ContentGenerator() {
               value={contentType}
               onChange={(v) => setContentType(v as ContentType)}
             />
+
+            {/* Social Post Ideation Flow */}
+            {isSocialContentType && !ideationContext && (
+              <div className="space-y-3">
+                {showIdeation ? (
+                  <SocialPostIdeation
+                    platform={contentType as 'instagram_post' | 'linkedin_post' | 'twitter_thread' | 'social_post'}
+                    onComplete={(context) => {
+                      setIdeationContext(context);
+                      setShowIdeation(false);
+                    }}
+                    onSkip={() => setShowIdeation(false)}
+                  />
+                ) : (
+                  <Card className="border-dashed border-primary/30 bg-primary/5">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <p className="font-medium text-sm">Want better content?</p>
+                          <p className="text-xs text-muted-foreground">
+                            Get topic suggestions and share your ideas for higher quality posts
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowIdeation(true)}
+                          className="shrink-0"
+                        >
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Start with Ideas
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+
+            {/* Show selected ideation context */}
+            {ideationContext && (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-2 flex-1">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-primary" />
+                        <span className="font-medium text-sm">Your ideas are ready</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        <strong>Topic:</strong> {ideationContext.topic}
+                      </p>
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {ideationContext.userThoughts.substring(0, 150)}...
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setIdeationContext(null);
+                        setShowIdeation(true);
+                      }}
+                    >
+                      Change
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Product to Promote */}
             <div className="space-y-2">
@@ -305,7 +408,7 @@ export function ContentGenerator() {
 
         {/* Generated Result */}
         {generatedCopy && (
-          <Card>
+          <Card ref={resultRef}>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
