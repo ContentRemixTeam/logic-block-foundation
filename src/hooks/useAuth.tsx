@@ -30,9 +30,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const newUserId = session?.user?.id ?? null;
         const prevUserId = prevUserIdRef.current;
         
+        // 🔍 Auth event logging for debugging
+        console.log('🔐 Auth state changed:', {
+          event,
+          prevUserId,
+          newUserId,
+          email: session?.user?.email,
+          timestamp: new Date().toISOString()
+        });
+        
         // Clear React Query cache when user changes (prevents cross-user data leakage)
         if (prevUserId !== null && newUserId !== prevUserId) {
-          console.log('🔐 User changed, clearing React Query cache');
+          console.log('🚨 User changed detected, clearing React Query cache');
           queryClient.clear();
         }
         
@@ -65,18 +74,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Failed to clear offline data:', error);
     }
     
-    // Clear any service worker caches that might contain authenticated data
+    // Clear ALL service worker caches (not just supabase-named ones)
     if ('caches' in window) {
       try {
         const cacheNames = await caches.keys();
-        await Promise.all(
-          cacheNames
-            .filter(name => name.includes('supabase'))
-            .map(name => caches.delete(name))
-        );
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
       } catch (error) {
         console.error('Failed to clear service worker caches:', error);
       }
+    }
+    
+    // Clear session storage
+    try {
+      sessionStorage.clear();
+    } catch (error) {
+      console.error('Failed to clear session storage:', error);
     }
     
     await supabase.auth.signOut();
