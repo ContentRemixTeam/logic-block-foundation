@@ -9,11 +9,14 @@ import AdaptiveLearningService, { AdaptiveParams } from './adaptive-learning-ser
 import { QUALITY_EXAMPLES, QUALITY_RUBRIC, checkForBannedPhrases, validateTacticalTip, validateSubjectLines } from './quality-system';
 import { BrandDNA } from '@/types/brandDNA';
 import { getContentType } from '@/types/contentTypes';
+import { buildLinkedInTemplatePrompt } from './linkedin-prompt-builder';
+import { getLinkedInTemplate } from './linkedin-templates';
 
 interface GenerateOptions {
   contentType: string;
   generationMode?: GenerationMode;
   copyControls?: CopyControls;
+  linkedInTemplateId?: string;
   context: {
     businessProfile?: Partial<BrandProfile>;
     brandDNA?: BrandDNA;
@@ -582,6 +585,80 @@ Write this email now. Remember: You're not just writing an email, you're enginee
   }
   
   /**
+   * Specialized generation for LinkedIn posts using templates
+   * Uses the template-specific prompts and anti-AI rules
+   */
+  private static async generateLinkedInWithTemplate(
+    apiKey: string,
+    templateId: string,
+    context: GenerateOptions['context'],
+    baseTemperature: number
+  ): Promise<{ content: string; tokens: number }> {
+    const brandDNA = context.brandDNA;
+    
+    if (!brandDNA) {
+      throw new Error('Brand DNA is required for template-based generation');
+    }
+    
+    // Extract topic from additional context
+    const topic = context.additionalContext || 'my professional experience';
+    
+    // Extract brain dump if provided (from ideation flow)
+    let brainDump: string | undefined;
+    if (context.additionalContext?.includes('USER\'S THOUGHTS & IDEAS:')) {
+      const parts = context.additionalContext.split('USER\'S THOUGHTS & IDEAS:');
+      brainDump = parts[1]?.trim();
+    }
+    
+    // Build template-specific prompts
+    const { systemPrompt, userPrompt } = buildLinkedInTemplatePrompt(
+      templateId,
+      topic,
+      brandDNA,
+      brainDump
+    );
+    
+    let totalTokens = 0;
+    
+    // Pass 1: Generate initial draft using template
+    const draft = await this.callOpenAI(apiKey, {
+      systemPrompt,
+      userPrompt,
+      temperature: baseTemperature,
+    });
+    totalTokens += draft.tokens;
+    
+    // Pass 2: Quality check and refinement
+    const refinement = await this.callOpenAI(apiKey, {
+      systemPrompt: `You are a LinkedIn content editor. Review this post and improve it.
+
+CRITICAL CHECKS:
+1. Does it follow the template structure? If not, restructure it.
+2. Are there ANY banned AI phrases? Remove them completely.
+3. Does it use contractions naturally? (I'm, don't, can't)
+4. Does it have specific numbers/examples?
+5. Does it end with a genuine, specific question (not "Thoughts?" or "Agree?")?
+6. Does it sound like a real person wrote it?
+
+BANNED PHRASES TO REMOVE:
+- "I'm excited to share", "Let me share", "Here's the thing"
+- "game-changer", "leverage", "unlock"
+- "in today's landscape", "delve into"
+- "Thoughts?", "Agree?", "What do you think?"
+
+Keep the post's structure and message intact while fixing issues.`,
+      userPrompt: `ORIGINAL POST:\n${draft.content}\n\nReview and improve this LinkedIn post. Keep the same structure and core message, but fix any issues.`,
+      temperature: 0.6,
+    });
+    totalTokens += refinement.tokens;
+    
+    return {
+      content: refinement.content,
+      tokens: totalTokens,
+    };
+  }
+  
+  /**
    * Multi-pass generation system for highest quality
    * Pass 1: Generate draft (temp 0.8)
    * Pass 2: Critique draft (temp 0.3)
@@ -616,11 +693,25 @@ Write this email now. Remember: You're not just writing an email, you're enginee
     const generationMode = options.generationMode || 'premium';
     const useEfficientMode = generationMode === 'efficient';
     
+    // Check if this is a LinkedIn post with a template selected
+    const isLinkedInWithTemplate = options.contentType === 'linkedin_post' && options.linkedInTemplateId;
+    
     let finalContent = '';
     let totalTokens = 0;
     let aiCheck = { score: 0, warnings: [] as string[], suggestions: [] as string[] };
     
-    if (useEfficientMode) {
+    // LINKEDIN TEMPLATE PATH: Specialized high-quality generation
+    if (isLinkedInWithTemplate) {
+      const templateResult = await this.generateLinkedInWithTemplate(
+        apiKey,
+        options.linkedInTemplateId!,
+        options.context,
+        baseTemperature
+      );
+      finalContent = templateResult.content;
+      totalTokens = templateResult.tokens;
+      aiCheck = checkAIDetection(finalContent);
+    } else if (useEfficientMode) {
       // EFFICIENT MODE: 4-pass system with quality examples
       const controlAdditions = this.buildControlPromptAdditions(options.copyControls);
       const brandDNAAdditions = this.buildBrandDNAPromptAdditions(options.context.brandDNA, options.contentType);

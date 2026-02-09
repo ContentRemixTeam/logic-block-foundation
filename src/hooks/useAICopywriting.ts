@@ -418,6 +418,7 @@ export function useGenerateCopy() {
       generationMode = 'premium',
       copyControls,
       brandDNA,
+      linkedInTemplateId,
     }: {
       contentType: ContentType;
       productId?: string;
@@ -425,6 +426,7 @@ export function useGenerateCopy() {
       generationMode?: GenerationMode;
       copyControls?: CopyControls;
       brandDNA?: BrandDNA;
+      linkedInTemplateId?: string;
     }) => {
       if (!user) throw new Error('Not authenticated');
       
@@ -475,6 +477,7 @@ export function useGenerateCopy() {
         contentType,
         generationMode,
         copyControls,
+        linkedInTemplateId,
         context: {
           businessProfile,
           brandDNA,
@@ -493,6 +496,7 @@ export function useGenerateCopy() {
           prompt_context: {
             productId,
             additionalContext,
+            linkedInTemplateId,
           },
           generated_copy: result.copy,
           product_promoted: productId || null,
