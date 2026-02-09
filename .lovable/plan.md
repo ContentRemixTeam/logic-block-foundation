@@ -1,38 +1,36 @@
 
 
-# Security Hardening: Targeted Improvements
+# Stop Auto-Invalidating Your API Key
 
-## What We're Doing
+## Problem
 
-Applying only the **meaningful** security improvements from the recommendations, while skipping changes that would hurt performance or add no real value.
+Right now, if OpenAI returns a single 401 error, your key gets permanently marked as "invalid" in the database. After that, every request fails with "API key is marked as invalid" and you have to re-enter the key from scratch -- even if the key is actually fine (e.g., OpenAI had a momentary issue, or your billing lapsed briefly then you fixed it).
 
-## What We're NOT Doing (and Why)
+## Solution
 
-| Proposed Fix | Why We're Skipping It |
-|---|---|
-| Clear all caches on every startup | Destroys performance — every page load would wipe cached data and re-fetch everything. The existing user-change detection already handles cross-user scenarios. |
-| Validate session with getUser() on every load | Adds unnecessary latency. Supabase already validates tokens. A user ID mismatch between getSession and getUser can't happen in practice. |
-| RLS audit | Already ran it — all tables have RLS enabled with proper policies. No issues found. |
+Two changes to eliminate this friction:
 
-## Changes
+### 1. Remove the auto-invalidation from the backend function
 
-### 1. Improve sign-out cache clearing (useAuth.tsx)
+Instead of permanently marking the key as invalid on a 401, simply return the error to the user. This way a single bad response from OpenAI doesn't lock you out permanently. If the key is truly dead, the user will see the error and can update it themselves.
 
-- Clear ALL service worker caches on sign-out, not just ones containing "supabase"
-- Add `sessionStorage.clear()` to remove any session-specific data
-- This is the only real gap in the current implementation
+**File:** `supabase/functions/openai-proxy/index.ts`
+- Remove the code that does `UPDATE user_api_keys SET key_status = 'invalid'` on a 401
 
-### 2. Add auth event logging (useAuth.tsx)
+### 2. Remove the frontend block on "invalid" keys
 
-- Log auth state changes with event type, user ID, and email
-- These logs will be visible in development/preview for debugging
-- Production already suppresses console.log, so no noise in production
+The frontend currently throws an error and refuses to even try if `key_status === 'invalid'`. Remove this check so the key is always attempted -- OpenAI is the source of truth for whether a key works.
 
-## Technical Details
+**File:** `src/lib/openai-service.ts`
+- In `getUserAPIKey()`, remove the `if (data.key_status === 'invalid') throw` check
 
-Both changes are in `src/hooks/useAuth.tsx`:
+**File:** `supabase/functions/openai-proxy/index.ts`
+- Remove the server-side check that returns 400 for `key_status === 'invalid'`
 
-**Sign-out improvement** — Remove the `.filter(name => name.includes('supabase'))` so all caches are cleared, and add `sessionStorage.clear()`.
+### What this means for you
 
-**Auth logging** — Add structured logging in the `onAuthStateChange` callback showing event type, previous/new user ID, and email.
+- Your key will never get auto-locked again
+- If OpenAI rejects the key, you'll see the actual OpenAI error message (e.g., "key expired") and can decide what to do
+- The "Test Connection" button in Settings still works for manual validation
+- You only need to update your key when it's genuinely expired/revoked
 
