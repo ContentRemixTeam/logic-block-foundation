@@ -6,9 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Zap, 
   Download, 
-  Share, 
-  PlusSquare, 
-  MoreVertical,
   Check,
   ArrowLeft,
   Chrome,
@@ -20,70 +17,19 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { ManifestSwitcher } from '@/components/pwa/ManifestSwitcher';
-
-type DeviceType = 'ios' | 'android' | 'desktop' | 'unknown';
-
-function detectDevice(): DeviceType {
-  const ua = navigator.userAgent.toLowerCase();
-  if (/iphone|ipad|ipod/.test(ua)) return 'ios';
-  if (/android/.test(ua)) return 'android';
-  if (/windows|macintosh|linux/.test(ua) && !/mobile/.test(ua)) return 'desktop';
-  return 'unknown';
-}
-
-function InstallStep({ 
-  number, 
-  title, 
-  description, 
-  icon 
-}: { 
-  number: number; 
-  title: string; 
-  description: string; 
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="flex gap-4">
-      <div className="shrink-0 w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
-        {number}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-muted-foreground">{icon}</span>
-          <h3 className="font-medium">{title}</h3>
-        </div>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </div>
-    </div>
-  );
-}
+import { DeviceInstallSteps } from '@/components/install/DeviceInstallSteps';
+import { useInstallPrompt } from '@/hooks/useInstallPrompt';
+import type { DeviceType } from '@/lib/deviceDetection';
+import { detectDeviceAndBrowser } from '@/lib/deviceDetection';
 
 export default function InstallQuickAdd() {
   const [device, setDevice] = useState<DeviceType>('unknown');
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const { isInstallable, promptInstall } = useInstallPrompt();
 
   useEffect(() => {
-    setDevice(detectDevice());
-
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
+    const info = detectDeviceAndBrowser();
+    setDevice(info.device !== 'unknown' ? info.device : 'ios');
   }, []);
-
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
-    setDeferredPrompt(null);
-  };
 
   return (
     <>
@@ -183,10 +129,10 @@ export default function InstallQuickAdd() {
           </Card>
 
           {/* Chrome/Android prompt button */}
-          {deferredPrompt && (
+          {isInstallable && (
             <Card className="mb-8 border-primary">
               <CardContent className="pt-6">
-                <Button onClick={handleInstallClick} size="lg" className="w-full h-14 text-lg">
+                <Button onClick={promptInstall} size="lg" className="w-full h-14 text-lg">
                   <Download className="h-5 w-5 mr-2" />
                   Install Quick Add
                 </Button>
@@ -195,113 +141,23 @@ export default function InstallQuickAdd() {
           )}
 
           {/* Device-specific instructions */}
-          {device === 'ios' && (
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Apple className="h-5 w-5" />
-                  Install on iPhone / iPad
-                </CardTitle>
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                {device === 'ios' && <Apple className="h-5 w-5" />}
+                {device !== 'ios' && <Chrome className="h-5 w-5" />}
+                Install on {device === 'ios' ? 'iPhone / iPad' : device === 'android' ? 'Android' : 'Desktop'}
+              </CardTitle>
+              {device === 'ios' && (
                 <CardDescription>
                   <span className="font-medium text-destructive">Important:</span> You must use Safari browser
                 </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <InstallStep 
-                  number={1}
-                  title="Open this page in Safari"
-                  description="Make sure you're viewing this page (or /quick-add) in Safari."
-                  icon={<Apple className="h-6 w-6" />}
-                />
-                <InstallStep 
-                  number={2}
-                  title="Tap the Share button"
-                  description="Look for the square with an upward arrow at the bottom."
-                  icon={<Share className="h-6 w-6" />}
-                />
-                <InstallStep 
-                  number={3}
-                  title='Tap "Add to Home Screen"'
-                  description='Scroll down in the share menu to find this option.'
-                  icon={<PlusSquare className="h-6 w-6" />}
-                />
-                <InstallStep 
-                  number={4}
-                  title='Tap "Add" to confirm'
-                  description='Quick Add will appear on your home screen!'
-                  icon={<Check className="h-6 w-6" />}
-                />
-              </CardContent>
-            </Card>
-          )}
-
-          {device === 'android' && !deferredPrompt && (
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Chrome className="h-5 w-5" />
-                  Install on Android
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <InstallStep 
-                  number={1}
-                  title="Open in Chrome"
-                  description="Make sure you're viewing this page in Chrome."
-                  icon={<Chrome className="h-6 w-6" />}
-                />
-                <InstallStep 
-                  number={2}
-                  title="Tap the menu (⋮)"
-                  description="Look for three vertical dots in the top right corner."
-                  icon={<MoreVertical className="h-6 w-6" />}
-                />
-                <InstallStep 
-                  number={3}
-                  title='Tap "Add to Home screen"'
-                  description='Or look for "Install app" in the menu.'
-                  icon={<PlusSquare className="h-6 w-6" />}
-                />
-                <InstallStep 
-                  number={4}
-                  title="Confirm installation"
-                  description='Tap "Add" or "Install" to complete.'
-                  icon={<Check className="h-6 w-6" />}
-                />
-              </CardContent>
-            </Card>
-          )}
-
-          {device === 'desktop' && (
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Chrome className="h-5 w-5" />
-                  Install on Desktop
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <InstallStep 
-                  number={1}
-                  title="Look for the install icon"
-                  description="Check the right side of your address bar for a monitor/download icon."
-                  icon={<Download className="h-6 w-6" />}
-                />
-                <InstallStep 
-                  number={2}
-                  title="Click install"
-                  description='Click the icon, then "Install" in the popup.'
-                  icon={<PlusSquare className="h-6 w-6" />}
-                />
-                <InstallStep 
-                  number={3}
-                  title="Launch from desktop"
-                  description="Find Quick Add in your Start menu or Applications folder."
-                  icon={<Check className="h-6 w-6" />}
-                />
-              </CardContent>
-            </Card>
-          )}
+              )}
+            </CardHeader>
+            <CardContent>
+              <DeviceInstallSteps device={device} appName="Quick Add" showOpenLink />
+            </CardContent>
+          </Card>
 
           {/* Next Step */}
           <Card className="mb-6 border-2 border-dashed">

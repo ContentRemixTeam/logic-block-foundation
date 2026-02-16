@@ -6,9 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Smartphone, 
   Download, 
-  Share, 
-  PlusSquare, 
-  MoreVertical,
   Check,
   Zap,
   ArrowLeft,
@@ -19,10 +16,11 @@ import {
 } from 'lucide-react';
 import { ManifestSwitcher } from '@/components/pwa/ManifestSwitcher';
 import { BrowserWarning } from '@/components/install/BrowserWarning';
-import { InstallStep } from '@/components/install/InstallStep';
 import { InstallTroubleshooting } from '@/components/install/InstallTroubleshooting';
 import { DeviceSelector } from '@/components/install/DeviceSelector';
 import { AppCard } from '@/components/install/AppCard';
+import { DeviceInstallSteps } from '@/components/install/DeviceInstallSteps';
+import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { 
   detectDeviceAndBrowser, 
   isStandalone, 
@@ -41,7 +39,7 @@ export default function Install() {
   const [currentStep, setCurrentStep] = useState<InstallStepType>('intro');
   const [quickAddInstalled, setQuickAddInstalled] = useState(false);
   const [bossPlannerInstalled, setBossPlannerInstalled] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const { isInstallable, promptInstall } = useInstallPrompt();
 
   useEffect(() => {
     const info = detectDeviceAndBrowser();
@@ -52,33 +50,16 @@ export default function Install() {
     if (isStandalone()) {
       setBossPlannerInstalled(true);
     }
-
-    // Listen for install prompt (Chrome/Android)
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
+    const accepted = await promptInstall();
+    if (accepted) {
       setBossPlannerInstalled(true);
       if (quickAddInstalled) {
         setCurrentStep('success');
       }
     }
-    setDeferredPrompt(null);
   };
 
   const markQuickAddInstalled = () => {
@@ -355,105 +336,7 @@ export default function Install() {
                     )}
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    {selectedDevice === 'ios' && (
-                      <>
-                        <InstallStep 
-                          number={1}
-                          title="Go to the Quick Add page"
-                          description="First, navigate to the Quick Add page in Safari."
-                          icon={<Zap className="h-6 w-6" />}
-                        />
-                        <Button asChild variant="outline" className="w-full">
-                          <Link to="/quick-add" target="_blank">
-                            Open Quick Add Page
-                            <ChevronRight className="h-4 w-4 ml-2" />
-                          </Link>
-                        </Button>
-                        <InstallStep 
-                          number={2}
-                          title="Tap the Share button"
-                          description="Look at the bottom of Safari for a square with an upward arrow. Tap it."
-                          icon={<Share className="h-6 w-6" />}
-                          highlight
-                        />
-                        <InstallStep 
-                          number={3}
-                          title='Tap "Add to Home Screen"'
-                          description='Scroll down in the share menu until you see "Add to Home Screen" with a + icon.'
-                          icon={<PlusSquare className="h-6 w-6" />}
-                        />
-                        <InstallStep 
-                          number={4}
-                          title='Tap "Add" to confirm'
-                          description='Quick Add will appear on your home screen with the ⚡ icon!'
-                          icon={<Check className="h-6 w-6" />}
-                        />
-                      </>
-                    )}
-                    {selectedDevice === 'android' && (
-                      <>
-                        <InstallStep 
-                          number={1}
-                          title="Go to the Quick Add page in Chrome"
-                          description="First, open the Quick Add page in Chrome browser."
-                          icon={<Chrome className="h-6 w-6" />}
-                        />
-                        <Button asChild variant="outline" className="w-full">
-                          <Link to="/quick-add" target="_blank">
-                            Open Quick Add Page
-                            <ChevronRight className="h-4 w-4 ml-2" />
-                          </Link>
-                        </Button>
-                        <InstallStep 
-                          number={2}
-                          title="Tap the menu (⋮)"
-                          description="Look for three vertical dots in the top right corner of Chrome."
-                          icon={<MoreVertical className="h-6 w-6" />}
-                          highlight
-                        />
-                        <InstallStep 
-                          number={3}
-                          title='Tap "Add to Home screen"'
-                          description='You might also see "Install app" - either option works.'
-                          icon={<PlusSquare className="h-6 w-6" />}
-                        />
-                        <InstallStep 
-                          number={4}
-                          title='Tap "Add" or "Install"'
-                          description='Quick Add will appear on your home screen!'
-                          icon={<Check className="h-6 w-6" />}
-                        />
-                      </>
-                    )}
-                    {selectedDevice === 'desktop' && (
-                      <>
-                        <InstallStep 
-                          number={1}
-                          title="Go to the Quick Add page"
-                          description="Open the Quick Add page in Chrome or Edge."
-                          icon={<Chrome className="h-6 w-6" />}
-                        />
-                        <Button asChild variant="outline" className="w-full">
-                          <Link to="/quick-add" target="_blank">
-                            Open Quick Add Page
-                            <ChevronRight className="h-4 w-4 ml-2" />
-                          </Link>
-                        </Button>
-                        <InstallStep 
-                          number={2}
-                          title="Look for the install icon"
-                          description="Check the right side of your address bar for a ⊕ or computer icon."
-                          icon={<Download className="h-6 w-6" />}
-                          highlight
-                        />
-                        <InstallStep 
-                          number={3}
-                          title='Click "Install"'
-                          description='Click the icon, then "Install" in the popup.'
-                          icon={<Check className="h-6 w-6" />}
-                        />
-                      </>
-                    )}
+                    <DeviceInstallSteps device={selectedDevice} appName="Quick Add" showOpenLink />
 
                     <div className="pt-4 border-t">
                       <Button 
@@ -511,7 +394,7 @@ export default function Install() {
                   'Full dashboard & analytics',
                 ]}
               >
-                {deferredPrompt ? (
+                {isInstallable ? (
                   <Button onClick={handleInstallClick} size="lg" className="w-full">
                     <Download className="h-4 w-4 mr-2" />
                     Install Boss Planner
@@ -538,87 +421,7 @@ export default function Install() {
                   )}
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {selectedDevice === 'ios' && (
-                    <>
-                      <InstallStep 
-                        number={1}
-                        title="Stay on this page in Safari"
-                        description="Make sure you're viewing this page in Safari (not Chrome or another browser)."
-                        icon={<Apple className="h-6 w-6" />}
-                      />
-                      <InstallStep 
-                        number={2}
-                        title="Tap the Share button"
-                        description="Look at the bottom of Safari for a square with an upward arrow. Tap it."
-                        icon={<Share className="h-6 w-6" />}
-                        highlight
-                      />
-                      <InstallStep 
-                        number={3}
-                        title='Tap "Add to Home Screen"'
-                        description='Scroll down in the share menu until you see "Add to Home Screen" with a + icon.'
-                        icon={<PlusSquare className="h-6 w-6" />}
-                      />
-                      <InstallStep 
-                        number={4}
-                        title='Tap "Add" to confirm'
-                        description='Boss Planner will appear on your home screen!'
-                        icon={<Check className="h-6 w-6" />}
-                      />
-                    </>
-                  )}
-                  {selectedDevice === 'android' && (
-                    <>
-                      <InstallStep 
-                        number={1}
-                        title="Stay on this page in Chrome"
-                        description="Make sure you're in Chrome browser."
-                        icon={<Chrome className="h-6 w-6" />}
-                      />
-                      <InstallStep 
-                        number={2}
-                        title="Tap the menu (⋮)"
-                        description="Look for three vertical dots in the top right corner."
-                        icon={<MoreVertical className="h-6 w-6" />}
-                        highlight
-                      />
-                      <InstallStep 
-                        number={3}
-                        title='Tap "Add to Home screen" or "Install app"'
-                        description='Either option will install the app.'
-                        icon={<PlusSquare className="h-6 w-6" />}
-                      />
-                      <InstallStep 
-                        number={4}
-                        title='Confirm installation'
-                        description='Boss Planner will appear on your home screen!'
-                        icon={<Check className="h-6 w-6" />}
-                      />
-                    </>
-                  )}
-                  {selectedDevice === 'desktop' && (
-                    <>
-                      <InstallStep 
-                        number={1}
-                        title="Look for the install icon"
-                        description="Check the right side of your address bar for a ⊕ or computer icon."
-                        icon={<Download className="h-6 w-6" />}
-                        highlight
-                      />
-                      <InstallStep 
-                        number={2}
-                        title='Click "Install"'
-                        description='Click the icon, then "Install" in the popup. Or check the browser menu (⋮) for "Install Boss Planner".'
-                        icon={<PlusSquare className="h-6 w-6" />}
-                      />
-                      <InstallStep 
-                        number={3}
-                        title="Launch from desktop"
-                        description="Find Boss Planner in your Start menu (Windows) or Applications (Mac)."
-                        icon={<Check className="h-6 w-6" />}
-                      />
-                    </>
-                  )}
+                    <DeviceInstallSteps device={selectedDevice} appName="Boss Planner" />
 
                   <div className="pt-4 border-t">
                     <Button 
