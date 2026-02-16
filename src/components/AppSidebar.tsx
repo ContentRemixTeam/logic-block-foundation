@@ -76,7 +76,7 @@ const ORGANIZE_NAV = [
   { name: 'Learning', href: '/courses', icon: GraduationCap, questIcon: '🎓' },
   { name: 'Content Vault', href: '/content-vault', icon: Library, questIcon: '📚' },
   { name: 'SOPs', href: '/sops', icon: ClipboardList, questIcon: '📖' },
-  { name: 'AI Copywriting', href: '/ai-copywriting', icon: Sparkle, questIcon: '✨', isActiveCheck: (path: string) => path.startsWith('/ai-copywriting') },
+  { name: 'AI Copywriting', href: '/ai-copywriting', icon: Sparkle, questIcon: '✨', isActiveCheck: (path: string) => path.startsWith('/ai-copywriting'), settingsKey: 'show_ai_copywriting' },
   { name: 'Finances', href: '/finances', icon: DollarSign, questIcon: '💰', settingsKey: 'show_income_tracker' },
 ];
 

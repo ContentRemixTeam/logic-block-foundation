@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { MastermindGate } from '@/components/membership/MastermindGate';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAICopywritingSetupStatus } from '@/hooks/useAICopywriting';
 import { LoadingState } from '@/components/system/LoadingState';
+import { useUserSettings } from '@/hooks/useUserSettings';
+import { useToast } from '@/hooks/use-toast';
 
 // Sub-pages
 import { AIDashboard } from '@/components/ai-copywriting/AIDashboard';
@@ -26,6 +28,16 @@ export default function AICopywriting() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isLoading, isSetupComplete, hasAPIKey, hasBrandProfile } = useAICopywritingSetupStatus();
+  const { settings, isLoading: settingsLoading } = useUserSettings();
+  const { toast } = useToast();
+
+  // Redirect if AI Copywriting is disabled
+  useEffect(() => {
+    if (!settingsLoading && settings && !(settings as Record<string, unknown>).show_ai_copywriting) {
+      toast({ title: 'AI Copywriting Disabled', description: 'Enable it in Settings → Feature Visibility' });
+      navigate('/dashboard', { replace: true });
+    }
+  }, [settingsLoading, settings, navigate, toast]);
 
   // Determine current tab from URL
   const currentPath = location.pathname.replace('/ai-copywriting', '');
