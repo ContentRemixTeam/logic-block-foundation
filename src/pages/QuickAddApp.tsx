@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -81,12 +81,14 @@ interface IdeaCategory {
 export default function QuickAddApp() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { data: projects = [] } = useProjects();
   const [selectedType, setSelectedType] = useState<CaptureType>('task');
   const [inputValue, setInputValue] = useState('');
   const [amount, setAmount] = useState('');
   const [saving, setSaving] = useState(false);
   const [sessionCount, setSessionCount] = useState(0);
+  const [sessionValidating, setSessionValidating] = useState(false);
   
   // Idea metadata state
   const [ideaData, setIdeaData] = useState<IdeaData>({ 
@@ -99,6 +101,29 @@ export default function QuickAddApp() {
 
   const currentType = typeOptions.find(t => t.id === selectedType)!;
   const isFinancial = selectedType === 'expense' || selectedType === 'income';
+
+  // Proactively validate session on PWA launch (iOS fix)
+  useEffect(() => {
+    const validateSession = async () => {
+      if (authLoading || !user) return;
+      setSessionValidating(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError || !refreshData?.session) {
+            // Session truly expired — don't redirect, just let the auth check below handle it
+            console.warn('Quick Add: session refresh failed');
+          }
+        }
+      } catch (err) {
+        console.error('Session validation error:', err);
+      } finally {
+        setSessionValidating(false);
+      }
+    };
+    validateSession();
+  }, [user, authLoading]);
 
   // Fetch idea categories on mount
   useEffect(() => {
@@ -364,13 +389,16 @@ export default function QuickAddApp() {
 
           {/* Footer Link */}
           <div className="mt-4 text-center">
-            <Link
-              to="/dashboard"
+            <button
+              onClick={() => {
+                toast({ title: 'Opening in your browser...' });
+                setTimeout(() => { window.location.href = '/dashboard'; }, 300);
+              }}
               className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               Open Full App
               <ExternalLink className="h-3 w-3" />
-            </Link>
+            </button>
           </div>
         </main>
       </div>

@@ -17,6 +17,7 @@ import { TourKeyboardHandler } from "@/components/tour/TourKeyboardHandler";
 import { QuickCaptureProvider } from "@/components/quick-capture";
 import { ManifestSwitcher } from "@/components/pwa/ManifestSwitcher";
 import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
+import { InstallPromptProvider } from "@/hooks/useInstallPrompt";
 import { DevDebugPanel } from "@/components/dev/DevDebugPanel";
 import { LoadingState } from "@/components/system/LoadingState";
 import { PerformanceMonitor } from "@/components/dev/PerformanceMonitor";
@@ -187,6 +188,7 @@ const App = () => (
             <ThemeProvider>
               <MembershipProvider>
                 <ArcadeProvider>
+                  <InstallPromptProvider>
                   <QuickCaptureProvider>
                     <OnlineStatusMonitor />
                     <ManifestSwitcher />
@@ -279,6 +281,7 @@ const App = () => (
                     <DevDebugPanel />
                     <PerformanceMonitor />
                   </QuickCaptureProvider>
+                  </InstallPromptProvider>
                 </ArcadeProvider>
               </MembershipProvider>
             </ThemeProvider>

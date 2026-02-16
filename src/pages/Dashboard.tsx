@@ -67,6 +67,7 @@ import { PodcastWidget } from '@/components/podcast/PodcastWidget';
 import { MastermindCallWidget } from '@/components/mastermind/MastermindCallWidget';
 import { SmartActionButton } from '@/components/SmartActionButton';
 import { getCurrentLaunchPhase } from '@/lib/launchHelpers';
+import { InstallBanner } from '@/components/install/InstallBanner';
 
 // Dynamic alerts based on cycle day (excluding GAP alerts)
 function getDynamicAlert(currentDay: number) {
@@ -394,6 +395,9 @@ export default function Dashboard() {
   return (
     <Layout>
       <div className="space-y-6">
+        {/* Install Banner for mobile */}
+        <InstallBanner />
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>

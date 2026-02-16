@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -15,16 +15,15 @@ interface InstalledApp {
   installed: boolean;
 }
 
-interface InstallSuccessProps {
-  apps?: InstalledApp[];
-}
-
-export default function InstallSuccess({ 
-  apps = [
+export default function InstallSuccess() {
+  const location = useLocation();
+  const state = location.state as { apps?: InstalledApp[] } | null;
+  
+  const apps: InstalledApp[] = state?.apps ?? [
     { name: 'Quick Add', installed: true },
     { name: 'Boss Planner', installed: true },
-  ]
-}: InstallSuccessProps) {
+  ];
+  
   const allInstalled = apps.every(app => app.installed);
 
   return (
@@ -49,28 +48,30 @@ export default function InstallSuccess({
           <CardContent className="space-y-6">
             {/* App icons */}
             <div className="flex justify-center gap-6">
-              <div className="text-center">
-                <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground flex items-center justify-center mx-auto mb-2 shadow-lg">
-                  <Zap className="h-8 w-8" />
+              {apps.map((app) => (
+                <div key={app.name} className="text-center">
+                  <div className={`w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-2 shadow-lg ${
+                    app.name === 'Quick Add' 
+                      ? 'bg-gradient-to-br from-primary to-accent text-primary-foreground' 
+                      : 'bg-primary text-primary-foreground'
+                  }`}>
+                    {app.name === 'Quick Add' ? <Zap className="h-8 w-8" /> : <Smartphone className="h-8 w-8" />}
+                  </div>
+                  <p className="text-sm font-medium">{app.name}</p>
+                  <p className={`text-xs ${app.installed ? 'text-success' : 'text-muted-foreground'}`}>
+                    {app.installed ? '✓ Installed' : '○ Not installed'}
+                  </p>
                 </div>
-                <p className="text-sm font-medium">Quick Add</p>
-                <p className="text-xs text-success">✓ Installed</p>
-              </div>
-              <div className="text-center">
-                <div className="w-16 h-16 rounded-xl bg-primary text-primary-foreground flex items-center justify-center mx-auto mb-2 shadow-lg">
-                  <Smartphone className="h-8 w-8" />
-                </div>
-                <p className="text-sm font-medium">Boss Planner</p>
-                <p className="text-xs text-success">✓ Installed</p>
-              </div>
+              ))}
             </div>
 
-            {/* Success message */}
-            <div className="bg-success/10 border border-success/20 rounded-lg p-4 text-center">
-              <p className="text-sm">
-                🎉 Find both apps on your home screen. They're ready to use!
-              </p>
-            </div>
+            {allInstalled && (
+              <div className="bg-success/10 border border-success/20 rounded-lg p-4 text-center">
+                <p className="text-sm">
+                  🎉 Find both apps on your home screen. They're ready to use!
+                </p>
+              </div>
+            )}
 
             {/* Tips */}
             <Card className="bg-muted/50">
