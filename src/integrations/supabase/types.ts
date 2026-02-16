@@ -6851,6 +6851,7 @@ export type Database = {
           quick_mode_default: boolean | null
           reminder_preferences: Json | null
           scratch_pad_review_mode: string | null
+          show_ai_copywriting: boolean | null
           show_coin_counter: boolean | null
           show_content_in_planners: boolean | null
           show_income_tracker: boolean | null
@@ -6901,6 +6902,7 @@ export type Database = {
           quick_mode_default?: boolean | null
           reminder_preferences?: Json | null
           scratch_pad_review_mode?: string | null
+          show_ai_copywriting?: boolean | null
           show_coin_counter?: boolean | null
           show_content_in_planners?: boolean | null
           show_income_tracker?: boolean | null
@@ -6951,6 +6953,7 @@ export type Database = {
           quick_mode_default?: boolean | null
           reminder_preferences?: Json | null
           scratch_pad_review_mode?: string | null
+          show_ai_copywriting?: boolean | null
           show_coin_counter?: boolean | null
           show_content_in_planners?: boolean | null
           show_income_tracker?: boolean | null

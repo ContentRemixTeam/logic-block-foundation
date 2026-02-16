@@ -38,6 +38,7 @@ export default function Settings() {
     quick_mode_default: true,
     habit_categories_enabled: true,
     show_income_tracker: false,
+    show_ai_copywriting: false,
     theme_preference: 'quest' as 'quest' | 'minimal' | 'vibrant' | 'bw',
     scratch_pad_review_mode: 'quick_save' as 'quick_save' | 'organize_now',
     works_weekends: false,
@@ -90,6 +91,7 @@ export default function Settings() {
         quick_mode_default: normalizeBoolean(data.quick_mode_default, true),
         habit_categories_enabled: normalizeBoolean(data.habit_categories_enabled, true),
         show_income_tracker: normalizeBoolean(data.show_income_tracker),
+        show_ai_copywriting: normalizeBoolean(data.show_ai_copywriting),
         theme_preference: data.theme_preference || 'vibrant',
         scratch_pad_review_mode: data.scratch_pad_review_mode || 'quick_save',
         works_weekends: normalizeBoolean(data.works_weekends, false),
@@ -504,6 +506,25 @@ export default function Settings() {
                 checked={settings.show_mastermind_calls}
                 onCheckedChange={(checked) =>
                   updateSetting('show_mastermind_calls', checked)
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-muted-foreground" />
+                <div className="space-y-0.5">
+                  <Label htmlFor="showAICopywriting">AI Copywriting</Label>
+                  <div className="text-sm text-muted-foreground">
+                    Show AI Copywriting in sidebar and navigation
+                  </div>
+                </div>
+              </div>
+              <Switch
+                id="showAICopywriting"
+                checked={settings.show_ai_copywriting}
+                onCheckedChange={(checked) =>
+                  updateSetting('show_ai_copywriting', checked)
                 }
               />
             </div>
