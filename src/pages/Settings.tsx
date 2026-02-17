@@ -512,25 +512,6 @@ export default function Settings() {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-muted-foreground" />
-                <div className="space-y-0.5">
-                  <Label htmlFor="showAICopywriting">AI Copywriting</Label>
-                  <div className="text-sm text-muted-foreground">
-                    Show AI Copywriting in sidebar and navigation
-                  </div>
-                </div>
-              </div>
-              <Switch
-                id="showAICopywriting"
-                checked={settings.show_ai_copywriting}
-                onCheckedChange={(checked) =>
-                  updateSetting('show_ai_copywriting', checked)
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
                 <div className="space-y-0.5">
                   <Label htmlFor="showFinance">Finance Tracker</Label>
