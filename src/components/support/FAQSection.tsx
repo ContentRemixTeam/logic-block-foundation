@@ -162,42 +162,6 @@ const faqData: FAQItem[] = [
     question: 'How do Custom Check-in Questions work?',
     answer: 'Custom questions let you add personal check-ins to your Daily Page. Create questions with different input types: Checkbox (yes/no), Text (notes), Number (quantities), Rating (1-10 slider), Time (timestamps), or Dropdown (select options). Set questions as required, add validation (character limits, min/max), and your responses are saved with each day\'s plan for tracking over time.'
   },
-  // AI Copywriting
-  {
-    category: 'AI Copywriting',
-    question: 'What is AI Copywriting and who can use it?',
-    answer: 'AI Copywriting is a feature that generates high-converting emails, social posts, and sales copy in your unique voice. It uses your own OpenAI API key (pay-as-you-go), analyzes your writing samples to learn your style, and produces content that sounds like you—not generic AI. The feature uses a multi-pass generation system (Draft → Critique → Refine) to ensure high-quality, human-sounding output.'
-  },
-  {
-    category: 'AI Copywriting',
-    question: 'Why do I need my own OpenAI API key?',
-    answer: 'Using your own API key means you pay OpenAI directly at their rates with no markup from us. This is 90% cheaper than ChatGPT Plus ($20/month fixed) or Jasper AI ($49/month fixed). Most users spend just $2-10/month based on actual usage. You control your spending by setting limits directly in your OpenAI dashboard.'
-  },
-  {
-    category: 'AI Copywriting',
-    question: 'How do I get an OpenAI API key?',
-    answer: '1) Go to platform.openai.com and sign up (free). 2) Add a payment method: Click profile → Billing → Add credit card. Start with $10-20. 3) Set a spending limit: Go to Usage → Limits and set a monthly budget ($10-20 recommended). 4) Create your key: Go to API Keys → Create new secret key → Name it "90 Day Planner". 5) Copy immediately (it only shows once!) and paste it in AI Copywriting → Settings.'
-  },
-  {
-    category: 'AI Copywriting',
-    question: 'How much does AI copywriting cost?',
-    answer: 'Costs are very affordable: Single email ~$0.02-0.05, Full 5-email sequence ~$0.15-0.25, Social media post ~$0.01-0.03, Voice analysis ~$0.01-0.02. Monthly estimates: Light use (10 generations) $0.50-1.00, Regular use (30 generations) $1.50-3.00, Heavy use (100+ generations) $5.00-15.00. We recommend setting a $10-20 monthly spending limit in OpenAI to control costs.'
-  },
-  {
-    category: 'AI Copywriting',
-    question: 'Is my API key secure?',
-    answer: 'Yes, your key is encrypted using AES-GCM encryption before being stored. We never log, share, or transmit your key in plain text. The key is only decrypted at the moment of generation, and you can remove it anytime from AI Copywriting → Settings. Your key is as secure as your bank card information.'
-  },
-  {
-    category: 'AI Copywriting',
-    question: 'What happens if my API key runs out of credits?',
-    answer: 'If your OpenAI account has no credits, generations will fail with a clear error message. To fix this: 1) Go to platform.openai.com → Billing → Add credits. 2) Consider setting up auto-reload in OpenAI to automatically add credits when your balance gets low. You can test your key anytime in AI Copywriting → Settings → Test Connection.'
-  },
-  {
-    category: 'AI Copywriting',
-    question: 'How do I set a spending limit in OpenAI?',
-    answer: 'In your OpenAI dashboard, go to Usage → Limits in the sidebar. Set a "Hard limit" for your monthly budget—we recommend $10-20 to start. You can also set a "Soft limit" to receive email notifications when you\'re approaching your budget. This prevents any surprise charges and keeps your costs predictable.'
-  },
   // Troubleshooting
   {
     category: 'Troubleshooting',
@@ -226,7 +190,7 @@ const faqData: FAQItem[] = [
   }
 ];
 
-const categories = ['All', 'Getting Started', 'Task Management', 'Planning & Reviews', 'Metrics & Progress', 'Features', 'AI Copywriting', 'Troubleshooting'];
+const categories = ['All', 'Getting Started', 'Task Management', 'Planning & Reviews', 'Metrics & Progress', 'Features', 'Troubleshooting'];
 
 export function FAQSection() {
   const [searchQuery, setSearchQuery] = useState('');

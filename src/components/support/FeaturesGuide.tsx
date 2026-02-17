@@ -521,52 +521,9 @@ const featuresData: FeatureSection[] = [
       'Use Priority sorting to always see your most important tasks first'
     ]
   },
-  // AI Copywriting
-  {
-    id: 'ai-copywriting',
-    category: 'AI Copywriting',
-    title: 'AI Copywriting Overview',
-    icon: Sparkles,
-    description: 'Generate high-converting emails, social posts, and sales copy that sounds exactly like you—not like generic AI.',
-    details: [
-      'Complete the Brand Wizard to teach AI your unique voice (analyze writing samples)',
-      'Generate strategic 5-email welcome sequences with proven structure',
-      'Multi-pass generation: Draft → Critique → Refine for quality output',
-      'AI Detection scoring ensures human-sounding output (Excellent to High Risk badges)',
-      'Rate every generation to help AI learn your preferences over time',
-      'Save content to your Vault or add directly to the Editorial Calendar'
-    ],
-    tips: [
-      'Provide 2-3 writing samples of at least 50 characters each for best results',
-      'More diverse samples = better voice matching',
-      'Rate every generation to help AI learn what you like',
-      'Use specific context for each generation to get more relevant copy'
-    ]
-  },
-  {
-    id: 'ai-copywriting-api',
-    category: 'AI Copywriting',
-    title: 'API Key Setup & Costs',
-    icon: Key,
-    description: 'Connect your own OpenAI API key to power AI copywriting. You pay OpenAI directly—typically $2-10/month based on usage.',
-    details: [
-      'Create account at platform.openai.com (free to sign up)',
-      'Add payment method in Billing (required for API access)',
-      'Set a spending limit: Usage → Limits → $10-20 recommended',
-      'Generate API key: Settings → API Keys → Create new secret key',
-      'Key starts with "sk-" – copy immediately, it won\'t show again!',
-      'Paste key in AI Copywriting → Settings'
-    ],
-    tips: [
-      'Each email generation costs ~$0.02-0.08',
-      'Heavy users (50+ generations/month) might spend $5-15',
-      'Much cheaper than ChatGPT Plus ($20/month fixed)',
-      'Set a budget cap in OpenAI to avoid surprise charges'
-    ]
-  }
 ];
 
-const categories = ['All', 'Core Planning', 'Task Management', 'Reviews & Reflection', 'Habits & Mindset', 'Other Features', 'AI Copywriting', 'Content'];
+const categories = ['All', 'Core Planning', 'Task Management', 'Reviews & Reflection', 'Habits & Mindset', 'Other Features', 'Content'];
 
 export function FeaturesGuide() {
   const [searchQuery, setSearchQuery] = useState('');
