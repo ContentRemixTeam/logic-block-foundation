@@ -77,11 +77,19 @@ export function SmartScratchPad({
   className,
 }: SmartScratchPadProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [autocompletePosition, setAutocompletePosition] = useState({ top: 0, left: 0 });
   const [hashPosition, setHashPosition] = useState<number | null>(null);
+
+  // Sync scroll between textarea and highlight overlay
+  const handleScroll = () => {
+    if (textareaRef.current && highlightRef.current) {
+      highlightRef.current.scrollTop = textareaRef.current.scrollTop;
+    }
+  };
 
   // Count tags in content
   const tagCounts = useMemo(() => {
@@ -339,6 +347,7 @@ export function SmartScratchPad({
       <div className="relative">
         {/* Highlighting layer (behind textarea) */}
         <div
+          ref={highlightRef}
           className="absolute inset-0 p-3 font-mono text-sm whitespace-pre-wrap break-words pointer-events-none overflow-hidden leading-[20px]"
           aria-hidden="true"
         >
@@ -352,13 +361,13 @@ export function SmartScratchPad({
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           onBlur={onBlur}
+          onScroll={handleScroll}
           placeholder={placeholder}
           maxLength={maxLength}
           className={cn(
-            "w-full min-h-[300px] p-3 font-mono text-sm resize-y rounded-md border border-input bg-transparent leading-[20px]",
+            "w-full min-h-[200px] max-h-[500px] p-3 font-mono text-sm resize-none rounded-md border border-input bg-transparent leading-[20px] overflow-y-auto",
             "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
             "placeholder:text-muted-foreground",
-            // Make text transparent so highlighting shows through, but keep caret visible
             "caret-foreground text-transparent"
           )}
           style={{ 
