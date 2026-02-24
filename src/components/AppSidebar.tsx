@@ -64,6 +64,7 @@ import { SidebarProjectsDropdown } from '@/components/sidebar/SidebarProjectsDro
 
 const MAIN_NAV = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, questIcon: '🗺️' },
+  { name: 'Today', href: '/daily-plan', icon: Flame, questIcon: '🔥' },
   { name: 'Wizards', href: '/wizards', icon: Sparkles, questIcon: '🪄', isActiveCheck: (path: string) => path.startsWith('/wizards') },
   { name: 'Planning', href: '/planning', icon: CalendarDays, questIcon: '🧭', isActiveCheck: (path: string) => path.startsWith('/planning') || path.startsWith('/cycles') || path.startsWith('/cycle-') },
   { name: 'Todo List', href: '/tasks', icon: ListTodo, questIcon: '📜' },

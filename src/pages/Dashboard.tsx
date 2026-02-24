@@ -409,6 +409,12 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button variant="default" size="sm" className="gap-2" asChild>
+              <Link to="/daily-plan">
+                <Flame className="h-4 w-4" />
+                Today
+              </Link>
+            </Button>
             <SmartActionButton variant="inline" size="sm" />
             <Button variant="outline" size="sm" className="gap-2 hover:bg-muted/50">
               <Settings2 className="h-4 w-4" />
