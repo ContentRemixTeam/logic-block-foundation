@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -304,7 +304,7 @@ export default function Ideas() {
     }
   };
 
-  const loadData = useCallback(async (loadMore = false) => {
+  const loadData = useCallback(async (loadMore = false, searchTerm = '') => {
     if (!user) return;
 
     if (loadMore) {
@@ -320,7 +320,7 @@ export default function Ideas() {
 
       const offset = loadMore ? ideas.length : 0;
       const { data, error: fetchError } = await supabase.functions.invoke('get-ideas', {
-        body: { limit: PAGE_SIZE, offset },
+        body: { limit: PAGE_SIZE, offset, search: searchTerm },
       });
 
       if (fetchError) throw fetchError;
@@ -368,12 +368,27 @@ export default function Ideas() {
   }, [user, ideas.length]);
 
   const handleLoadMore = useCallback(() => {
-    loadData(true);
-  }, [loadData]);
+    loadData(true, searchQuery);
+  }, [loadData, searchQuery]);
+
+  // Debounced server-side search
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      loadData(false, searchQuery);
+    }, 300);
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, [searchQuery]); // intentionally only searchQuery to avoid re-triggers
 
   useEffect(() => {
     loadData(false);
-  }, [user]); // Only reload on user change, not loadData to prevent infinite loop
+  }, [user]); // Only reload on user change
 
   const handleEditIdea = (idea: Idea) => {
     setEditingIdea(idea);
@@ -581,11 +596,11 @@ export default function Ideas() {
       return idea.tags?.some(tag => selectedTags.includes(tag));
     })
     .filter((idea) => {
+      // Search is now server-side; keep client filter for tags only
       if (!searchQuery.trim()) return true;
       const query = searchQuery.toLowerCase();
-      const matchesContent = idea.content?.toLowerCase().includes(query);
       const matchesTags = idea.tags?.some(tag => tag.toLowerCase().includes(query));
-      return matchesContent || matchesTags;
+      return idea.content?.toLowerCase().includes(query) || matchesTags;
     })
     .sort((a, b) => {
       const dateA = new Date(a.created_at).getTime();

@@ -4794,7 +4794,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
                     onChange={(e) => setBiggestFear(e.target.value)}
                     placeholder="Example: I'm afraid I'll start strong and then quit like I always do..."
                     rows={3}
-                    className="resize-none"
+                    className="resize-none overflow-y-auto"
                   />
                 </div>
 
@@ -4812,7 +4812,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
                     onChange={(e) => setWhatWillYouDoWhenFearHits(e.target.value)}
                     placeholder="Example: I'll remind myself that I've committed to 3 days, not 90. I can do anything for 3 days. I'll text my accountability partner and tell them I'm struggling but I'm not quitting..."
                     rows={4}
-                    className="resize-none"
+                    className="resize-none overflow-y-auto"
                   />
                 </div>
 
@@ -4830,7 +4830,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
                     onChange={(e) => setCommitmentStatement(e.target.value)}
                     placeholder="Example: ...posting on Instagram even if it's not perfect, sending my newsletter even if I think it's not good enough, and doing my Top 3 before I check email..."
                     rows={3}
-                    className="resize-none"
+                    className="resize-none overflow-y-auto"
                   />
                 </div>
 
@@ -4937,7 +4937,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
                       onChange={(e) => setDay1Why(e.target.value)}
                       placeholder="Example: These 3 tasks get me started without overwhelming me. They prove I can follow through..."
                       rows={2}
-                      className="bg-background resize-none"
+                      className="bg-background resize-none overflow-y-auto min-h-[80px]"
                     />
                   </div>
                 </div>
@@ -5008,7 +5008,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
                       onChange={(e) => setDay2Why(e.target.value)}
                       placeholder="Example: Day 2 is when doubt creeps in. These tasks keep me focused and prove I'm serious..."
                       rows={2}
-                      className="bg-background resize-none"
+                      className="bg-background resize-none overflow-y-auto min-h-[80px]"
                     />
                   </div>
                 </div>
@@ -5079,7 +5079,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
                       onChange={(e) => setDay3Why(e.target.value)}
                       placeholder="Example: Finishing 3 days proves I can do this. It gives me momentum for the rest of the week..."
                       rows={2}
-                      className="bg-background resize-none"
+                      className="bg-background resize-none overflow-y-auto min-h-[80px]"
                     />
                   </div>
                 </div>

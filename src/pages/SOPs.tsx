@@ -554,6 +554,8 @@ export default function SOPs() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={4}
+                className="resize-none overflow-y-auto"
+                maxLength={2000}
               />
             </div>
           </div>
