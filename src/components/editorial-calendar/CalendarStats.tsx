@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { CalendarItem } from '@/lib/calendarConstants';
-import { FileText, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CalendarStatsProps {
@@ -27,60 +26,30 @@ export function CalendarStats({ items, className }: CalendarStatsProps) {
   }, [items]);
 
   return (
-    <div className={cn("flex items-center gap-2 flex-wrap", className)}>
-      <StatPill
-        icon={<FileText className="h-3 w-3" />}
-        label="Total"
-        value={stats.total}
-        variant="default"
-      />
-      <StatPill
-        icon={<Clock className="h-3 w-3" />}
-        label="Scheduled"
-        value={stats.scheduled}
-        variant="violet"
-      />
-      <StatPill
-        icon={<CheckCircle2 className="h-3 w-3" />}
-        label="Published"
-        value={stats.published}
-        variant="emerald"
-      />
+    <div className={cn("flex items-center gap-5 text-xs", className)}>
+      <span className="flex items-center gap-1.5 text-muted-foreground">
+        <span className="w-2 h-2 rounded-full bg-gray-400" />
+        <span className="font-bold text-foreground tabular-nums">{stats.total}</span> total
+      </span>
+      <div className="w-px h-3.5 bg-border" />
+      <span className="flex items-center gap-1.5 text-muted-foreground">
+        <span className="w-2 h-2 rounded-full bg-teal-500" />
+        <span className="font-bold text-foreground tabular-nums">{stats.scheduled}</span> scheduled
+      </span>
+      <div className="w-px h-3.5 bg-border" />
+      <span className="flex items-center gap-1.5 text-muted-foreground">
+        <span className="w-2 h-2 rounded-full bg-green-500" />
+        <span className="font-bold text-foreground tabular-nums">{stats.published}</span> published
+      </span>
       {stats.overdue > 0 && (
-        <StatPill
-          icon={<AlertCircle className="h-3 w-3" />}
-          label="Overdue"
-          value={stats.overdue}
-          variant="rose"
-        />
+        <>
+          <div className="w-px h-3.5 bg-border" />
+          <span className="flex items-center gap-1.5 text-red-500">
+            <span className="w-2 h-2 rounded-full bg-red-500" />
+            <span className="font-bold tabular-nums">{stats.overdue}</span> overdue
+          </span>
+        </>
       )}
-    </div>
-  );
-}
-
-interface StatPillProps {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  variant: 'default' | 'violet' | 'emerald' | 'rose';
-}
-
-const variantStyles: Record<string, string> = {
-  default: 'text-foreground/70 bg-muted/40',
-  violet: 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/20',
-  emerald: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20',
-  rose: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/20',
-};
-
-function StatPill({ icon, label, value, variant }: StatPillProps) {
-  return (
-    <div className={cn(
-      "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
-      variantStyles[variant]
-    )}>
-      {icon}
-      <span className="font-bold tabular-nums">{value}</span>
-      <span className="opacity-70">{label}</span>
     </div>
   );
 }
