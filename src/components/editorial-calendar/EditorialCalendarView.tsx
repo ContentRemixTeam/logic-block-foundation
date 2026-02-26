@@ -355,31 +355,31 @@ function EditorialCalendarViewInner() {
         <CalendarOnboarding onDismiss={() => setShowOnboarding(false)} />
       )}
 
-      {/* Header */}
-      <div className="bg-card border-b border-border">
+      {/* Header - Clean editorial toolbar */}
+      <div className="bg-card/80 backdrop-blur-sm border-b border-border/40">
         {/* Main navigation row */}
-        <div className="flex items-center justify-between gap-4 px-4 py-4 flex-wrap">
+        <div className="flex items-center justify-between gap-3 px-5 py-3 flex-wrap">
           {/* Week Navigation */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center rounded-lg border border-border bg-muted/30 p-0.5">
-              <Button variant="ghost" size="icon" onClick={goToPreviousWeek} className="h-8 w-8">
+          <div className="flex items-center gap-3">
+            <div className="inline-flex items-center rounded-lg bg-muted/40 p-0.5 border border-border/30">
+              <Button variant="ghost" size="icon" onClick={goToPreviousWeek} className="h-8 w-8 hover:bg-card">
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={goToToday} className="h-8 gap-1.5 px-3">
+              <Button variant="ghost" size="sm" onClick={goToToday} className="h-8 gap-1.5 px-3 text-xs font-semibold hover:bg-card hover:text-primary">
                 <Calendar className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Today</span>
               </Button>
-              <Button variant="ghost" size="icon" onClick={goToNextWeek} className="h-8 w-8">
+              <Button variant="ghost" size="icon" onClick={goToNextWeek} className="h-8 w-8 hover:bg-card">
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
             
-            {/* Week range */}
-            <div className="flex flex-col">
-              <span className="text-lg font-semibold tracking-tight">
+            {/* Week range - bolder typography */}
+            <div className="flex items-baseline gap-2">
+              <span className="text-lg font-bold tracking-tight text-foreground">
                 {format(weekStartDate, 'MMM d')} – {format(weekEndDate, 'MMM d')}
               </span>
-              <span className="text-xs text-muted-foreground hidden sm:block">
+              <span className="text-xs text-muted-foreground/60 font-medium hidden sm:block">
                 {format(weekStartDate, 'yyyy')}
               </span>
             </div>
@@ -393,9 +393,9 @@ function EditorialCalendarViewInner() {
                 value={campaignFilter || 'all'}
                 onValueChange={(value) => setCampaignFilter(value === 'all' ? null : value)}
               >
-                <SelectTrigger className="w-[180px] h-9">
-                  <div className="flex items-center gap-2">
-                    <Rocket className="h-3.5 w-3.5 text-muted-foreground" />
+                <SelectTrigger className="w-[170px] h-8 text-xs border-border/40 bg-muted/30">
+                  <div className="flex items-center gap-1.5">
+                    <Rocket className="h-3 w-3 text-muted-foreground" />
                     <SelectValue placeholder="All Campaigns" />
                   </div>
                 </SelectTrigger>
@@ -417,96 +417,94 @@ function EditorialCalendarViewInner() {
               </Select>
             )}
 
-            {/* Calendar Settings (Density + Date Mode) */}
+            {/* Calendar Settings */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 gap-2 hidden md:flex">
+                <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground hidden md:flex">
                   <Settings2 className="h-3.5 w-3.5" />
                   <span className="hidden lg:inline">View</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="end" className="w-52">
                 <div className="px-2 py-1.5">
-                  <p className="text-xs font-semibold text-muted-foreground mb-2">Density</p>
-                  <div className="space-y-1">
-                    <DropdownMenuItem onClick={() => setDensity('compact')}>
-                      <span className={density === 'compact' ? 'font-medium' : ''}>Compact</span>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-2">Density</p>
+                  <div className="space-y-0.5">
+                    <DropdownMenuItem onClick={() => setDensity('compact')} className="text-xs">
+                      <span className={density === 'compact' ? 'font-bold text-primary' : ''}>Compact</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setDensity('comfortable')}>
-                      <span className={density === 'comfortable' ? 'font-medium' : ''}>Comfortable</span>
+                    <DropdownMenuItem onClick={() => setDensity('comfortable')} className="text-xs">
+                      <span className={density === 'comfortable' ? 'font-bold text-primary' : ''}>Comfortable</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setDensity('spacious')}>
-                      <span className={density === 'spacious' ? 'font-medium' : ''}>Spacious</span>
+                    <DropdownMenuItem onClick={() => setDensity('spacious')} className="text-xs">
+                      <span className={density === 'spacious' ? 'font-bold text-primary' : ''}>Spacious</span>
                     </DropdownMenuItem>
                   </div>
                 </div>
-                <div className="border-t border-border my-1" />
+                <div className="border-t border-border/40 my-1" />
                 <div className="px-2 py-1.5">
-                  <p className="text-xs font-semibold text-muted-foreground mb-2">Date Lanes</p>
-                  <div className="space-y-1">
-                    <DropdownMenuItem onClick={() => updateSettings({ calendarDateMode: 'dual' })}>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-2">Date Lanes</p>
+                  <div className="space-y-0.5">
+                    <DropdownMenuItem onClick={() => updateSettings({ calendarDateMode: 'dual' })} className="text-xs">
                       <Layers className="h-3.5 w-3.5 mr-2" />
-                      <span className={calendarSettings.calendarDateMode === 'dual' ? 'font-medium' : ''}>Dual Lanes</span>
+                      <span className={calendarSettings.calendarDateMode === 'dual' ? 'font-bold text-primary' : ''}>Dual Lanes</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => updateSettings({ calendarDateMode: 'create-only' })}>
-                      <span className={calendarSettings.calendarDateMode === 'create-only' ? 'font-medium' : ''}>Create Only</span>
+                    <DropdownMenuItem onClick={() => updateSettings({ calendarDateMode: 'create-only' })} className="text-xs">
+                      <span className={calendarSettings.calendarDateMode === 'create-only' ? 'font-bold text-primary' : ''}>Create Only</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => updateSettings({ calendarDateMode: 'publish-only' })}>
-                      <span className={calendarSettings.calendarDateMode === 'publish-only' ? 'font-medium' : ''}>Publish Only</span>
+                    <DropdownMenuItem onClick={() => updateSettings({ calendarDateMode: 'publish-only' })} className="text-xs">
+                      <span className={calendarSettings.calendarDateMode === 'publish-only' ? 'font-bold text-primary' : ''}>Publish Only</span>
                     </DropdownMenuItem>
                   </div>
                 </div>
               </DropdownMenuContent>
             </DropdownMenu>
 
+            <ViewToggle view={view} onViewChange={setView} />
+
             <Button onClick={() => {
               setAddContentInitialDate(undefined);
               setAddContentInitialLane(undefined);
               setAddContentOpen(true);
-            }} size="sm" className="gap-1.5 shadow-sm">
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Add Content</span>
+            }} size="sm" className="gap-1.5 h-8 text-xs font-semibold shadow-sm">
+              <Plus className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">New</span>
             </Button>
-            <ViewToggle view={view} onViewChange={setView} />
           </div>
         </div>
 
-        {/* Stats Bar - Collapsible */}
-        {statsVisible ? (
-          <div className="px-4 py-2 border-t border-border/50 bg-muted/10">
-            <div className="flex items-center justify-between">
-              <CalendarStats items={items} />
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setStatsVisible(false)}
-                className="h-6 px-2"
-              >
-                <ChevronUp className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="px-4 py-1 border-t border-border/50 bg-muted/10">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setStatsVisible(true)}
-              className="h-6 w-full justify-between text-xs text-muted-foreground"
-            >
-              Show Stats
-              <ChevronDown className="h-3 w-3" />
-            </Button>
-          </div>
-        )}
-
-        {/* Platform Filter Bar */}
-        <div className="px-4 py-2.5 border-t border-border/50 bg-muted/20">
+        {/* Stats + Platform Filter - combined row */}
+        <div className="flex items-center justify-between gap-4 px-5 py-2 border-t border-border/30 bg-muted/10 flex-wrap">
           <PlatformFilterBar
             selectedPlatforms={selectedPlatforms}
             onTogglePlatform={togglePlatform}
             onConfigureClick={() => setPlatformConfigOpen(true)}
           />
+          
+          <div className="flex items-center gap-2">
+            {statsVisible ? (
+              <>
+                <CalendarStats items={items} />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setStatsVisible(false)}
+                  className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-foreground"
+                >
+                  <ChevronUp className="h-3 w-3" />
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setStatsVisible(true)}
+                className="h-6 text-[10px] text-muted-foreground/50 hover:text-foreground gap-1"
+              >
+                Stats
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
