@@ -28,13 +28,13 @@ function getStatusBadgeClass(status: string): string {
   switch (status) {
     case 'published':
     case 'completed':
-      return 'bg-green-500/10 text-green-700 dark:text-green-400';
+      return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border-emerald-200/50 dark:border-emerald-500/20';
     case 'scheduled':
-      return 'bg-purple-500/10 text-purple-700 dark:text-purple-400';
+      return 'bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-400 border-violet-200/50 dark:border-violet-500/20';
     case 'draft':
-      return 'bg-gray-500/10 text-gray-600 dark:text-gray-400';
+      return 'bg-slate-50 text-slate-500 dark:bg-slate-500/10 dark:text-slate-400 border-slate-200/50 dark:border-slate-500/20';
     case 'in-progress':
-      return 'bg-blue-500/10 text-blue-700 dark:text-blue-400';
+      return 'bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400 border-sky-200/50 dark:border-sky-500/20';
     default:
       return 'bg-muted text-muted-foreground';
   }
@@ -56,22 +56,6 @@ function getStatusIcon(status: string): LucideIcon | null {
   }
 }
 
-function getStatusBorderClass(status?: string): string {
-  switch (status) {
-    case 'published':
-    case 'completed':
-      return 'border-green-200 dark:border-green-900';
-    case 'scheduled':
-      return 'border-purple-200 dark:border-purple-900';
-    case 'draft':
-      return 'border-gray-200 dark:border-gray-800';
-    case 'in-progress':
-      return 'border-blue-200 dark:border-blue-900';
-    default:
-      return 'border-border';
-  }
-}
-
 function getStatusLabel(status: string): string {
   switch (status) {
     case 'published': return 'Published';
@@ -83,21 +67,20 @@ function getStatusLabel(status: string): string {
   }
 }
 
-// Status dot colors for visibility in all modes
 function getStatusDotClass(status?: string): string {
   switch (status) {
     case 'published':
     case 'completed':
-      return 'bg-green-500';
+      return 'bg-emerald-500';
     case 'scheduled':
-      return 'bg-purple-500';
+      return 'bg-violet-500';
     case 'in-progress':
-      return 'bg-blue-500';
+      return 'bg-sky-500';
     case 'draft':
     case 'Draft':
-      return 'bg-gray-400';
+      return 'bg-slate-300 dark:bg-slate-600';
     default:
-      return 'bg-gray-300';
+      return 'bg-slate-200 dark:bg-slate-700';
   }
 }
 
@@ -119,11 +102,9 @@ export function CalendarContentCard({
   const { getPlatformColor } = useUserPlatforms();
   const { density } = useCalendarDensity();
   
-  // Determine compact mode from prop or density
   const isCompact = compactProp ?? density === 'compact';
   const isSpacious = density === 'spacious';
   
-  // Use lane-specific draggable ID to avoid collisions when same item appears in multiple lanes
   const { attributes, listeners, setNodeRef, transform, isDragging: isLocalDragging } = useDraggable({
     id: `${item.id}:${laneContext}`,
     data: { item },
@@ -133,51 +114,49 @@ export function CalendarContentCard({
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
   } : undefined;
 
-  // Get the icon component
   const iconName = getContentTypeIcon(item.type);
   const IconComponent = ICON_MAP[iconName] || FileText;
   
-  // Get platform color
   const platformColor = getPlatformColor(item.channel || '');
   const platformLabel = getPlatformShortLabel(item.channel);
 
   const isActive = isDragging || isLocalDragging;
   
-  // Status icon
   const StatusIcon = item.status ? getStatusIcon(item.status) : null;
 
   return (
     <div
       ref={setNodeRef}
-      style={{
-        ...style,
-        borderLeftWidth: '3px',
-        borderLeftColor: platformColor,
-      }}
+      style={style}
       {...listeners}
       {...attributes}
       onClick={onClick}
       className={cn(
-        "group relative flex flex-col rounded-md border cursor-pointer transition-all duration-200",
-        "bg-card hover:scale-[1.02] hover:-translate-y-0.5",
-        "active:scale-[0.98]",
-        // Density-based padding and sizing - more noticeable differences
-        isCompact && "py-1 px-1.5 gap-0 shadow-none",
-        density === 'comfortable' && "py-2 px-2.5 gap-1 shadow-sm hover:shadow-md",
-        isSpacious && "py-3 px-4 gap-2 shadow-md hover:shadow-lg",
-        // Touch-friendly minimum height on mobile
-        isCompact ? "min-h-[32px]" : isSpacious ? "min-h-[56px]" : "min-h-[44px]",
-        // Status-based border
-        getStatusBorderClass(item.status),
-        isActive && "opacity-50 shadow-lg z-50"
+        "group relative flex flex-col rounded-lg cursor-pointer transition-all duration-200",
+        "bg-card border border-border/60",
+        "hover:shadow-md hover:-translate-y-0.5 hover:border-border",
+        "active:scale-[0.98] active:shadow-sm",
+        // Density-based padding
+        isCompact && "py-1.5 px-2 gap-0",
+        density === 'comfortable' && "py-2.5 px-3 gap-1 shadow-sm",
+        isSpacious && "py-3.5 px-4 gap-2 shadow-sm",
+        // Touch-friendly minimum height
+        isCompact ? "min-h-[34px]" : isSpacious ? "min-h-[60px]" : "min-h-[44px]",
+        isActive && "opacity-40 shadow-lg z-50 rotate-1"
       )}
     >
+      {/* Platform color accent - top bar instead of left border for cleaner look */}
+      <div 
+        className="absolute top-0 left-2 right-2 h-[2px] rounded-b-full opacity-80"
+        style={{ backgroundColor: platformColor }}
+      />
+
       {/* Main content row */}
       <div className="flex items-center gap-2">
-        {/* Status Dot - always visible in all density modes */}
+        {/* Status Dot */}
         <div 
           className={cn(
-            "shrink-0 rounded-full",
+            "shrink-0 rounded-full ring-2 ring-card",
             isCompact ? "h-2 w-2" : "h-2.5 w-2.5",
             getStatusDotClass(item.status)
           )}
@@ -185,64 +164,70 @@ export function CalendarContentCard({
         />
         
         {/* Content Type Icon */}
-        <IconComponent className={cn(
-          "shrink-0 text-muted-foreground",
-          isCompact ? "h-3 w-3" : isSpacious ? "h-5 w-5" : "h-4 w-4"
-        )} />
+        <div className={cn(
+          "shrink-0 rounded-md flex items-center justify-center",
+          isCompact ? "h-5 w-5" : isSpacious ? "h-7 w-7 bg-muted/60" : "h-6 w-6 bg-muted/40",
+        )}>
+          <IconComponent className={cn(
+            "text-muted-foreground",
+            isCompact ? "h-3 w-3" : isSpacious ? "h-4 w-4" : "h-3.5 w-3.5"
+          )} />
+        </div>
         
         {/* Title */}
         <span className={cn(
-          "flex-1 font-medium",
+          "flex-1 font-medium text-foreground leading-snug",
           isCompact ? "text-[11px] line-clamp-1" : isSpacious ? "text-sm line-clamp-2" : "text-xs line-clamp-1"
         )}>
           {item.title}
         </span>
-        
-        {/* Platform Badge - hide in compact mode */}
-        {item.channel && !isCompact && (
-          <Badge
-            variant="outline"
-            className={cn(
-              "shrink-0 font-medium border-0",
-              isSpacious ? "text-xs px-2 py-0.5" : "text-[10px] px-1.5 py-0"
-            )}
-            style={{
-              backgroundColor: `${platformColor}20`,
-              color: platformColor,
-            }}
-          >
-            {platformLabel}
-          </Badge>
-        )}
-
-        {/* Status Badge - hide in compact, icon-only in comfortable, full in spacious */}
-        {item.status && item.status !== 'draft' && !isCompact && (
-          <Badge
-            variant="secondary"
-            className={cn(
-              "shrink-0 gap-1",
-              getStatusBadgeClass(item.status),
-              isSpacious ? "text-xs px-2 py-0.5" : "text-[10px] px-1 py-0"
-            )}
-          >
-            {StatusIcon && <StatusIcon className={isSpacious ? "h-3.5 w-3.5" : "h-3 w-3"} />}
-            {isSpacious && <span>{getStatusLabel(item.status)}</span>}
-          </Badge>
-        )}
       </div>
 
-      {/* Spacious mode: Show extra details */}
+      {/* Bottom row: platform + status badges */}
+      {!isCompact && (
+        <div className="flex items-center gap-1.5 ml-[18px]">
+          {item.channel && (
+            <span
+              className={cn(
+                "inline-flex items-center font-semibold rounded-full",
+                isSpacious ? "text-[10px] px-2 py-0.5" : "text-[9px] px-1.5 py-px"
+              )}
+              style={{
+                backgroundColor: `${platformColor}15`,
+                color: platformColor,
+              }}
+            >
+              {platformLabel}
+            </span>
+          )}
+
+          {item.status && item.status !== 'draft' && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-0.5 rounded-full border",
+                getStatusBadgeClass(item.status),
+                isSpacious ? "text-[10px] px-2 py-0.5" : "text-[9px] px-1.5 py-px"
+              )}
+            >
+              {StatusIcon && <StatusIcon className="h-2.5 w-2.5" />}
+              {isSpacious && <span>{getStatusLabel(item.status)}</span>}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Spacious mode: Show dates */}
       {isSpacious && (item.creationDate || item.publishDate) && (
-        <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
+        <div className="flex items-center gap-3 ml-[18px] mt-0.5 text-[10px] text-muted-foreground">
           {item.creationDate && (
             <span className="flex items-center gap-1">
-              <span className="text-teal-500">Create:</span>
+              <span className="text-teal-500 font-medium">Create</span>
               {format(new Date(item.creationDate), 'MMM d')}
             </span>
           )}
           {item.publishDate && (
             <span className="flex items-center gap-1">
-              <span className="text-violet-500">Publish:</span>
+              <span className="text-violet-500 font-medium">Publish</span>
               {format(new Date(item.publishDate), 'MMM d')}
             </span>
           )}
@@ -251,14 +236,14 @@ export function CalendarContentCard({
 
       {/* Quick Actions - appears on hover */}
       <div className={cn(
-        "absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5",
-        "opacity-0 group-hover:opacity-100 transition-opacity",
-        "bg-card/90 backdrop-blur-sm rounded px-0.5"
+        "absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5",
+        "opacity-0 group-hover:opacity-100 transition-all duration-150",
+        "bg-card/95 backdrop-blur-sm rounded-md px-0.5 shadow-sm border border-border/40"
       )}>
         <Button
           variant="ghost"
           size="icon"
-          className="h-6 w-6"
+          className="h-6 w-6 hover:bg-primary/10 hover:text-primary"
           onClick={(e) => {
             e.stopPropagation();
             onClick?.();
@@ -269,7 +254,7 @@ export function CalendarContentCard({
         <Button
           variant="ghost"
           size="icon"
-          className="h-6 w-6"
+          className="h-6 w-6 hover:bg-muted"
           onClick={(e) => {
             e.stopPropagation();
           }}
@@ -292,25 +277,26 @@ export function CalendarContentCardOverlay({ item }: { item: CalendarItem }) {
 
   return (
     <div 
-      className="flex items-center gap-2 p-3 bg-card rounded-md border shadow-xl cursor-grabbing"
-      style={{
-        borderLeftWidth: '3px',
-        borderLeftColor: platformColor,
-      }}
+      className="flex items-center gap-2.5 p-3 bg-card rounded-lg border border-border shadow-2xl cursor-grabbing rotate-2 scale-105"
     >
-      <IconComponent className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <div 
+        className="absolute top-0 left-3 right-3 h-[2px] rounded-b-full"
+        style={{ backgroundColor: platformColor }}
+      />
+      <div className="h-6 w-6 rounded-md bg-muted/60 flex items-center justify-center">
+        <IconComponent className="h-3.5 w-3.5 text-muted-foreground" />
+      </div>
       <span className="flex-1 truncate text-sm font-medium">{item.title}</span>
       {item.channel && (
-        <Badge
-          variant="outline"
-          className="shrink-0 text-xs font-medium border-0 px-1.5 py-0.5"
+        <span
+          className="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full"
           style={{
-            backgroundColor: `${platformColor}20`,
+            backgroundColor: `${platformColor}15`,
             color: platformColor,
           }}
         >
           {platformLabel}
-        </Badge>
+        </span>
       )}
     </div>
   );

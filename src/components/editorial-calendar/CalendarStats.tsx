@@ -27,53 +27,60 @@ export function CalendarStats({ items, className }: CalendarStatsProps) {
   }, [items]);
 
   return (
-    <div className={cn("flex items-center gap-3 flex-wrap", className)}>
-      <StatCard
-        icon={<FileText className="h-3.5 w-3.5" />}
+    <div className={cn("flex items-center gap-2 flex-wrap", className)}>
+      <StatPill
+        icon={<FileText className="h-3 w-3" />}
         label="Total"
         value={stats.total}
-        colorClass="text-blue-600 dark:text-blue-400 bg-blue-500/10"
+        variant="default"
       />
-      <StatCard
-        icon={<Clock className="h-3.5 w-3.5" />}
+      <StatPill
+        icon={<Clock className="h-3 w-3" />}
         label="Scheduled"
         value={stats.scheduled}
-        colorClass="text-purple-600 dark:text-purple-400 bg-purple-500/10"
+        variant="violet"
       />
-      <StatCard
-        icon={<CheckCircle2 className="h-3.5 w-3.5" />}
+      <StatPill
+        icon={<CheckCircle2 className="h-3 w-3" />}
         label="Published"
         value={stats.published}
-        colorClass="text-green-600 dark:text-green-400 bg-green-500/10"
+        variant="emerald"
       />
       {stats.overdue > 0 && (
-        <StatCard
-          icon={<AlertCircle className="h-3.5 w-3.5" />}
+        <StatPill
+          icon={<AlertCircle className="h-3 w-3" />}
           label="Overdue"
           value={stats.overdue}
-          colorClass="text-red-600 dark:text-red-400 bg-red-500/10"
+          variant="rose"
         />
       )}
     </div>
   );
 }
 
-interface StatCardProps {
+interface StatPillProps {
   icon: React.ReactNode;
   label: string;
   value: number;
-  colorClass: string;
+  variant: 'default' | 'violet' | 'emerald' | 'rose';
 }
 
-function StatCard({ icon, label, value, colorClass }: StatCardProps) {
+const variantStyles: Record<string, string> = {
+  default: 'text-foreground/70 bg-muted/40',
+  violet: 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/20',
+  emerald: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20',
+  rose: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/20',
+};
+
+function StatPill({ icon, label, value, variant }: StatPillProps) {
   return (
     <div className={cn(
-      "flex items-center gap-2 px-3 py-1.5 rounded-lg",
-      colorClass
+      "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
+      variantStyles[variant]
     )}>
       {icon}
-      <span className="text-sm font-semibold">{value}</span>
-      <span className="text-xs opacity-80">{label}</span>
+      <span className="font-bold tabular-nums">{value}</span>
+      <span className="opacity-70">{label}</span>
     </div>
   );
 }
