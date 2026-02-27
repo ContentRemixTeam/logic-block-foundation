@@ -1,27 +1,24 @@
 
 
-# Fix Sidebar Scrollbar Styling
+# Fix Invisible Cursor in SmartScratchPad
 
 ## Problem
-The sidebar's `SidebarContent` component uses native CSS `overflow-auto`, which renders the browser's default scrollbar -- an ugly gray track that looks broken and out of place with the rest of the UI.
+When clicking into the scratch pad (or after clicking a tag button like #task), the text cursor (caret) is invisible. This happens because the textarea uses `text-transparent` and `WebkitTextFillColor: 'transparent'` to hide the actual text (so the highlight overlay shows through), but this can also hide the caret in some browsers.
 
 ## Solution
-Replace the native `overflow-auto` scrollbar in the `SidebarContent` with custom CSS to style it to be minimal and subtle, matching the rest of the app's aesthetic. This avoids swapping the entire scroll mechanism and keeps the fix minimal.
+A small, targeted fix in one file: `src/components/SmartScratchPad.tsx`.
 
-## Changes
+### Changes to `src/components/SmartScratchPad.tsx`
 
-### File: `src/components/ui/sidebar.tsx`
+1. **Replace the inline `caretColor` style** with a more robust approach:
+   - Remove `caret-foreground` from the Tailwind classes (line 371) since it's not a real Tailwind utility
+   - Keep `text-transparent` (needed for the overlay trick)
+   - Set `caretColor` to a solid, explicit color value like `'black'` (with dark mode consideration) or use `'auto'` which tells the browser to pick a visible color automatically
+   - The simplest cross-browser fix: use `caret-color: auto` which forces the browser to render a visible caret regardless of text color
 
-Update the `SidebarContent` class to hide the default scrollbar and apply thin, styled scrollbar using Tailwind-compatible CSS utilities:
+2. **Specific line changes** (lines 367-377):
+   - In the className: remove `caret-foreground`, keep `text-transparent`
+   - In the style prop: change `caretColor` from `'hsl(var(--foreground))'` to `'auto'`
+   - Keep `WebkitTextFillColor: 'transparent'` as-is (needed for the overlay)
 
-- Add `scrollbar-thin` styling via inline Tailwind classes that make the scrollbar track transparent and the thumb a subtle muted color
-- Use the widely supported `scrollbar-width: thin` (Firefox) and `::-webkit-scrollbar` pseudo-elements (Chrome/Safari) approach
-- The scrollbar thumb will only appear on hover, keeping the sidebar clean
-
-Specifically, on the `SidebarContent` div (line 334), append custom scrollbar classes and add a small `<style>` block scoped to `[data-sidebar="content"]` for cross-browser scrollbar styling:
-- Track: transparent
-- Thumb: `hsl(var(--muted-foreground) / 0.2)`, rounded, 4px wide
-- On hover: thumb becomes slightly more visible
-
-This is a one-file, CSS-only change with zero logic impact.
-
+This is a 2-line change in a single file. No logic, data, or mutation changes.
