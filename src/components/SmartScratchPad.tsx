@@ -368,10 +368,10 @@ export function SmartScratchPad({
             "w-full min-h-[200px] max-h-[500px] p-3 font-mono text-sm resize-none rounded-md border border-input bg-transparent leading-[20px] overflow-y-auto",
             "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
             "placeholder:text-muted-foreground",
-            "caret-foreground text-transparent"
+            "text-transparent"
           )}
           style={{ 
-            caretColor: 'hsl(var(--foreground))',
+            caretColor: 'auto',
             WebkitTextFillColor: 'transparent',
           }}
         />
