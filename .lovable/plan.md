@@ -1,24 +1,28 @@
 
 
-# Fix Invisible Cursor in SmartScratchPad
+# Auto-refresh Daily Agenda After Scratch Pad Tag Processing
 
-## Problem
-When clicking into the scratch pad (or after clicking a tag button like #task), the text cursor (caret) is invisible. This happens because the textarea uses `text-transparent` and `WebkitTextFillColor: 'transparent'` to hide the actual text (so the highlight overlay shows through), but this can also hide the caret in some browsers.
+## What's Already Working
+The `#task` items from the scratch pad are already saved with today's date (`scheduled_date`) and no time slot, which places them in the "unscheduled" pool on the daily agenda. They ARE being created correctly in the database.
 
-## Solution
-A small, targeted fix in one file: `src/components/SmartScratchPad.tsx`.
+## The Gap
+After processing tags, the UI doesn't automatically refresh the task list. The user has to navigate away and back to see the newly created tasks appear on the agenda.
 
-### Changes to `src/components/SmartScratchPad.tsx`
+## Fix
+Invalidate the React Query task cache after successful tag processing so the daily agenda updates instantly.
 
-1. **Replace the inline `caretColor` style** with a more robust approach:
-   - Remove `caret-foreground` from the Tailwind classes (line 371) since it's not a real Tailwind utility
-   - Keep `text-transparent` (needed for the overlay trick)
-   - Set `caretColor` to a solid, explicit color value like `'black'` (with dark mode consideration) or use `'auto'` which tells the browser to pick a visible color automatically
-   - The simplest cross-browser fix: use `caret-color: auto` which forces the browser to render a visible caret regardless of text color
+### File: `src/components/daily-plan/DailyScratchPad.tsx` (or whichever scratch pad component calls `process-scratch-pad-tags` on the daily plan page)
 
-2. **Specific line changes** (lines 367-377):
-   - In the className: remove `caret-foreground`, keep `text-transparent`
-   - In the style prop: change `caretColor` from `'hsl(var(--foreground))'` to `'auto'`
-   - Keep `WebkitTextFillColor: 'transparent'` as-is (needed for the overlay)
+1. Import `useQueryClient` from `@tanstack/react-query`
+2. After a successful `process-scratch-pad-tags` call (inside the success branch of `handleProcessTags`), call `queryClient.invalidateQueries({ queryKey: ['all-tasks'] })` to trigger an immediate refetch of the task list
+3. This will cause the daily agenda to re-render with the newly created tasks visible in the unscheduled pool -- no page reload needed
 
-This is a 2-line change in a single file. No logic, data, or mutation changes.
+### File: `src/components/weekly-plan/WeeklyScratchPad.tsx`
+
+Same change -- add query invalidation after successful tag processing so the weekly view also reflects new tasks immediately.
+
+## Technical Detail
+- Only the query cache invalidation call is added; no data logic or mutations are changed
+- The existing `useTasks()` hook and `useTaskMutations()` pattern is respected -- we just tell React Query the cache is stale
+- One-line addition per file after the success toast
+
