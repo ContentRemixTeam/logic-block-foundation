@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SmartScratchPad } from '@/components/SmartScratchPad';
@@ -22,6 +23,7 @@ export function WeeklyScratchPad({
   userId,
 }: WeeklyScratchPadProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [processingTags, setProcessingTags] = useState(false);
 
   const handleProcessTags = async () => {
@@ -53,6 +55,11 @@ export function WeeklyScratchPad({
             ? `Created ${items.join(', ')}.` 
             : 'No tagged items found to process.',
         });
+
+        // Invalidate caches so items appear immediately
+        queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
+        queryClient.invalidateQueries({ queryKey: ['ideas'] });
+        queryClient.invalidateQueries({ queryKey: ['useful-thoughts'] });
       } else if (data?.error) {
         toast({
           title: 'Processing issue',
