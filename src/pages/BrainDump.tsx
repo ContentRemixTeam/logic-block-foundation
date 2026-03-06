@@ -8,9 +8,11 @@ import { ErrorState } from '@/components/system/ErrorState';
 import { BrainDumpCreateForm } from '@/components/brain-dump/BrainDumpCreateForm';
 import { BrainDumpBoard } from '@/components/brain-dump/BrainDumpBoard';
 import { BrainDumpGrid } from '@/components/brain-dump/BrainDumpGrid';
+import { PeriodSelector, type PeriodType, getDateRangeForPeriod } from '@/components/financial/PeriodSelector';
 import { useBrainDump, CATEGORY_CONFIG, type BrainDumpCategory, type BrainDumpItem } from '@/hooks/useBrainDump';
 import { Search, LayoutGrid, Columns3, X, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { parseISO, isWithinInterval } from 'date-fns';
 
 type ViewMode = 'board' | 'grid';
 type FilterCategory = 'all' | BrainDumpCategory;
@@ -23,6 +25,8 @@ export default function BrainDump() {
   });
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState<FilterCategory>('all');
+  const [datePeriod, setDatePeriod] = useState<PeriodType | null>(null);
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
 
   const setView = useCallback((mode: ViewMode) => {
     setViewMode(mode);
