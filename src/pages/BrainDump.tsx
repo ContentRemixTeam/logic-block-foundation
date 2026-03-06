@@ -181,6 +181,21 @@ export default function BrainDump() {
           </div>
         </div>
 
+        {/* Date Range Filter */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm text-muted-foreground font-medium">Date range:</span>
+          <PeriodSelector
+            selectedPeriod={datePeriod || 'month'}
+            onPeriodChange={handlePeriodChange}
+          />
+          {datePeriod && (
+            <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={clearDateFilter}>
+              <X className="h-3.5 w-3.5" />
+              Clear
+            </Button>
+          )}
+        </div>
+
         {/* Content */}
         {isLoading ? (
           <LoadingState />
