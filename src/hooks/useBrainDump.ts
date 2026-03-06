@@ -164,7 +164,7 @@ export function useBrainDump() {
 
       if (category === 'task') {
         // Use the centralized task mutation
-        await createTask({
+        await createTask.mutateAsync({
           task_text: trimmed,
           source: 'brain_dump',
           scheduled_date: new Date().toISOString().split('T')[0],
@@ -273,7 +273,7 @@ export function useBrainDump() {
       } else if (newCategory === 'idea' || newCategory === 'project') {
         await supabase.from('ideas').insert({ user_id: user.id, content: text });
       } else if (newCategory === 'task') {
-        await createTask({ task_text: text, source: 'brain_dump', scheduled_date: new Date().toISOString().split('T')[0] });
+        await createTask.mutateAsync({ task_text: text, source: 'brain_dump', scheduled_date: new Date().toISOString().split('T')[0] });
       }
     },
     onSuccess: () => {
