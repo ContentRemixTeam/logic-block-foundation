@@ -57,22 +57,14 @@ export default function BrainDump() {
     createItem.mutate({ text, category });
   }, [createItem]);
 
-  if (error) {
-    return (
-      <Layout>
-        <ErrorState message="Failed to load Brain Dump" />
-      </Layout>
-    );
-  }
-
-  const FILTER_BUTTONS: { key: FilterCategory; label: string; emoji?: string }[] = [
-    { key: 'all', label: 'All' },
+  const FILTER_BUTTONS: { key: FilterCategory; label: string; emoji?: string }[] = useMemo(() => [
+    { key: 'all' as FilterCategory, label: 'All' },
     ...Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => ({
       key: key as FilterCategory,
       label: cfg.label,
       emoji: cfg.emoji,
     })),
-  ];
+  ], []);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { all: items.length };
@@ -81,6 +73,14 @@ export default function BrainDump() {
     });
     return counts;
   }, [items]);
+
+  if (error) {
+    return (
+      <Layout>
+        <ErrorState message="Failed to load Brain Dump" />
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
