@@ -33,6 +33,16 @@ export default function BrainDump() {
     localStorage.setItem('brain-dump-view', mode);
   }, []);
 
+  const handlePeriodChange = useCallback((period: PeriodType, start: Date, end: Date) => {
+    setDatePeriod(period);
+    setDateRange({ start, end });
+  }, []);
+
+  const clearDateFilter = useCallback(() => {
+    setDatePeriod(null);
+    setDateRange(null);
+  }, []);
+
   const filteredItems = useMemo(() => {
     let result = items;
     if (filterCategory !== 'all') {
@@ -42,8 +52,14 @@ export default function BrainDump() {
       const q = search.toLowerCase();
       result = result.filter(i => i.text.toLowerCase().includes(q));
     }
+    if (dateRange) {
+      result = result.filter(i => {
+        const d = parseISO(i.created_at);
+        return isWithinInterval(d, { start: dateRange.start, end: dateRange.end });
+      });
+    }
     return result;
-  }, [items, filterCategory, search]);
+  }, [items, filterCategory, search, dateRange]);
 
   const handleDelete = useCallback((item: BrainDumpItem) => {
     deleteItem.mutate(item);
