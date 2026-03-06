@@ -141,6 +141,7 @@ const LeadMagnetWizardPage = lazyWithRetry(() => import('./pages/LeadMagnetWizar
 const FlashSaleWizardPage = lazyWithRetry(() => import('./pages/FlashSaleWizardPage'));
 const WebinarWizardPage = lazyWithRetry(() => import('./pages/WebinarWizardPage'));
 const ContentChallengeWizardPage = lazyWithRetry(() => import('./pages/ContentChallengeWizardPage'));
+const BrainDump = lazyWithRetry(() => import('./pages/BrainDump'));
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -218,6 +219,7 @@ const App = () => (
                       <Route path="/daily-plan" element={<ProtectedRoute><PageSuspense><DailyPlan /></PageSuspense></ProtectedRoute>} />
                       <Route path="/daily-review" element={<ProtectedRoute><PageSuspense><DailyReview /></PageSuspense></ProtectedRoute>} />
                       <Route path="/notes" element={<ProtectedRoute><PageSuspense><Notes /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/brain-dump" element={<ProtectedRoute><PageSuspense><BrainDump /></PageSuspense></ProtectedRoute>} />
                       <Route path="/tasks" element={<ProtectedRoute><PageSuspense><Tasks /></PageSuspense></ProtectedRoute>} />
                       <Route path="/all-tasks" element={<ProtectedRoute><PageSuspense><AllTasks /></PageSuspense></ProtectedRoute>} />
                       <Route path="/projects" element={<ProtectedRoute><PageSuspense><Projects /></PageSuspense></ProtectedRoute>} />

@@ -55,6 +55,7 @@ const MAIN_NAV = [
 ];
 
 const ORGANIZE_NAV = [
+  { name: 'Brain Dump', href: '/brain-dump', icon: Brain, questIcon: '🧠' },
   { name: 'Notes', href: '/notes', icon: BookOpen, questIcon: '📒' },
   { name: 'Ideas', href: '/ideas', icon: Lightbulb, questIcon: '💡' },
   { name: 'Learning', href: '/courses', icon: GraduationCap, questIcon: '🎓' },
