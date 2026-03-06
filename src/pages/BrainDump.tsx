@@ -8,9 +8,11 @@ import { ErrorState } from '@/components/system/ErrorState';
 import { BrainDumpCreateForm } from '@/components/brain-dump/BrainDumpCreateForm';
 import { BrainDumpBoard } from '@/components/brain-dump/BrainDumpBoard';
 import { BrainDumpGrid } from '@/components/brain-dump/BrainDumpGrid';
+import { PeriodSelector, type PeriodType, getDateRangeForPeriod } from '@/components/financial/PeriodSelector';
 import { useBrainDump, CATEGORY_CONFIG, type BrainDumpCategory, type BrainDumpItem } from '@/hooks/useBrainDump';
 import { Search, LayoutGrid, Columns3, X, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { parseISO, isWithinInterval } from 'date-fns';
 
 type ViewMode = 'board' | 'grid';
 type FilterCategory = 'all' | BrainDumpCategory;
@@ -23,10 +25,22 @@ export default function BrainDump() {
   });
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState<FilterCategory>('all');
+  const [datePeriod, setDatePeriod] = useState<PeriodType | null>(null);
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
 
   const setView = useCallback((mode: ViewMode) => {
     setViewMode(mode);
     localStorage.setItem('brain-dump-view', mode);
+  }, []);
+
+  const handlePeriodChange = useCallback((period: PeriodType, start: Date, end: Date) => {
+    setDatePeriod(period);
+    setDateRange({ start, end });
+  }, []);
+
+  const clearDateFilter = useCallback(() => {
+    setDatePeriod(null);
+    setDateRange(null);
   }, []);
 
   const filteredItems = useMemo(() => {
@@ -38,8 +52,14 @@ export default function BrainDump() {
       const q = search.toLowerCase();
       result = result.filter(i => i.text.toLowerCase().includes(q));
     }
+    if (dateRange) {
+      result = result.filter(i => {
+        const d = parseISO(i.created_at);
+        return isWithinInterval(d, { start: dateRange.start, end: dateRange.end });
+      });
+    }
     return result;
-  }, [items, filterCategory, search]);
+  }, [items, filterCategory, search, dateRange]);
 
   const handleDelete = useCallback((item: BrainDumpItem) => {
     deleteItem.mutate(item);
@@ -159,6 +179,21 @@ export default function BrainDump() {
               </Button>
             ))}
           </div>
+        </div>
+
+        {/* Date Range Filter */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm text-muted-foreground font-medium">Date range:</span>
+          <PeriodSelector
+            selectedPeriod={datePeriod || 'month'}
+            onPeriodChange={handlePeriodChange}
+          />
+          {datePeriod && (
+            <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={clearDateFilter}>
+              <X className="h-3.5 w-3.5" />
+              Clear
+            </Button>
+          )}
         </div>
 
         {/* Content */}
