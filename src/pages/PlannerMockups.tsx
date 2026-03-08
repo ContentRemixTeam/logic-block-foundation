@@ -283,17 +283,19 @@ export default function PlannerMockups() {
             <div
               className="w-full overflow-hidden"
               style={{
+                height: '56px',
                 background: `linear-gradient(180deg, hsl(${theme.palette.gradientFrom} / 0.06), transparent)`,
               }}
             >
               <img 
                 src={theme.art} 
                 alt="" 
-                className="w-full h-auto max-h-16"
                 style={{ 
-                  opacity: 0.9,
-                  objectFit: 'contain',
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
                   objectPosition: 'center bottom',
+                  opacity: 0.9,
                 }} 
               />
             </div>
