@@ -354,6 +354,22 @@ export default function Settings() {
           </CardContent>
         </Card>
 
+        {/* Monthly Challenges */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Crown className="h-5 w-5" />
+              Monthly Challenges
+            </CardTitle>
+            <CardDescription>
+              Complete monthly challenges to unlock new seasonal themes
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChallengeProgressWidget />
+          </CardContent>
+        </Card>
+
         {/* Install Apps */}
         <Card>
           <CardHeader>
