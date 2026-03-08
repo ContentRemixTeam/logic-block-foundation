@@ -34,6 +34,9 @@ import {
   Trash2,
   GraduationCap,
   CalendarRange,
+  Trophy,
+  MessageSquare,
+  ClipboardCheck,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
@@ -79,12 +82,15 @@ const CAPTURE_NAV = [
   { name: 'Brain Dump', href: '/brain-dump', icon: Brain, questIcon: '🧠' },
   { name: 'Notes', href: '/notes', icon: BookOpen, questIcon: '📒' },
   { name: 'Ideas', href: '/ideas', icon: Lightbulb, questIcon: '💡' },
+  { name: 'Wins', href: '/wins', icon: Trophy, questIcon: '🏆' },
 ];
 
 const GROW_NAV = [
   { name: 'Progress', href: '/progress', icon: TrendingUp, questIcon: '📊' },
   { name: 'Learning', href: '/courses', icon: GraduationCap, questIcon: '🎓' },
   { name: 'Mindset', href: '/mindset', icon: Compass, questIcon: '🧠', isActiveCheck: (path: string) => path === '/mindset' || path.includes('useful-thoughts') || path.includes('belief-builder') || path.includes('identity-anchors') || path.includes('self-coaching') },
+  { name: 'Coaching Log', href: '/coaching-log', icon: MessageSquare, questIcon: '💬' },
+  { name: 'Reviews', href: '/planning', icon: ClipboardCheck, questIcon: '✅', isActiveCheck: (path: string) => path.includes('review') || path === '/planning' },
 ];
 
 // ── Advanced features (hidden unless "Show all features" is on) ────
@@ -93,7 +99,6 @@ const ADVANCED_NAV = [
   { name: 'Wizards', href: '/wizards', icon: Sparkles, questIcon: '🪄', isActiveCheck: (path: string) => path.startsWith('/wizards') },
   { name: 'Content Vault', href: '/content-vault', icon: Library, questIcon: '📚' },
   { name: 'SOPs', href: '/sops', icon: ClipboardList, questIcon: '📖' },
-  { name: 'Reviews', href: '/reviews', icon: Sparkles, questIcon: '✨' },
   { name: 'Habits', href: '/habits', icon: CheckSquare, questIcon: '🔥' },
   { name: 'Finances', href: '/finances', icon: DollarSign, questIcon: '💰', settingsKey: 'show_income_tracker' },
   { name: 'AI Copywriting', href: '/ai-copywriting', icon: Sparkle, questIcon: '✨', isActiveCheck: (path: string) => path.startsWith('/ai-copywriting'), settingsKey: 'show_ai_copywriting' },
