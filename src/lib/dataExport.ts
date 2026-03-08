@@ -24,48 +24,77 @@ interface ExportData {
   };
 }
 
+// Paginated fetch to handle tables with >1000 rows (Supabase default limit)
+async function fetchAll(table: string, userId: string): Promise<any[]> {
+  const PAGE_SIZE = 1000;
+  let all: any[] = [];
+  let from = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from(table)
+      .select('*')
+      .eq('user_id', userId)
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) throw error;
+    all = all.concat(data || []);
+    hasMore = (data?.length ?? 0) === PAGE_SIZE;
+    from += PAGE_SIZE;
+  }
+
+  return all;
+}
+
 export async function exportAllUserData(userId: string): Promise<Blob> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Not authenticated');
 
-  // Fetch all user data in parallel - using individual queries to avoid type issues
-  const tasksRes = await supabase.from('tasks').select('*').eq('user_id', userId);
-  const cyclesRes = await supabase.from('cycles_90_day').select('*').eq('user_id', userId);
-  const dailyPlansRes = await supabase.from('daily_plans').select('*').eq('user_id', userId);
-  const weeklyPlansRes = await supabase.from('weekly_plans').select('*').eq('user_id', userId);
-  const sopsRes = await supabase.from('sops').select('*').eq('user_id', userId);
-  const ideasRes = await supabase.from('ideas').select('*').eq('user_id', userId);
-  const habitsRes = await supabase.from('habits').select('*').eq('user_id', userId);
-  const weeklyReviewsRes = await supabase.from('weekly_reviews').select('*').eq('user_id', userId);
-  const monthlyReviewsRes = await supabase.from('monthly_reviews').select('*').eq('user_id', userId);
-  const beliefsRes = await supabase.from('beliefs').select('*').eq('user_id', userId);
-  const identityAnchorsRes = await supabase.from('identity_anchors').select('*').eq('user_id', userId);
-  const thoughtsRes = await supabase.from('useful_thoughts').select('*').eq('user_id', userId);
-  const coachingRes = await supabase.from('coaching_entries').select('*').eq('user_id', userId);
-  const contentRes = await supabase.from('content_items').select('*').eq('user_id', userId);
-  const projectsRes = await supabase.from('projects').select('*').eq('user_id', userId);
+  // Fetch all user data in parallel with pagination support
+  const [
+    tasks, cycles, dailyPlans, weeklyPlans, sops, ideas, habits,
+    weeklyReviews, monthlyReviews, beliefs, identityAnchors, thoughts,
+    coachingEntries, contentItems, projects
+  ] = await Promise.all([
+    fetchAll('tasks', userId),
+    fetchAll('cycles_90_day', userId),
+    fetchAll('daily_plans', userId),
+    fetchAll('weekly_plans', userId),
+    fetchAll('sops', userId),
+    fetchAll('ideas', userId),
+    fetchAll('habits', userId),
+    fetchAll('weekly_reviews', userId),
+    fetchAll('monthly_reviews', userId),
+    fetchAll('beliefs', userId),
+    fetchAll('identity_anchors', userId),
+    fetchAll('useful_thoughts', userId),
+    fetchAll('coaching_entries', userId),
+    fetchAll('content_items', userId),
+    fetchAll('projects', userId),
+  ]);
 
   const exportData: ExportData = {
     exportDate: new Date().toISOString(),
     userId,
     version: '1.0',
     data: {
-      tasks: (tasksRes.data || []).filter((t: any) => !t.deleted_at),
-      cycles: cyclesRes.data || [],
-      dailyPlans: dailyPlansRes.data || [],
-      weeklyPlans: weeklyPlansRes.data || [],
-      sops: (sopsRes.data || []).filter((s: any) => !s.deleted_at),
-      ideas: (ideasRes.data || []).filter((i: any) => !i.deleted_at),
+      tasks: tasks.filter((t: any) => !t.deleted_at),
+      cycles,
+      dailyPlans,
+      weeklyPlans,
+      sops: sops.filter((s: any) => !s.deleted_at),
+      ideas: ideas.filter((i: any) => !i.deleted_at),
       notes: [],
-      habits: (habitsRes.data || []).filter((h: any) => !h.deleted_at),
-      weeklyReviews: weeklyReviewsRes.data || [],
-      monthlyReviews: monthlyReviewsRes.data || [],
-      beliefs: beliefsRes.data || [],
-      identityAnchors: identityAnchorsRes.data || [],
-      thoughts: thoughtsRes.data || [],
-      coachingEntries: coachingRes.data || [],
-      contentItems: contentRes.data || [],
-      projects: projectsRes.data || [],
+      habits: habits.filter((h: any) => !h.deleted_at),
+      weeklyReviews,
+      monthlyReviews,
+      beliefs,
+      identityAnchors,
+      thoughts,
+      coachingEntries,
+      contentItems,
+      projects,
     }
   };
 
