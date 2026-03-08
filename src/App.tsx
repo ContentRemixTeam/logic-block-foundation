@@ -285,6 +285,7 @@ const App = () => (
                     </Routes>
                     <DevDebugPanel />
                     <PerformanceMonitor />
+                  </SeasonalEffectsProvider>
                   </QuickCaptureProvider>
                   </InstallPromptProvider>
                 </ArcadeProvider>
