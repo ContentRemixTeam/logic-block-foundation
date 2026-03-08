@@ -15,6 +15,7 @@ import { TourOverlay } from "@/components/tour/TourOverlay";
 import { TourWelcome } from "@/components/tour/TourWelcome";
 import { TourKeyboardHandler } from "@/components/tour/TourKeyboardHandler";
 import { QuickCaptureProvider } from "@/components/quick-capture";
+import { SeasonalEffectsProvider } from "@/components/seasonal/SeasonalEffectsProvider";
 import { ManifestSwitcher } from "@/components/pwa/ManifestSwitcher";
 import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
 import { InstallPromptProvider } from "@/hooks/useInstallPrompt";
