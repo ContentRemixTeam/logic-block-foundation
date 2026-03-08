@@ -6470,6 +6470,47 @@ export type Database = {
         }
         Relationships: []
       }
+      user_badges: {
+        Row: {
+          badge_key: string
+          description: string | null
+          earned_at: string
+          emoji: string
+          id: string
+          label: string
+          theme_id: string | null
+          user_id: string
+        }
+        Insert: {
+          badge_key: string
+          description?: string | null
+          earned_at?: string
+          emoji?: string
+          id?: string
+          label: string
+          theme_id?: string | null
+          user_id: string
+        }
+        Update: {
+          badge_key?: string
+          description?: string | null
+          earned_at?: string
+          emoji?: string
+          id?: string
+          label?: string
+          theme_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "app_themes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_content_platforms: {
         Row: {
           color: string
