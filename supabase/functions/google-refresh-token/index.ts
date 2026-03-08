@@ -158,7 +158,7 @@ serve(async (req) => {
       // Token still valid
       return new Response(
         JSON.stringify({ 
-          accessToken: decryptToken(connection.access_token_encrypted),
+          accessToken: await decryptToken(connection.access_token_encrypted),
           expiresAt: connection.token_expiry 
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
