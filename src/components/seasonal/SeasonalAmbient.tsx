@@ -55,12 +55,10 @@ const STYLE_CONFIG: Record<AmbientStyle, {
 };
 
 function SeasonalAmbientInner({ style, opacity = 0.3 }: SeasonalAmbientProps) {
-  if (style === 'none') return null;
-
   const config = STYLE_CONFIG[style];
-  if (!config || config.count === 0) return null;
 
   const particles = useMemo(() => {
+    if (!config || config.count === 0) return [];
     return Array.from({ length: config.count }).map((_, i) => {
       const size = config.sizeRange[0] + Math.random() * (config.sizeRange[1] - config.sizeRange[0]);
       const left = ((i * (100 / config.count)) + Math.random() * 8).toFixed(1);
