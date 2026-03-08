@@ -24,6 +24,7 @@ import { THEMES, THEME_IDS, ThemeId } from '@/lib/themes';
 import { DelightSettingsCard, DataRecoveryCard } from '@/components/settings';
 import { ThemeGallery } from '@/components/themes';
 import { CalendarSettingsCard } from '@/components/editorial-calendar';
+import { ChallengeProgressWidget } from '@/components/challenges/ChallengeProgressWidget';
 
 export default function Settings() {
   const { user } = useAuth();
