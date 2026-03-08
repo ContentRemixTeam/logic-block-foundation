@@ -17,6 +17,7 @@ import {
 /* ─── palette helpers ─── */
 function accent(t: SeasonalTheme) { return `hsl(${t.palette.primary})`; }
 function accentBg(t: SeasonalTheme) { return `hsl(${t.palette.primary} / 0.08)`; }
+function accentMedium(t: SeasonalTheme) { return `hsl(${t.palette.primary} / 0.25)`; }
 function border(t: SeasonalTheme) { return `hsl(${t.palette.primary} / 0.15)`; }
 function gradientBg(t: SeasonalTheme) {
   return `linear-gradient(135deg, hsl(${t.palette.gradientFrom} / 0.06), hsl(${t.palette.gradientTo} / 0.03))`;
@@ -25,6 +26,12 @@ function gradientSolid(t: SeasonalTheme) {
   return `linear-gradient(135deg, hsl(${t.palette.gradientFrom}), hsl(${t.palette.gradientTo}))`;
 }
 function bannerText(t: SeasonalTheme) { return `hsl(${t.palette.primary})`; }
+function artTint(t: SeasonalTheme) {
+  // Build a CSS filter that tints the grayscale art with the theme color
+  // We use sepia + hue-rotate to approximate the target hue
+  const hue = t.palette.primary.split(' ')[0]; // extract hue from "210 40% 60%"
+  return `brightness(0.6) sepia(1) hue-rotate(${Number(hue) - 50}deg) saturate(1.5)`;
+}
 
 /* ─── Section label ─── */
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -104,22 +111,27 @@ export default function PlannerMockups() {
         <SectionLabel>Dashboard — Command Center</SectionLabel>
 
         <div className="rounded-xl border border-border overflow-hidden bg-card">
-          {/* Dashboard header with seasonal art watermark */}
+          {/* Gradient accent bar */}
+          {themeEnabled && (
+            <div className="h-1.5" style={{ background: gradientSolid(theme) }} />
+          )}
+
+          {/* Dashboard header with seasonal art */}
           <div
-            className="relative px-6 py-8 overflow-hidden transition-all duration-500"
+            className="relative px-6 py-6 overflow-hidden transition-all duration-500"
             style={{
-              background: themeEnabled ? gradientBg(theme) : undefined,
               borderBottom: `1px solid ${themeEnabled ? border(theme) : 'hsl(var(--border))'}`,
             }}
           >
-            <Callout position="top-right">← Seasonal banner + line art watermark</Callout>
+            <Callout position="top-right">← Gradient bar + tinted line art</Callout>
 
-            {/* Line art watermark in header — large & elegant */}
+            {/* Line art — theme-color tinted, prominent */}
             {themeEnabled && (
               <img
                 src={theme.art}
                 alt=""
-                className="absolute -right-4 top-1/2 -translate-y-1/2 h-[200%] w-auto max-w-[45%] object-contain opacity-[0.18] pointer-events-none select-none"
+                className="absolute right-6 bottom-0 h-[140%] w-auto max-w-[35%] object-contain opacity-[0.35] pointer-events-none select-none"
+                style={{ filter: artTint(theme) }}
               />
             )}
 
@@ -248,21 +260,26 @@ export default function PlannerMockups() {
         <SectionLabel>Daily Plan</SectionLabel>
 
         <div className="rounded-xl border border-border overflow-hidden bg-card">
-          {/* Daily Plan morning banner with line art */}
+          {/* Gradient accent bar */}
+          {themeEnabled && (
+            <div className="h-1.5" style={{ background: gradientSolid(theme) }} />
+          )}
+
+          {/* Daily Plan morning banner with tinted line art */}
           <div
             className="relative px-6 py-4 overflow-hidden transition-all duration-500"
             style={{
-              background: themeEnabled ? gradientBg(theme) : undefined,
               borderBottom: `1px solid ${themeEnabled ? border(theme) : 'hsl(var(--border))'}`,
             }}
           >
-            <Callout position="top-right">← Line art in morning banner</Callout>
+            <Callout position="top-right">← Gradient bar + tinted line art</Callout>
 
             {themeEnabled && (
               <img
                 src={theme.art}
                 alt=""
-                className="absolute -right-2 top-1/2 -translate-y-1/2 h-[220%] w-auto max-w-[40%] object-contain opacity-[0.18] pointer-events-none select-none"
+                className="absolute right-4 bottom-0 h-[160%] w-auto max-w-[30%] object-contain opacity-[0.3] pointer-events-none select-none"
+                style={{ filter: artTint(theme) }}
               />
             )}
 
@@ -413,21 +430,26 @@ export default function PlannerMockups() {
         <SectionLabel>Weekly Planner</SectionLabel>
 
         <div className="rounded-xl border border-border overflow-hidden bg-card">
-          {/* Week header */}
+          {/* Gradient accent bar */}
+          {themeEnabled && (
+            <div className="h-1.5" style={{ background: gradientSolid(theme) }} />
+          )}
+
+          {/* Week header with tinted line art */}
           <div
             className="relative px-6 py-4 overflow-hidden transition-all duration-500"
             style={{
-              background: themeEnabled ? gradientBg(theme) : undefined,
               borderBottom: `1px solid ${themeEnabled ? border(theme) : 'hsl(var(--border))'}`,
             }}
           >
-            <Callout position="top-right">← Seasonal art watermark in week header</Callout>
+            <Callout position="top-right">← Gradient bar + tinted line art</Callout>
 
             {themeEnabled && (
               <img
                 src={theme.art}
                 alt=""
-                className="absolute -right-4 top-1/2 -translate-y-1/2 h-[240%] w-auto max-w-[42%] object-contain opacity-[0.18] pointer-events-none select-none"
+                className="absolute right-6 bottom-0 h-[170%] w-auto max-w-[32%] object-contain opacity-[0.3] pointer-events-none select-none"
+                style={{ filter: artTint(theme) }}
               />
             )}
 
