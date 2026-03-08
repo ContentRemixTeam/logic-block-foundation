@@ -9,6 +9,11 @@ import { Switch } from '@/components/ui/switch';
 import { Check, TrendingUp, Target, Calendar, Flame, Star } from 'lucide-react';
 import type { CelebrationStyle } from '@/lib/themeConfigSchema';
 
+import lineArtImg from '@/assets/samples/sample-line-art.png';
+import watercolorImg from '@/assets/samples/sample-watercolor.png';
+import geometricImg from '@/assets/samples/sample-geometric.png';
+import illustrationImg from '@/assets/samples/sample-illustration.png';
+
 interface SeasonalPalette {
   label: string;
   accent: string;       // primary accent HSL
