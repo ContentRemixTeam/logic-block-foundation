@@ -181,14 +181,14 @@ export function AppSidebar() {
     if (visibleItems.length === 0) return null; // Hide section if empty
 
     return (
-      <SidebarGroup>
+      <SidebarGroup className="py-1 px-2">
         {showLabel && label && sidebarOpen && (
-          <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold px-3 mb-1">
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-semibold px-2 h-6 mb-0">
             {label}
           </SidebarGroupLabel>
         )}
         <SidebarGroupContent>
-          <SidebarMenu>
+          <SidebarMenu className="gap-0.5">
             {visibleItems.map((item) => (
               <SidebarMenuItem key={item.href}>
                 <Tooltip>
@@ -197,7 +197,7 @@ export function AppSidebar() {
                       asChild 
                       isActive={!item.isExternal && isActive(item)}
                       className={cn(
-                        "h-9 gap-3 transition-all duration-150",
+                        "h-8 gap-3 rounded-md transition-all duration-150",
                         !item.isExternal && isActive(item) && "bg-primary/10 text-primary font-medium"
                       )}
                     >
@@ -208,7 +208,7 @@ export function AppSidebar() {
                           ) : (
                             <item.icon className="h-4 w-4" />
                           )}
-                          <span className="truncate">{item.name}</span>
+                          <span className="truncate text-[13px]">{item.name}</span>
                         </a>
                       ) : (
                         <Link to={item.href} data-tour={item.dataTour}>
@@ -217,7 +217,7 @@ export function AppSidebar() {
                           ) : (
                             <item.icon className="h-4 w-4" />
                           )}
-                          <span className="truncate">{item.name}</span>
+                          <span className="truncate text-[13px]">{item.name}</span>
                         </Link>
                       )}
                     </SidebarMenuButton>
@@ -237,10 +237,10 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border/50">
       {/* Header */}
-      <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex h-14 items-center justify-between px-3">
+      <SidebarHeader className="border-b border-sidebar-border/50">
+        <div className="flex h-12 items-center justify-between px-3">
           <div className="flex items-center gap-2.5 min-w-0">
             {isQuestMode ? (
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-quest-gold to-quest-gold-light shadow-sm shrink-0">
@@ -301,8 +301,8 @@ export function AppSidebar() {
         )}
       </SidebarHeader>
 
-      {/* Navigation — 4 core groups */}
-      <SidebarContent className="py-2">
+      {/* Navigation */}
+      <SidebarContent className="py-1">
         <NavSection items={HOME_NAV} showLabel={false} />
         <NavSection label="Build" items={BUILD_NAV} />
         <NavSection label="Capture" items={CAPTURE_NAV} />
@@ -317,14 +317,14 @@ export function AppSidebar() {
         
         {/* Focus Mode - Only visible when arcade is enabled */}
         {!arcadeLoading && arcadeSettings.arcade_enabled && (
-          <SidebarGroup>
+          <SidebarGroup className="py-1 px-2">
             {sidebarOpen && (
-              <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold px-3 mb-1">
+              <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-semibold px-2 h-6 mb-0">
                 Focus
               </SidebarGroupLabel>
             )}
             <SidebarGroupContent>
-              <SidebarMenu>
+              <SidebarMenu className="gap-0.5">
                 <SidebarMenuItem>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -332,7 +332,7 @@ export function AppSidebar() {
                         asChild 
                         isActive={location.pathname === '/focus'}
                         className={cn(
-                          "h-9 gap-3 transition-all duration-150",
+                          "h-8 gap-3 rounded-md transition-all duration-150",
                           location.pathname === '/focus' && "bg-primary/10 text-primary font-medium"
                         )}
                       >
@@ -342,7 +342,7 @@ export function AppSidebar() {
                           ) : (
                             <Gamepad2 className="h-4 w-4" />
                           )}
-                          <span className="truncate">Focus Mode</span>
+                          <span className="truncate text-[13px]">Focus Mode</span>
                         </Link>
                       </SidebarMenuButton>
                     </TooltipTrigger>
@@ -362,14 +362,14 @@ export function AppSidebar() {
         
         {/* Admin Section - Only visible to admins */}
         {isAdmin && (
-          <SidebarGroup>
+          <SidebarGroup className="py-1 px-2">
             {sidebarOpen && (
-              <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold px-3 mb-1">
+              <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-semibold px-2 h-6 mb-0">
                 Admin
               </SidebarGroupLabel>
             )}
             <SidebarGroupContent>
-              <SidebarMenu>
+              <SidebarMenu className="gap-0.5">
                 <SidebarMenuItem>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -377,7 +377,7 @@ export function AppSidebar() {
                         asChild 
                         isActive={location.pathname === '/admin'}
                         className={cn(
-                          "h-9 gap-3 transition-all duration-150",
+                          "h-8 gap-3 rounded-md transition-all duration-150",
                           location.pathname === '/admin' && "bg-primary/10 text-primary font-medium"
                         )}
                       >
@@ -387,7 +387,7 @@ export function AppSidebar() {
                           ) : (
                             <Shield className="h-4 w-4" />
                           )}
-                          <span className="truncate">Admin Panel</span>
+                          <span className="truncate text-[13px]">Admin Panel</span>
                         </Link>
                       </SidebarMenuButton>
                     </TooltipTrigger>
@@ -405,7 +405,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       {/* Footer */}
-      <SidebarFooter className="border-t border-sidebar-border">
+      <SidebarFooter className="border-t border-sidebar-border/50">
         {/* Quest Level Card - Only render after theme is loaded */}
         {sidebarOpen && themeLoaded && isQuestMode && (
           <div className="px-3 py-3">
@@ -430,7 +430,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <Tooltip>
               <TooltipTrigger asChild>
-                <SidebarMenuButton asChild className="h-9 gap-3 text-muted-foreground hover:text-primary hover:bg-primary/5">
+                <SidebarMenuButton asChild className="h-8 gap-3 text-muted-foreground hover:text-primary hover:bg-primary/5">
                   <Link to="/install">
                     {isQuestMode ? (
                       <span className="text-base w-5 text-center">📲</span>
@@ -452,7 +452,7 @@ export function AppSidebar() {
               <TooltipTrigger asChild>
                 <SidebarMenuButton 
                   onClick={signOut} 
-                  className="h-9 gap-3 text-muted-foreground hover:text-primary hover:bg-primary/5"
+                  className="h-8 gap-3 text-muted-foreground hover:text-primary hover:bg-primary/5"
                 >
                   {isQuestMode ? (
                     <span className="text-base w-5 text-center">🚪</span>
