@@ -161,7 +161,10 @@ export default function PlannerMockups() {
                     {theme.badgeEmoji} {theme.badgeLabel}
                   </span>
                 )}
-                <div className="px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-medium">
+                <div
+                  className="px-3 py-1.5 rounded-md text-xs font-medium text-white"
+                  style={{ background: themeEnabled ? gradientSolid(theme) : 'hsl(var(--primary))' }}
+                >
                   Today
                 </div>
               </div>
