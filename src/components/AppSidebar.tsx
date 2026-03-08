@@ -430,7 +430,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <Tooltip>
               <TooltipTrigger asChild>
-                <SidebarMenuButton asChild className="h-9 gap-3 text-muted-foreground hover:text-primary hover:bg-primary/5">
+                <SidebarMenuButton asChild className="h-8 gap-3 text-muted-foreground hover:text-primary hover:bg-primary/5">
                   <Link to="/install">
                     {isQuestMode ? (
                       <span className="text-base w-5 text-center">📲</span>
