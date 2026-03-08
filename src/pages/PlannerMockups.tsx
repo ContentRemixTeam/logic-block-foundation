@@ -443,15 +443,15 @@ export default function PlannerMockups() {
             <div className="h-1.5" style={{ background: gradientSolid(theme) }} />
           )}
 
-          {/* Illustrated strip */}
+          {/* Illustrated strip — full cute art */}
           {themeEnabled && (
             <div
-              className="h-10 overflow-hidden flex items-end justify-center"
+              className="py-1.5 px-4 flex items-end justify-center"
               style={{
-                background: `linear-gradient(180deg, hsl(${theme.palette.gradientFrom} / 0.06), hsl(${theme.palette.gradientTo} / 0.02))`,
+                background: `linear-gradient(180deg, hsl(${theme.palette.gradientFrom} / 0.04), transparent)`,
               }}
             >
-              <img src={theme.art} alt="" className="h-full w-full object-cover object-bottom" />
+              <img src={theme.art} alt="" className="h-12 w-auto max-w-full object-contain" style={{ opacity: 0.85 }} />
             </div>
           )}
 
