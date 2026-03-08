@@ -6,8 +6,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-function decryptToken(encrypted: string): string {
+// AES-256-GCM decryption with legacy fallback
+async function getEncryptionKey(): Promise<CryptoKey> {
+  const keyHex = Deno.env.get('ENCRYPTION_KEY');
+  if (!keyHex) throw new Error('ENCRYPTION_KEY not configured');
+  const keyBytes = new Uint8Array(keyHex.match(/.{1,2}/g)!.map(b => parseInt(b, 16)));
+  return crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['encrypt', 'decrypt']);
+}
+
+async function decryptToken(encrypted: string): Promise<string> {
   try {
+    if (encrypted.startsWith('v2:')) {
+      const key = await getEncryptionKey();
+      const combined = Uint8Array.from(atob(encrypted.slice(3)), c => c.charCodeAt(0));
+      const iv = combined.slice(0, 12);
+      const data = combined.slice(12);
+      const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
+      return new TextDecoder().decode(decrypted);
+    }
     const decoded = atob(encrypted);
     const parts = decoded.split(':');
     return parts.slice(1).join(':');
@@ -54,7 +70,7 @@ serve(async (req) => {
     if (connection) {
       // Attempt to revoke token with Google
       try {
-        const accessToken = decryptToken(connection.access_token_encrypted);
+        const accessToken = await decryptToken(connection.access_token_encrypted);
         await fetch(`https://oauth2.googleapis.com/revoke?token=${accessToken}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

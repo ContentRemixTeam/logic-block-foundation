@@ -6,21 +6,43 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Match encryption from callback
-function decryptToken(encrypted: string): string {
+// AES-256-GCM encryption using ENCRYPTION_KEY
+async function getEncryptionKey(): Promise<CryptoKey> {
+  const keyHex = Deno.env.get('ENCRYPTION_KEY');
+  if (!keyHex) throw new Error('ENCRYPTION_KEY not configured');
+  const keyBytes = new Uint8Array(keyHex.match(/.{1,2}/g)!.map(b => parseInt(b, 16)));
+  return crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['encrypt', 'decrypt']);
+}
+
+async function encryptToken(token: string): Promise<string> {
+  const key = await getEncryptionKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encoded = new TextEncoder().encode(token);
+  const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
+  const combined = new Uint8Array(iv.length + encrypted.byteLength);
+  combined.set(iv, 0);
+  combined.set(new Uint8Array(encrypted), iv.length);
+  return 'v2:' + btoa(String.fromCharCode(...combined));
+}
+
+async function decryptToken(encrypted: string): Promise<string> {
   try {
+    // New v2 AES-GCM format
+    if (encrypted.startsWith('v2:')) {
+      const key = await getEncryptionKey();
+      const combined = Uint8Array.from(atob(encrypted.slice(3)), c => c.charCodeAt(0));
+      const iv = combined.slice(0, 12);
+      const data = combined.slice(12);
+      const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
+      return new TextDecoder().decode(decrypted);
+    }
+    // Legacy btoa format - backward compatibility
     const decoded = atob(encrypted);
     const parts = decoded.split(':');
     return parts.slice(1).join(':');
   } catch {
     return encrypted;
   }
-}
-
-function encryptToken(token: string): string {
-  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? 'default-key';
-  const combined = `${key.substring(0, 10)}:${token}`;
-  return btoa(combined);
 }
 
 async function refreshAccessToken(refreshToken: string): Promise<{ accessToken: string; expiresIn: number; error?: string } | null> {
@@ -136,7 +158,7 @@ serve(async (req) => {
       // Token still valid
       return new Response(
         JSON.stringify({ 
-          accessToken: decryptToken(connection.access_token_encrypted),
+          accessToken: await decryptToken(connection.access_token_encrypted),
           expiresAt: connection.token_expiry 
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -144,7 +166,7 @@ serve(async (req) => {
     }
 
     // Refresh token
-    const refreshToken = decryptToken(connection.refresh_token_encrypted);
+    const refreshToken = await decryptToken(connection.refresh_token_encrypted);
     const result = await refreshAccessToken(refreshToken);
 
     if (!result || result.error) {
@@ -199,7 +221,7 @@ serve(async (req) => {
     await serviceSupabase
       .from('google_calendar_connection')
       .update({
-        access_token_encrypted: encryptToken(result.accessToken),
+        access_token_encrypted: await encryptToken(result.accessToken),
         token_expiry: newExpiry.toISOString(),
         updated_at: new Date().toISOString(),
       })
