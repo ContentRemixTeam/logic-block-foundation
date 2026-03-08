@@ -53,7 +53,7 @@ function Callout({ children, position = 'top-right' }: { children: string; posit
     'bottom-left': 'bottom-1 left-2',
   };
   return (
-    <span className={`absolute ${posClasses[position] || posClasses['top-right']} text-[8px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-medium z-10 pointer-events-none`}>
+    <span className={`absolute ${posClasses[position] || posClasses['top-right']} text-[8px] px-1.5 py-0.5 rounded-full font-medium z-10 pointer-events-none bg-primary text-primary-foreground`}>
       {children}
     </span>
   );
@@ -85,11 +85,16 @@ export default function PlannerMockups() {
             <button
               key={t.slug}
               onClick={() => setActiveIdx(i)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all border ${
                 i === activeIdx
-                  ? 'bg-primary/10 text-primary border border-primary/20'
-                  : 'bg-muted/50 text-muted-foreground border border-transparent hover:border-border/50'
+                  ? ''
+                  : 'bg-muted/50 text-muted-foreground border-transparent hover:border-border/50'
               }`}
+              style={i === activeIdx ? {
+                backgroundColor: `hsl(${SEASONAL_THEMES[i].palette.primary} / 0.1)`,
+                color: `hsl(${SEASONAL_THEMES[i].palette.primary})`,
+                borderColor: `hsl(${SEASONAL_THEMES[i].palette.primary} / 0.2)`,
+              } : undefined}
             >
               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: `hsl(${t.palette.primary})` }} />
               <span className="hidden sm:inline">{t.name}</span>
@@ -161,7 +166,10 @@ export default function PlannerMockups() {
                     {theme.badgeEmoji} {theme.badgeLabel}
                   </span>
                 )}
-                <div className="px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-medium">
+                <div
+                  className="px-3 py-1.5 rounded-md text-xs font-medium text-white"
+                  style={{ background: themeEnabled ? gradientSolid(theme) : 'hsl(var(--primary))' }}
+                >
                   Today
                 </div>
               </div>
