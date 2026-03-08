@@ -237,10 +237,10 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border/50">
       {/* Header */}
-      <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex h-14 items-center justify-between px-3">
+      <SidebarHeader className="border-b border-sidebar-border/50">
+        <div className="flex h-12 items-center justify-between px-3">
           <div className="flex items-center gap-2.5 min-w-0">
             {isQuestMode ? (
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-quest-gold to-quest-gold-light shadow-sm shrink-0">
