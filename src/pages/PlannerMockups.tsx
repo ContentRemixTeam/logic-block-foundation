@@ -17,6 +17,7 @@ import {
 /* ─── palette helpers ─── */
 function accent(t: SeasonalTheme) { return `hsl(${t.palette.primary})`; }
 function accentBg(t: SeasonalTheme) { return `hsl(${t.palette.primary} / 0.08)`; }
+function accentMedium(t: SeasonalTheme) { return `hsl(${t.palette.primary} / 0.25)`; }
 function border(t: SeasonalTheme) { return `hsl(${t.palette.primary} / 0.15)`; }
 function gradientBg(t: SeasonalTheme) {
   return `linear-gradient(135deg, hsl(${t.palette.gradientFrom} / 0.06), hsl(${t.palette.gradientTo} / 0.03))`;
@@ -25,6 +26,12 @@ function gradientSolid(t: SeasonalTheme) {
   return `linear-gradient(135deg, hsl(${t.palette.gradientFrom}), hsl(${t.palette.gradientTo}))`;
 }
 function bannerText(t: SeasonalTheme) { return `hsl(${t.palette.primary})`; }
+function artTint(t: SeasonalTheme) {
+  // Build a CSS filter that tints the grayscale art with the theme color
+  // We use sepia + hue-rotate to approximate the target hue
+  const hue = t.palette.primary.split(' ')[0]; // extract hue from "210 40% 60%"
+  return `brightness(0.6) sepia(1) hue-rotate(${Number(hue) - 50}deg) saturate(1.5)`;
+}
 
 /* ─── Section label ─── */
 function SectionLabel({ children }: { children: React.ReactNode }) {
