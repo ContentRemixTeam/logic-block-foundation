@@ -273,6 +273,7 @@ const App = () => (
                       <Route path="/ai-copywriting/*" element={<ProtectedRoute><PageSuspense><AICopywriting /></PageSuspense></ProtectedRoute>} />
                       <Route path="/monthly-theme" element={<ProtectedRoute><PageSuspense><MonthlyThemePage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/effects-demo" element={<ProtectedRoute><PageSuspense><EffectsDemo /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/planner-mockups" element={<ProtectedRoute><PageSuspense><PlannerMockups /></PageSuspense></ProtectedRoute>} />
                       
                       {/* Public routes with lazy loading */}
                       <Route path="/capture" element={<PageSuspense><CaptureLaunchPage /></PageSuspense>} />
