@@ -163,7 +163,7 @@ serve(async (req) => {
     const results: { userId: string; status: string; error?: string }[] = [];
 
     for (const conn of connections || []) {
-      const decryptedRefresh = decryptToken(conn.refresh_token_encrypted);
+      const decryptedRefresh = await decryptToken(conn.refresh_token_encrypted);
       const result = await refreshToken(decryptedRefresh, conn.user_id, serviceSupabase);
       
       if (result.success) {

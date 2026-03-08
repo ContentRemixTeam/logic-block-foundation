@@ -62,7 +62,7 @@ async function getValidAccessToken(supabase: any, userId: string): Promise<strin
     return await decryptToken(connection.access_token_encrypted);
   }
 
-  const refreshToken = decryptToken(connection.refresh_token_encrypted);
+  const refreshToken = await decryptToken(connection.refresh_token_encrypted);
   const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
   const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
 
