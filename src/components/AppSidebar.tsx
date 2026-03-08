@@ -78,6 +78,7 @@ const BUILD_NAV = [
 const CAPTURE_NAV = [
   { name: 'Brain Dump', href: '/brain-dump', icon: Brain, questIcon: '🧠' },
   { name: 'Notes', href: '/notes', icon: BookOpen, questIcon: '📒' },
+  { name: 'Ideas', href: '/ideas', icon: Lightbulb, questIcon: '💡' },
 ];
 
 const GROW_NAV = [
@@ -90,7 +91,6 @@ const GROW_NAV = [
 const ADVANCED_NAV = [
   { name: 'Planning', href: '/planning', icon: Map, questIcon: '🧭', isActiveCheck: (path: string) => path.startsWith('/planning') || path.startsWith('/cycles') || path.startsWith('/cycle-') },
   { name: 'Wizards', href: '/wizards', icon: Sparkles, questIcon: '🪄', isActiveCheck: (path: string) => path.startsWith('/wizards') },
-  { name: 'Ideas', href: '/ideas', icon: Lightbulb, questIcon: '💡' },
   { name: 'Content Vault', href: '/content-vault', icon: Library, questIcon: '📚' },
   { name: 'SOPs', href: '/sops', icon: ClipboardList, questIcon: '📖' },
   { name: 'Reviews', href: '/reviews', icon: Sparkles, questIcon: '✨' },
