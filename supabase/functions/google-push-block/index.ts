@@ -61,7 +61,7 @@ async function getValidAccessToken(supabase: any, userId: string): Promise<strin
 
   // Token still valid
   if (tokenExpiry.getTime() - now.getTime() > bufferTime) {
-    return decryptToken(connection.access_token_encrypted);
+    return await decryptToken(connection.access_token_encrypted);
   }
 
   // Need to refresh
