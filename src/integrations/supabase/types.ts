@@ -3488,6 +3488,8 @@ export type Database = {
       journal_pages: {
         Row: {
           content: string | null
+          content_length: number | null
+          content_preview: string | null
           course_id: string | null
           course_title: string | null
           created_at: string | null
@@ -3501,6 +3503,8 @@ export type Database = {
         }
         Insert: {
           content?: string | null
+          content_length?: number | null
+          content_preview?: string | null
           course_id?: string | null
           course_title?: string | null
           created_at?: string | null
@@ -3514,6 +3518,8 @@ export type Database = {
         }
         Update: {
           content?: string | null
+          content_length?: number | null
+          content_preview?: string | null
           course_id?: string | null
           course_title?: string | null
           created_at?: string | null
@@ -7627,6 +7633,7 @@ export type Database = {
       }
     }
     Functions: {
+      auto_archive_old_notes: { Args: never; Returns: number }
       check_feature_flag: { Args: { p_key: string }; Returns: boolean }
       check_mastermind_entitlement: {
         Args: { user_email: string }

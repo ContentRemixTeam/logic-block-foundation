@@ -54,6 +54,8 @@ Deno.serve(async (req) => {
     const projectId = url.searchParams.get('project_id');
     const courseId = url.searchParams.get('course_id');
     const tag = url.searchParams.get('tag');
+    // Preview mode: only fetch lightweight columns for list views
+    const previewOnly = url.searchParams.get('preview') === 'true';
     
     // Pagination params
     let limit = parseInt(url.searchParams.get('limit') || '0', 10);
@@ -92,14 +94,19 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Select columns based on mode - preview skips full content to save bandwidth
+    const selectColumns = previewOnly
+      ? `id, title, content_preview, content_length, tags, is_archived, created_at, updated_at, project_id, course_id, course_title,
+         project:projects(id, name, color),
+         course:courses(id, title)`
+      : `*,
+         project:projects(id, name, color),
+         course:courses(id, title)`;
+
     // Build main query
     let query = supabase
       .from('journal_pages')
-      .select(`
-        *,
-        project:projects(id, name, color),
-        course:courses(id, title)
-      `)
+      .select(selectColumns)
       .eq('user_id', userId)
       .order('updated_at', { ascending: false });
 

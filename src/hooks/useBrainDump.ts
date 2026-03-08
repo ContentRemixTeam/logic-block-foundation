@@ -53,7 +53,7 @@ export function useBrainDump() {
       const [notesRes, ideasRes, tasksRes] = await Promise.all([
         supabase
           .from('journal_pages')
-          .select('id, title, content, created_at, updated_at, project_id, tags')
+          .select('id, title, content_preview, created_at, updated_at, project_id, tags')
           .eq('user_id', user.id)
           .is('is_archived', false)
           .order('created_at', { ascending: false })
@@ -81,7 +81,7 @@ export function useBrainDump() {
       (notesRes.data || []).forEach(n => {
         items.push({
           id: n.id,
-          text: n.title || n.content || '',
+          text: n.title || (n as any).content_preview || '',
           category: 'note',
           created_at: n.created_at || new Date().toISOString(),
           updated_at: n.updated_at,
