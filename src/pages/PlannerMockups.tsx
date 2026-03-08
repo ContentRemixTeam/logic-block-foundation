@@ -53,7 +53,7 @@ function Callout({ children, position = 'top-right' }: { children: string; posit
     'bottom-left': 'bottom-1 left-2',
   };
   return (
-    <span className={`absolute ${posClasses[position] || posClasses['top-right']} text-[8px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-medium z-10 pointer-events-none`}>
+    <span className={`absolute ${posClasses[position] || posClasses['top-right']} text-[8px] px-1.5 py-0.5 rounded-full font-medium z-10 pointer-events-none bg-primary text-primary-foreground`}>
       {children}
     </span>
   );
