@@ -9,6 +9,11 @@ import { Switch } from '@/components/ui/switch';
 import { Check, TrendingUp, Target, Calendar, Flame, Star } from 'lucide-react';
 import type { CelebrationStyle } from '@/lib/themeConfigSchema';
 
+import lineArtImg from '@/assets/samples/sample-line-art.png';
+import watercolorImg from '@/assets/samples/sample-watercolor.png';
+import geometricImg from '@/assets/samples/sample-geometric.png';
+import illustrationImg from '@/assets/samples/sample-illustration.png';
+
 interface SeasonalPalette {
   label: string;
   accent: string;       // primary accent HSL
@@ -342,6 +347,44 @@ export default function EffectsDemo() {
             <p className="text-[10px] text-muted-foreground leading-relaxed">
               "Build a $10k/month coaching business"
             </p>
+          </div>
+        </div>
+
+        {/* === GRAPHIC STYLE SAMPLES === */}
+        <div className="mb-8">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">
+            Choose a style
+          </p>
+          <h2 className="text-lg font-semibold text-foreground tracking-tight mb-4">
+            Seasonal Graphic Styles
+          </h2>
+          <p className="text-xs text-muted-foreground mb-4">
+            These would appear in banners, card corners, and badges. Pick your favorite direction:
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[
+              { label: 'Minimal Line Art', desc: 'Clean thin-line illustrations. Elegant, pairs with any palette.', img: lineArtImg },
+              { label: 'Abstract Watercolor', desc: 'Soft organic blobs & washes. Dreamy, premium feel.', img: watercolorImg },
+              { label: 'Geometric / Editorial', desc: 'Bold shapes in black + gold. Luxury packaging aesthetic.', img: geometricImg },
+              { label: 'Mini Illustrations', desc: 'Detailed cozy scenes. Playful storybook vibe.', img: illustrationImg },
+            ].map((style) => (
+              <div
+                key={style.label}
+                className="rounded-lg border border-border overflow-hidden bg-card hover:shadow-md transition-shadow"
+              >
+                <div className="h-40 bg-muted/30 flex items-center justify-center overflow-hidden">
+                  <img
+                    src={style.img}
+                    alt={style.label}
+                    className="w-full h-full object-contain p-2"
+                  />
+                </div>
+                <div className="p-3">
+                  <p className="text-sm font-medium text-foreground">{style.label}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{style.desc}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
