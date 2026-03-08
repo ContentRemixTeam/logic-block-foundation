@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import {
   DndContext,
   DragEndEvent,
-  DragOverEvent,
   DragOverlay,
   DragStartEvent,
   PointerSensor,
@@ -23,9 +22,10 @@ interface BrainDumpBoardProps {
   onDelete: (item: BrainDumpItem) => void;
   onUpdate: (item: BrainDumpItem, newText: string) => void;
   onConvertCategory: (item: BrainDumpItem, newCategory: BrainDumpCategory) => void;
+  filterCategory?: 'all' | BrainDumpCategory;
 }
 
-function DroppableColumn({ category, children, count }: { category: BrainDumpCategory; children: React.ReactNode; count: number }) {
+function DroppableColumn({ category, children, count, isFullWidth }: { category: BrainDumpCategory; children: React.ReactNode; count: number; isFullWidth?: boolean }) {
   const config = CATEGORY_CONFIG[category];
   const { setNodeRef, isOver } = useDroppable({ id: category });
 
@@ -35,7 +35,8 @@ function DroppableColumn({ category, children, count }: { category: BrainDumpCat
       className={cn(
         'flex flex-col rounded-xl border-2 p-3 min-h-[300px] transition-colors',
         config.borderClass,
-        isOver && 'ring-2 ring-primary/50 bg-primary/5'
+        isOver && 'ring-2 ring-primary/50 bg-primary/5',
+        isFullWidth && 'max-w-3xl mx-auto'
       )}
     >
       <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/50">
@@ -45,14 +46,19 @@ function DroppableColumn({ category, children, count }: { category: BrainDumpCat
           {count}
         </span>
       </div>
-      <div className="flex-1 space-y-2 overflow-y-auto">
+      <div className={cn(
+        'flex-1 gap-3 overflow-y-auto',
+        isFullWidth
+          ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 auto-rows-min'
+          : 'space-y-2'
+      )}>
         {children}
       </div>
     </div>
   );
 }
 
-export function BrainDumpBoard({ items, onDelete, onUpdate, onConvertCategory }: BrainDumpBoardProps) {
+export function BrainDumpBoard({ items, onDelete, onUpdate, onConvertCategory, filterCategory = 'all' }: BrainDumpBoardProps) {
   const [activeItem, setActiveItem] = useState<BrainDumpItem | null>(null);
 
   const sensors = useSensors(
@@ -70,6 +76,13 @@ export function BrainDumpBoard({ items, onDelete, onUpdate, onConvertCategory }:
     return grouped;
   }, [items]);
 
+  const visibleCategories = useMemo(() => {
+    if (filterCategory !== 'all') return [filterCategory] as BrainDumpCategory[];
+    return Object.keys(columns) as BrainDumpCategory[];
+  }, [filterCategory, columns]);
+
+  const isSingleCategory = visibleCategories.length === 1;
+
   const handleDragStart = (event: DragStartEvent) => {
     const item = event.active.data?.current?.item as BrainDumpItem | undefined;
     if (item) setActiveItem(item);
@@ -83,7 +96,6 @@ export function BrainDumpBoard({ items, onDelete, onUpdate, onConvertCategory }:
     const draggedItem = active.data?.current?.item as BrainDumpItem | undefined;
     if (!draggedItem) return;
 
-    // Check if dropped on a column
     const targetCategory = over.id as BrainDumpCategory;
     if (['note', 'idea', 'task', 'project'].includes(targetCategory) && targetCategory !== draggedItem.category) {
       onConvertCategory(draggedItem, targetCategory);
@@ -97,9 +109,14 @@ export function BrainDumpBoard({ items, onDelete, onUpdate, onConvertCategory }:
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {(Object.keys(columns) as BrainDumpCategory[]).map(cat => (
-          <DroppableColumn key={cat} category={cat} count={columns[cat].length}>
+      <div className={cn(
+        'grid gap-4',
+        isSingleCategory
+          ? 'grid-cols-1'
+          : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
+      )}>
+        {visibleCategories.map(cat => (
+          <DroppableColumn key={cat} category={cat} count={columns[cat].length} isFullWidth={isSingleCategory}>
             <SortableContext items={columns[cat].map(i => i.id)} strategy={verticalListSortingStrategy}>
               {columns[cat].map(item => (
                 <BrainDumpCard
