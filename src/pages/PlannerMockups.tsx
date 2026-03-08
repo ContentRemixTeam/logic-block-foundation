@@ -119,7 +119,7 @@ export default function PlannerMockups() {
               <img
                 src={theme.art}
                 alt=""
-                className="absolute right-4 top-1/2 -translate-y-1/2 h-[90%] w-auto opacity-[0.06] pointer-events-none select-none"
+                className="absolute right-4 top-1/2 -translate-y-1/2 h-[90%] w-auto opacity-[0.15] pointer-events-none select-none"
               />
             )}
 
