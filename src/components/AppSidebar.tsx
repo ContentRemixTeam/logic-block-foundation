@@ -301,8 +301,8 @@ export function AppSidebar() {
         )}
       </SidebarHeader>
 
-      {/* Navigation — 4 core groups */}
-      <SidebarContent className="py-2">
+      {/* Navigation */}
+      <SidebarContent className="py-1">
         <NavSection items={HOME_NAV} showLabel={false} />
         <NavSection label="Build" items={BUILD_NAV} />
         <NavSection label="Capture" items={CAPTURE_NAV} />
