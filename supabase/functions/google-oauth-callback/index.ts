@@ -20,11 +20,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Simple encryption using base64 encoding (in production, use proper encryption)
-function encryptToken(token: string): string {
-  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? 'default-key';
-  const combined = `${key.substring(0, 10)}:${token}`;
-  return btoa(combined);
+// AES-256-GCM encryption using ENCRYPTION_KEY
+async function getEncryptionKey(): Promise<CryptoKey> {
+  const keyHex = Deno.env.get('ENCRYPTION_KEY');
+  if (!keyHex) throw new Error('ENCRYPTION_KEY not configured');
+  const keyBytes = new Uint8Array(keyHex.match(/.{1,2}/g)!.map(b => parseInt(b, 16)));
+  return crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['encrypt', 'decrypt']);
+}
+
+async function encryptToken(token: string): Promise<string> {
+  const key = await getEncryptionKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encoded = new TextEncoder().encode(token);
+  const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
+  const combined = new Uint8Array(iv.length + encrypted.byteLength);
+  combined.set(iv, 0);
+  combined.set(new Uint8Array(encrypted), iv.length);
+  return 'v2:' + btoa(String.fromCharCode(...combined));
 }
 
 // Validate origin is from allowed domains
