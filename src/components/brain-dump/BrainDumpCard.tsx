@@ -16,6 +16,23 @@ interface BrainDumpCardProps {
   isDragging?: boolean;
 }
 
+// Deterministic slight rotation based on item id
+function getRotation(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = ((hash << 5) - hash) + id.charCodeAt(i);
+    hash |= 0;
+  }
+  return (hash % 5) - 2; // -2 to 2 degrees
+}
+
+const POST_IT_STYLES: Record<BrainDumpCategory, string> = {
+  note: 'bg-yellow-200 dark:bg-yellow-400/90 border-yellow-300 dark:border-yellow-500 text-yellow-950',
+  idea: 'bg-purple-200 dark:bg-purple-400/90 border-purple-300 dark:border-purple-500 text-purple-950',
+  task: 'bg-blue-200 dark:bg-blue-400/90 border-blue-300 dark:border-blue-500 text-blue-950',
+  project: 'bg-green-200 dark:bg-green-400/90 border-green-300 dark:border-green-500 text-green-950',
+};
+
 export const BrainDumpCard = memo(function BrainDumpCard({
   item,
   onDelete,
@@ -25,6 +42,7 @@ export const BrainDumpCard = memo(function BrainDumpCard({
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(item.text);
   const config = CATEGORY_CONFIG[item.category];
+  const rotation = getRotation(item.id);
 
   const {
     attributes,
@@ -38,6 +56,7 @@ export const BrainDumpCard = memo(function BrainDumpCard({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    rotate: `${rotation}deg`,
   };
 
   const handleSave = () => {
@@ -57,44 +76,48 @@ export const BrainDumpCard = memo(function BrainDumpCard({
       ref={setNodeRef}
       style={style}
       className={cn(
-        'group rounded-lg border-2 p-3 shadow-sm transition-all',
-        config.bgClass, config.borderClass,
-        (isDragging || isSortableDragging) && 'opacity-50 rotate-2 scale-105 shadow-lg',
-        'hover:shadow-md'
+        'group relative rounded-sm border p-4 transition-all',
+        POST_IT_STYLES[item.category],
+        'shadow-[2px_3px_8px_rgba(0,0,0,0.15)] hover:shadow-[3px_5px_12px_rgba(0,0,0,0.22)]',
+        'hover:rotate-0 hover:scale-[1.02]',
+        (isDragging || isSortableDragging) && 'opacity-60 rotate-3 scale-105 shadow-xl',
       )}
     >
+      {/* Tape effect */}
+      <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-10 h-4 bg-white/40 dark:bg-white/20 rounded-sm" />
+
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
           <button
-            className="cursor-grab touch-none text-muted-foreground hover:text-foreground"
+            className="cursor-grab touch-none opacity-40 hover:opacity-80"
             {...attributes}
             {...listeners}
           >
-            <GripVertical className="h-4 w-4" />
+            <GripVertical className="h-3.5 w-3.5" />
           </button>
-          <Badge variant="outline" className="text-xs font-medium">
-            {config.emoji} {config.label}
-          </Badge>
+          <span className="text-xs font-bold uppercase tracking-wider opacity-60">
+            {config.emoji} {config.label.slice(0, -1)}
+          </span>
         </div>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           {!editing && (
             <>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7"
+                className="h-6 w-6 hover:bg-black/10"
                 onClick={() => setEditing(true)}
               >
-                <Pencil className="h-3.5 w-3.5" />
+                <Pencil className="h-3 w-3" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-destructive hover:text-destructive"
+                className="h-6 w-6 hover:bg-black/10 text-red-700"
                 onClick={() => onDelete(item)}
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-3 w-3" />
               </Button>
             </>
           )}
@@ -107,31 +130,31 @@ export const BrainDumpCard = memo(function BrainDumpCard({
           <Textarea
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
-            className="min-h-[60px] text-sm bg-background/50 resize-none"
+            className="min-h-[60px] text-sm bg-white/30 border-white/40 resize-none"
             autoFocus
           />
           <div className="flex gap-1.5">
-            <Button size="sm" variant="default" onClick={handleSave} className="h-7 text-xs">
+            <Button size="sm" onClick={handleSave} className="h-7 text-xs bg-black/20 hover:bg-black/30 text-inherit border-0">
               <Check className="h-3 w-3 mr-1" /> Save
             </Button>
-            <Button size="sm" variant="ghost" onClick={handleCancel} className="h-7 text-xs">
+            <Button size="sm" variant="ghost" onClick={handleCancel} className="h-7 text-xs hover:bg-black/10">
               <X className="h-3 w-3 mr-1" /> Cancel
             </Button>
           </div>
         </div>
       ) : (
-        <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
+        <p className="text-sm whitespace-pre-wrap break-words leading-relaxed font-medium">
           {item.text}
         </p>
       )}
 
       {/* Footer */}
-      <div className="mt-2 flex items-center justify-between">
-        <span className="text-[10px] text-muted-foreground">
+      <div className="mt-3 flex items-center justify-between">
+        <span className="text-[10px] opacity-50 font-medium">
           {format(parseISO(item.created_at), 'MMM d, h:mm a')}
         </span>
         {item.is_completed && (
-          <Badge variant="secondary" className="text-[10px] h-4">Done</Badge>
+          <Badge className="text-[10px] h-4 bg-black/15 text-inherit border-0">Done</Badge>
         )}
       </div>
     </div>

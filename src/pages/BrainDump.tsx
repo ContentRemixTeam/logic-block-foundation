@@ -215,6 +215,7 @@ export default function BrainDump() {
             onDelete={handleDelete}
             onUpdate={handleUpdate}
             onConvertCategory={handleConvert}
+            filterCategory={filterCategory}
           />
         ) : (
           <BrainDumpGrid
