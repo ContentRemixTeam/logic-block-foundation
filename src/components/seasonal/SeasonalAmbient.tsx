@@ -68,7 +68,9 @@ function SeasonalAmbientInner({ style, opacity = 0.3 }: SeasonalAmbientProps) {
 
       return { size, left, delay, duration, color };
     });
-  }, [style]);
+  }, [style, config]);
+
+  if (style === 'none' || !config || particles.length === 0) return null;
 
   return (
     <div
