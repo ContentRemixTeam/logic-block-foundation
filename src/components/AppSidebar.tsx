@@ -317,14 +317,14 @@ export function AppSidebar() {
         
         {/* Focus Mode - Only visible when arcade is enabled */}
         {!arcadeLoading && arcadeSettings.arcade_enabled && (
-          <SidebarGroup>
+          <SidebarGroup className="py-1 px-2">
             {sidebarOpen && (
-              <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold px-3 mb-1">
+              <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-semibold px-2 h-6 mb-0">
                 Focus
               </SidebarGroupLabel>
             )}
             <SidebarGroupContent>
-              <SidebarMenu>
+              <SidebarMenu className="gap-0.5">
                 <SidebarMenuItem>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -332,7 +332,7 @@ export function AppSidebar() {
                         asChild 
                         isActive={location.pathname === '/focus'}
                         className={cn(
-                          "h-9 gap-3 transition-all duration-150",
+                          "h-8 gap-3 rounded-md transition-all duration-150",
                           location.pathname === '/focus' && "bg-primary/10 text-primary font-medium"
                         )}
                       >
@@ -342,7 +342,7 @@ export function AppSidebar() {
                           ) : (
                             <Gamepad2 className="h-4 w-4" />
                           )}
-                          <span className="truncate">Focus Mode</span>
+                          <span className="truncate text-[13px]">Focus Mode</span>
                         </Link>
                       </SidebarMenuButton>
                     </TooltipTrigger>
