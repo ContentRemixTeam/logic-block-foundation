@@ -81,7 +81,7 @@ export function useBrainDump() {
       (notesRes.data || []).forEach(n => {
         items.push({
           id: n.id,
-          text: n.title || n.content || '',
+          text: n.title || (n as any).content_preview || '',
           category: 'note',
           created_at: n.created_at || new Date().toISOString(),
           updated_at: n.updated_at,
