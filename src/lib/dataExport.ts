@@ -32,11 +32,11 @@ async function fetchAll(table: string, userId: string): Promise<any[]> {
   let hasMore = true;
 
   while (hasMore) {
-    const { data, error } = await supabase
-      .from(table)
+    const { data, error } = await (supabase
+      .from(table as any)
       .select('*')
       .eq('user_id', userId)
-      .range(from, from + PAGE_SIZE - 1);
+      .range(from, from + PAGE_SIZE - 1) as any);
 
     if (error) throw error;
     all = all.concat(data || []);
