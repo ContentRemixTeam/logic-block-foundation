@@ -45,7 +45,7 @@ const OptionalTaskFields = z.object({
   checklist_progress: z.array(z.any()).optional(),
   priority_order: z.number().min(1).max(3).nullable().optional(),
   daily_plan_id: z.string().uuid().nullable().optional(),
-  source: z.enum(['manual', 'scratch_pad', 'top_3']).optional(),
+  source: z.enum(['manual', 'scratch_pad', 'top_3', 'brain_dump']).optional(),
   is_completed: z.boolean().optional(),
   // Content calendar fields
   content_type: z.string().max(100).nullable().optional(),
