@@ -1,0 +1,135 @@
+/* Seasonal Ambient Particle Animations — Pure CSS */
+
+/* Gentle falling (snow, petals) */
+@keyframes ambient-fall {
+  0% {
+    transform: translateY(-20px) rotate(0deg) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg) translateX(30px);
+    opacity: 0;
+  }
+}
+
+/* Slow float with sway (hearts, sunbeams) */
+@keyframes ambient-float-motion {
+  0% {
+    transform: translateY(-20px) translateX(0) scale(0.8);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(50vh) translateX(20px) scale(1);
+  }
+  85% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(100vh) translateX(-10px) scale(0.9);
+    opacity: 0;
+  }
+}
+
+/* Drift with wind (leaves, petals) */
+@keyframes ambient-drift-motion {
+  0% {
+    transform: translateY(-20px) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  25% {
+    transform: translateY(25vh) translateX(40px) rotate(90deg);
+  }
+  50% {
+    transform: translateY(50vh) translateX(-20px) rotate(180deg);
+  }
+  75% {
+    transform: translateY(75vh) translateX(30px) rotate(270deg);
+  }
+  90% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(100vh) translateX(10px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* Twinkle in place (sparkles, fireflies) */
+@keyframes ambient-twinkle-motion {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  20% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.9) translateY(10px);
+  }
+  80% {
+    opacity: 1;
+    transform: scale(1.1) translateY(-5px);
+  }
+}
+
+/* Apply to elements */
+.ambient-snow {
+  animation: ambient-fall linear infinite;
+}
+
+.ambient-float {
+  animation: ambient-float-motion ease-in-out infinite;
+}
+
+.ambient-float-slow {
+  animation: ambient-float-motion ease-in-out infinite;
+}
+
+.ambient-drift {
+  animation: ambient-drift-motion ease-in-out infinite;
+}
+
+.ambient-twinkle {
+  animation: ambient-twinkle-motion ease-in-out infinite;
+  top: auto !important;
+}
+
+/* Position twinkle particles throughout the viewport */
+.ambient-twinkle:nth-child(1) { top: 10% !important; }
+.ambient-twinkle:nth-child(2) { top: 25% !important; }
+.ambient-twinkle:nth-child(3) { top: 40% !important; }
+.ambient-twinkle:nth-child(4) { top: 55% !important; }
+.ambient-twinkle:nth-child(5) { top: 15% !important; }
+.ambient-twinkle:nth-child(6) { top: 70% !important; }
+.ambient-twinkle:nth-child(7) { top: 35% !important; }
+.ambient-twinkle:nth-child(8) { top: 80% !important; }
+.ambient-twinkle:nth-child(9) { top: 50% !important; }
+.ambient-twinkle:nth-child(10) { top: 20% !important; }
+.ambient-twinkle:nth-child(11) { top: 65% !important; }
+.ambient-twinkle:nth-child(12) { top: 45% !important; }
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .ambient-snow,
+  .ambient-float,
+  .ambient-float-slow,
+  .ambient-drift,
+  .ambient-twinkle {
+    animation: none !important;
+    opacity: 0.3;
+  }
+}
