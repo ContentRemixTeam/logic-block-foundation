@@ -446,8 +446,7 @@ export default function PlannerMockups() {
               <img
                 src={theme.art}
                 alt=""
-                className="absolute right-6 bottom-0 h-[170%] w-auto max-w-[32%] object-contain opacity-[0.3] pointer-events-none select-none"
-                style={{ filter: artTint(theme) }}
+                className="absolute inset-0 w-full h-full object-cover object-bottom opacity-[0.2] pointer-events-none select-none"
               />
             )}
 
