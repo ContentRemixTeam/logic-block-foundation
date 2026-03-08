@@ -301,13 +301,18 @@ export function AppSidebar() {
         )}
       </SidebarHeader>
 
-      {/* Navigation */}
+      {/* Navigation — 4 core groups */}
       <SidebarContent className="py-2">
-        <NavSection items={MAIN_NAV} showLabel={false} />
-        <SidebarProjectsDropdown />
-        <NavSection label="Organize" items={ORGANIZE_NAV} />
-        <NavSection label="Review" items={REVIEW_NAV} />
-        <NavSection label="Mindset" items={MINDSET_NAV} />
+        <NavSection items={HOME_NAV} showLabel={false} />
+        <NavSection label="Build" items={BUILD_NAV} />
+        <NavSection label="Capture" items={CAPTURE_NAV} />
+        <NavSection label="Grow" items={GROW_NAV} />
+        
+        {/* Advanced features — toggled via user settings */}
+        {(userSettings as Record<string, unknown>)?.show_advanced_nav && (
+          <NavSection label="More" items={ADVANCED_NAV} />
+        )}
+        
         <NavSection label="Community" items={COMMUNITY_NAV} />
         
         {/* Focus Mode - Only visible when arcade is enabled */}
