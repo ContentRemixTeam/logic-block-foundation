@@ -1,6 +1,5 @@
 /**
- * Temporary demo page to preview seasonal effects
- * Remove after review
+ * Premium effects demo — minimal & elegant preview
  */
 import { useState } from 'react';
 import { SeasonalAmbient } from '@/components/seasonal/SeasonalAmbient';
@@ -8,13 +7,13 @@ import { CelebrationScreen } from '@/components/seasonal/CelebrationScreen';
 import { Button } from '@/components/ui/button';
 import type { AmbientStyle, CelebrationStyle } from '@/lib/themeConfigSchema';
 
-const DEMO_THEMES: { label: string; emoji: string; ambient: AmbientStyle; celebration: CelebrationStyle; bg: string }[] = [
-  { label: 'Valentine\'s Glow', emoji: '💕', ambient: 'hearts', celebration: 'heart-shower', bg: 'from-pink-950/40 to-rose-950/30' },
-  { label: 'Winter Wonderland', emoji: '❄️', ambient: 'snowfall', celebration: 'snow-globe', bg: 'from-blue-950/40 to-cyan-950/30' },
-  { label: 'Cherry Blossom', emoji: '🌸', ambient: 'petals', celebration: 'petal-swirl', bg: 'from-pink-950/30 to-fuchsia-950/20' },
-  { label: 'Harvest Moon', emoji: '🎃', ambient: 'falling-leaves', celebration: 'leaf-tornado', bg: 'from-orange-950/40 to-amber-950/30' },
-  { label: 'Summer Glow', emoji: '☀️', ambient: 'fireflies', celebration: 'sparkle-wave', bg: 'from-yellow-950/30 to-orange-950/20' },
-  { label: 'New Year Spark', emoji: '✨', ambient: 'sparkle', celebration: 'firework-show', bg: 'from-violet-950/40 to-indigo-950/30' },
+const DEMO_THEMES: { label: string; ambient: AmbientStyle; celebration: CelebrationStyle; accent: string }[] = [
+  { label: "Valentine's Glow", ambient: 'hearts', celebration: 'heart-shower', accent: 'hsl(340 35% 75%)' },
+  { label: 'Winter Wonderland', ambient: 'snowfall', celebration: 'snow-globe', accent: 'hsl(210 25% 85%)' },
+  { label: 'Cherry Blossom', ambient: 'petals', celebration: 'petal-swirl', accent: 'hsl(340 25% 82%)' },
+  { label: 'Harvest Moon', ambient: 'falling-leaves', celebration: 'leaf-tornado', accent: 'hsl(25 30% 70%)' },
+  { label: 'Summer Glow', ambient: 'fireflies', celebration: 'sparkle-wave', accent: 'hsl(50 35% 80%)' },
+  { label: 'New Year Spark', ambient: 'sparkle', celebration: 'firework-show', accent: 'hsl(280 25% 82%)' },
 ];
 
 export default function EffectsDemo() {
@@ -23,75 +22,64 @@ export default function EffectsDemo() {
   const theme = DEMO_THEMES[activeTheme];
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${theme.bg} relative overflow-hidden`}>
+    <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Ambient particles */}
-      <SeasonalAmbient style={theme.ambient} opacity={0.5} />
+      <SeasonalAmbient style={theme.ambient} opacity={0.35} />
 
       {/* Celebration overlay */}
       <CelebrationScreen
         style={theme.celebration}
-        duration={3000}
+        duration={2000}
         trigger={celebrationTrigger}
       />
 
-      {/* Controls */}
-      <div className="relative z-10 max-w-2xl mx-auto pt-16 px-6">
-        <h1 className="text-3xl font-bold text-foreground mb-2">🎨 Seasonal Effects Preview</h1>
-        <p className="text-muted-foreground mb-8">
-          These effects activate when users unlock monthly themes by completing challenges.
+      {/* Content */}
+      <div className="relative z-10 max-w-xl mx-auto pt-20 px-6">
+        <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
+          Seasonal Effects Preview
+        </p>
+        <h1 className="text-2xl font-semibold text-foreground mb-1 tracking-tight">
+          Monthly Theme Rewards
+        </h1>
+        <p className="text-sm text-muted-foreground mb-10 leading-relaxed">
+          Subtle ambient particles drift in the background. Task completions trigger an elegant light pulse.
         </p>
 
         {/* Theme selector */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
+        <div className="grid grid-cols-3 gap-2 mb-10">
           {DEMO_THEMES.map((t, i) => (
             <button
               key={t.label}
               onClick={() => setActiveTheme(i)}
-              className={`p-4 rounded-xl border-2 text-left transition-all ${
+              className={`group p-3 rounded-lg border text-left transition-all duration-200 ${
                 i === activeTheme
-                  ? 'border-primary bg-primary/10 scale-[1.02]'
-                  : 'border-border/50 bg-card/50 hover:border-primary/40'
+                  ? 'border-primary/40 bg-primary/5'
+                  : 'border-border/40 bg-card/30 hover:border-border/60'
               }`}
             >
-              <span className="text-2xl">{t.emoji}</span>
-              <p className="text-sm font-medium text-foreground mt-1">{t.label}</p>
-              <p className="text-xs text-muted-foreground capitalize">{t.ambient} particles</p>
+              <div
+                className="w-3 h-3 rounded-full mb-2 transition-transform group-hover:scale-110"
+                style={{ backgroundColor: t.accent, boxShadow: `0 0 8px ${t.accent}` }}
+              />
+              <p className="text-xs font-medium text-foreground">{t.label}</p>
+              <p className="text-[10px] text-muted-foreground capitalize">{t.ambient}</p>
             </button>
           ))}
         </div>
 
         {/* Celebration trigger */}
-        <div className="bg-card/60 backdrop-blur-sm rounded-xl border border-border/50 p-6 text-center">
-          <p className="text-sm text-muted-foreground mb-3">
-            This plays when a user completes a task with an active theme:
+        <div className="border border-border/30 rounded-lg p-8 text-center bg-card/20 backdrop-blur-sm">
+          <p className="text-xs text-muted-foreground mb-4">
+            Simulates completing a task with this theme active
           </p>
           <Button
-            size="lg"
+            variant="outline"
+            size="sm"
             onClick={() => setCelebrationTrigger(prev => prev + 1)}
-            className="text-lg px-8"
+            className="px-6"
           >
-            {theme.emoji} Trigger Celebration!
+            Complete Task ✓
           </Button>
-          <p className="text-xs text-muted-foreground mt-3 italic">
-            Style: {theme.celebration}
-          </p>
-        </div>
-
-        {/* Badge preview */}
-        <div className="mt-8 bg-card/60 backdrop-blur-sm rounded-xl border border-border/50 p-6">
-          <p className="text-sm font-medium text-foreground mb-3">Badge Trophy Case Preview</p>
-          <div className="flex gap-4 flex-wrap">
-            {DEMO_THEMES.map((t) => (
-              <div key={t.label} className="flex flex-col items-center gap-1">
-                <div className="w-14 h-14 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center text-2xl">
-                  {t.emoji}
-                </div>
-                <span className="text-[10px] text-muted-foreground text-center max-w-[60px] leading-tight">
-                  {t.label}
-                </span>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </div>
