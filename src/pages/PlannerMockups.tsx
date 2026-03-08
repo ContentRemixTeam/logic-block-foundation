@@ -271,30 +271,28 @@ export default function PlannerMockups() {
             <div className="h-1.5" style={{ background: gradientSolid(theme) }} />
           )}
 
-          {/* Daily Plan morning banner with tinted line art */}
+          {/* Illustrated strip */}
+          {themeEnabled && (
+            <div
+              className="h-10 overflow-hidden flex items-end justify-center"
+              style={{
+                background: `linear-gradient(180deg, hsl(${theme.palette.gradientFrom} / 0.06), hsl(${theme.palette.gradientTo} / 0.02))`,
+              }}
+            >
+              <img src={theme.art} alt="" className="h-full w-full object-cover object-bottom" />
+            </div>
+          )}
+
+          {/* Daily Plan header — clean */}
           <div
-            className="relative px-6 py-4 overflow-hidden transition-all duration-500"
+            className="px-6 py-3 transition-all duration-500"
             style={{
               borderBottom: `1px solid ${themeEnabled ? border(theme) : 'hsl(var(--border))'}`,
-              background: themeEnabled
-                ? `linear-gradient(135deg, hsl(${theme.palette.gradientFrom} / 0.04), hsl(${theme.palette.gradientTo} / 0.08))`
-                : undefined,
             }}
           >
-            <Callout position="top-right">← Subtle themed bg + mascot</Callout>
-
-            <div className="relative z-[1] flex items-center justify-between">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                {themeEnabled && (
-                  <img
-                    src={theme.art}
-                    alt=""
-                    className="w-10 h-10 object-contain shrink-0"
-                  />
-                )}
-                {!themeEnabled && (
-                  <Sun className="w-4 h-4 text-muted-foreground" />
-                )}
+                <Sun className="w-4 h-4" style={{ color: themeEnabled ? accent(theme) : 'hsl(var(--muted-foreground))' }} />
                 <div>
                   <p className="text-sm font-medium text-foreground">Saturday, March 8</p>
                   <p className="text-[10px] text-muted-foreground">Day 42 of 90 · 3 tasks planned</p>
