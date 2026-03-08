@@ -263,7 +263,8 @@ export default function PlannerMockups() {
               <img
                 src={theme.art}
                 alt=""
-                className="absolute right-6 top-1/2 -translate-y-1/2 h-[110%] w-auto opacity-[0.15] pointer-events-none select-none"
+                className="absolute right-6 top-1/2 -translate-y-1/2 h-[110%] w-auto opacity-[0.4] pointer-events-none select-none dark:opacity-[0.3]"
+                style={{ filter: 'brightness(0.3) sepia(1) hue-rotate(0deg) saturate(2)', mixBlendMode: 'multiply' }}
               />
             )}
 
