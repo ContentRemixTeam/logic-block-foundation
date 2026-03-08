@@ -166,7 +166,7 @@ serve(async (req) => {
     }
 
     // Refresh token
-    const refreshToken = decryptToken(connection.refresh_token_encrypted);
+    const refreshToken = await decryptToken(connection.refresh_token_encrypted);
     const result = await refreshAccessToken(refreshToken);
 
     if (!result || result.error) {

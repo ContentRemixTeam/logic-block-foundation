@@ -70,7 +70,7 @@ serve(async (req) => {
     if (connection) {
       // Attempt to revoke token with Google
       try {
-        const accessToken = decryptToken(connection.access_token_encrypted);
+        const accessToken = await decryptToken(connection.access_token_encrypted);
         await fetch(`https://oauth2.googleapis.com/revoke?token=${accessToken}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
