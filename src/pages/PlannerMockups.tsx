@@ -118,25 +118,17 @@ export default function PlannerMockups() {
 
           {/* Illustrated banner strip — full cute art visible, no cropping */}
           {themeEnabled && (
-            <div
+             <div
               className="w-full overflow-hidden"
               style={{
                 height: '80px',
-                background: `linear-gradient(180deg, hsl(${theme.palette.gradientFrom} / 0.06), transparent)`,
+                backgroundImage: `url(${theme.art})`,
+                backgroundRepeat: 'repeat-x',
+                backgroundSize: 'auto 100%',
+                backgroundPosition: 'center bottom',
+                opacity: 0.9,
               }}
-            >
-              <img
-                src={theme.art}
-                alt=""
-                style={{ 
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  objectPosition: 'center bottom',
-                  opacity: 0.9,
-                }}
-              />
-            </div>
+            />
           )}
 
           {/* Dashboard header — clean text, no art behind */}
