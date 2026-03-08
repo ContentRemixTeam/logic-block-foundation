@@ -129,11 +129,11 @@ export default function MonthlyThemePage() {
 
         {/* Unlocked State */}
         {theme_unlocked && (
-          <Card className="border-green-500/30 bg-green-500/5">
+          <Card className="border-primary/30 bg-primary/5">
             <CardContent className="flex items-center gap-4 py-6">
-              <PartyPopper className="h-10 w-10 text-green-500" />
+              <PartyPopper className="h-10 w-10 text-primary" />
               <div>
-                <h2 className="text-lg font-semibold text-green-700 dark:text-green-400">
+                <h2 className="text-lg font-semibold">
                   Theme Unlocked! 🎉
                 </h2>
                 <p className="text-sm text-muted-foreground">
