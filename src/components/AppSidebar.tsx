@@ -452,7 +452,7 @@ export function AppSidebar() {
               <TooltipTrigger asChild>
                 <SidebarMenuButton 
                   onClick={signOut} 
-                  className="h-9 gap-3 text-muted-foreground hover:text-primary hover:bg-primary/5"
+                  className="h-8 gap-3 text-muted-foreground hover:text-primary hover:bg-primary/5"
                 >
                   {isQuestMode ? (
                     <span className="text-base w-5 text-center">🚪</span>
