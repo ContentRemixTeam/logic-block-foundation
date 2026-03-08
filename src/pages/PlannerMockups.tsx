@@ -441,27 +441,31 @@ export default function PlannerMockups() {
             <div className="h-1.5" style={{ background: gradientSolid(theme) }} />
           )}
 
-          {/* Week header with tinted line art */}
+          {/* Week header — icon approach */}
           <div
             className="relative px-6 py-4 overflow-hidden transition-all duration-500"
             style={{
               borderBottom: `1px solid ${themeEnabled ? border(theme) : 'hsl(var(--border))'}`,
+              background: themeEnabled
+                ? `linear-gradient(135deg, hsl(${theme.palette.gradientFrom} / 0.04), hsl(${theme.palette.gradientTo} / 0.08))`
+                : undefined,
             }}
           >
-            <Callout position="top-right">← Gradient bar + tinted line art</Callout>
-
-            {themeEnabled && (
-              <img
-                src={theme.art}
-                alt=""
-                className="absolute inset-0 w-full h-full object-cover object-bottom opacity-[0.2] pointer-events-none select-none"
-              />
-            )}
+            <Callout position="top-right">← Subtle themed bg + mascot</Callout>
 
             <div className="relative z-[1] flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-foreground">Week of March 3 – 9, 2026</p>
-                <p className="text-[10px] text-muted-foreground">Week 10 · 18 tasks planned</p>
+              <div className="flex items-center gap-3">
+                {themeEnabled && (
+                  <img
+                    src={theme.art}
+                    alt=""
+                    className="w-10 h-10 object-contain shrink-0"
+                  />
+                )}
+                <div>
+                  <p className="text-sm font-medium text-foreground">Week of March 3 – 9, 2026</p>
+                  <p className="text-[10px] text-muted-foreground">Week 10 · 18 tasks planned</p>
+                </div>
               </div>
               <div className="flex items-center gap-3">
                 {themeEnabled && (
@@ -473,6 +477,9 @@ export default function PlannerMockups() {
                   <BarChart3 className="w-3 h-3 text-muted-foreground" />
                   <span className="text-[10px] text-muted-foreground">12/18 done</span>
                 </div>
+              </div>
+            </div>
+          </div>
               </div>
             </div>
           </div>
