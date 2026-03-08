@@ -125,13 +125,12 @@ export default function PlannerMockups() {
           >
             <Callout position="top-right">← Gradient bar + tinted line art</Callout>
 
-            {/* Line art — theme-color tinted, prominent */}
+            {/* Line art — spans full width of banner */}
             {themeEnabled && (
               <img
                 src={theme.art}
                 alt=""
-                className="absolute right-6 bottom-0 h-[140%] w-auto max-w-[35%] object-contain opacity-[0.35] pointer-events-none select-none"
-                style={{ filter: artTint(theme) }}
+                className="absolute inset-0 w-full h-full object-cover object-bottom opacity-[0.25] pointer-events-none select-none"
               />
             )}
 
@@ -278,8 +277,7 @@ export default function PlannerMockups() {
               <img
                 src={theme.art}
                 alt=""
-                className="absolute right-4 bottom-0 h-[160%] w-auto max-w-[30%] object-contain opacity-[0.3] pointer-events-none select-none"
-                style={{ filter: artTint(theme) }}
+                className="absolute inset-0 w-full h-full object-cover object-bottom opacity-[0.2] pointer-events-none select-none"
               />
             )}
 
@@ -448,8 +446,7 @@ export default function PlannerMockups() {
               <img
                 src={theme.art}
                 alt=""
-                className="absolute right-6 bottom-0 h-[170%] w-auto max-w-[32%] object-contain opacity-[0.3] pointer-events-none select-none"
-                style={{ filter: artTint(theme) }}
+                className="absolute inset-0 w-full h-full object-cover object-bottom opacity-[0.2] pointer-events-none select-none"
               />
             )}
 
