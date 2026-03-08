@@ -193,7 +193,7 @@ const App = () => (
                 <ArcadeProvider>
                   <InstallPromptProvider>
                   <QuickCaptureProvider>
-                    <OnlineStatusMonitor />
+                  <SeasonalEffectsProvider>
                     <ManifestSwitcher />
                     <PWAUpdatePrompt />
                     <TourOverlay />
