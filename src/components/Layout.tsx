@@ -97,6 +97,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             </div>
           )}
 
+          {/* Monthly Theme Hello Bar */}
+          <MonthlyThemeHelloBar />
+
+          {/* Monthly Theme Popup (shows once per month) */}
+          <MonthlyThemePopup />
+
           {/* Trial Banner */}
           {(trialStatus.reason === 'trial' || trialStatus.reason === 'grace_period') && 
            trialStatus.expiresAt && (
