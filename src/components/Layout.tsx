@@ -17,6 +17,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { LaunchDebriefBanner } from '@/components/LaunchDebriefBanner';
 import { FloatingTimerBar } from '@/components/timer';
 import { QueryPerformanceWarning } from '@/components/system/QueryPerformanceWarning';
+import { MonthlyThemeHelloBar } from '@/components/monthly-theme/MonthlyThemeHelloBar';
+import { MonthlyThemePopup } from '@/components/monthly-theme/MonthlyThemePopup';
 import { Loader2, Sparkles, ArrowRight, X } from 'lucide-react';
 
 // Lazy load heavy arcade components - only loaded when arcade is enabled
