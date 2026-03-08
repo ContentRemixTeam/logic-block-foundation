@@ -98,7 +98,7 @@ export default function MonthlyThemePage() {
 
   const handleCheckCompletion = async () => {
     try {
-      const result = await checkCompletion();
+      const result = await checkCompletion() as Record<string, unknown> | null;
       if (result?.completed) {
         toast.success('🎉 Theme unlocked! Check your theme settings.');
       } else {
