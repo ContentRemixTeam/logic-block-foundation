@@ -85,11 +85,16 @@ export default function PlannerMockups() {
             <button
               key={t.slug}
               onClick={() => setActiveIdx(i)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all border ${
                 i === activeIdx
-                  ? 'bg-primary/10 text-primary border border-primary/20'
-                  : 'bg-muted/50 text-muted-foreground border border-transparent hover:border-border/50'
+                  ? ''
+                  : 'bg-muted/50 text-muted-foreground border-transparent hover:border-border/50'
               }`}
+              style={i === activeIdx ? {
+                backgroundColor: `hsl(${SEASONAL_THEMES[i].palette.primary} / 0.1)`,
+                color: `hsl(${SEASONAL_THEMES[i].palette.primary})`,
+                borderColor: `hsl(${SEASONAL_THEMES[i].palette.primary} / 0.2)`,
+              } : undefined}
             >
               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: `hsl(${t.palette.primary})` }} />
               <span className="hidden sm:inline">{t.name}</span>
