@@ -68,6 +68,8 @@ import { MastermindCallWidget } from '@/components/mastermind/MastermindCallWidg
 import { SmartActionButton } from '@/components/SmartActionButton';
 import { getCurrentLaunchPhase } from '@/lib/launchHelpers';
 import { InstallBanner } from '@/components/install/InstallBanner';
+import { ChallengeProgressWidget } from '@/components/challenges/ChallengeProgressWidget';
+import { MonthlyChallengeAutoPopup } from '@/components/challenges/MonthlyChallengeAutoPopup';
 
 // Dynamic alerts based on cycle day (excluding GAP alerts)
 function getDynamicAlert(currentDay: number) {
