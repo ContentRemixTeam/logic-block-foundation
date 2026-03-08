@@ -427,8 +427,7 @@ export default function PlannerMockups() {
               <img
                 src={theme.art}
                 alt=""
-                className="absolute right-8 top-1/2 -translate-y-1/2 h-[120%] w-auto opacity-[0.4] pointer-events-none select-none dark:opacity-[0.3]"
-                style={{ filter: 'brightness(0.3) sepia(1) hue-rotate(0deg) saturate(2)', mixBlendMode: 'multiply' }}
+                className="absolute -right-4 top-1/2 -translate-y-1/2 h-[240%] w-auto max-w-[42%] object-contain opacity-[0.18] pointer-events-none select-none"
               />
             )}
 
