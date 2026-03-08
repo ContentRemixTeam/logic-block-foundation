@@ -400,6 +400,9 @@ export default function Dashboard() {
         {/* Install Banner for mobile */}
         <InstallBanner />
 
+        {/* Monthly Challenge Auto-Popup */}
+        <MonthlyChallengeAutoPopup />
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
