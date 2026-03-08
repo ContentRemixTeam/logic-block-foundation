@@ -181,14 +181,14 @@ export function AppSidebar() {
     if (visibleItems.length === 0) return null; // Hide section if empty
 
     return (
-      <SidebarGroup>
+      <SidebarGroup className="py-1 px-2">
         {showLabel && label && sidebarOpen && (
-          <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold px-3 mb-1">
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-semibold px-2 h-6 mb-0">
             {label}
           </SidebarGroupLabel>
         )}
         <SidebarGroupContent>
-          <SidebarMenu>
+          <SidebarMenu className="gap-0.5">
             {visibleItems.map((item) => (
               <SidebarMenuItem key={item.href}>
                 <Tooltip>
@@ -197,7 +197,7 @@ export function AppSidebar() {
                       asChild 
                       isActive={!item.isExternal && isActive(item)}
                       className={cn(
-                        "h-9 gap-3 transition-all duration-150",
+                        "h-8 gap-3 rounded-md transition-all duration-150",
                         !item.isExternal && isActive(item) && "bg-primary/10 text-primary font-medium"
                       )}
                     >
@@ -208,7 +208,7 @@ export function AppSidebar() {
                           ) : (
                             <item.icon className="h-4 w-4" />
                           )}
-                          <span className="truncate">{item.name}</span>
+                          <span className="truncate text-[13px]">{item.name}</span>
                         </a>
                       ) : (
                         <Link to={item.href} data-tour={item.dataTour}>
@@ -217,7 +217,7 @@ export function AppSidebar() {
                           ) : (
                             <item.icon className="h-4 w-4" />
                           )}
-                          <span className="truncate">{item.name}</span>
+                          <span className="truncate text-[13px]">{item.name}</span>
                         </Link>
                       )}
                     </SidebarMenuButton>
