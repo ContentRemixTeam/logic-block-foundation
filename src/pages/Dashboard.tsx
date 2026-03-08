@@ -898,6 +898,9 @@ export default function Dashboard() {
             {/* Customize Daily Page Promo */}
             <CustomizePromoWidget />
 
+            {/* Monthly Challenge Progress */}
+            <ChallengeProgressWidget />
+
             {/* Habit Tracker */}
             <HabitTrackerWidget />
 
