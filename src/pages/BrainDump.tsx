@@ -190,8 +190,11 @@ export default function BrainDump() {
         {/* Date Range Filter */}
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm text-muted-foreground font-medium">Date range:</span>
+          {!datePeriod && (
+            <span className="text-xs text-muted-foreground italic mr-1">All time</span>
+          )}
           <PeriodSelector
-            selectedPeriod={datePeriod || 'month'}
+            selectedPeriod={datePeriod || ('' as PeriodType)}
             onPeriodChange={handlePeriodChange}
           />
           {datePeriod && (
