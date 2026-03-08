@@ -142,6 +142,7 @@ const FlashSaleWizardPage = lazyWithRetry(() => import('./pages/FlashSaleWizardP
 const WebinarWizardPage = lazyWithRetry(() => import('./pages/WebinarWizardPage'));
 const ContentChallengeWizardPage = lazyWithRetry(() => import('./pages/ContentChallengeWizardPage'));
 const BrainDump = lazyWithRetry(() => import('./pages/BrainDump'));
+const MonthlyThemePage = lazyWithRetry(() => import('./pages/MonthlyThemePage'));
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -266,6 +267,7 @@ const App = () => (
                       <Route path="/finances" element={<ProtectedRoute><PageSuspense><FinancialTracker /></PageSuspense></ProtectedRoute>} />
                       <Route path="/launch-debrief/:launchId" element={<ProtectedRoute><PageSuspense><LaunchDebrief /></PageSuspense></ProtectedRoute>} />
                       <Route path="/ai-copywriting/*" element={<ProtectedRoute><PageSuspense><AICopywriting /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/monthly-theme" element={<ProtectedRoute><PageSuspense><MonthlyThemePage /></PageSuspense></ProtectedRoute>} />
                       
                       {/* Public routes with lazy loading */}
                       <Route path="/capture" element={<PageSuspense><CaptureLaunchPage /></PageSuspense>} />

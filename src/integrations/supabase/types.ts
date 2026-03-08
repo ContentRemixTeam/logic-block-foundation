@@ -4185,36 +4185,51 @@ export type Database = {
       }
       monthly_challenge_templates: {
         Row: {
+          announcement_body: string | null
+          announcement_title: string | null
           created_at: string
           description: string | null
           id: string
           is_published: boolean
           month_end: string
           month_start: string
+          preview_image_url: string | null
           reward_theme_id: string | null
+          suggested_targets: Json | null
           title: string
+          unlock_paths: Json | null
           updated_at: string
         }
         Insert: {
+          announcement_body?: string | null
+          announcement_title?: string | null
           created_at?: string
           description?: string | null
           id?: string
           is_published?: boolean
           month_end: string
           month_start: string
+          preview_image_url?: string | null
           reward_theme_id?: string | null
+          suggested_targets?: Json | null
           title: string
+          unlock_paths?: Json | null
           updated_at?: string
         }
         Update: {
+          announcement_body?: string | null
+          announcement_title?: string | null
           created_at?: string
           description?: string | null
           id?: string
           is_published?: boolean
           month_end?: string
           month_start?: string
+          preview_image_url?: string | null
           reward_theme_id?: string | null
+          suggested_targets?: Json | null
           title?: string
+          unlock_paths?: Json | null
           updated_at?: string
         }
         Relationships: [
@@ -6735,6 +6750,41 @@ export type Database = {
           },
           {
             foreignKeyName: "user_monthly_challenges_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_challenge_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_monthly_theme_dismissals: {
+        Row: {
+          created_at: string
+          hello_bar_dismissed_at: string | null
+          id: string
+          popup_dismissed_at: string | null
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          hello_bar_dismissed_at?: string | null
+          id?: string
+          popup_dismissed_at?: string | null
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          hello_bar_dismissed_at?: string | null
+          id?: string
+          popup_dismissed_at?: string | null
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_monthly_theme_dismissals_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "monthly_challenge_templates"

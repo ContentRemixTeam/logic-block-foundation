@@ -17,6 +17,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { LaunchDebriefBanner } from '@/components/LaunchDebriefBanner';
 import { FloatingTimerBar } from '@/components/timer';
 import { QueryPerformanceWarning } from '@/components/system/QueryPerformanceWarning';
+import { MonthlyThemeHelloBar } from '@/components/monthly-theme/MonthlyThemeHelloBar';
+import { MonthlyThemePopup } from '@/components/monthly-theme/MonthlyThemePopup';
 import { Loader2, Sparkles, ArrowRight, X } from 'lucide-react';
 
 // Lazy load heavy arcade components - only loaded when arcade is enabled
@@ -94,6 +96,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               </button>
             </div>
           )}
+
+          {/* Monthly Theme Hello Bar */}
+          <MonthlyThemeHelloBar />
+
+          {/* Monthly Theme Popup (shows once per month) */}
+          <MonthlyThemePopup />
 
           {/* Trial Banner */}
           {(trialStatus.reason === 'trial' || trialStatus.reason === 'grace_period') && 
