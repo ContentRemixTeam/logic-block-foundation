@@ -480,9 +480,6 @@ export default function PlannerMockups() {
               </div>
             </div>
           </div>
-              </div>
-            </div>
-          </div>
 
           {/* Week grid */}
           <div className="p-4">
