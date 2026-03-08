@@ -34,9 +34,15 @@ export default function BrainDump() {
   }, []);
 
   const handlePeriodChange = useCallback((period: PeriodType, start: Date, end: Date) => {
-    setDatePeriod(period);
-    setDateRange({ start, end });
-  }, []);
+    // If clicking the already-active period, toggle it off (clear filter)
+    if (period === datePeriod) {
+      setDatePeriod(null);
+      setDateRange(null);
+    } else {
+      setDatePeriod(period);
+      setDateRange({ start, end });
+    }
+  }, [datePeriod]);
 
   const clearDateFilter = useCallback(() => {
     setDatePeriod(null);
