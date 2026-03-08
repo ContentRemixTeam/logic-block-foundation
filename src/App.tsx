@@ -142,6 +142,7 @@ const FlashSaleWizardPage = lazyWithRetry(() => import('./pages/FlashSaleWizardP
 const WebinarWizardPage = lazyWithRetry(() => import('./pages/WebinarWizardPage'));
 const ContentChallengeWizardPage = lazyWithRetry(() => import('./pages/ContentChallengeWizardPage'));
 const BrainDump = lazyWithRetry(() => import('./pages/BrainDump'));
+const MonthlyThemePage = lazyWithRetry(() => import('./pages/MonthlyThemePage'));
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
