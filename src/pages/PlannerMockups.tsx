@@ -111,22 +111,27 @@ export default function PlannerMockups() {
         <SectionLabel>Dashboard — Command Center</SectionLabel>
 
         <div className="rounded-xl border border-border overflow-hidden bg-card">
-          {/* Dashboard header with seasonal art watermark */}
+          {/* Gradient accent bar */}
+          {themeEnabled && (
+            <div className="h-1.5" style={{ background: gradientSolid(theme) }} />
+          )}
+
+          {/* Dashboard header with seasonal art */}
           <div
-            className="relative px-6 py-8 overflow-hidden transition-all duration-500"
+            className="relative px-6 py-6 overflow-hidden transition-all duration-500"
             style={{
-              background: themeEnabled ? gradientBg(theme) : undefined,
               borderBottom: `1px solid ${themeEnabled ? border(theme) : 'hsl(var(--border))'}`,
             }}
           >
-            <Callout position="top-right">← Seasonal banner + line art watermark</Callout>
+            <Callout position="top-right">← Gradient bar + tinted line art</Callout>
 
-            {/* Line art watermark in header — large & elegant */}
+            {/* Line art — theme-color tinted, prominent */}
             {themeEnabled && (
               <img
                 src={theme.art}
                 alt=""
-                className="absolute -right-4 top-1/2 -translate-y-1/2 h-[200%] w-auto max-w-[45%] object-contain opacity-[0.18] pointer-events-none select-none"
+                className="absolute right-6 bottom-0 h-[140%] w-auto max-w-[35%] object-contain opacity-[0.35] pointer-events-none select-none"
+                style={{ filter: artTint(theme) }}
               />
             )}
 
