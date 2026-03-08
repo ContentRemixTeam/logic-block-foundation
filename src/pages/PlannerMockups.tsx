@@ -127,7 +127,7 @@ export default function PlannerMockups() {
               <img
                 src={theme.art}
                 alt=""
-                className="h-16 w-auto max-w-full object-contain"
+                className="h-16 w-full object-cover object-top"
                 style={{ opacity: 0.85 }}
               />
             </div>
@@ -280,7 +280,7 @@ export default function PlannerMockups() {
                 background: `linear-gradient(180deg, hsl(${theme.palette.gradientFrom} / 0.04), transparent)`,
               }}
             >
-              <img src={theme.art} alt="" className="h-12 w-auto max-w-full object-contain" style={{ opacity: 0.85 }} />
+              <img src={theme.art} alt="" className="h-12 w-full object-cover object-top" style={{ opacity: 0.85 }} />
             </div>
           )}
 
@@ -451,7 +451,7 @@ export default function PlannerMockups() {
                 background: `linear-gradient(180deg, hsl(${theme.palette.gradientFrom} / 0.04), transparent)`,
               }}
             >
-              <img src={theme.art} alt="" className="h-12 w-auto max-w-full object-contain" style={{ opacity: 0.85 }} />
+              <img src={theme.art} alt="" className="h-12 w-full object-cover object-top" style={{ opacity: 0.85 }} />
             </div>
           )}
 
