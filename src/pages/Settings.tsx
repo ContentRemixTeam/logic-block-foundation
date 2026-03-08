@@ -24,6 +24,7 @@ import { THEMES, THEME_IDS, ThemeId } from '@/lib/themes';
 import { DelightSettingsCard, DataRecoveryCard } from '@/components/settings';
 import { ThemeGallery } from '@/components/themes';
 import { CalendarSettingsCard } from '@/components/editorial-calendar';
+import { ChallengeProgressWidget } from '@/components/challenges/ChallengeProgressWidget';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -351,6 +352,22 @@ export default function Settings() {
                 </p>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Monthly Challenges */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Crown className="h-5 w-5" />
+              Monthly Challenges
+            </CardTitle>
+            <CardDescription>
+              Complete monthly challenges to unlock new seasonal themes
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChallengeProgressWidget />
           </CardContent>
         </Card>
 

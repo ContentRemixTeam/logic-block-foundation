@@ -185,9 +185,9 @@ export function useTheme() {
   if (!context) {
     // Fallback for components outside provider
     return {
-      theme: 'minimal' as ThemeMode,
+      theme: 'bw' as ThemeMode,
       isQuestMode: false,
-      isMinimalMode: true,
+      isMinimalMode: false,
       setTheme: async () => {},
       getNavLabel: (key: string) => defaultLabels[key as keyof typeof defaultLabels] || key,
       xp: 0,

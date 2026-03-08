@@ -68,6 +68,8 @@ import { MastermindCallWidget } from '@/components/mastermind/MastermindCallWidg
 import { SmartActionButton } from '@/components/SmartActionButton';
 import { getCurrentLaunchPhase } from '@/lib/launchHelpers';
 import { InstallBanner } from '@/components/install/InstallBanner';
+import { ChallengeProgressWidget } from '@/components/challenges/ChallengeProgressWidget';
+import { MonthlyChallengeAutoPopup } from '@/components/challenges/MonthlyChallengeAutoPopup';
 
 // Dynamic alerts based on cycle day (excluding GAP alerts)
 function getDynamicAlert(currentDay: number) {
@@ -397,6 +399,9 @@ export default function Dashboard() {
       <div className="space-y-6">
         {/* Install Banner for mobile */}
         <InstallBanner />
+
+        {/* Monthly Challenge Auto-Popup */}
+        <MonthlyChallengeAutoPopup />
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -895,6 +900,9 @@ export default function Dashboard() {
 
             {/* Customize Daily Page Promo */}
             <CustomizePromoWidget />
+
+            {/* Monthly Challenge Progress */}
+            <ChallengeProgressWidget />
 
             {/* Habit Tracker */}
             <HabitTrackerWidget />

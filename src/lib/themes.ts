@@ -137,7 +137,7 @@ export const THEME_IDS = Object.keys(THEMES) as ThemeId[];
 /**
  * Get the default theme
  */
-export const DEFAULT_THEME: ThemeId = 'minimal';
+export const DEFAULT_THEME: ThemeId = 'bw';
 
 /**
  * Check if a theme ID is valid
