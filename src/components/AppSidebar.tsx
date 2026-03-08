@@ -62,40 +62,41 @@ import { supabase } from '@/integrations/supabase/client';
 import { useArcade } from '@/hooks/useArcade';
 import { SidebarProjectsDropdown } from '@/components/sidebar/SidebarProjectsDropdown';
 
-const MAIN_NAV = [
+// ── Core Navigation (4 groups) ──────────────────────────────────────
+const HOME_NAV = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, questIcon: '🗺️' },
   { name: 'Today', href: '/daily-plan', icon: Flame, questIcon: '🔥' },
-  { name: 'Wizards', href: '/wizards', icon: Sparkles, questIcon: '🪄', isActiveCheck: (path: string) => path.startsWith('/wizards') },
-  { name: 'Planning', href: '/planning', icon: CalendarDays, questIcon: '🧭', isActiveCheck: (path: string) => path.startsWith('/planning') || path.startsWith('/cycles') || path.startsWith('/cycle-') },
-  { name: 'Todo List', href: '/tasks', icon: ListTodo, questIcon: '📜' },
-  { name: 'Editorial Calendar', href: '/editorial-calendar', icon: CalendarRange, questIcon: '📅' },
+  { name: 'This Week', href: '/weekly-plan', icon: CalendarDays, questIcon: '📅', isActiveCheck: (path: string) => path.startsWith('/weekly-plan') },
 ];
 
-const ORGANIZE_NAV = [
+const BUILD_NAV = [
+  { name: 'Tasks', href: '/tasks', icon: ListTodo, questIcon: '📜' },
+  { name: 'Projects', href: '/projects', icon: FolderKanban, questIcon: '🚀', isActiveCheck: (path: string) => path.startsWith('/projects') },
+  { name: 'Content', href: '/editorial-calendar', icon: CalendarRange, questIcon: '📅' },
+];
+
+const CAPTURE_NAV = [
   { name: 'Brain Dump', href: '/brain-dump', icon: Brain, questIcon: '🧠' },
   { name: 'Notes', href: '/notes', icon: BookOpen, questIcon: '📒' },
-  { name: 'Ideas', href: '/ideas', icon: Lightbulb, questIcon: '💡' },
+];
+
+const GROW_NAV = [
+  { name: 'Progress', href: '/progress', icon: TrendingUp, questIcon: '📊' },
   { name: 'Learning', href: '/courses', icon: GraduationCap, questIcon: '🎓' },
+  { name: 'Mindset', href: '/mindset', icon: Compass, questIcon: '🧠', isActiveCheck: (path: string) => path === '/mindset' || path.includes('useful-thoughts') || path.includes('belief-builder') || path.includes('identity-anchors') || path.includes('self-coaching') },
+];
+
+// ── Advanced features (hidden unless "Show all features" is on) ────
+const ADVANCED_NAV = [
+  { name: 'Planning', href: '/planning', icon: Map, questIcon: '🧭', isActiveCheck: (path: string) => path.startsWith('/planning') || path.startsWith('/cycles') || path.startsWith('/cycle-') },
+  { name: 'Wizards', href: '/wizards', icon: Sparkles, questIcon: '🪄', isActiveCheck: (path: string) => path.startsWith('/wizards') },
+  { name: 'Ideas', href: '/ideas', icon: Lightbulb, questIcon: '💡' },
   { name: 'Content Vault', href: '/content-vault', icon: Library, questIcon: '📚' },
   { name: 'SOPs', href: '/sops', icon: ClipboardList, questIcon: '📖' },
-  { name: 'AI Copywriting', href: '/ai-copywriting', icon: Sparkle, questIcon: '✨', isActiveCheck: (path: string) => path.startsWith('/ai-copywriting'), settingsKey: 'show_ai_copywriting' },
-  { name: 'Finances', href: '/finances', icon: DollarSign, questIcon: '💰', settingsKey: 'show_income_tracker' },
-];
-
-const REVIEW_NAV = [
   { name: 'Reviews', href: '/reviews', icon: Sparkles, questIcon: '✨' },
-  { name: 'Progress', href: '/progress', icon: TrendingUp, questIcon: '📊' },
   { name: 'Habits', href: '/habits', icon: CheckSquare, questIcon: '🔥' },
-];
-
-const MINDSET_NAV = [
-  { 
-    name: 'Mindset', 
-    href: '/mindset', 
-    icon: Brain, 
-    questIcon: '🧠',
-    isActiveCheck: (path: string) => path === '/mindset' || path.includes('useful-thoughts') || path.includes('belief-builder') || path.includes('identity-anchors') || path.includes('self-coaching'),
-  },
+  { name: 'Finances', href: '/finances', icon: DollarSign, questIcon: '💰', settingsKey: 'show_income_tracker' },
+  { name: 'AI Copywriting', href: '/ai-copywriting', icon: Sparkle, questIcon: '✨', isActiveCheck: (path: string) => path.startsWith('/ai-copywriting'), settingsKey: 'show_ai_copywriting' },
 ];
 
 const COMMUNITY_NAV = [
