@@ -144,6 +144,7 @@ const WebinarWizardPage = lazyWithRetry(() => import('./pages/WebinarWizardPage'
 const ContentChallengeWizardPage = lazyWithRetry(() => import('./pages/ContentChallengeWizardPage'));
 const BrainDump = lazyWithRetry(() => import('./pages/BrainDump'));
 const MonthlyThemePage = lazyWithRetry(() => import('./pages/MonthlyThemePage'));
+const EffectsDemo = lazyWithRetry(() => import('./pages/EffectsDemo'));
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
