@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Calendar, CheckSquare, FolderKanban, Menu } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Brain, TrendingUp, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import {
@@ -13,9 +13,9 @@ import { MobileSidebarContent } from '@/components/sidebar/MobileSidebarContent'
 
 const navItems = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
-  { href: '/weekly-plan', label: 'Plan', icon: Calendar },
   { href: '/tasks', label: 'Tasks', icon: CheckSquare },
-  { href: '/projects', label: 'Projects', icon: FolderKanban },
+  { href: '/brain-dump', label: 'Capture', icon: Brain },
+  { href: '/progress', label: 'Grow', icon: TrendingUp },
 ];
 
 export function MobileBottomNav() {
