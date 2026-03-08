@@ -260,21 +260,26 @@ export default function PlannerMockups() {
         <SectionLabel>Daily Plan</SectionLabel>
 
         <div className="rounded-xl border border-border overflow-hidden bg-card">
-          {/* Daily Plan morning banner with line art */}
+          {/* Gradient accent bar */}
+          {themeEnabled && (
+            <div className="h-1.5" style={{ background: gradientSolid(theme) }} />
+          )}
+
+          {/* Daily Plan morning banner with tinted line art */}
           <div
             className="relative px-6 py-4 overflow-hidden transition-all duration-500"
             style={{
-              background: themeEnabled ? gradientBg(theme) : undefined,
               borderBottom: `1px solid ${themeEnabled ? border(theme) : 'hsl(var(--border))'}`,
             }}
           >
-            <Callout position="top-right">← Line art in morning banner</Callout>
+            <Callout position="top-right">← Gradient bar + tinted line art</Callout>
 
             {themeEnabled && (
               <img
                 src={theme.art}
                 alt=""
-                className="absolute -right-2 top-1/2 -translate-y-1/2 h-[220%] w-auto max-w-[40%] object-contain opacity-[0.18] pointer-events-none select-none"
+                className="absolute right-4 bottom-0 h-[160%] w-auto max-w-[30%] object-contain opacity-[0.3] pointer-events-none select-none"
+                style={{ filter: artTint(theme) }}
               />
             )}
 
