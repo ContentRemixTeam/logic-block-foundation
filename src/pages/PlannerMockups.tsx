@@ -127,7 +127,7 @@ export default function PlannerMockups() {
               <img
                 src={theme.art}
                 alt=""
-                className="h-16 w-auto max-w-full object-contain"
+                className="h-16 w-full object-cover object-top"
                 style={{ opacity: 0.85 }}
               />
             </div>
