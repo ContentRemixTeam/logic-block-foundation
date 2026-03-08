@@ -405,7 +405,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       {/* Footer */}
-      <SidebarFooter className="border-t border-sidebar-border">
+      <SidebarFooter className="border-t border-sidebar-border/50">
         {/* Quest Level Card - Only render after theme is loaded */}
         {sidebarOpen && themeLoaded && isQuestMode && (
           <div className="px-3 py-3">
