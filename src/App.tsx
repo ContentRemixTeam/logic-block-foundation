@@ -194,6 +194,7 @@ const App = () => (
                   <InstallPromptProvider>
                   <QuickCaptureProvider>
                   <SeasonalEffectsProvider>
+                    <OnlineStatusMonitor />
                     <ManifestSwitcher />
                     <PWAUpdatePrompt />
                     <TourOverlay />
