@@ -189,8 +189,8 @@ serve(async (req) => {
       .upsert({
         user_id: userId,
         google_user_id: userInfo.id,
-        refresh_token_encrypted: encryptToken(tokenData.refresh_token),
-        access_token_encrypted: encryptToken(tokenData.access_token),
+        refresh_token_encrypted: await encryptToken(tokenData.refresh_token),
+        access_token_encrypted: await encryptToken(tokenData.access_token),
         token_expiry: tokenExpiry.toISOString(),
         is_active: true,
         updated_at: new Date().toISOString(),

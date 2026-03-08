@@ -221,7 +221,7 @@ serve(async (req) => {
     await serviceSupabase
       .from('google_calendar_connection')
       .update({
-        access_token_encrypted: encryptToken(result.accessToken),
+        access_token_encrypted: await encryptToken(result.accessToken),
         token_expiry: newExpiry.toISOString(),
         updated_at: new Date().toISOString(),
       })

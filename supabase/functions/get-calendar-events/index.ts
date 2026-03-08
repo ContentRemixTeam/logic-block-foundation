@@ -109,7 +109,7 @@ async function getValidAccessToken(supabase: any, userId: string): Promise<strin
   await serviceSupabase
     .from('google_calendar_connection')
     .update({
-      access_token_encrypted: encryptToken(data.access_token),
+      access_token_encrypted: await encryptToken(data.access_token),
       token_expiry: newExpiry.toISOString(),
       updated_at: new Date().toISOString(),
     })
