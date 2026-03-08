@@ -430,21 +430,26 @@ export default function PlannerMockups() {
         <SectionLabel>Weekly Planner</SectionLabel>
 
         <div className="rounded-xl border border-border overflow-hidden bg-card">
-          {/* Week header */}
+          {/* Gradient accent bar */}
+          {themeEnabled && (
+            <div className="h-1.5" style={{ background: gradientSolid(theme) }} />
+          )}
+
+          {/* Week header with tinted line art */}
           <div
             className="relative px-6 py-4 overflow-hidden transition-all duration-500"
             style={{
-              background: themeEnabled ? gradientBg(theme) : undefined,
               borderBottom: `1px solid ${themeEnabled ? border(theme) : 'hsl(var(--border))'}`,
             }}
           >
-            <Callout position="top-right">← Seasonal art watermark in week header</Callout>
+            <Callout position="top-right">← Gradient bar + tinted line art</Callout>
 
             {themeEnabled && (
               <img
                 src={theme.art}
                 alt=""
-                className="absolute -right-4 top-1/2 -translate-y-1/2 h-[240%] w-auto max-w-[42%] object-contain opacity-[0.18] pointer-events-none select-none"
+                className="absolute right-6 bottom-0 h-[170%] w-auto max-w-[32%] object-contain opacity-[0.3] pointer-events-none select-none"
+                style={{ filter: artTint(theme) }}
               />
             )}
 
