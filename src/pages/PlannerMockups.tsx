@@ -121,7 +121,7 @@ export default function PlannerMockups() {
              <div
               className="w-full overflow-hidden"
               style={{
-                height: '80px',
+                height: '120px',
                 backgroundImage: `url(${theme.art})`,
                 backgroundRepeat: 'repeat-x',
                 backgroundSize: 'auto 100%',
@@ -275,7 +275,7 @@ export default function PlannerMockups() {
              <div
               className="w-full overflow-hidden"
               style={{
-                height: '56px',
+                height: '80px',
                 backgroundImage: `url(${theme.art})`,
                 backgroundRepeat: 'repeat-x',
                 backgroundSize: 'auto 100%',
@@ -449,7 +449,7 @@ export default function PlannerMockups() {
              <div
               className="w-full overflow-hidden"
               style={{
-                height: '56px',
+                height: '80px',
                 backgroundImage: `url(${theme.art})`,
                 backgroundRepeat: 'repeat-x',
                 backgroundSize: 'auto 100%',
