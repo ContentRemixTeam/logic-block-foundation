@@ -116,19 +116,23 @@ export default function PlannerMockups() {
             <div className="h-1.5" style={{ background: gradientSolid(theme) }} />
           )}
 
-          {/* Illustrated banner strip — full cute art visible */}
+          {/* Illustrated banner strip — full cute art visible, no cropping */}
           {themeEnabled && (
             <div
-              className="py-2 px-4 flex items-end justify-center"
+              className="w-full overflow-hidden"
               style={{
-                background: `linear-gradient(180deg, hsl(${theme.palette.gradientFrom} / 0.04), transparent)`,
+                background: `linear-gradient(180deg, hsl(${theme.palette.gradientFrom} / 0.06), transparent)`,
               }}
             >
               <img
                 src={theme.art}
                 alt=""
-                className="h-16 w-full object-cover object-top"
-                style={{ opacity: 0.85 }}
+                className="w-full h-auto max-h-24"
+                style={{ 
+                  opacity: 0.9,
+                  objectFit: 'contain',
+                  objectPosition: 'center bottom',
+                }}
               />
             </div>
           )}
