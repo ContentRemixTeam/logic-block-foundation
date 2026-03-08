@@ -59,7 +59,7 @@ async function getValidAccessToken(supabase: any, userId: string): Promise<strin
   const bufferTime = 5 * 60 * 1000;
 
   if (tokenExpiry.getTime() - now.getTime() > bufferTime) {
-    return decryptToken(connection.access_token_encrypted);
+    return await decryptToken(connection.access_token_encrypted);
   }
 
   const refreshToken = decryptToken(connection.refresh_token_encrypted);
