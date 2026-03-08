@@ -34,9 +34,15 @@ export default function BrainDump() {
   }, []);
 
   const handlePeriodChange = useCallback((period: PeriodType, start: Date, end: Date) => {
-    setDatePeriod(period);
-    setDateRange({ start, end });
-  }, []);
+    // If clicking the already-active period, toggle it off (clear filter)
+    if (period === datePeriod) {
+      setDatePeriod(null);
+      setDateRange(null);
+    } else {
+      setDatePeriod(period);
+      setDateRange({ start, end });
+    }
+  }, [datePeriod]);
 
   const clearDateFilter = useCallback(() => {
     setDatePeriod(null);
@@ -184,8 +190,11 @@ export default function BrainDump() {
         {/* Date Range Filter */}
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm text-muted-foreground font-medium">Date range:</span>
+          {!datePeriod && (
+            <span className="text-xs text-muted-foreground italic mr-1">All time</span>
+          )}
           <PeriodSelector
-            selectedPeriod={datePeriod || 'month'}
+            selectedPeriod={datePeriod || ('' as PeriodType)}
             onPeriodChange={handlePeriodChange}
           />
           {datePeriod && (
