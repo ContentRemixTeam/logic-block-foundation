@@ -107,21 +107,13 @@ export function StepResults({ data, onDownloadPDF, onSaveToBossPlanner, isMember
           📄 Download PDF Blueprint
         </button>
         
-        {isMember && onSaveToBossPlanner ? (
-          <button
-            onClick={onSaveToBossPlanner}
-            className="flex-1 px-6 py-3 rounded-xl border-2 border-primary text-primary font-semibold text-sm hover:bg-accent transition-colors"
-          >
-            🏗️ Save to Boss Planner
-          </button>
-        ) : (
-          <a
-            href="/join"
-            className="flex-1 px-6 py-3 rounded-xl bg-secondary text-secondary-foreground font-semibold text-sm text-center hover:bg-secondary-hover transition-colors"
-          >
-            ✨ Join the Mastermind — Save to Planner
-          </a>
-        )}
+        <button
+          onClick={isMember && onSaveToBossPlanner ? onSaveToBossPlanner : undefined}
+          disabled={!isMember}
+          className="flex-1 px-6 py-3 rounded-xl border-2 border-primary text-primary font-semibold text-sm hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          🏗️ Save to Planner (Mastermind Members)
+        </button>
       </div>
 
       {/* Testimonial Form */}
