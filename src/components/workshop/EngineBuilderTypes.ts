@@ -78,6 +78,7 @@ export const DEFAULT_ENGINE_DATA: EngineBuilderData = {
   offerPrice: null,
   revenueGoal: null,
   salesNeeded: null,
+  secondaryOffers: [],
   offerFrequency: '',
   customOfferFrequency: '',
   salesMethods: [],
