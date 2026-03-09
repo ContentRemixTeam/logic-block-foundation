@@ -151,7 +151,7 @@ export function EngineBuilderWizard() {
                 estimated_minutes: t.estimated_minutes,
                 project_id: projectId || null,
                 status: 'pending' as const,
-                content_type: t.phase === 'lead-gen' || t.phase === 'nurture' ? 'social' : null,
+                content_type: t.phase === 'schedule' ? 'social' : null,
               };
             });
 
