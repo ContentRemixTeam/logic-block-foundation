@@ -5,6 +5,9 @@ export interface EngineBuilderData {
   primaryPlatform: string;
   customPlatform: string;
   specificAction: string;
+  additionalPlatforms: string[];
+  customAdditionalPlatform: string;
+  additionalPlatformActions: Record<string, string>;
   
   // Step 2: Nurture
   emailMethod: string;
@@ -50,6 +53,9 @@ export const DEFAULT_ENGINE_DATA: EngineBuilderData = {
   primaryPlatform: '',
   customPlatform: '',
   specificAction: '',
+  additionalPlatforms: [],
+  customAdditionalPlatform: '',
+  additionalPlatformActions: {},
   emailMethod: 'newsletter',
   customEmailMethod: '',
   secondaryNurture: '',

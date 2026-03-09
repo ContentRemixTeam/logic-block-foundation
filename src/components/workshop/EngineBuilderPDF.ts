@@ -9,6 +9,13 @@ export function generateEngineBuilderPDF(data: EngineBuilderData) {
   let y = 20;
 
   const platform = PLATFORMS.find((p) => p.id === data.primaryPlatform);
+  const additionalNames = (data.additionalPlatforms || [])
+    .map((id) => {
+      if (id === 'other') return data.customAdditionalPlatform || 'Other';
+      return PLATFORMS.find((p) => p.id === id)?.name;
+    })
+    .filter(Boolean)
+    .join(', ');
   const loopLabel = LOOP_LENGTHS.find((l) => l.value === data.loopLength)?.label || '—';
   const freqLabel = OFFER_FREQUENCIES.find((f) => f.value === data.offerFrequency)?.label || '—';
   const emailLabel = EMAIL_METHODS.find((e) => e.value === data.emailMethod)?.label || '—';
@@ -53,8 +60,9 @@ export function generateEngineBuilderPDF(data: EngineBuilderData) {
   };
 
   addSection('DISCOVER', 'Fuel System — How People Find You', [
-    ['Platform', platform?.name || '—'],
+    ['Primary Platform', platform?.name || data.customPlatform || '—'],
     ['Weekly Action', data.specificAction || '—'],
+    ['Additional Sources', additionalNames || 'None'],
   ]);
 
   addSection('NURTURE', 'Engine Block — How You Stay Connected', [

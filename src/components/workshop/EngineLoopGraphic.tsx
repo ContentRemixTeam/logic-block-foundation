@@ -7,6 +7,7 @@ interface EngineLoopGraphicProps {
 
 export function EngineLoopGraphic({ data }: EngineLoopGraphicProps) {
   const platform = PLATFORMS.find((p) => p.id === data.primaryPlatform);
+  const additionalCount = data.additionalPlatforms?.length || 0;
 
   return (
     <div className="relative w-full max-w-md mx-auto">
@@ -36,7 +37,8 @@ export function EngineLoopGraphic({ data }: EngineLoopGraphicProps) {
 
         {/* Labels with user data */}
         <text x="200" y="100" textAnchor="middle" fontSize="10" fill="hsl(var(--muted-foreground))">
-          {platform?.name || 'Platform'}
+          {platform?.name || data.customPlatform || 'Platform'}
+          {additionalCount > 0 ? ` + ${additionalCount} more` : ''}
         </text>
         <text x="80" y="320" textAnchor="middle" fontSize="10" fill="hsl(var(--muted-foreground))">
           Email + {data.secondaryNurture || 'nurture'}
