@@ -1743,6 +1743,51 @@ export default function Admin() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* TESTIMONIALS TAB */}
+          <TabsContent value="testimonials" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Star className="h-5 w-5" />
+                  Workshop Testimonials
+                </CardTitle>
+                <CardDescription>
+                  Feedback from the Business Engine Builder workshop
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {testimonials.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">No testimonials yet</p>
+                ) : (
+                  <div className="space-y-4">
+                    {testimonials.map((t: any) => (
+                      <div key={t.id} className="border border-border rounded-lg p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-foreground">{t.name}</span>
+                            {t.business_name && (
+                              <span className="text-xs text-muted-foreground">— {t.business_name}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {Array.from({ length: t.rating || 5 }).map((_, i) => (
+                              <span key={i} className="text-sm">⭐</span>
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-sm text-foreground">{t.testimonial}</p>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          {t.email && <span>{t.email}</span>}
+                          <span>{format(new Date(t.created_at), 'MMM d, yyyy')}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
     </Layout>
