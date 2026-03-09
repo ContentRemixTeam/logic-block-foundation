@@ -85,6 +85,9 @@ export function StepResults({ data, onDownloadPDF, onSaveToBossPlanner, isMember
         </SummaryCard>
       )}
 
+      {/* Bundle Recommendations */}
+      <BundleRecommendations data={data} />
+
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-3 pt-4">
         <button
