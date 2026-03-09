@@ -37,7 +37,8 @@ export function EngineLoopGraphic({ data }: EngineLoopGraphicProps) {
 
         {/* Labels with user data */}
         <text x="200" y="100" textAnchor="middle" fontSize="10" fill="hsl(var(--muted-foreground))">
-          {platform?.name || 'Platform'}
+          {platform?.name || data.customPlatform || 'Platform'}
+          {additionalCount > 0 ? ` + ${additionalCount} more` : ''}
         </text>
         <text x="80" y="320" textAnchor="middle" fontSize="10" fill="hsl(var(--muted-foreground))">
           Email + {data.secondaryNurture || 'nurture'}

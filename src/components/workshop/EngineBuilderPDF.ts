@@ -60,8 +60,9 @@ export function generateEngineBuilderPDF(data: EngineBuilderData) {
   };
 
   addSection('DISCOVER', 'Fuel System — How People Find You', [
-    ['Platform', platform?.name || '—'],
+    ['Primary Platform', platform?.name || data.customPlatform || '—'],
     ['Weekly Action', data.specificAction || '—'],
+    ['Additional Sources', additionalNames || 'None'],
   ]);
 
   addSection('NURTURE', 'Engine Block — How You Stay Connected', [

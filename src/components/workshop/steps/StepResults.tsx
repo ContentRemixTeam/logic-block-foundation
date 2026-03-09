@@ -25,6 +25,12 @@ function SummaryCard({ emoji, title, children }: { emoji: string; title: string;
 
 export function StepResults({ data, onDownloadPDF, onSaveToBossPlanner, isMember }: StepResultsProps) {
   const platform = PLATFORMS.find((p) => p.id === data.primaryPlatform);
+  const additionalPlatformNames = data.additionalPlatforms
+    .map((id) => {
+      if (id === 'other') return data.customAdditionalPlatform || 'Other';
+      return PLATFORMS.find((p) => p.id === id)?.name;
+    })
+    .filter(Boolean);
   const loopLabel = LOOP_LENGTHS.find((l) => l.value === data.loopLength)?.label;
   const freqLabel = OFFER_FREQUENCIES.find((f) => f.value === data.offerFrequency)?.label;
   const emailLabel = EMAIL_METHODS.find((e) => e.value === data.emailMethod)?.label;
@@ -50,8 +56,11 @@ export function StepResults({ data, onDownloadPDF, onSaveToBossPlanner, isMember
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <SummaryCard emoji="⛽" title="Discover (Fuel System)">
-          <p><strong>Platform:</strong> {platform?.name || '—'}</p>
+          <p><strong>Primary:</strong> {platform?.name || data.customPlatform || '—'}</p>
           <p><strong>Weekly action:</strong> {data.specificAction || '—'}</p>
+          {additionalPlatformNames.length > 0 && (
+            <p><strong>Additional sources:</strong> {additionalPlatformNames.join(', ')}</p>
+          )}
         </SummaryCard>
 
         <SummaryCard emoji="🔧" title="Nurture (Engine Block)">
