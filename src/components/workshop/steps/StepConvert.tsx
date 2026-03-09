@@ -9,7 +9,16 @@ const SELL_FREQUENCIES = [
   { value: 'yearly', label: '1-2x per year', description: 'Big launches, longer build-up, high urgency windows', emoji: '🎯' },
 ];
 
-interface StepConvertProps {
+const SECONDARY_REVENUE_SOURCES = [
+  { value: 'order-bumps', label: 'Order bumps & upsells', sublabel: 'Add-ons at checkout that increase what buyers spend', emoji: '🛒' },
+  { value: 'affiliate', label: 'Affiliate income', sublabel: 'Commissions from recommending other people\'s products', emoji: '🤝' },
+  { value: 'digital-shop', label: 'Digital product shop', sublabel: 'Templates, workbooks, low-ticket products available anytime', emoji: '🛍️' },
+  { value: 'workshops', label: 'Workshops & events', sublabel: 'One-off paid trainings, intensives, or live events', emoji: '🎟️' },
+  { value: 'vip-services', label: '1:1 services or VIP days', sublabel: 'Done-for-you work or high-touch private clients', emoji: '💎' },
+  { value: 'membership', label: 'Membership or subscription', sublabel: 'Recurring monthly or annual revenue from ongoing access', emoji: '🔁' },
+  { value: 'speaking', label: 'Speaking or brand deals', sublabel: 'Paid appearances, sponsorships, or brand partnerships', emoji: '🎤' },
+];
+
   data: EngineBuilderData;
   onChange: (updates: Partial<EngineBuilderData>) => void;
 }
