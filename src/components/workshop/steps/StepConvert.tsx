@@ -90,9 +90,12 @@ export function StepConvert({ data, onChange }: StepConvertProps) {
 
       {/* Offer frequency */}
       <div>
-        <h4 className="text-sm font-semibold text-foreground mb-3">How often do you sell?</h4>
+        <h4 className="text-sm font-semibold text-foreground mb-1">How often do you sell?</h4>
+        <p className="text-xs text-muted-foreground mb-3">
+          Even evergreen offers should have urgency. A bonus that expires, a limited-time price, a reason to buy today — that's what moves people from "interested" to "bought."
+        </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {OFFER_FREQUENCIES.map((freq) => {
+          {SELL_FREQUENCIES.map((freq) => {
             const isSelected = data.offerFrequency === freq.value;
             return (
               <button
@@ -109,6 +112,7 @@ export function StepConvert({ data, onChange }: StepConvertProps) {
                 <span className="text-xl">{freq.emoji}</span>
                 <div>
                   <h5 className="font-semibold text-sm text-foreground">{freq.label}</h5>
+                  <p className="text-xs text-muted-foreground">{freq.description}</p>
                 </div>
               </button>
             );
