@@ -19,6 +19,7 @@ const SECONDARY_REVENUE_SOURCES = [
   { value: 'speaking', label: 'Speaking or brand deals', sublabel: 'Paid appearances, sponsorships, or brand partnerships', emoji: '🎤' },
 ];
 
+interface StepConvertProps {
   data: EngineBuilderData;
   onChange: (updates: Partial<EngineBuilderData>) => void;
 }
