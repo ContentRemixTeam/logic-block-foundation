@@ -5,6 +5,9 @@ export interface EngineBuilderData {
   primaryPlatform: string;
   customPlatform: string;
   specificAction: string;
+  additionalPlatforms: string[];
+  customAdditionalPlatform: string;
+  additionalPlatformActions: Record<string, string>;
   
   // Step 2: Nurture
   emailMethod: string;
