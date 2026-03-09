@@ -1,9 +1,12 @@
 import { createPortal } from 'react-dom';
+import { useLocation } from 'react-router-dom';
 import { useTour } from '@/hooks/useTour';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sparkles, Rocket, X } from 'lucide-react';
 import { getStorageItem } from '@/lib/storage';
+
+const PUBLIC_ROUTES = ['/engine', '/workshop', '/workshop/engine-builder'];
 
 export function TourWelcome() {
   const { hasSeenTour, startTour, markTourComplete, isActive, isLoading } = useTour();
