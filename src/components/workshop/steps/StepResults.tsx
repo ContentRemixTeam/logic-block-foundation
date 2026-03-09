@@ -53,6 +53,16 @@ export function StepResults({ data, onChange, onDownloadPDF, onSaveToBossPlanner
 
   return (
     <div className="space-y-6">
+      {/* Back button */}
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="mb-2 px-4 py-2 rounded-lg text-sm font-medium text-foreground bg-secondary hover:bg-secondary-hover transition-colors"
+        >
+          ← Back to Edit
+        </button>
+      )}
+
       <div className="text-center">
         <h3 className="text-xl font-bold text-foreground mb-1">
           🏆 Your Engine Blueprint
