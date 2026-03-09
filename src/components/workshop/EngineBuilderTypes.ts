@@ -23,6 +23,7 @@ export interface EngineBuilderData {
   offerPrice: number | null;
   revenueGoal: number | null;
   salesNeeded: number | null;
+  secondaryOffers: SecondaryOffer[];
   offerFrequency: string;
   customOfferFrequency: string;
   salesMethods: string[];
