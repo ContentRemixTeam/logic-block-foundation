@@ -22,7 +22,9 @@ export function EngineBuilderWizard() {
   const [showResults, setShowResults] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [isMember, setIsMember] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [loadedExisting, setLoadedExisting] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -37,6 +39,26 @@ export function EngineBuilderWizard() {
           .single();
         if (profile?.user_type === 'member') {
           setIsMember(true);
+          // Load existing blueprint if any
+          const { data: existing } = await supabase
+            .from('wizard_completions')
+            .select('answers_json, completed_at')
+            .eq('user_id', user.id)
+            .eq('template_name', WIZARD_NAME)
+            .maybeSingle();
+          if (existing?.answers_json) {
+            try {
+              const saved = existing.answers_json as unknown as EngineBuilderData;
+              // Merge with defaults so new fields are included
+              setData({ ...DEFAULT_ENGINE_DATA, ...saved });
+              setLoadedExisting(true);
+              if (existing.completed_at) {
+                setSaved(true);
+              }
+            } catch {
+              // ignore parse errors
+            }
+          }
         }
       }
     };
@@ -45,6 +67,8 @@ export function EngineBuilderWizard() {
 
   const onChange = (updates: Partial<EngineBuilderData>) => {
     setData((prev) => ({ ...prev, ...updates }));
+    // If editing after save, allow re-saving
+    if (saved) setSaved(false);
   };
 
   const canProceed = () => {
@@ -68,97 +92,115 @@ export function EngineBuilderWizard() {
   };
 
   const handleSaveToBossPlanner = async () => {
-    if (!userId || saved) return;
+    if (!userId || saving) return;
+    setSaving(true);
     try {
-      // 1. Save the blueprint
-      await supabase.from('wizard_completions').upsert({
-        user_id: userId,
-        template_name: WIZARD_NAME,
-        answers_json: data as any,
-        completed_at: new Date().toISOString(),
-      });
-
-      // 2. Create a project for the engine
-      const { data: project } = await supabase
-        .from('projects')
-        .insert({
-          user_id: userId,
-          name: '🏎️ Business Engine Plan',
-          status: 'active',
-          color: '#f59e0b',
-        })
+      // 1. Save/update the blueprint
+      const { data: existingCompletion } = await supabase
+        .from('wizard_completions')
         .select('id')
-        .single();
+        .eq('user_id', userId)
+        .eq('template_name', WIZARD_NAME)
+        .maybeSingle();
 
-      const projectId = project?.id;
-
-      // 3. Generate tasks if opted in
-      if (data.generateTasks !== false) {
-        const allTasks = generateEngineBuilderTasksPreview(data);
-        const selectedTasks = allTasks.filter(t => 
-          isTaskSelected(t.id, data.excludedTasks || [])
-        );
-
-        if (selectedTasks.length > 0) {
-          const taskRows = selectedTasks.map(t => {
-            const effectiveDate = getTaskDate(t, data.dateOverrides || []);
-            return {
-              user_id: userId,
-              task_text: t.task_text,
-              scheduled_date: effectiveDate,
-              priority: t.priority,
-              estimated_minutes: t.estimated_minutes,
-              project_id: projectId || null,
-              status: 'pending' as const,
-              content_type: t.phase === 'lead-gen' || t.phase === 'nurture' ? 'social' : null,
-            };
-          });
-
-          await supabase.from('tasks').insert(taskRows);
-        }
+      if (existingCompletion) {
+        await supabase.from('wizard_completions').update({
+          answers_json: data as any,
+          completed_at: new Date().toISOString(),
+        }).eq('id', existingCompletion.id);
+      } else {
+        await supabase.from('wizard_completions').insert({
+          user_id: userId,
+          template_name: WIZARD_NAME,
+          answers_json: data as any,
+          completed_at: new Date().toISOString(),
+        });
       }
 
-      // 4. Create content items if opted in
-      if (data.generateContentItems !== false) {
-        const contentItems = [];
-        const platformName = data.primaryPlatform || 'social';
-
-        // Lead gen content items
-        for (let week = 0; week < 4; week++) {
-          contentItems.push({
+      // 2. Create a project for the engine (only if first save)
+      if (!loadedExisting || !saved) {
+        const { data: project } = await supabase
+          .from('projects')
+          .insert({
             user_id: userId,
-            title: `Week ${week + 1} ${platformName} content`,
-            type: 'social' as const,
-            channel: data.primaryPlatform || null,
-            status: 'idea' as const,
-            project_id: projectId || null,
-          });
+            name: '🏎️ Business Engine Plan',
+            status: 'active',
+            color: '#f59e0b',
+          })
+          .select('id')
+          .single();
+
+        const projectId = project?.id;
+
+        // 3. Generate tasks if opted in
+        if (data.generateTasks !== false) {
+          const allTasks = generateEngineBuilderTasksPreview(data);
+          const selectedTasks = allTasks.filter(t => 
+            isTaskSelected(t.id, data.excludedTasks || [])
+          );
+
+          if (selectedTasks.length > 0) {
+            const taskRows = selectedTasks.map(t => {
+              const effectiveDate = getTaskDate(t, data.dateOverrides || []);
+              return {
+                user_id: userId,
+                task_text: t.task_text,
+                scheduled_date: effectiveDate,
+                priority: t.priority,
+                estimated_minutes: t.estimated_minutes,
+                project_id: projectId || null,
+                status: 'pending' as const,
+                content_type: t.phase === 'lead-gen' || t.phase === 'nurture' ? 'social' : null,
+              };
+            });
+
+            await supabase.from('tasks').insert(taskRows);
+          }
         }
 
-        // Email content items
-        if (data.emailMethod) {
+        // 4. Create content items if opted in
+        if (data.generateContentItems !== false) {
+          const contentItems = [];
+          const platformName = data.primaryPlatform || 'social';
+
           for (let week = 0; week < 4; week++) {
             contentItems.push({
               user_id: userId,
-              title: `Week ${week + 1} email newsletter`,
-              type: 'email' as const,
-              channel: 'email',
+              title: `Week ${week + 1} ${platformName} content`,
+              type: 'social' as const,
+              channel: data.primaryPlatform || null,
               status: 'idea' as const,
               project_id: projectId || null,
             });
           }
-        }
 
-        if (contentItems.length > 0) {
-          await supabase.from('content_items').insert(contentItems);
+          if (data.emailMethod) {
+            for (let week = 0; week < 4; week++) {
+              contentItems.push({
+                user_id: userId,
+                title: `Week ${week + 1} email newsletter`,
+                type: 'email' as const,
+                channel: 'email',
+                status: 'idea' as const,
+                project_id: projectId || null,
+              });
+            }
+          }
+
+          if (contentItems.length > 0) {
+            await supabase.from('content_items').insert(contentItems);
+          }
         }
       }
 
       setSaved(true);
+      setLoadedExisting(true);
       toast.success('Engine blueprint saved to your planner! 🏎️');
     } catch (err) {
       console.error('Error saving engine builder:', err);
       toast.error('Failed to save — try again');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -213,11 +255,16 @@ export function EngineBuilderWizard() {
               <span className="text-2xl">🏎️</span>
               <h1 className="text-lg font-bold">Business Engine Builder</h1>
             </div>
-            {!userId && (
-              <a href="/join" className="text-xs text-white/60 hover:text-white transition-colors">
-                Mastermind member? Log in →
-              </a>
-            )}
+            <div className="flex items-center gap-3">
+              {loadedExisting && (
+                <span className="text-xs text-white/50">Blueprint loaded</span>
+              )}
+              {!userId && (
+                <a href="/join" className="text-xs text-white/60 hover:text-white transition-colors">
+                  Mastermind member? Log in →
+                </a>
+              )}
+            </div>
           </div>
         </header>
 
@@ -233,7 +280,7 @@ export function EngineBuilderWizard() {
               onDownloadPDF={() => generateEngineBuilderPDF(data)}
               onSaveToBossPlanner={isMember ? handleSaveToBossPlanner : undefined}
               isMember={isMember}
-              isSaving={saved}
+              isSaving={saving}
               onBack={goBack}
             />
           ) : (
