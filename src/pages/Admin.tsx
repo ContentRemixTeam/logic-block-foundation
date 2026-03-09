@@ -153,7 +153,7 @@ export default function Admin() {
   const [errorLogs, setErrorLogs] = useState<ErrorLog[]>([]);
   const [issueReports, setIssueReports] = useState<IssueReport[]>([]);
   const [featureRequests, setFeatureRequests] = useState<FeatureRequest[]>([]);
-  
+  const [testimonials, setTestimonials] = useState<any[]>([]);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [createUserOpen, setCreateUserOpen] = useState(false);
