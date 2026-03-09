@@ -17,7 +17,7 @@ import {
   Users, AlertTriangle, MessageSquare, Lightbulb, Shield, Trash2, UserPlus, 
   ShieldCheck, ShieldOff, RefreshCw, Upload, FileSpreadsheet, CheckCircle, 
   XCircle, AlertCircle, Download, Link2, Copy, Check, RotateCcw, Loader2,
-  Search, ChevronDown, ChevronRight, User, Calendar, Target, Database
+  Search, ChevronDown, ChevronRight, User, Calendar, Target, Database, Star
 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
