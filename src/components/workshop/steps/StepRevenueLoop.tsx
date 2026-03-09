@@ -71,7 +71,7 @@ export function StepRevenueLoop({ data, onChange }: StepRevenueLoopProps) {
               className={`
                 text-left p-4 rounded-xl border-2 transition-all duration-200
                 ${isSelected
-                  ? 'border-primary bg-accent shadow-md ring-2 ring-primary/20'
+                  ? 'border-primary bg-primary/10 shadow-md ring-2 ring-primary/20'
                   : 'border-border bg-card hover:border-primary/40'
                 }
               `}
