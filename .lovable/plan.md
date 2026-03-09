@@ -1,28 +1,19 @@
 
 
-# Auto-refresh Daily Agenda After Scratch Pad Tag Processing
+# Product Recommendations — Sequencing
 
-## What's Already Working
-The `#task` items from the scratch pad are already saved with today's date (`scheduled_date`) and no time slot, which places them in the "unscheduled" pool on the daily agenda. They ARE being created correctly in the database.
+Yes, build the core Engine Builder wizard first, then add product recommendations as a layer on top. Here's why:
 
-## The Gap
-After processing tags, the UI doesn't automatically refresh the task list. The user has to navigate away and back to see the newly created tasks appear on the agenda.
+1. **Build first**: The wizard (Steps 1-5 + results page + PDF) needs to exist before recommendations can reference the user's selections
+2. **Upload spreadsheet after**: Once the wizard is working, upload your VIP ticket and free bundle spreadsheet. I'll map each product to the relevant Discover/Nurture/Convert selections so the results page can say things like "Based on your engine, here's what will help you execute it"
+3. **Recommendation logic**: The user's platform choice, nurture method, offer frequency, and loop type become filters — each product in your spreadsheet gets tagged with which engine configurations it supports
 
-## Fix
-Invalidate the React Query task cache after successful tag processing so the daily agenda updates instantly.
+**Build order:**
+1. Engine Builder wizard (all 5 steps + race car theme + results + PDF)
+2. Upload your spreadsheet → I build the recommendation engine into the results page
+3. Each recommendation shows why it matches their specific plan
 
-### File: `src/components/daily-plan/DailyScratchPad.tsx` (or whichever scratch pad component calls `process-scratch-pad-tags` on the daily plan page)
+Upload the spreadsheet whenever you're ready — I'll review it and map the products. But let's get the wizard built first so we have something to attach recommendations to.
 
-1. Import `useQueryClient` from `@tanstack/react-query`
-2. After a successful `process-scratch-pad-tags` call (inside the success branch of `handleProcessTags`), call `queryClient.invalidateQueries({ queryKey: ['all-tasks'] })` to trigger an immediate refetch of the task list
-3. This will cause the daily agenda to re-render with the newly created tasks visible in the unscheduled pool -- no page reload needed
-
-### File: `src/components/weekly-plan/WeeklyScratchPad.tsx`
-
-Same change -- add query invalidation after successful tag processing so the weekly view also reflects new tasks immediately.
-
-## Technical Detail
-- Only the query cache invalidation call is added; no data logic or mutations are changed
-- The existing `useTasks()` hook and `useTaskMutations()` pattern is respected -- we just tell React Query the cache is stale
-- One-line addition per file after the success toast
+Ready to start building the wizard now?
 
