@@ -231,13 +231,14 @@ export default function Admin() {
 
   const loadAllData = async () => {
     try {
-      const [usersRes, errorsRes, issuesRes, featuresRes, membersRes, adminsRes] = await Promise.all([
+      const [usersRes, errorsRes, issuesRes, featuresRes, membersRes, adminsRes, testimonialsRes] = await Promise.all([
         supabase.functions.invoke('admin-get-data', { body: { action: 'get_users', limit: 100 } }),
         supabase.functions.invoke('admin-get-data', { body: { action: 'get_error_logs', limit: 100 } }),
         supabase.functions.invoke('admin-get-data', { body: { action: 'get_issue_reports', limit: 100 } }),
         supabase.functions.invoke('admin-get-data', { body: { action: 'get_feature_requests', limit: 100 } }),
         supabase.from('entitlements').select('*').order('created_at', { ascending: false }),
         supabase.from('admin_users').select('*').order('created_at', { ascending: false }),
+        supabase.from('workshop_testimonials' as any).select('*').order('created_at', { ascending: false }),
       ]);
 
       if (usersRes.data?.users) setUsers(usersRes.data.users);
