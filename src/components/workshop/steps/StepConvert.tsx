@@ -1,5 +1,13 @@
-import { OFFER_FREQUENCIES, SALES_METHODS } from '../EngineBuilderTypes';
+import { SALES_METHODS } from '../EngineBuilderTypes';
 import type { EngineBuilderData } from '../EngineBuilderTypes';
+
+const SELL_FREQUENCIES = [
+  { value: 'weekly', label: 'Weekly', description: 'You make offers every week — flash sales, promos, or weekly pitches in your emails', emoji: '📅' },
+  { value: 'evergreen-urgency', label: 'Evergreen with urgency', description: 'Always available, but you create momentum with expiring bonuses, limited-time prices, or deadlines', emoji: '🌿' },
+  { value: 'monthly', label: 'Monthly launches', description: '3 weeks nurture, 1 week open cart with urgency and deadline', emoji: '🗓️' },
+  { value: 'quarterly', label: 'Quarterly launches', description: 'Consistent nurture all quarter, one focused launch window', emoji: '🗓️' },
+  { value: 'yearly', label: '1-2x per year', description: 'Big launches, longer build-up, high urgency windows', emoji: '🎯' },
+];
 
 interface StepConvertProps {
   data: EngineBuilderData;
@@ -18,7 +26,7 @@ export function StepConvert({ data, onChange }: StepConvertProps) {
           🚀 Hit the Gas — How do you make money?
         </h3>
         <p className="text-sm text-muted-foreground">
-          Your turbo boost. Let's get clear on what you're selling, how much you need to make, and how you'll get there.
+          Your turbo boost. This is where the money lives — your offer, your goal, and the system you're using to sell it consistently.
         </p>
       </div>
 
@@ -82,9 +90,12 @@ export function StepConvert({ data, onChange }: StepConvertProps) {
 
       {/* Offer frequency */}
       <div>
-        <h4 className="text-sm font-semibold text-foreground mb-3">How often do you sell?</h4>
+        <h4 className="text-sm font-semibold text-foreground mb-1">How often do you sell?</h4>
+        <p className="text-xs text-muted-foreground mb-3">
+          Even evergreen offers should have urgency. A bonus that expires, a limited-time price, a reason to buy today — that's what moves people from "interested" to "bought."
+        </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {OFFER_FREQUENCIES.map((freq) => {
+          {SELL_FREQUENCIES.map((freq) => {
             const isSelected = data.offerFrequency === freq.value;
             return (
               <button
@@ -101,6 +112,7 @@ export function StepConvert({ data, onChange }: StepConvertProps) {
                 <span className="text-xl">{freq.emoji}</span>
                 <div>
                   <h5 className="font-semibold text-sm text-foreground">{freq.label}</h5>
+                  <p className="text-xs text-muted-foreground">{freq.description}</p>
                 </div>
               </button>
             );
