@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Calendar, Youtube, Headphones, Sparkles, Mail, Users, Trophy, Flag, ChevronRight, ExternalLink } from 'lucide-react';
+import { Calendar, Youtube, Headphones, Sparkles, Mail, Users, Trophy, Flag, ChevronRight, ExternalLink, Package } from 'lucide-react';
 
 // Google Calendar URL builder
 function buildGoogleCalendarUrl({
@@ -47,6 +47,15 @@ const officeHoursCalUrl = buildGoogleCalendarUrl({
   timezone: 'America/New_York',
   description: 'Office Hours: Bundle Edition. Watch live: https://www.youtube.com/watch?v=i7RY5obUzWo\n\nStats, behind the scenes of the Becoming Boss Bundle, and Q&A. Mastermind members can submit questions ahead of time!',
   location: 'https://www.youtube.com/watch?v=i7RY5obUzWo',
+});
+
+const bundleCalUrl = buildGoogleCalendarUrl({
+  title: '📦 Plan Your Profitable Bundle in 90 Minutes',
+  date: '20260327',
+  startHour: '1500',
+  endHour: '1630',
+  timezone: 'America/New_York',
+  description: 'Plan Your Profitable Bundle in 90 Minutes — live workshop!',
 });
 
 const fadeUp = {
@@ -225,7 +234,29 @@ export default function WorkshopWelcomePage() {
           </div>
         </SectionCard>
 
-        {/* ---- LIVE COACHING CTA ---- */}
+        {/* ---- PLAN YOUR PROFITABLE BUNDLE ---- */}
+        <SectionCard delay={2.5} className="border-primary/20">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <Package className="w-6 h-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold">SAVE THE DATE</span>
+                <span className="text-xs text-muted-foreground">📦 Pit Stop #3</span>
+              </div>
+              <h3 className="font-bold text-foreground text-lg mb-1">
+                Plan Your Profitable Bundle in 90 Minutes
+              </h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                <strong className="text-foreground">Friday, March 27th at 3:00 PM EST</strong> — Learn how to create, launch, and profit from your own digital bundle in just 90 minutes!
+              </p>
+              <AddToCalendarButton url={bundleCalUrl} />
+            </div>
+          </div>
+        </SectionCard>
+
+
         <SectionCard delay={3}>
           <div className="text-center py-2">
             <div className="text-3xl mb-3">🏎️💨</div>
