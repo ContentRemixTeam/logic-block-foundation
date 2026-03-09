@@ -11,6 +11,8 @@ import { DEFAULT_ENGINE_DATA, TOTAL_STEPS, STEP_CONFIGS, TRANSITION_MESSAGES } f
 import type { EngineBuilderData } from './EngineBuilderTypes';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { generateEngineBuilderTasksPreview } from '@/lib/engineBuilderTaskGenerator';
+import { isTaskSelected, getTaskDate } from '@/types/wizardTask';
 
 const WIZARD_NAME = 'business-engine-builder';
 
