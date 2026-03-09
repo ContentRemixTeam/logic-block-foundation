@@ -9,6 +9,13 @@ export function generateEngineBuilderPDF(data: EngineBuilderData) {
   let y = 20;
 
   const platform = PLATFORMS.find((p) => p.id === data.primaryPlatform);
+  const additionalNames = (data.additionalPlatforms || [])
+    .map((id) => {
+      if (id === 'other') return data.customAdditionalPlatform || 'Other';
+      return PLATFORMS.find((p) => p.id === id)?.name;
+    })
+    .filter(Boolean)
+    .join(', ');
   const loopLabel = LOOP_LENGTHS.find((l) => l.value === data.loopLength)?.label || '—';
   const freqLabel = OFFER_FREQUENCIES.find((f) => f.value === data.offerFrequency)?.label || '—';
   const emailLabel = EMAIL_METHODS.find((e) => e.value === data.emailMethod)?.label || '—';
