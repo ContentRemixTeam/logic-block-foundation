@@ -1,11 +1,15 @@
 import { createPortal } from 'react-dom';
+import { useLocation } from 'react-router-dom';
 import { useTour } from '@/hooks/useTour';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sparkles, Rocket, X } from 'lucide-react';
 import { getStorageItem } from '@/lib/storage';
 
+const PUBLIC_ROUTES = ['/engine', '/workshop', '/workshop/engine-builder'];
+
 export function TourWelcome() {
+  const location = useLocation();
   const { hasSeenTour, startTour, markTourComplete, isActive, isLoading } = useTour();
 
   const handleStartTour = () => {
@@ -23,7 +27,9 @@ export function TourWelcome() {
   // - Still loading tour state from database
   // - Tour has been seen (persisted in database OR localStorage)
   // - Tour is already active
-  if (isLoading || hasSeenTour || localStorageSeen || isActive) return null;
+  const isPublicRoute = PUBLIC_ROUTES.some(r => location.pathname.startsWith(r));
+
+  if (isLoading || hasSeenTour || localStorageSeen || isActive || isPublicRoute) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 animate-in fade-in-0 duration-300">
