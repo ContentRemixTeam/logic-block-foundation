@@ -54,21 +54,29 @@ export function useMonthlyTheme() {
   const { data, isLoading } = useQuery({
     queryKey: ['monthly-theme', user?.id],
     queryFn: async (): Promise<MonthlyThemeData> => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('No session');
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return { active: false, template: null, challenge: null, dismissal: { popup_dismissed: false, hello_bar_dismissed: false }, theme_unlocked: false, progress: null };
 
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-monthly-theme`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-monthly-theme`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          }
+        );
+        if (!res.ok) {
+          console.warn('get-monthly-theme returned', res.status);
+          return { active: false, template: null, challenge: null, dismissal: { popup_dismissed: false, hello_bar_dismissed: false }, theme_unlocked: false, progress: null };
         }
-      );
-      if (!res.ok) throw new Error('Failed to fetch monthly theme');
-      return res.json();
+        return res.json();
+      } catch (err) {
+        console.warn('useMonthlyTheme: fetch failed silently', err);
+        return { active: false, template: null, challenge: null, dismissal: { popup_dismissed: false, hello_bar_dismissed: false }, theme_unlocked: false, progress: null };
+      }
     },
     enabled: !!user,
     staleTime: 10 * 60 * 1000, // 10 min

@@ -7,12 +7,16 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
+  console.log("get-monthly-theme: handler called", req.method);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const authHeader = req.headers.get("Authorization");
+    console.log("get-monthly-theme: auth header present", !!authHeader);
+
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "No auth" }), {
         status: 401,
@@ -20,15 +24,32 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
+    console.log("get-monthly-theme: env vars", { hasUrl: !!supabaseUrl, hasKey: !!supabaseKey });
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("get-monthly-theme: missing env vars");
+      return new Response(
+        JSON.stringify({ active: false, template: null, error: "Missing env" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabase = createClient(supabaseUrl, supabaseKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
+    console.log("get-monthly-theme: getting user");
     const {
       data: { user },
+      error: userError,
     } = await supabase.auth.getUser();
+
+    if (userError) {
+      console.error("get-monthly-theme: user error", userError.message);
+    }
+
     if (!user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
@@ -36,61 +57,91 @@ Deno.serve(async (req) => {
       });
     }
 
+    console.log("get-monthly-theme: user authenticated", user.id);
+
     const today = new Date().toISOString().split("T")[0];
+    console.log("get-monthly-theme: today", today);
 
     // Get current month's published template
+    console.log("get-monthly-theme: fetching template");
     const { data: template, error: tErr } = await supabase
       .from("monthly_challenge_templates")
       .select("*, reward_theme:app_themes(*)")
       .eq("is_published", true)
       .lte("month_start", today)
       .gte("month_end", today)
-      .single();
+      .maybeSingle();
 
-    if (tErr || !template) {
+    console.log("get-monthly-theme: template result", { 
+      hasTemplate: !!template, 
+      error: tErr?.message || null 
+    });
+
+    if (tErr) {
+      console.error("get-monthly-theme: template query error", tErr);
+      // If table doesn't exist or other DB error, return inactive gracefully
       return new Response(
         JSON.stringify({ active: false, template: null }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    if (!template) {
+      console.log("get-monthly-theme: no active template found");
+      return new Response(
+        JSON.stringify({ active: false, template: null }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("get-monthly-theme: found template", template.id);
+
     // Get user's challenge enrollment for this template
-    const { data: challenge } = await supabase
+    const { data: challenge, error: cErr } = await supabase
       .from("user_monthly_challenges")
       .select("*")
       .eq("user_id", user.id)
       .eq("template_id", template.id)
       .maybeSingle();
 
+    if (cErr) console.error("get-monthly-theme: challenge error", cErr.message);
+
     // Get user's dismissal state
-    const { data: dismissal } = await supabase
+    const { data: dismissal, error: dErr } = await supabase
       .from("user_monthly_theme_dismissals")
       .select("*")
       .eq("user_id", user.id)
       .eq("template_id", template.id)
       .maybeSingle();
 
+    if (dErr) console.error("get-monthly-theme: dismissal error", dErr.message);
+
     // Check if theme is already unlocked
     let themeUnlocked = false;
     if (template.reward_theme_id) {
-      const { data: unlock } = await supabase
+      const { data: unlock, error: uErr } = await supabase
         .from("user_theme_unlocks")
         .select("id")
         .eq("user_id", user.id)
         .eq("theme_id", template.reward_theme_id)
         .maybeSingle();
+      if (uErr) console.error("get-monthly-theme: unlock error", uErr.message);
       themeUnlocked = !!unlock;
     }
 
     // Calculate progress if enrolled
     let progress = null;
     if (challenge && challenge.status === "active") {
-      const { data: progressData } = await supabase.rpc(
+      console.log("get-monthly-theme: calculating progress for challenge", challenge.id);
+      const { data: progressData, error: pErr } = await supabase.rpc(
         "get_monthly_challenge_progress",
         { p_user_challenge_id: challenge.id }
       );
+      if (pErr) console.error("get-monthly-theme: progress error", pErr.message);
       progress = progressData;
     }
+
+    console.log("get-monthly-theme: returning success response");
 
     return new Response(
       JSON.stringify({
@@ -119,10 +170,11 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in get-monthly-theme:", error);
-    return new Response(JSON.stringify({ error: "Internal error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("get-monthly-theme: UNHANDLED ERROR", error?.message, error?.stack);
+    // Never return 500 - return inactive state so UI doesn't break
+    return new Response(
+      JSON.stringify({ active: false, template: null }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });
