@@ -112,7 +112,7 @@ export function EngineBuilderWizard() {
         await supabase.from('wizard_completions').insert({
           user_id: userId,
           template_name: WIZARD_NAME,
-          answers_json: data as any,
+          answers: data as any,
           completed_at: new Date().toISOString(),
         });
       }
