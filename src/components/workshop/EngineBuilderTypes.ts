@@ -3,11 +3,14 @@
 export interface EngineBuilderData {
   // Step 1: Discover
   primaryPlatform: string;
+  customPlatform: string;
   specificAction: string;
   
   // Step 2: Nurture
   emailMethod: string;
+  customEmailMethod: string;
   secondaryNurture: string;
+  customNurture: string;
   freeTransformation: string;
   
   // Step 3: Convert
@@ -16,7 +19,9 @@ export interface EngineBuilderData {
   revenueGoal: number | null;
   salesNeeded: number | null;
   offerFrequency: string;
+  customOfferFrequency: string;
   salesMethods: string[];
+  customSalesMethod: string;
   
   // Step 4: Revenue Loop
   loopLength: string;
