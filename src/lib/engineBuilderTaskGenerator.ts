@@ -1,7 +1,8 @@
 // Engine Builder Task Generator
-// Generates create & publish tasks from the engine blueprint
+// Generates create & publish tasks from the engine blueprint,
+// using the user's actual weekly schedule from Step 5.
 
-import type { EngineBuilderData } from '@/components/workshop/EngineBuilderTypes';
+import type { EngineBuilderData, WeeklySlot } from '@/components/workshop/EngineBuilderTypes';
 import type { WizardTask } from '@/types/wizardTask';
 import { PLATFORMS } from '@/components/workshop/PlatformScorecardData';
 import { format, addDays, nextMonday } from 'date-fns';
@@ -14,13 +15,55 @@ export const ENGINE_BUILDER_PHASE_CONFIG = [
   { key: 'weekly-ops', label: '🏁 Weekly Operations' },
 ];
 
+const DAY_OFFSET: Record<string, number> = {
+  Monday: 0, Tuesday: 1, Wednesday: 2, Thursday: 3,
+  Friday: 4, Saturday: 5, Sunday: 6,
+};
+
+/**
+ * Find the first slot matching criteria in the user's weekly schedule
+ */
+function findSlotDay(schedule: WeeklySlot[], type: WeeklySlot['type'], keyword?: string): string | null {
+  const match = schedule.find(s => {
+    if (s.type !== type) return false;
+    if (keyword && s.activity) {
+      return s.activity.toLowerCase().includes(keyword.toLowerCase());
+    }
+    return true;
+  });
+  return match?.day ?? null;
+}
+
+/**
+ * Get all slots of a given type from the schedule
+ */
+function getSlotsByType(schedule: WeeklySlot[], type: WeeklySlot['type']): WeeklySlot[] {
+  return schedule.filter(s => s.type === type);
+}
+
+/**
+ * Convert a day name to an actual date within a given week
+ */
+function dayInWeek(weekStart: Date, day: string): Date {
+  return addDays(weekStart, DAY_OFFSET[day] ?? 0);
+}
+
 export function generateEngineBuilderTasksPreview(data: EngineBuilderData): WizardTask[] {
   const tasks: WizardTask[] = [];
   const startDate = nextMonday(new Date());
   let id = 0;
   const makeId = () => `engine-task-${++id}`;
 
-  // --- SETUP PHASE ---
+  const schedule = data.weeklySchedule || [];
+  const platformName = PLATFORMS.find(p => p.id === data.primaryPlatform)?.name || data.customPlatform || 'Primary platform';
+
+  // Find key days from the user's schedule
+  const createDay = findSlotDay(schedule, 'create') || 'Monday';
+  const publishDay = findSlotDay(schedule, 'publish') || 'Wednesday';
+  const emailCreateDay = findSlotDay(schedule, 'create', 'email') || findSlotDay(schedule, 'create', 'newsletter') || createDay;
+  const emailPublishDay = findSlotDay(schedule, 'publish', 'email') || findSlotDay(schedule, 'publish', 'newsletter') || publishDay;
+
+  // --- SETUP PHASE (Week 1 only) ---
   if (data.freeTransformation) {
     tasks.push({
       id: makeId(),
@@ -54,19 +97,14 @@ export function generateEngineBuilderTasksPreview(data: EngineBuilderData): Wiza
     });
   }
 
-  // --- LEAD GEN CONTENT ---
-  const platformName = PLATFORMS.find(p => p.id === data.primaryPlatform)?.name || data.customPlatform || 'Primary platform';
-
-  // Generate 4 weeks of lead gen create + publish tasks
+  // --- LEAD GEN CONTENT (uses schedule's create/publish days) ---
   for (let week = 0; week < 4; week++) {
     const weekStart = addDays(startDate, week * 7);
-    const createDate = weekStart;
-    const publishDate = addDays(weekStart, data.leadTimeDays || 1);
 
     tasks.push({
       id: makeId(),
       task_text: `Create Week ${week + 1} ${platformName} content${data.specificAction ? ` (${data.specificAction})` : ''}`,
-      scheduled_date: format(createDate, 'yyyy-MM-dd'),
+      scheduled_date: format(dayInWeek(weekStart, createDay), 'yyyy-MM-dd'),
       phase: 'lead-gen',
       priority: week === 0 ? 'high' : 'medium',
       estimated_minutes: 60,
@@ -75,21 +113,21 @@ export function generateEngineBuilderTasksPreview(data: EngineBuilderData): Wiza
     tasks.push({
       id: makeId(),
       task_text: `Publish Week ${week + 1} ${platformName} content`,
-      scheduled_date: format(publishDate, 'yyyy-MM-dd'),
+      scheduled_date: format(dayInWeek(weekStart, publishDay), 'yyyy-MM-dd'),
       phase: 'lead-gen',
       priority: 'medium',
       estimated_minutes: 15,
     });
   }
 
-  // --- NURTURE CONTENT ---
+  // --- NURTURE CONTENT (uses schedule's email days or create/publish days) ---
   if (data.emailMethod) {
     for (let week = 0; week < 4; week++) {
       const weekStart = addDays(startDate, week * 7);
       tasks.push({
         id: makeId(),
         task_text: `Write Week ${week + 1} email newsletter`,
-        scheduled_date: format(addDays(weekStart, 1), 'yyyy-MM-dd'),
+        scheduled_date: format(dayInWeek(weekStart, emailCreateDay), 'yyyy-MM-dd'),
         phase: 'nurture',
         priority: week === 0 ? 'high' : 'medium',
         estimated_minutes: 45,
@@ -97,7 +135,7 @@ export function generateEngineBuilderTasksPreview(data: EngineBuilderData): Wiza
       tasks.push({
         id: makeId(),
         task_text: `Send Week ${week + 1} email newsletter`,
-        scheduled_date: format(addDays(weekStart, 2), 'yyyy-MM-dd'),
+        scheduled_date: format(dayInWeek(weekStart, emailPublishDay), 'yyyy-MM-dd'),
         phase: 'nurture',
         priority: 'medium',
         estimated_minutes: 10,
@@ -118,7 +156,7 @@ export function generateEngineBuilderTasksPreview(data: EngineBuilderData): Wiza
       tasks.push({
         id: makeId(),
         task_text: `Create Week ${week + 1} ${label}`,
-        scheduled_date: format(addDays(weekStart, 2), 'yyyy-MM-dd'),
+        scheduled_date: format(dayInWeek(weekStart, createDay), 'yyyy-MM-dd'),
         phase: 'nurture',
         priority: 'medium',
         estimated_minutes: 90,
@@ -160,24 +198,17 @@ export function generateEngineBuilderTasksPreview(data: EngineBuilderData): Wiza
     });
   }
 
-  // --- WEEKLY OPS ---
-  const scheduleSlots = data.weeklySchedule.filter(s => s.activity);
-  if (scheduleSlots.length > 0) {
-    // Create recurring weekly tasks for the first 4 weeks
+  // --- WEEKLY OPS (from actual schedule slots with activities) ---
+  const namedSlots = schedule.filter(s => s.activity);
+  if (namedSlots.length > 0) {
     for (let week = 0; week < 4; week++) {
       const weekStart = addDays(startDate, week * 7);
-      const dayMap: Record<string, number> = {
-        Monday: 0, Tuesday: 1, Wednesday: 2, Thursday: 3,
-        Friday: 4, Saturday: 5, Sunday: 6,
-      };
-
-      scheduleSlots.forEach(slot => {
-        const dayOffset = dayMap[slot.day] ?? 0;
+      namedSlots.forEach(slot => {
         const emoji = slot.type === 'create' ? '📦' : slot.type === 'publish' ? '📢' : '💬';
         tasks.push({
           id: makeId(),
           task_text: `${emoji} ${slot.day}: ${slot.activity}`,
-          scheduled_date: format(addDays(weekStart, dayOffset), 'yyyy-MM-dd'),
+          scheduled_date: format(dayInWeek(weekStart, slot.day), 'yyyy-MM-dd'),
           phase: 'weekly-ops',
           priority: 'medium',
           estimated_minutes: 30,
