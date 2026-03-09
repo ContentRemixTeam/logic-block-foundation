@@ -2,6 +2,7 @@ import { EngineLoopGraphic } from '../EngineLoopGraphic';
 import { PLATFORMS } from '../PlatformScorecardData';
 import { LOOP_LENGTHS, OFFER_FREQUENCIES, SALES_METHODS, EMAIL_METHODS, SECONDARY_NURTURE_OPTIONS } from '../EngineBuilderTypes';
 import type { EngineBuilderData } from '../EngineBuilderTypes';
+import { BundleRecommendations } from '../BundleRecommendations';
 
 interface StepResultsProps {
   data: EngineBuilderData;
@@ -83,6 +84,9 @@ export function StepResults({ data, onDownloadPDF, onSaveToBossPlanner, isMember
           ))}
         </SummaryCard>
       )}
+
+      {/* Bundle Recommendations */}
+      <BundleRecommendations data={data} />
 
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-3 pt-4">
