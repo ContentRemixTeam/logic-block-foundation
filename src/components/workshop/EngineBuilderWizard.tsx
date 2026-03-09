@@ -109,9 +109,11 @@ export function EngineBuilderWizard() {
         {showResults ? (
           <StepResults
             data={data}
+            onChange={onChange}
             onDownloadPDF={() => generateEngineBuilderPDF(data)}
             onSaveToBossPlanner={isMember ? handleSaveToBossPlanner : undefined}
             isMember={isMember}
+            isSaving={saved}
           />
         ) : (
           <>
