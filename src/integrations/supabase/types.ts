@@ -6935,6 +6935,7 @@ export type Database = {
           delight_intensity: string
           dismissed_launch_debriefs: Json | null
           habit_categories_enabled: boolean | null
+          has_completed_setup: boolean | null
           has_seen_tour: boolean | null
           last_debrief_date: string | null
           longest_debrief_streak: number | null
@@ -6950,11 +6951,15 @@ export type Database = {
           scratch_pad_review_mode: string | null
           show_ai_copywriting: boolean | null
           show_coin_counter: boolean | null
+          show_content_calendar: boolean | null
           show_content_in_planners: boolean | null
+          show_courses: boolean | null
           show_income_tracker: boolean | null
           show_mastermind_calls: boolean | null
+          show_mindset: boolean | null
           show_pet_widget: boolean | null
           show_pomodoro_widget: boolean | null
+          show_wins: boolean | null
           sound_enabled: boolean
           streak_potions_remaining: number | null
           theme_preference: string | null
@@ -6986,6 +6991,7 @@ export type Database = {
           delight_intensity?: string
           dismissed_launch_debriefs?: Json | null
           habit_categories_enabled?: boolean | null
+          has_completed_setup?: boolean | null
           has_seen_tour?: boolean | null
           last_debrief_date?: string | null
           longest_debrief_streak?: number | null
@@ -7001,11 +7007,15 @@ export type Database = {
           scratch_pad_review_mode?: string | null
           show_ai_copywriting?: boolean | null
           show_coin_counter?: boolean | null
+          show_content_calendar?: boolean | null
           show_content_in_planners?: boolean | null
+          show_courses?: boolean | null
           show_income_tracker?: boolean | null
           show_mastermind_calls?: boolean | null
+          show_mindset?: boolean | null
           show_pet_widget?: boolean | null
           show_pomodoro_widget?: boolean | null
+          show_wins?: boolean | null
           sound_enabled?: boolean
           streak_potions_remaining?: number | null
           theme_preference?: string | null
@@ -7037,6 +7047,7 @@ export type Database = {
           delight_intensity?: string
           dismissed_launch_debriefs?: Json | null
           habit_categories_enabled?: boolean | null
+          has_completed_setup?: boolean | null
           has_seen_tour?: boolean | null
           last_debrief_date?: string | null
           longest_debrief_streak?: number | null
@@ -7052,11 +7063,15 @@ export type Database = {
           scratch_pad_review_mode?: string | null
           show_ai_copywriting?: boolean | null
           show_coin_counter?: boolean | null
+          show_content_calendar?: boolean | null
           show_content_in_planners?: boolean | null
+          show_courses?: boolean | null
           show_income_tracker?: boolean | null
           show_mastermind_calls?: boolean | null
+          show_mindset?: boolean | null
           show_pet_widget?: boolean | null
           show_pomodoro_widget?: boolean | null
+          show_wins?: boolean | null
           sound_enabled?: boolean
           streak_potions_remaining?: number | null
           theme_preference?: string | null
