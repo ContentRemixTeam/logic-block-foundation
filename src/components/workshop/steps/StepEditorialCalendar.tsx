@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { BATCH_OPTIONS, DAYS_OF_WEEK } from '../EngineBuilderTypes';
 import type { EngineBuilderData, WeeklySlot } from '../EngineBuilderTypes';
 import { PLATFORMS } from '../PlatformScorecardData';
+import { Plus, X } from 'lucide-react';
 
 const BATCH_FREQUENCIES = [
   { value: 'weekly', label: 'Weekly', description: 'Batch all content once a week', emoji: '📅' },
@@ -16,28 +18,44 @@ interface StepEditorialCalendarProps {
 
 export function StepEditorialCalendar({ data, onChange }: StepEditorialCalendarProps) {
   const platform = PLATFORMS.find((p) => p.id === data.primaryPlatform);
+  const [addingDay, setAddingDay] = useState<string | null>(null);
 
-  const toggleDay = (day: string) => {
-    const exists = data.weeklySchedule.find((s) => s.day === day);
-    if (exists) {
-      onChange({ weeklySchedule: data.weeklySchedule.filter((s) => s.day !== day) });
-    } else {
-      onChange({
-        weeklySchedule: [
-          ...data.weeklySchedule,
-          { day, activity: '', type: 'publish' as const },
-        ].sort((a, b) => DAYS_OF_WEEK.indexOf(a.day) - DAYS_OF_WEEK.indexOf(b.day)),
-      });
-    }
+  const addSlot = (day: string, type: WeeklySlot['type'] = 'publish') => {
+    onChange({
+      weeklySchedule: [
+        ...data.weeklySchedule,
+        { day, activity: '', type },
+      ].sort((a, b) => {
+        const dayDiff = DAYS_OF_WEEK.indexOf(a.day) - DAYS_OF_WEEK.indexOf(b.day);
+        return dayDiff !== 0 ? dayDiff : 0;
+      }),
+    });
+    setAddingDay(null);
   };
 
-  const updateSlot = (day: string, updates: Partial<WeeklySlot>) => {
+  const removeSlot = (index: number) => {
     onChange({
-      weeklySchedule: data.weeklySchedule.map((s) =>
-        s.day === day ? { ...s, ...updates } : s
+      weeklySchedule: data.weeklySchedule.filter((_, i) => i !== index),
+    });
+  };
+
+  const updateSlot = (index: number, updates: Partial<WeeklySlot>) => {
+    onChange({
+      weeklySchedule: data.weeklySchedule.map((s, i) =>
+        i === index ? { ...s, ...updates } : s
       ),
     });
   };
+
+  // Group slots by day for display
+  const slotsByDay = DAYS_OF_WEEK.reduce((acc, day) => {
+    acc[day] = data.weeklySchedule
+      .map((slot, index) => ({ ...slot, originalIndex: index }))
+      .filter(s => s.day === day);
+    return acc;
+  }, {} as Record<string, (WeeklySlot & { originalIndex: number })[]>);
+
+  const activeDays = DAYS_OF_WEEK.filter(day => slotsByDay[day].length > 0);
 
   return (
     <div className="space-y-6">
@@ -63,7 +81,7 @@ export function StepEditorialCalendar({ data, onChange }: StepEditorialCalendarP
                 className={`
                   text-left p-4 rounded-xl border-2 transition-all duration-200
                   ${isSelected
-                    ? 'border-primary bg-primary/10 shadow-md ring-2 ring-primary/20'
+                    ? 'engine-selected'
                     : 'border-border bg-card hover:border-primary/40'
                   }
                 `}
@@ -93,7 +111,7 @@ export function StepEditorialCalendar({ data, onChange }: StepEditorialCalendarP
                   className={`
                     text-left p-3 rounded-xl border-2 transition-all duration-200
                     ${isSelected
-                      ? 'border-primary bg-primary/10 shadow-md ring-2 ring-primary/20'
+                      ? 'engine-selected'
                       : 'border-border bg-card hover:border-primary/40'
                     }
                   `}
@@ -124,7 +142,7 @@ export function StepEditorialCalendar({ data, onChange }: StepEditorialCalendarP
                 className={`
                   px-3 py-1.5 rounded-lg text-sm font-medium transition-all
                   ${data.batchDay === day
-                    ? 'bg-primary text-primary-foreground'
+                    ? 'engine-primary-btn'
                     : 'bg-secondary text-secondary-foreground hover:bg-secondary-hover'
                   }
                 `}
@@ -136,54 +154,82 @@ export function StepEditorialCalendar({ data, onChange }: StepEditorialCalendarP
         </div>
       )}
 
-      {/* Weekly schedule */}
+      {/* Weekly schedule — multiple slots per day */}
       <div>
         <h4 className="text-sm font-semibold text-foreground mb-3">
           Pick your posting days on {platform?.name || 'your platform'}:
         </h4>
+        
+        {/* Day selector — tap to add first slot */}
         <div className="flex flex-wrap gap-2 mb-4">
           {DAYS_OF_WEEK.map((day) => {
-            const isActive = data.weeklySchedule.some((s) => s.day === day);
+            const hasSlots = slotsByDay[day].length > 0;
             return (
               <button
                 key={day}
-                onClick={() => toggleDay(day)}
+                onClick={() => {
+                  if (!hasSlots) {
+                    addSlot(day, 'publish');
+                  }
+                }}
                 className={`
                   px-3 py-1.5 rounded-lg text-sm font-medium transition-all
-                  ${isActive
-                    ? 'bg-primary text-primary-foreground'
+                  ${hasSlots
+                    ? 'engine-primary-btn'
                     : 'bg-secondary text-secondary-foreground hover:bg-secondary-hover'
                   }
                 `}
               >
-                {day.slice(0, 3)}
+                {day.slice(0, 3)} {hasSlots && `(${slotsByDay[day].length})`}
               </button>
             );
           })}
         </div>
 
-        {/* Slot details */}
-        {data.weeklySchedule.length > 0 && (
-          <div className="space-y-2">
-            {data.weeklySchedule.map((slot) => (
-              <div key={slot.day} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
-                <span className="text-sm font-semibold text-foreground w-12">{slot.day.slice(0, 3)}</span>
-                <select
-                  value={slot.type}
-                  onChange={(e) => updateSlot(slot.day, { type: e.target.value as WeeklySlot['type'] })}
-                  className="px-2 py-1 rounded border border-border bg-background text-sm text-foreground"
-                >
-                  <option value="create">📦 Create</option>
-                  <option value="publish">📢 Publish</option>
-                  <option value="engage">💬 Engage</option>
-                </select>
-                <input
-                  type="text"
-                  value={slot.activity}
-                  onChange={(e) => updateSlot(slot.day, { activity: e.target.value })}
-                  placeholder="What specifically?"
-                  className="flex-1 px-2 py-1 rounded border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
+        {/* Slot details grouped by day */}
+        {activeDays.length > 0 && (
+          <div className="space-y-3">
+            {activeDays.map((day) => (
+              <div key={day} className="rounded-xl border border-border bg-card overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-2 bg-muted/30">
+                  <span className="text-sm font-semibold text-foreground">{day}</span>
+                  <button
+                    onClick={() => addSlot(day)}
+                    className="flex items-center gap-1 text-xs font-medium hover:opacity-80 transition-opacity"
+                    style={{ color: 'hsl(32 95% 44%)' }}
+                  >
+                    <Plus className="h-3 w-3" />
+                    Add slot
+                  </button>
+                </div>
+                <div className="divide-y divide-border">
+                  {slotsByDay[day].map((slot) => (
+                    <div key={slot.originalIndex} className="flex items-center gap-3 px-3 py-2">
+                      <select
+                        value={slot.type}
+                        onChange={(e) => updateSlot(slot.originalIndex, { type: e.target.value as WeeklySlot['type'] })}
+                        className="px-2 py-1 rounded border border-border bg-background text-sm text-foreground"
+                      >
+                        <option value="create">📦 Create</option>
+                        <option value="publish">📢 Publish</option>
+                        <option value="engage">💬 Engage</option>
+                      </select>
+                      <input
+                        type="text"
+                        value={slot.activity}
+                        onChange={(e) => updateSlot(slot.originalIndex, { activity: e.target.value })}
+                        placeholder="What specifically?"
+                        className="flex-1 px-2 py-1 rounded border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                      <button
+                        onClick={() => removeSlot(slot.originalIndex)}
+                        className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
@@ -212,7 +258,7 @@ export function StepEditorialCalendar({ data, onChange }: StepEditorialCalendarP
                 className={`
                   text-left p-4 rounded-xl border-2 transition-all duration-200
                   ${isSelected
-                    ? 'border-primary bg-primary/10 shadow-md ring-2 ring-primary/20'
+                    ? 'engine-selected'
                     : 'border-border bg-card hover:border-primary/40'
                   }
                 `}

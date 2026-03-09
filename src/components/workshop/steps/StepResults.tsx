@@ -30,7 +30,7 @@ function SummaryCard({ emoji, title, children }: { emoji: string; title: string;
   );
 }
 
-export function StepResults({ data, onChange, onDownloadPDF, onSaveToBossPlanner, isMember, isSaving }: StepResultsProps) {
+export function StepResults({ data, onChange, onDownloadPDF, onSaveToBossPlanner, isMember, isSaving, onBack }: StepResultsProps) {
   const [showTaskPreview, setShowTaskPreview] = useState(false);
 
   const platform = PLATFORMS.find((p) => p.id === data.primaryPlatform);
