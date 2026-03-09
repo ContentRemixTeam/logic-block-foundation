@@ -18,7 +18,7 @@ export function StepNurture({ data, onChange }: StepNurtureProps) {
         </p>
       </div>
 
-      {/* Email is required — pick the method */}
+      {/* Email method */}
       <div>
         <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
           <span className="text-base">📧</span> Email (required — your engine core)
@@ -29,7 +29,7 @@ export function StepNurture({ data, onChange }: StepNurtureProps) {
             return (
               <button
                 key={method.value}
-                onClick={() => onChange({ emailMethod: method.value })}
+                onClick={() => onChange({ emailMethod: method.value, customEmailMethod: '' })}
                 className={`
                   text-left p-4 rounded-xl border-2 transition-all duration-200
                   ${isSelected
@@ -43,7 +43,30 @@ export function StepNurture({ data, onChange }: StepNurtureProps) {
               </button>
             );
           })}
+          {/* Something else */}
+          <button
+            onClick={() => onChange({ emailMethod: 'other' })}
+            className={`
+              text-left p-4 rounded-xl border-2 transition-all duration-200
+              ${data.emailMethod === 'other'
+                ? 'border-primary bg-accent shadow-md ring-2 ring-primary/20'
+                : 'border-dashed border-border bg-card hover:border-primary/40'
+              }
+            `}
+          >
+            <h5 className="font-semibold text-sm text-foreground">✨ Something else</h5>
+            <p className="text-xs text-muted-foreground mt-1">I use a different method</p>
+          </button>
         </div>
+        {data.emailMethod === 'other' && (
+          <input
+            type="text"
+            value={data.customEmailMethod}
+            onChange={(e) => onChange({ customEmailMethod: e.target.value })}
+            placeholder="Describe your email approach..."
+            className="mt-3 w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+          />
+        )}
       </div>
 
       {/* Free transformation */}
@@ -74,7 +97,7 @@ export function StepNurture({ data, onChange }: StepNurtureProps) {
             return (
               <button
                 key={option.value}
-                onClick={() => onChange({ secondaryNurture: option.value })}
+                onClick={() => onChange({ secondaryNurture: option.value, customNurture: '' })}
                 className={`
                   flex items-center gap-2 p-3 rounded-lg border-2 text-left transition-all duration-200
                   ${isSelected
@@ -88,7 +111,30 @@ export function StepNurture({ data, onChange }: StepNurtureProps) {
               </button>
             );
           })}
+          {/* Something else */}
+          <button
+            onClick={() => onChange({ secondaryNurture: 'other' })}
+            className={`
+              flex items-center gap-2 p-3 rounded-lg border-2 text-left transition-all duration-200
+              ${data.secondaryNurture === 'other'
+                ? 'border-primary bg-accent shadow-sm'
+                : 'border-dashed border-border bg-card hover:border-primary/40'
+              }
+            `}
+          >
+            <span className="text-lg">✨</span>
+            <span className="text-sm font-medium text-foreground">Something else</span>
+          </button>
         </div>
+        {data.secondaryNurture === 'other' && (
+          <input
+            type="text"
+            value={data.customNurture}
+            onChange={(e) => onChange({ customNurture: e.target.value })}
+            placeholder="What's your secondary nurture method?"
+            className="mt-3 w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+          />
+        )}
       </div>
     </div>
   );

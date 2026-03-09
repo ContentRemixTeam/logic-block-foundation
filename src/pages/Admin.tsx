@@ -17,7 +17,7 @@ import {
   Users, AlertTriangle, MessageSquare, Lightbulb, Shield, Trash2, UserPlus, 
   ShieldCheck, ShieldOff, RefreshCw, Upload, FileSpreadsheet, CheckCircle, 
   XCircle, AlertCircle, Download, Link2, Copy, Check, RotateCcw, Loader2,
-  Search, ChevronDown, ChevronRight, User, Calendar, Target, Database
+  Search, ChevronDown, ChevronRight, User, Calendar, Target, Database, Star
 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -153,7 +153,7 @@ export default function Admin() {
   const [errorLogs, setErrorLogs] = useState<ErrorLog[]>([]);
   const [issueReports, setIssueReports] = useState<IssueReport[]>([]);
   const [featureRequests, setFeatureRequests] = useState<FeatureRequest[]>([]);
-  
+  const [testimonials, setTestimonials] = useState<any[]>([]);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [createUserOpen, setCreateUserOpen] = useState(false);
@@ -231,13 +231,14 @@ export default function Admin() {
 
   const loadAllData = async () => {
     try {
-      const [usersRes, errorsRes, issuesRes, featuresRes, membersRes, adminsRes] = await Promise.all([
+      const [usersRes, errorsRes, issuesRes, featuresRes, membersRes, adminsRes, testimonialsRes] = await Promise.all([
         supabase.functions.invoke('admin-get-data', { body: { action: 'get_users', limit: 100 } }),
         supabase.functions.invoke('admin-get-data', { body: { action: 'get_error_logs', limit: 100 } }),
         supabase.functions.invoke('admin-get-data', { body: { action: 'get_issue_reports', limit: 100 } }),
         supabase.functions.invoke('admin-get-data', { body: { action: 'get_feature_requests', limit: 100 } }),
         supabase.from('entitlements').select('*').order('created_at', { ascending: false }),
         supabase.from('admin_users').select('*').order('created_at', { ascending: false }),
+        supabase.from('workshop_testimonials' as any).select('*').order('created_at', { ascending: false }),
       ]);
 
       if (usersRes.data?.users) setUsers(usersRes.data.users);
@@ -246,6 +247,7 @@ export default function Admin() {
       if (featuresRes.data?.feature_requests) setFeatureRequests(featuresRes.data.feature_requests);
       if (membersRes.data) setMembers(membersRes.data);
       if (adminsRes.data) setAdminUsers(adminsRes.data);
+      if (testimonialsRes.data) setTestimonials(testimonialsRes.data as any[]);
       
       // Update existing emails set
       if (membersRes.data) {
@@ -780,7 +782,7 @@ export default function Admin() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="members" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Members</span> ({activeMembers.length})
@@ -796,6 +798,10 @@ export default function Admin() {
             <TabsTrigger value="users" className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4" />
               <span className="hidden sm:inline">App Users</span> ({users.length})
+            </TabsTrigger>
+            <TabsTrigger value="testimonials" className="flex items-center gap-2">
+              <Star className="h-4 w-4" />
+              <span className="hidden sm:inline">Testimonials</span> ({testimonials.length})
             </TabsTrigger>
             <TabsTrigger value="errors" className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4" />
@@ -1734,6 +1740,51 @@ export default function Admin() {
                     </TableBody>
                   </Table>
                 </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* TESTIMONIALS TAB */}
+          <TabsContent value="testimonials" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Star className="h-5 w-5" />
+                  Workshop Testimonials
+                </CardTitle>
+                <CardDescription>
+                  Feedback from the Business Engine Builder workshop
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {testimonials.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">No testimonials yet</p>
+                ) : (
+                  <div className="space-y-4">
+                    {testimonials.map((t: any) => (
+                      <div key={t.id} className="border border-border rounded-lg p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-foreground">{t.name}</span>
+                            {t.business_name && (
+                              <span className="text-xs text-muted-foreground">— {t.business_name}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {Array.from({ length: t.rating || 5 }).map((_, i) => (
+                              <span key={i} className="text-sm">⭐</span>
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-sm text-foreground">{t.testimonial}</p>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          {t.email && <span>{t.email}</span>}
+                          <span>{format(new Date(t.created_at), 'MMM d, yyyy')}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
