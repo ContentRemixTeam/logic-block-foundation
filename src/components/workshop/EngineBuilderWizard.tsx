@@ -70,12 +70,90 @@ export function EngineBuilderWizard() {
   const handleSaveToBossPlanner = async () => {
     if (!userId || saved) return;
     try {
+      // 1. Save the blueprint
       await supabase.from('wizard_completions').upsert({
         user_id: userId,
         template_name: WIZARD_NAME,
         answers_json: data as any,
         completed_at: new Date().toISOString(),
       });
+
+      // 2. Create a project for the engine
+      const { data: project } = await supabase
+        .from('projects')
+        .insert({
+          user_id: userId,
+          name: '🏎️ Business Engine Plan',
+          status: 'active',
+          color: '#f59e0b',
+        })
+        .select('id')
+        .single();
+
+      const projectId = project?.id;
+
+      // 3. Generate tasks if opted in
+      if (data.generateTasks !== false) {
+        const allTasks = generateEngineBuilderTasksPreview(data);
+        const selectedTasks = allTasks.filter(t => 
+          isTaskSelected(t.id, data.excludedTasks || [])
+        );
+
+        if (selectedTasks.length > 0) {
+          const taskRows = selectedTasks.map(t => {
+            const effectiveDate = getTaskDate(t, data.dateOverrides || []);
+            return {
+              user_id: userId,
+              task_text: t.task_text,
+              scheduled_date: effectiveDate,
+              priority: t.priority,
+              estimated_minutes: t.estimated_minutes,
+              project_id: projectId || null,
+              status: 'pending' as const,
+              content_type: t.phase === 'lead-gen' || t.phase === 'nurture' ? 'social' : null,
+            };
+          });
+
+          await supabase.from('tasks').insert(taskRows);
+        }
+      }
+
+      // 4. Create content items if opted in
+      if (data.generateContentItems !== false) {
+        const contentItems = [];
+        const platformName = data.primaryPlatform || 'social';
+
+        // Lead gen content items
+        for (let week = 0; week < 4; week++) {
+          contentItems.push({
+            user_id: userId,
+            title: `Week ${week + 1} ${platformName} content`,
+            type: 'social' as const,
+            channel: data.primaryPlatform || null,
+            status: 'idea' as const,
+            project_id: projectId || null,
+          });
+        }
+
+        // Email content items
+        if (data.emailMethod) {
+          for (let week = 0; week < 4; week++) {
+            contentItems.push({
+              user_id: userId,
+              title: `Week ${week + 1} email newsletter`,
+              type: 'email' as const,
+              channel: 'email',
+              status: 'idea' as const,
+              project_id: projectId || null,
+            });
+          }
+        }
+
+        if (contentItems.length > 0) {
+          await supabase.from('content_items').insert(contentItems);
+        }
+      }
+
       setSaved(true);
       toast.success('Engine blueprint saved to your planner! 🏎️');
     } catch (err) {
