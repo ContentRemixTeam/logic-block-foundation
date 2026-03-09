@@ -136,11 +136,12 @@ export const OFFER_FREQUENCIES = [
 
 export const SALES_METHODS = [
   { value: 'sales-page', label: 'Sales Page', emoji: '📄' },
-  { value: 'dm-selling', label: 'DM Selling', emoji: '💬' },
   { value: 'calls', label: 'Sales/Discovery Calls', emoji: '📞' },
   { value: 'webinar', label: 'Webinar/Masterclass', emoji: '🎓' },
   { value: 'email-launch', label: 'Email Launch Sequence', emoji: '📧' },
   { value: 'checkout-link', label: 'Direct Checkout Link', emoji: '🔗' },
+  { value: 'limited-time', label: 'Limited-Time Offers', emoji: '⏰' },
+  { value: 'challenge-launch', label: 'Challenge/Launch Event', emoji: '🏆' },
 ];
 
 export const LOOP_LENGTHS = [
