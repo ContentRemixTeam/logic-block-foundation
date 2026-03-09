@@ -49,7 +49,16 @@ const officeHoursCalUrl = buildGoogleCalendarUrl({
   location: 'https://www.youtube.com/watch?v=i7RY5obUzWo',
 });
 
-const fadeUp = {
+const bundleCalUrl = buildGoogleCalendarUrl({
+  title: '📦 Plan Your Profitable Bundle in 90 Minutes',
+  date: '20260327',
+  startHour: '1500',
+  endHour: '1630',
+  timezone: 'America/New_York',
+  description: 'Plan Your Profitable Bundle in 90 Minutes — live workshop!',
+});
+
+
   hidden: { opacity: 0, y: 24 },
   visible: (i: number) => ({
     opacity: 1,
