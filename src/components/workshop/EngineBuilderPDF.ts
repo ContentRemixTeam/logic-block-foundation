@@ -87,19 +87,29 @@ export function generateEngineBuilderPDF(data: EngineBuilderData) {
 
   // Weekly schedule
   if (data.weeklySchedule.length > 0) {
+    if (y > 240) { doc.addPage(); y = 20; }
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text('SCHEDULE — Your Weekly Race Plan', 15, y);
     y += 8;
 
     doc.setFontSize(10);
-    data.weeklySchedule.forEach((slot) => {
-      doc.setFont('helvetica', 'bold');
-      doc.text(`${slot.day}: `, 20, y);
-      const dayWidth = doc.getTextWidth(`${slot.day}: `);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`${slot.type} — ${slot.activity || '(not specified)'}`, 20 + dayWidth, y);
-      y += 6;
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    days.forEach((day) => {
+      const daySlots = data.weeklySchedule.filter(s => s.day === day);
+      if (daySlots.length === 0) return;
+      
+      daySlots.forEach((slot, i) => {
+        if (y > 275) { doc.addPage(); y = 20; }
+        const typeEmoji = slot.type === 'create' ? 'Create' : slot.type === 'publish' ? 'Publish' : 'Engage';
+        doc.setFont('helvetica', 'bold');
+        const prefix = i === 0 ? `${slot.day}: ` : '          ';
+        doc.text(prefix, 20, y);
+        const prefixWidth = doc.getTextWidth(prefix);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`[${typeEmoji}] ${slot.activity || '(not specified)'}`, 20 + prefixWidth, y);
+        y += 6;
+      });
     });
   }
 
