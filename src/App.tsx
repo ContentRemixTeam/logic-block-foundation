@@ -286,6 +286,7 @@ const App = () => (
                       <Route path="/join" element={<PageSuspense><MemberSignup /></PageSuspense>} />
                       <Route path="/quick-add" element={<PageSuspense><QuickAddApp /></PageSuspense>} />
                       <Route path="/install-quick-add" element={<PageSuspense><InstallQuickAdd /></PageSuspense>} />
+                      <Route path="/workshop/engine-builder" element={<PageSuspense><EngineBuilderPage /></PageSuspense>} />
                       
                       <Route path="*" element={<NotFound />} />
                     </Routes>
