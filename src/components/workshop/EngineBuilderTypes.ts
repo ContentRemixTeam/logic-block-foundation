@@ -124,7 +124,6 @@ export const SECONDARY_NURTURE_OPTIONS = [
   { value: 'youtube', label: 'YouTube', emoji: '📺' },
   { value: 'blog', label: 'Blog', emoji: '✍️' },
   { value: 'community', label: 'Free Community', emoji: '👥' },
-  { value: 'dm', label: 'DM Conversations', emoji: '💬' },
   { value: 'none', label: 'Just email for now', emoji: '📧' },
 ];
 
