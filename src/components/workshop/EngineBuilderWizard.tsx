@@ -105,7 +105,7 @@ export function EngineBuilderWizard() {
 
       if (existingCompletion) {
         await supabase.from('wizard_completions').update({
-          answers_json: data as any,
+          answers: data as any,
           completed_at: new Date().toISOString(),
         }).eq('id', existingCompletion.id);
       } else {
