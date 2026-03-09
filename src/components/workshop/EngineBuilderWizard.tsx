@@ -42,13 +42,13 @@ export function EngineBuilderWizard() {
           // Load existing blueprint if any
           const { data: existing } = await supabase
             .from('wizard_completions')
-            .select('answers_json, completed_at')
+            .select('answers, completed_at')
             .eq('user_id', user.id)
             .eq('template_name', WIZARD_NAME)
             .maybeSingle();
-          if (existing?.answers_json) {
+          if (existing?.answers) {
             try {
-              const saved = existing.answers_json as unknown as EngineBuilderData;
+              const saved = existing.answers as unknown as EngineBuilderData;
               // Merge with defaults so new fields are included
               setData({ ...DEFAULT_ENGINE_DATA, ...saved });
               setLoadedExisting(true);
