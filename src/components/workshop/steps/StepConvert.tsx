@@ -1,5 +1,13 @@
-import { OFFER_FREQUENCIES, SALES_METHODS } from '../EngineBuilderTypes';
+import { SALES_METHODS } from '../EngineBuilderTypes';
 import type { EngineBuilderData } from '../EngineBuilderTypes';
+
+const SELL_FREQUENCIES = [
+  { value: 'weekly', label: 'Weekly', description: 'You make offers every week — flash sales, promos, or weekly pitches in your emails', emoji: '📅' },
+  { value: 'evergreen-urgency', label: 'Evergreen with urgency', description: 'Always available, but you create momentum with expiring bonuses, limited-time prices, or deadlines', emoji: '🌿' },
+  { value: 'monthly', label: 'Monthly launches', description: '3 weeks nurture, 1 week open cart with urgency and deadline', emoji: '🗓️' },
+  { value: 'quarterly', label: 'Quarterly launches', description: 'Consistent nurture all quarter, one focused launch window', emoji: '🗓️' },
+  { value: 'yearly', label: '1-2x per year', description: 'Big launches, longer build-up, high urgency windows', emoji: '🎯' },
+];
 
 interface StepConvertProps {
   data: EngineBuilderData;
