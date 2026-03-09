@@ -101,7 +101,7 @@ export function StepNurture({ data, onChange }: StepNurtureProps) {
                 className={`
                   flex items-center gap-2 p-3 rounded-lg border-2 text-left transition-all duration-200
                   ${isSelected
-                    ? 'border-primary bg-accent shadow-sm'
+                    ? 'border-primary bg-primary/10 shadow-sm'
                     : 'border-border bg-card hover:border-primary/40'
                   }
                 `}
