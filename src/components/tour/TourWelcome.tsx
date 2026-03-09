@@ -9,6 +9,7 @@ import { getStorageItem } from '@/lib/storage';
 const PUBLIC_ROUTES = ['/engine', '/workshop', '/workshop/engine-builder'];
 
 export function TourWelcome() {
+  const location = useLocation();
   const { hasSeenTour, startTour, markTourComplete, isActive, isLoading } = useTour();
 
   const handleStartTour = () => {
