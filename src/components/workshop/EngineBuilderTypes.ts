@@ -38,9 +38,11 @@ export interface EngineBuilderData {
   
   // Step 5: Editorial Calendar
   batchOrLive: string;
+  batchFrequency: string;
   batchDay: string;
   leadTimeDays: number;
   weeklySchedule: WeeklySlot[];
+  engineFocusArea: string;
 }
 
 export interface ContentSlot {
