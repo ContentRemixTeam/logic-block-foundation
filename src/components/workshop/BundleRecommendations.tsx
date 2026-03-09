@@ -101,9 +101,14 @@ function ProductCard({ product, isVip }: { product: BundleProduct; isVip?: boole
         <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{product.description}</p>
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">by {product.name}</span>
-          <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
-            👑 Boss Mode
-          </span>
+          <a
+            href="https://faithmariah.com/bossmastermind"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:underline"
+          >
+            👑 Upgrade to Boss Mode →
+          </a>
         </div>
       </div>
     );
