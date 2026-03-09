@@ -16,6 +16,7 @@ interface StepResultsProps {
   onSaveToBossPlanner?: () => void;
   isMember?: boolean;
   isSaving?: boolean;
+  onBack?: () => void;
 }
 
 function SummaryCard({ emoji, title, children }: { emoji: string; title: string; children: React.ReactNode }) {
