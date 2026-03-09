@@ -3,6 +3,7 @@ import { PLATFORMS } from '../PlatformScorecardData';
 import { LOOP_LENGTHS, OFFER_FREQUENCIES, SALES_METHODS, EMAIL_METHODS, SECONDARY_NURTURE_OPTIONS } from '../EngineBuilderTypes';
 import type { EngineBuilderData } from '../EngineBuilderTypes';
 import { BundleRecommendations } from '../BundleRecommendations';
+import { WorkshopTestimonialForm } from '../WorkshopTestimonialForm';
 
 interface StepResultsProps {
   data: EngineBuilderData;
