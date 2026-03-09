@@ -1,28 +1,58 @@
 
 
-# Auto-refresh Daily Agenda After Scratch Pad Tag Processing
+# Bundle Product Recommendations — Build Plan
 
-## What's Already Working
-The `#task` items from the scratch pad are already saved with today's date (`scheduled_date`) and no time slot, which places them in the "unscheduled" pool on the daily agenda. They ARE being created correctly in the database.
+## Data Understanding
 
-## The Gap
-After processing tags, the UI doesn't automatically refresh the task list. The user has to navigate away and back to see the newly created tasks appear on the agenda.
+**Free Bundle** (~170 gifts): Fields needed — Name, Gift Name, Landing Page URL, Category, Description, Value, Sponsorship status (column 5 links to sponsor name)
+**VIP Gifts** (17 products): Name, Product Name, URL, Category, Description, Regular Price
+**Sponsors** (13 sponsors): Name, Sponsorship Level (Gold $197 / Silver $97)
 
-## Fix
-Invalidate the React Query task cache after successful tag processing so the daily agenda updates instantly.
+**Categories found in data:**
+- Business Strategy
+- Apps/AI/Software
+- Email Marketing
+- Branding and Copywriting
+- Course and Product Creation
+- Productivity & Business Systems
+- Collaborations/Bundles/Summits
+- Pinterest & Social Media
+- Blogging and SEO
+- Mindset / Wellness / Self-Care
+- Video / YouTube / Podcasting
 
-### File: `src/components/daily-plan/DailyScratchPad.tsx` (or whichever scratch pad component calls `process-scratch-pad-tags` on the daily plan page)
+## Recommendation Mapping Logic
 
-1. Import `useQueryClient` from `@tanstack/react-query`
-2. After a successful `process-scratch-pad-tags` call (inside the success branch of `handleProcessTags`), call `queryClient.invalidateQueries({ queryKey: ['all-tasks'] })` to trigger an immediate refetch of the task list
-3. This will cause the daily agenda to re-render with the newly created tasks visible in the unscheduled pool -- no page reload needed
+Each product gets tagged with which engine builder selections it matches:
 
-### File: `src/components/weekly-plan/WeeklyScratchPad.tsx`
+| Engine Step | User Selection | Matching Categories/Keywords |
+|---|---|---|
+| Discover (Platform) | Instagram, YouTube, Pinterest, LinkedIn, Blog/SEO, Podcast, Facebook | Match by category + description keywords |
+| Nurture (Method) | Newsletter, Sequence, Broadcast + secondary (podcast, YouTube, blog, community, DM) | Email Marketing, community tools, content planning |
+| Convert (Offer Type) | Sales page, webinar, DM selling, calls, email launch, checkout link | Business Strategy, course creation, copywriting |
+| General | Always relevant | Productivity & Business Systems, AI tools |
 
-Same change -- add query invalidation after successful tag processing so the weekly view also reflects new tasks immediately.
+## Display Rules (Per User's Request)
+1. **VIP products at top** — labeled "BOSS MODE RECOMMENDATIONS" with upgrade link to `https://faithmariah.com/bundle-offer`
+2. **Sponsor gifts prioritized** within free recommendations (sorted to top) but NOT labeled as sponsors
+3. **Free gifts** sorted by relevance score, sponsors silently first
+4. **Direct links** to each gift's landing page
 
-## Technical Detail
-- Only the query cache invalidation call is added; no data logic or mutations are changed
-- The existing `useTasks()` hook and `useTaskMutations()` pattern is respected -- we just tell React Query the cache is stale
-- One-line addition per file after the success toast
+## What Gets Built
+
+### New Files
+- `src/components/workshop/BundleRecommendationData.ts` — Hardcoded product arrays (free gifts, VIP gifts) with tags for matching. Each product: `{ name, contributorName, url, category, description, value, isSponsor, tags: string[] }`
+- `src/components/workshop/BundleRecommendations.tsx` — Recommendation engine component that takes `EngineBuilderData` and renders matched products in sections: Boss Mode (VIP) → Free Gifts (sponsors silently first)
+
+### Modified Files
+- `src/components/workshop/steps/StepResults.tsx` — Add `<BundleRecommendations data={data} />` section below the engine blueprint summary
+
+### Tagging Strategy
+Each product gets an array of tags like `['instagram', 'email', 'sales-page', 'course-creation', 'content-planning']` based on its category + description keywords. The recommendation engine scores products by how many tags match the user's selections across all 5 steps, then sorts by score (sponsors get a +1 boost to float up without being labeled).
+
+### UI Design
+- **Boss Mode section**: Gold/amber accent border, crown emoji, "Upgrade to Boss Mode" link → `faithmariah.com/bundle-offer`
+- **Free recommendations**: Clean card grid with gift name, contributor, value badge, description snippet, and "Get It Free →" button linking to landing page
+- Race car theme: "Your Pit Crew Picks" header, "Tools to supercharge your engine" subheading
+- Show top 8-12 most relevant free gifts + all matching VIP gifts
 
