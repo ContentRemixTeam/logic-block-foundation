@@ -24,6 +24,7 @@ const IMPLEMENTED_WIZARDS = [
   'flash-sale-wizard',
   'webinar-wizard',
   'content-challenge-30-days',
+  'business-engine-builder',
 ];
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -130,6 +131,8 @@ export default function WizardHub() {
       navigate('/wizards/webinar');
     } else if (templateName === 'content-challenge-30-days') {
       navigate('/wizards/content-challenge');
+    } else if (templateName === 'business-engine-builder') {
+      navigate('/workshop/engine-builder');
     } else {
       toast.info('This wizard is coming soon!');
     }

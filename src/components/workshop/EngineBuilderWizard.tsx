@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { EngineBuilderProgress } from './EngineBuilderProgress';
 import { StepDiscover } from './steps/StepDiscover';
 import { StepNurture } from './steps/StepNurture';
@@ -9,11 +9,37 @@ import { StepResults } from './steps/StepResults';
 import { generateEngineBuilderPDF } from './EngineBuilderPDF';
 import { DEFAULT_ENGINE_DATA, TOTAL_STEPS, STEP_CONFIGS, TRANSITION_MESSAGES } from './EngineBuilderTypes';
 import type { EngineBuilderData } from './EngineBuilderTypes';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+const WIZARD_NAME = 'business-engine-builder';
 
 export function EngineBuilderWizard() {
   const [step, setStep] = useState(1);
   const [data, setData] = useState<EngineBuilderData>(DEFAULT_ENGINE_DATA);
   const [showResults, setShowResults] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isMember, setIsMember] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+        // Check if mastermind member
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('user_type')
+          .eq('id', user.id)
+          .single();
+        if (profile?.user_type === 'member') {
+          setIsMember(true);
+        }
+      }
+    };
+    checkAuth();
+  }, []);
 
   const onChange = (updates: Partial<EngineBuilderData>) => {
     setData((prev) => ({ ...prev, ...updates }));
@@ -46,6 +72,23 @@ export function EngineBuilderWizard() {
     }
   };
 
+  const handleSaveToBossPlanner = async () => {
+    if (!userId || saved) return;
+    try {
+      await supabase.from('wizard_completions').upsert({
+        user_id: userId,
+        template_name: WIZARD_NAME,
+        answers_json: data as any,
+        completed_at: new Date().toISOString(),
+      });
+      setSaved(true);
+      toast.success('Engine blueprint saved to your planner! 🏎️');
+    } catch (err) {
+      console.error('Error saving engine builder:', err);
+      toast.error('Failed to save — try again');
+    }
+  };
+
   const currentConfig = STEP_CONFIGS[step - 1];
 
   return (
@@ -57,9 +100,11 @@ export function EngineBuilderWizard() {
             <span className="text-2xl">🏎️</span>
             <h1 className="text-lg font-bold text-foreground">Business Engine Builder</h1>
           </div>
-          <a href="/join" className="text-xs text-muted-foreground hover:text-primary transition-colors">
-            Mastermind member? Log in →
-          </a>
+          {!userId && (
+            <a href="/join" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+              Mastermind member? Log in →
+            </a>
+          )}
         </div>
       </header>
 
@@ -72,6 +117,8 @@ export function EngineBuilderWizard() {
           <StepResults
             data={data}
             onDownloadPDF={() => generateEngineBuilderPDF(data)}
+            onSaveToBossPlanner={isMember ? handleSaveToBossPlanner : undefined}
+            isMember={isMember}
           />
         ) : (
           <>
