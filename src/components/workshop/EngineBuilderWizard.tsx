@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { generateEngineBuilderTasksPreview } from '@/lib/engineBuilderTaskGenerator';
 import { isTaskSelected, getTaskDate } from '@/types/wizardTask';
+import { addDays, nextMonday, format } from 'date-fns';
 
 const WIZARD_NAME = 'business-engine-builder';
 
