@@ -14,8 +14,10 @@ export interface EngineBuilderData {
   customEmailMethod: string;
   secondaryNurture: string;
   customNurture: string;
+  secondaryNurtureFrequency: string;
+  customNurtureFrequency: string;
   freeTransformation: string;
-  
+
   // Step 3: Convert
   offerName: string;
   offerPrice: number | null;
@@ -63,6 +65,8 @@ export const DEFAULT_ENGINE_DATA: EngineBuilderData = {
   customEmailMethod: '',
   secondaryNurture: '',
   customNurture: '',
+  secondaryNurtureFrequency: '',
+  customNurtureFrequency: '',
   freeTransformation: '',
   offerName: '',
   offerPrice: null,
@@ -122,7 +126,6 @@ export const SECONDARY_NURTURE_OPTIONS = [
   { value: 'youtube', label: 'YouTube', emoji: '📺' },
   { value: 'blog', label: 'Blog', emoji: '✍️' },
   { value: 'community', label: 'Free Community', emoji: '👥' },
-  { value: 'dm', label: 'DM Conversations', emoji: '💬' },
   { value: 'none', label: 'Just email for now', emoji: '📧' },
 ];
 
@@ -135,11 +138,12 @@ export const OFFER_FREQUENCIES = [
 
 export const SALES_METHODS = [
   { value: 'sales-page', label: 'Sales Page', emoji: '📄' },
-  { value: 'dm-selling', label: 'DM Selling', emoji: '💬' },
   { value: 'calls', label: 'Sales/Discovery Calls', emoji: '📞' },
   { value: 'webinar', label: 'Webinar/Masterclass', emoji: '🎓' },
   { value: 'email-launch', label: 'Email Launch Sequence', emoji: '📧' },
   { value: 'checkout-link', label: 'Direct Checkout Link', emoji: '🔗' },
+  { value: 'limited-time', label: 'Limited-Time Offers', emoji: '⏰' },
+  { value: 'challenge-launch', label: 'Challenge/Launch Event', emoji: '🏆' },
 ];
 
 export const LOOP_LENGTHS = [
