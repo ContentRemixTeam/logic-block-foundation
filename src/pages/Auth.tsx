@@ -27,9 +27,23 @@ export default function Auth() {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      navigate('/dashboard');
-    }
+    if (!user) return;
+    
+    // Check if user is a mastermind member and redirect accordingly
+    const checkAndRedirect = async () => {
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('user_type')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile?.user_type === 'member') {
+        navigate('/workshop');
+      } else {
+        navigate('/dashboard');
+      }
+    };
+    checkAndRedirect();
   }, [user, navigate]);
 
   const validateEmail = (email: string): boolean => {
@@ -113,10 +127,22 @@ export default function Auth() {
           description: 'Successfully signed in.',
         });
         
-        // Redirect to stored location or dashboard
-        const redirectTo = sessionStorage.getItem('auth_redirect') || '/dashboard';
+        // Redirect based on user type
+        const storedRedirect = sessionStorage.getItem('auth_redirect');
         sessionStorage.removeItem('auth_redirect');
-        navigate(redirectTo);
+        
+        if (storedRedirect) {
+          navigate(storedRedirect);
+        } else {
+          // Check user type for smart redirect
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('user_type')
+            .eq('id', (await supabase.auth.getUser()).data.user?.id)
+            .single();
+          
+          navigate(profile?.user_type === 'member' ? '/workshop' : '/dashboard');
+        }
       } else {
         const redirectUrl = `${window.location.origin}/`;
         const { data, error } = await supabase.auth.signUp({
@@ -138,6 +164,7 @@ export default function Auth() {
             title: 'Welcome!',
             description: 'Your account has been created.',
           });
+          // New signups are guests, go to dashboard
           navigate('/dashboard');
         } else {
           toast({
