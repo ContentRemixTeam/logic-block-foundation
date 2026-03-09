@@ -782,7 +782,7 @@ export default function Admin() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="members" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Members</span> ({activeMembers.length})
@@ -798,6 +798,10 @@ export default function Admin() {
             <TabsTrigger value="users" className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4" />
               <span className="hidden sm:inline">App Users</span> ({users.length})
+            </TabsTrigger>
+            <TabsTrigger value="testimonials" className="flex items-center gap-2">
+              <Star className="h-4 w-4" />
+              <span className="hidden sm:inline">Testimonials</span> ({testimonials.length})
             </TabsTrigger>
             <TabsTrigger value="errors" className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4" />
