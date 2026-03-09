@@ -23,6 +23,7 @@ export interface EngineBuilderData {
   offerPrice: number | null;
   revenueGoal: number | null;
   salesNeeded: number | null;
+  secondaryOffers: SecondaryOffer[];
   offerFrequency: string;
   customOfferFrequency: string;
   salesMethods: string[];
@@ -46,6 +47,11 @@ export interface ContentSlot {
   week: number;
   type: 'discover' | 'nurture' | 'convert';
   description: string;
+}
+
+export interface SecondaryOffer {
+  name: string;
+  price: string;
 }
 
 export interface WeeklySlot {
@@ -72,6 +78,7 @@ export const DEFAULT_ENGINE_DATA: EngineBuilderData = {
   offerPrice: null,
   revenueGoal: null,
   salesNeeded: null,
+  secondaryOffers: [],
   offerFrequency: '',
   customOfferFrequency: '',
   salesMethods: [],
