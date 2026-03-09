@@ -43,6 +43,12 @@ export interface EngineBuilderData {
   leadTimeDays: number;
   weeklySchedule: WeeklySlot[];
   engineFocusArea: string;
+
+  // Save options
+  excludedTasks: string[];
+  dateOverrides: { taskId: string; newDate: string }[];
+  generateTasks: boolean;
+  generateContentItems: boolean;
 }
 
 export interface ContentSlot {
