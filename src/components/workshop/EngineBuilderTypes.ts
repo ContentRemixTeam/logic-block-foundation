@@ -25,6 +25,9 @@ export interface EngineBuilderData {
   customOfferFrequency: string;
   salesMethods: string[];
   customSalesMethod: string;
+  secondaryRevenueSources: string[];
+  customRevenueSource: string;
+  revenueSourceGrowthGoal: string;
   
   // Step 4: Revenue Loop
   loopLength: string;
