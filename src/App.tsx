@@ -148,6 +148,7 @@ const EffectsDemo = lazyWithRetry(() => import('./pages/EffectsDemo'));
 const PlannerMockups = lazyWithRetry(() => import('./pages/PlannerMockups'));
 const EngineBuilderPage = lazyWithRetry(() => import('./pages/EngineBuilderPage'));
 const WorkshopWelcomePage = lazyWithRetry(() => import('./pages/WorkshopWelcomePage'));
+const WorkshopRegisterPage = lazyWithRetry(() => import('./pages/WorkshopRegisterPage'));
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

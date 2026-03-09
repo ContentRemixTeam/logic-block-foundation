@@ -58,7 +58,7 @@ const bundleCalUrl = buildGoogleCalendarUrl({
   description: 'Plan Your Profitable Bundle in 90 Minutes — live workshop!',
 });
 
-
+const fadeUp = {
   hidden: { opacity: 0, y: 24 },
   visible: (i: number) => ({
     opacity: 1,
