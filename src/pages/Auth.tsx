@@ -27,9 +27,23 @@ export default function Auth() {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      navigate('/dashboard');
-    }
+    if (!user) return;
+    
+    // Check if user is a mastermind member and redirect accordingly
+    const checkAndRedirect = async () => {
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('user_type')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile?.user_type === 'member') {
+        navigate('/workshop');
+      } else {
+        navigate('/dashboard');
+      }
+    };
+    checkAndRedirect();
   }, [user, navigate]);
 
   const validateEmail = (email: string): boolean => {
