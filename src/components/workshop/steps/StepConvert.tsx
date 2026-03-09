@@ -204,6 +204,86 @@ export function StepConvert({ data, onChange }: StepConvertProps) {
           />
         )}
       </div>
+
+      {/* Divider */}
+      <div className="border-t border-border pt-6">
+        <h4 className="text-sm font-semibold text-foreground mb-1">Secondary Revenue Sources</h4>
+        <p className="text-xs text-muted-foreground mb-3">
+          Your main offer is your focus. But money comes from multiple places — even if these are smaller or less frequent. Check everything that applies to your business right now.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {SECONDARY_REVENUE_SOURCES.map((source) => {
+            const isSelected = data.secondaryRevenueSources.includes(source.value);
+            return (
+              <button
+                key={source.value}
+                onClick={() => {
+                  const updated = isSelected
+                    ? data.secondaryRevenueSources.filter((s) => s !== source.value)
+                    : [...data.secondaryRevenueSources, source.value];
+                  onChange({ secondaryRevenueSources: updated });
+                }}
+                className={`
+                  flex items-center gap-2 p-3 rounded-lg border-2 text-left transition-all duration-200
+                  ${isSelected
+                    ? 'border-primary bg-primary/10 shadow-sm'
+                    : 'border-border bg-card hover:border-primary/40'
+                  }
+                `}
+              >
+                <span className="text-lg">{source.emoji}</span>
+                <div>
+                  <span className="text-sm font-medium text-foreground">{source.label}</span>
+                  <p className="text-xs text-muted-foreground">{source.sublabel}</p>
+                </div>
+              </button>
+            );
+          })}
+          <button
+            onClick={() => {
+              const updated = data.secondaryRevenueSources.includes('other')
+                ? data.secondaryRevenueSources.filter((s) => s !== 'other')
+                : [...data.secondaryRevenueSources, 'other'];
+              onChange({ secondaryRevenueSources: updated });
+            }}
+            className={`
+              flex items-center gap-2 p-3 rounded-lg border-2 text-left transition-all duration-200
+              ${data.secondaryRevenueSources.includes('other')
+                ? 'border-primary bg-primary/10 shadow-sm'
+                : 'border-dashed border-border bg-card hover:border-primary/40'
+              }
+            `}
+          >
+            <span className="text-lg">✨</span>
+            <div>
+              <span className="text-sm font-medium text-foreground">Something else</span>
+            </div>
+          </button>
+        </div>
+        {data.secondaryRevenueSources.includes('other') && (
+          <input
+            type="text"
+            value={data.customRevenueSource}
+            onChange={(e) => onChange({ customRevenueSource: e.target.value })}
+            placeholder="Describe your other revenue source..."
+            className="mt-3 w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+          />
+        )}
+        {data.secondaryRevenueSources.length > 0 && (
+          <div className="mt-4">
+            <label className="text-sm font-medium text-foreground mb-1 block">
+              Which of these do you want to grow this quarter?
+            </label>
+            <input
+              type="text"
+              value={data.revenueSourceGrowthGoal}
+              onChange={(e) => onChange({ revenueSourceGrowthGoal: e.target.value })}
+              placeholder="e.g. I want to add an order bump to my checkout and start promoting one affiliate offer"
+              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
