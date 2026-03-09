@@ -65,6 +65,8 @@ export const DEFAULT_ENGINE_DATA: EngineBuilderData = {
   customEmailMethod: '',
   secondaryNurture: '',
   customNurture: '',
+  secondaryNurtureFrequency: '',
+  customNurtureFrequency: '',
   freeTransformation: '',
   offerName: '',
   offerPrice: null,
