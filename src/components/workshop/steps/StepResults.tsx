@@ -114,6 +114,9 @@ export function StepResults({ data, onDownloadPDF, onSaveToBossPlanner, isMember
           </a>
         )}
       </div>
+
+      {/* Testimonial Form */}
+      <WorkshopTestimonialForm engineData={data} />
     </div>
   );
 }
