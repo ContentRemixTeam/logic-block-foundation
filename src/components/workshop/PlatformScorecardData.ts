@@ -7,10 +7,7 @@ export interface PlatformProfile {
   idealFor: string;
   bestWhen: string;
   strengths: string[];
-  effort: 'Low' | 'Medium' | 'High';
-  timeToResults: string;
   contentType: string;
-  growthSpeed: 1 | 2 | 3 | 4 | 5;
 }
 
 export const PLATFORMS: PlatformProfile[] = [
