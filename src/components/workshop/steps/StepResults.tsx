@@ -227,7 +227,7 @@ export function StepResults({ data, onChange, onDownloadPDF, onSaveToBossPlanner
               onExcludedTasksChange={(excludedTasks) => onChange({ excludedTasks })}
               onDateOverridesChange={(dateOverrides) => onChange({ dateOverrides })}
               phaseOrder={ENGINE_BUILDER_PHASE_CONFIG}
-              defaultExpandedPhases={['setup', 'lead-gen']}
+              defaultExpandedPhases={['setup', 'schedule']}
               maxHeight="350px"
             />
           )}
