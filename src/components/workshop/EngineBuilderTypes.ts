@@ -14,8 +14,10 @@ export interface EngineBuilderData {
   customEmailMethod: string;
   secondaryNurture: string;
   customNurture: string;
+  secondaryNurtureFrequency: string;
+  customNurtureFrequency: string;
   freeTransformation: string;
-  
+
   // Step 3: Convert
   offerName: string;
   offerPrice: number | null;
