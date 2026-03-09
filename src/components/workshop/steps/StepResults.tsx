@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { EngineLoopGraphic } from '../EngineLoopGraphic';
 import { PLATFORMS } from '../PlatformScorecardData';
-import { LOOP_LENGTHS, OFFER_FREQUENCIES, SALES_METHODS, EMAIL_METHODS, SECONDARY_NURTURE_OPTIONS } from '../EngineBuilderTypes';
+import { LOOP_LENGTHS, OFFER_FREQUENCIES, SALES_METHODS, EMAIL_METHODS, SECONDARY_NURTURE_OPTIONS, BATCH_OPTIONS } from '../EngineBuilderTypes';
 import type { EngineBuilderData } from '../EngineBuilderTypes';
 import { BundleRecommendations } from '../BundleRecommendations';
 import { WorkshopTestimonialForm } from '../WorkshopTestimonialForm';
@@ -41,15 +41,26 @@ export function StepResults({ data, onChange, onDownloadPDF, onSaveToBossPlanner
     })
     .filter(Boolean);
   const loopLabel = LOOP_LENGTHS.find((l) => l.value === data.loopLength)?.label;
-  const freqLabel = OFFER_FREQUENCIES.find((f) => f.value === data.offerFrequency)?.label;
-  const emailLabel = EMAIL_METHODS.find((e) => e.value === data.emailMethod)?.label;
-  const nurtureLabel = SECONDARY_NURTURE_OPTIONS.find((n) => n.value === data.secondaryNurture)?.label;
+  const emailLabel = data.emailMethod === 'other' ? (data.customEmailMethod || 'Custom') : (EMAIL_METHODS.find((e) => e.value === data.emailMethod)?.label || data.emailMethod);
+  const nurtureLabel = data.secondaryNurture === 'other' ? (data.customNurture || 'Custom') : SECONDARY_NURTURE_OPTIONS.find((n) => n.value === data.secondaryNurture)?.label;
   const salesLabels = data.salesMethods.map((m) => SALES_METHODS.find((s) => s.value === m)?.label).filter(Boolean);
   const salesNeeded = data.revenueGoal && data.offerPrice && data.offerPrice > 0
     ? Math.ceil(data.revenueGoal / data.offerPrice) : null;
+  const batchLabel = BATCH_OPTIONS.find(b => b.value === data.batchOrLive)?.label;
+
+  const sellFreqLabels: Record<string, string> = {
+    'weekly': 'Weekly', 'evergreen-urgency': 'Evergreen with urgency',
+    'monthly': 'Monthly launches', 'quarterly': 'Quarterly launches', 'yearly': '1-2x per year',
+  };
+  const sellFreq = sellFreqLabels[data.offerFrequency] || data.customOfferFrequency || data.offerFrequency;
+
+  const focusLabels: Record<string, string> = { discover: 'Lead Gen', nurture: 'Nurture', convert: 'Sales' };
 
   const allTasks = useMemo(() => generateEngineBuilderTasksPreview(data), [data]);
   const selectedTaskCount = allTasks.filter(t => !(data.excludedTasks || []).includes(t.id)).length;
+
+  // Group schedule by day for display
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
   return (
     <div className="space-y-6">
@@ -87,17 +98,31 @@ export function StepResults({ data, onChange, onDownloadPDF, onSaveToBossPlanner
 
         <SummaryCard emoji="🔧" title="Nurture (Engine Block)">
           <p><strong>Email:</strong> {emailLabel || '—'}</p>
-          <p><strong>Lead magnet:</strong> {data.freeTransformation || '—'}</p>
+          <p><strong>Main message:</strong> {data.freeTransformation || '—'}</p>
           {nurtureLabel && <p><strong>Secondary:</strong> {nurtureLabel}</p>}
+          {data.secondaryNurtureFrequency && data.secondaryNurtureFrequency !== 'none' && (
+            <p><strong>Secondary frequency:</strong> {data.secondaryNurtureFrequency === 'other' ? data.customNurtureFrequency : data.secondaryNurtureFrequency}</p>
+          )}
         </SummaryCard>
 
         <SummaryCard emoji="🚀" title="Convert (Turbo Boost)">
-          <p><strong>Offer:</strong> {data.offerName || '—'}</p>
-          {data.offerPrice && <p><strong>Price:</strong> ${data.offerPrice.toLocaleString()}</p>}
-          {data.revenueGoal && <p><strong>90-day goal:</strong> ${data.revenueGoal.toLocaleString()}</p>}
+          <p><strong>Main offer:</strong> {data.offerName || '—'}</p>
+          {data.offerPrice != null && <p><strong>Price:</strong> ${data.offerPrice.toLocaleString()}</p>}
+          {data.revenueGoal != null && <p><strong>90-day goal:</strong> ${data.revenueGoal.toLocaleString()}</p>}
           {salesNeeded && <p><strong>Sales needed:</strong> {salesNeeded}</p>}
-          {freqLabel && <p><strong>Frequency:</strong> {freqLabel}</p>}
+          {sellFreq && <p><strong>Sell frequency:</strong> {sellFreq}</p>}
           {salesLabels.length > 0 && <p><strong>Methods:</strong> {salesLabels.join(', ')}</p>}
+          {data.secondaryOffers?.length > 0 && (
+            <div className="pt-1">
+              <strong>Secondary offers:</strong>
+              {data.secondaryOffers.map((o, i) => (
+                <p key={i} className="ml-2">• {o.name}{o.price ? ` — $${o.price}` : ''}</p>
+              ))}
+            </div>
+          )}
+          {data.secondaryRevenueSources?.length > 0 && (
+            <p><strong>Revenue streams:</strong> {data.secondaryRevenueSources.join(', ')}</p>
+          )}
         </SummaryCard>
 
         <SummaryCard emoji="🔄" title="Revenue Loop (Rev Cycle)">
@@ -106,14 +131,36 @@ export function StepResults({ data, onChange, onDownloadPDF, onSaveToBossPlanner
         </SummaryCard>
       </div>
 
+      {/* Editorial / Batch settings */}
+      {(batchLabel || data.engineFocusArea) && (
+        <SummaryCard emoji="📦" title="Content Workflow">
+          {batchLabel && <p><strong>Creation style:</strong> {batchLabel}</p>}
+          {data.batchFrequency && (data.batchOrLive === 'batch' || data.batchOrLive === 'hybrid') && (
+            <p><strong>Batch frequency:</strong> {data.batchFrequency}</p>
+          )}
+          {data.batchDay && (data.batchOrLive === 'batch' || data.batchOrLive === 'hybrid') && (
+            <p><strong>Batch day:</strong> {data.batchDay}</p>
+          )}
+          {data.engineFocusArea && (
+            <p><strong>Focus area:</strong> {focusLabels[data.engineFocusArea] || data.engineFocusArea}</p>
+          )}
+        </SummaryCard>
+      )}
+
       {/* Weekly schedule */}
       {data.weeklySchedule.length > 0 && (
         <SummaryCard emoji="🏁" title="Weekly Schedule">
-          {data.weeklySchedule.map((slot) => (
-            <p key={slot.day}>
-              <strong>{slot.day}:</strong> {slot.type === 'create' ? '📦' : slot.type === 'publish' ? '📢' : '💬'} {slot.activity || slot.type}
-            </p>
-          ))}
+          {days.map((day) => {
+            const daySlots = data.weeklySchedule.filter(s => s.day === day);
+            if (daySlots.length === 0) return null;
+            return daySlots.map((slot, i) => (
+              <p key={`${day}-${i}`}>
+                <strong>{i === 0 ? slot.day : ''}</strong>
+                {i === 0 ? ': ' : '    '}
+                {slot.type === 'create' ? '📦' : slot.type === 'publish' ? '📢' : '💬'} {slot.activity || slot.type}
+              </p>
+            ));
+          })}
         </SummaryCard>
       )}
 
@@ -133,7 +180,6 @@ export function StepResults({ data, onChange, onDownloadPDF, onSaveToBossPlanner
           onClick={() => {
             if (!isMember) return;
             if (showTaskPreview) {
-              // Already showing — trigger save
               onSaveToBossPlanner?.();
             } else {
               setShowTaskPreview(true);
@@ -142,14 +188,14 @@ export function StepResults({ data, onChange, onDownloadPDF, onSaveToBossPlanner
           disabled={!isMember || isSaving}
           className="flex-1 px-6 py-3 rounded-xl border-2 border-primary text-primary font-semibold text-sm hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isSaving ? '⏳ Saving...' : showTaskPreview
+          {isSaving ? '✅ Saved!' : showTaskPreview
             ? `🏗️ Save ${selectedTaskCount} Tasks to Planner`
             : '🏗️ Save to Planner (Mastermind Members)'}
         </button>
       </div>
 
       {/* Task Preview for Mastermind Members */}
-      {isMember && showTaskPreview && (
+      {isMember && showTaskPreview && !isSaving && (
         <div className="space-y-4 border border-border rounded-xl p-4 bg-card">
           <div className="space-y-3">
             <h4 className="font-semibold text-foreground flex items-center gap-2">
