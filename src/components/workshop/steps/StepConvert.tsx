@@ -89,7 +89,7 @@ export function StepConvert({ data, onChange }: StepConvertProps) {
             return (
               <button
                 key={freq.value}
-                onClick={() => onChange({ offerFrequency: freq.value })}
+                onClick={() => onChange({ offerFrequency: freq.value, customOfferFrequency: '' })}
                 className={`
                   flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all duration-200
                   ${isSelected
@@ -105,7 +105,33 @@ export function StepConvert({ data, onChange }: StepConvertProps) {
               </button>
             );
           })}
+          {/* Something else */}
+          <button
+            onClick={() => onChange({ offerFrequency: 'other' })}
+            className={`
+              flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all duration-200
+              ${data.offerFrequency === 'other'
+                ? 'border-primary bg-accent shadow-md ring-2 ring-primary/20'
+                : 'border-dashed border-border bg-card hover:border-primary/40'
+              }
+            `}
+          >
+            <span className="text-xl">✨</span>
+            <div>
+              <h5 className="font-semibold text-sm text-foreground">Something else</h5>
+              <p className="text-xs text-muted-foreground">Custom frequency</p>
+            </div>
+          </button>
         </div>
+        {data.offerFrequency === 'other' && (
+          <input
+            type="text"
+            value={data.customOfferFrequency}
+            onChange={(e) => onChange({ customOfferFrequency: e.target.value })}
+            placeholder="Describe your selling frequency..."
+            className="mt-3 w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+          />
+        )}
       </div>
 
       {/* Sales methods */}
@@ -136,7 +162,35 @@ export function StepConvert({ data, onChange }: StepConvertProps) {
               </button>
             );
           })}
+          {/* Something else */}
+          <button
+            onClick={() => {
+              const updated = data.salesMethods.includes('other')
+                ? data.salesMethods.filter((m) => m !== 'other')
+                : [...data.salesMethods, 'other'];
+              onChange({ salesMethods: updated });
+            }}
+            className={`
+              flex items-center gap-2 p-3 rounded-lg border-2 text-left transition-all duration-200
+              ${data.salesMethods.includes('other')
+                ? 'border-primary bg-accent shadow-sm'
+                : 'border-dashed border-border bg-card hover:border-primary/40'
+              }
+            `}
+          >
+            <span className="text-lg">✨</span>
+            <span className="text-sm font-medium text-foreground">Something else</span>
+          </button>
         </div>
+        {data.salesMethods.includes('other') && (
+          <input
+            type="text"
+            value={data.customSalesMethod}
+            onChange={(e) => onChange({ customSalesMethod: e.target.value })}
+            placeholder="Describe your sales method..."
+            className="mt-3 w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+          />
+        )}
       </div>
     </div>
   );
