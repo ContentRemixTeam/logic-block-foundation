@@ -137,7 +137,7 @@ export default function WorkshopRegisterPage() {
             className="rounded-2xl border border-border bg-card p-6 shadow-lg"
           >
             <h3 className="font-bold text-foreground text-center mb-4 text-lg">
-              🏁 Save Your Spot
+              🏁 ACCESS YOUR PLANNER
             </h3>
             <div className="min-h-[400px]">
               <iframe
