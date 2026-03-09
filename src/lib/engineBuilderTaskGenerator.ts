@@ -1,6 +1,6 @@
 // Engine Builder Task Generator
-// Generates create & publish tasks from the engine blueprint,
-// using the user's actual weekly schedule from Step 5.
+// Generates tasks from the engine blueprint,
+// driven by the user's actual weekly schedule from Step 5.
 
 import type { EngineBuilderData, WeeklySlot } from '@/components/workshop/EngineBuilderTypes';
 import type { WizardTask } from '@/types/wizardTask';
@@ -9,10 +9,8 @@ import { format, addDays, nextMonday } from 'date-fns';
 
 export const ENGINE_BUILDER_PHASE_CONFIG = [
   { key: 'setup', label: '🏗️ Engine Setup' },
-  { key: 'lead-gen', label: '⛽ Lead Gen Content' },
-  { key: 'nurture', label: '🔧 Nurture Content' },
+  { key: 'schedule', label: '📅 Weekly Schedule' },
   { key: 'convert', label: '🚀 Sales & Conversion' },
-  { key: 'weekly-ops', label: '🏁 Weekly Operations' },
 ];
 
 const DAY_OFFSET: Record<string, number> = {
@@ -20,30 +18,6 @@ const DAY_OFFSET: Record<string, number> = {
   Friday: 4, Saturday: 5, Sunday: 6,
 };
 
-/**
- * Find the first slot matching criteria in the user's weekly schedule
- */
-function findSlotDay(schedule: WeeklySlot[], type: WeeklySlot['type'], keyword?: string): string | null {
-  const match = schedule.find(s => {
-    if (s.type !== type) return false;
-    if (keyword && s.activity) {
-      return s.activity.toLowerCase().includes(keyword.toLowerCase());
-    }
-    return true;
-  });
-  return match?.day ?? null;
-}
-
-/**
- * Get all slots of a given type from the schedule
- */
-function getSlotsByType(schedule: WeeklySlot[], type: WeeklySlot['type']): WeeklySlot[] {
-  return schedule.filter(s => s.type === type);
-}
-
-/**
- * Convert a day name to an actual date within a given week
- */
 function dayInWeek(weekStart: Date, day: string): Date {
   return addDays(weekStart, DAY_OFFSET[day] ?? 0);
 }
@@ -57,13 +31,7 @@ export function generateEngineBuilderTasksPreview(data: EngineBuilderData): Wiza
   const schedule = data.weeklySchedule || [];
   const platformName = PLATFORMS.find(p => p.id === data.primaryPlatform)?.name || data.customPlatform || 'Primary platform';
 
-  // Find key days from the user's schedule
-  const createDay = findSlotDay(schedule, 'create') || 'Monday';
-  const publishDay = findSlotDay(schedule, 'publish') || 'Wednesday';
-  const emailCreateDay = findSlotDay(schedule, 'create', 'email') || findSlotDay(schedule, 'create', 'newsletter') || createDay;
-  const emailPublishDay = findSlotDay(schedule, 'publish', 'email') || findSlotDay(schedule, 'publish', 'newsletter') || publishDay;
-
-  // --- SETUP PHASE (Week 1 only) ---
+  // --- SETUP PHASE (one-off tasks, Week 1) ---
   if (data.freeTransformation) {
     tasks.push({
       id: makeId(),
@@ -97,74 +65,29 @@ export function generateEngineBuilderTasksPreview(data: EngineBuilderData): Wiza
     });
   }
 
-  // --- LEAD GEN CONTENT (uses schedule's create/publish days) ---
-  for (let week = 0; week < 4; week++) {
-    const weekStart = addDays(startDate, week * 7);
-
-    tasks.push({
-      id: makeId(),
-      task_text: `Create Week ${week + 1} ${platformName} content${data.specificAction ? ` (${data.specificAction})` : ''}`,
-      scheduled_date: format(dayInWeek(weekStart, createDay), 'yyyy-MM-dd'),
-      phase: 'lead-gen',
-      priority: week === 0 ? 'high' : 'medium',
-      estimated_minutes: 60,
-    });
-
-    tasks.push({
-      id: makeId(),
-      task_text: `Publish Week ${week + 1} ${platformName} content`,
-      scheduled_date: format(dayInWeek(weekStart, publishDay), 'yyyy-MM-dd'),
-      phase: 'lead-gen',
-      priority: 'medium',
-      estimated_minutes: 15,
-    });
-  }
-
-  // --- NURTURE CONTENT (uses schedule's email days or create/publish days) ---
-  if (data.emailMethod) {
+  // --- SCHEDULE-DRIVEN TASKS (from every slot in the user's weekly calendar) ---
+  // Each slot in weeklySchedule becomes a recurring task for 4 weeks
+  if (schedule.length > 0) {
     for (let week = 0; week < 4; week++) {
       const weekStart = addDays(startDate, week * 7);
-      tasks.push({
-        id: makeId(),
-        task_text: `Write Week ${week + 1} email newsletter`,
-        scheduled_date: format(dayInWeek(weekStart, emailCreateDay), 'yyyy-MM-dd'),
-        phase: 'nurture',
-        priority: week === 0 ? 'high' : 'medium',
-        estimated_minutes: 45,
-      });
-      tasks.push({
-        id: makeId(),
-        task_text: `Send Week ${week + 1} email newsletter`,
-        scheduled_date: format(dayInWeek(weekStart, emailPublishDay), 'yyyy-MM-dd'),
-        phase: 'nurture',
-        priority: 'medium',
-        estimated_minutes: 10,
+
+      schedule.forEach(slot => {
+        const emoji = slot.type === 'create' ? '🛠️' : slot.type === 'publish' ? '📢' : '💬';
+        const activity = slot.activity || `${slot.type} ${platformName} content`;
+
+        tasks.push({
+          id: makeId(),
+          task_text: `${emoji} ${activity}`,
+          scheduled_date: format(dayInWeek(weekStart, slot.day), 'yyyy-MM-dd'),
+          phase: 'schedule',
+          priority: week === 0 ? 'high' : 'medium',
+          estimated_minutes: slot.type === 'create' ? 60 : slot.type === 'publish' ? 15 : 30,
+        });
       });
     }
   }
 
-  if (data.secondaryNurture && data.secondaryNurture !== 'none') {
-    const nurtureLabels: Record<string, string> = {
-      podcast: 'podcast episode',
-      youtube: 'YouTube video',
-      blog: 'blog post',
-      community: 'community post',
-    };
-    const label = nurtureLabels[data.secondaryNurture] || data.secondaryNurture;
-    for (let week = 0; week < 4; week++) {
-      const weekStart = addDays(startDate, week * 7);
-      tasks.push({
-        id: makeId(),
-        task_text: `Create Week ${week + 1} ${label}`,
-        scheduled_date: format(dayInWeek(weekStart, createDay), 'yyyy-MM-dd'),
-        phase: 'nurture',
-        priority: 'medium',
-        estimated_minutes: 90,
-      });
-    }
-  }
-
-  // --- CONVERT ---
+  // --- CONVERT (one-off sales tasks) ---
   if (data.salesMethods.includes('webinar')) {
     tasks.push({
       id: makeId(),
@@ -196,25 +119,6 @@ export function generateEngineBuilderTasksPreview(data: EngineBuilderData): Wiza
       priority: 'high',
       estimated_minutes: 120,
     });
-  }
-
-  // --- WEEKLY OPS (from actual schedule slots with activities) ---
-  const namedSlots = schedule.filter(s => s.activity);
-  if (namedSlots.length > 0) {
-    for (let week = 0; week < 4; week++) {
-      const weekStart = addDays(startDate, week * 7);
-      namedSlots.forEach(slot => {
-        const emoji = slot.type === 'create' ? '📦' : slot.type === 'publish' ? '📢' : '💬';
-        tasks.push({
-          id: makeId(),
-          task_text: `${emoji} ${slot.day}: ${slot.activity}`,
-          scheduled_date: format(dayInWeek(weekStart, slot.day), 'yyyy-MM-dd'),
-          phase: 'weekly-ops',
-          priority: 'medium',
-          estimated_minutes: 30,
-        });
-      });
-    }
   }
 
   return tasks;
