@@ -159,10 +159,9 @@ export function EngineBuilderWizard() {
           }
         }
 
-        // 4. Create content items if opted in (with dates from schedule)
+        // 4. Create content items from each publish slot in the schedule
         if (data.generateContentItems !== false) {
-          const contentItems = [];
-          const platformName = data.primaryPlatform || 'social';
+          const contentItems: any[] = [];
           const schedule = data.weeklySchedule || [];
           const planStart = nextMonday(new Date());
 
@@ -171,45 +170,37 @@ export function EngineBuilderWizard() {
             Friday: 4, Saturday: 5, Sunday: 6,
           };
 
-          // Find create and publish days from the schedule
-          const createSlot = schedule.find(s => s.type === 'create');
-          const publishSlot = schedule.find(s => s.type === 'publish');
-          const emailCreateSlot = schedule.find(s => s.type === 'create' && s.activity?.toLowerCase().includes('email')) || createSlot;
-          const emailPublishSlot = schedule.find(s => s.type === 'publish' && s.activity?.toLowerCase().includes('email')) || publishSlot;
-
-          const createDayOffset = DAY_MAP[createSlot?.day || 'Monday'] ?? 0;
-          const publishDayOffset = DAY_MAP[publishSlot?.day || 'Wednesday'] ?? 2;
-          const emailCreateOffset = DAY_MAP[emailCreateSlot?.day || 'Monday'] ?? 0;
-          const emailPublishOffset = DAY_MAP[emailPublishSlot?.day || 'Wednesday'] ?? 2;
+          const publishSlots = schedule.filter(s => s.type === 'publish');
+          const createSlots = schedule.filter(s => s.type === 'create');
 
           for (let week = 0; week < 4; week++) {
             const weekStart = addDays(planStart, week * 7);
-            contentItems.push({
-              user_id: userId,
-              title: `Week ${week + 1} ${platformName} content`,
-              type: 'social' as const,
-              channel: data.primaryPlatform || null,
-              status: 'idea' as const,
-              project_id: projectId || null,
-              planned_creation_date: format(addDays(weekStart, createDayOffset), 'yyyy-MM-dd'),
-              planned_publish_date: format(addDays(weekStart, publishDayOffset), 'yyyy-MM-dd'),
-            });
-          }
 
-          if (data.emailMethod) {
-            for (let week = 0; week < 4; week++) {
-              const weekStart = addDays(planStart, week * 7);
+            // Create a content item for each publish slot
+            publishSlots.forEach(slot => {
+              const publishDate = addDays(weekStart, DAY_MAP[slot.day] ?? 0);
+              // Try to find a matching create slot for creation date
+              const matchingCreate = createSlots.find(c =>
+                c.activity && slot.activity &&
+                c.activity.toLowerCase().includes(slot.activity.toLowerCase().split(' ')[0])
+              ) || createSlots[0];
+              const createDate = matchingCreate
+                ? addDays(weekStart, DAY_MAP[matchingCreate.day] ?? 0)
+                : publishDate;
+
+              const isEmail = slot.activity?.toLowerCase().includes('email') || slot.activity?.toLowerCase().includes('newsletter');
+
               contentItems.push({
                 user_id: userId,
-                title: `Week ${week + 1} email newsletter`,
-                type: 'email' as const,
-                channel: 'email',
+                title: slot.activity || `Week ${week + 1} content`,
+                type: isEmail ? 'email' : 'social' as const,
+                channel: isEmail ? 'email' : (data.primaryPlatform || null),
                 status: 'idea' as const,
                 project_id: projectId || null,
-                planned_creation_date: format(addDays(weekStart, emailCreateOffset), 'yyyy-MM-dd'),
-                planned_publish_date: format(addDays(weekStart, emailPublishOffset), 'yyyy-MM-dd'),
+                planned_creation_date: format(createDate, 'yyyy-MM-dd'),
+                planned_publish_date: format(publishDate, 'yyyy-MM-dd'),
               });
-            }
+            });
           }
 
           if (contentItems.length > 0) {
