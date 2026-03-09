@@ -49,6 +49,11 @@ export interface ContentSlot {
   description: string;
 }
 
+export interface SecondaryOffer {
+  name: string;
+  price: string;
+}
+
 export interface WeeklySlot {
   day: string;
   activity: string;
