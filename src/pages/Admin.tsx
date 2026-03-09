@@ -819,6 +819,68 @@ export default function Admin() {
 
           {/* MEMBERS TAB */}
           <TabsContent value="members" className="space-y-6">
+            {/* Quick Stats Banner */}
+            {(() => {
+              const lastAdded = members.find(m => m.status === 'active');
+              const lastAddedDate = lastAdded?.created_at;
+              const daysSinceLastAdd = lastAddedDate 
+                ? Math.floor((Date.now() - new Date(lastAddedDate).getTime()) / (1000 * 60 * 60 * 24))
+                : null;
+              const webhookHealthy = daysSinceLastAdd !== null && daysSinceLastAdd <= 14;
+              
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card className="border-green-500/30 bg-green-500/5">
+                    <CardContent className="pt-4 pb-3">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-green-600" />
+                        <span className="text-sm text-muted-foreground">Active</span>
+                      </div>
+                      <p className="text-2xl font-bold text-green-600">{activeMembers.length}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-muted">
+                    <CardContent className="pt-4 pb-3">
+                      <div className="flex items-center gap-2">
+                        <XCircle className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Cancelled</span>
+                      </div>
+                      <p className="text-2xl font-bold">{cancelledMembers.length}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className={daysSinceLastAdd !== null && daysSinceLastAdd > 30 ? 'border-destructive/30 bg-destructive/5' : 'border-muted'}>
+                    <CardContent className="pt-4 pb-3">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Last Added</span>
+                      </div>
+                      <p className="text-lg font-bold">
+                        {lastAddedDate ? format(new Date(lastAddedDate), 'MMM d, yyyy') : 'Never'}
+                      </p>
+                      {daysSinceLastAdd !== null && (
+                        <p className={`text-xs ${daysSinceLastAdd > 30 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                          {daysSinceLastAdd} days ago
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                  <Card className={webhookHealthy ? 'border-green-500/30 bg-green-500/5' : 'border-destructive/30 bg-destructive/5'}>
+                    <CardContent className="pt-4 pb-3">
+                      <div className="flex items-center gap-2">
+                        <Link2 className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Webhook Status</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className={`h-2.5 w-2.5 rounded-full ${webhookHealthy ? 'bg-green-500' : 'bg-destructive'}`} />
+                        <p className="text-sm font-semibold">
+                          {webhookHealthy ? 'Healthy' : daysSinceLastAdd === null ? 'Never triggered' : 'Stale — check GHL'}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            })()}
             {/* GHL Integration Card */}
             <Card>
               <CardHeader>
