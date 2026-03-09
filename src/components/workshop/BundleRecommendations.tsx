@@ -88,34 +88,47 @@ function scoreProduct(product: BundleProduct, relevantTags: string[], focusBoost
 }
 
 function ProductCard({ product, isVip }: { product: BundleProduct; isVip?: boolean }) {
+  if (isVip) {
+    // VIP products — NO links, just display
+    return (
+      <div className="block p-4 rounded-xl border transition-all border-amber-400/50 bg-amber-50/30 dark:bg-amber-950/20 dark:border-amber-500/30">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <h5 className="font-semibold text-sm text-foreground leading-tight">{product.giftName}</h5>
+          <span className="shrink-0 text-xs font-bold px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 dark:bg-amber-800 dark:text-amber-100">
+            {product.value}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{product.description}</p>
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">by {product.name}</span>
+          <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+            👑 Boss Mode
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // Free products — clickable links
   return (
-    <div
-      className={`block p-4 rounded-xl border transition-all ${
-        isVip
-          ? 'border-amber-400/50 bg-amber-50/30 dark:bg-amber-950/20 dark:border-amber-500/30'
-          : 'border-border bg-card'
-      }`}
+    <a
+      href={product.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block p-4 rounded-xl border border-border bg-card transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-primary/30"
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <h5 className="font-semibold text-sm text-foreground leading-tight">{product.giftName}</h5>
-        <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded-full ${
-          isVip
-            ? 'bg-amber-200 text-amber-900 dark:bg-amber-800 dark:text-amber-100'
-            : 'bg-primary/10 text-primary'
-        }`}>
+        <span className="shrink-0 text-xs font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
           {product.value}
         </span>
       </div>
       <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{product.description}</p>
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">by {product.name}</span>
-        {isVip && (
-          <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
-            👑 Boss Mode
-          </span>
-        )}
+        <span className="text-xs font-semibold text-primary">Get It Free →</span>
       </div>
-    </div>
+    </a>
   );
 }
 
