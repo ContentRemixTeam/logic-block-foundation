@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Calendar, Youtube, Headphones, Sparkles, Mail, Users, Trophy, Flag, ChevronRight, ExternalLink } from 'lucide-react';
+import { Calendar, Youtube, Headphones, Sparkles, Mail, Users, Trophy, Flag, ChevronRight, ExternalLink, Package } from 'lucide-react';
 
 // Google Calendar URL builder
 function buildGoogleCalendarUrl({
