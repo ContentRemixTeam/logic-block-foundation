@@ -7717,6 +7717,39 @@ export type Database = {
         }
         Relationships: []
       }
+      workshop_testimonials: {
+        Row: {
+          business_name: string | null
+          created_at: string
+          email: string | null
+          engine_data: Json | null
+          id: string
+          name: string
+          rating: number | null
+          testimonial: string
+        }
+        Insert: {
+          business_name?: string | null
+          created_at?: string
+          email?: string | null
+          engine_data?: Json | null
+          id?: string
+          name: string
+          rating?: number | null
+          testimonial: string
+        }
+        Update: {
+          business_name?: string | null
+          created_at?: string
+          email?: string | null
+          engine_data?: Json | null
+          id?: string
+          name?: string
+          rating?: number | null
+          testimonial?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       recurring_task_averages: {
