@@ -1,5 +1,6 @@
 import { PlatformScorecard } from '../PlatformScorecard';
 import { PLATFORMS } from '../PlatformScorecardData';
+import { EngineBuilderIntro } from '../EngineBuilderIntro';
 import type { EngineBuilderData } from '../EngineBuilderTypes';
 
 interface StepDiscoverProps {
