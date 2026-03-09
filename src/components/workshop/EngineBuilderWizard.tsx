@@ -244,6 +244,11 @@ export function EngineBuilderWizard() {
       <style>{`
         .engine-wizard { 
           background: hsl(var(--engine-bg));
+          --primary: 32 95% 44%;
+          --primary-foreground: 0 0% 100%;
+          --ring: 32 95% 44%;
+          --accent: 32 95% 90%;
+          --accent-foreground: 32 80% 25%;
         }
         .engine-wizard .engine-primary-btn {
           background: linear-gradient(135deg, hsl(32 95% 44%), hsl(25 95% 38%));
