@@ -26,7 +26,7 @@ export function StepConvert({ data, onChange }: StepConvertProps) {
           🚀 Hit the Gas — How do you make money?
         </h3>
         <p className="text-sm text-muted-foreground">
-          Your turbo boost. Let's get clear on what you're selling, how much you need to make, and how you'll get there.
+          Your turbo boost. This is where the money lives — your offer, your goal, and the system you're using to sell it consistently.
         </p>
       </div>
 
