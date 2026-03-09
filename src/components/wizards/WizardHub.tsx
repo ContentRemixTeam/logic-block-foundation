@@ -24,6 +24,7 @@ const IMPLEMENTED_WIZARDS = [
   'flash-sale-wizard',
   'webinar-wizard',
   'content-challenge-30-days',
+  'business-engine-builder',
 ];
 
 const ICON_MAP: Record<string, React.ReactNode> = {
