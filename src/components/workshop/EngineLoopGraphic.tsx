@@ -7,6 +7,7 @@ interface EngineLoopGraphicProps {
 
 export function EngineLoopGraphic({ data }: EngineLoopGraphicProps) {
   const platform = PLATFORMS.find((p) => p.id === data.primaryPlatform);
+  const additionalCount = data.additionalPlatforms?.length || 0;
 
   return (
     <div className="relative w-full max-w-md mx-auto">
