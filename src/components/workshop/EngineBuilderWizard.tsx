@@ -46,14 +46,7 @@ export function EngineBuilderWizard() {
   };
 
   const canProceed = () => {
-    switch (step) {
-      case 1: return !!data.primaryPlatform;
-      case 2: return !!data.emailMethod;
-      case 3: return !!data.offerName;
-      case 4: return !!data.loopLength;
-      case 5: return true;
-      default: return true;
-    }
+    return true; // Allow click-through without requiring input
   };
 
   const goNext = () => {
