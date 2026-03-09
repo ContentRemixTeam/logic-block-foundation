@@ -91,9 +91,11 @@ export const DEFAULT_ENGINE_DATA: EngineBuilderData = {
   contentPlan: [],
   loopLength: '',
   batchOrLive: '',
+  batchFrequency: '',
   batchDay: '',
   leadTimeDays: 3,
   weeklySchedule: [],
+  engineFocusArea: '',
 };
 
 export const TOTAL_STEPS = 5;

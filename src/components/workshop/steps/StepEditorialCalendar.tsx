@@ -2,6 +2,13 @@ import { BATCH_OPTIONS, DAYS_OF_WEEK } from '../EngineBuilderTypes';
 import type { EngineBuilderData, WeeklySlot } from '../EngineBuilderTypes';
 import { PLATFORMS } from '../PlatformScorecardData';
 
+const BATCH_FREQUENCIES = [
+  { value: 'weekly', label: 'Weekly', description: 'Batch all content once a week', emoji: '📅' },
+  { value: 'biweekly', label: 'Every 2 Weeks', description: 'Batch content every other week', emoji: '📆' },
+  { value: 'monthly', label: 'Monthly', description: 'One big batch session per month', emoji: '🗓️' },
+  { value: 'quarterly', label: 'Quarterly', description: 'Plan and batch a full quarter at once', emoji: '📋' },
+];
+
 interface StepEditorialCalendarProps {
   data: EngineBuilderData;
   onChange: (updates: Partial<EngineBuilderData>) => void;
@@ -71,6 +78,37 @@ export function StepEditorialCalendar({ data, onChange }: StepEditorialCalendarP
           })}
         </div>
       </div>
+
+      {/* Batch frequency */}
+      {(data.batchOrLive === 'batch' || data.batchOrLive === 'hybrid') && (
+        <div>
+          <h4 className="text-sm font-semibold text-foreground mb-3">How often do you batch?</h4>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {BATCH_FREQUENCIES.map((freq) => {
+              const isSelected = data.batchFrequency === freq.value;
+              return (
+                <button
+                  key={freq.value}
+                  onClick={() => onChange({ batchFrequency: freq.value })}
+                  className={`
+                    text-left p-3 rounded-xl border-2 transition-all duration-200
+                    ${isSelected
+                      ? 'border-primary bg-primary/10 shadow-md ring-2 ring-primary/20'
+                      : 'border-border bg-card hover:border-primary/40'
+                    }
+                  `}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">{freq.emoji}</span>
+                    <h5 className="font-semibold text-sm text-foreground">{freq.label}</h5>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{freq.description}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Batch day */}
       {(data.batchOrLive === 'batch' || data.batchOrLive === 'hybrid') && (
@@ -150,6 +188,44 @@ export function StepEditorialCalendar({ data, onChange }: StepEditorialCalendarP
             ))}
           </div>
         )}
+      </div>
+
+      {/* Focus area question */}
+      <div className="border-t border-border pt-6">
+        <h4 className="text-sm font-semibold text-foreground mb-1">
+          What part of your engine needs the most work right now?
+        </h4>
+        <p className="text-xs text-muted-foreground mb-3">
+          This helps us prioritize your recommendations. Pick the area you want to focus on this quarter.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            { value: 'discover', label: 'Discover (Lead Gen)', description: 'I need more people finding me', emoji: '⛽' },
+            { value: 'nurture', label: 'Nurture (Connection)', description: 'I need to build more trust with my audience', emoji: '🔧' },
+            { value: 'convert', label: 'Convert (Sales)', description: 'I need to make more offers and close more sales', emoji: '🚀' },
+          ].map((area) => {
+            const isSelected = data.engineFocusArea === area.value;
+            return (
+              <button
+                key={area.value}
+                onClick={() => onChange({ engineFocusArea: area.value })}
+                className={`
+                  text-left p-4 rounded-xl border-2 transition-all duration-200
+                  ${isSelected
+                    ? 'border-primary bg-primary/10 shadow-md ring-2 ring-primary/20'
+                    : 'border-border bg-card hover:border-primary/40'
+                  }
+                `}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xl">{area.emoji}</span>
+                  <h5 className="font-semibold text-sm text-foreground">{area.label}</h5>
+                </div>
+                <p className="text-xs text-muted-foreground">{area.description}</p>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
