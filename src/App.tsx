@@ -147,6 +147,7 @@ const MonthlyThemePage = lazyWithRetry(() => import('./pages/MonthlyThemePage'))
 const EffectsDemo = lazyWithRetry(() => import('./pages/EffectsDemo'));
 const PlannerMockups = lazyWithRetry(() => import('./pages/PlannerMockups'));
 const EngineBuilderPage = lazyWithRetry(() => import('./pages/EngineBuilderPage'));
+const WorkshopWelcomePage = lazyWithRetry(() => import('./pages/WorkshopWelcomePage'));
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -287,6 +288,7 @@ const App = () => (
                       <Route path="/quick-add" element={<PageSuspense><QuickAddApp /></PageSuspense>} />
                       <Route path="/install-quick-add" element={<PageSuspense><InstallQuickAdd /></PageSuspense>} />
                       <Route path="/workshop/engine-builder" element={<PageSuspense><EngineBuilderPage /></PageSuspense>} />
+                      <Route path="/workshop" element={<PageSuspense><WorkshopWelcomePage /></PageSuspense>} />
                       
                       <Route path="*" element={<NotFound />} />
                     </Routes>
