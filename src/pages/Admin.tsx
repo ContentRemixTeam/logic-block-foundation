@@ -247,6 +247,7 @@ export default function Admin() {
       if (featuresRes.data?.feature_requests) setFeatureRequests(featuresRes.data.feature_requests);
       if (membersRes.data) setMembers(membersRes.data);
       if (adminsRes.data) setAdminUsers(adminsRes.data);
+      if (testimonialsRes.data) setTestimonials(testimonialsRes.data as any[]);
       
       // Update existing emails set
       if (membersRes.data) {
