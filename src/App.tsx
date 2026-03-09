@@ -146,6 +146,7 @@ const BrainDump = lazyWithRetry(() => import('./pages/BrainDump'));
 const MonthlyThemePage = lazyWithRetry(() => import('./pages/MonthlyThemePage'));
 const EffectsDemo = lazyWithRetry(() => import('./pages/EffectsDemo'));
 const PlannerMockups = lazyWithRetry(() => import('./pages/PlannerMockups'));
+const EngineBuilderPage = lazyWithRetry(() => import('./pages/EngineBuilderPage'));
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
