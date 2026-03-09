@@ -1,15 +1,21 @@
+import { useState, useMemo } from 'react';
 import { EngineLoopGraphic } from '../EngineLoopGraphic';
 import { PLATFORMS } from '../PlatformScorecardData';
 import { LOOP_LENGTHS, OFFER_FREQUENCIES, SALES_METHODS, EMAIL_METHODS, SECONDARY_NURTURE_OPTIONS } from '../EngineBuilderTypes';
 import type { EngineBuilderData } from '../EngineBuilderTypes';
 import { BundleRecommendations } from '../BundleRecommendations';
 import { WorkshopTestimonialForm } from '../WorkshopTestimonialForm';
+import { WizardTaskPreview } from '@/components/wizards/shared/WizardTaskPreview';
+import { generateEngineBuilderTasksPreview, ENGINE_BUILDER_PHASE_CONFIG } from '@/lib/engineBuilderTaskGenerator';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface StepResultsProps {
   data: EngineBuilderData;
+  onChange: (updates: Partial<EngineBuilderData>) => void;
   onDownloadPDF: () => void;
   onSaveToBossPlanner?: () => void;
   isMember?: boolean;
+  isSaving?: boolean;
 }
 
 function SummaryCard({ emoji, title, children }: { emoji: string; title: string; children: React.ReactNode }) {
@@ -23,7 +29,9 @@ function SummaryCard({ emoji, title, children }: { emoji: string; title: string;
   );
 }
 
-export function StepResults({ data, onDownloadPDF, onSaveToBossPlanner, isMember }: StepResultsProps) {
+export function StepResults({ data, onChange, onDownloadPDF, onSaveToBossPlanner, isMember, isSaving }: StepResultsProps) {
+  const [showTaskPreview, setShowTaskPreview] = useState(false);
+
   const platform = PLATFORMS.find((p) => p.id === data.primaryPlatform);
   const additionalPlatformNames = data.additionalPlatforms
     .map((id) => {
@@ -38,6 +46,9 @@ export function StepResults({ data, onDownloadPDF, onSaveToBossPlanner, isMember
   const salesLabels = data.salesMethods.map((m) => SALES_METHODS.find((s) => s.value === m)?.label).filter(Boolean);
   const salesNeeded = data.revenueGoal && data.offerPrice && data.offerPrice > 0
     ? Math.ceil(data.revenueGoal / data.offerPrice) : null;
+
+  const allTasks = useMemo(() => generateEngineBuilderTasksPreview(data), [data]);
+  const selectedTaskCount = allTasks.filter(t => !(data.excludedTasks || []).includes(t.id)).length;
 
   return (
     <div className="space-y-6">
@@ -106,15 +117,65 @@ export function StepResults({ data, onDownloadPDF, onSaveToBossPlanner, isMember
         >
           📄 Download PDF Blueprint
         </button>
-        
+
         <button
-          onClick={isMember && onSaveToBossPlanner ? onSaveToBossPlanner : undefined}
-          disabled={!isMember}
+          onClick={() => {
+            if (!isMember) return;
+            if (showTaskPreview) {
+              // Already showing — trigger save
+              onSaveToBossPlanner?.();
+            } else {
+              setShowTaskPreview(true);
+            }
+          }}
+          disabled={!isMember || isSaving}
           className="flex-1 px-6 py-3 rounded-xl border-2 border-primary text-primary font-semibold text-sm hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          🏗️ Save to Planner (Mastermind Members)
+          {isSaving ? '⏳ Saving...' : showTaskPreview
+            ? `🏗️ Save ${selectedTaskCount} Tasks to Planner`
+            : '🏗️ Save to Planner (Mastermind Members)'}
         </button>
       </div>
+
+      {/* Task Preview for Mastermind Members */}
+      {isMember && showTaskPreview && (
+        <div className="space-y-4 border border-border rounded-xl p-4 bg-card">
+          <div className="space-y-3">
+            <h4 className="font-semibold text-foreground flex items-center gap-2">
+              <span>📋</span> Choose what to add to your planner
+            </h4>
+            <div className="flex flex-col gap-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={data.generateTasks !== false}
+                  onCheckedChange={(checked) => onChange({ generateTasks: !!checked })}
+                />
+                <span className="text-sm text-foreground">Add tasks to my task list</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={data.generateContentItems !== false}
+                  onCheckedChange={(checked) => onChange({ generateContentItems: !!checked })}
+                />
+                <span className="text-sm text-foreground">Add content items to my editorial calendar</span>
+              </label>
+            </div>
+          </div>
+
+          {data.generateTasks !== false && allTasks.length > 0 && (
+            <WizardTaskPreview
+              tasks={allTasks}
+              excludedTasks={data.excludedTasks || []}
+              dateOverrides={data.dateOverrides || []}
+              onExcludedTasksChange={(excludedTasks) => onChange({ excludedTasks })}
+              onDateOverridesChange={(dateOverrides) => onChange({ dateOverrides })}
+              phaseOrder={ENGINE_BUILDER_PHASE_CONFIG}
+              defaultExpandedPhases={['setup', 'lead-gen']}
+              maxHeight="350px"
+            />
+          )}
+        </div>
+      )}
 
       {/* Testimonial Form */}
       <WorkshopTestimonialForm engineData={data} />
