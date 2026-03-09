@@ -43,6 +43,12 @@ export interface EngineBuilderData {
   leadTimeDays: number;
   weeklySchedule: WeeklySlot[];
   engineFocusArea: string;
+
+  // Save options
+  excludedTasks: string[];
+  dateOverrides: { taskId: string; newDate: string }[];
+  generateTasks: boolean;
+  generateContentItems: boolean;
 }
 
 export interface ContentSlot {
@@ -96,6 +102,10 @@ export const DEFAULT_ENGINE_DATA: EngineBuilderData = {
   leadTimeDays: 3,
   weeklySchedule: [],
   engineFocusArea: '',
+  excludedTasks: [],
+  dateOverrides: [],
+  generateTasks: true,
+  generateContentItems: true,
 };
 
 export const TOTAL_STEPS = 5;

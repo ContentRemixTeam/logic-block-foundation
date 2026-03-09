@@ -1,5 +1,6 @@
 import { PlatformScorecard } from '../PlatformScorecard';
 import { PLATFORMS } from '../PlatformScorecardData';
+import { EngineBuilderIntro } from '../EngineBuilderIntro';
 import type { EngineBuilderData } from '../EngineBuilderTypes';
 
 interface StepDiscoverProps {
@@ -35,6 +36,7 @@ export function StepDiscover({ data, onChange }: StepDiscoverProps) {
 
   return (
     <div className="space-y-6">
+      <EngineBuilderIntro />
       <div>
         <h3 className="text-lg font-semibold text-foreground mb-1">
           ⛽ Fill Your Tank — Where do people find you?
