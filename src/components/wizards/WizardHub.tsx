@@ -131,6 +131,8 @@ export default function WizardHub() {
       navigate('/wizards/webinar');
     } else if (templateName === 'content-challenge-30-days') {
       navigate('/wizards/content-challenge');
+    } else if (templateName === 'business-engine-builder') {
+      navigate('/workshop/engine-builder');
     } else {
       toast.info('This wizard is coming soon!');
     }
