@@ -164,6 +164,7 @@ export default function Auth() {
             title: 'Welcome!',
             description: 'Your account has been created.',
           });
+          // New signups are guests, go to dashboard
           navigate('/dashboard');
         } else {
           toast({
