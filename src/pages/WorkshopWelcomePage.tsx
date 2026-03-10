@@ -159,6 +159,41 @@ export default function WorkshopWelcomePage() {
       {/* Main content */}
       <main className="max-w-3xl mx-auto px-4 pb-16 space-y-5">
 
+        {/* ---- VIDEO EMBED ---- */}
+        <SectionCard delay={0}>
+          <div className="space-y-4">
+            <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-muted">
+              <iframe
+                className="absolute inset-0 w-full h-full"
+                src="https://www.youtube.com/embed/Svj_X_X0J4o?si=-DKnsTWsrw68YbE0"
+                title="YouTube video player"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
+                allowFullScreen
+              />
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <a
+                href="https://www.youtube.com/watch?v=Svj_X_X0J4o"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-destructive text-destructive-foreground text-sm font-semibold hover:opacity-90 transition-opacity"
+              >
+                <Youtube className="w-4 h-4" /> Watch on YouTube
+              </a>
+              <a
+                href="https://www.youtube.com/@FaithMariah?sub_confirmation=1"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-destructive text-destructive text-sm font-semibold hover:bg-destructive/10 transition-colors"
+              >
+                <Youtube className="w-4 h-4" /> Subscribe
+              </a>
+            </div>
+          </div>
+        </SectionCard>
+
         {/* ---- EMAIL WHITELIST NOTICE ---- */}
         <SectionCard delay={0}>
           <div className="flex items-start gap-4">
