@@ -160,8 +160,12 @@ export default function WorkshopWelcomePage() {
       <main className="max-w-3xl mx-auto px-4 pb-16 space-y-5">
 
         {/* ---- VIDEO EMBED ---- */}
-        <SectionCard delay={0}>
+        <SectionCard delay={0} className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5">
           <div className="space-y-4">
+            <div className="text-center space-y-1">
+              <h2 className="text-xl font-bold text-foreground">🎬 Watch the Workshop Replay</h2>
+              <p className="text-sm text-muted-foreground">Missed the live session? Watch the full replay below!</p>
+            </div>
             <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-muted">
               <iframe
                 className="absolute inset-0 w-full h-full"
