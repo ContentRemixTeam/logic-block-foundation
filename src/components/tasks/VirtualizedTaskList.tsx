@@ -256,7 +256,7 @@ export function VirtualizedTaskList({
       </div>
 
       {/* Performance indicator (dev only) */}
-      {process.env.NODE_ENV === 'development' && tasks.length > 500 && (
+      {import.meta.env.DEV && tasks.length > 500 && (
         <div className="absolute top-2 right-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
           ⚡ {virtualizer.getVirtualItems().length} of {tasks.length} rendered
         </div>
