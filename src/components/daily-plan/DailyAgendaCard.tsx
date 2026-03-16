@@ -137,7 +137,7 @@ export function DailyAgendaCard({ date = new Date(), onTaskToggle }: DailyAgenda
     });
     
     // Debug logging (dev only)
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.log('[DailyAgendaCard] Tasks for today:', {
         date: todayStr,
         totalTasks: allTasks.length,
