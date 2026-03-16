@@ -84,7 +84,7 @@ interface JournalPage {
 }
 
 type DateRange = 'all' | '7days' | '30days' | '90days';
-type ViewTab = 'entries' | 'pages';
+type ViewTab = 'entries' | 'pages' | 'coaching' | 'wins';
 
 const HASHTAG_FILTERS = ['#task', '#idea', '#thought', '#win', '#offer'];
 
