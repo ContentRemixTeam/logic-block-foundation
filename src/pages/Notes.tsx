@@ -749,7 +749,7 @@ export default function Notes() {
                 {searchQuery && <span>• Searching for "{searchQuery}"</span>}
               </div>
             </CardContent>
-          </Card>
+          </Card>}
 
           {/* Daily Entries Tab */}
           <TabsContent value="entries" className="mt-4">
