@@ -1074,6 +1074,16 @@ export default function Notes() {
               />
             )}
           </TabsContent>
+
+          {/* Coaching Log Tab */}
+          <TabsContent value="coaching" className="mt-4">
+            <CoachingLogTab />
+          </TabsContent>
+
+          {/* Wins Tab */}
+          <TabsContent value="wins" className="mt-4">
+            <WinsTab />
+          </TabsContent>
         </Tabs>
 
         {/* Page Editor Modal */}
