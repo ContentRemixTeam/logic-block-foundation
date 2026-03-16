@@ -569,8 +569,8 @@ export default function Notes() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Search - shared between tabs */}
-          <Card className="mt-4">
+          {/* Search - shared between entries and pages tabs */}
+          {(activeTab === 'entries' || activeTab === 'pages') && <Card className="mt-4">
             <CardContent className="py-4 space-y-4">
               <div className="flex flex-wrap gap-4 items-center">
                 {/* Search */}
