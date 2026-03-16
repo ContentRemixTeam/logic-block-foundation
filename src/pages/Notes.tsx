@@ -37,7 +37,9 @@ import {
   Pencil,
   FolderOpen,
   AlertCircle,
-  GraduationCap
+  GraduationCap,
+  Sparkles as SparklesIcon,
+  Trophy
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
