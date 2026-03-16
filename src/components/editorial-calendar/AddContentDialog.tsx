@@ -164,12 +164,12 @@ export function AddContentDialog({
     enabled: open && mode === 'new',
   });
 
-  // Auto-save draft when form data changes
+  // Auto-save draft when form data changes (skip during submission)
   useEffect(() => {
-    if (open && mode === 'new' && title.trim()) {
+    if (open && mode === 'new' && title.trim() && !isSubmitting) {
       saveDraft(formData);
     }
-  }, [formData, open, mode, saveDraft, title]);
+  }, [formData, open, mode, saveDraft, title, isSubmitting]);
 
   // Load draft or reset form when dialog opens
   useEffect(() => {
