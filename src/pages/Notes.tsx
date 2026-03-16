@@ -37,7 +37,9 @@ import {
   Pencil,
   FolderOpen,
   AlertCircle,
-  GraduationCap
+  GraduationCap,
+  Sparkles as SparklesIcon,
+  Trophy
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -48,6 +50,8 @@ import { DraftRestoreBanner, DraftStatusFooter } from '@/components/DraftRestore
 import { PaginationInfo } from '@/components/ui/pagination-info';
 import { SelectableNoteContent } from '@/components/notes/SelectableNoteContent';
 import { NoteLinkedItems } from '@/components/notes/NoteLinkedItems';
+import { CoachingLogTab } from '@/components/notes/CoachingLogTab';
+import { WinsTab } from '@/components/notes/WinsTab';
 
 const PAGE_SIZE = 50;
 
@@ -80,7 +84,7 @@ interface JournalPage {
 }
 
 type DateRange = 'all' | '7days' | '30days' | '90days';
-type ViewTab = 'entries' | 'pages';
+type ViewTab = 'entries' | 'pages' | 'coaching' | 'wins';
 
 const HASHTAG_FILTERS = ['#task', '#idea', '#thought', '#win', '#offer'];
 
@@ -544,19 +548,29 @@ export default function Notes() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ViewTab)}>
-          <TabsList className="grid w-full grid-cols-2 max-w-[300px]">
+          <TabsList className="grid w-full grid-cols-4 max-w-[500px]">
             <TabsTrigger value="entries" className="flex items-center gap-2">
               <CalendarIcon className="h-4 w-4" />
-              Daily Entries
+              <span className="hidden sm:inline">Daily Entries</span>
+              <span className="sm:hidden">Entries</span>
             </TabsTrigger>
             <TabsTrigger value="pages" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Pages
             </TabsTrigger>
+            <TabsTrigger value="coaching" className="flex items-center gap-2">
+              <SparklesIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Coaching</span>
+              <span className="sm:hidden">Coach</span>
+            </TabsTrigger>
+            <TabsTrigger value="wins" className="flex items-center gap-2">
+              <Trophy className="h-4 w-4" />
+              Wins
+            </TabsTrigger>
           </TabsList>
 
-          {/* Search - shared between tabs */}
-          <Card className="mt-4">
+          {/* Search - shared between entries and pages tabs */}
+          {(activeTab === 'entries' || activeTab === 'pages') && <Card className="mt-4">
             <CardContent className="py-4 space-y-4">
               <div className="flex flex-wrap gap-4 items-center">
                 {/* Search */}
@@ -735,7 +749,7 @@ export default function Notes() {
                 {searchQuery && <span>• Searching for "{searchQuery}"</span>}
               </div>
             </CardContent>
-          </Card>
+          </Card>}
 
           {/* Daily Entries Tab */}
           <TabsContent value="entries" className="mt-4">
@@ -1059,6 +1073,16 @@ export default function Notes() {
                 itemLabel="pages"
               />
             )}
+          </TabsContent>
+
+          {/* Coaching Log Tab */}
+          <TabsContent value="coaching" className="mt-4">
+            <CoachingLogTab />
+          </TabsContent>
+
+          {/* Wins Tab */}
+          <TabsContent value="wins" className="mt-4">
+            <WinsTab />
           </TabsContent>
         </Tabs>
 
