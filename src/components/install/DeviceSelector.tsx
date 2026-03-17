@@ -15,29 +15,29 @@ export function DeviceSelector({
   detectedDevice,
 }: DeviceSelectorProps) {
   const devices: { type: DeviceType; label: string; icon: React.ReactNode }[] = [
-    { type: 'ios', label: 'iPhone/iPad', icon: <Apple className="h-5 w-5" /> },
+    { type: 'ios', label: 'iPhone / iPad', icon: <Apple className="h-5 w-5" /> },
     { type: 'android', label: 'Android', icon: <Chrome className="h-5 w-5" /> },
-    { type: 'desktop', label: 'Desktop', icon: <Monitor className="h-5 w-5" /> },
+    { type: 'desktop', label: 'Computer', icon: <Monitor className="h-5 w-5" /> },
   ];
 
   return (
     <div className="space-y-3">
-      <p className="text-sm font-medium text-center">Choose your device:</p>
+      <p className="text-sm font-medium text-center text-muted-foreground">What device are you on?</p>
       <div className="grid grid-cols-3 gap-2">
         {devices.map(({ type, label, icon }) => (
           <Button
             key={type}
             variant={selectedDevice === type ? "default" : "outline"}
             className={cn(
-              "flex flex-col h-auto py-3 gap-1",
-              selectedDevice === type && "ring-2 ring-primary ring-offset-2"
+              "flex flex-col h-auto py-3 px-2 gap-1.5 min-h-[72px]",
+              selectedDevice === type && "ring-2 ring-primary ring-offset-2 ring-offset-background"
             )}
             onClick={() => onSelectDevice(type)}
           >
             {icon}
-            <span className="text-xs">{label}</span>
+            <span className="text-xs leading-tight text-center">{label}</span>
             {detectedDevice === type && (
-              <span className="text-[10px] opacity-70">(detected)</span>
+              <span className="text-[10px] opacity-70 leading-none">(detected)</span>
             )}
           </Button>
         ))}
