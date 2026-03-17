@@ -155,7 +155,7 @@ export default function InstallQuickAdd() {
               )}
             </CardHeader>
             <CardContent>
-              <DeviceInstallSteps device={device} appName="Quick Add" showOpenLink />
+              <DeviceInstallSteps device={device} appName="Quick Add" />
             </CardContent>
           </Card>
 

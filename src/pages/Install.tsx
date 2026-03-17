@@ -169,7 +169,7 @@ export default function Install() {
 
           {/* Browser warning */}
           {showBrowserWarning && (
-            <Card className="mb-6 border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
+            <Card className="mb-6 border-destructive/30 bg-destructive/5">
               <CardContent className="pt-6 pb-6">
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
