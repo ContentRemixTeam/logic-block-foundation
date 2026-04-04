@@ -437,6 +437,58 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Tabs: Scorecard (default) vs Classic Dashboard */}
+        <Tabs defaultValue="scorecard" className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="scorecard" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Scorecard
+            </TabsTrigger>
+            <TabsTrigger value="classic" className="gap-2">
+              <Compass className="h-4 w-4" />
+              Overview
+            </TabsTrigger>
+          </TabsList>
+
+          {/* SCORECARD TAB */}
+          <TabsContent value="scorecard" className="space-y-6">
+            {!cycle?.cycle_id ? (
+              <Card className="text-center py-12">
+                <CardContent>
+                  <div className="h-20 w-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 mx-auto flex items-center justify-center mb-4">
+                    <Calendar className="h-10 w-10 text-primary/60" />
+                  </div>
+                  <h3 className="font-semibold text-lg mb-2">Start Your 90-Day Cycle</h3>
+                  <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
+                    Set one goal, define your weekly tactics, and track your execution, momentum, and belief every week.
+                  </p>
+                  <Button size="lg" className="gap-2" asChild>
+                    <Link to="/cycle-wizard">
+                      <Rocket className="h-4 w-4" />
+                      Start Your 90-Day Cycle
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left: Scorecard Dashboard (charts, stats) */}
+                <ScorecardDashboard
+                  cycleId={cycle.cycle_id}
+                  cycleGoal={cycle.goal || ''}
+                  weekNumber={getWeekNumber(cycle.start_date)}
+                />
+                {/* Right: Weekly Entry Form */}
+                <WeeklyScorecardForm
+                  cycleId={cycle.cycle_id}
+                  weekNumber={getWeekNumber(cycle.start_date)}
+                />
+              </div>
+            )}
+          </TabsContent>
+
+          {/* CLASSIC DASHBOARD TAB */}
+          <TabsContent value="classic">
         {/* Grid Layout */}
         <StaggerContainer className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content - spans 2 cols on desktop */}
