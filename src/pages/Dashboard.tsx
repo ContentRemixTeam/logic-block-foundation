@@ -137,22 +137,24 @@ interface WidgetCardProps {
 
 function WidgetCard({ title, icon, gradientClass = 'from-primary/5', children, className }: WidgetCardProps) {
   return (
-    <Card className={cn(
-      "overflow-hidden border-border/40 hover:shadow-lg transition-all duration-300 hover:border-primary/20",
-      className
-    )}>
-      <CardHeader className={cn("bg-gradient-to-r to-transparent pb-3", gradientClass)}>
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            {icon}
+    <StaggerItem>
+      <Card className={cn(
+        "overflow-hidden border-border/40 hover:shadow-lg transition-all duration-300 hover:border-primary/20",
+        className
+      )}>
+        <CardHeader className={cn("bg-gradient-to-r to-transparent pb-3", gradientClass)}>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              {icon}
+            </div>
+            <CardTitle className="text-lg">{title}</CardTitle>
           </div>
-          <CardTitle className="text-lg">{title}</CardTitle>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-4">
-        {children}
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent className="pt-4">
+          {children}
+        </CardContent>
+      </Card>
+    </StaggerItem>
   );
 }
 
