@@ -964,6 +964,7 @@ export default function DailyPlan() {
 
   return (
     <Layout>
+      <PageTransition>
       <div className={cn(
         "mx-auto",
         isMobile ? "max-w-full px-4 space-y-4" : "max-w-3xl space-y-8"
