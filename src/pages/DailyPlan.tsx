@@ -1856,6 +1856,7 @@ Closed the big deal! #win"
           </CardContent>
         </Card>
       </div>
+      </PageTransition>
       
       <UsefulThoughtsModal
         open={thoughtsModalOpen}
