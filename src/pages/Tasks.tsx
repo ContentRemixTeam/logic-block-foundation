@@ -580,18 +580,16 @@ export default function Tasks() {
 
   // Handlers - Use optimistic mutations for instant UI feedback
   const handleToggleComplete = useCallback((taskId: string) => {
+    // Find the task to check if it's being completed (not uncompleted)
+    const task = filteredTasks.find(t => t.task_id === taskId);
+    const isCompleting = task && !task.is_completed;
+    
     // Uses optimistic update - UI updates immediately before server confirms
-    toggleComplete.mutate({ taskId }, {
-      onSuccess: () => {
-        // Find the task to check if it was completed (not uncompleted)
-        const task = filteredTasks.find(t => t.task_id === taskId);
-        if (task && !task.is_completed) {
-          // It was just completed - trigger celebration
-          const { triggerCelebration } = require('@/components/celebrations/CelebrationOverlay');
-          triggerCelebration({ type: 'task_complete' });
-        }
-      }
-    });
+    toggleComplete.mutate({ taskId });
+    
+    if (isCompleting) {
+      triggerCelebration({ type: 'task_complete' });
+    }
   }, [toggleComplete, filteredTasks]);
 
   const handleUpdateTask = useCallback((taskId: string, updates: Partial<Task>) => {
