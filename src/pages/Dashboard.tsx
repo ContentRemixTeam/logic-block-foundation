@@ -73,6 +73,9 @@ import { ChallengeProgressWidget } from '@/components/challenges/ChallengeProgre
 import { MonthlyChallengeAutoPopup } from '@/components/challenges/MonthlyChallengeAutoPopup';
 import { PersonalizedGreeting } from '@/components/dashboard/PersonalizedGreeting';
 import { PageTransition, StaggerContainer, StaggerItem } from '@/components/transitions/PageTransition';
+import { ScorecardDashboard } from '@/components/scorecard/ScorecardDashboard';
+import { WeeklyScorecardForm } from '@/components/scorecard/WeeklyScorecardForm';
+import { getWeekNumber } from '@/hooks/useWeeklyScorecard';
 
 // Dynamic alerts based on cycle day (excluding GAP alerts)
 function getDynamicAlert(currentDay: number) {
