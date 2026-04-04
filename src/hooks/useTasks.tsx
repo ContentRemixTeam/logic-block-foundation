@@ -307,6 +307,43 @@ export function useTaskMutations() {
     return session;
   };
 
+  // Helper: optimistically update ALL cached task queries (handles TasksResponse shape)
+  const optimisticUpdateAll = (updater: (tasks: Task[]) => Task[]) => {
+    queryClient.setQueriesData<TasksResponse>(
+      { queryKey: taskQueryKeys.all },
+      (oldData) => {
+        if (!oldData?.data) return oldData;
+        return { ...oldData, data: updater(oldData.data) };
+      }
+    );
+  };
+
+  // Helper: snapshot all task caches for rollback
+  const snapshotAll = (): Map<string, TasksResponse | undefined> => {
+    const snapshot = new Map<string, TasksResponse | undefined>();
+    const cache = queryClient.getQueriesData<TasksResponse>({ queryKey: taskQueryKeys.all });
+    cache.forEach(([key, data]) => {
+      snapshot.set(JSON.stringify(key), data);
+    });
+    return snapshot;
+  };
+
+  // Helper: restore snapshot on error
+  const restoreSnapshot = (snapshot: Map<string, TasksResponse | undefined>) => {
+    snapshot.forEach((data, keyStr) => {
+      const key = JSON.parse(keyStr);
+      queryClient.setQueryData(key, data);
+    });
+  };
+
+  // Related query keys to invalidate for cross-view sync
+  const relatedQueryKeys = [
+    ['daily-plans'],
+    ['dashboard-summary'],
+    ['daily-top3'],
+    ['habit-logs'],
+  ];
+
   // Create task mutation
   const createTask = useMutation({
     mutationFn: async (params: Partial<Task> & { task_text: string }) => {
@@ -355,18 +392,20 @@ export function useTaskMutations() {
       }
     },
     onMutate: async (newTask) => {
-     // NO optimistic update - rely on real-time subscription for UI update
-     // This prevents race conditions between optimistic updates and real-time events
-     },
-     onError: (err) => {
+      // NO optimistic update for create - rely on real-time subscription
+      // This prevents race conditions between optimistic updates and real-time events
+    },
+    onError: (err) => {
       showOperationError('create', 'Task', err);
     },
-     onSuccess: () => {
-       // Backup: If real-time didn't fire within 1 second, invalidate queries
-       setTimeout(() => {
-         queryClient.invalidateQueries({ queryKey: taskQueryKeys.all });
-       }, 1000);
-       toast.success('Task created');
+    onSuccess: () => {
+      // Backup: If real-time didn't fire within 1 second, invalidate queries
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: taskQueryKeys.all });
+      }, 1000);
+      // Also invalidate related views for cross-view sync
+      relatedQueryKeys.forEach(key => queryClient.invalidateQueries({ queryKey: key }));
+      toast.success('Task created');
     },
   });
 
@@ -375,15 +414,10 @@ export function useTaskMutations() {
     mutationFn: async ({ taskId, updates }: { taskId: string; updates: Partial<Task> }) => {
       const session = await getSession();
       
-      // Get task text for logging
-      const currentTasks = queryClient.getQueryData<Task[]>(taskQueryKeys.all);
-      const task = currentTasks?.find(t => t.task_id === taskId);
-      
       // Log mutation start
       const logId = mutationLogger.log({
         type: 'update',
         taskId,
-        taskText: task?.task_text,
         updates,
         status: 'pending',
       });
@@ -405,20 +439,20 @@ export function useTaskMutations() {
     },
     onMutate: async ({ taskId, updates }) => {
       await queryClient.cancelQueries({ queryKey: taskQueryKeys.all });
-      const previousTasks = queryClient.getQueryData<Task[]>(taskQueryKeys.all);
+      const snapshot = snapshotAll();
 
-      // Optimistically update
-      queryClient.setQueryData<Task[]>(taskQueryKeys.all, (old) =>
-        old?.map(t => t.task_id === taskId ? { ...t, ...updates } : t)
+      optimisticUpdateAll(tasks =>
+        tasks.map(t => t.task_id === taskId ? { ...t, ...updates } : t)
       );
 
-      return { previousTasks };
+      return { snapshot };
     },
     onError: (err, _vars, context) => {
-      if (context?.previousTasks) {
-        queryClient.setQueryData(taskQueryKeys.all, context.previousTasks);
-      }
+      if (context?.snapshot) restoreSnapshot(context.snapshot);
       showOperationError('update', 'Task', err);
+    },
+    onSuccess: () => {
+      relatedQueryKeys.forEach(key => queryClient.invalidateQueries({ queryKey: key }));
     },
   });
 
@@ -435,23 +469,23 @@ export function useTaskMutations() {
     },
     onMutate: async ({ taskId }) => {
       await queryClient.cancelQueries({ queryKey: taskQueryKeys.all });
-      const previousTasks = queryClient.getQueryData<Task[]>(taskQueryKeys.all);
+      const snapshot = snapshotAll();
 
-      // Optimistically toggle
-      queryClient.setQueryData<Task[]>(taskQueryKeys.all, (old) =>
-        old?.map(t => t.task_id === taskId 
+      optimisticUpdateAll(tasks =>
+        tasks.map(t => t.task_id === taskId 
           ? { ...t, is_completed: !t.is_completed, completed_at: !t.is_completed ? new Date().toISOString() : null } 
           : t
         )
       );
 
-      return { previousTasks };
+      return { snapshot };
     },
     onError: (err, _vars, context) => {
-      if (context?.previousTasks) {
-        queryClient.setQueryData(taskQueryKeys.all, context.previousTasks);
-      }
+      if (context?.snapshot) restoreSnapshot(context.snapshot);
       showOperationError('update', 'Task', err);
+    },
+    onSuccess: () => {
+      relatedQueryKeys.forEach(key => queryClient.invalidateQueries({ queryKey: key }));
     },
   });
 
@@ -468,22 +502,19 @@ export function useTaskMutations() {
     },
     onMutate: async ({ taskId }) => {
       await queryClient.cancelQueries({ queryKey: taskQueryKeys.all });
-      const previousTasks = queryClient.getQueryData<Task[]>(taskQueryKeys.all);
+      const snapshot = snapshotAll();
 
-      // Optimistically remove
-      queryClient.setQueryData<Task[]>(taskQueryKeys.all, (old) =>
-        old?.filter(t => t.task_id !== taskId)
-      );
+      // Optimistically remove from all caches
+      optimisticUpdateAll(tasks => tasks.filter(t => t.task_id !== taskId));
 
-      return { previousTasks };
+      return { snapshot };
     },
     onError: (err, _vars, context) => {
-      if (context?.previousTasks) {
-        queryClient.setQueryData(taskQueryKeys.all, context.previousTasks);
-      }
+      if (context?.snapshot) restoreSnapshot(context.snapshot);
       showOperationError('delete', 'Task', err);
     },
     onSuccess: () => {
+      relatedQueryKeys.forEach(key => queryClient.invalidateQueries({ queryKey: key }));
       toast.success('Task deleted');
     },
   });
@@ -507,22 +538,23 @@ export function useTaskMutations() {
     },
     onMutate: async ({ taskId, plannedDay, dayOrder }) => {
       await queryClient.cancelQueries({ queryKey: taskQueryKeys.all });
-      const previousTasks = queryClient.getQueryData<Task[]>(taskQueryKeys.all);
+      const snapshot = snapshotAll();
 
-      queryClient.setQueryData<Task[]>(taskQueryKeys.all, (old) =>
-        old?.map(t => t.task_id === taskId 
+      optimisticUpdateAll(tasks =>
+        tasks.map(t => t.task_id === taskId 
           ? { ...t, planned_day: plannedDay, day_order: dayOrder ?? 0, time_block_start: null } 
           : t
         )
       );
 
-      return { previousTasks };
+      return { snapshot };
     },
     onError: (err, _vars, context) => {
-      if (context?.previousTasks) {
-        queryClient.setQueryData(taskQueryKeys.all, context.previousTasks);
-      }
+      if (context?.snapshot) restoreSnapshot(context.snapshot);
       showOperationError('update', 'Task', err);
+    },
+    onSuccess: () => {
+      relatedQueryKeys.forEach(key => queryClient.invalidateQueries({ queryKey: key }));
     },
   });
 
@@ -544,21 +576,19 @@ export function useTaskMutations() {
     },
     onMutate: async ({ taskId, start, end }) => {
       await queryClient.cancelQueries({ queryKey: taskQueryKeys.all });
-      const previousTasks = queryClient.getQueryData<Task[]>(taskQueryKeys.all);
+      const snapshot = snapshotAll();
 
-      queryClient.setQueryData<Task[]>(taskQueryKeys.all, (old) =>
-        old?.map(t => t.task_id === taskId 
+      optimisticUpdateAll(tasks =>
+        tasks.map(t => t.task_id === taskId 
           ? { ...t, time_block_start: start, time_block_end: end } 
           : t
         )
       );
 
-      return { previousTasks };
+      return { snapshot };
     },
     onError: (err, _vars, context) => {
-      if (context?.previousTasks) {
-        queryClient.setQueryData(taskQueryKeys.all, context.previousTasks);
-      }
+      if (context?.snapshot) restoreSnapshot(context.snapshot);
       showOperationError('update', 'Task', err);
     },
   });
