@@ -70,6 +70,8 @@ import { getCurrentLaunchPhase } from '@/lib/launchHelpers';
 import { InstallBanner } from '@/components/install/InstallBanner';
 import { ChallengeProgressWidget } from '@/components/challenges/ChallengeProgressWidget';
 import { MonthlyChallengeAutoPopup } from '@/components/challenges/MonthlyChallengeAutoPopup';
+import { PersonalizedGreeting } from '@/components/dashboard/PersonalizedGreeting';
+import { PageTransition, StaggerContainer, StaggerItem } from '@/components/transitions/PageTransition';
 
 // Dynamic alerts based on cycle day (excluding GAP alerts)
 function getDynamicAlert(currentDay: number) {
@@ -135,22 +137,24 @@ interface WidgetCardProps {
 
 function WidgetCard({ title, icon, gradientClass = 'from-primary/5', children, className }: WidgetCardProps) {
   return (
-    <Card className={cn(
-      "overflow-hidden border-border/40 hover:shadow-lg transition-all duration-300 hover:border-primary/20",
-      className
-    )}>
-      <CardHeader className={cn("bg-gradient-to-r to-transparent pb-3", gradientClass)}>
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            {icon}
+    <StaggerItem>
+      <Card className={cn(
+        "overflow-hidden border-border/40 hover:shadow-lg transition-all duration-300 hover:border-primary/20",
+        className
+      )}>
+        <CardHeader className={cn("bg-gradient-to-r to-transparent pb-3", gradientClass)}>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              {icon}
+            </div>
+            <CardTitle className="text-lg">{title}</CardTitle>
           </div>
-          <CardTitle className="text-lg">{title}</CardTitle>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-4">
-        {children}
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent className="pt-4">
+          {children}
+        </CardContent>
+      </Card>
+    </StaggerItem>
   );
 }
 
@@ -396,6 +400,7 @@ export default function Dashboard() {
 
   return (
     <Layout>
+      <PageTransition>
       <div className="space-y-6">
         {/* Install Banner for mobile */}
         <InstallBanner />
@@ -403,29 +408,22 @@ export default function Dashboard() {
         {/* Monthly Challenge Auto-Popup */}
         <MonthlyChallengeAutoPopup />
 
-        {/* Header */}
+        {/* Header with Personalized Greeting */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-              Dashboard
-            </h1>
-            <p className="text-muted-foreground">
-              Your 90-day planning command center
-            </p>
-          </div>
+          <PersonalizedGreeting />
           <div className="flex gap-2">
-            <Button variant="default" size="sm" className="gap-2" asChild>
+            <Button variant="default" size="sm" className="gap-2 transition-all active:scale-95" asChild>
               <Link to="/daily-plan">
                 <Flame className="h-4 w-4" />
                 Today
               </Link>
             </Button>
             <SmartActionButton variant="inline" size="sm" />
-            <Button variant="outline" size="sm" className="gap-2 hover:bg-muted/50">
+            <Button variant="outline" size="sm" className="gap-2 hover:bg-muted/50 transition-all active:scale-95">
               <Settings2 className="h-4 w-4" />
               <span className="hidden sm:inline">Customize</span>
             </Button>
-            <Button variant="outline" size="sm" className="gap-2 hover:bg-muted/50 group" asChild>
+            <Button variant="outline" size="sm" className="gap-2 hover:bg-muted/50 group transition-all active:scale-95" asChild>
               <Link to={cycle?.cycle_id ? `/cycle-wizard?edit=${cycle.cycle_id}` : '/cycle-wizard'}>
                 <Pencil className="h-4 w-4" />
                 <span className="hidden sm:inline">Edit Plan</span>
@@ -436,7 +434,7 @@ export default function Dashboard() {
         </div>
 
         {/* Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <StaggerContainer className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content - spans 2 cols on desktop */}
           <div className="lg:col-span-2 space-y-6">
             
@@ -949,8 +947,9 @@ export default function Dashboard() {
               <DueTodayWidget />
             </WidgetCard>
           </div>
-        </div>
+        </StaggerContainer>
       </div>
+      </PageTransition>
     </Layout>
   );
 }

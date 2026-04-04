@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO, isBefore, startOfDay, startOfWeek, endOfWeek } from 'date-fns';
 import { Layout } from '@/components/Layout';
+import { triggerCelebration } from '@/components/celebrations/CelebrationOverlay';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -579,9 +580,17 @@ export default function Tasks() {
 
   // Handlers - Use optimistic mutations for instant UI feedback
   const handleToggleComplete = useCallback((taskId: string) => {
+    // Find the task to check if it's being completed (not uncompleted)
+    const task = filteredTasks.find(t => t.task_id === taskId);
+    const isCompleting = task && !task.is_completed;
+    
     // Uses optimistic update - UI updates immediately before server confirms
     toggleComplete.mutate({ taskId });
-  }, [toggleComplete]);
+    
+    if (isCompleting) {
+      triggerCelebration({ type: 'task_complete' });
+    }
+  }, [toggleComplete, filteredTasks]);
 
   const handleUpdateTask = useCallback((taskId: string, updates: Partial<Task>) => {
     // Uses optimistic update for instant feedback

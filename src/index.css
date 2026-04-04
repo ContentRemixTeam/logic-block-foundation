@@ -1255,6 +1255,74 @@ html.theme-transitioning * {
   background: hsl(var(--muted-foreground) / 0.35);
 }
 
+/* =====================================================
+   MICRO-INTERACTIONS & DELIGHT
+   ===================================================== */
+
+/* Satisfying button press */
+button, [role="button"], a.inline-flex {
+  transition: transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+button:active:not(:disabled), [role="button"]:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Card lift on hover */
+.card-premium:hover,
+[data-slot="card"]:hover {
+  transform: translateY(-1px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Checkbox celebration pulse */
+@keyframes check-pulse {
+  0% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4); }
+  70% { box-shadow: 0 0 0 8px hsl(var(--primary) / 0); }
+  100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
+}
+
+[role="checkbox"][data-state="checked"],
+[data-state="checked"][role="checkbox"] {
+  animation: check-pulse 0.4s ease-out;
+}
+
+/* Smooth focus ring transition */
+*:focus-visible {
+  transition: outline-offset 0.15s ease, outline-color 0.15s ease;
+  outline-offset: 2px;
+}
+
+/* Satisfying toggle switch */
+[role="switch"] {
+  transition: background-color 0.2s ease !important;
+}
+
+[role="switch"] > span {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+/* Progress bar shimmer */
+@keyframes progress-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.progress-shimmer {
+  background-size: 200% 100%;
+  animation: progress-shimmer 2s linear infinite;
+}
+
+/* Streak badge glow */
+@keyframes streak-glow {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.2); }
+  50% { box-shadow: 0 0 12px 2px hsl(var(--primary) / 0.15); }
+}
+
+.streak-badge {
+  animation: streak-glow 3s ease-in-out infinite;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

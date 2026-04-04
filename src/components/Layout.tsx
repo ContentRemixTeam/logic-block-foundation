@@ -19,6 +19,7 @@ import { FloatingTimerBar } from '@/components/timer';
 import { QueryPerformanceWarning } from '@/components/system/QueryPerformanceWarning';
 import { MonthlyThemeHelloBar } from '@/components/monthly-theme/MonthlyThemeHelloBar';
 import { MonthlyThemePopup } from '@/components/monthly-theme/MonthlyThemePopup';
+import { CelebrationOverlay } from '@/components/celebrations/CelebrationOverlay';
 import { Loader2, Sparkles, ArrowRight, X } from 'lucide-react';
 
 // Lazy load heavy arcade components - only loaded when arcade is enabled
@@ -151,6 +152,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         
         {/* Performance Monitoring (dev only) */}
         <QueryPerformanceWarning />
+        
+        {/* Celebration overlay */}
+        <CelebrationOverlay />
         
         {/* Arcade Drawer - lazy loaded */}
         {settings.arcade_enabled && (

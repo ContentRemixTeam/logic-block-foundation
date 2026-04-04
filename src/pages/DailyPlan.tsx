@@ -42,6 +42,8 @@ import { cn } from '@/lib/utils';
 
 
 import { QuickLogCard } from '@/components/content';
+import { triggerCelebration } from '@/components/celebrations/CelebrationOverlay';
+import { PageTransition } from '@/components/transitions/PageTransition';
 import { NurtureCheckinCard } from '@/components/nurture';
 import { HabitTrackerCard } from '@/components/habits';
 // ArcadeIntroCard removed - moved to onboarding
@@ -724,6 +726,16 @@ export default function DailyPlan() {
         t.task_id === taskId ? { ...t, is_completed: !currentStatus } : t
       ));
       
+      if (!currentStatus) {
+        // Check if all top 3 tasks are now done
+        const allDone = top3Tasks.every(t => t.task_id === taskId ? true : t.is_completed);
+        if (allDone && top3Tasks.length > 0) {
+          triggerCelebration({ type: 'all_done' });
+        } else {
+          triggerCelebration({ type: 'task_complete' });
+        }
+      }
+      
       toast({
         title: !currentStatus ? "✅ Task completed!" : "Task unchecked",
       });
@@ -770,6 +782,10 @@ export default function DailyPlan() {
       if (error) throw error;
       
       setHabitLogs((prev) => ({ ...prev, [habitId]: data }));
+      
+      if (data) {
+        triggerCelebration({ type: 'habit_logged', message: 'Habit tracked! 🔥' });
+      }
     } catch (error: any) {
       console.error('Habit toggle error:', error);
       toast({
@@ -948,6 +964,7 @@ export default function DailyPlan() {
 
   return (
     <Layout>
+      <PageTransition>
       <div className={cn(
         "mx-auto",
         isMobile ? "max-w-full px-4 space-y-4" : "max-w-3xl space-y-8"
@@ -1839,6 +1856,7 @@ Closed the big deal! #win"
           </CardContent>
         </Card>
       </div>
+      </PageTransition>
       
       <UsefulThoughtsModal
         open={thoughtsModalOpen}
