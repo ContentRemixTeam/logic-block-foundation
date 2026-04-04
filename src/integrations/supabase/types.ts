@@ -1978,6 +1978,47 @@ export type Database = {
           },
         ]
       }
+      cycle_weekly_tactics: {
+        Row: {
+          created_at: string
+          cycle_id: string
+          id: string
+          is_active: boolean
+          sort_order: number
+          tactic_text: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          cycle_id: string
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          tactic_text: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          cycle_id?: string
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          tactic_text?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cycle_weekly_tactics_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+        ]
+      }
       cycles_90_day: {
         Row: {
           accountability_person: string | null
@@ -4876,6 +4917,8 @@ export type Database = {
           name: string
           offer_goal: number | null
           revenue_goal: number | null
+          sprint_month: number | null
+          sprint_phase: string | null
           start_date: string | null
           status: string
           summit_id: string | null
@@ -4903,6 +4946,8 @@ export type Database = {
           name: string
           offer_goal?: number | null
           revenue_goal?: number | null
+          sprint_month?: number | null
+          sprint_phase?: string | null
           start_date?: string | null
           status?: string
           summit_id?: string | null
@@ -4930,6 +4975,8 @@ export type Database = {
           name?: string
           offer_goal?: number | null
           revenue_goal?: number | null
+          sprint_month?: number | null
+          sprint_phase?: string | null
           start_date?: string | null
           status?: string
           summit_id?: string | null
@@ -7610,6 +7657,72 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "weekly_plans"
             referencedColumns: ["week_id"]
+          },
+        ]
+      }
+      weekly_scorecards: {
+        Row: {
+          belief_score: number | null
+          coaching_prompt_shown: boolean | null
+          created_at: string
+          cycle_id: string
+          execution_score: number | null
+          id: string
+          reflection_text: string | null
+          sprint_phase: string | null
+          sprint_project_id: string | null
+          tactic_completions: Json
+          updated_at: string
+          user_id: string
+          week_number: number
+          week_start_date: string
+        }
+        Insert: {
+          belief_score?: number | null
+          coaching_prompt_shown?: boolean | null
+          created_at?: string
+          cycle_id: string
+          execution_score?: number | null
+          id?: string
+          reflection_text?: string | null
+          sprint_phase?: string | null
+          sprint_project_id?: string | null
+          tactic_completions?: Json
+          updated_at?: string
+          user_id: string
+          week_number: number
+          week_start_date: string
+        }
+        Update: {
+          belief_score?: number | null
+          coaching_prompt_shown?: boolean | null
+          created_at?: string
+          cycle_id?: string
+          execution_score?: number | null
+          id?: string
+          reflection_text?: string | null
+          sprint_phase?: string | null
+          sprint_project_id?: string | null
+          tactic_completions?: Json
+          updated_at?: string
+          user_id?: string
+          week_number?: number
+          week_start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_scorecards_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+          {
+            foreignKeyName: "weekly_scorecards_sprint_project_id_fkey"
+            columns: ["sprint_project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
           },
         ]
       }
