@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.openai-proxy]
 verify_jwt = false
+
+[functions.google-sheets-sync]
+verify_jwt = false

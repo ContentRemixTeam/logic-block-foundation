@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTour } from '@/hooks/useTour';
 import { GoogleCalendarPanel } from '@/components/google-calendar/GoogleCalendarPanel';
+import { GoogleSheetsSyncPanel } from '@/components/google-sheets/GoogleSheetsSyncPanel';
 import { THEMES, THEME_IDS, ThemeId } from '@/lib/themes';
 import { DelightSettingsCard, DataRecoveryCard } from '@/components/settings';
 import { ThemeGallery } from '@/components/themes';
@@ -418,6 +419,9 @@ export default function Settings() {
 
         {/* Google Calendar Integration */}
         <GoogleCalendarPanel />
+
+        {/* Google Sheets Sync */}
+        <GoogleSheetsSyncPanel />
 
         {/* Calendar Integration */}
         <CalendarSettingsCard />
