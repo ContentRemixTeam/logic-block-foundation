@@ -31,6 +31,7 @@ import { YesterdayReviewPopup } from '@/components/YesterdayReviewPopup';
 import { CycleSnapshotCard } from '@/components/cycle/CycleSnapshotCard';
 import { GoalRewritePrompt } from '@/components/cycle/GoalRewritePrompt';
 import { InlineCalendarAgenda } from '@/components/daily-plan/InlineCalendarAgenda';
+import { StructuredScheduler } from '@/components/daily-plan/StructuredScheduler';
 import { CustomQuestion } from '@/components/daily-plan/CustomQuestion';
 import { Slider } from '@/components/ui/slider';
 import { ArrowLeft, ChevronDown, ChevronUp, Loader2, Save, CheckCircle2, Brain, TrendingUp, Zap, Target, Sparkles, Trash2, BookOpen, ListTodo, Lightbulb, Clock, Calendar, CalendarRange, Moon, AlertCircle, Rocket, Diamond, Check, Settings } from 'lucide-react';
