@@ -782,6 +782,10 @@ export default function DailyPlan() {
       if (error) throw error;
       
       setHabitLogs((prev) => ({ ...prev, [habitId]: data }));
+      
+      if (data) {
+        triggerCelebration({ type: 'habit_logged', message: 'Habit tracked! 🔥' });
+      }
     } catch (error: any) {
       console.error('Habit toggle error:', error);
       toast({
