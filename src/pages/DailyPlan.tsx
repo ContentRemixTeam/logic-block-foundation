@@ -726,6 +726,16 @@ export default function DailyPlan() {
         t.task_id === taskId ? { ...t, is_completed: !currentStatus } : t
       ));
       
+      if (!currentStatus) {
+        // Check if all top 3 tasks are now done
+        const allDone = top3Tasks.every(t => t.task_id === taskId ? true : t.is_completed);
+        if (allDone && top3Tasks.length > 0) {
+          triggerCelebration({ type: 'all_done' });
+        } else {
+          triggerCelebration({ type: 'task_complete' });
+        }
+      }
+      
       toast({
         title: !currentStatus ? "✅ Task completed!" : "Task unchecked",
       });
