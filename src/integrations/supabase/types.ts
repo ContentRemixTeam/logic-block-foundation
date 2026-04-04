@@ -3099,6 +3099,39 @@ export type Database = {
         }
         Relationships: []
       }
+      google_sheets_sync: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_synced_at: string | null
+          selected_tables: string[] | null
+          spreadsheet_id: string | null
+          spreadsheet_url: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_synced_at?: string | null
+          selected_tables?: string[] | null
+          spreadsheet_id?: string | null
+          spreadsheet_url?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_synced_at?: string | null
+          selected_tables?: string[] | null
+          spreadsheet_id?: string | null
+          spreadsheet_url?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       google_sync_state: {
         Row: {
           calendar_id: string
