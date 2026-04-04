@@ -538,22 +538,23 @@ export function useTaskMutations() {
     },
     onMutate: async ({ taskId, plannedDay, dayOrder }) => {
       await queryClient.cancelQueries({ queryKey: taskQueryKeys.all });
-      const previousTasks = queryClient.getQueryData<Task[]>(taskQueryKeys.all);
+      const snapshot = snapshotAll();
 
-      queryClient.setQueryData<Task[]>(taskQueryKeys.all, (old) =>
-        old?.map(t => t.task_id === taskId 
+      optimisticUpdateAll(tasks =>
+        tasks.map(t => t.task_id === taskId 
           ? { ...t, planned_day: plannedDay, day_order: dayOrder ?? 0, time_block_start: null } 
           : t
         )
       );
 
-      return { previousTasks };
+      return { snapshot };
     },
     onError: (err, _vars, context) => {
-      if (context?.previousTasks) {
-        queryClient.setQueryData(taskQueryKeys.all, context.previousTasks);
-      }
+      if (context?.snapshot) restoreSnapshot(context.snapshot);
       showOperationError('update', 'Task', err);
+    },
+    onSuccess: () => {
+      relatedQueryKeys.forEach(key => queryClient.invalidateQueries({ queryKey: key }));
     },
   });
 
@@ -575,21 +576,19 @@ export function useTaskMutations() {
     },
     onMutate: async ({ taskId, start, end }) => {
       await queryClient.cancelQueries({ queryKey: taskQueryKeys.all });
-      const previousTasks = queryClient.getQueryData<Task[]>(taskQueryKeys.all);
+      const snapshot = snapshotAll();
 
-      queryClient.setQueryData<Task[]>(taskQueryKeys.all, (old) =>
-        old?.map(t => t.task_id === taskId 
+      optimisticUpdateAll(tasks =>
+        tasks.map(t => t.task_id === taskId 
           ? { ...t, time_block_start: start, time_block_end: end } 
           : t
         )
       );
 
-      return { previousTasks };
+      return { snapshot };
     },
     onError: (err, _vars, context) => {
-      if (context?.previousTasks) {
-        queryClient.setQueryData(taskQueryKeys.all, context.previousTasks);
-      }
+      if (context?.snapshot) restoreSnapshot(context.snapshot);
       showOperationError('update', 'Task', err);
     },
   });
