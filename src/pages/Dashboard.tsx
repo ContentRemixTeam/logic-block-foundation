@@ -70,6 +70,8 @@ import { getCurrentLaunchPhase } from '@/lib/launchHelpers';
 import { InstallBanner } from '@/components/install/InstallBanner';
 import { ChallengeProgressWidget } from '@/components/challenges/ChallengeProgressWidget';
 import { MonthlyChallengeAutoPopup } from '@/components/challenges/MonthlyChallengeAutoPopup';
+import { PersonalizedGreeting } from '@/components/dashboard/PersonalizedGreeting';
+import { PageTransition, StaggerContainer, StaggerItem } from '@/components/transitions/PageTransition';
 
 // Dynamic alerts based on cycle day (excluding GAP alerts)
 function getDynamicAlert(currentDay: number) {
