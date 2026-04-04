@@ -21,6 +21,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTour } from '@/hooks/useTour';
 import { GoogleCalendarPanel } from '@/components/google-calendar/GoogleCalendarPanel';
 import { GoogleSheetsSyncPanel } from '@/components/google-sheets/GoogleSheetsSyncPanel';
+import { McpConnectionPanel } from '@/components/settings/McpConnectionPanel';
 import { THEMES, THEME_IDS, ThemeId } from '@/lib/themes';
 import { DelightSettingsCard, DataRecoveryCard } from '@/components/settings';
 import { ThemeGallery } from '@/components/themes';
@@ -422,6 +423,9 @@ export default function Settings() {
 
         {/* Google Sheets Sync */}
         <GoogleSheetsSyncPanel />
+
+        {/* Claude AI MCP Connection */}
+        <McpConnectionPanel />
 
         {/* Calendar Integration */}
         <CalendarSettingsCard />
