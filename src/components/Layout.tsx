@@ -153,6 +153,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         {/* Performance Monitoring (dev only) */}
         <QueryPerformanceWarning />
         
+        {/* Celebration overlay */}
+        <CelebrationOverlay />
+        
         {/* Arcade Drawer - lazy loaded */}
         {settings.arcade_enabled && (
           <Suspense fallback={null}>
