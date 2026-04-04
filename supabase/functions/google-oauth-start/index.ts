@@ -84,7 +84,8 @@ serve(async (req) => {
     const scopes = [
       'https://www.googleapis.com/auth/calendar.events',
       'https://www.googleapis.com/auth/calendar.readonly',
-      'https://www.googleapis.com/auth/userinfo.email'
+      'https://www.googleapis.com/auth/userinfo.email',
+      'https://www.googleapis.com/auth/spreadsheets'
     ];
 
     const params = new URLSearchParams({
