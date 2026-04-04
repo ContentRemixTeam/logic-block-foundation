@@ -17,6 +17,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { LaunchDebriefBanner } from '@/components/LaunchDebriefBanner';
 import { FloatingTimerBar } from '@/components/timer';
 import { QueryPerformanceWarning } from '@/components/system/QueryPerformanceWarning';
+import { PlannerDividerTabs } from '@/components/PlannerDividerTabs';
 import { MonthlyThemeHelloBar } from '@/components/monthly-theme/MonthlyThemeHelloBar';
 import { MonthlyThemePopup } from '@/components/monthly-theme/MonthlyThemePopup';
 import { CelebrationOverlay } from '@/components/celebrations/CelebrationOverlay';
@@ -134,6 +135,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               )}
             </div>
           </header>
+
+          {/* Paper Planner Divider Tabs */}
+          <PlannerDividerTabs />
 
           {/* Page Content - Add bottom padding on mobile for nav */}
           <main className="flex-1 overflow-auto bg-background">
