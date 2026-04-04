@@ -136,6 +136,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
+          {/* Paper Planner Divider Tabs */}
+          <PlannerDividerTabs />
+
           {/* Page Content - Add bottom padding on mobile for nav */}
           <main className="flex-1 overflow-auto bg-background">
             <div className={`mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8 ${isMobile ? 'pb-24' : ''}`}>
