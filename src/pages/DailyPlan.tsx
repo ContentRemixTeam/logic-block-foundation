@@ -1604,7 +1604,7 @@ Closed the big deal! #win"
               },
 
               calendar_agenda: () => (
-                <InlineCalendarAgenda
+                <StructuredScheduler
                   officeHoursStart={cycleData?.office_hours_start ? parseInt(cycleData.office_hours_start.split(':')[0], 10) : 9}
                   officeHoursEnd={cycleData?.office_hours_end ? parseInt(cycleData.office_hours_end.split(':')[0], 10) : 17}
                   onTaskUpdate={loadDailyPlan}
