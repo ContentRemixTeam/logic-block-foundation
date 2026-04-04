@@ -1,28 +1,70 @@
 
 
-# Auto-refresh Daily Agenda After Scratch Pad Tag Processing
+## Google Sheets Sync — Manual, User-Selectable Data
 
-## What's Already Working
-The `#task` items from the scratch pad are already saved with today's date (`scheduled_date`) and no time slot, which places them in the "unscheduled" pool on the daily agenda. They ARE being created correctly in the database.
+### Cost Impact
 
-## The Gap
-After processing tags, the UI doesn't automatically refresh the task list. The user has to navigate away and back to see the newly created tasks appear on the agenda.
+**$0 ongoing cost.** Manual button-click means no scheduled edge function calls. Google Sheets API is free (500 req/100s quota). The only cost is the edge function invocation when a user clicks "Sync" — negligible even at scale.
 
-## Fix
-Invalidate the React Query task cache after successful tag processing so the daily agenda updates instantly.
+### How It Works
 
-### File: `src/components/daily-plan/DailyScratchPad.tsx` (or whichever scratch pad component calls `process-scratch-pad-tags` on the daily plan page)
+1. User goes to Settings, sees a "Google Sheets Sync" panel
+2. Since they already connected Google Calendar, we add the Sheets scope to the existing OAuth flow
+3. User picks which data types to sync (tasks, daily plans, habits, etc.)
+4. User clicks "Sync Now" — an edge function reads their data, writes it to a Google Sheet (one tab per data type)
+5. The Sheet URL is saved so they can share it with Claude or other AI tools
 
-1. Import `useQueryClient` from `@tanstack/react-query`
-2. After a successful `process-scratch-pad-tags` call (inside the success branch of `handleProcessTags`), call `queryClient.invalidateQueries({ queryKey: ['all-tasks'] })` to trigger an immediate refetch of the task list
-3. This will cause the daily agenda to re-render with the newly created tasks visible in the unscheduled pool -- no page reload needed
+### Technical Plan
 
-### File: `src/components/weekly-plan/WeeklyScratchPad.tsx`
+**1. Add Google Sheets scope to OAuth flow**
 
-Same change -- add query invalidation after successful tag processing so the weekly view also reflects new tasks immediately.
+Update `google-oauth-start/index.ts` to include `https://www.googleapis.com/auth/spreadsheets` in the scopes array. Users who already connected will need to reconnect once (we'll show a prompt).
 
-## Technical Detail
-- Only the query cache invalidation call is added; no data logic or mutations are changed
-- The existing `useTasks()` hook and `useTaskMutations()` pattern is respected -- we just tell React Query the cache is stale
-- One-line addition per file after the success toast
+**2. New database table: `google_sheets_sync`**
+
+Stores the user's Sheet ID, selected data types, and last sync timestamp.
+
+```sql
+CREATE TABLE public.google_sheets_sync (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  spreadsheet_id TEXT,
+  spreadsheet_url TEXT,
+  selected_tables TEXT[] DEFAULT '{}',
+  last_synced_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id)
+);
+-- RLS: users can only access their own row
+```
+
+**3. New edge function: `google-sheets-sync`**
+
+- Authenticates user, gets their Google access token from `google_calendar_connection`
+- Reads selected data types from the database (reusing the `fetchAll` pattern from `dataExport.ts`)
+- Creates a new Google Sheet (first sync) or updates existing one
+- Writes each selected data type as a separate tab (Tasks, Daily Plans, Habits, etc.)
+- Saves the spreadsheet ID/URL back to the database
+
+**4. Settings UI: `GoogleSheetsSyncPanel.tsx`**
+
+- Shows sync status and last sync time
+- Checkbox list of data types to include (tasks, cycles, daily plans, weekly plans, habits, coaching entries, etc.)
+- "Sync Now" button with loading state
+- Link to open the synced Google Sheet
+- Note: "Requires Google Calendar connection" if not connected
+- Reconnect prompt if connected but missing Sheets scope
+
+**5. Files to create/modify**
+
+| File | Action |
+|------|--------|
+| `supabase/functions/google-oauth-start/index.ts` | Add Sheets scope |
+| `supabase/functions/google-oauth-callback/index.ts` | Store granted scopes for scope detection |
+| `supabase/functions/google-sheets-sync/index.ts` | New — core sync logic |
+| `src/components/google-sheets/GoogleSheetsSyncPanel.tsx` | New — settings UI |
+| `src/hooks/useGoogleSheetsSync.ts` | New — hook for sync state/actions |
+| Settings page | Add the new panel |
+| Database migration | New `google_sheets_sync` table |
 
