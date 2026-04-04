@@ -1004,6 +1004,8 @@ export default function Dashboard() {
             </WidgetCard>
           </div>
         </StaggerContainer>
+          </TabsContent>
+        </Tabs>
       </div>
       </PageTransition>
     </Layout>
