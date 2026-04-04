@@ -945,8 +945,9 @@ export default function Dashboard() {
               <DueTodayWidget />
             </WidgetCard>
           </div>
-        </div>
+        </StaggerContainer>
       </div>
+      </PageTransition>
     </Layout>
   );
 }
