@@ -307,6 +307,43 @@ export function useTaskMutations() {
     return session;
   };
 
+  // Helper: optimistically update ALL cached task queries (handles TasksResponse shape)
+  const optimisticUpdateAll = (updater: (tasks: Task[]) => Task[]) => {
+    queryClient.setQueriesData<TasksResponse>(
+      { queryKey: taskQueryKeys.all },
+      (oldData) => {
+        if (!oldData?.data) return oldData;
+        return { ...oldData, data: updater(oldData.data) };
+      }
+    );
+  };
+
+  // Helper: snapshot all task caches for rollback
+  const snapshotAll = (): Map<string, TasksResponse | undefined> => {
+    const snapshot = new Map<string, TasksResponse | undefined>();
+    const cache = queryClient.getQueriesData<TasksResponse>({ queryKey: taskQueryKeys.all });
+    cache.forEach(([key, data]) => {
+      snapshot.set(JSON.stringify(key), data);
+    });
+    return snapshot;
+  };
+
+  // Helper: restore snapshot on error
+  const restoreSnapshot = (snapshot: Map<string, TasksResponse | undefined>) => {
+    snapshot.forEach((data, keyStr) => {
+      const key = JSON.parse(keyStr);
+      queryClient.setQueryData(key, data);
+    });
+  };
+
+  // Related query keys to invalidate for cross-view sync
+  const relatedQueryKeys = [
+    ['daily-plans'],
+    ['dashboard-summary'],
+    ['daily-top3'],
+    ['habit-logs'],
+  ];
+
   // Create task mutation
   const createTask = useMutation({
     mutationFn: async (params: Partial<Task> & { task_text: string }) => {
