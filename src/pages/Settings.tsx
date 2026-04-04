@@ -420,6 +420,9 @@ export default function Settings() {
         {/* Google Calendar Integration */}
         <GoogleCalendarPanel />
 
+        {/* Google Sheets Sync */}
+        <GoogleSheetsSyncPanel />
+
         {/* Calendar Integration */}
         <CalendarSettingsCard />
 
