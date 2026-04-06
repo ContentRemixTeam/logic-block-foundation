@@ -623,10 +623,10 @@ export function useDeleteGeneration() {
 // Setup Status Hook
 export function useAICopywritingSetupStatus() {
   const { data: brandProfile, isLoading: profileLoading } = useBrandProfile();
-  const { data: apiKey, isLoading: keyLoading } = useAPIKey();
+  const { data: apiKeys, isLoading: keysLoading } = useAPIKeys();
   
-  const isLoading = profileLoading || keyLoading;
-  const hasAPIKey = !!apiKey && apiKey.key_status === 'valid';
+  const isLoading = profileLoading || keysLoading;
+  const hasAPIKey = (apiKeys || []).some(k => k.key_status === 'valid');
   const hasBrandProfile = !!brandProfile;
   const isSetupComplete = hasAPIKey && hasBrandProfile;
   
@@ -636,6 +636,7 @@ export function useAICopywritingSetupStatus() {
     hasBrandProfile,
     isSetupComplete,
     brandProfile,
-    apiKey,
+    apiKey: (apiKeys || []).find(k => k.key_status === 'valid') || null,
+    apiKeys: apiKeys || [],
   };
 }
