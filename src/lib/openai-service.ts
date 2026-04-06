@@ -946,7 +946,8 @@ Write like a real person - imperfect, conversational, authentic. Not like ChatGP
    * Call AI API via backend proxy (routes to openai-proxy or anthropic-proxy)
    */
   private static async callOpenAI(params: CallOpenAIParams): Promise<CallOpenAIResult> {
-    const functionName = params.provider === 'anthropic' ? 'anthropic-proxy' : 'openai-proxy';
+    const provider = params.provider || this.currentProvider;
+    const functionName = provider === 'anthropic' ? 'anthropic-proxy' : 'openai-proxy';
     
     const { data, error } = await supabase.functions.invoke(functionName, {
       body: {
