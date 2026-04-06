@@ -11,6 +11,7 @@ import {
   ContentType,
   VoiceProfile
 } from '@/types/aiCopywriting';
+import { AIProvider } from '@/types/aiProvider';
 import { GenerationMode } from '@/types/generationModes';
 import { CopyControls } from '@/types/copyControls';
 import { BrandDNA } from '@/types/brandDNA';
@@ -22,6 +23,7 @@ export const aiCopywritingKeys = {
   brandProfile: (userId: string) => ['brand-profile', userId],
   products: (userId: string) => ['user-products', userId],
   apiKey: (userId: string) => ['user-api-key', userId],
+  apiKeys: (userId: string) => ['user-api-keys', userId],
   generations: (userId: string) => ['ai-generations', userId],
   recentGenerations: (userId: string) => ['ai-generations', userId, 'recent'],
 };
