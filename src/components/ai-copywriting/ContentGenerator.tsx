@@ -23,8 +23,11 @@ import {
   useGenerateCopy, 
   useRateCopy,
   useRecentGenerations,
-  useAPIKey
+  useAPIKeys
 } from '@/hooks/useAICopywriting';
+import { useAuth } from '@/hooks/useAuth';
+import { OpenAIService } from '@/lib/openai-service';
+import { AIProvider, AI_PROVIDER_LABELS } from '@/types/aiProvider';
 import { useBrandDNA } from '@/hooks/useBrandDNA';
 import { useLearningInsights } from '@/hooks/useLearningInsights';
 import { ContentType, POSITIVE_FEEDBACK_TAGS, NEGATIVE_FEEDBACK_TAGS } from '@/types/aiCopywriting';
@@ -65,12 +68,13 @@ const SOCIAL_CONTENT_TYPES = ['instagram_post', 'linkedin_post', 'twitter_thread
 
 export function ContentGenerator() {
   const { data: products } = useProducts();
-  const { data: apiKey } = useAPIKey();
+  const { data: apiKeys } = useAPIKeys();
   const { data: recentGenerations } = useRecentGenerations(5);
   const { brandDNA } = useBrandDNA();
   const { insights: learningInsights } = useLearningInsights();
   const generateCopy = useGenerateCopy();
   const rateCopy = useRateCopy();
+  const { user } = useAuth();
 
   // Ref for scrolling to result
   const resultRef = useRef<HTMLDivElement>(null);
@@ -107,7 +111,12 @@ export function ContentGenerator() {
     brandDNA.linkedin_template_prefs?.preferredTemplate || null
   );
 
-  const hasApiKey = apiKey?.key_status === 'valid';
+  const hasApiKey = (apiKeys || []).some(k => k.key_status === 'valid');
+  
+  // Provider selection
+  const availableProviders = (apiKeys || []).filter(k => k.key_status === 'valid').map(k => k.provider as AIProvider);
+  const [selectedProvider, setSelectedProvider] = useState<AIProvider | null>(null);
+  const activeProvider = selectedProvider || (availableProviders.includes('openai') ? 'openai' : availableProviders[0]) || 'openai';
   const isSocialContentType = SOCIAL_CONTENT_TYPES.includes(contentType);
   const isLinkedInPost = (contentType as string) === 'linkedin_post';
 
@@ -145,6 +154,7 @@ export function ContentGenerator() {
         copyControls,
         brandDNA,
         linkedInTemplateId: isLinkedInPost ? selectedLinkedInTemplate || undefined : undefined,
+        provider: activeProvider,
       });
 
       // Calculate AI detection score from the copy if not returned directly
@@ -243,7 +253,7 @@ export function ContentGenerator() {
         <CardContent className="p-6">
           <div className="flex items-center gap-3 text-amber-600">
             <AlertTriangle className="h-5 w-5" />
-            <p>Please configure your OpenAI API key in Settings to generate copy.</p>
+            <p>Please configure your OpenAI or Claude API key in Settings to generate copy.</p>
           </div>
         </CardContent>
       </Card>
@@ -399,6 +409,29 @@ export function ContentGenerator() {
             {/* Learning Notice - Pre-generation */}
             <LearningNotice insights={learningInsights} />
 
+            {/* Provider Selector (only if multiple providers available) */}
+            {availableProviders.length > 1 && (
+              <div className="flex items-center gap-2">
+                <Label className="text-sm text-muted-foreground">AI Provider:</Label>
+                <div className="flex gap-1">
+                  {availableProviders.map(p => (
+                    <Button
+                      key={p}
+                      variant={activeProvider === p ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setSelectedProvider(p);
+                        if (user?.id) OpenAIService.setActiveProvider(user.id, p);
+                      }}
+                      className="text-xs"
+                    >
+                      {AI_PROVIDER_LABELS[p]}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Generate Button */}
             <Button 
               onClick={handleGenerate}
@@ -414,7 +447,7 @@ export function ContentGenerator() {
               ) : (
                 <>
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Generate Copy
+                  Generate Copy{availableProviders.length === 1 && availableProviders[0] === 'anthropic' ? ' (Claude)' : ''}
                 </>
               )}
             </Button>

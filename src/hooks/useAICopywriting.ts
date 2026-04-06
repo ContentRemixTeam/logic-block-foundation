@@ -11,6 +11,7 @@ import {
   ContentType,
   VoiceProfile
 } from '@/types/aiCopywriting';
+import { AIProvider } from '@/types/aiProvider';
 import { GenerationMode } from '@/types/generationModes';
 import { CopyControls } from '@/types/copyControls';
 import { BrandDNA } from '@/types/brandDNA';
@@ -22,6 +23,7 @@ export const aiCopywritingKeys = {
   brandProfile: (userId: string) => ['brand-profile', userId],
   products: (userId: string) => ['user-products', userId],
   apiKey: (userId: string) => ['user-api-key', userId],
+  apiKeys: (userId: string) => ['user-api-keys', userId],
   generations: (userId: string) => ['ai-generations', userId],
   recentGenerations: (userId: string) => ['ai-generations', userId, 'recent'],
 };
@@ -219,7 +221,7 @@ export function useDeleteProduct() {
   });
 }
 
-// API Key Hooks
+// Legacy single-key hook (backward compat - returns first/openai key)
 export function useAPIKey() {
   const { user } = useAuth();
   
@@ -230,12 +232,34 @@ export function useAPIKey() {
       
       const { data, error } = await supabase
         .from('user_api_keys')
-        .select('id, user_id, key_status, last_tested, created_at, updated_at')
+        .select('id, user_id, key_status, last_tested, created_at, updated_at, provider')
         .eq('user_id', user.id)
+        .eq('provider', 'openai')
         .single();
       
       if (error && error.code !== 'PGRST116') throw error;
-      return data as Omit<UserAPIKey, 'encrypted_key'> | null;
+      return data as (Omit<UserAPIKey, 'encrypted_key'> & { provider?: string }) | null;
+    },
+    enabled: !!user,
+  });
+}
+
+// Multi-provider key hook - returns all keys for the user
+export function useAPIKeys() {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: aiCopywritingKeys.apiKeys(user?.id || ''),
+    queryFn: async () => {
+      if (!user) return [];
+      
+      const { data, error } = await supabase
+        .from('user_api_keys')
+        .select('id, user_id, key_status, last_tested, created_at, updated_at, provider')
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      return (data || []) as (Omit<UserAPIKey, 'encrypted_key'> & { provider: string })[];
     },
     enabled: !!user,
   });
@@ -246,11 +270,13 @@ export function useSaveAPIKey() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (apiKey: string) => {
+    mutationFn: async ({ apiKey, provider = 'openai' as AIProvider }: { apiKey: string; provider?: AIProvider }) => {
       if (!user) throw new Error('Not authenticated');
       
-      // Test the key first
-      const isValid = await OpenAIService.testAPIKey(apiKey);
+      // Test the key based on provider
+      const isValid = provider === 'anthropic' 
+        ? await OpenAIService.testAnthropicKey(apiKey)
+        : await OpenAIService.testAPIKey(apiKey);
       if (!isValid) {
         throw new Error('Invalid API key. Please check and try again.');
       }
@@ -258,11 +284,12 @@ export function useSaveAPIKey() {
       // Encrypt the key
       const encryptedKey = await encryptAPIKey(apiKey, user.id);
       
-      // Check if key exists
+      // Check if key for this provider exists
       const { data: existing } = await supabase
         .from('user_api_keys')
         .select('id')
         .eq('user_id', user.id)
+        .eq('provider', provider)
         .single();
       
       if (existing) {
@@ -274,7 +301,8 @@ export function useSaveAPIKey() {
             last_tested: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
-          .eq('user_id', user.id);
+          .eq('user_id', user.id)
+          .eq('provider', provider);
         
         if (error) throw error;
       } else {
@@ -285,6 +313,7 @@ export function useSaveAPIKey() {
             encrypted_key: encryptedKey,
             key_status: 'valid',
             last_tested: new Date().toISOString(),
+            provider,
           });
         
         if (error) throw error;
@@ -294,6 +323,7 @@ export function useSaveAPIKey() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: aiCopywritingKeys.apiKey(user?.id || '') });
+      queryClient.invalidateQueries({ queryKey: aiCopywritingKeys.apiKeys(user?.id || '') });
       toast.success('API key saved and verified');
     },
     onError: (error: Error) => {
@@ -307,13 +337,15 @@ export function useTestAPIKey() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (provider: AIProvider = 'openai') => {
       if (!user) throw new Error('Not authenticated');
       
-      const apiKey = await OpenAIService.getUserAPIKey(user.id);
+      const apiKey = await OpenAIService.getUserAPIKey(user.id, provider);
       if (!apiKey) throw new Error('No API key configured');
       
-      const isValid = await OpenAIService.testAPIKey(apiKey);
+      const isValid = provider === 'anthropic'
+        ? await OpenAIService.testAnthropicKey(apiKey)
+        : await OpenAIService.testAPIKey(apiKey);
       
       // Update status in database
       await supabase
@@ -322,7 +354,8 @@ export function useTestAPIKey() {
           key_status: isValid ? 'valid' : 'invalid',
           last_tested: new Date().toISOString(),
         })
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .eq('provider', provider);
       
       if (!isValid) throw new Error('API key is invalid');
       
@@ -330,10 +363,12 @@ export function useTestAPIKey() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: aiCopywritingKeys.apiKey(user?.id || '') });
+      queryClient.invalidateQueries({ queryKey: aiCopywritingKeys.apiKeys(user?.id || '') });
       toast.success('API key is valid');
     },
     onError: (error: Error) => {
       queryClient.invalidateQueries({ queryKey: aiCopywritingKeys.apiKey(user?.id || '') });
+      queryClient.invalidateQueries({ queryKey: aiCopywritingKeys.apiKeys(user?.id || '') });
       toast.error(error.message);
     },
   });
@@ -344,18 +379,20 @@ export function useDeleteAPIKey() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (provider: AIProvider = 'openai') => {
       if (!user) throw new Error('Not authenticated');
       
       const { error } = await supabase
         .from('user_api_keys')
         .delete()
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .eq('provider', provider);
       
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: aiCopywritingKeys.apiKey(user?.id || '') });
+      queryClient.invalidateQueries({ queryKey: aiCopywritingKeys.apiKeys(user?.id || '') });
       toast.success('API key removed');
     },
   });
@@ -419,6 +456,7 @@ export function useGenerateCopy() {
       copyControls,
       brandDNA,
       linkedInTemplateId,
+      provider,
     }: {
       contentType: ContentType;
       productId?: string;
@@ -427,6 +465,7 @@ export function useGenerateCopy() {
       copyControls?: CopyControls;
       brandDNA?: BrandDNA;
       linkedInTemplateId?: string;
+      provider?: AIProvider;
     }) => {
       if (!user) throw new Error('Not authenticated');
       
@@ -478,6 +517,7 @@ export function useGenerateCopy() {
         generationMode,
         copyControls,
         linkedInTemplateId,
+        provider,
         context: {
           businessProfile,
           brandDNA,
@@ -586,10 +626,10 @@ export function useDeleteGeneration() {
 // Setup Status Hook
 export function useAICopywritingSetupStatus() {
   const { data: brandProfile, isLoading: profileLoading } = useBrandProfile();
-  const { data: apiKey, isLoading: keyLoading } = useAPIKey();
+  const { data: apiKeys, isLoading: keysLoading } = useAPIKeys();
   
-  const isLoading = profileLoading || keyLoading;
-  const hasAPIKey = !!apiKey && apiKey.key_status === 'valid';
+  const isLoading = profileLoading || keysLoading;
+  const hasAPIKey = (apiKeys || []).some(k => k.key_status === 'valid');
   const hasBrandProfile = !!brandProfile;
   const isSetupComplete = hasAPIKey && hasBrandProfile;
   
@@ -599,6 +639,7 @@ export function useAICopywritingSetupStatus() {
     hasBrandProfile,
     isSetupComplete,
     brandProfile,
-    apiKey,
+    apiKey: (apiKeys || []).find(k => k.key_status === 'valid') || null,
+    apiKeys: apiKeys || [],
   };
 }

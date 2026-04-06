@@ -17,6 +17,7 @@ interface GenerateOptions {
   generationMode?: GenerationMode;
   copyControls?: CopyControls;
   linkedInTemplateId?: string;
+  provider?: 'openai' | 'anthropic';
   context: {
     businessProfile?: Partial<BrandProfile>;
     brandDNA?: BrandDNA;
@@ -30,6 +31,7 @@ interface CallOpenAIParams {
   systemPrompt: string;
   userPrompt: string;
   temperature: number;
+  provider?: 'openai' | 'anthropic';
 }
 
 interface CallOpenAIResult {
@@ -38,15 +40,18 @@ interface CallOpenAIResult {
 }
 
 export class OpenAIService {
+  // Current provider for the active generation session
+  private static currentProvider: 'openai' | 'anthropic' = 'openai';
   
   /**
-   * Get and decrypt user's OpenAI API key
+   * Get and decrypt user's API key for a specific provider
    */
-  static async getUserAPIKey(userId: string): Promise<string | null> {
+  static async getUserAPIKey(userId: string, provider: 'openai' | 'anthropic' = 'openai'): Promise<string | null> {
     const { data, error } = await supabase
       .from('user_api_keys')
       .select('encrypted_key, key_status')
       .eq('user_id', userId)
+      .eq('provider', provider)
       .single();
     
     if (error || !data) return null;
@@ -55,7 +60,7 @@ export class OpenAIService {
   }
   
   /**
-   * Test if API key is valid
+   * Test if OpenAI API key is valid
    */
   static async testAPIKey(apiKey: string): Promise<boolean> {
     try {
@@ -68,6 +73,44 @@ export class OpenAIService {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Test if Anthropic API key is valid
+   */
+  static async testAnthropicKey(apiKey: string): Promise<boolean> {
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 10,
+          messages: [{ role: 'user', content: 'Hi' }],
+        }),
+      });
+      // 200 means valid, 401 means invalid key
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Get the active provider for a user (checks which keys exist)
+   */
+  static async getActiveProvider(userId: string): Promise<'openai' | 'anthropic'> {
+    const stored = localStorage.getItem(`ai-provider-${userId}`);
+    if (stored === 'anthropic' || stored === 'openai') return stored;
+    return 'openai';
+  }
+
+  static setActiveProvider(userId: string, provider: 'openai' | 'anthropic') {
+    localStorage.setItem(`ai-provider-${userId}`, provider);
   }
   
   /**
@@ -669,6 +712,8 @@ Keep the post's structure and message intact while fixing issues.`,
     generationTime: number;
     aiDetectionScore: number;
   }> {
+    // Set provider for this generation session
+    this.currentProvider = options.provider || await this.getActiveProvider(userId);
     const startTime = Date.now();
     
     // Get adaptive learning parameters based on user's past feedback
@@ -898,10 +943,13 @@ Write like a real person - imperfect, conversational, authentic. Not like ChatGP
   }
   
   /**
-   * Call OpenAI API via backend proxy
+   * Call AI API via backend proxy (routes to openai-proxy or anthropic-proxy)
    */
   private static async callOpenAI(params: CallOpenAIParams): Promise<CallOpenAIResult> {
-    const { data, error } = await supabase.functions.invoke('openai-proxy', {
+    const provider = params.provider || this.currentProvider;
+    const functionName = provider === 'anthropic' ? 'anthropic-proxy' : 'openai-proxy';
+    
+    const { data, error } = await supabase.functions.invoke(functionName, {
       body: {
         messages: [
           { role: 'system', content: params.systemPrompt },
@@ -913,7 +961,7 @@ Write like a real person - imperfect, conversational, authentic. Not like ChatGP
     });
     
     if (error) {
-      throw new Error(error.message || 'OpenAI API call failed');
+      throw new Error(error.message || 'AI API call failed');
     }
     
     if (data?.error) {
@@ -930,6 +978,8 @@ Write like a real person - imperfect, conversational, authentic. Not like ChatGP
    * Analyze voice from text samples - deep pattern extraction
    */
   static async analyzeVoice(userId: string, samples: string[]): Promise<VoiceProfile> {
+    // Use the user's active provider for voice analysis too
+    this.currentProvider = await this.getActiveProvider(userId);
     
     const combinedSamples = samples.filter(s => s && s.trim()).join('\n\n---\n\n');
     

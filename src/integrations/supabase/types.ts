@@ -6527,6 +6527,7 @@ export type Database = {
           id: string
           key_status: string | null
           last_tested: string | null
+          provider: string
           updated_at: string | null
           user_id: string
         }
@@ -6536,6 +6537,7 @@ export type Database = {
           id?: string
           key_status?: string | null
           last_tested?: string | null
+          provider?: string
           updated_at?: string | null
           user_id: string
         }
@@ -6545,6 +6547,7 @@ export type Database = {
           id?: string
           key_status?: string | null
           last_tested?: string | null
+          provider?: string
           updated_at?: string | null
           user_id?: string
         }
