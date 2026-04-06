@@ -712,6 +712,8 @@ Keep the post's structure and message intact while fixing issues.`,
     generationTime: number;
     aiDetectionScore: number;
   }> {
+    // Set provider for this generation session
+    this.currentProvider = options.provider || await this.getActiveProvider(userId);
     const startTime = Date.now();
     
     // Get adaptive learning parameters based on user's past feedback
