@@ -40,13 +40,14 @@ interface CallOpenAIResult {
 export class OpenAIService {
   
   /**
-   * Get and decrypt user's OpenAI API key
+   * Get and decrypt user's API key for a specific provider
    */
-  static async getUserAPIKey(userId: string): Promise<string | null> {
+  static async getUserAPIKey(userId: string, provider: 'openai' | 'anthropic' = 'openai'): Promise<string | null> {
     const { data, error } = await supabase
       .from('user_api_keys')
       .select('encrypted_key, key_status')
       .eq('user_id', userId)
+      .eq('provider', provider)
       .single();
     
     if (error || !data) return null;
@@ -55,7 +56,7 @@ export class OpenAIService {
   }
   
   /**
-   * Test if API key is valid
+   * Test if OpenAI API key is valid
    */
   static async testAPIKey(apiKey: string): Promise<boolean> {
     try {
@@ -68,6 +69,44 @@ export class OpenAIService {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Test if Anthropic API key is valid
+   */
+  static async testAnthropicKey(apiKey: string): Promise<boolean> {
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 10,
+          messages: [{ role: 'user', content: 'Hi' }],
+        }),
+      });
+      // 200 means valid, 401 means invalid key
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Get the active provider for a user (checks which keys exist)
+   */
+  static async getActiveProvider(userId: string): Promise<'openai' | 'anthropic'> {
+    const stored = localStorage.getItem(`ai-provider-${userId}`);
+    if (stored === 'anthropic' || stored === 'openai') return stored;
+    return 'openai';
+  }
+
+  static setActiveProvider(userId: string, provider: 'openai' | 'anthropic') {
+    localStorage.setItem(`ai-provider-${userId}`, provider);
   }
   
   /**
