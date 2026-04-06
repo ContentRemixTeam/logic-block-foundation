@@ -40,6 +40,8 @@ interface CallOpenAIResult {
 }
 
 export class OpenAIService {
+  // Current provider for the active generation session
+  private static currentProvider: 'openai' | 'anthropic' = 'openai';
   
   /**
    * Get and decrypt user's API key for a specific provider
