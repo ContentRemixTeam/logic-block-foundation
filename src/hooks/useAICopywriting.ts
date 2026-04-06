@@ -456,6 +456,7 @@ export function useGenerateCopy() {
       copyControls,
       brandDNA,
       linkedInTemplateId,
+      provider,
     }: {
       contentType: ContentType;
       productId?: string;
@@ -464,6 +465,7 @@ export function useGenerateCopy() {
       copyControls?: CopyControls;
       brandDNA?: BrandDNA;
       linkedInTemplateId?: string;
+      provider?: AIProvider;
     }) => {
       if (!user) throw new Error('Not authenticated');
       
