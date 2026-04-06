@@ -30,6 +30,7 @@ interface CallOpenAIParams {
   systemPrompt: string;
   userPrompt: string;
   temperature: number;
+  provider?: 'openai' | 'anthropic';
 }
 
 interface CallOpenAIResult {
