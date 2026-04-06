@@ -23,8 +23,11 @@ import {
   useGenerateCopy, 
   useRateCopy,
   useRecentGenerations,
-  useAPIKey
+  useAPIKeys
 } from '@/hooks/useAICopywriting';
+import { useAuth } from '@/hooks/useAuth';
+import { OpenAIService } from '@/lib/openai-service';
+import { AIProvider, AI_PROVIDER_LABELS } from '@/types/aiProvider';
 import { useBrandDNA } from '@/hooks/useBrandDNA';
 import { useLearningInsights } from '@/hooks/useLearningInsights';
 import { ContentType, POSITIVE_FEEDBACK_TAGS, NEGATIVE_FEEDBACK_TAGS } from '@/types/aiCopywriting';
