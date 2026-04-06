@@ -111,7 +111,12 @@ export function ContentGenerator() {
     brandDNA.linkedin_template_prefs?.preferredTemplate || null
   );
 
-  const hasApiKey = apiKey?.key_status === 'valid';
+  const hasApiKey = (apiKeys || []).some(k => k.key_status === 'valid');
+  
+  // Provider selection
+  const availableProviders = (apiKeys || []).filter(k => k.key_status === 'valid').map(k => k.provider as AIProvider);
+  const [selectedProvider, setSelectedProvider] = useState<AIProvider | null>(null);
+  const activeProvider = selectedProvider || (availableProviders.includes('openai') ? 'openai' : availableProviders[0]) || 'openai';
   const isSocialContentType = SOCIAL_CONTENT_TYPES.includes(contentType);
   const isLinkedInPost = (contentType as string) === 'linkedin_post';
 
