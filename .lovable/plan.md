@@ -1,70 +1,83 @@
 
 
-## Google Sheets Sync — Manual, User-Selectable Data
+# Plan: Add Claude (Anthropic) BYOK Support
 
-### Cost Impact
+## Overview
 
-**$0 ongoing cost.** Manual button-click means no scheduled edge function calls. Google Sheets API is free (500 req/100s quota). The only cost is the edge function invocation when a user clicks "Sync" — negligible even at scale.
+Add Claude/Anthropic as an alternative AI provider alongside the existing OpenAI integration. Users can bring their own Anthropic API key and choose which model provider to use for copy generation.
 
-### How It Works
+## Current Architecture
 
-1. User goes to Settings, sees a "Google Sheets Sync" panel
-2. Since they already connected Google Calendar, we add the Sheets scope to the existing OAuth flow
-3. User picks which data types to sync (tasks, daily plans, habits, etc.)
-4. User clicks "Sync Now" — an edge function reads their data, writes it to a Google Sheet (one tab per data type)
-5. The Sheet URL is saved so they can share it with Claude or other AI tools
+- `user_api_keys` table stores one encrypted OpenAI key per user (no `provider` column)
+- `openai-proxy` edge function decrypts the key and forwards to OpenAI
+- `OpenAIService` class in `src/lib/openai-service.ts` orchestrates multi-pass generation via `callOpenAI()`
+- `APIKeySettings.tsx` handles key input/test/delete UI (hardcoded to OpenAI)
 
-### Technical Plan
+## Changes
 
-**1. Add Google Sheets scope to OAuth flow**
+### 1. Database: Add provider support to `user_api_keys`
 
-Update `google-oauth-start/index.ts` to include `https://www.googleapis.com/auth/spreadsheets` in the scopes array. Users who already connected will need to reconnect once (we'll show a prompt).
-
-**2. New database table: `google_sheets_sync`**
-
-Stores the user's Sheet ID, selected data types, and last sync timestamp.
+Add a `provider` column (`text`, default `'openai'`) so users can store one key per provider.
 
 ```sql
-CREATE TABLE public.google_sheets_sync (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  spreadsheet_id TEXT,
-  spreadsheet_url TEXT,
-  selected_tables TEXT[] DEFAULT '{}',
-  last_synced_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(user_id)
-);
--- RLS: users can only access their own row
+ALTER TABLE user_api_keys ADD COLUMN provider text NOT NULL DEFAULT 'openai';
+-- Drop existing unique constraint on user_id and add composite one
+ALTER TABLE user_api_keys DROP CONSTRAINT IF EXISTS user_api_keys_user_id_key;
+ALTER TABLE user_api_keys ADD CONSTRAINT user_api_keys_user_provider_unique UNIQUE (user_id, provider);
 ```
 
-**3. New edge function: `google-sheets-sync`**
+### 2. New Edge Function: `anthropic-proxy`
 
-- Authenticates user, gets their Google access token from `google_calendar_connection`
-- Reads selected data types from the database (reusing the `fetchAll` pattern from `dataExport.ts`)
-- Creates a new Google Sheet (first sync) or updates existing one
-- Writes each selected data type as a separate tab (Tasks, Daily Plans, Habits, etc.)
-- Saves the spreadsheet ID/URL back to the database
+Mirror `openai-proxy` but forward to `https://api.anthropic.com/v1/messages`:
+- Same auth flow (JWT validation, decrypt key from `user_api_keys` where `provider = 'anthropic'`)
+- Map OpenAI-style messages to Anthropic format (separate system prompt, `messages` array)
+- Return normalized `{ content, tokens }` response
+- Use `claude-sonnet-4-20250514` as default model
 
-**4. Settings UI: `GoogleSheetsSyncPanel.tsx`**
+### 3. Update `OpenAIService` (rename concept to `AIService`)
 
-- Shows sync status and last sync time
-- Checkbox list of data types to include (tasks, cycles, daily plans, weekly plans, habits, coaching entries, etc.)
-- "Sync Now" button with loading state
-- Link to open the synced Google Sheet
-- Note: "Requires Google Calendar connection" if not connected
-- Reconnect prompt if connected but missing Sheets scope
+- Add a `provider` parameter to `callOpenAI` (rename to `callAI`)
+- Route to either `openai-proxy` or `anthropic-proxy` based on user's active provider preference
+- Add `getActiveProvider(userId)` method to check which key(s) the user has configured
+- Add `testAnthropicKey()` static method
 
-**5. Files to create/modify**
+### 4. Update Hooks (`useAICopywriting.ts`)
 
-| File | Action |
-|------|--------|
-| `supabase/functions/google-oauth-start/index.ts` | Add Sheets scope |
-| `supabase/functions/google-oauth-callback/index.ts` | Store granted scopes for scope detection |
-| `supabase/functions/google-sheets-sync/index.ts` | New — core sync logic |
-| `src/components/google-sheets/GoogleSheetsSyncPanel.tsx` | New — settings UI |
-| `src/hooks/useGoogleSheetsSync.ts` | New — hook for sync state/actions |
-| Settings page | Add the new panel |
-| Database migration | New `google_sheets_sync` table |
+- `useAPIKey()` becomes `useAPIKeys()` -- fetches all provider rows for the user
+- `useSaveAPIKey()` accepts a `provider` parameter
+- `useActiveProvider()` -- tracks which provider is selected for generation
+- Store active provider preference in `user_settings` or localStorage
+
+### 5. Update `APIKeySettings.tsx`
+
+- Add tabs or toggle: **OpenAI** | **Claude**
+- Each tab shows the same key management UI (add/test/delete) scoped to that provider
+- "How to Get a Key" instructions update per provider (link to console.anthropic.com)
+- Key validation: OpenAI starts with `sk-`, Anthropic starts with `sk-ant-`
+- Add a "Default Provider" selector when both keys are configured
+
+### 6. Update Content Generator UI
+
+- When both keys exist, show a small provider selector chip near the generate button
+- Single key: auto-use that provider, no selector shown
+
+## Technical Details
+
+- Anthropic API uses `x-api-key` header (not `Authorization: Bearer`)
+- Anthropic system prompt goes in a separate `system` field, not in messages array
+- Token counting: Anthropic returns `usage.input_tokens` + `usage.output_tokens`
+- Model mapping: `gpt-4o` equivalent is `claude-sonnet-4-20250514`
+
+## Files to Create
+- `supabase/functions/anthropic-proxy/index.ts`
+
+## Files to Modify
+- `src/hooks/useAICopywriting.ts` (multi-provider key hooks)
+- `src/lib/openai-service.ts` (add provider routing)
+- `src/components/ai-copywriting/APIKeySettings.tsx` (provider tabs)
+- `src/components/ai-copywriting/ContentGenerator.tsx` (provider selector)
+- `src/types/aiCopywriting.ts` (add provider type)
+
+## Migration
+- 1 SQL migration to add `provider` column and update constraints
 
