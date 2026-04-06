@@ -517,6 +517,7 @@ export function useGenerateCopy() {
         generationMode,
         copyControls,
         linkedInTemplateId,
+        provider,
         context: {
           businessProfile,
           brandDNA,
