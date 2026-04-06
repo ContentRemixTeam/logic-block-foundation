@@ -68,12 +68,13 @@ const SOCIAL_CONTENT_TYPES = ['instagram_post', 'linkedin_post', 'twitter_thread
 
 export function ContentGenerator() {
   const { data: products } = useProducts();
-  const { data: apiKey } = useAPIKey();
+  const { data: apiKeys } = useAPIKeys();
   const { data: recentGenerations } = useRecentGenerations(5);
   const { brandDNA } = useBrandDNA();
   const { insights: learningInsights } = useLearningInsights();
   const generateCopy = useGenerateCopy();
   const rateCopy = useRateCopy();
+  const { user } = useAuth();
 
   // Ref for scrolling to result
   const resultRef = useRef<HTMLDivElement>(null);
