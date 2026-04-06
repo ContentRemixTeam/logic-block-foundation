@@ -154,6 +154,7 @@ export function ContentGenerator() {
         copyControls,
         brandDNA,
         linkedInTemplateId: isLinkedInPost ? selectedLinkedInTemplate || undefined : undefined,
+        provider: activeProvider,
       });
 
       // Calculate AI detection score from the copy if not returned directly
