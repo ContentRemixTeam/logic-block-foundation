@@ -17,6 +17,7 @@ interface GenerateOptions {
   generationMode?: GenerationMode;
   copyControls?: CopyControls;
   linkedInTemplateId?: string;
+  provider?: 'openai' | 'anthropic';
   context: {
     businessProfile?: Partial<BrandProfile>;
     brandDNA?: BrandDNA;
