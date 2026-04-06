@@ -978,6 +978,8 @@ Write like a real person - imperfect, conversational, authentic. Not like ChatGP
    * Analyze voice from text samples - deep pattern extraction
    */
   static async analyzeVoice(userId: string, samples: string[]): Promise<VoiceProfile> {
+    // Use the user's active provider for voice analysis too
+    this.currentProvider = await this.getActiveProvider(userId);
     
     const combinedSamples = samples.filter(s => s && s.trim()).join('\n\n---\n\n');
     
