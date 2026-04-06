@@ -408,6 +408,29 @@ export function ContentGenerator() {
             {/* Learning Notice - Pre-generation */}
             <LearningNotice insights={learningInsights} />
 
+            {/* Provider Selector (only if multiple providers available) */}
+            {availableProviders.length > 1 && (
+              <div className="flex items-center gap-2">
+                <Label className="text-sm text-muted-foreground">AI Provider:</Label>
+                <div className="flex gap-1">
+                  {availableProviders.map(p => (
+                    <Button
+                      key={p}
+                      variant={activeProvider === p ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setSelectedProvider(p);
+                        if (user?.id) OpenAIService.setActiveProvider(user.id, p);
+                      }}
+                      className="text-xs"
+                    >
+                      {AI_PROVIDER_LABELS[p]}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Generate Button */}
             <Button 
               onClick={handleGenerate}
@@ -423,7 +446,7 @@ export function ContentGenerator() {
               ) : (
                 <>
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Generate Copy
+                  Generate Copy{availableProviders.length === 1 && availableProviders[0] === 'anthropic' ? ' (Claude)' : ''}
                 </>
               )}
             </Button>
