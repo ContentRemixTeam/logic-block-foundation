@@ -252,7 +252,7 @@ export function ContentGenerator() {
         <CardContent className="p-6">
           <div className="flex items-center gap-3 text-amber-600">
             <AlertTriangle className="h-5 w-5" />
-            <p>Please configure your OpenAI API key in Settings to generate copy.</p>
+            <p>Please configure your OpenAI or Claude API key in Settings to generate copy.</p>
           </div>
         </CardContent>
       </Card>
