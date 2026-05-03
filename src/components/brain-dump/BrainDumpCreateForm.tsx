@@ -20,7 +20,7 @@ const HASHTAG_MAP: Record<string, BrainDumpCategory> = {
 
 export function BrainDumpCreateForm({ onSubmit, isLoading }: BrainDumpCreateFormProps) {
   const [text, setText] = useState('');
-  const [category, setCategory] = useState<BrainDumpCategory>('note');
+  const [category, setCategory] = useState<BrainDumpCategory>('task');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-detect hashtags
@@ -43,6 +43,7 @@ export function BrainDumpCreateForm({ onSubmit, isLoading }: BrainDumpCreateForm
     });
     onSubmit(cleanText || text.trim(), category);
     setText('');
+    setCategory('task');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

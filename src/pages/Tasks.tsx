@@ -27,7 +27,7 @@ import {
   Plus, CalendarIcon, Clock, RefreshCw, ChevronDown, 
   ClipboardList, ExternalLink, Unlink, LayoutList, Columns, 
   Clock3, Zap, Battery, BatteryLow, Trash2, CalendarRange, Search, X, CheckSquare,
-  AlertTriangle, Calendar as CalendarDays, Inbox
+  AlertTriangle, Calendar as CalendarDays, Inbox, FolderKanban
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -161,6 +161,7 @@ export default function Tasks() {
   const [newTaskText, setNewTaskText] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const [newTaskDate, setNewTaskDate] = useState<Date | undefined>();
+  const [newTaskProjectId, setNewTaskProjectId] = useState<string>('none');
   const [newTaskPriority, setNewTaskPriority] = useState<string>('');
   const [newRecurrencePattern, setNewRecurrencePattern] = useState<RecurrencePattern>('none');
   const [newRecurrenceDays, setNewRecurrenceDays] = useState<string[]>([]);
@@ -294,6 +295,8 @@ export default function Tasks() {
         (t.scheduled_date && t.scheduled_date >= weekStart && t.scheduled_date <= weekEnd)
       ).length,
       
+      unscheduled: incomplete.filter((t: Task) => !t.scheduled_date && !t.planned_day && !t.time_block_start).length,
+      projects: incomplete.filter((t: Task) => !!t.project_id).length,
       all: incomplete.length,
       completed: tasks.filter((t: Task) => t.is_completed && !t.is_recurring_parent).length
     };
@@ -645,11 +648,12 @@ export default function Tasks() {
     try {
       const isRecurringTask = newRecurrencePattern !== 'none';
       
-      await manageMutation.mutateAsync({
-        action: 'create',
+      await optimisticCreateTask.mutateAsync({
         task_text: newTaskText,
         task_description: newTaskDescription || null,
         scheduled_date: newTaskDate ? format(newTaskDate, 'yyyy-MM-dd') : null,
+        project_id: newTaskProjectId !== 'none' ? newTaskProjectId : null,
+        project_column: 'todo',
         priority: newTaskPriority || null,
         recurrence_pattern: newRecurrencePattern !== 'none' ? newRecurrencePattern : null,
         recurrence_days: newRecurrencePattern === 'weekly' 
@@ -701,6 +705,7 @@ export default function Tasks() {
     setNewTaskText('');
     setNewTaskDescription('');
     setNewTaskDate(undefined);
+    setNewTaskProjectId('none');
     setNewTaskPriority('');
     setNewRecurrencePattern('none');
     setNewRecurrenceDays([]);
@@ -1020,9 +1025,14 @@ export default function Tasks() {
 
           {/* Task count */}
           {!isLoading && (
-            <div className="text-sm text-muted-foreground">
-              Showing {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}
-              {hasMore && ' (more available)'}
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span>Showing {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}{hasMore && ' (more available)'}</span>
+              <Separator orientation="vertical" className="h-4" />
+              <Button variant={activeTab === 'all' ? 'secondary' : 'outline'} size="sm" className="h-7" onClick={() => setActiveTab('all')}>
+                All {counts.all}
+              </Button>
+              <Badge variant="outline">No date {counts.unscheduled}</Badge>
+              <Badge variant="outline">In projects {counts.projects}</Badge>
             </div>
           )}
         </div>
@@ -1223,6 +1233,26 @@ export default function Tasks() {
                     <SelectItem value="high">High</SelectItem>
                     <SelectItem value="medium">Medium</SelectItem>
                     <SelectItem value="low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Project</Label>
+                <Select value={newTaskProjectId} onValueChange={setNewTaskProjectId}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Add to project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Project</SelectItem>
+                    {projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        <span className="flex items-center gap-2">
+                          <FolderKanban className="h-3.5 w-3.5" />
+                          {project.name}
+                        </span>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

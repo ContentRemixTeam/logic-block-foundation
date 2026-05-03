@@ -23,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ManifestSwitcher } from '@/components/pwa/ManifestSwitcher';
 import { IdeaQuickChips } from '@/components/quick-capture/IdeaQuickChips';
 import { useProjects } from '@/hooks/useProjects';
+import { useTaskMutations } from '@/hooks/useTasks';
 
 type CaptureType = 'task' | 'idea' | 'expense' | 'income';
 
@@ -83,6 +84,7 @@ export default function QuickAddApp() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { data: projects = [] } = useProjects();
+  const { createTask } = useTaskMutations();
   const [selectedType, setSelectedType] = useState<CaptureType>('task');
   const [inputValue, setInputValue] = useState('');
   const [amount, setAmount] = useState('');
@@ -156,13 +158,12 @@ export default function QuickAddApp() {
 
     try {
       if (selectedType === 'task') {
-        const { error } = await supabase.from('tasks').insert({
-          user_id: user.id,
+        await createTask.mutateAsync({
           task_text: inputValue.trim(),
-          status: 'not_started',
-          source: 'quick_add',
+          scheduled_date: new Date().toISOString().split('T')[0],
+          status: 'scheduled',
+          source: 'manual',
         });
-        if (error) throw error;
       } else if (selectedType === 'idea') {
         const { error } = await supabase.from('ideas').insert({
           user_id: user.id,
@@ -210,7 +211,7 @@ export default function QuickAddApp() {
     } finally {
       setSaving(false);
     }
-  }, [inputValue, amount, selectedType, user, sessionCount, isFinancial, currentType, toast]);
+  }, [inputValue, amount, selectedType, user, sessionCount, isFinancial, currentType, toast, createTask]);
 
   // Auto-focus input on mount and type change
   useEffect(() => {

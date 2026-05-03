@@ -40,6 +40,64 @@ interface TasksResponse {
   metadata: TasksMetadata;
 }
 
+function normalizeTaskForCache(task: Task): Task {
+  return {
+    ...task,
+    project: task.project ?? null,
+    sop: task.sop ?? null,
+  };
+}
+
+function upsertTaskInList(tasks: Task[], incomingTask: Task): Task[] {
+  const incoming = normalizeTaskForCache(incomingTask);
+  const existingIndex = tasks.findIndex(task => task.task_id === incoming.task_id);
+
+  if (existingIndex === -1) {
+    return [incoming, ...tasks];
+  }
+
+  return tasks.map(task =>
+    task.task_id === incoming.task_id
+      ? {
+          ...task,
+          ...incoming,
+          project: incoming.project ?? task.project ?? null,
+          sop: incoming.sop ?? task.sop ?? null,
+        }
+      : task
+  );
+}
+
+function upsertTaskInResponse(oldData: TasksResponse | undefined, incomingTask: Task): TasksResponse | undefined {
+  if (!oldData?.data) return oldData;
+  const exists = oldData.data.some(task => task.task_id === incomingTask.task_id);
+  const data = upsertTaskInList(oldData.data, incomingTask);
+  return {
+    ...oldData,
+    data,
+    metadata: {
+      ...oldData.metadata,
+      count: data.length,
+      totalCount: exists ? oldData.metadata.totalCount : oldData.metadata.totalCount + 1,
+    },
+  };
+}
+
+function removeTaskFromResponse(oldData: TasksResponse | undefined, taskId: string): TasksResponse | undefined {
+  if (!oldData?.data) return oldData;
+  const hadTask = oldData.data.some(task => task.task_id === taskId);
+  const data = oldData.data.filter(task => task.task_id !== taskId);
+  return {
+    ...oldData,
+    data,
+    metadata: {
+      ...oldData.metadata,
+      count: data.length,
+      totalCount: hadTask ? Math.max(0, oldData.metadata.totalCount - 1) : oldData.metadata.totalCount,
+    },
+  };
+}
+
 // Options for useTasks hook
 interface UseTasksOptions {
   loadAll?: boolean;
@@ -210,26 +268,23 @@ export function useTasks(options: UseTasksOptions = {}) {
         },
         (payload) => {
           console.log('Task realtime update:', payload.eventType);
+          const newTask = payload.new as Task;
+          const oldTask = payload.old as Task;
           
           // Update accumulated tasks in-memory
           setAllTasks(prev => {
             switch (payload.eventType) {
               case 'INSERT':
-                // Check if task already exists (avoid duplicates)
-                const exists = prev.some(t => t.task_id === (payload.new as Task).task_id);
-                if (exists) return prev;
-                // Add with null project/sop - prepend to start (newest first)
-                return [{ ...payload.new as Task, project: null, sop: null }, ...prev];
+                return upsertTaskInList(prev, newTask);
 
               case 'UPDATE':
-                return prev.map(t => 
-                  t.task_id === (payload.new as Task).task_id 
-                    ? { ...t, ...(payload.new as Task) }
-                    : t
-                );
+                if (newTask.deleted_at) {
+                  return prev.filter(t => t.task_id !== newTask.task_id);
+                }
+                return upsertTaskInList(prev, newTask);
 
               case 'DELETE':
-                return prev.filter(t => t.task_id !== (payload.old as Task).task_id);
+                return prev.filter(t => t.task_id !== oldTask.task_id);
 
               default:
                 return prev;
@@ -241,28 +296,17 @@ export function useTasks(options: UseTasksOptions = {}) {
           queryClient.setQueriesData<TasksResponse>(
             { queryKey: taskQueryKeys.all },
             (oldData) => {
-              if (!oldData) return oldData;
-
-              const updatedData = { ...oldData };
               switch (payload.eventType) {
                 case 'INSERT':
-                  const exists = oldData.data.some(t => t.task_id === (payload.new as Task).task_id);
-                  if (!exists) {
-                    updatedData.data = [{ ...payload.new as Task, project: null, sop: null }, ...oldData.data];
-                  }
-                  break;
+                  return upsertTaskInResponse(oldData, newTask);
                 case 'UPDATE':
-                  updatedData.data = oldData.data.map(t => 
-                    t.task_id === (payload.new as Task).task_id 
-                      ? { ...t, ...(payload.new as Task) }
-                      : t
-                  );
-                  break;
+                  return newTask.deleted_at
+                    ? removeTaskFromResponse(oldData, newTask.task_id)
+                    : upsertTaskInResponse(oldData, newTask);
                 case 'DELETE':
-                  updatedData.data = oldData.data.filter(t => t.task_id !== (payload.old as Task).task_id);
-                  break;
+                  return removeTaskFromResponse(oldData, oldTask.task_id);
               }
-              return updatedData;
+              return oldData;
             }
           );
         }
@@ -387,18 +431,20 @@ export function useTaskMutations() {
         throw error;
       }
     },
-    onMutate: async (newTask) => {
-      // NO optimistic update for create - rely on real-time subscription
-      // This prevents race conditions between optimistic updates and real-time events
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: taskQueryKeys.all });
     },
     onError: (err) => {
       showOperationError('create', 'Task', err);
     },
-    onSuccess: () => {
-      // Backup: If real-time didn't fire within 1 second, invalidate queries
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: taskQueryKeys.all });
-      }, 1000);
+    onSuccess: (createdTask) => {
+      if (createdTask?.task_id) {
+        queryClient.setQueriesData<TasksResponse>(
+          { queryKey: taskQueryKeys.all },
+          oldData => upsertTaskInResponse(oldData, createdTask)
+        );
+      }
+      queryClient.invalidateQueries({ queryKey: taskQueryKeys.all });
       // Also invalidate related views for cross-view sync
       relatedQueryKeys.forEach(key => queryClient.invalidateQueries({ queryKey: key }));
       toast.success('Task created');
