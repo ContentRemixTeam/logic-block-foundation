@@ -648,11 +648,12 @@ export default function Tasks() {
     try {
       const isRecurringTask = newRecurrencePattern !== 'none';
       
-      await manageMutation.mutateAsync({
-        action: 'create',
+      await optimisticCreateTask.mutateAsync({
         task_text: newTaskText,
         task_description: newTaskDescription || null,
         scheduled_date: newTaskDate ? format(newTaskDate, 'yyyy-MM-dd') : null,
+        project_id: newTaskProjectId !== 'none' ? newTaskProjectId : null,
+        project_column: 'todo',
         priority: newTaskPriority || null,
         recurrence_pattern: newRecurrencePattern !== 'none' ? newRecurrencePattern : null,
         recurrence_days: newRecurrencePattern === 'weekly' 
@@ -704,6 +705,7 @@ export default function Tasks() {
     setNewTaskText('');
     setNewTaskDescription('');
     setNewTaskDate(undefined);
+    setNewTaskProjectId('none');
     setNewTaskPriority('');
     setNewRecurrencePattern('none');
     setNewRecurrenceDays([]);
