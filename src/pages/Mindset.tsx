@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Brain, Shield, Anchor, MessageCircle } from 'lucide-react';
+import { Brain, Shield, Anchor, MessageCircle, MessageSquare } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Layout } from '@/components/Layout';
 import { cn } from '@/lib/utils';
@@ -45,6 +45,14 @@ const mindsetCards: MindsetCard[] = [
     icon: MessageCircle,
     iconBgClass: 'bg-status-backlog/10',
     iconColorClass: 'text-status-backlog',
+  },
+  {
+    title: 'Coaching Log',
+    description: 'Track coaching sessions, insights, and action items.',
+    href: '/coaching-log',
+    icon: MessageSquare,
+    iconBgClass: 'bg-primary/10',
+    iconColorClass: 'text-primary',
   },
 ];
 
