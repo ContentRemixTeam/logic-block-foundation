@@ -117,7 +117,7 @@ export function useTasks(options: UseTasksOptions = {}) {
         });
       }
     }
-  }, [query.data?.data, cursor]);
+  }, [query.dataUpdatedAt, cursor, query.data]);
 
   // Performance warning for large datasets
   useEffect(() => {
@@ -191,7 +191,6 @@ export function useTasks(options: UseTasksOptions = {}) {
   // Reset function for filter changes
   const reset = useCallback(() => {
     setCursor(null);
-    setAllTasks([]);
     queryClient.invalidateQueries({ queryKey: taskQueryKeys.all });
   }, [queryClient]);
 
@@ -237,14 +236,11 @@ export function useTasks(options: UseTasksOptions = {}) {
             }
           });
 
-          // Also update cache for backwards compatibility
-          const cacheKeys = [
-            [...taskQueryKeys.all, { loadAll: false }],
-            [...taskQueryKeys.all, { loadAll: true }],
-          ];
-          
-          cacheKeys.forEach((cacheKey) => {
-            queryClient.setQueryData<TasksResponse>(cacheKey, (oldData) => {
+          // Also update every cached task query so remounting or switching tabs
+          // does not fall back to a stale list that is missing the new task.
+          queryClient.setQueriesData<TasksResponse>(
+            { queryKey: taskQueryKeys.all },
+            (oldData) => {
               if (!oldData) return oldData;
 
               const updatedData = { ...oldData };
@@ -267,8 +263,8 @@ export function useTasks(options: UseTasksOptions = {}) {
                   break;
               }
               return updatedData;
-            });
-          });
+            }
+          );
         }
       )
       .subscribe();
