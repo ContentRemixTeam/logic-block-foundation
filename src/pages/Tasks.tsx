@@ -27,7 +27,7 @@ import {
   Plus, CalendarIcon, Clock, RefreshCw, ChevronDown, 
   ClipboardList, ExternalLink, Unlink, LayoutList, Columns, 
   Clock3, Zap, Battery, BatteryLow, Trash2, CalendarRange, Search, X, CheckSquare,
-  AlertTriangle, Calendar as CalendarDays, Inbox
+  AlertTriangle, Calendar as CalendarDays, Inbox, FolderKanban
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -161,6 +161,7 @@ export default function Tasks() {
   const [newTaskText, setNewTaskText] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const [newTaskDate, setNewTaskDate] = useState<Date | undefined>();
+  const [newTaskProjectId, setNewTaskProjectId] = useState<string>('none');
   const [newTaskPriority, setNewTaskPriority] = useState<string>('');
   const [newRecurrencePattern, setNewRecurrencePattern] = useState<RecurrencePattern>('none');
   const [newRecurrenceDays, setNewRecurrenceDays] = useState<string[]>([]);
@@ -294,6 +295,8 @@ export default function Tasks() {
         (t.scheduled_date && t.scheduled_date >= weekStart && t.scheduled_date <= weekEnd)
       ).length,
       
+      unscheduled: incomplete.filter((t: Task) => !t.scheduled_date && !t.planned_day && !t.time_block_start).length,
+      projects: incomplete.filter((t: Task) => !!t.project_id).length,
       all: incomplete.length,
       completed: tasks.filter((t: Task) => t.is_completed && !t.is_recurring_parent).length
     };
