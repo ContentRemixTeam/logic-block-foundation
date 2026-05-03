@@ -11,16 +11,35 @@ interface VerifyEmailRequest {
 }
 
 serve(async (req: Request) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Require authentication — caller must be signed in
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const token = authHeader.replace('Bearer ', '');
+    const { data: userData, error: userError } = await authClient.auth.getUser(token);
+    if (userError || !userData?.user?.email) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const { email }: VerifyEmailRequest = await req.json();
 
@@ -31,9 +50,16 @@ serve(async (req: Request) => {
       );
     }
 
-    console.log(`[verify-member-email] Checking email: ${email}`);
+    // Caller may only verify their own email (prevents enumeration)
+    if (email.toLowerCase() !== userData.user.email.toLowerCase()) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    // Check if email exists in entitlements table with mastermind tier
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
     const { data: entitlement, error } = await supabase
       .from('entitlements')
       .select('id, first_name, last_name, tier, status')
@@ -42,41 +68,32 @@ serve(async (req: Request) => {
       .maybeSingle();
 
     if (error) {
-      console.error('[verify-member-email] Query error:', error);
       return new Response(
-        JSON.stringify({ error: error.message }),
+        JSON.stringify({ error: 'Lookup failed' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (!entitlement) {
-      console.log(`[verify-member-email] Email not found: ${email}`);
       return new Response(
         JSON.stringify({ found: false }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`[verify-member-email] Email found: ${email}, status: ${entitlement.status}`);
-
     return new Response(
-      JSON.stringify({ 
-        found: true, 
+      JSON.stringify({
+        found: true,
         firstName: entitlement.first_name || '',
         lastName: entitlement.last_name || '',
-        entitlementId: entitlement.id
+        entitlementId: entitlement.id,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error: any) {
     console.error('[verify-member-email] Error:', error);
     return new Response(
-      JSON.stringify({ 
-        error: 'Couldn\'t verify your membership. Please try again or contact support.',
-        code: 'VERIFICATION_ERROR',
-        technical: error.message 
-      }),
+      JSON.stringify({ error: 'Verification failed' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
