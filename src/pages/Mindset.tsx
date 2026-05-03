@@ -46,6 +46,14 @@ const mindsetCards: MindsetCard[] = [
     iconBgClass: 'bg-status-backlog/10',
     iconColorClass: 'text-status-backlog',
   },
+  {
+    title: 'Coaching Log',
+    description: 'Track coaching sessions, insights, and action items.',
+    href: '/coaching-log',
+    icon: MessageSquare,
+    iconBgClass: 'bg-primary/10',
+    iconColorClass: 'text-primary',
+  },
 ];
 
 export default function Mindset() {
