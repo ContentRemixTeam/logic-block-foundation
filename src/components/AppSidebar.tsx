@@ -76,6 +76,7 @@ const BUILD_NAV = [
   { name: 'Tasks', href: '/tasks', icon: ListTodo, questIcon: '📜' },
   { name: 'Projects', href: '/projects', icon: FolderKanban, questIcon: '🚀', isActiveCheck: (path: string) => path.startsWith('/projects') },
   { name: 'Content', href: '/editorial-calendar', icon: CalendarRange, questIcon: '📅' },
+  { name: 'Wizards', href: '/wizards', icon: Sparkles, questIcon: '🪄', isActiveCheck: (path: string) => path.startsWith('/wizards') },
 ];
 
 const CAPTURE_NAV = [
