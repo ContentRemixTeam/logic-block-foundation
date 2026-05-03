@@ -7000,7 +7000,6 @@ export type Database = {
       user_settings: {
         Row: {
           active_theme_id: string | null
-          ai_api_key: string | null
           anti_comparison_mode: boolean | null
           arcade_enabled: boolean | null
           arcade_reduce_motion: boolean | null
@@ -7056,7 +7055,6 @@ export type Database = {
         }
         Insert: {
           active_theme_id?: string | null
-          ai_api_key?: string | null
           anti_comparison_mode?: boolean | null
           arcade_enabled?: boolean | null
           arcade_reduce_motion?: boolean | null
@@ -7112,7 +7110,6 @@ export type Database = {
         }
         Update: {
           active_theme_id?: string | null
-          ai_api_key?: string | null
           anti_comparison_mode?: boolean | null
           arcade_enabled?: boolean | null
           arcade_reduce_motion?: boolean | null
@@ -7922,6 +7919,7 @@ export type Database = {
     }
     Functions: {
       auto_archive_old_notes: { Args: never; Returns: number }
+      backfill_admin_user_id: { Args: never; Returns: undefined }
       check_feature_flag: { Args: { p_key: string }; Returns: boolean }
       check_mastermind_entitlement: {
         Args: { user_email: string }
