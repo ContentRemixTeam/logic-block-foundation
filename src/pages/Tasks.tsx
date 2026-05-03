@@ -1025,9 +1025,14 @@ export default function Tasks() {
 
           {/* Task count */}
           {!isLoading && (
-            <div className="text-sm text-muted-foreground">
-              Showing {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}
-              {hasMore && ' (more available)'}
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span>Showing {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}{hasMore && ' (more available)'}</span>
+              <Separator orientation="vertical" className="h-4" />
+              <Button variant={activeTab === 'all' ? 'secondary' : 'outline'} size="sm" className="h-7" onClick={() => setActiveTab('all')}>
+                All {counts.all}
+              </Button>
+              <Badge variant="outline">No date {counts.unscheduled}</Badge>
+              <Badge variant="outline">In projects {counts.projects}</Badge>
             </div>
           )}
         </div>
