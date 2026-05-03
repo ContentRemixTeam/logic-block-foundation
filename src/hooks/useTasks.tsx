@@ -431,18 +431,20 @@ export function useTaskMutations() {
         throw error;
       }
     },
-    onMutate: async (newTask) => {
-      // NO optimistic update for create - rely on real-time subscription
-      // This prevents race conditions between optimistic updates and real-time events
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: taskQueryKeys.all });
     },
     onError: (err) => {
       showOperationError('create', 'Task', err);
     },
-    onSuccess: () => {
-      // Backup: If real-time didn't fire within 1 second, invalidate queries
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: taskQueryKeys.all });
-      }, 1000);
+    onSuccess: (createdTask) => {
+      if (createdTask?.task_id) {
+        queryClient.setQueriesData<TasksResponse>(
+          { queryKey: taskQueryKeys.all },
+          oldData => upsertTaskInResponse(oldData, createdTask)
+        );
+      }
+      queryClient.invalidateQueries({ queryKey: taskQueryKeys.all });
       // Also invalidate related views for cross-view sync
       relatedQueryKeys.forEach(key => queryClient.invalidateQueries({ queryKey: key }));
       toast.success('Task created');
