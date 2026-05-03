@@ -40,6 +40,64 @@ interface TasksResponse {
   metadata: TasksMetadata;
 }
 
+function normalizeTaskForCache(task: Task): Task {
+  return {
+    ...task,
+    project: task.project ?? null,
+    sop: task.sop ?? null,
+  };
+}
+
+function upsertTaskInList(tasks: Task[], incomingTask: Task): Task[] {
+  const incoming = normalizeTaskForCache(incomingTask);
+  const existingIndex = tasks.findIndex(task => task.task_id === incoming.task_id);
+
+  if (existingIndex === -1) {
+    return [incoming, ...tasks];
+  }
+
+  return tasks.map(task =>
+    task.task_id === incoming.task_id
+      ? {
+          ...task,
+          ...incoming,
+          project: incoming.project ?? task.project ?? null,
+          sop: incoming.sop ?? task.sop ?? null,
+        }
+      : task
+  );
+}
+
+function upsertTaskInResponse(oldData: TasksResponse | undefined, incomingTask: Task): TasksResponse | undefined {
+  if (!oldData?.data) return oldData;
+  const exists = oldData.data.some(task => task.task_id === incomingTask.task_id);
+  const data = upsertTaskInList(oldData.data, incomingTask);
+  return {
+    ...oldData,
+    data,
+    metadata: {
+      ...oldData.metadata,
+      count: data.length,
+      totalCount: exists ? oldData.metadata.totalCount : oldData.metadata.totalCount + 1,
+    },
+  };
+}
+
+function removeTaskFromResponse(oldData: TasksResponse | undefined, taskId: string): TasksResponse | undefined {
+  if (!oldData?.data) return oldData;
+  const hadTask = oldData.data.some(task => task.task_id === taskId);
+  const data = oldData.data.filter(task => task.task_id !== taskId);
+  return {
+    ...oldData,
+    data,
+    metadata: {
+      ...oldData.metadata,
+      count: data.length,
+      totalCount: hadTask ? Math.max(0, oldData.metadata.totalCount - 1) : oldData.metadata.totalCount,
+    },
+  };
+}
+
 // Options for useTasks hook
 interface UseTasksOptions {
   loadAll?: boolean;
