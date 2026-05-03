@@ -51,6 +51,8 @@ interface TasksPageToolbarProps {
   counts: {
     today: number;
     week: number;
+    unscheduled?: number;
+    projects?: number;
     all: number;
     completed: number;
   };
