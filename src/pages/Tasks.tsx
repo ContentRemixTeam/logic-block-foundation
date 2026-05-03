@@ -1232,6 +1232,26 @@ export default function Tasks() {
                 </Select>
               </div>
 
+              <div>
+                <Label>Project</Label>
+                <Select value={newTaskProjectId} onValueChange={setNewTaskProjectId}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Add to project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Project</SelectItem>
+                    {projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        <span className="flex items-center gap-2">
+                          <FolderKanban className="h-3.5 w-3.5" />
+                          {project.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Recurrence Options */}
               <div className="space-y-3">
                 <Label>Recurring</Label>
