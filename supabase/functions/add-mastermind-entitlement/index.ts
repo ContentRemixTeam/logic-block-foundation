@@ -15,19 +15,42 @@ interface AddMemberRequest {
 }
 
 serve(async (req: Request) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
-    // Use service role to bypass RLS
+
+    // Authenticate the caller — must be a signed-in user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const token = authHeader.replace('Bearer ', '');
+    const { data: userData, error: userError } = await authClient.auth.getUser(token);
+    if (userError || !userData?.user?.email) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const callerEmail = userData.user.email.toLowerCase();
+
+    // Service-role client to bypass RLS for the actual write
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { email, firstName, lastName, userId, entitlementId }: AddMemberRequest = await req.json();
+    const { email, firstName, lastName, entitlementId }: AddMemberRequest = await req.json();
 
     if (!email) {
       return new Response(
@@ -36,25 +59,56 @@ serve(async (req: Request) => {
       );
     }
 
-    console.log(`[add-mastermind-entitlement] Processing for: ${email}, userId: ${userId}`);
+    // Authorization: caller must either be an admin OR be granting/activating
+    // an entitlement for their OWN email (i.e. self-claiming a pre-provisioned membership).
+    const { data: isAdminRow } = await supabase
+      .from('admin_users')
+      .select('id')
+      .or(`user_id.eq.${userData.user.id},email.ilike.${callerEmail}`)
+      .maybeSingle();
 
-    // If we have an entitlementId, update that specific record
+    const isAdmin = !!isAdminRow;
+    const isSelf = email.toLowerCase() === callerEmail;
+
+    if (!isAdmin && !isSelf) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Non-admins (self-claim) may ONLY activate an existing pre-provisioned
+    // mastermind entitlement for their own email — not create a brand new one.
+    console.log(`[add-mastermind-entitlement] Caller: ${callerEmail}, target: ${email}, admin: ${isAdmin}`);
+
     if (entitlementId) {
-      console.log(`[add-mastermind-entitlement] Updating existing entitlement: ${entitlementId}`);
-      
+      // Verify ownership of the entitlement when not admin
+      if (!isAdmin) {
+        const { data: ent } = await supabase
+          .from('entitlements')
+          .select('id, email')
+          .eq('id', entitlementId)
+          .maybeSingle();
+        if (!ent || ent.email?.toLowerCase() !== callerEmail) {
+          return new Response(
+            JSON.stringify({ error: 'Forbidden' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+
       const { error: updateError } = await supabase
         .from('entitlements')
-        .update({ 
-          status: 'active', 
+        .update({
+          status: 'active',
           tier: 'mastermind',
           first_name: firstName || undefined,
           last_name: lastName || undefined,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', entitlementId);
 
       if (updateError) {
-        console.error('[add-mastermind-entitlement] Update error:', updateError);
         return new Response(
           JSON.stringify({ error: updateError.message }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -67,7 +121,6 @@ serve(async (req: Request) => {
       );
     }
 
-    // Check if entitlement already exists by email
     const { data: existing } = await supabase
       .from('entitlements')
       .select('id')
@@ -75,27 +128,31 @@ serve(async (req: Request) => {
       .maybeSingle();
 
     if (existing) {
-      console.log(`[add-mastermind-entitlement] Entitlement already exists for: ${email}`);
-      
-      // Update to active if not already
       await supabase
         .from('entitlements')
-        .update({ 
-          status: 'active', 
+        .update({
+          status: 'active',
           tier: 'mastermind',
           first_name: firstName || undefined,
           last_name: lastName || undefined,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', existing.id);
-      
+
       return new Response(
         JSON.stringify({ success: true, message: 'Entitlement updated' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Create new entitlement (fallback, shouldn't happen with verified flow)
+    // Creating a brand-new entitlement requires admin
+    if (!isAdmin) {
+      return new Response(
+        JSON.stringify({ error: 'No pre-provisioned membership found for this email. Contact support.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { error: insertError } = await supabase
       .from('entitlements')
       .insert({
@@ -108,20 +165,16 @@ serve(async (req: Request) => {
       });
 
     if (insertError) {
-      console.error('[add-mastermind-entitlement] Insert error:', insertError);
       return new Response(
         JSON.stringify({ error: insertError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`[add-mastermind-entitlement] Successfully added entitlement for: ${email}`);
-
     return new Response(
       JSON.stringify({ success: true, message: 'Entitlement created' }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error: any) {
     console.error('[add-mastermind-entitlement] Error:', error);
     return new Response(
