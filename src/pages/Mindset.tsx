@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Brain, Shield, Anchor, MessageCircle } from 'lucide-react';
+import { Brain, Shield, Anchor, MessageCircle, MessageSquare } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Layout } from '@/components/Layout';
 import { cn } from '@/lib/utils';
