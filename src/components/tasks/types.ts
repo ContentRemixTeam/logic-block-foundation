@@ -44,6 +44,7 @@ export interface Task {
   priority: string | null;
   source: string | null;
   created_at: string;
+  deleted_at?: string | null;
   recurrence_pattern: string | null;
   recurrence_days: string[] | null;
   parent_task_id: string | null;
