@@ -619,14 +619,19 @@ export default function Tasks() {
     priority?: 'high' | 'medium' | 'low';
     duration?: number;
   }) => {
-    // Use optimistic create for instant feedback
+    // Default to today's date if no date specified, so the task appears
+    // in the current view (Today/Week/All) rather than being hidden in backlog.
+    const scheduledDate = parsed.date
+      ? format(parsed.date, 'yyyy-MM-dd')
+      : format(new Date(), 'yyyy-MM-dd');
+
     optimisticCreateTask.mutate({
       task_text: parsed.text,
-      scheduled_date: parsed.date ? format(parsed.date, 'yyyy-MM-dd') : null,
+      scheduled_date: scheduledDate,
       priority: parsed.priority || null,
       estimated_minutes: parsed.duration || null,
       context_tags: parsed.tags.length > 0 ? parsed.tags : null,
-      status: 'backlog',
+      status: 'scheduled',
     });
     toast.success('Task added');
   }, [optimisticCreateTask]);
