@@ -9,7 +9,7 @@ const corsHeaders = {
 // ==================== ZOD SCHEMAS ====================
 
 const TaskPrioritySchema = z.enum(['low', 'medium', 'high']).nullable().optional();
-const TaskEnergyLevelSchema = z.enum(['low', 'medium', 'high']).nullable().optional();
+const TaskEnergyLevelSchema = z.enum(['high_focus', 'medium', 'low_energy', 'low', 'high']).nullable().optional();
 const TaskStatusSchema = z.enum(['backlog', 'todo', 'in_progress', 'blocked', 'done', 'focus', 'scheduled', 'waiting', 'someday']).nullable().optional();
 
 // Shared optional fields for update operations
@@ -17,6 +17,7 @@ const OptionalTaskFields = z.object({
   task_text: z.string().min(1, 'Task text is required').max(500, 'Task text must be under 500 characters').optional(),
   task_description: z.string().max(5000, 'Description must be under 5000 characters').nullable().optional(),
   scheduled_date: z.string().nullable().optional(),
+  scheduled_time: z.string().nullable().optional(),
   priority: TaskPrioritySchema,
   energy_level: TaskEnergyLevelSchema,
   status: TaskStatusSchema,
@@ -60,6 +61,7 @@ const CreateTaskSchema = z.object({
   task_text: z.string().min(1, 'Task text is required').max(500, 'Task text must be under 500 characters'),
   task_description: z.string().max(5000, 'Description must be under 5000 characters').nullable().optional(),
   scheduled_date: z.string().nullable().optional(),
+  scheduled_time: z.string().nullable().optional(),
   priority: TaskPrioritySchema,
   energy_level: TaskEnergyLevelSchema,
   status: TaskStatusSchema,
