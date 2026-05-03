@@ -268,26 +268,23 @@ export function useTasks(options: UseTasksOptions = {}) {
         },
         (payload) => {
           console.log('Task realtime update:', payload.eventType);
+          const newTask = payload.new as Task;
+          const oldTask = payload.old as Task;
           
           // Update accumulated tasks in-memory
           setAllTasks(prev => {
             switch (payload.eventType) {
               case 'INSERT':
-                // Check if task already exists (avoid duplicates)
-                const exists = prev.some(t => t.task_id === (payload.new as Task).task_id);
-                if (exists) return prev;
-                // Add with null project/sop - prepend to start (newest first)
-                return [{ ...payload.new as Task, project: null, sop: null }, ...prev];
+                return upsertTaskInList(prev, newTask);
 
               case 'UPDATE':
-                return prev.map(t => 
-                  t.task_id === (payload.new as Task).task_id 
-                    ? { ...t, ...(payload.new as Task) }
-                    : t
-                );
+                if (newTask.deleted_at) {
+                  return prev.filter(t => t.task_id !== newTask.task_id);
+                }
+                return upsertTaskInList(prev, newTask);
 
               case 'DELETE':
-                return prev.filter(t => t.task_id !== (payload.old as Task).task_id);
+                return prev.filter(t => t.task_id !== oldTask.task_id);
 
               default:
                 return prev;
@@ -299,28 +296,17 @@ export function useTasks(options: UseTasksOptions = {}) {
           queryClient.setQueriesData<TasksResponse>(
             { queryKey: taskQueryKeys.all },
             (oldData) => {
-              if (!oldData) return oldData;
-
-              const updatedData = { ...oldData };
               switch (payload.eventType) {
                 case 'INSERT':
-                  const exists = oldData.data.some(t => t.task_id === (payload.new as Task).task_id);
-                  if (!exists) {
-                    updatedData.data = [{ ...payload.new as Task, project: null, sop: null }, ...oldData.data];
-                  }
-                  break;
+                  return upsertTaskInResponse(oldData, newTask);
                 case 'UPDATE':
-                  updatedData.data = oldData.data.map(t => 
-                    t.task_id === (payload.new as Task).task_id 
-                      ? { ...t, ...(payload.new as Task) }
-                      : t
-                  );
-                  break;
+                  return newTask.deleted_at
+                    ? removeTaskFromResponse(oldData, newTask.task_id)
+                    : upsertTaskInResponse(oldData, newTask);
                 case 'DELETE':
-                  updatedData.data = oldData.data.filter(t => t.task_id !== (payload.old as Task).task_id);
-                  break;
+                  return removeTaskFromResponse(oldData, oldTask.task_id);
               }
-              return updatedData;
+              return oldData;
             }
           );
         }
