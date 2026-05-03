@@ -89,7 +89,6 @@ const CAPTURE_NAV = [
 const GROW_NAV = [
   { name: 'Progress', href: '/progress', icon: TrendingUp, questIcon: '📊' },
   { name: 'Learning', href: '/courses', icon: GraduationCap, questIcon: '🎓' },
-  { name: 'Mindset', href: '/mindset', icon: Compass, questIcon: '🧠', isActiveCheck: (path: string) => path === '/mindset' || path.includes('useful-thoughts') || path.includes('belief-builder') || path.includes('identity-anchors') || path.includes('self-coaching') },
   { name: 'Mindset', href: '/mindset', icon: Compass, questIcon: '🧠', isActiveCheck: (path: string) => path === '/mindset' || path.includes('useful-thoughts') || path.includes('belief-builder') || path.includes('identity-anchors') || path.includes('self-coaching') || path.includes('coaching-log') },
   { name: 'Reviews', href: '/planning', icon: ClipboardCheck, questIcon: '✅', isActiveCheck: (path: string) => path.includes('review') || path === '/planning' },
 ];
