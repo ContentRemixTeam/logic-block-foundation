@@ -743,8 +743,8 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
             </button>
           </div>
 
-          {/* Input field with mic button - only show for task/idea */}
-          {captureType !== 'income' && captureType !== 'expense' && (
+          {/* Input field with mic button */}
+          {true && (
             <div className="relative">
               <Input
                 ref={inputRef}
