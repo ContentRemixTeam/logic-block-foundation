@@ -202,14 +202,8 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
       setSavedThisSession(0);
       setBurstModeActive(false);
       setJustSaved(false);
-      // Reset financial data
-      setFinancialData({
-        amount: '',
-        category: '',
-        description: '',
-        date: format(new Date(), 'yyyy-MM-dd'),
-      });
       
+
       // Restore draft if exists
       try {
         const savedDraft = localStorage.getItem(QUICK_CAPTURE_DRAFT_KEY);
