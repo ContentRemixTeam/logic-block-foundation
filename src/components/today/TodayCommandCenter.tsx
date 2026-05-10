@@ -27,6 +27,7 @@ interface TodayCommandCenterProps {
  */
 export function TodayCommandCenter({ top3Tasks = [], lowEnergyDay }: TodayCommandCenterProps) {
   const { user } = useAuth();
+  const { seasonMeta } = useBusinessSeason();
 
   const { greeting, Icon } = useMemo(() => {
     const h = new Date().getHours();
