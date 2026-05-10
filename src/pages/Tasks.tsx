@@ -29,7 +29,7 @@ import {
   Clock3, Zap, Battery, BatteryLow, Trash2, CalendarRange, Search, X, CheckSquare,
   AlertTriangle, Calendar as CalendarDays, Inbox, FolderKanban
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 // Import new components
@@ -134,6 +134,29 @@ export default function Tasks() {
   useEffect(() => {
     localStorage.setItem('tasks-filters', JSON.stringify(filters));
   }, [filters]);
+
+  // Apply ?energy= and ?tab= URL params on mount (e.g. from NextBestAction CTA)
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const energyParam = searchParams.get('energy');
+    const tabParam = searchParams.get('tab');
+    let consumed = false;
+    if (energyParam === 'low_energy' && !filters.energy.includes('low_energy')) {
+      setFilters(prev => ({ ...prev, energy: [...prev.energy, 'low_energy'] }));
+      consumed = true;
+    }
+    if (tabParam && ['today', 'week', 'all', 'completed'].includes(tabParam)) {
+      setActiveTab(tabParam as PrimaryTab);
+      consumed = true;
+    }
+    if (consumed) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('energy');
+      next.delete('tab');
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   // Fetch projects and launches for filter dropdowns
   const { data: projects = [] } = useProjects();
