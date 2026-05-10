@@ -124,12 +124,13 @@ export function BrainDumpBoard({ items, onDelete, onUpdate, onConvertCategory, f
                   item={item}
                   onDelete={onDelete}
                   onUpdate={onUpdate}
+                  onConvertCategory={onConvertCategory}
                 />
               ))}
             </SortableContext>
             {columns[cat].length === 0 && (
               <p className="text-xs text-muted-foreground text-center py-8 italic">
-                Drag items here or create a new {CATEGORY_CONFIG[cat].label.toLowerCase().slice(0, -1)}
+                Drag items here or capture a new {CATEGORY_CONFIG[cat].label.toLowerCase().slice(0, -1)}.
               </p>
             )}
           </DroppableColumn>
