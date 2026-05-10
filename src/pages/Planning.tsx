@@ -631,7 +631,7 @@ export default function Planning() {
               </div>
             </div>
             <Link
-              to="/tasks?energy=low"
+              to="/tasks?energy=low_energy"
               className="inline-flex items-center justify-center gap-2 rounded-md border bg-background px-4 py-2 text-sm font-semibold transition-colors hover:bg-muted"
             >
               See low-energy tasks
