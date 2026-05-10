@@ -1327,16 +1327,10 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
                 setBurstModeActive(false);
                 handleSave();
               }}
-              disabled={
-                (captureType === 'income' || captureType === 'expense') 
-                  ? (!financialData.amount || !financialData.category || saving)
-                  : (!input.trim() || saving)
-              }
+              disabled={!input.trim() || saving}
               className={cn(
                 "flex-1 h-12 transition-all",
-                justSaved && "bg-green-600 hover:bg-green-700",
-                captureType === 'income' && !justSaved && "bg-emerald-600 hover:bg-emerald-700",
-                captureType === 'expense' && !justSaved && "bg-rose-600 hover:bg-rose-700"
+                justSaved && "bg-green-600 hover:bg-green-700"
               )}
             >
               {saving ? (
