@@ -1140,6 +1140,7 @@ export default function Tasks() {
             />
           </div>
         )}
+        </div>
       </div>
 
       {/* Add Task Dialog */}
