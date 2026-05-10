@@ -419,14 +419,14 @@ export function TaskListView({
     );
   };
 
-  // Render the sort/group controls toolbar
+  // Render the sort/group controls toolbar — quiet style
   const renderControls = () => (
-    <div className="flex flex-wrap items-center gap-3 pb-4 border-b mb-6">
-      <div className="flex items-center gap-2">
-        <Layers className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm text-muted-foreground hidden sm:inline">Group by:</span>
+    <div className="flex flex-wrap items-center gap-2 text-xs">
+      <div className="flex items-center gap-1.5">
+        <Layers className="h-3 w-3 text-muted-foreground/60" />
+        <span className="text-muted-foreground/60 hidden sm:inline">Group</span>
         <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupByOption)}>
-          <SelectTrigger className="w-[130px] h-8">
+          <SelectTrigger className="w-[110px] h-7 text-xs border-0 bg-transparent hover:bg-muted/60 focus:ring-0 px-2">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -436,12 +436,11 @@ export function TaskListView({
           </SelectContent>
         </Select>
       </div>
-      
-      <div className="flex items-center gap-2">
-        <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm text-muted-foreground hidden sm:inline">Sort by:</span>
+      <div className="flex items-center gap-1.5">
+        <ArrowUpDown className="h-3 w-3 text-muted-foreground/60" />
+        <span className="text-muted-foreground/60 hidden sm:inline">Sort</span>
         <Select value={sortBy} onValueChange={(v) => handleSortByChange(v as SortByOption)}>
-          <SelectTrigger className="w-[140px] h-8">
+          <SelectTrigger className="w-[120px] h-7 text-xs border-0 bg-transparent hover:bg-muted/60 focus:ring-0 px-2">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -450,24 +449,15 @@ export function TaskListView({
             ))}
           </SelectContent>
         </Select>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-8 w-8"
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 text-muted-foreground/70 hover:text-foreground"
           onClick={toggleSortDirection}
           title={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
         >
-          {sortDirection === 'asc' ? (
-            <ArrowUp className="h-4 w-4" />
-          ) : (
-            <ArrowDown className="h-4 w-4" />
-          )}
+          {sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
         </Button>
-        {sortBy === 'energy' && (
-          <span className="rounded-md bg-success/10 px-2 py-1 text-xs font-medium text-success">
-            {sortDirection === 'asc' ? 'Low energy first' : 'High focus first'}
-          </span>
-        )}
       </div>
     </div>
   );
