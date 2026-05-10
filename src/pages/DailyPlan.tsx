@@ -1028,6 +1028,9 @@ export default function DailyPlan() {
         {/* 2.1 Today Command Center — greeting, Top 3 progress, Next Best Action */}
         <TodayCommandCenter top3Tasks={top3Tasks} />
 
+        {/* 2.2 Evidence Bank — capture today's wins, learnings, proof */}
+        <EvidenceQuickAdd dayId={dayId} source="daily_plan" />
+
         {/* 2.5 Launch Mode Section (during active launches) */}
         {activeLaunch && (
           <LaunchModeSection launch={activeLaunch} />
