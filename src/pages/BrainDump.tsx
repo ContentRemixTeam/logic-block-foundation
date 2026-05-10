@@ -145,7 +145,7 @@ export default function BrainDump() {
         </div>
 
         {/* Create Form */}
-        <BrainDumpCreateForm onSubmit={handleCreate} isLoading={createItem.isPending} />
+        <BrainDumpCreateForm onSubmitRaw={handleCreateRaw} isLoading={createItemsFromText.isPending} />
 
         {/* Search & Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
