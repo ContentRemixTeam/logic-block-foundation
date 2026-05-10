@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
 import { Layout } from '@/components/Layout';
 import { useProjects, useProjectMutations } from '@/hooks/useProjects';
+import { useTasks } from '@/hooks/useTasks';
+import { computeProjectStats } from '@/lib/projectStats';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { NewProjectModal } from '@/components/projects/NewProjectModal';
 import { ProjectBoardView } from '@/components/projects/ProjectBoardView';
