@@ -40,7 +40,7 @@ interface QuickAction {
 const QUICK_ACTIONS: QuickAction[] = [
   { id: 'offer', label: 'Made an offer', icon: HandCoins, color: 'text-green-600', bgColor: 'bg-green-500/20', action: 'offer' },
   { id: 'tasks', label: 'Top 3 done', icon: CheckSquare, color: 'text-blue-600', bgColor: 'bg-blue-500/20', action: 'tasks' },
-  { id: 'metrics', label: 'Update metrics', icon: TrendingUp, color: 'text-orange-600', bgColor: 'bg-orange-500/20', action: 'metrics' },
+  { id: 'metrics', label: 'Update progress', icon: TrendingUp, color: 'text-orange-600', bgColor: 'bg-orange-500/20', action: 'metrics' },
   { id: 'focus', label: "Today's focus", icon: Target, color: 'text-purple-600', bgColor: 'bg-purple-500/20', action: 'focus' },
   { id: 'ctfar', label: 'Self-coach', icon: Brain, color: 'text-pink-600', bgColor: 'bg-pink-500/20', action: 'ctfar' },
 ];
@@ -92,7 +92,7 @@ export function MobileQuickActions() {
         setIsOpen(false);
         break;
       case 'metrics':
-        navigate('/metrics');
+        navigate('/progress');
         setIsOpen(false);
         break;
       case 'focus':
@@ -216,7 +216,7 @@ export function MobileQuickActions() {
             <Button 
               className="w-full" 
               onClick={() => {
-                navigate('/coach-yourself');
+                navigate('/self-coaching');
                 setDrawerOpen(false);
               }}
             >

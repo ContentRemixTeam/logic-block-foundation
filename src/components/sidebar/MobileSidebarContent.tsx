@@ -50,7 +50,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 const MAIN_NAV = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, questIcon: '🗺️' },
   { name: 'Planning', href: '/planning', icon: CalendarDays, questIcon: '🧭', isActiveCheck: (path: string) => path.startsWith('/planning') || path.startsWith('/cycles') || path.startsWith('/cycle-') },
-  { name: 'Todo List', href: '/tasks', icon: ListTodo, questIcon: '📜' },
+  { name: 'Tasks', href: '/tasks', icon: ListTodo, questIcon: '📜' },
   { name: 'Editorial Calendar', href: '/editorial-calendar', icon: CalendarRange, questIcon: '📅' },
 ];
 
