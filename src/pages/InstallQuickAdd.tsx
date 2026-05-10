@@ -13,8 +13,8 @@ import {
   Smartphone,
   CheckSquare,
   Lightbulb,
-  TrendingDown,
-  TrendingUp,
+  StickyNote,
+  Rocket,
 } from 'lucide-react';
 import { ManifestSwitcher } from '@/components/pwa/ManifestSwitcher';
 import { DeviceInstallSteps } from '@/components/install/DeviceInstallSteps';
@@ -57,7 +57,7 @@ export default function InstallQuickAdd() {
             </div>
             <h1 className="text-3xl font-bold mb-2">Quick Add</h1>
             <p className="text-muted-foreground">
-              Capture tasks, ideas, and finances in 3 seconds
+              Capture tasks, ideas, notes, and projects in 3 seconds
             </p>
           </div>
 
@@ -88,17 +88,17 @@ export default function InstallQuickAdd() {
                   <CheckSquare className="h-5 w-5 text-primary" />
                   <span className="font-medium">Tasks</span>
                 </div>
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-yellow-500/10">
-                  <Lightbulb className="h-5 w-5 text-yellow-500" />
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-accent/20">
+                  <Lightbulb className="h-5 w-5 text-accent-foreground" />
                   <span className="font-medium">Ideas</span>
                 </div>
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-destructive/10">
-                  <TrendingDown className="h-5 w-5 text-destructive" />
-                  <span className="font-medium">Expenses</span>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary">
+                  <StickyNote className="h-5 w-5 text-secondary-foreground" />
+                  <span className="font-medium">Notes</span>
                 </div>
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-green-500/10">
-                  <TrendingUp className="h-5 w-5 text-green-500" />
-                  <span className="font-medium">Income</span>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted">
+                  <Rocket className="h-5 w-5 text-foreground" />
+                  <span className="font-medium">Projects</span>
                 </div>
               </div>
             </CardContent>
@@ -114,7 +114,7 @@ export default function InstallQuickAdd() {
                 {[
                   'Instant launch from your home screen',
                   'Minimal interface - no distractions',
-                  'Switch between task/idea/expense/income with one tap',
+                  'Switch between task, idea, and note with one tap',
                   'Syncs to your Boss Planner account',
                   'Works offline - captures sync when online',
                   'Session counter tracks your productivity',
