@@ -3,6 +3,7 @@ import { Project } from '@/types/project';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,12 +19,17 @@ import {
   CheckCircle2, 
   RotateCcw,
   Calendar,
-  ListTodo
+  ListTodo,
+  AlertCircle,
+  ArrowRight,
+  Clock,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { ProjectStats, formatRelativeDays } from '@/lib/projectStats';
 
 interface ProjectCardProps {
   project: Project;
+  stats?: ProjectStats;
   onEdit: (project: Project) => void;
   onArchive: (project: Project) => void;
   onComplete: (project: Project) => void;
