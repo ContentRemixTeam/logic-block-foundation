@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useTaskMutations } from '@/hooks/useTasks';
 import { useToast } from '@/hooks/use-toast';
+import { routeForLine } from '@/lib/captureTags';
 
 export type BrainDumpCategory = 'note' | 'idea' | 'task' | 'project';
 
