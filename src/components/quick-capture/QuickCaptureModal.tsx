@@ -96,22 +96,12 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
   const [userOverrodeType, setUserOverrodeType] = useState(false);
   const [newIdeaTag, setNewIdeaTag] = useState('');
   const [contentModalOpen, setContentModalOpen] = useState(false);
-  
-  // Financial capture state
-  const [financialCategories, setFinancialCategories] = useState<FinancialCategory[]>([]);
-  const [financialData, setFinancialData] = useState<FinancialData>({
-    amount: '',
-    category: '',
-    description: '',
-    date: format(new Date(), 'yyyy-MM-dd'),
-  });
-  
+
   // Burst mode state for rapid adding
   const [burstModeActive, setBurstModeActive] = useState(false);
   const [savedThisSession, setSavedThisSession] = useState(0);
   const [justSaved, setJustSaved] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const amountInputRef = useRef<HTMLInputElement>(null);
   const draftSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Recent tags and projects from localStorage
