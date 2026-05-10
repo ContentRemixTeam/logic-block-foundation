@@ -167,21 +167,66 @@ export function TaskCard({
 
   const subtaskProgress = getSubtaskProgress();
   const priorityStyles = getPriorityStyles();
-  const energyStyles = getEnergyStyles();
+
+  // Sunsama-style left edge bar color by priority
+  const priorityBar =
+    task.priority === 'high' ? 'bg-destructive' :
+    task.priority === 'medium' ? 'bg-amber-500' :
+    task.priority === 'low' ? 'bg-blue-400/70' :
+    'bg-transparent';
+
+  // Format time chip: scheduled time wins, else duration
+  const timeChip = (() => {
+    if (task.scheduled_time) {
+      // scheduled_time may be 'HH:mm:ss' or 'HH:mm'
+      const [h, m] = String(task.scheduled_time).split(':');
+      return `${h}:${m}`;
+    }
+    if (task.estimated_minutes) {
+      const mins = task.estimated_minutes;
+      if (mins >= 60) {
+        const h = Math.floor(mins / 60);
+        const r = mins % 60;
+        return r ? `${h}h ${r}m` : `${h}h`;
+      }
+      return `${mins}m`;
+    }
+    return null;
+  })();
+
+  // Source label (best-effort, only if data exists)
+  const sourceLabel = (() => {
+    const src = (task as any).source || (task as any).created_via || (task as any).origin;
+    if (!src) return null;
+    const map: Record<string, string> = {
+      daily_plan: 'Daily Plan',
+      weekly_plan: 'Weekly Plan',
+      monthly_plan: 'Monthly Plan',
+      ninety_day: '90-Day Plan',
+      ninety_day_plan: '90-Day Plan',
+      wizard: 'Wizard',
+      project: 'Project',
+      brain_dump: 'Brain Dump',
+      manual: '',
+    };
+    const label = map[String(src)] ?? String(src).replace(/_/g, ' ');
+    return label ? `From ${label}` : null;
+  })();
 
   return (
-    <div 
+    <div
       className={cn(
-        "group relative flex items-start gap-3 rounded-xl border bg-card p-4 sm:p-5",
-        "shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
-        "hover:border-primary/30 border-l-[6px]",
-        task.is_completed && "opacity-60 bg-muted/30",
-        isDragging && "shadow-lg ring-2 ring-primary/20 scale-[1.02]",
-        isSelected && "ring-2 ring-primary/50 bg-primary/5",
-        priorityStyles.border,
-        priorityStyles.bg || ""
+        "group relative flex items-stretch rounded-xl bg-card overflow-hidden",
+        "shadow-sm transition-all duration-200 hover:shadow-md",
+        task.is_completed && "opacity-50",
+        isDragging && "shadow-lg ring-2 ring-primary/20 scale-[1.01]",
+        isSelected && "ring-2 ring-primary/50",
       )}
     >
+      {/* Priority left edge bar */}
+      <div className={cn("w-[3px] shrink-0", priorityBar)} aria-hidden />
+
+      <div className="flex flex-1 items-start gap-3 px-4 py-3 min-w-0">
       {/* Selection checkbox */}
       {showSelectionCheckbox && (
         <div onClick={(e) => e.stopPropagation()}>
