@@ -395,8 +395,10 @@ export default function Tasks() {
         const matchesDescription = task.task_description?.toLowerCase().includes(searchLower);
         const matchesSop = task.sop?.sop_name?.toLowerCase().includes(searchLower);
         const matchesNotes = task.notes?.toLowerCase().includes(searchLower);
-        
-        if (!matchesText && !matchesDescription && !matchesSop && !matchesNotes) {
+        const matchesProject = task.project?.name?.toLowerCase().includes(searchLower);
+        const matchesTags = Array.isArray(task.context_tags) && task.context_tags.some((t: string) => t?.toLowerCase().includes(searchLower));
+
+        if (!matchesText && !matchesDescription && !matchesSop && !matchesNotes && !matchesProject && !matchesTags) {
           return;
         }
       }
