@@ -37,6 +37,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { TaskTimerButton } from '@/components/timer';
+import { StuckTaskBadge } from './StuckTaskBadge';
 
 interface TaskCardProps {
   task: Task;
@@ -306,6 +307,7 @@ export function TaskCard({
             {task.parent_task_id && (
               <RefreshCw className="h-3 w-3 text-muted-foreground/70" />
             )}
+            <StuckTaskBadge rescheduleCount={task.reschedule_count_30d} />
             {task.sop && (
               <ClipboardList className="h-3.5 w-3.5 text-muted-foreground/70" />
             )}
