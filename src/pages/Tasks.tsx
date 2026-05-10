@@ -1136,6 +1136,23 @@ export default function Tasks() {
             onOpenDetail={openTaskDetail}
             onQuickReschedule={handleQuickReschedule}
             onAddTask={() => setIsAddDialogOpen(true)}
+            onInlineAddTask={async (parsed) => {
+              try {
+                await optimisticCreateTask.mutateAsync({
+                  task_text: parsed.text,
+                  scheduled_date: parsed.date ? format(parsed.date, 'yyyy-MM-dd') : null,
+                  priority: parsed.priority || null,
+                  estimated_minutes: parsed.duration ?? null,
+                  context_tags: parsed.tags ?? [],
+                  project_id: parsed.groupBy === 'project' && parsed.groupId && parsed.groupId !== 'no_project' ? parsed.groupId : null,
+                  energy_level: parsed.groupBy === 'energy' && parsed.groupId && parsed.groupId !== 'none' ? (parsed.groupId as any) : null,
+                  status: 'backlog',
+                });
+                toast.success('Task added');
+              } catch {
+                toast.error('Failed to add task');
+              }
+            }}
             selectedTaskIds={selectedTaskIds}
             onToggleTaskSelection={toggleTaskSelection}
             onSelectAllInGroup={handleSelectAllInGroup}
