@@ -7,6 +7,7 @@ import {
   CheckSquare,
   Zap,
   Brain,
+  Inbox,
   TrendingUp,
   Settings,
   LogOut,
