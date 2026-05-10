@@ -62,6 +62,7 @@ export function TodayCommandCenter({ top3Tasks = [], lowEnergyDay }: TodayComman
               </h2>
               <p className="text-xs text-muted-foreground">
                 {format(new Date(), 'EEEE, MMMM d')}
+                {seasonMeta && <span className="ml-2">· {seasonMeta.emoji} {seasonMeta.todayPrompt}</span>}
               </p>
             </div>
           </div>
