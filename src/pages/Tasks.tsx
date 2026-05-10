@@ -191,7 +191,7 @@ export default function Tasks() {
   // Reset pagination when filters change
   useEffect(() => {
     resetTasks();
-  }, [activeTab, filters, searchQuery]);
+  }, [activeTab, filters, searchQuery, resetTasks]);
 
   // Fetch SOPs for dropdown
   const { data: sops = [] } = useQuery({
@@ -245,7 +245,7 @@ export default function Tasks() {
 
   // Manage task mutation
   const manageMutation = useMutation({
-    mutationFn: async (params: Record<string, any>) => {
+    mutationFn: async (params: Record<string, unknown>) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
@@ -275,13 +275,31 @@ export default function Tasks() {
 
   const overdueCount = overdueTasks.length;
 
+  const openTasks = useMemo(
+    () => tasks.filter((t: Task) => !t.is_completed && !t.is_recurring_parent),
+    [tasks]
+  );
+
+  const taskInsights = useMemo(() => ({
+    lowEnergy: openTasks.filter((t: Task) => t.energy_level === 'low_energy').length,
+    highFocus: openTasks.filter((t: Task) => t.energy_level === 'high_focus').length,
+    missingEnergy: openTasks.filter((t: Task) => !t.energy_level).length,
+    inProjects: openTasks.filter((t: Task) => !!t.project_id).length,
+  }), [openTasks]);
+
+  const focusEnergyFilter = useCallback((energy: EnergyLevel) => {
+    setActiveTab('all');
+    setViewMode('list');
+    setFilters(prev => ({ ...prev, energy: [energy] }));
+  }, []);
+
   // Calculate task counts for tabs
   const counts = useMemo(() => {
     const today = format(new Date(), 'yyyy-MM-dd');
     const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
     const weekEnd = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
     
-    const incomplete = tasks.filter((t: Task) => !t.is_completed && !t.is_recurring_parent);
+    const incomplete = openTasks;
     
     return {
       today: incomplete.filter((t: Task) => 
@@ -300,7 +318,7 @@ export default function Tasks() {
       all: incomplete.length,
       completed: tasks.filter((t: Task) => t.is_completed && !t.is_recurring_parent).length
     };
-  }, [tasks]);
+  }, [tasks, openTasks]);
 
   // Filter tasks based on activeTab, search, and filters
   const { filteredTasks, recurringParentTasks } = useMemo(() => {
@@ -321,20 +339,22 @@ export default function Tasks() {
       
       // STEP 1: Primary tab filter
       switch (activeTab) {
-        case 'today':
+        case 'today': {
           if (task.is_completed) return;
           const isToday = task.scheduled_date === today || 
                           task.planned_day === today ||
                           task.time_block_start?.startsWith(today);
           if (!isToday) return;
           break;
+        }
           
-        case 'week':
+        case 'week': {
           if (task.is_completed) return;
           const isThisWeek = (task.planned_day && task.planned_day >= weekStart && task.planned_day <= weekEnd) ||
                              (task.scheduled_date && task.scheduled_date >= weekStart && task.scheduled_date <= weekEnd);
           if (!isThisWeek) return;
           break;
+        }
           
         case 'all':
           if (task.is_completed) return;
@@ -846,9 +866,10 @@ export default function Tasks() {
       case 'weekdays': return 'Every weekday (Mon-Fri)';
       case 'weekly': return days?.length ? `Every ${days.join(', ')}` : 'Weekly';
       case 'biweekly': return days?.length ? `Every 2 weeks on ${days.join(', ')}` : 'Every 2 weeks';
-      case 'monthly': 
+      case 'monthly': {
         const day = days?.length ? parseInt(days[0], 10) : 1;
         return `${getOrdinalSuffix(day)} of each month`;
+      }
       case 'quarterly': return 'Every 3 months';
       case 'custom':
         if (task?.recurrence_interval && task?.recurrence_unit) {
@@ -944,6 +965,63 @@ export default function Tasks() {
           projects={projects}
           launches={launches}
         />
+
+        <div className="grid gap-3 md:grid-cols-3">
+          <button
+            type="button"
+            onClick={() => focusEnergyFilter('low_energy')}
+            className={cn(
+              "group rounded-lg border bg-card p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-success/50 hover:shadow-md",
+              filters.energy.includes('low_energy') && "border-success/60 bg-success/10"
+            )}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-success">
+                <BatteryLow className="h-4 w-4" />
+                Low-energy list
+              </div>
+              <Badge variant="secondary">{taskInsights.lowEnergy}</Badge>
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Pull up lighter admin, replies, and quick wins for low-capacity days.
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => focusEnergyFilter('high_focus')}
+            className={cn(
+              "group rounded-lg border bg-card p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-destructive/40 hover:shadow-md",
+              filters.energy.includes('high_focus') && "border-destructive/50 bg-destructive/10"
+            )}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-destructive">
+                <Zap className="h-4 w-4" />
+                High-focus work
+              </div>
+              <Badge variant="secondary">{taskInsights.highFocus}</Badge>
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Save deep work for the windows where your brain and body have more room.
+            </p>
+          </button>
+
+          <div className="rounded-lg border bg-muted/30 p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <FolderKanban className="h-4 w-4 text-primary" />
+                Project clarity
+              </div>
+              <Badge variant="outline">{taskInsights.inProjects}/{counts.all}</Badge>
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {taskInsights.missingEnergy > 0
+                ? `Add energy to ${taskInsights.missingEnergy} task${taskInsights.missingEnergy === 1 ? '' : 's'} so planning feels easier later.`
+                : 'Every open task has an energy level, so planning by capacity is ready.'}
+            </p>
+          </div>
+        </div>
 
         {/* Import Modal */}
         <TaskImportModal
@@ -1041,19 +1119,37 @@ export default function Tasks() {
         {isLoading ? (
           <div className="text-center py-12 text-muted-foreground">Loading tasks...</div>
         ) : filteredTasks.length === 0 ? (
-          <div className="text-center py-12">
-            <CheckSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No tasks found</h3>
-            <p className="text-muted-foreground mb-4">
-              {searchQuery ? 'Try adjusting your search' : 
-               activeTab === 'today' ? "You're all caught up for today!" :
-               activeTab === 'completed' ? "No completed tasks yet" :
-               'Create your first task to get started'}
+          <div className="rounded-lg border bg-card p-8 text-center shadow-sm">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <CheckSquare className="h-7 w-7" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">
+              {searchQuery || filters.energy.length > 0 || filters.projectIds.length > 0 ? 'No matching tasks' : 'No tasks here'}
+            </h3>
+            <p className="mx-auto mb-5 max-w-md text-sm text-muted-foreground">
+              {searchQuery ? 'Try a simpler search or clear filters to widen the list.' : 
+               filters.energy.length > 0 ? 'Nothing is tagged for that energy level yet. Add energy levels to tasks as you plan.' :
+               activeTab === 'today' ? "You're clear for today. Add one next best step if you want a tiny target." :
+               activeTab === 'completed' ? "Completed tasks will collect here as you check things off." :
+               'Create a task, give it a project and energy level, and it will be easier to plan later.'}
             </p>
-            <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
-              <Plus className="h-4 w-4" />
-              New Task
-            </Button>
+            <div className="flex flex-col justify-center gap-2 sm:flex-row">
+              {(searchQuery || filters.energy.length > 0 || filters.projectIds.length > 0 || filters.launchIds.length > 0) && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setFilters(prev => ({ ...prev, energy: [], projectIds: [], launchIds: [] }));
+                  }}
+                >
+                  Clear filters
+                </Button>
+              )}
+              <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                New Task
+              </Button>
+            </div>
           </div>
         ) : viewMode === 'list' ? (
           <TaskListView

@@ -9,7 +9,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { 
   Calendar, CalendarDays, List, CheckCircle2, 
-  LayoutList, Columns, Search, X, SlidersHorizontal, FolderKanban, Rocket
+  LayoutList, Columns, Search, X, SlidersHorizontal, FolderKanban, Rocket,
+  Zap, Battery, BatteryLow
 } from 'lucide-react';
 import { PrimaryTab, ViewMode, EnergyLevel, ENERGY_LEVELS } from './types';
 
@@ -133,8 +134,16 @@ export const TasksPageToolbar = memo(function TasksPageToolbar({
   // Filter out projects that are launches (they appear in the launches section)
   const regularProjects = projects.filter(p => !p.is_launch);
 
+  const getEnergyIcon = (energy: EnergyLevel) => {
+    switch (energy) {
+      case 'high_focus': return <Zap className="h-3 w-3" />;
+      case 'medium': return <Battery className="h-3 w-3" />;
+      case 'low_energy': return <BatteryLow className="h-3 w-3" />;
+    }
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 rounded-lg border bg-card/95 p-3 shadow-sm sm:p-4">
       {/* Row 1: Primary Tabs + View Switcher */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         {/* Primary Tabs */}
@@ -304,13 +313,14 @@ export const TasksPageToolbar = memo(function TasksPageToolbar({
                         key={energy.value}
                         variant="outline"
                         className={cn(
-                          "cursor-pointer transition-colors",
+                          "cursor-pointer gap-1.5 transition-colors",
                           filters.energy.includes(energy.value as EnergyLevel)
                             ? energy.bgColor
                             : "hover:bg-muted"
                         )}
                         onClick={() => toggleEnergy(energy.value as EnergyLevel)}
                       >
+                        {getEnergyIcon(energy.value as EnergyLevel)}
                         {energy.label}
                       </Badge>
                     ))}
@@ -410,8 +420,29 @@ export const TasksPageToolbar = memo(function TasksPageToolbar({
         </Popover>
 
         {/* Active filter badges */}
-        {(filters.projectIds.length > 0 || filters.launchIds.length > 0) && (
+        {(filters.energy.length > 0 || filters.projectIds.length > 0 || filters.launchIds.length > 0) && (
           <div className="flex flex-wrap gap-1.5">
+            {filters.energy.map(energy => {
+              const option = ENERGY_LEVELS.find(level => level.value === energy);
+              return (
+                <Badge
+                  key={energy}
+                  variant="secondary"
+                  className="gap-1 pr-1"
+                >
+                  {getEnergyIcon(energy)}
+                  {option?.label || energy}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 w-4 p-0 hover:bg-transparent"
+                    onClick={() => toggleEnergy(energy)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              );
+            })}
             {filters.projectIds.map(projectId => {
               const project = regularProjects.find(p => p.id === projectId);
               const label = projectId === 'no_project' ? 'No Project' : project?.name || 'Unknown';

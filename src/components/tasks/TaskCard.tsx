@@ -134,6 +134,15 @@ export function TaskCard({
     return level?.label || '';
   };
 
+  const getEnergyStyles = () => {
+    switch (task.energy_level) {
+      case 'high_focus': return 'border-destructive/30 bg-destructive/10 text-destructive';
+      case 'medium': return 'border-warning/30 bg-warning/15 text-warning-foreground';
+      case 'low_energy': return 'border-success/30 bg-success/10 text-success';
+      default: return 'border-muted bg-muted/50 text-muted-foreground';
+    }
+  };
+
   const getPriorityStyles = () => {
     switch (task.priority) {
       case 'high': return { border: 'border-l-destructive', bg: 'bg-destructive/5', badge: 'destructive' as const };
@@ -158,12 +167,13 @@ export function TaskCard({
 
   const subtaskProgress = getSubtaskProgress();
   const priorityStyles = getPriorityStyles();
+  const energyStyles = getEnergyStyles();
 
   return (
     <div 
       className={cn(
-        "group relative flex items-start gap-3 p-4 rounded-lg border bg-card",
-        "shadow-sm hover:shadow-md transition-all duration-200",
+        "group relative flex items-start gap-3 rounded-lg border bg-card p-4",
+        "shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
         "hover:border-primary/30 border-l-4",
         task.is_completed && "opacity-60 bg-muted/30",
         isDragging && "shadow-lg ring-2 ring-primary/20 scale-[1.02]",
@@ -184,7 +194,7 @@ export function TaskCard({
       )}
 
       {/* Drag handle */}
-      <div className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab mt-1">
+      <div className="hidden opacity-0 transition-opacity group-hover:opacity-100 sm:block cursor-grab mt-1">
         <GripVertical className="h-4 w-4 text-muted-foreground" />
       </div>
 
@@ -216,7 +226,7 @@ export function TaskCard({
         ) : (
           <h3 
             className={cn(
-              "font-medium text-base leading-tight line-clamp-2 mb-1",
+              "font-semibold text-base leading-snug line-clamp-2 mb-1 text-foreground",
               task.is_completed && "line-through text-muted-foreground"
             )}
             onDoubleClick={(e) => {
@@ -229,19 +239,19 @@ export function TaskCard({
         )}
 
         {/* Task Metadata Row */}
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mt-2">
+        <div className="mt-3 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
           {/* Due Date */}
           {task.scheduled_date && (
-            <div className={cn("flex items-center gap-1.5", getDueDateStyles(task.scheduled_date))}>
-              <CalendarIcon className="w-3.5 h-3.5" />
+            <div className={cn("inline-flex h-6 items-center gap-1.5 rounded-md border border-border bg-background px-2 text-xs", getDueDateStyles(task.scheduled_date))}>
+              <CalendarIcon className="h-3.5 w-3.5" />
               <span>{formatDueDate(task.scheduled_date)}</span>
             </div>
           )}
 
           {/* Time Estimate */}
           {task.estimated_minutes && (
-            <div className="flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5" />
+            <div className="inline-flex h-6 items-center gap-1.5 rounded-md bg-muted/60 px-2 text-xs">
+              <Clock className="h-3.5 w-3.5" />
               <span>{getDurationLabel()}</span>
             </div>
           )}
@@ -259,17 +269,17 @@ export function TaskCard({
 
           {/* Energy Level */}
           {task.energy_level && (
-            <div className="flex items-center gap-1.5">
+            <div className={cn("inline-flex h-6 items-center gap-1.5 rounded-md border px-2 text-xs font-medium", energyStyles)}>
               {getEnergyIcon()}
-              <span className="text-xs">{getEnergyLabel()}</span>
+              <span>{getEnergyLabel()}</span>
             </div>
           )}
 
           {/* Project */}
           {task.project && (
-            <div className="flex items-center gap-1.5">
-              <Folder className="w-3.5 h-3.5" />
-              <span className="truncate max-w-[120px]">{task.project.name}</span>
+            <div className="inline-flex h-6 max-w-[180px] items-center gap-1.5 rounded-md bg-primary/10 px-2 text-xs font-medium text-primary">
+              <Folder className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{task.project.name}</span>
             </div>
           )}
 
@@ -306,8 +316,9 @@ export function TaskCard({
 
           {/* Waiting on */}
           {task.waiting_on && (
-            <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5">
-              ⏳ {task.waiting_on}
+            <Badge variant="secondary" className="h-5 px-1.5 py-0 text-xs">
+              <Clock className="mr-1 h-3 w-3" />
+              {task.waiting_on}
             </Badge>
           )}
         </div>
@@ -339,7 +350,7 @@ export function TaskCard({
 
         {/* Task Description (truncated) */}
         {task.task_description && !task.is_completed && (
-          <p className="text-sm text-muted-foreground mt-2 line-clamp-1">
+          <p className="mt-3 line-clamp-2 border-l-2 border-muted pl-3 text-sm text-muted-foreground">
             {task.task_description}
           </p>
         )}
@@ -361,7 +372,7 @@ export function TaskCard({
       </div>
 
       {/* Quick Actions */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+      <div className="flex shrink-0 items-center gap-1 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
         <Button
           variant="ghost"
           size="icon"
