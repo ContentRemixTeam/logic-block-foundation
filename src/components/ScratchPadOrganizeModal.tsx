@@ -269,7 +269,7 @@ export function ScratchPadOrganizeModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-primary" />
-            Organize Processed Items
+            Review captured items
           </DialogTitle>
         </DialogHeader>
 
