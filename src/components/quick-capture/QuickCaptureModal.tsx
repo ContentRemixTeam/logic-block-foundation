@@ -1054,22 +1054,16 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
           {/* Save button */}
           <Button
             onClick={handleSave}
-            disabled={
-              (captureType === 'income' || captureType === 'expense') 
-                ? (!financialData.amount || !financialData.category || saving)
-                : (!input.trim() || saving)
-            }
-            className={cn(
-              "w-full h-12",
-              captureType === 'income' && "bg-emerald-600 hover:bg-emerald-700",
-              captureType === 'expense' && "bg-rose-600 hover:bg-rose-700"
-            )}
+            disabled={!input.trim() || saving}
+            className="w-full h-12"
           >
-            {saving ? 'Saving...' : 
-              captureType === 'income' ? 'Add Income' :
-              captureType === 'expense' ? 'Add Expense' :
-              captureType === 'task' ? (isMultiLine ? `Save ${lines.length} Tasks` : 'Save Task') : 
-              'Save Idea'
+            {saving ? 'Saving...' :
+              isMultiLine ? `Save ${lines.length} items` :
+              captureType === 'task' ? 'Save Task' :
+              captureType === 'idea' ? 'Save Idea' :
+              captureType === 'project' ? 'Save Project' :
+              captureType === 'note' ? 'Save Note' :
+              'Save'
             }
           </Button>
 
