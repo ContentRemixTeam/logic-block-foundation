@@ -1220,7 +1220,7 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
             )}
 
             {/* Multi-line Textarea for bulk entry - only for task/idea */}
-            {captureType !== 'income' && captureType !== 'expense' && (
+            {true && (
               <div className="relative">
                 <Textarea
                   ref={textareaRef}
