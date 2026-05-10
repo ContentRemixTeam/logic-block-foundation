@@ -35,6 +35,15 @@ interface MastermindResource {
 
 const MASTERMIND_RESOURCES: MastermindResource[] = [
   {
+    id: 'start-here',
+    title: 'Start Here',
+    description: 'Follow the guided setup path and learn the weekly planning loop',
+    icon: <Trophy className="h-6 w-6" />,
+    questIcon: '⚡',
+    url: '/onboarding',
+    isExternal: false,
+  },
+  {
     id: 'ask-faith',
     title: 'Ask Faith',
     description: 'Submit your questions to get personalized guidance',

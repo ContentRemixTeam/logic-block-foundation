@@ -1,6 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, Calendar, CalendarRange, Target, CheckCircle2, Sparkles, FileText, BarChart3, Share2 } from 'lucide-react';
+import {
+  ArrowRight,
+  CalendarDays,
+  Calendar,
+  CalendarRange,
+  Target,
+  CheckCircle2,
+  Sparkles,
+  FileText,
+  BarChart3,
+  Share2,
+  MessageSquare,
+  Users,
+} from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Layout } from '@/components/Layout';
 import { cn } from '@/lib/utils';
@@ -96,6 +109,41 @@ const reviewCards: PlanningCard[] = [
   },
 ];
 
+const nextStepCards: PlanningCard[] = [
+  {
+    title: 'Create the 90-day plan',
+    description: 'Choose the main goal, focus area, milestones, and weekly rhythm for this cycle.',
+    href: '/cycle-setup',
+    icon: Target,
+    iconColorClass: 'text-primary',
+    iconBgClass: 'bg-primary/10',
+  },
+  {
+    title: 'Plan this week',
+    description: 'Turn the cycle goal into a realistic weekly focus, tasks, and Mastermind support plan.',
+    href: '/weekly-plan',
+    icon: Calendar,
+    iconColorClass: 'text-info',
+    iconBgClass: 'bg-info/10',
+  },
+  {
+    title: 'Pick today\'s top 3',
+    description: 'Choose the actions that create momentum today without overloading the day.',
+    href: '/daily-plan',
+    icon: CheckCircle2,
+    iconColorClass: 'text-success',
+    iconBgClass: 'bg-success/10',
+  },
+  {
+    title: 'Share the weekly reflection',
+    description: 'Capture wins, lessons, stuck points, and what you want support on next.',
+    href: '/weekly-reflection',
+    icon: MessageSquare,
+    iconColorClass: 'text-status-scheduled',
+    iconBgClass: 'bg-status-scheduled/10',
+  },
+];
+
 interface PlanningStats {
   dailyPlansThisMonth: number;
   totalDaysThisMonth: number;
@@ -183,11 +231,55 @@ export default function Planning() {
       <div className="max-w-4xl space-y-8">
         <div>
           <h1 className="text-2xl font-bold">Planning</h1>
-          <p className="text-muted-foreground">Your planning command center</p>
+          <p className="text-muted-foreground">
+            Your Mastermind planning command center
+          </p>
         </div>
 
         {/* 90-Day Cycle Progress */}
         <CycleProgressBanner />
+
+      {/* Mastermind Planning Path */}
+      <Card className="overflow-hidden border-primary/20">
+        <div className="bg-primary/5 p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+                <Users className="h-3.5 w-3.5" />
+                Mastermind rhythm
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold">Plan enough to move. Review enough to adjust.</h2>
+                <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+                  Use this page as the weekly doorway into the Boss Planner: set the 90-day direction,
+                  choose the next useful actions, then bring questions and stuck points back to the Mastermind.
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/weekly-plan"
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Plan this week
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-px bg-border/60 sm:grid-cols-2 lg:grid-cols-4">
+          {nextStepCards.map((card) => (
+            <Link key={card.href} to={card.href} className="bg-card p-4 transition-colors hover:bg-muted/40">
+              <div className={cn(
+                'mb-3 flex h-10 w-10 items-center justify-center rounded-lg',
+                card.iconBgClass
+              )}>
+                <card.icon className={cn('h-5 w-5', card.iconColorClass)} />
+              </div>
+              <h3 className="font-semibold">{card.title}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{card.description}</p>
+            </Link>
+          ))}
+        </div>
+      </Card>
 
       {/* Planning Tracker */}
       <Card className="p-6">
