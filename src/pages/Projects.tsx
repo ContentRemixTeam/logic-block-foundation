@@ -244,6 +244,7 @@ export default function Projects() {
                   <ProjectCard
                     key={project.id}
                     project={project}
+                    stats={computeProjectStats(project.id, allTasks ?? [])}
                     onEdit={handleEditProject}
                     onArchive={handleArchiveProject}
                     onComplete={handleCompleteProject}
