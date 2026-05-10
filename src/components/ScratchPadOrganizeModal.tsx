@@ -269,7 +269,7 @@ export function ScratchPadOrganizeModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-primary" />
-            Organize Processed Items
+            Review captured items
           </DialogTitle>
         </DialogHeader>
 
@@ -280,7 +280,7 @@ export function ScratchPadOrganizeModal({
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <ListTodo className="h-4 w-4 text-primary" />
-                  <h3 className="font-semibold">Tasks ({tasks.length})</h3>
+                  <h3 className="font-semibold">Send tasks to task list ({tasks.length})</h3>
                 </div>
                 <div className="space-y-3">
                   {tasks.map((task, idx) => (
@@ -334,7 +334,7 @@ export function ScratchPadOrganizeModal({
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Lightbulb className="h-4 w-4 text-accent" />
-                    <h3 className="font-semibold">Ideas ({ideas.length})</h3>
+                    <h3 className="font-semibold">Save ideas ({ideas.length})</h3>
                   </div>
                   <div className="space-y-3">
                     {ideas.map((idea, idx) => (
@@ -399,17 +399,20 @@ export function ScratchPadOrganizeModal({
         </ScrollArea>
 
         <DialogFooter className="mt-4 flex-col gap-2 sm:flex-row">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
+            Process later
+          </Button>
           <Button variant="outline" onClick={handleUseDefaults} disabled={saving}>
-            Use Defaults
+            Use defaults
           </Button>
           <Button onClick={handleSaveAll} disabled={saving}>
             {saving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
+                Saving…
               </>
             ) : (
-              'Save Organization'
+              'Save organization'
             )}
           </Button>
         </DialogFooter>

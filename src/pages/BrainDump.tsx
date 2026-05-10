@@ -18,7 +18,7 @@ type ViewMode = 'board' | 'grid';
 type FilterCategory = 'all' | BrainDumpCategory;
 
 export default function BrainDump() {
-  const { items, isLoading, error, createItem, deleteItem, updateItem, convertCategory } = useBrainDump();
+  const { items, isLoading, error, createItemsFromText, deleteItem, updateItem, convertCategory } = useBrainDump();
 
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     return (localStorage.getItem('brain-dump-view') as ViewMode) || 'board';
@@ -79,9 +79,9 @@ export default function BrainDump() {
     convertCategory.mutate({ item, newCategory });
   }, [convertCategory]);
 
-  const handleCreate = useCallback((text: string, category: BrainDumpCategory) => {
-    createItem.mutate({ text, category });
-  }, [createItem]);
+  const handleCreateRaw = useCallback(async (raw: string, fallback: BrainDumpCategory) => {
+    return await createItemsFromText.mutateAsync({ raw, fallback });
+  }, [createItemsFromText]);
 
   const FILTER_BUTTONS: { key: FilterCategory; label: string; emoji?: string }[] = useMemo(() => [
     { key: 'all' as FilterCategory, label: 'All' },
@@ -119,7 +119,7 @@ export default function BrainDump() {
               Brain Dump
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Capture everything. Categorize later. All notes flow to your planner automatically.
+              One calm inbox for tasks, ideas, notes, projects, questions, wins. Type freely — tags route it.
             </p>
           </div>
           <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
@@ -145,7 +145,7 @@ export default function BrainDump() {
         </div>
 
         {/* Create Form */}
-        <BrainDumpCreateForm onSubmit={handleCreate} isLoading={createItem.isPending} />
+        <BrainDumpCreateForm onSubmitRaw={handleCreateRaw} isLoading={createItemsFromText.isPending} />
 
         {/* Search & Filters */}
         <div className="flex flex-col sm:flex-row gap-3">

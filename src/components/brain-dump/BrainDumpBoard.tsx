@@ -33,16 +33,17 @@ function DroppableColumn({ category, children, count, isFullWidth }: { category:
     <div
       ref={setNodeRef}
       className={cn(
-        'flex flex-col rounded-xl border-2 p-3 min-h-[300px] transition-colors',
-        config.borderClass,
-        isOver && 'ring-2 ring-primary/50 bg-primary/5',
+        'flex flex-col rounded-xl border border-border/60 bg-card/40 p-3 min-h-[300px] transition-colors',
+        isOver && 'ring-2 ring-primary/40 bg-primary/5',
         isFullWidth && 'max-w-3xl mx-auto'
       )}
     >
-      <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/50">
-        <span className="text-lg">{config.emoji}</span>
-        <h3 className="font-semibold text-sm">{config.label}</h3>
-        <span className="ml-auto text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
+      <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/40">
+        <span className="text-base">{config.emoji}</span>
+        <h3 className="font-medium text-sm tracking-wide uppercase text-muted-foreground">
+          {config.label}
+        </h3>
+        <span className="ml-auto text-xs text-muted-foreground">
           {count}
         </span>
       </div>
@@ -124,12 +125,13 @@ export function BrainDumpBoard({ items, onDelete, onUpdate, onConvertCategory, f
                   item={item}
                   onDelete={onDelete}
                   onUpdate={onUpdate}
+                  onConvertCategory={onConvertCategory}
                 />
               ))}
             </SortableContext>
             {columns[cat].length === 0 && (
               <p className="text-xs text-muted-foreground text-center py-8 italic">
-                Drag items here or create a new {CATEGORY_CONFIG[cat].label.toLowerCase().slice(0, -1)}
+                Drag items here or capture a new {CATEGORY_CONFIG[cat].label.toLowerCase().slice(0, -1)}.
               </p>
             )}
           </DroppableColumn>
@@ -138,7 +140,7 @@ export function BrainDumpBoard({ items, onDelete, onUpdate, onConvertCategory, f
 
       <DragOverlay>
         {activeItem && (
-          <div className="rotate-3 scale-105">
+          <div className="scale-[1.02]">
             <BrainDumpCard
               item={activeItem}
               onDelete={() => {}}

@@ -1,90 +1,87 @@
-## Goal
 
-Make `/tasks` feel like a calm, premium **master task list** inspired by Sunsama — without turning it into the Daily Planning page. All tasks from projects, planners, and wizards continue to live and update here.
+# Brain Dump / Capture — Phase 1
 
-## Safety check (answers to your pre-implementation questions)
+A focused, frontend-only pass that unifies tag language, stabilizes the Daily Plan scratch pad, and calms the `/brain-dump` UI. No schema changes. No data migration. No AI.
 
-1. **Components changing** (presentation only):
-   - `src/pages/Tasks.tsx` — page shell, header, container width, ambient background
-   - `src/components/tasks/TasksPageToolbar.tsx` — collapse to two quiet rows + combined filter popover
-   - `src/components/tasks/TaskCard.tsx` — Sunsama-style card with reduced badges + priority edge bar
-   - `src/components/tasks/views/TaskListView.tsx` — editorial group headers + inline add-task row + empty states
-   - `src/components/tasks/TaskQuickAdd.tsx` — add a compact "inline" variant prop (no behavior change for existing usages)
+## Answers to your pre-flight questions
 
-2. **Frontend/presentation only?** Yes. No schema, hook, route, auth, or backend changes. `useTasks()` / `useTaskMutations()` and the existing optimistic cache logic remain untouched, so edits/completions still propagate everywhere.
+**1. Files I will change**
+- `src/lib/captureTags.ts` *(new)* — single shared tag config + helpers
+- `src/components/SmartScratchPad.tsx`
+- `src/components/brain-dump/BrainDumpCreateForm.tsx`
+- `src/components/brain-dump/BrainDumpCard.tsx`
+- `src/components/brain-dump/BrainDumpBoard.tsx` *(small copy/visual tweaks only)*
+- `src/components/brain-dump/BrainDumpGrid.tsx` *(small copy/visual tweaks only)*
+- `src/pages/BrainDump.tsx` *(header copy + inbox grouping for untagged)*
+- `src/components/ScratchPadOrganizeModal.tsx` *(copy only)*
+- `src/components/daily-plan/UnprocessedTagsWarning.tsx` *(copy + tag set)*
+- `src/hooks/useBrainDump.ts` — add a single new mutation `createItemsFromText(raw)` that splits lines and routes by tag. Existing `createItem`, `deleteItem`, `updateItem`, `convertCategory` left untouched.
 
-3. **Data risk?** None. We don't touch persistence, mutations, offline sync, or task shape. All filters/controls stay reachable (just behind a popover). Existing `Task` type fields are read-only consumed.
+**2. Schema changes?** None. We reuse `journal_pages`, `ideas`, and `tasks` exactly as-is. Tags beyond what destinations support are preserved verbatim inside the saved text (e.g. `#sales`, `#low-energy` stay in the title/content/task_text). No new columns.
 
-4. **Step-by-step plan** is below.
+**3. Preserving existing data?**
+- No deletes or migrations.
+- `useBrainDump` query, soft-delete behavior, and `convertCategory` flow are unchanged.
+- Daily Plan autosave path (`save-daily-plan`, `scratch_pad_content`, local backup, beforeunload, mobile, `SaveStatusIndicator`) is not touched.
+- We never strip raw user text — extra tags survive the save.
 
-## Implementation steps
+**4. Risky areas in the conversion flow**
+- `useBrainDump.convertCategory` soft-deletes the source row, then inserts into the destination. If the insert fails, the original is already archived. Phase 1 does **not** restructure this, but I will:
+  - rename UI affordance to "Move to…" with a confirmation toast on success and a clear error toast on failure
+  - keep the existing query invalidations (`brain-dump`, `all-tasks`, `ideas`) so UI refreshes truthfully
+- Out of scope (Phase 2): wrap convert in a transaction-like fallback (re-undelete on insert failure).
 
-### 1. Page shell — calmer canvas (`Tasks.tsx`)
-- Wrap the whole page in `bg-gradient-to-b from-background via-background to-muted/30 min-h-screen`.
-- For list view, center content in `max-w-5xl mx-auto px-6 pt-10 pb-24`. Kanban / Monday board / Timeline / Three-day stay full width.
-- Replace stacked header (stat tiles + cycle badge + recovery banner) with one editorial header:
-  - **H1**: dynamic title — `Today` / `This Week` / `All Tasks` / `Completed` based on `activeTab`.
-  - **Subtitle**: `format(today, 'EEEE, MMMM d')` · `{openCount} open tasks` · `{plannedHours} hrs planned` (only show planned hrs if `> 0`).
-  - Sub-subtitle (muted, smaller, only on All): "Tasks from your projects, plans, and wizards live here."
-- Move `TaskRecoveryBanner` + `CycleBadge` into a thin "status strip" that only renders when present (`recovery || activeCycle`). Use `text-xs text-muted-foreground` styling.
-- Remove the "No date" / "In projects" stat tiles from header. (They're already filterable in the toolbar.)
+**5. Phase 1 implementation plan**
 
-### 2. Toolbar — quiet, two rows (`TasksPageToolbar.tsx`)
-- **Row 1** — primary tab pills (`Today · Week · All · Completed`). Use ghost variant with an active underline (border-b-2 primary) instead of filled background. Counts shown as small muted numbers next to each label.
-- **Row 2** (right-aligned cluster):
-  - Search: icon-only button, expands to inline input on click; collapses on blur if empty.
-  - Filters: single icon button → one combined `Popover` containing Priority, Energy, Tags, Projects, Launches (sections inside a `ScrollArea`). Show a small primary-colored dot on the icon when any filter is active.
-  - View switcher: 3 small icon-only buttons in a segmented `bg-muted rounded-full p-1` pill (List / Kanban / Three-day). Other view modes accessible via dropdown overflow if more than 3.
-- Drop visible: "Saved Filters (0)", "Manage Fields", standalone energy chips, project/launch chip rows.
-- Keep all underlying state/props identical so `Tasks.tsx` doesn't need filter logic changes.
+### Step 1 — Shared tag registry
+New `src/lib/captureTags.ts` exporting:
+- `CAPTURE_TAGS` array with `{ tag, label, emoji, icon, kind }` for: `task, idea, note, project, content, question, reminder, thought, win, sales, admin, email, low-energy, medium-energy, high-focus`.
+- `kind` ∈ `'destination' | 'modifier'`. Destination tags route to a table; modifiers are preserved in text.
+- Helpers: `parseLineTags(line)`, `routeForLine(line)` → `{ destination: 'task'|'idea'|'note'|'project', cleanedText, modifiers, allTags }`.
+  - Routing precedence: `task > project > idea > note` (first match wins); untagged → `note` (inbox).
+  - `cleanedText` removes only the routing destination tag; other tags stay in the text.
 
-### 3. Task cards — Sunsama style (`TaskCard.tsx`)
-- Card: `bg-card rounded-xl shadow-sm hover:shadow-md transition-all border-0 px-4 py-3` with a 3px left edge bar colored by priority (`bg-destructive` / `bg-amber-500` / `bg-blue-400` / `bg-transparent`).
-- Layout: `[checkbox] [title + optional 1-line description] [spacer] [time chip] [project tag] [overflow menu]`.
-- Energy: tiny icon (no label), `Tooltip` for "Low Energy / Medium / High Focus".
-- Time: small monospace chip — `8:00` if `scheduled_time`, else `1h 30m` if `duration_minutes`, in `bg-muted/60 text-xs font-mono px-2 py-0.5 rounded-md`.
-- Project: `# project-name` style with a colored dot, link-like (`text-muted-foreground hover:text-foreground`).
-- Source label (from `source` / `created_via` if present): tiny muted "From Daily Plan" / "From Wizard" / "From Project" — only when source exists.
-- Drop the explicit Status badge from list rendering (still editable via detail dialog).
-- Completed: `line-through opacity-50`. Stable layout, no extra "Done" badge.
-- Spacing between cards in groups: `space-y-2`.
+### Step 2 — Stabilize `SmartScratchPad`
+- Drop the transparent-text / overlay highlight system. Use a normal visible `<Textarea>` (semantic tokens, no `text-transparent`, no `WebkitTextFillColor: transparent`, no scroll-sync overlay).
+- Keep autocomplete popup, keyboard nav, and tag-button insertion.
+- Use the shared registry (full set, scrollable popup).
+- Keyboard rules: Enter inserts newline normally; Tab/Enter only consumed when the autocomplete menu is open; Esc closes popup; existing Cmd/Ctrl+Enter behavior preserved if present in parent.
+- Update placeholder + helper text to the copy you specified.
+- Tag count chips below the textarea become a calm muted summary (counts of detected destination tags) — no full-line backgrounds.
 
-### 4. Group headers — editorial (`TaskListView.tsx`)
-- Replace bold colored icons with: `<dot> LABEL · count <thin divider line> <chevron>`.
-- Style: `text-xs uppercase tracking-[0.15em] text-muted-foreground font-medium`.
-- Overdue: `bg-destructive/60` dot + `text-destructive/80` label only — no warning icon, no full-color treatment.
-- Add `animate-fade-in` to each group section.
+### Step 3 — `BrainDumpCreateForm` capture-first flow
+- Remove the up-front category select from the visual hierarchy. Show a calm, large textarea first; keep an optional "Default if untagged" small `Select` below the action row defaulting to `note`.
+- On submit, call new `createItemsFromText(text)`:
+  - Split by `\n`, ignore empty lines.
+  - For each line: route via `routeForLine`. Save to the right table using the same insert paths the existing `createItem` already uses. If a line fails, keep that line in the textarea, toast `"Saved X of Y, kept failed line(s)"`.
+- Replace helper line with: "Use tags like #task, #idea, #content, #project, #question, #win — or leave it messy and sort it later."
+- Placeholder: "Dump anything here. Tasks, ideas, reminders, questions, wins, content sparks…"
 
-### 5. Inline "+ Add task" row (`TaskListView.tsx` + `TaskQuickAdd.tsx`)
-- Add a `variant?: 'inline'` prop to `TaskQuickAdd` that strips the card chrome and renders a single muted row: `+ Add task` placeholder, focuses on click, Enter saves, Esc blurs.
-- Render this row at the top of each visible group. Default new-task date matches the group (Today, Tomorrow, etc.) — pass `defaultDate` prop.
-- Keep existing dialog-based creation (header "+ New task" button) intact.
-- Empty group: muted `Nothing planned` line, then the inline add row. No big illustration.
+### Step 4 — Calmer `BrainDumpCard`
+- Remove rotation, tape, and saturated post-it palette.
+- New base: `bg-card rounded-xl border border-border/60 shadow-sm hover:shadow-md transition-shadow`.
+- 3px left accent bar tinted by category (semantic tokens, e.g. `bg-primary/60`, `bg-accent/60`, `bg-muted-foreground/40`).
+- Small tag pill (top-left), subtle date (bottom), edit/delete in a quiet hover cluster.
+- Drag handle stays but muted.
 
-### 6. Energy support
-- Already filterable via `filters.energy`; surface inside the new combined filter popover with the existing `EnergyLevel` checkboxes.
-- Group-by Energy already supported in `TaskListView` via `GROUP_BY_OPTIONS`; keep available in the filter popover under "Group by".
-- Card shows energy as the tiny icon (step 3).
+### Step 5 — Inbox grouping in `/brain-dump`
+- In `BrainDumpBoard`/`Grid` add a visual "Inbox" column/section seeded from notes whose text starts untagged or contains `#unprocessed`. (No schema change — pure client-side filter.) If trivial-only, show "Inbox" tab that maps to `note`.
+- Calmer column headers (label · count, thin divider, no heavy bg).
 
-### 7. Save state surfacing
-- `useTaskMutations` exposes mutation states. Add a small status indicator near the toolbar (`text-xs text-muted-foreground`): "Saving…" while any mutation is `isPending`, "Saved" briefly after success, otherwise hidden. No new save logic.
+### Step 6 — Copy refresh
+- `ScratchPadOrganizeModal` title → "Review captured items"; buttons → "Send tasks to task list", "Save ideas", "Keep as note", "Use defaults", "Process later".
+- `UnprocessedTagsWarning`: title → "You have tagged items to review"; body explains autosave is safe; buttons → "Review now", "Save and leave", "Stay here". Update `TAG_REGEX` to the full destination tag set so it doesn't miss `#note`/`#project`/`#content`/etc.
 
-### 8. Motion / color polish
-- Use existing `animate-fade-in`, `hover-scale` utilities only.
-- All colors via semantic tokens (`bg-card`, `text-muted-foreground`, `bg-destructive`, etc.). No new tokens, no new keyframes.
+### Step 7 — Convert UX safety
+- In `BrainDumpCard` (and any menu that calls `convertCategory`), label as "Move to…", show success toast on resolve and explicit error toast on reject; keep current invalidations.
 
-### 9. Mobile responsiveness
-- Header stacks vertically below `sm`. Subtitle wraps.
-- Toolbar Row 1 horizontal scrolls if needed (`overflow-x-auto no-scrollbar`).
-- Task card layout uses flex-wrap so chips drop to a second line on narrow widths.
-- View switcher hides on mobile (defaults to list).
+### Step 8 — Verify
+- Read the modified files; confirm Daily Plan save chain is untouched (no edits to `save-daily-plan`, `get-daily-plan`, `useDailyPlan`, `SaveStatusIndicator`).
+- Manually walk through: typing in scratch pad (cursor visible, no overlay), inserting `#task` from autocomplete, multi-line capture in `/brain-dump`, card hover/edit/move, leaving Daily Plan with tagged items.
 
-## Out of scope (explicitly)
-- Daily Planning page, Projects page, planning pages, wizards.
-- Kanban / Timeline / Three-day / Monday board internals (they'll inherit the new `TaskCard` automatically since they reuse it; no further changes).
-- Calendar sidebar, schema, theme tokens, auth.
-
-## Risk summary
-- Data: none — read-only presentation.
-- Behavior: all filters/controls preserved, just relocated. Existing tab/filter persistence (localStorage) untouched.
-- Cross-app sync: untouched — uses same `useTasks` hooks.
+## Out of scope (Phase 2+)
+- AI classification
+- Schema changes / new tables
+- Transactional `convertCategory` rewrite
+- Daily Plan redesign, task manager redesign
+- New "unprocessed" status column (using untagged-as-inbox heuristic instead)
