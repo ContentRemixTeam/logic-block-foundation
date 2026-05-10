@@ -2,7 +2,7 @@ import { routeForLine, type CaptureDestination } from '@/lib/captureTags';
 
 export type CaptureType = 'task' | 'idea' | 'note' | 'project' | 'content' | 'question' | 'reminder';
 
-export type EnergyLevel = 'low_energy' | 'medium_energy' | 'high_focus';
+export type EnergyLevel = 'low_energy' | 'medium' | 'high_focus';
 
 export interface ParsedTask {
   text: string;
