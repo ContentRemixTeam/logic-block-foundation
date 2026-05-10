@@ -374,219 +374,179 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
     }
   };
 
-  // Burst save for multi-line tasks
-  const handleBurstSave = async (lines: string[]) => {
-    let savedCount = 0;
-    const errors: string[] = [];
-    
-    // Get shared metadata from current parsedTask/chips
-    const sharedDate = parsedTask?.date;
-    const sharedPriority = parsedTask?.priority;
-    const sharedDuration = parsedTask?.duration;
-    const sharedTags = parsedTask?.tags || [];
-    const sharedProjectId = parsedTask?.projectId;
+  // Save a single line according to its tag-routed destination.
+  // Returns true if saved successfully.
+  const saveLineByRouting = async (line: string): Promise<{ ok: boolean; type: CaptureType; text: string; tags: string[]; projectId?: string | null; error?: string }> => {
+    const routed = routeForLine(line, 'note');
+    const dest = routed.destination; // 'task' | 'idea' | 'note' | 'project'
 
-    for (const line of lines) {
-      try {
-        const taskParsed = parseTaskInput(line);
-        
-        // Merge with shared chips (line-specific takes precedence)
+    try {
+      if (dest === 'task') {
+        const taskParsed = parseTaskInput(routed.cleanedText);
         await createTask.mutateAsync({
-          task_text: taskParsed.text || line,
-          scheduled_date: taskParsed.date 
-            ? format(taskParsed.date, 'yyyy-MM-dd') 
-            : sharedDate ? format(sharedDate, 'yyyy-MM-dd') : null,
-          priority: taskParsed.priority || sharedPriority || null,
-          estimated_minutes: taskParsed.duration || sharedDuration || null,
-          context_tags: taskParsed.tags.length > 0 
-            ? taskParsed.tags 
-            : sharedTags.length > 0 ? sharedTags : null,
-          project_id: taskParsed.projectId || sharedProjectId || null,
+          task_text: taskParsed.text || routed.cleanedText,
+          scheduled_date: taskParsed.date ? format(taskParsed.date, 'yyyy-MM-dd') : null,
+          priority: taskParsed.priority || null,
+          estimated_minutes: taskParsed.duration || null,
+          context_tags: taskParsed.tags.length > 0 ? taskParsed.tags : null,
+          project_id: taskParsed.projectId || null,
+          energy_level: taskParsed.energy_level || null,
           status: 'backlog',
         });
-        
+        return { ok: true, type: 'task', text: taskParsed.text, tags: taskParsed.tags, projectId: taskParsed.projectId };
+      }
+
+      if (dest === 'idea' || dest === 'project') {
+        const content = routed.cleanedText;
+        const { error } = await supabase.functions.invoke('save-idea', {
+          body: {
+            content,
+            tags: routed.modifiers.length > 0 ? routed.modifiers : (dest === 'project' ? ['project'] : null),
+          },
+        });
+        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: ['ideas'] });
+        return { ok: true, type: dest as CaptureType, text: content, tags: routed.modifiers };
+      }
+
+      // note (default)
+      const { error } = await supabase.from('journal_pages').insert({
+        user_id: user!.id,
+        title: routed.cleanedText.slice(0, 80) || 'Untitled note',
+        content: routed.cleanedText,
+        page_type: 'note',
+      } as any);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['journal-pages'] });
+      return { ok: true, type: 'note', text: routed.cleanedText, tags: routed.modifiers };
+    } catch (err: any) {
+      return { ok: false, type: dest as CaptureType, text: routed.cleanedText, tags: [], error: err?.message || 'Save failed' };
+    }
+  };
+
+  // Multi-line capture: routes each line by tag.
+  const handleMultiLineSave = async (lines: string[]) => {
+    let savedCount = 0;
+    const errors: string[] = [];
+    const allTags: string[] = [];
+    let lastProjectId: string | null | undefined;
+
+    for (const line of lines) {
+      const res = await saveLineByRouting(line);
+      if (res.ok) {
         savedCount++;
-      } catch (err: any) {
-        errors.push(`"${line.slice(0, 20)}...": ${err.message}`);
+        allTags.push(...res.tags);
+        if (res.projectId) lastProjectId = res.projectId;
+      } else {
+        errors.push(`"${line.slice(0, 24)}…": ${res.error}`);
       }
     }
 
-    // Show result
     if (errors.length > 0) {
-      toast.error(`Failed to save ${errors.length} task(s)`, {
+      toast.error(`Failed to save ${errors.length} item(s)`, {
         description: errors.slice(0, 2).join('\n'),
         duration: 5000,
       });
     }
-    
+
     if (savedCount > 0) {
       if (isMobile) triggerHaptic();
-      
-      // Update session count
       setSavedThisSession(prev => prev + savedCount);
-      
-      // Show quick success animation
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 500);
-      
-      toast.success(`✅ Saved ${savedCount} task${savedCount > 1 ? 's' : ''}`, {
-        duration: 1500,
-      });
-      
-      // Update recents
-      updateRecents(sharedTags, sharedProjectId || undefined);
-      
-      // Always stay open in burst mode for rapid adding
+      toast.success(`✅ Saved ${savedCount} item${savedCount > 1 ? 's' : ''}`, { duration: 1500 });
+      updateRecents(allTags, lastProjectId || undefined);
+
       if (stayOpenAfterSave || burstModeActive) {
         setInput('');
         setParsedTask(null);
+        localStorage.removeItem(QUICK_CAPTURE_DRAFT_KEY);
         setTimeout(() => {
-          if (isMobile && textareaRef.current) {
-            textareaRef.current.focus();
-          } else if (inputRef.current) {
-            inputRef.current.focus();
-          }
+          if (isMobile && textareaRef.current) textareaRef.current.focus();
+          else if (inputRef.current) inputRef.current.focus();
         }, 50);
       } else {
+        localStorage.removeItem(QUICK_CAPTURE_DRAFT_KEY);
         onOpenChange(false);
       }
     }
   };
 
   const handleSave = async () => {
-    // For financial types, validate amount and category
-    if (captureType === 'income' || captureType === 'expense') {
-      if (!financialData.amount || parseFloat(financialData.amount) <= 0) {
-        toast.error('Please enter an amount');
-        return;
-      }
-      if (!financialData.category) {
-        toast.error('Please select a category');
-        return;
-      }
-    } else {
-      // For task/idea types, validate input
-      if (!input.trim()) return;
-    }
+    if (!input.trim()) return;
 
     if (!user) {
       toast.error('Not logged in', {
-        description: 'Please log in to capture tasks and ideas',
+        description: 'Please log in to capture',
       });
       return;
     }
 
     setSaving(true);
-    const savedInput = input;
     const savedType = captureType;
     setLastCaptureType(captureType);
 
     try {
-      // Check for multi-line input (burst mode) for tasks
+      // Multi-line: route each line by tag (works for any capture type)
       const lines = input.split('\n').map(l => l.trim()).filter(Boolean);
-      
-      if (lines.length > 1 && captureType === 'task') {
-        // Multi-task burst save
-        await handleBurstSave(lines);
+      if (lines.length > 1) {
+        await handleMultiLineSave(lines);
         setSaving(false);
         return;
       }
 
-      // Check session - iOS PWA can lose localStorage sessions
+      // Session refresh (iOS PWA fix)
       let { data: { session } } = await supabase.auth.getSession();
-      
-      // If no session, try to refresh (iOS Safari PWA fix)
       if (!session) {
-        console.log('📱 No session found, attempting refresh...');
         const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
         session = refreshData?.session;
-        
         if (refreshError || !session) {
-          console.error('Session refresh failed:', refreshError);
           toast.error('Session expired', {
             description: 'Please log in again to save',
-            action: {
-              label: 'Log in',
-              onClick: () => navigate('/auth?redirect=/capture'),
-            },
+            action: { label: 'Log in', onClick: () => navigate('/auth?redirect=/capture') },
             duration: 8000,
           });
           return;
         }
-        console.log('✅ Session refreshed successfully');
       }
 
       let savedId = '';
       let savedText = '';
 
-      if (captureType === 'income' || captureType === 'expense') {
-        // Save as financial transaction
-        const amount = parseFloat(financialData.amount);
-        savedText = `$${amount.toFixed(2)} - ${financialData.category}`;
-        
-        const { data, error } = await supabase
-          .from('financial_transactions')
-          .insert({
-            user_id: user.id,
-            type: captureType,
-            amount: amount,
-            category: financialData.category,
-            description: financialData.description || null,
-            date: financialData.date,
-            payment_method: null,
-            is_recurring: false,
-            recurring_frequency: null,
-            tags: null,
-            notes: null,
-          })
-          .select()
-          .single();
-        
-        if (error) throw error;
-        
-        savedId = data?.id || '';
-        queryClient.invalidateQueries({ queryKey: ['financial-transactions'] });
-        
-        // Show success toast with navigation option
-        const emoji = captureType === 'income' ? '💰' : '📝';
-        const label = captureType === 'income' ? 'Income' : 'Expense';
-        
-        if (stayOpenAfterSave || burstModeActive) {
-          if (isMobile) triggerHaptic();
-          toast.success(`${emoji} ${label} added!`, { duration: 1000 });
-        } else {
-          toast.success(`${emoji} ${label} recorded!`, {
-            description: savedText,
-            duration: 5000,
-            action: {
-              label: 'View Finances',
-              onClick: () => navigate('/finances'),
-            },
-          });
-        }
-      } else if (captureType === 'idea') {
-        // Save as idea with new fields
+      if (captureType === 'idea' || captureType === 'project') {
         const ideaContent = cleanIdeaInput(input);
         savedText = ideaContent;
-        
         const { data, error } = await supabase.functions.invoke('save-idea', {
-          body: { 
+          body: {
             content: ideaContent,
             category_id: ideaData.categoryId,
             priority: ideaData.priority,
-            tags: ideaData.tags,
+            tags: captureType === 'project'
+              ? [...new Set([...(ideaData.tags || []), 'project'])]
+              : ideaData.tags,
             project_id: ideaData.projectId,
           },
         });
         if (error) throw error;
-        
         savedId = data?.idea?.id || '';
         queryClient.invalidateQueries({ queryKey: ['ideas'] });
+      } else if (captureType === 'note' || captureType === 'question' || captureType === 'reminder') {
+        // Notes/questions/reminders -> journal_pages (reminder/question kept as note for Phase 1)
+        const content = input.trim();
+        savedText = content;
+        const { data, error } = await supabase.from('journal_pages').insert({
+          user_id: user.id,
+          title: content.slice(0, 80) || 'Untitled note',
+          content,
+          page_type: 'note',
+        } as any).select('id').single();
+        if (error) throw error;
+        savedId = data?.id || '';
+        queryClient.invalidateQueries({ queryKey: ['journal-pages'] });
       } else {
-        // Save as task using unified hook - use parsedTask (edited chips) as source of truth
+        // task
         const taskData = parsedTask || parseTaskInput(input);
         savedText = taskData.text;
-        
         const createdTask = await createTask.mutateAsync({
           task_text: taskData.text,
           scheduled_date: taskData.date ? format(taskData.date, 'yyyy-MM-dd') : null,
@@ -594,97 +554,65 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
           estimated_minutes: taskData.duration || null,
           context_tags: taskData.tags.length > 0 ? taskData.tags : null,
           project_id: taskData.projectId || null,
+          energy_level: taskData.energy_level || null,
           status: 'backlog',
         });
-        
         savedId = createdTask?.task_id || '';
-        
-        // Update recents
         updateRecents(taskData.tags, taskData.projectId || undefined);
       }
 
-      // Handle stay-open mode vs close mode
       if (stayOpenAfterSave || burstModeActive) {
-        // Stay open: clear input, keep mode, refocus
         setInput('');
         setParsedTask(null);
         setIdeaData({ categoryId: null, priority: null, tags: [], projectId: null });
         setNewIdeaTag('');
         setShowConvertChips(false);
         setUserOverrodeType(false);
-        setFinancialData({
-          amount: '',
-          category: '',
-          description: '',
-          date: format(new Date(), 'yyyy-MM-dd'),
-        });
-        
-        // Clear draft since save was successful
+
         localStorage.removeItem(QUICK_CAPTURE_DRAFT_KEY);
-        
-        // Update session count
         setSavedThisSession(prev => prev + 1);
-        
-        // Show quick success animation
         setJustSaved(true);
         setTimeout(() => setJustSaved(false), 500);
-        
-        // Haptic + toast (financial types already toasted above)
-        if (captureType !== 'income' && captureType !== 'expense') {
-          if (isMobile) {
-            triggerHaptic();
-          }
-          toast.success(savedType === 'task' ? '✅ Task saved' : '💡 Idea saved', {
-            duration: 1000,
-          });
-        }
-        
-        // Refocus input after a short delay
+        if (isMobile) triggerHaptic();
+        toast.success(
+          savedType === 'task' ? '✅ Task saved'
+          : savedType === 'idea' ? '💡 Idea saved'
+          : savedType === 'project' ? '🚀 Project saved'
+          : '📝 Note saved',
+          { duration: 1000 }
+        );
         setTimeout(() => {
-          if (captureType === 'income' || captureType === 'expense') {
-            amountInputRef.current?.focus();
-          } else if (isMobile && textareaRef.current) {
-            textareaRef.current.focus();
-          } else if (inputRef.current) {
-            inputRef.current.focus();
-          }
+          if (isMobile && textareaRef.current) textareaRef.current.focus();
+          else if (inputRef.current) inputRef.current.focus();
         }, 50);
       } else {
-        // Close modal and show actionable toast
         onOpenChange(false);
-        
-        // Clear draft since save was successful
         localStorage.removeItem(QUICK_CAPTURE_DRAFT_KEY);
-        
-        if (captureType !== 'income' && captureType !== 'expense') {
+        if (savedType === 'task' || savedType === 'idea') {
           setTimeout(() => {
             showActionableToast(savedText, savedId, savedType);
           }, 100);
+        } else {
+          toast.success(savedType === 'project' ? '🚀 Project saved' : '📝 Note saved', {
+            description: savedText.slice(0, 60),
+            duration: 4000,
+          });
         }
       }
-
     } catch (error: any) {
       console.error('Error saving:', error);
-      
-      // Check for auth-related errors
-      const isAuthError = error.message?.includes('session') || 
-                          error.message?.includes('auth') || 
+      const isAuthError = error.message?.includes('session') ||
+                          error.message?.includes('auth') ||
                           error.message?.includes('JWT') ||
                           error.status === 401;
-      
       if (isAuthError) {
         toast.error('Session expired', {
           description: 'Please log in again to save',
-          action: {
-            label: 'Log in',
-            onClick: () => navigate('/auth?redirect=/capture'),
-          },
+          action: { label: 'Log in', onClick: () => navigate('/auth?redirect=/capture') },
           duration: 8000,
         });
       } else {
-        toast.error('Error', {
-          description: error.message || 'Failed to save',
-        });
+        toast.error('Error', { description: error.message || 'Failed to save' });
       }
     } finally {
       setSaving(false);
