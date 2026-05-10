@@ -44,6 +44,8 @@ const TAB_OPTIONS: { id: TabFilter; label: string; icon: React.ReactNode }[] = [
 export default function Projects() {
   const { data: projects, isLoading } = useProjects();
   const { deleteProject, updateProject } = useProjectMutations();
+  const { data: tasksResponse } = useTasks({ loadAll: true });
+  const allTasks = tasksResponse?.data ?? [];
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [activeTab, setActiveTab] = useState<TabFilter>('active');
   const [searchQuery, setSearchQuery] = useState('');
