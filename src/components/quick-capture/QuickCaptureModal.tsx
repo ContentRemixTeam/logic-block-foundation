@@ -60,20 +60,7 @@ interface IdeaCategory {
   color: string;
 }
 
-interface FinancialCategory {
-  id: string;
-  name: string;
-  type: 'income' | 'expense';
-  color: string | null;
-  icon: string | null;
-}
 
-interface FinancialData {
-  amount: string;
-  category: string;
-  description: string;
-  date: string;
-}
 
 const PRIORITY_OPTIONS = [
   { value: 'asap', label: 'ASAP' },
