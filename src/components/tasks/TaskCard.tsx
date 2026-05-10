@@ -167,21 +167,66 @@ export function TaskCard({
 
   const subtaskProgress = getSubtaskProgress();
   const priorityStyles = getPriorityStyles();
-  const energyStyles = getEnergyStyles();
+
+  // Sunsama-style left edge bar color by priority
+  const priorityBar =
+    task.priority === 'high' ? 'bg-destructive' :
+    task.priority === 'medium' ? 'bg-amber-500' :
+    task.priority === 'low' ? 'bg-blue-400/70' :
+    'bg-transparent';
+
+  // Format time chip: scheduled time wins, else duration
+  const timeChip = (() => {
+    if (task.scheduled_time) {
+      // scheduled_time may be 'HH:mm:ss' or 'HH:mm'
+      const [h, m] = String(task.scheduled_time).split(':');
+      return `${h}:${m}`;
+    }
+    if (task.estimated_minutes) {
+      const mins = task.estimated_minutes;
+      if (mins >= 60) {
+        const h = Math.floor(mins / 60);
+        const r = mins % 60;
+        return r ? `${h}h ${r}m` : `${h}h`;
+      }
+      return `${mins}m`;
+    }
+    return null;
+  })();
+
+  // Source label (best-effort, only if data exists)
+  const sourceLabel = (() => {
+    const src = (task as any).source || (task as any).created_via || (task as any).origin;
+    if (!src) return null;
+    const map: Record<string, string> = {
+      daily_plan: 'Daily Plan',
+      weekly_plan: 'Weekly Plan',
+      monthly_plan: 'Monthly Plan',
+      ninety_day: '90-Day Plan',
+      ninety_day_plan: '90-Day Plan',
+      wizard: 'Wizard',
+      project: 'Project',
+      brain_dump: 'Brain Dump',
+      manual: '',
+    };
+    const label = map[String(src)] ?? String(src).replace(/_/g, ' ');
+    return label ? `From ${label}` : null;
+  })();
 
   return (
-    <div 
+    <div
       className={cn(
-        "group relative flex items-start gap-3 rounded-xl border bg-card p-4 sm:p-5",
-        "shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
-        "hover:border-primary/30 border-l-[6px]",
-        task.is_completed && "opacity-60 bg-muted/30",
-        isDragging && "shadow-lg ring-2 ring-primary/20 scale-[1.02]",
-        isSelected && "ring-2 ring-primary/50 bg-primary/5",
-        priorityStyles.border,
-        priorityStyles.bg || ""
+        "group relative flex items-stretch rounded-xl bg-card overflow-hidden",
+        "shadow-sm transition-all duration-200 hover:shadow-md",
+        task.is_completed && "opacity-50",
+        isDragging && "shadow-lg ring-2 ring-primary/20 scale-[1.01]",
+        isSelected && "ring-2 ring-primary/50",
       )}
     >
+      {/* Priority left edge bar */}
+      <div className={cn("w-[3px] shrink-0", priorityBar)} aria-hidden />
+
+      <div className="flex flex-1 items-start gap-3 px-4 py-3 min-w-0">
       {/* Selection checkbox */}
       {showSelectionCheckbox && (
         <div onClick={(e) => e.stopPropagation()}>
@@ -212,159 +257,99 @@ export function TaskCard({
 
       {/* Main content */}
       <div className="flex-1 min-w-0" onClick={() => !isEditing && onOpenDetail(task)}>
-        {/* Task Title */}
-        {isEditing ? (
-          <Input
-            ref={inputRef}
-            value={editText}
-            onChange={(e) => setEditText(e.target.value)}
-            onBlur={handleSaveEdit}
-            onKeyDown={handleKeyDown}
-            className="h-8 text-base font-medium"
-            onClick={(e) => e.stopPropagation()}
-          />
-        ) : (
-          <h3 
-            className={cn(
-              "mb-1 line-clamp-2 text-base font-semibold leading-snug text-foreground",
-              task.is_completed && "line-through text-muted-foreground"
+        <div className="flex items-start gap-3">
+          {/* Title + description */}
+          <div className="flex-1 min-w-0">
+            {isEditing ? (
+              <Input
+                ref={inputRef}
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                onBlur={handleSaveEdit}
+                onKeyDown={handleKeyDown}
+                className="h-7 text-sm font-medium"
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <h3
+                className={cn(
+                  "truncate text-[0.95rem] font-medium leading-snug text-foreground",
+                  task.is_completed && "line-through text-muted-foreground"
+                )}
+                onDoubleClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
+              >
+                {task.task_text}
+              </h3>
             )}
-            onDoubleClick={(e) => {
-              e.stopPropagation();
-              setIsEditing(true);
-            }}
-          >
-            {task.task_text}
-          </h3>
-        )}
+            {task.task_description && !task.is_completed && (
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                {task.task_description}
+              </p>
+            )}
+            {sourceLabel && (
+              <p className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground/70">
+                {sourceLabel}
+              </p>
+            )}
+          </div>
 
-        {/* Task Metadata Row */}
-        <div className="mt-3 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
-          {/* Due Date */}
-          {task.scheduled_date && (
-            <div className={cn("inline-flex h-6 items-center gap-1.5 rounded-full border border-border bg-background px-2 text-xs", getDueDateStyles(task.scheduled_date))}>
-              <CalendarIcon className="h-3.5 w-3.5" />
-              <span>{formatDueDate(task.scheduled_date)}</span>
-            </div>
-          )}
-
-          {/* Time Estimate */}
-          {task.estimated_minutes && (
-            <div className="inline-flex h-6 items-center gap-1.5 rounded-full bg-muted/60 px-2 text-xs">
-              <Clock className="h-3.5 w-3.5" />
-              <span>{getDurationLabel()}</span>
-            </div>
-          )}
-
-          {/* Timer Button */}
-          <TaskTimerButton task={{ task_id: task.task_id, task_text: task.task_text }} />
-
-          {/* Priority */}
-          {task.priority && (
-            <Badge variant={priorityStyles.badge} className="h-6 gap-1 rounded-full px-2 py-0 text-xs">
-              <Flag className="w-3 h-3" />
-              {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-            </Badge>
-          )}
-
-          {/* Energy Level */}
-          {task.energy_level && (
-            <div className={cn("inline-flex h-6 items-center gap-1.5 rounded-full border px-2 text-xs font-medium", energyStyles)}>
-              {getEnergyIcon()}
-              <span>{getEnergyLabel()}</span>
-            </div>
-          )}
-
-          {/* Project */}
-          {task.project && (
-            <div className="inline-flex h-6 max-w-[180px] items-center gap-1.5 rounded-full bg-primary/10 px-2 text-xs font-medium text-primary">
-              <Folder className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">{task.project.name}</span>
-            </div>
-          )}
-
-          {/* SOP badge */}
-          {task.sop && (
-            <Badge variant="outline" className="h-6 rounded-full border-primary/30 bg-primary/10 px-2 py-0 text-xs text-primary">
-              <ClipboardList className="h-3 w-3 mr-1" />
-              SOP
-            </Badge>
-          )}
-
-          {/* Recurring indicator */}
-          {task.parent_task_id && (
-            <Badge variant="outline" className="h-6 rounded-full px-2 py-0 text-xs">
-              <RefreshCw className="h-3 w-3" />
-            </Badge>
-          )}
-
-          {/* Context tags */}
-          {task.context_tags && task.context_tags.length > 0 && (
-            <div className="flex items-center gap-1">
-              {task.context_tags.slice(0, 2).map(tag => (
-                <Badge key={tag} variant="secondary" className="h-6 rounded-full px-2 py-0 text-xs">
-                  #{tag}
-                </Badge>
-              ))}
-              {task.context_tags.length > 2 && (
-                <Badge variant="secondary" className="h-6 rounded-full px-2 py-0 text-xs">
-                  +{task.context_tags.length - 2}
-                </Badge>
-              )}
-            </div>
-          )}
-
-          {/* Waiting on */}
-          {task.waiting_on && (
-            <Badge variant="secondary" className="h-6 rounded-full px-2 py-0 text-xs">
-              <Clock className="mr-1 h-3 w-3" />
-              {task.waiting_on}
-            </Badge>
-          )}
+          {/* Right cluster: subtle chips */}
+          <div className="flex items-center gap-2 shrink-0 text-xs text-muted-foreground">
+            {task.energy_level && (
+              <span
+                className="inline-flex h-5 w-5 items-center justify-center text-muted-foreground/80"
+                title={getEnergyLabel()}
+              >
+                {getEnergyIcon()}
+              </span>
+            )}
+            {task.parent_task_id && (
+              <RefreshCw className="h-3 w-3 text-muted-foreground/70" />
+            )}
+            {task.sop && (
+              <ClipboardList className="h-3.5 w-3.5 text-muted-foreground/70" />
+            )}
+            {timeChip && (
+              <span className="rounded-md bg-muted/60 px-2 py-0.5 font-mono text-[11px] text-foreground/80">
+                {timeChip}
+              </span>
+            )}
+            {task.scheduled_date && (
+              <span className={cn("hidden sm:inline text-[11px]", getDueDateStyles(task.scheduled_date))}>
+                {formatDueDate(task.scheduled_date)}
+              </span>
+            )}
+            {task.project && (
+              <span className="hidden sm:inline-flex max-w-[140px] items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+                <span
+                  className="h-1.5 w-1.5 rounded-full shrink-0"
+                  style={{ backgroundColor: task.project.color || 'hsl(var(--muted-foreground))' }}
+                />
+                <span className="truncate">#{task.project.name}</span>
+              </span>
+            )}
+            <TaskTimerButton task={{ task_id: task.task_id, task_text: task.task_text }} />
+          </div>
         </div>
 
-        {/* Content Calendar indicator */}
-        {task.content_type && (
-          <div className="flex flex-wrap items-center gap-2 text-sm mt-2">
-            <Badge 
-              variant="outline" 
-              className="text-xs px-1.5 py-0 h-5 bg-violet-500/10 border-violet-500/30 text-violet-600 dark:text-violet-400"
-            >
-              <FileText className="h-3 w-3 mr-1" />
-              {task.content_type}
-            </Badge>
-            {task.content_channel && (
-              <span className="text-xs text-muted-foreground">
-                • {task.content_channel}
-              </span>
-            )}
-            {(task.content_creation_date || task.content_publish_date) && (
-              <span className="text-xs text-muted-foreground">
-                {task.content_creation_date && `Create: ${format(parseISO(task.content_creation_date), 'MMM d')}`}
-                {task.content_creation_date && task.content_publish_date && ' → '}
-                {task.content_publish_date && `Publish: ${format(parseISO(task.content_publish_date), 'MMM d')}`}
-              </span>
-            )}
+        {task.context_tags && task.context_tags.length > 0 && (
+          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-muted-foreground/70">
+            {task.context_tags.slice(0, 3).map(tag => (
+              <span key={tag}>#{tag}</span>
+            ))}
+            {task.context_tags.length > 3 && <span>+{task.context_tags.length - 3}</span>}
           </div>
         )}
 
-        {/* Task Description (truncated) */}
-        {task.task_description && !task.is_completed && (
-          <p className="mt-3 line-clamp-2 rounded-lg bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-            {task.task_description}
-          </p>
-        )}
-
-        {/* Subtask Progress */}
         {subtaskProgress && (
-          <div className="flex items-center gap-2 mt-3">
-            <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
-              <div 
+          <div className="flex items-center gap-2 mt-2">
+            <div className="flex-1 h-1 bg-secondary rounded-full overflow-hidden">
+              <div
                 className="h-full bg-primary transition-all"
                 style={{ width: `${subtaskProgress.percent}%` }}
               />
             </div>
-            <span className="text-xs text-muted-foreground whitespace-nowrap">
+            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
               {subtaskProgress.completed}/{subtaskProgress.total}
             </span>
           </div>
@@ -495,6 +480,7 @@ export function TaskCard({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+      </div>
       </div>
     </div>
   );

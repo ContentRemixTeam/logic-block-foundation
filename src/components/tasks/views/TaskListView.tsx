@@ -343,52 +343,59 @@ export function TaskListView({
   ) => {
     if (groupTasks.length === 0) return null;
 
-    // Calculate selection state for this group
     const selectableTasks = groupTasks.filter(t => !t.is_completed);
     const selectedInGroup = selectableTasks.filter(t => selectedTaskIds.has(t.task_id)).length;
     const allSelected = selectableTasks.length > 0 && selectedInGroup === selectableTasks.length;
     const someSelected = selectedInGroup > 0 && !allSelected;
 
+    const isOverdue = config.id === 'overdue';
+
     return (
-      <div key={config.id} className="space-y-3">
-        <div className={cn("flex items-center justify-between", config.color)}>
-          <div className="flex items-center gap-2">
-            {/* Group selection checkbox */}
-            {showSelectionCheckboxes && selectableTasks.length > 0 && (
-              <Checkbox
-                checked={allSelected}
-                className={someSelected ? "data-[state=checked]:bg-primary/50" : ""}
-                onCheckedChange={() => {
-                  if (allSelected) {
-                    // Deselect all in group
-                    selectableTasks.forEach(t => {
-                      if (selectedTaskIds.has(t.task_id)) {
-                        onToggleTaskSelection?.(t.task_id);
-                      }
-                    });
-                  } else {
-                    // Select all in group
-                    onSelectAllInGroup?.(selectableTasks);
-                  }
-                }}
-              />
+      <div key={config.id} className="space-y-2 animate-fade-in">
+        {/* Editorial group header */}
+        <div className="flex items-center gap-3 pb-1">
+          {showSelectionCheckboxes && selectableTasks.length > 0 && (
+            <Checkbox
+              checked={allSelected}
+              className={cn("h-3.5 w-3.5 rounded-sm", someSelected && "data-[state=checked]:bg-primary/50")}
+              onCheckedChange={() => {
+                if (allSelected) {
+                  selectableTasks.forEach(t => {
+                    if (selectedTaskIds.has(t.task_id)) onToggleTaskSelection?.(t.task_id);
+                  });
+                } else {
+                  onSelectAllInGroup?.(selectableTasks);
+                }
+              }}
+            />
+          )}
+          <span
+            className={cn(
+              "h-1.5 w-1.5 rounded-full shrink-0",
+              isOverdue ? "bg-destructive/70" : "bg-muted-foreground/40"
             )}
-            <span className={config.color}>{config.icon}</span>
-            <h2 className="text-lg font-semibold">{config.name}</h2>
-            <Badge variant="secondary">{groupTasks.length}</Badge>
-          </div>
+          />
+          <h2
+            className={cn(
+              "text-[11px] font-medium uppercase tracking-[0.15em] whitespace-nowrap",
+              isOverdue ? "text-destructive/80" : "text-muted-foreground"
+            )}
+          >
+            {config.name} <span className="text-muted-foreground/60 ml-1">· {groupTasks.length}</span>
+          </h2>
+          <div className="h-px flex-1 bg-border/60" />
           {showRescheduleAll && groupTasks.length > 1 && (
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
-              className="text-xs"
+              className="h-6 text-[11px] text-muted-foreground hover:text-foreground"
               onClick={() => {
                 groupTasks.forEach(task => {
                   onQuickReschedule(task.task_id, new Date(), 'scheduled');
                 });
               }}
             >
-              Reschedule All to Today
+              Reschedule all to today
             </Button>
           )}
         </div>
@@ -412,14 +419,14 @@ export function TaskListView({
     );
   };
 
-  // Render the sort/group controls toolbar
+  // Render the sort/group controls toolbar — quiet style
   const renderControls = () => (
-    <div className="flex flex-wrap items-center gap-3 pb-4 border-b mb-6">
-      <div className="flex items-center gap-2">
-        <Layers className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm text-muted-foreground hidden sm:inline">Group by:</span>
+    <div className="flex flex-wrap items-center gap-2 text-xs">
+      <div className="flex items-center gap-1.5">
+        <Layers className="h-3 w-3 text-muted-foreground/60" />
+        <span className="text-muted-foreground/60 hidden sm:inline">Group</span>
         <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupByOption)}>
-          <SelectTrigger className="w-[130px] h-8">
+          <SelectTrigger className="w-[110px] h-7 text-xs border-0 bg-transparent hover:bg-muted/60 focus:ring-0 px-2">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -429,12 +436,11 @@ export function TaskListView({
           </SelectContent>
         </Select>
       </div>
-      
-      <div className="flex items-center gap-2">
-        <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm text-muted-foreground hidden sm:inline">Sort by:</span>
+      <div className="flex items-center gap-1.5">
+        <ArrowUpDown className="h-3 w-3 text-muted-foreground/60" />
+        <span className="text-muted-foreground/60 hidden sm:inline">Sort</span>
         <Select value={sortBy} onValueChange={(v) => handleSortByChange(v as SortByOption)}>
-          <SelectTrigger className="w-[140px] h-8">
+          <SelectTrigger className="w-[120px] h-7 text-xs border-0 bg-transparent hover:bg-muted/60 focus:ring-0 px-2">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -443,24 +449,15 @@ export function TaskListView({
             ))}
           </SelectContent>
         </Select>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-8 w-8"
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 text-muted-foreground/70 hover:text-foreground"
           onClick={toggleSortDirection}
           title={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
         >
-          {sortDirection === 'asc' ? (
-            <ArrowUp className="h-4 w-4" />
-          ) : (
-            <ArrowDown className="h-4 w-4" />
-          )}
+          {sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
         </Button>
-        {sortBy === 'energy' && (
-          <span className="rounded-md bg-success/10 px-2 py-1 text-xs font-medium text-success">
-            {sortDirection === 'asc' ? 'Low energy first' : 'High focus first'}
-          </span>
-        )}
       </div>
     </div>
   );
