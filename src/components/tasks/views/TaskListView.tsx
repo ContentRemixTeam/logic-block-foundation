@@ -15,6 +15,8 @@ import { VirtualizedTaskList } from '../VirtualizedTaskList';
 import { TaskListSkeleton, LoadingMoreSkeleton } from '../TaskSkeleton';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TaskQuickAdd, ParsedTask } from '../TaskQuickAdd';
+import { addDays, startOfWeek } from 'date-fns';
 interface TaskListViewProps {
   tasks: Task[];
   activeFilter: FilterTab | PrimaryTab;
@@ -26,6 +28,7 @@ interface TaskListViewProps {
   onOpenDetail: (task: Task) => void;
   onQuickReschedule: (taskId: string, date: Date | null, status?: string) => void;
   onAddTask?: () => void;
+  onInlineAddTask?: (parsed: ParsedTask) => void;
   // Bulk selection props
   selectedTaskIds?: Set<string>;
   onToggleTaskSelection?: (taskId: string) => void;
@@ -107,7 +110,7 @@ export function TaskListView({
   onOpenDetail,
   onQuickReschedule,
   onAddTask,
-  selectedTaskIds = new Set(),
+  onInlineAddTask,
   onToggleTaskSelection,
   onSelectAllInGroup,
   showSelectionCheckboxes = false,
