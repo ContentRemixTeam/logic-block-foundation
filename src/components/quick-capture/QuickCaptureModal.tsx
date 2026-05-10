@@ -190,27 +190,7 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
     }
   }, [open, user]);
 
-  // Fetch financial categories
-  useEffect(() => {
-    const fetchFinancialCategories = async () => {
-      if (!user) return;
-      try {
-        const { data, error } = await supabase
-          .from('financial_categories')
-          .select('id, name, type, color, icon')
-          .order('name');
-        
-        if (!error && data) {
-          setFinancialCategories(data as FinancialCategory[]);
-        }
-      } catch (err) {
-        console.error('Failed to fetch financial categories:', err);
-      }
-    };
-    if (open && user) {
-      fetchFinancialCategories();
-    }
-  }, [open, user]);
+
 
   // Focus input when modal opens
   useEffect(() => {
