@@ -730,113 +730,18 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
             </button>
             <button
               type="button"
-              onClick={() => toggleCaptureType('income', true)}
+              onClick={() => toggleCaptureType('note', true)}
               className={cn(
                 "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap",
-                captureType === 'income'
-                  ? "bg-emerald-600 text-white shadow-sm"
+                captureType === 'note'
+                  ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground hover:bg-background/50"
               )}
             >
-              <TrendingUp className="h-4 w-4" />
-              Income
-            </button>
-            <button
-              type="button"
-              onClick={() => toggleCaptureType('expense', true)}
-              className={cn(
-                "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap",
-                captureType === 'expense'
-                  ? "bg-rose-600 text-white shadow-sm"
-                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-              )}
-            >
-              <TrendingDown className="h-4 w-4" />
-              Expense
+              <StickyNote className="h-4 w-4" />
+              Note
             </button>
           </div>
-
-          {/* Financial form for income/expense */}
-          {(captureType === 'income' || captureType === 'expense') && (
-            <div className="space-y-3">
-              {/* Amount input */}
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                  ref={amountInputRef}
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={financialData.amount}
-                  onChange={(e) => setFinancialData(prev => ({ ...prev, amount: e.target.value }))}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleSave();
-                    }
-                  }}
-                  placeholder="0.00"
-                  className="text-xl h-14 pl-10 font-semibold"
-                  autoComplete="off"
-                />
-              </div>
-              
-              {/* Category select */}
-              <Select
-                value={financialData.category}
-                onValueChange={(value) => setFinancialData(prev => ({ ...prev, category: value }))}
-              >
-                <SelectTrigger className="h-12">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {financialCategories
-                    .filter(cat => cat.type === captureType)
-                    .map(cat => (
-                      <SelectItem key={cat.id} value={cat.name}>
-                        <span className="flex items-center gap-2">
-                          {cat.color && (
-                            <span 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: cat.color }}
-                            />
-                          )}
-                          {cat.name}
-                        </span>
-                      </SelectItem>
-                    ))
-                  }
-                  {financialCategories.filter(cat => cat.type === captureType).length === 0 && (
-                    <SelectItem value="_none" disabled>
-                      No categories yet
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-              
-              {/* Description (optional) */}
-              <Input
-                value={financialData.description}
-                onChange={(e) => setFinancialData(prev => ({ ...prev, description: e.target.value }))}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleSave();
-                  }
-                }}
-                placeholder="Description (optional)"
-                className="h-10"
-              />
-              
-              {/* Date */}
-              <Input
-                type="date"
-                value={financialData.date}
-                onChange={(e) => setFinancialData(prev => ({ ...prev, date: e.target.value }))}
-                className="h-10"
-              />
-            </div>
-          )}
 
           {/* Input field with mic button - only show for task/idea */}
           {captureType !== 'income' && captureType !== 'expense' && (
