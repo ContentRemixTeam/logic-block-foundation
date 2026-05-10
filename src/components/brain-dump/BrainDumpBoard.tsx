@@ -140,7 +140,7 @@ export function BrainDumpBoard({ items, onDelete, onUpdate, onConvertCategory, f
 
       <DragOverlay>
         {activeItem && (
-          <div className="rotate-3 scale-105">
+          <div className="scale-[1.02]">
             <BrainDumpCard
               item={activeItem}
               onDelete={() => {}}
