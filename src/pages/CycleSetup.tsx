@@ -3025,7 +3025,96 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
                 </CardContent>
               </Card>
 
-              {/* Planning Level Selector */}
+              {/* WOOP — Wish, Outcome, Obstacle, Plan */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Make It Stick (WOOP)</CardTitle>
+                  <CardDescription>
+                    Mental contrasting + an if-then plan dramatically increases follow-through. Optional but powerful.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="woop-wish">Wish — what do you most want to happen?</Label>
+                    <Input
+                      id="woop-wish"
+                      value={wish}
+                      onChange={(e) => setWish(e.target.value)}
+                      placeholder="One sentence — challenging but feasible"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="woop-outcome">Outcome — best result if it happens?</Label>
+                    <Textarea
+                      id="woop-outcome"
+                      value={outcome}
+                      onChange={(e) => setOutcome(e.target.value)}
+                      placeholder="How will life/business feel? Be vivid."
+                      rows={2}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="woop-obstacle">Obstacle — the real internal block?</Label>
+                    <Textarea
+                      id="woop-obstacle"
+                      value={obstacle}
+                      onChange={(e) => setObstacle(e.target.value)}
+                      placeholder="Not 'no time' — what fear, habit, or thought actually gets in the way?"
+                      rows={2}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="woop-plan">Plan — if [obstacle], then I will…</Label>
+                    <Textarea
+                      id="woop-plan"
+                      value={ifThenPlan}
+                      onChange={(e) => setIfThenPlan(e.target.value)}
+                      placeholder="If I feel overwhelmed Monday morning, then I will open my Top 3 and pick the smallest one."
+                      rows={2}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Energy Versions — same goal, three sizes */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Energy Versions of Today's Action</CardTitle>
+                  <CardDescription>
+                    Real life has bad days. Pre-commit to a tiny, normal, and full version so you never break the chain.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="energy-low">🪫 Low energy — the 5-minute version</Label>
+                    <Input
+                      id="energy-low"
+                      value={lowEnergyVersion}
+                      onChange={(e) => setLowEnergyVersion(e.target.value)}
+                      placeholder="e.g., Open the doc and write one sentence"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="energy-med">🔋 Medium energy — the normal day version</Label>
+                    <Input
+                      id="energy-med"
+                      value={mediumEnergyVersion}
+                      onChange={(e) => setMediumEnergyVersion(e.target.value)}
+                      placeholder="e.g., One focused 60-min block on the priority"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="energy-high">⚡ High energy — the great day version</Label>
+                    <Input
+                      id="energy-high"
+                      value={highEnergyVersion}
+                      onChange={(e) => setHighEnergyVersion(e.target.value)}
+                      placeholder="e.g., Two deep blocks + ship it"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle>Planning Level</CardTitle>
