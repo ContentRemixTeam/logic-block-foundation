@@ -76,6 +76,7 @@ import { SaveStatusIndicator, SaveStatusBanner } from '@/components/SaveStatusIn
 import { UnprocessedTagsWarning } from '@/components/daily-plan/UnprocessedTagsWarning';
 import { InfoCards } from '@/components/daily/InfoCards';
 import { CustomizeTip } from '@/components/daily-plan/CustomizeTip';
+import { NextBestAction } from '@/components/today/NextBestAction';
 
 export default function DailyPlan() {
   const navigate = useNavigate();
