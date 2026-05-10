@@ -1,87 +1,107 @@
 
-# Brain Dump / Capture — Phase 1
+# Quick Capture — Phase 1 (planning-first refocus)
 
-A focused, frontend-only pass that unifies tag language, stabilizes the Daily Plan scratch pad, and calms the `/brain-dump` UI. No schema changes. No data migration. No AI.
+A focused pass to (a) remove finance from the Quick Capture surface, (b) fix the time parser, (c) add tag-based energy + multi-destination routing, and (d) tighten draft safety. No schema changes. No AI. No deletes. Finance pages and the `financial_transactions` table stay intact.
 
-## Answers to your pre-flight questions
+## Pre-flight answers
 
 **1. Files I will change**
-- `src/lib/captureTags.ts` *(new)* — single shared tag config + helpers
-- `src/components/SmartScratchPad.tsx`
-- `src/components/brain-dump/BrainDumpCreateForm.tsx`
-- `src/components/brain-dump/BrainDumpCard.tsx`
-- `src/components/brain-dump/BrainDumpBoard.tsx` *(small copy/visual tweaks only)*
-- `src/components/brain-dump/BrainDumpGrid.tsx` *(small copy/visual tweaks only)*
-- `src/pages/BrainDump.tsx` *(header copy + inbox grouping for untagged)*
-- `src/components/ScratchPadOrganizeModal.tsx` *(copy only)*
-- `src/components/daily-plan/UnprocessedTagsWarning.tsx` *(copy + tag set)*
-- `src/hooks/useBrainDump.ts` — add a single new mutation `createItemsFromText(raw)` that splits lines and routes by tag. Existing `createItem`, `deleteItem`, `updateItem`, `convertCategory` left untouched.
+- `src/components/quick-capture/useCaptureTypeDetection.ts`
+  - Drop `'income' | 'expense'` from `CaptureType`; remove `INCOME_PHRASES`, `EXPENSE_PHRASES`, `CURRENCY_PATTERN` paths.
+  - Add `'note' | 'project' | 'content' | 'question' | 'reminder'` to `CaptureType` for routing parity with `captureTags.ts`.
+  - Fix the time regex (see §3).
+  - Add `energy_level` parsing to `parseTaskInput` (see §4) and to `ParsedTask`.
+  - Add a new `routeFromTags(input)` helper that reuses `src/lib/captureTags.ts` for line-level destination detection.
+  - Lower confidence behavior so untagged short input does not snap to `task` (see §3 default → `note`).
+- `src/components/quick-capture/QuickCaptureModal.tsx`
+  - Remove income/expense tabs, financial form, financial state, `financial_categories` fetch, `financial_transactions` insert, `TrendingUp`/`TrendingDown`/`DollarSign` imports, and `'income'/'expense'` branches in save / disabled / focus logic.
+  - Replace burst save with a tag-routed multi-line save: each line is routed to task/idea/note/project via `captureTags.ts`. Mixed lines work. Preserve the existing `useTaskMutations.createTask` path for task lines.
+  - Expand draft persistence to include: `input, captureType, parsedTask (date/priority/duration/tags/projectId/energy_level), ideaData (categoryId, priority, tags, projectId)`.
+  - Type pills become: Task · Idea · Note · Content (existing → ContentSaveModal). Note is the gentle inbox fallback. Project/Question/Reminder routing is reachable via tags from any pill (no extra pills needed in Phase 1).
+- `src/components/quick-capture/QuickChips.tsx`
+  - Add an Energy chip (Low / Medium / High focus) wired to `parsedTask.energy_level`.
+- `src/components/quick-capture/EditableChips.tsx`
+  - Same energy chip on desktop preview.
+- `src/pages/QuickAddApp.tsx` (PWA)
+  - Remove `expense`/`income` from `typeOptions`, the amount input, `financial_transactions` insert, finance icons, `isFinancial` branches.
+  - Switch grid to 3-column for Task/Idea/Note (Note added as inbox fallback). Reuse same routing helper for typed tags.
+- `src/pages/InstallQuickAdd.tsx`
+  - Drop Expenses/Income tiles + finance icons; rephrase the "switch with one tap" benefit copy to planning-only.
 
-**2. Schema changes?** None. We reuse `journal_pages`, `ideas`, and `tasks` exactly as-is. Tags beyond what destinations support are preserved verbatim inside the saved text (e.g. `#sales`, `#low-energy` stay in the title/content/task_text). No new columns.
+**Out of scope this pass**: `BrainDump.tsx`, `SmartScratchPad.tsx`, `QuickCaptureProvider.tsx`, `QuickCaptureButton.tsx`, `IdeaQuickChips.tsx` — they don't reference finance and don't need behavior changes.
 
-**3. Preserving existing data?**
-- No deletes or migrations.
-- `useBrainDump` query, soft-delete behavior, and `convertCategory` flow are unchanged.
-- Daily Plan autosave path (`save-daily-plan`, `scratch_pad_content`, local backup, beforeunload, mobile, `SaveStatusIndicator`) is not touched.
-- We never strip raw user text — extra tags survive the save.
+**2. Removing finance safely**
+- No DB migration. `financial_transactions`, `financial_categories`, finance pages, and the `/finances` route stay.
+- We only delete the UI surfaces in Quick Capture / Quick Add PWA / Install screen.
+- Type union narrowed: `CaptureType` no longer includes `income | expense`. All branches that switched on these types are removed (validated by TS — build will surface any stragglers).
+- `'quick-capture-draft'` localStorage values from old versions that contain `captureType: 'income' | 'expense'` are sanitized on restore: if the loaded `captureType` is not in the new union, fall back to `'task'` and clear that field.
+- Recents (`quick-capture-recent-tags`, `quick-capture-recent-projects`) are untouched.
 
-**4. Risky areas in the conversion flow**
-- `useBrainDump.convertCategory` soft-deletes the source row, then inserts into the destination. If the insert fails, the original is already archived. Phase 1 does **not** restructure this, but I will:
-  - rename UI affordance to "Move to…" with a confirmation toast on success and a clear error toast on failure
-  - keep the existing query invalidations (`brain-dump`, `all-tasks`, `ideas`) so UI refreshes truthfully
-- Out of scope (Phase 2): wrap convert in a transaction-like fallback (re-undelete on insert failure).
+**3. Fixing the parser**
+Current `\b(\d{1,2})(:\d{2})?\s*(am|pm)?\b` strips bare numbers because `am|pm` is optional. Replacement:
+```
+const TIME_REGEX = /\b(\d{1,2}):(\d{2})\s*(am|pm)?\b|\b(\d{1,2})\s*(am|pm)\b/i;
+```
+Only matches `3pm`, `3:00`, `3:00pm`, `10am`. Bare `3` in "write 3 emails" is left in place. The same change is applied to `TIME_DATE_PATTERNS`.
 
-**5. Phase 1 implementation plan**
+Also: when detection confidence is **low** and there are no tags, return `suggestedType: 'note'` (was `'task'`). The modal's existing override flag still lets the user switch back to Task with one tap, and chip values entered are kept on switch.
 
-### Step 1 — Shared tag registry
-New `src/lib/captureTags.ts` exporting:
-- `CAPTURE_TAGS` array with `{ tag, label, emoji, icon, kind }` for: `task, idea, note, project, content, question, reminder, thought, win, sales, admin, email, low-energy, medium-energy, high-focus`.
-- `kind` ∈ `'destination' | 'modifier'`. Destination tags route to a table; modifiers are preserved in text.
-- Helpers: `parseLineTags(line)`, `routeForLine(line)` → `{ destination: 'task'|'idea'|'note'|'project', cleanedText, modifiers, allTags }`.
-  - Routing precedence: `task > project > idea > note` (first match wins); untagged → `note` (inbox).
-  - `cleanedText` removes only the routing destination tag; other tags stay in the text.
+**4. Energy parsing**
+- Recognize `#low-energy`, `#medium-energy`, `#high-focus` (from `captureTags.ts`) plus loose phrasings `"low energy"`, `"medium energy"`, `"high focus"`.
+- Map → `energy_level`: `low_energy` | `medium_energy` | `high_focus` (matching the existing string column on `tasks`).
+- Strip the matched tag/phrase from `cleanedText` so it doesn't appear in the saved task title; modifier tags from `captureTags.ts` (`sales`, `admin`, `email`, etc.) are kept in `tags[]` and saved into `context_tags`.
+- `ParsedTask` gains `energy_level?: 'low_energy' | 'medium_energy' | 'high_focus'`.
+- `createTask.mutateAsync` is called with `energy_level` (already supported by the schema).
 
-### Step 2 — Stabilize `SmartScratchPad`
-- Drop the transparent-text / overlay highlight system. Use a normal visible `<Textarea>` (semantic tokens, no `text-transparent`, no `WebkitTextFillColor: transparent`, no scroll-sync overlay).
-- Keep autocomplete popup, keyboard nav, and tag-button insertion.
-- Use the shared registry (full set, scrollable popup).
-- Keyboard rules: Enter inserts newline normally; Tab/Enter only consumed when the autocomplete menu is open; Esc closes popup; existing Cmd/Ctrl+Enter behavior preserved if present in parent.
-- Update placeholder + helper text to the copy you specified.
-- Tag count chips below the textarea become a calm muted summary (counts of detected destination tags) — no full-line backgrounds.
+**5. Keeping existing task/idea saving working**
+- Task save path unchanged: `useTaskMutations().createTask` + `parsedTask` chips + `context_tags`. Burst path keeps the same mutation per line; only routing logic is added (lines tagged `#idea`/`#note`/`#project` are dispatched to their respective save calls already used in the modal: `save-idea` edge fn for ideas, direct insert into `journal_pages` for notes, direct insert into `ideas` for `#project`).
+- Idea save (`save-idea` edge fn) is unchanged; idea metadata chips and `IdeaQuickChips` keep working.
+- Recents update logic unchanged.
+- Cmd/Ctrl+K, Esc, mobile drawer, voice capture, draft recovery, burst mode, project chips: all preserved.
 
-### Step 3 — `BrainDumpCreateForm` capture-first flow
-- Remove the up-front category select from the visual hierarchy. Show a calm, large textarea first; keep an optional "Default if untagged" small `Select` below the action row defaulting to `note`.
-- On submit, call new `createItemsFromText(text)`:
-  - Split by `\n`, ignore empty lines.
-  - For each line: route via `routeForLine`. Save to the right table using the same insert paths the existing `createItem` already uses. If a line fails, keep that line in the textarea, toast `"Saved X of Y, kept failed line(s)"`.
-- Replace helper line with: "Use tags like #task, #idea, #content, #project, #question, #win — or leave it messy and sort it later."
-- Placeholder: "Dump anything here. Tasks, ideas, reminders, questions, wins, content sparks…"
+## Implementation steps
 
-### Step 4 — Calmer `BrainDumpCard`
-- Remove rotation, tape, and saturated post-it palette.
-- New base: `bg-card rounded-xl border border-border/60 shadow-sm hover:shadow-md transition-shadow`.
-- 3px left accent bar tinted by category (semantic tokens, e.g. `bg-primary/60`, `bg-accent/60`, `bg-muted-foreground/40`).
-- Small tag pill (top-left), subtle date (bottom), edit/delete in a quiet hover cluster.
-- Drag handle stays but muted.
+1. **`useCaptureTypeDetection.ts`**
+   - Narrow `CaptureType`. Remove finance arrays/regex.
+   - Replace time regex to require am/pm or `H:MM`. Update `TIME_DATE_PATTERNS` accordingly.
+   - Add `ENERGY_TAGS` map; extend `parseTaskInput` to extract energy and strip from `cleanText`. Extend `ParsedTask`.
+   - Add `routeFromTags(input)` thin wrapper around `routeForLine` from `@/lib/captureTags`.
+   - Update default low-confidence return to `note`.
 
-### Step 5 — Inbox grouping in `/brain-dump`
-- In `BrainDumpBoard`/`Grid` add a visual "Inbox" column/section seeded from notes whose text starts untagged or contains `#unprocessed`. (No schema change — pure client-side filter.) If trivial-only, show "Inbox" tab that maps to `note`.
-- Calmer column headers (label · count, thin divider, no heavy bg).
+2. **`QuickCaptureModal.tsx`**
+   - Strip all finance state, fetch, insert, validation, focus-on-amount, type-pill buttons (desktop + mobile), color overrides, save labels.
+   - Remove finance imports.
+   - Add Note pill (and keep Content pill which already opens `ContentSaveModal`).
+   - Replace `handleBurstSave` → `handleMultiLineSave(lines)` that routes each line: task → existing path; idea/project → existing idea insert; note → `journal_pages` insert (mirrors `useBrainDump.createItemsFromText`). Failed lines reported via toast; succeeded count tallied to `savedThisSession`.
+   - Save-button label: `Save Task` / `Save Idea` / `Save Note` / `Save N items` for multi-line.
+   - Persist full draft snapshot (`input, captureType, parsedTask, ideaData`) on debounced typing. On restore, sanitize legacy finance type and re-hydrate parsed/idea state. Also save draft on `onOpenChange(false)` with non-empty input.
+   - Energy chip wired through `handleQuickChipUpdate({ energy_level })`.
 
-### Step 6 — Copy refresh
-- `ScratchPadOrganizeModal` title → "Review captured items"; buttons → "Send tasks to task list", "Save ideas", "Keep as note", "Use defaults", "Process later".
-- `UnprocessedTagsWarning`: title → "You have tagged items to review"; body explains autosave is safe; buttons → "Review now", "Save and leave", "Stay here". Update `TAG_REGEX` to the full destination tag set so it doesn't miss `#note`/`#project`/`#content`/etc.
+3. **`QuickChips.tsx` / `EditableChips.tsx`**
+   - Add an Energy popover (Low / Medium / High focus) with the existing chip pattern. No styling overhaul.
 
-### Step 7 — Convert UX safety
-- In `BrainDumpCard` (and any menu that calls `convertCategory`), label as "Move to…", show success toast on resolve and explicit error toast on reject; keep current invalidations.
+4. **`QuickAddApp.tsx`**
+   - Remove finance from `typeOptions`, `isFinancial`, amount input, finance insert.
+   - Add Note option (saves to `journal_pages`); reuse routing helper so typed tags also work.
+   - Auth/ManifestSwitcher/session validation untouched.
 
-### Step 8 — Verify
-- Read the modified files; confirm Daily Plan save chain is untouched (no edits to `save-daily-plan`, `get-daily-plan`, `useDailyPlan`, `SaveStatusIndicator`).
-- Manually walk through: typing in scratch pad (cursor visible, no overlay), inserting `#task` from autocomplete, multi-line capture in `/brain-dump`, card hover/edit/move, leaving Daily Plan with tagged items.
+5. **`InstallQuickAdd.tsx`**
+   - Drop Expense/Income tiles; copy reads "Switch between task, idea, note with one tap".
+   - Keep all install/PWA logic.
 
-## Out of scope (Phase 2+)
-- AI classification
-- Schema changes / new tables
-- Transactional `convertCategory` rewrite
-- Daily Plan redesign, task manager redesign
-- New "unprocessed" status column (using untagged-as-inbox heuristic instead)
+6. **Verify**
+   - Type-check (build runs automatically).
+   - Unit-spot check parser cases: `"write 3 emails"` keeps `text === "write 3 emails"`; `"call client tomorrow 3pm 30m !high #sales"` → date=tomorrow, time=3pm, duration=30, priority=high, tags=['sales']; `"deep work 2h #high-focus"` → duration=120, energy_level='high_focus'.
+   - Walk through modal: type a single task, multi-line mixed (task + idea + note + project), close mid-typing → reopen → draft restored, voice still works, finance pills gone.
+   - Confirm `/finances` page still loads and `financial_transactions` table is untouched.
+
+## Risks & mitigations
+- **Stale draft with `captureType: 'income'`** → sanitize on restore, fall back to `'task'`.
+- **Note insert path** mirrors `useBrainDump` (`journal_pages.insert({ user_id, title, content })`); same RLS already in use.
+- **Routing precedence** uses `task > project > idea > note > content > question > reminder`; matches `captureTags.ts` rules already shipped in Phase 1 of Brain Dump.
+
+## Out of scope
+- AI classification.
+- New schema columns (energy_level already exists; routing tags ride on `context_tags`).
+- Removing or migrating any finance data.
+- Redesigning Quick Capture beyond removing finance and adding Note pill + Energy chip.
