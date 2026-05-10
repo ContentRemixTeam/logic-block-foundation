@@ -83,7 +83,7 @@ export function SaveStatusIndicator({
           )}
         >
           <CheckCircle2 className="mr-1 h-3 w-3" />
-          ✅ Saved {lastSaved ? getTimeAgo(lastSaved) : ''}
+          Saved{lastSaved ? ` ${getTimeAgo(lastSaved)}` : ''}
         </Badge>
       );
 
@@ -91,7 +91,7 @@ export function SaveStatusIndicator({
       return (
         <Badge variant="secondary" className={cn("text-xs animate-pulse", className)}>
           <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-          Saving...
+          Saving…
         </Badge>
       );
 
@@ -99,7 +99,7 @@ export function SaveStatusIndicator({
       return (
         <Badge variant="destructive" className={cn("text-xs", className)}>
           <AlertTriangle className="mr-1 h-3 w-3" />
-          Save failed - retrying
+          Save failed — retrying
         </Badge>
       );
 
@@ -113,7 +113,7 @@ export function SaveStatusIndicator({
           )}
         >
           <WifiOff className="mr-1 h-3 w-3" />
-          Offline - saved locally
+          Offline — saved locally
         </Badge>
       );
 
@@ -121,7 +121,7 @@ export function SaveStatusIndicator({
       return (
         <Badge variant="outline" className={cn("text-xs text-muted-foreground", className)}>
           <Clock className="mr-1 h-3 w-3" />
-          Saving soon...
+          Saving soon…
         </Badge>
       );
 
