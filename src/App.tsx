@@ -144,6 +144,7 @@ const WebinarWizardPage = lazyWithRetry(() => import('./pages/WebinarWizardPage'
 const ContentChallengeWizardPage = lazyWithRetry(() => import('./pages/ContentChallengeWizardPage'));
 const BrainDump = lazyWithRetry(() => import('./pages/BrainDump'));
 const Evidence = lazyWithRetry(() => import('./pages/Evidence'));
+const OpenLoops = lazyWithRetry(() => import('./pages/OpenLoops'));
 const MonthlyThemePage = lazyWithRetry(() => import('./pages/MonthlyThemePage'));
 const EffectsDemo = lazyWithRetry(() => import('./pages/EffectsDemo'));
 const PlannerMockups = lazyWithRetry(() => import('./pages/PlannerMockups'));
