@@ -172,9 +172,9 @@ export function TaskCard({
   return (
     <div 
       className={cn(
-        "group relative flex items-start gap-3 rounded-lg border bg-card p-4",
+        "group relative flex items-start gap-3 rounded-xl border bg-card p-4 sm:p-5",
         "shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
-        "hover:border-primary/30 border-l-4",
+        "hover:border-primary/30 border-l-[6px]",
         task.is_completed && "opacity-60 bg-muted/30",
         isDragging && "shadow-lg ring-2 ring-primary/20 scale-[1.02]",
         isSelected && "ring-2 ring-primary/50 bg-primary/5",
@@ -188,7 +188,7 @@ export function TaskCard({
           <Checkbox
             checked={isSelected}
             onCheckedChange={() => onToggleSelection?.(task.task_id)}
-            className="mt-0.5 h-5 w-5"
+            className="mt-0.5 h-5 w-5 rounded-md"
           />
         </div>
       )}
@@ -204,7 +204,7 @@ export function TaskCard({
           checked={task.is_completed}
           onCheckedChange={() => onToggleComplete(task.task_id)}
           className={cn(
-            "mt-0.5 h-5 w-5 transition-all",
+            "mt-0.5 h-6 w-6 rounded-md transition-all",
             task.is_completed && "bg-primary border-primary"
           )}
         />
@@ -226,7 +226,7 @@ export function TaskCard({
         ) : (
           <h3 
             className={cn(
-              "font-semibold text-base leading-snug line-clamp-2 mb-1 text-foreground",
+              "mb-1 line-clamp-2 text-base font-semibold leading-snug text-foreground",
               task.is_completed && "line-through text-muted-foreground"
             )}
             onDoubleClick={(e) => {
@@ -242,7 +242,7 @@ export function TaskCard({
         <div className="mt-3 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
           {/* Due Date */}
           {task.scheduled_date && (
-            <div className={cn("inline-flex h-6 items-center gap-1.5 rounded-md border border-border bg-background px-2 text-xs", getDueDateStyles(task.scheduled_date))}>
+            <div className={cn("inline-flex h-6 items-center gap-1.5 rounded-full border border-border bg-background px-2 text-xs", getDueDateStyles(task.scheduled_date))}>
               <CalendarIcon className="h-3.5 w-3.5" />
               <span>{formatDueDate(task.scheduled_date)}</span>
             </div>
@@ -250,7 +250,7 @@ export function TaskCard({
 
           {/* Time Estimate */}
           {task.estimated_minutes && (
-            <div className="inline-flex h-6 items-center gap-1.5 rounded-md bg-muted/60 px-2 text-xs">
+            <div className="inline-flex h-6 items-center gap-1.5 rounded-full bg-muted/60 px-2 text-xs">
               <Clock className="h-3.5 w-3.5" />
               <span>{getDurationLabel()}</span>
             </div>
@@ -261,7 +261,7 @@ export function TaskCard({
 
           {/* Priority */}
           {task.priority && (
-            <Badge variant={priorityStyles.badge} className="gap-1 text-xs px-1.5 py-0 h-5">
+            <Badge variant={priorityStyles.badge} className="h-6 gap-1 rounded-full px-2 py-0 text-xs">
               <Flag className="w-3 h-3" />
               {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
             </Badge>
@@ -269,7 +269,7 @@ export function TaskCard({
 
           {/* Energy Level */}
           {task.energy_level && (
-            <div className={cn("inline-flex h-6 items-center gap-1.5 rounded-md border px-2 text-xs font-medium", energyStyles)}>
+            <div className={cn("inline-flex h-6 items-center gap-1.5 rounded-full border px-2 text-xs font-medium", energyStyles)}>
               {getEnergyIcon()}
               <span>{getEnergyLabel()}</span>
             </div>
@@ -277,7 +277,7 @@ export function TaskCard({
 
           {/* Project */}
           {task.project && (
-            <div className="inline-flex h-6 max-w-[180px] items-center gap-1.5 rounded-md bg-primary/10 px-2 text-xs font-medium text-primary">
+            <div className="inline-flex h-6 max-w-[180px] items-center gap-1.5 rounded-full bg-primary/10 px-2 text-xs font-medium text-primary">
               <Folder className="h-3.5 w-3.5 shrink-0" />
               <span className="truncate">{task.project.name}</span>
             </div>
@@ -285,7 +285,7 @@ export function TaskCard({
 
           {/* SOP badge */}
           {task.sop && (
-            <Badge variant="outline" className="text-xs px-1.5 py-0 h-5 bg-primary/10 border-primary/30 text-primary">
+            <Badge variant="outline" className="h-6 rounded-full border-primary/30 bg-primary/10 px-2 py-0 text-xs text-primary">
               <ClipboardList className="h-3 w-3 mr-1" />
               SOP
             </Badge>
@@ -293,7 +293,7 @@ export function TaskCard({
 
           {/* Recurring indicator */}
           {task.parent_task_id && (
-            <Badge variant="outline" className="text-xs px-1.5 py-0 h-5">
+            <Badge variant="outline" className="h-6 rounded-full px-2 py-0 text-xs">
               <RefreshCw className="h-3 w-3" />
             </Badge>
           )}
@@ -302,12 +302,12 @@ export function TaskCard({
           {task.context_tags && task.context_tags.length > 0 && (
             <div className="flex items-center gap-1">
               {task.context_tags.slice(0, 2).map(tag => (
-                <Badge key={tag} variant="secondary" className="text-xs px-1.5 py-0 h-5">
+                <Badge key={tag} variant="secondary" className="h-6 rounded-full px-2 py-0 text-xs">
                   #{tag}
                 </Badge>
               ))}
               {task.context_tags.length > 2 && (
-                <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5">
+                <Badge variant="secondary" className="h-6 rounded-full px-2 py-0 text-xs">
                   +{task.context_tags.length - 2}
                 </Badge>
               )}
@@ -316,7 +316,7 @@ export function TaskCard({
 
           {/* Waiting on */}
           {task.waiting_on && (
-            <Badge variant="secondary" className="h-5 px-1.5 py-0 text-xs">
+            <Badge variant="secondary" className="h-6 rounded-full px-2 py-0 text-xs">
               <Clock className="mr-1 h-3 w-3" />
               {task.waiting_on}
             </Badge>
@@ -350,7 +350,7 @@ export function TaskCard({
 
         {/* Task Description (truncated) */}
         {task.task_description && !task.is_completed && (
-          <p className="mt-3 line-clamp-2 border-l-2 border-muted pl-3 text-sm text-muted-foreground">
+          <p className="mt-3 line-clamp-2 rounded-lg bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
             {task.task_description}
           </p>
         )}
@@ -372,11 +372,11 @@ export function TaskCard({
       </div>
 
       {/* Quick Actions */}
-      <div className="flex shrink-0 items-center gap-1 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
+      <div className="flex shrink-0 items-center gap-1 rounded-full border bg-background/80 p-1 opacity-100 shadow-sm sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8"
+          className="h-8 w-8 rounded-full"
           onClick={() => onOpenDetail(task)}
           title="View details"
         >
@@ -385,7 +385,7 @@ export function TaskCard({
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" title="Reschedule">
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" title="Reschedule">
               <CalendarClock className="h-4 w-4" />
             </Button>
           </PopoverTrigger>

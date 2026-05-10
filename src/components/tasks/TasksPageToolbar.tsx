@@ -143,13 +143,13 @@ export const TasksPageToolbar = memo(function TasksPageToolbar({
   };
 
   return (
-    <div className="space-y-4 rounded-lg border bg-card/95 p-3 shadow-sm sm:p-4">
+    <div className="space-y-4 rounded-xl border bg-card/95 p-3 shadow-sm sm:p-4">
       {/* Row 1: Primary Tabs + View Switcher */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         {/* Primary Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => onTabChange(v as PrimaryTab)}>
-          <TabsList className="grid grid-cols-4 w-full sm:w-auto">
-            <TabsTrigger value="today" className="gap-1.5 text-xs sm:text-sm">
+          <TabsList className="grid h-auto w-full grid-cols-4 rounded-xl bg-muted/70 p-1 sm:w-auto">
+            <TabsTrigger value="today" className="min-h-9 gap-1.5 rounded-lg px-3 text-xs data-[state=active]:shadow-sm sm:text-sm">
               <Calendar className="h-3.5 w-3.5 hidden sm:inline" />
               Today
               {counts.today > 0 && (
@@ -158,7 +158,7 @@ export const TasksPageToolbar = memo(function TasksPageToolbar({
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="week" className="gap-1.5 text-xs sm:text-sm">
+            <TabsTrigger value="week" className="min-h-9 gap-1.5 rounded-lg px-3 text-xs data-[state=active]:shadow-sm sm:text-sm">
               <CalendarDays className="h-3.5 w-3.5 hidden sm:inline" />
               Week
               {counts.week > 0 && (
@@ -167,7 +167,7 @@ export const TasksPageToolbar = memo(function TasksPageToolbar({
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="all" className="gap-1.5 text-xs sm:text-sm">
+            <TabsTrigger value="all" className="min-h-9 gap-1.5 rounded-lg px-3 text-xs data-[state=active]:shadow-sm sm:text-sm">
               <List className="h-3.5 w-3.5 hidden sm:inline" />
               All
               {counts.all > 0 && (
@@ -176,7 +176,7 @@ export const TasksPageToolbar = memo(function TasksPageToolbar({
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="completed" className="gap-1.5 text-xs sm:text-sm">
+            <TabsTrigger value="completed" className="min-h-9 gap-1.5 rounded-lg px-3 text-xs data-[state=active]:shadow-sm sm:text-sm">
               <CheckCircle2 className="h-3.5 w-3.5 hidden sm:inline" />
               Done
             </TabsTrigger>
@@ -184,12 +184,12 @@ export const TasksPageToolbar = memo(function TasksPageToolbar({
         </Tabs>
 
         {/* View Switcher */}
-        <div className="flex items-center gap-1 border rounded-lg p-1">
+        <div className="flex items-center gap-1 rounded-xl border bg-background p-1 shadow-sm">
           <Button
             variant={viewMode === 'list' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => onViewModeChange('list')}
-            className="h-8 px-3 gap-1.5"
+            className="h-8 gap-1.5 rounded-lg px-3"
           >
             <LayoutList className="h-4 w-4" />
             <span className="hidden sm:inline">List</span>
@@ -198,7 +198,7 @@ export const TasksPageToolbar = memo(function TasksPageToolbar({
             variant={viewMode === 'board' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => onViewModeChange('board')}
-            className="h-8 px-3 gap-1.5"
+            className="h-8 gap-1.5 rounded-lg px-3"
           >
             <Columns className="h-4 w-4" />
             <span className="hidden sm:inline">Board</span>
@@ -207,7 +207,7 @@ export const TasksPageToolbar = memo(function TasksPageToolbar({
             variant={viewMode === 'calendar' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => onViewModeChange('calendar')}
-            className="h-8 px-3 gap-1.5"
+            className="h-8 gap-1.5 rounded-lg px-3"
           >
             <Calendar className="h-4 w-4" />
             <span className="hidden sm:inline">Calendar</span>
@@ -218,13 +218,13 @@ export const TasksPageToolbar = memo(function TasksPageToolbar({
       {/* Row 2: Search + Filters */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         {/* Search */}
-        <div className="relative flex-1 max-w-md">
+        <div className="relative flex-1 sm:max-w-lg">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search tasks..."
+            placeholder="Search by task, notes, SOP, or project..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-9 pr-9"
+            className="h-10 rounded-xl bg-background pl-9 pr-9 shadow-sm"
           />
           {searchQuery && (
             <Button
@@ -245,7 +245,7 @@ export const TasksPageToolbar = memo(function TasksPageToolbar({
               variant="outline" 
               size="sm" 
               className={cn(
-                "gap-2",
+                "h-10 gap-2 rounded-xl",
                 activeFilterCount > 0 && "border-primary"
               )}
             >

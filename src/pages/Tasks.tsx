@@ -911,12 +911,51 @@ export default function Tasks() {
     <Layout>
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Tasks</h1>
-            <p className="text-muted-foreground">Your workflow command center</p>
-          </div>
-        </div>
+        <Card className="overflow-hidden border-primary/10 bg-card shadow-sm">
+          <CardContent className="p-5 sm:p-6">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">Task Manager</p>
+                  <h1 className="text-3xl font-bold tracking-tight">Choose the right work for today</h1>
+                  <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+                    Match your tasks to your energy, your current project focus, and the planning rhythm you already use.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="secondary" className="gap-1.5 rounded-full px-3 py-1">
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    {counts.today} today
+                  </Badge>
+                  <Badge variant="outline" className="gap-1.5 rounded-full px-3 py-1">
+                    <CalendarRange className="h-3.5 w-3.5" />
+                    {counts.week} this week
+                  </Badge>
+                  <Badge variant="outline" className="gap-1.5 rounded-full px-3 py-1">
+                    <BatteryLow className="h-3.5 w-3.5 text-success" />
+                    {taskInsights.lowEnergy} low-energy
+                  </Badge>
+                  {overdueCount > 0 && (
+                    <Badge variant="destructive" className="gap-1.5 rounded-full px-3 py-1">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      {overdueCount} overdue
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row">
+                <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  New task
+                </Button>
+                <Button variant="outline" onClick={() => focusEnergyFilter('low_energy')} className="gap-2">
+                  <BatteryLow className="h-4 w-4" />
+                  Low-energy list
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Overdue Tasks Banner */}
         {overdueCount > 0 && (
@@ -971,55 +1010,67 @@ export default function Tasks() {
             type="button"
             onClick={() => focusEnergyFilter('low_energy')}
             className={cn(
-              "group rounded-lg border bg-card p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-success/50 hover:shadow-md",
-              filters.energy.includes('low_energy') && "border-success/60 bg-success/10"
+              "group rounded-xl border bg-success/5 p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-success/50 hover:bg-success/10 hover:shadow-md",
+              filters.energy.includes('low_energy') && "border-success/60 bg-success/10 ring-2 ring-success/15"
             )}
           >
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-sm font-medium text-success">
-                <BatteryLow className="h-4 w-4" />
-                Low-energy list
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-success/15 text-success">
+                  <BatteryLow className="h-5 w-5" />
+                </span>
+                <div>
+                  <div className="text-sm font-semibold text-success">Low-energy list</div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Lighter admin, replies, and quick wins for low-capacity days.
+                  </p>
+                </div>
               </div>
-              <Badge variant="secondary">{taskInsights.lowEnergy}</Badge>
+              <Badge variant="secondary" className="rounded-full">{taskInsights.lowEnergy}</Badge>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Pull up lighter admin, replies, and quick wins for low-capacity days.
-            </p>
           </button>
 
           <button
             type="button"
             onClick={() => focusEnergyFilter('high_focus')}
             className={cn(
-              "group rounded-lg border bg-card p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-destructive/40 hover:shadow-md",
-              filters.energy.includes('high_focus') && "border-destructive/50 bg-destructive/10"
+              "group rounded-xl border bg-destructive/5 p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-destructive/40 hover:bg-destructive/10 hover:shadow-md",
+              filters.energy.includes('high_focus') && "border-destructive/50 bg-destructive/10 ring-2 ring-destructive/10"
             )}
           >
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-sm font-medium text-destructive">
-                <Zap className="h-4 w-4" />
-                High-focus work
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                  <Zap className="h-5 w-5" />
+                </span>
+                <div>
+                  <div className="text-sm font-semibold text-destructive">High-focus work</div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Deep work for windows where your brain and body have more room.
+                  </p>
+                </div>
               </div>
-              <Badge variant="secondary">{taskInsights.highFocus}</Badge>
+              <Badge variant="secondary" className="rounded-full">{taskInsights.highFocus}</Badge>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Save deep work for the windows where your brain and body have more room.
-            </p>
           </button>
 
-          <div className="rounded-lg border bg-muted/30 p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <FolderKanban className="h-4 w-4 text-primary" />
-                Project clarity
+          <div className="rounded-xl border bg-primary/5 p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <FolderKanban className="h-5 w-5" />
+                </span>
+                <div>
+                  <div className="text-sm font-semibold">Project clarity</div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {taskInsights.missingEnergy > 0
+                      ? `Add energy to ${taskInsights.missingEnergy} task${taskInsights.missingEnergy === 1 ? '' : 's'} so planning feels easier later.`
+                      : 'Every open task has an energy level, so planning by capacity is ready.'}
+                  </p>
+                </div>
               </div>
-              <Badge variant="outline">{taskInsights.inProjects}/{counts.all}</Badge>
+              <Badge variant="outline" className="rounded-full">{taskInsights.inProjects}/{counts.all}</Badge>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {taskInsights.missingEnergy > 0
-                ? `Add energy to ${taskInsights.missingEnergy} task${taskInsights.missingEnergy === 1 ? '' : 's'} so planning feels easier later.`
-                : 'Every open task has an energy level, so planning by capacity is ready.'}
-            </p>
           </div>
         </div>
 
@@ -1031,9 +1082,12 @@ export default function Tasks() {
         />
 
         {/* Quick Add Bar */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-muted-foreground">Quick Add</span>
+        <div className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div>
+              <span className="text-sm font-semibold">Capture a task</span>
+              <p className="text-xs text-muted-foreground">Get it out of your head now, refine the details when you have room.</p>
+            </div>
             <HelpButton
               title="Quick Add Syntax"
               description="Add tasks faster using natural language shortcuts."
