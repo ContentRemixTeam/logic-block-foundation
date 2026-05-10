@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
 import { Layout } from '@/components/Layout';
 import { useProjects, useProjectMutations } from '@/hooks/useProjects';
+import { useTasks } from '@/hooks/useTasks';
+import { computeProjectStats } from '@/lib/projectStats';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { NewProjectModal } from '@/components/projects/NewProjectModal';
 import { ProjectBoardView } from '@/components/projects/ProjectBoardView';
@@ -42,6 +44,7 @@ const TAB_OPTIONS: { id: TabFilter; label: string; icon: React.ReactNode }[] = [
 export default function Projects() {
   const { data: projects, isLoading } = useProjects();
   const { deleteProject, updateProject } = useProjectMutations();
+  const { tasks: allTasks } = useTasks({ loadAll: true });
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [activeTab, setActiveTab] = useState<TabFilter>('active');
   const [searchQuery, setSearchQuery] = useState('');
@@ -241,6 +244,7 @@ export default function Projects() {
                   <ProjectCard
                     key={project.id}
                     project={project}
+                    stats={computeProjectStats(project.id, allTasks ?? [])}
                     onEdit={handleEditProject}
                     onArchive={handleArchiveProject}
                     onComplete={handleCompleteProject}

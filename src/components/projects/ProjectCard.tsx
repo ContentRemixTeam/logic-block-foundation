@@ -3,6 +3,7 @@ import { Project } from '@/types/project';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,12 +19,17 @@ import {
   CheckCircle2, 
   RotateCcw,
   Calendar,
-  ListTodo
+  ListTodo,
+  AlertCircle,
+  ArrowRight,
+  Clock,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { ProjectStats, formatRelativeDays } from '@/lib/projectStats';
 
 interface ProjectCardProps {
   project: Project;
+  stats?: ProjectStats;
   onEdit: (project: Project) => void;
   onArchive: (project: Project) => void;
   onComplete: (project: Project) => void;
@@ -33,6 +39,7 @@ interface ProjectCardProps {
 
 export function ProjectCard({
   project,
+  stats,
   onEdit,
   onArchive,
   onComplete,
@@ -123,31 +130,79 @@ export function ProjectCard({
         </div>
       </CardHeader>
 
-      <CardContent className="pt-0">
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <ListTodo className="h-4 w-4" />
-            <span>{project.task_count || 0} tasks</span>
+      <CardContent className="pt-0 space-y-3">
+        {/* Progress (only when we have stats with tasks) */}
+        {stats && stats.total > 0 && (
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">
+                {stats.completed}/{stats.total} done
+              </span>
+              <span className="font-medium tabular-nums text-muted-foreground">
+                {stats.pct}%
+              </span>
+            </div>
+            <Progress value={stats.pct} className="h-1.5" />
           </div>
-          
+        )}
+
+        {/* Next action */}
+        {stats?.nextActionTitle && (
+          <div className="flex items-start gap-1.5 text-xs">
+            <ArrowRight className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
+              <span className="text-muted-foreground">Next: </span>
+              <span className="font-medium truncate inline-block max-w-full align-bottom">
+                {stats.nextActionTitle}
+              </span>
+              {stats.nextActionDate && (
+                <span className="text-muted-foreground"> · {formatRelativeDays(stats.nextActionDate)}</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Meta row */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <ListTodo className="h-3.5 w-3.5" />
+            <span>{stats?.total ?? project.task_count ?? 0} tasks</span>
+          </div>
+
+          {stats && stats.overdue > 0 && (
+            <div className="flex items-center gap-1 text-destructive">
+              <AlertCircle className="h-3.5 w-3.5" />
+              <span>{stats.overdue} overdue</span>
+            </div>
+          )}
+
+          {stats?.lastTouched && (
+            <div className="flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" />
+              <span>Updated {formatRelativeDays(stats.lastTouched)}</span>
+            </div>
+          )}
+
           {(project.start_date || project.end_date) && (
             <div className="flex items-center gap-1">
-              <Calendar className="h-4 w-4" />
+              <Calendar className="h-3.5 w-3.5" />
               <span>
                 {project.start_date && format(new Date(project.start_date), 'MMM d')}
-                {project.start_date && project.end_date && ' - '}
+                {project.start_date && project.end_date && ' – '}
                 {project.end_date && format(new Date(project.end_date), 'MMM d')}
               </span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-2 mt-3">
-          {project.is_template && (
-            <Badge variant="outline" className="text-xs">Template</Badge>
-          )}
-          {getStatusBadge()}
-        </div>
+        {(project.is_template || project.status !== 'active') && (
+          <div className="flex items-center gap-2">
+            {project.is_template && (
+              <Badge variant="outline" className="text-xs">Template</Badge>
+            )}
+            {getStatusBadge()}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
