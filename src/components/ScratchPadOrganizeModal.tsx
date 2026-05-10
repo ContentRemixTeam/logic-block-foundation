@@ -334,7 +334,7 @@ export function ScratchPadOrganizeModal({
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Lightbulb className="h-4 w-4 text-accent" />
-                    <h3 className="font-semibold">Ideas ({ideas.length})</h3>
+                    <h3 className="font-semibold">Save ideas ({ideas.length})</h3>
                   </div>
                   <div className="space-y-3">
                     {ideas.map((idea, idx) => (
