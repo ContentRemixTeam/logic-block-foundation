@@ -215,7 +215,7 @@ export const TasksPageToolbar = memo(function TasksPageToolbar({
                   value={searchQuery}
                   onChange={(e) => onSearchChange(e.target.value)}
                   onBlur={() => { if (!searchQuery) setSearchOpen(false); }}
-                  placeholder="Search tasks..."
+                  placeholder="Search tasks, projects, tags…"
                   className="h-8 w-44 sm:w-64 pl-8 pr-7 text-sm rounded-full border-muted bg-muted/40 focus-visible:bg-background"
                 />
                 {searchQuery && (
