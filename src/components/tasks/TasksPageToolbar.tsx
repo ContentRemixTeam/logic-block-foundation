@@ -1,16 +1,14 @@
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { 
-  Calendar, CalendarDays, List, CheckCircle2, 
-  LayoutList, Columns, Search, X, SlidersHorizontal, FolderKanban, Rocket,
-  Zap, Battery, BatteryLow
+import {
+  LayoutList, Columns, Calendar as CalendarIcon, Search, X, SlidersHorizontal,
+  FolderKanban, Rocket, Zap, Battery, BatteryLow,
 } from 'lucide-react';
 import { PrimaryTab, ViewMode, EnergyLevel, ENERGY_LEVELS } from './types';
 
@@ -41,14 +39,7 @@ interface TasksPageToolbarProps {
     projectIds: string[];
     launchIds: string[];
   };
-  onFiltersChange: (filters: {
-    priority: string[];
-    tags: string[];
-    cycle: string;
-    energy: EnergyLevel[];
-    projectIds: string[];
-    launchIds: string[];
-  }) => void;
+  onFiltersChange: (filters: TasksPageToolbarProps['filters']) => void;
   counts: {
     today: number;
     week: number;
@@ -62,9 +53,16 @@ interface TasksPageToolbarProps {
 }
 
 const PRIORITY_OPTIONS = [
-  { value: 'high', label: 'High', color: 'bg-destructive/20 text-destructive border-destructive/30' },
-  { value: 'medium', label: 'Medium', color: 'bg-warning/20 text-warning-foreground border-warning/30' },
-  { value: 'low', label: 'Low', color: 'bg-muted text-muted-foreground border-muted' },
+  { value: 'high', label: 'High' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'low', label: 'Low' },
+];
+
+const TABS: { value: PrimaryTab; label: string }[] = [
+  { value: 'today', label: 'Today' },
+  { value: 'week', label: 'Week' },
+  { value: 'all', label: 'All' },
+  { value: 'completed', label: 'Completed' },
 ];
 
 export const TasksPageToolbar = memo(function TasksPageToolbar({
@@ -80,17 +78,20 @@ export const TasksPageToolbar = memo(function TasksPageToolbar({
   projects = [],
   launches = [],
 }: TasksPageToolbarProps) {
-  const activeFilterCount = 
-    filters.priority.length + 
-    filters.energy.length + 
-    filters.tags.length + 
+  const [searchOpen, setSearchOpen] = useState(!!searchQuery);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (searchOpen) searchRef.current?.focus();
+  }, [searchOpen]);
+
+  const activeFilterCount =
+    filters.priority.length +
+    filters.energy.length +
+    filters.tags.length +
     filters.projectIds.length +
     filters.launchIds.length +
     (filters.cycle !== 'all' ? 1 : 0);
-
-  const handleClearSearch = useCallback(() => {
-    onSearchChange('');
-  }, [onSearchChange]);
 
   const handleClearAllFilters = useCallback(() => {
     onFiltersChange({
@@ -103,397 +104,309 @@ export const TasksPageToolbar = memo(function TasksPageToolbar({
     });
   }, [onFiltersChange]);
 
-  const togglePriority = useCallback((priority: string) => {
-    const newPriorities = filters.priority.includes(priority)
-      ? filters.priority.filter(p => p !== priority)
-      : [...filters.priority, priority];
-    onFiltersChange({ ...filters, priority: newPriorities });
-  }, [filters, onFiltersChange]);
+  const togglePriority = (p: string) => {
+    onFiltersChange({
+      ...filters,
+      priority: filters.priority.includes(p) ? filters.priority.filter(x => x !== p) : [...filters.priority, p],
+    });
+  };
+  const toggleEnergy = (e: EnergyLevel) => {
+    onFiltersChange({
+      ...filters,
+      energy: filters.energy.includes(e) ? filters.energy.filter(x => x !== e) : [...filters.energy, e],
+    });
+  };
+  const toggleProject = (id: string) => {
+    onFiltersChange({
+      ...filters,
+      projectIds: filters.projectIds.includes(id) ? filters.projectIds.filter(x => x !== id) : [...filters.projectIds, id],
+    });
+  };
+  const toggleLaunch = (id: string) => {
+    onFiltersChange({
+      ...filters,
+      launchIds: filters.launchIds.includes(id) ? filters.launchIds.filter(x => x !== id) : [...filters.launchIds, id],
+    });
+  };
 
-  const toggleEnergy = useCallback((energy: EnergyLevel) => {
-    const newEnergy = filters.energy.includes(energy)
-      ? filters.energy.filter(e => e !== energy)
-      : [...filters.energy, energy];
-    onFiltersChange({ ...filters, energy: newEnergy });
-  }, [filters, onFiltersChange]);
-
-  const toggleProject = useCallback((projectId: string) => {
-    const newProjectIds = filters.projectIds.includes(projectId)
-      ? filters.projectIds.filter(p => p !== projectId)
-      : [...filters.projectIds, projectId];
-    onFiltersChange({ ...filters, projectIds: newProjectIds });
-  }, [filters, onFiltersChange]);
-
-  const toggleLaunch = useCallback((launchId: string) => {
-    const newLaunchIds = filters.launchIds.includes(launchId)
-      ? filters.launchIds.filter(l => l !== launchId)
-      : [...filters.launchIds, launchId];
-    onFiltersChange({ ...filters, launchIds: newLaunchIds });
-  }, [filters, onFiltersChange]);
-
-  // Filter out projects that are launches (they appear in the launches section)
   const regularProjects = projects.filter(p => !p.is_launch);
 
-  const getEnergyIcon = (energy: EnergyLevel) => {
-    switch (energy) {
+  const energyIcon = (e: EnergyLevel) => {
+    switch (e) {
       case 'high_focus': return <Zap className="h-3 w-3" />;
       case 'medium': return <Battery className="h-3 w-3" />;
       case 'low_energy': return <BatteryLow className="h-3 w-3" />;
     }
   };
 
+  const tabCount = (tab: PrimaryTab) => {
+    if (tab === 'today') return counts.today;
+    if (tab === 'week') return counts.week;
+    if (tab === 'all') return counts.all;
+    if (tab === 'completed') return counts.completed;
+    return 0;
+  };
+
   return (
-    <div className="space-y-4 rounded-xl border bg-card/95 p-3 shadow-sm sm:p-4">
-      {/* Row 1: Primary Tabs + View Switcher */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        {/* Primary Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => onTabChange(v as PrimaryTab)}>
-          <TabsList className="grid h-auto w-full grid-cols-4 rounded-xl bg-muted/70 p-1 sm:w-auto">
-            <TabsTrigger value="today" className="min-h-9 gap-1.5 rounded-lg px-3 text-xs data-[state=active]:shadow-sm sm:text-sm">
-              <Calendar className="h-3.5 w-3.5 hidden sm:inline" />
-              Today
-              {counts.today > 0 && (
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">
-                  {counts.today}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="week" className="min-h-9 gap-1.5 rounded-lg px-3 text-xs data-[state=active]:shadow-sm sm:text-sm">
-              <CalendarDays className="h-3.5 w-3.5 hidden sm:inline" />
-              Week
-              {counts.week > 0 && (
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">
-                  {counts.week}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="all" className="min-h-9 gap-1.5 rounded-lg px-3 text-xs data-[state=active]:shadow-sm sm:text-sm">
-              <List className="h-3.5 w-3.5 hidden sm:inline" />
-              All
-              {counts.all > 0 && (
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">
-                  {counts.all}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="completed" className="min-h-9 gap-1.5 rounded-lg px-3 text-xs data-[state=active]:shadow-sm sm:text-sm">
-              <CheckCircle2 className="h-3.5 w-3.5 hidden sm:inline" />
-              Done
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-
-        {/* View Switcher */}
-        <div className="flex items-center gap-1 rounded-xl border bg-background p-1 shadow-sm">
-          <Button
-            variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => onViewModeChange('list')}
-            className="h-8 gap-1.5 rounded-lg px-3"
-          >
-            <LayoutList className="h-4 w-4" />
-            <span className="hidden sm:inline">List</span>
-          </Button>
-          <Button
-            variant={viewMode === 'board' ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => onViewModeChange('board')}
-            className="h-8 gap-1.5 rounded-lg px-3"
-          >
-            <Columns className="h-4 w-4" />
-            <span className="hidden sm:inline">Board</span>
-          </Button>
-          <Button
-            variant={viewMode === 'calendar' ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => onViewModeChange('calendar')}
-            className="h-8 gap-1.5 rounded-lg px-3"
-          >
-            <Calendar className="h-4 w-4" />
-            <span className="hidden sm:inline">Calendar</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* Row 2: Search + Filters */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        {/* Search */}
-        <div className="relative flex-1 sm:max-w-lg">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by task, notes, SOP, or project..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="h-10 rounded-xl bg-background pl-9 pr-9 shadow-sm"
-          />
-          {searchQuery && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
-              onClick={handleClearSearch}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-
-        {/* Filters Popover */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className={cn(
-                "h-10 gap-2 rounded-xl",
-                activeFilterCount > 0 && "border-primary"
-              )}
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-              Filters
-              {activeFilterCount > 0 && (
-                <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">
-                  {activeFilterCount}
-                </Badge>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-80">
-            <ScrollArea className="max-h-[70vh]">
-              <div className="space-y-4 pr-2">
-                {/* Header with clear */}
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-sm">Filters</h4>
-                  {activeFilterCount > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleClearAllFilters}
-                      className="h-7 text-xs text-muted-foreground"
-                    >
-                      Clear all
-                    </Button>
+    <div className="space-y-3">
+      {/* Row 1: Tab pills + right cluster */}
+      <div className="flex items-center justify-between gap-3">
+        {/* Ghost tab pills with active underline */}
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+          {TABS.map(tab => {
+            const isActive = activeTab === tab.value;
+            const count = tabCount(tab.value);
+            return (
+              <button
+                key={tab.value}
+                onClick={() => onTabChange(tab.value)}
+                className={cn(
+                  "relative px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap",
+                  isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <span className="flex items-center gap-1.5">
+                  {tab.label}
+                  {count > 0 && (
+                    <span className={cn(
+                      "text-[11px] tabular-nums",
+                      isActive ? "text-muted-foreground" : "text-muted-foreground/60"
+                    )}>
+                      {count}
+                    </span>
                   )}
-                </div>
+                </span>
+                <span
+                  className={cn(
+                    "absolute left-2 right-2 -bottom-px h-[2px] rounded-full transition-all",
+                    isActive ? "bg-foreground" : "bg-transparent"
+                  )}
+                />
+              </button>
+            );
+          })}
+        </div>
 
-                <Separator />
-
-                {/* Priority */}
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Priority
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {PRIORITY_OPTIONS.map(priority => (
-                      <Badge
-                        key={priority.value}
-                        variant="outline"
-                        className={cn(
-                          "cursor-pointer transition-colors",
-                          filters.priority.includes(priority.value)
-                            ? priority.color
-                            : "hover:bg-muted"
-                        )}
-                        onClick={() => togglePriority(priority.value)}
-                      >
-                        {priority.label}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Energy */}
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Energy Level
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {ENERGY_LEVELS.map(energy => (
-                      <Badge
-                        key={energy.value}
-                        variant="outline"
-                        className={cn(
-                          "cursor-pointer gap-1.5 transition-colors",
-                          filters.energy.includes(energy.value as EnergyLevel)
-                            ? energy.bgColor
-                            : "hover:bg-muted"
-                        )}
-                        onClick={() => toggleEnergy(energy.value as EnergyLevel)}
-                      >
-                        {getEnergyIcon(energy.value as EnergyLevel)}
-                        {energy.label}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Projects */}
-                {(regularProjects.length > 0 || filters.projectIds.includes('no_project')) && (
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                      <FolderKanban className="h-3 w-3" />
-                      Project
-                    </label>
-                    <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                      {regularProjects.map(project => (
-                        <Badge
-                          key={project.id}
-                          variant="outline"
-                          className={cn(
-                            "cursor-pointer transition-colors gap-1.5",
-                            filters.projectIds.includes(project.id) && "bg-accent border-accent-foreground/20"
-                          )}
-                          onClick={() => toggleProject(project.id)}
-                        >
-                          <div 
-                            className="h-2.5 w-2.5 rounded-full shrink-0" 
-                            style={{ backgroundColor: project.color }} 
-                          />
-                          <span className="truncate max-w-[120px]">{project.name}</span>
-                        </Badge>
-                      ))}
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "cursor-pointer transition-colors",
-                          filters.projectIds.includes('no_project') && "bg-accent border-accent-foreground/20"
-                        )}
-                        onClick={() => toggleProject('no_project')}
-                      >
-                        No Project
-                      </Badge>
-                    </div>
-                  </div>
-                )}
-
-                {/* Show Projects section even when empty */}
-                {regularProjects.length === 0 && !filters.projectIds.includes('no_project') && (
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                      <FolderKanban className="h-3 w-3" />
-                      Project
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "cursor-pointer transition-colors",
-                          filters.projectIds.includes('no_project') && "bg-accent border-accent-foreground/20"
-                        )}
-                        onClick={() => toggleProject('no_project')}
-                      >
-                        No Project
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">No projects created yet</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Launches */}
-                {launches.length > 0 && (
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                      <Rocket className="h-3 w-3" />
-                      Launch
-                    </label>
-                    <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                      {launches.map(launch => (
-                        <Badge
-                          key={launch.id}
-                          variant="outline"
-                          className={cn(
-                            "cursor-pointer transition-colors gap-1.5",
-                            filters.launchIds.includes(launch.id) && "bg-accent border-accent-foreground/20"
-                          )}
-                          onClick={() => toggleLaunch(launch.id)}
-                        >
-                          <Rocket className="h-3 w-3 text-primary" />
-                          <span className="truncate max-w-[120px]">{launch.name}</span>
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
+        {/* Right cluster: search, filters, view */}
+        <div className="flex items-center gap-1.5">
+          {/* Expanding search */}
+          <div className="flex items-center">
+            {searchOpen ? (
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  ref={searchRef}
+                  value={searchQuery}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  onBlur={() => { if (!searchQuery) setSearchOpen(false); }}
+                  placeholder="Search tasks..."
+                  className="h-8 w-44 sm:w-64 pl-8 pr-7 text-sm rounded-full border-muted bg-muted/40 focus-visible:bg-background"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => { onSearchChange(''); searchRef.current?.focus(); }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
                 )}
               </div>
-            </ScrollArea>
-          </PopoverContent>
-        </Popover>
-
-        {/* Active filter badges */}
-        {(filters.energy.length > 0 || filters.projectIds.length > 0 || filters.launchIds.length > 0) && (
-          <div className="flex flex-wrap gap-1.5">
-            {filters.energy.map(energy => {
-              const option = ENERGY_LEVELS.find(level => level.value === energy);
-              return (
-                <Badge
-                  key={energy}
-                  variant="secondary"
-                  className="gap-1 pr-1"
-                >
-                  {getEnergyIcon(energy)}
-                  {option?.label || energy}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-4 w-4 p-0 hover:bg-transparent"
-                    onClick={() => toggleEnergy(energy)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </Badge>
-              );
-            })}
-            {filters.projectIds.map(projectId => {
-              const project = regularProjects.find(p => p.id === projectId);
-              const label = projectId === 'no_project' ? 'No Project' : project?.name || 'Unknown';
-              return (
-                <Badge
-                  key={projectId}
-                  variant="secondary"
-                  className="gap-1 pr-1"
-                >
-                  {project && (
-                    <div 
-                      className="h-2 w-2 rounded-full" 
-                      style={{ backgroundColor: project.color }} 
-                    />
-                  )}
-                  {label}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-4 w-4 p-0 hover:bg-transparent"
-                    onClick={() => toggleProject(projectId)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </Badge>
-              );
-            })}
-            {filters.launchIds.map(launchId => {
-              const launch = launches.find(l => l.id === launchId);
-              return (
-                <Badge
-                  key={launchId}
-                  variant="secondary"
-                  className="gap-1 pr-1"
-                >
-                  <Rocket className="h-3 w-3 text-primary" />
-                  {launch?.name || 'Unknown'}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-4 w-4 p-0 hover:bg-transparent"
-                    onClick={() => toggleLaunch(launchId)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </Badge>
-              );
-            })}
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+                onClick={() => setSearchOpen(true)}
+                aria-label="Search"
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            )}
           </div>
-        )}
+
+          {/* Combined filter popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+                aria-label="Filters"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                {activeFilterCount > 0 && (
+                  <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-primary" />
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80 p-0">
+              <ScrollArea className="max-h-[70vh]">
+                <div className="p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium">Filters</h4>
+                    {activeFilterCount > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleClearAllFilters}
+                        className="h-7 text-xs text-muted-foreground"
+                      >
+                        Clear all
+                      </Button>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  {/* Priority */}
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                      Priority
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {PRIORITY_OPTIONS.map(p => (
+                        <Badge
+                          key={p.value}
+                          variant="outline"
+                          className={cn(
+                            "cursor-pointer rounded-full transition-colors",
+                            filters.priority.includes(p.value) && "bg-foreground text-background border-foreground"
+                          )}
+                          onClick={() => togglePriority(p.value)}
+                        >
+                          {p.label}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Energy */}
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                      Energy
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {ENERGY_LEVELS.map(e => (
+                        <Badge
+                          key={e.value}
+                          variant="outline"
+                          className={cn(
+                            "cursor-pointer rounded-full gap-1.5 transition-colors",
+                            filters.energy.includes(e.value as EnergyLevel) && "bg-foreground text-background border-foreground"
+                          )}
+                          onClick={() => toggleEnergy(e.value as EnergyLevel)}
+                        >
+                          {energyIcon(e.value as EnergyLevel)}
+                          {e.label}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Projects */}
+                  {regularProjects.length > 0 && (
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <FolderKanban className="h-3 w-3" />
+                        Project
+                      </label>
+                      <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                        {regularProjects.map(project => (
+                          <Badge
+                            key={project.id}
+                            variant="outline"
+                            className={cn(
+                              "cursor-pointer rounded-full gap-1.5 transition-colors",
+                              filters.projectIds.includes(project.id) && "bg-accent border-accent-foreground/20"
+                            )}
+                            onClick={() => toggleProject(project.id)}
+                          >
+                            <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: project.color }} />
+                            <span className="truncate max-w-[120px]">{project.name}</span>
+                          </Badge>
+                        ))}
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "cursor-pointer rounded-full transition-colors",
+                            filters.projectIds.includes('no_project') && "bg-accent border-accent-foreground/20"
+                          )}
+                          onClick={() => toggleProject('no_project')}
+                        >
+                          No project
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Launches */}
+                  {launches.length > 0 && (
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <Rocket className="h-3 w-3" />
+                        Launch
+                      </label>
+                      <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                        {launches.map(launch => (
+                          <Badge
+                            key={launch.id}
+                            variant="outline"
+                            className={cn(
+                              "cursor-pointer rounded-full gap-1.5 transition-colors",
+                              filters.launchIds.includes(launch.id) && "bg-accent border-accent-foreground/20"
+                            )}
+                            onClick={() => toggleLaunch(launch.id)}
+                          >
+                            <Rocket className="h-3 w-3" />
+                            <span className="truncate max-w-[120px]">{launch.name}</span>
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </PopoverContent>
+          </Popover>
+
+          {/* Segmented view switcher (hidden on mobile) */}
+          <div className="hidden sm:flex items-center bg-muted/60 rounded-full p-0.5">
+            <button
+              onClick={() => onViewModeChange('list')}
+              className={cn(
+                "h-7 w-7 rounded-full flex items-center justify-center transition-colors",
+                viewMode === 'list' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              )}
+              aria-label="List view"
+            >
+              <LayoutList className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => onViewModeChange('board')}
+              className={cn(
+                "h-7 w-7 rounded-full flex items-center justify-center transition-colors",
+                viewMode === 'board' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              )}
+              aria-label="Board view"
+            >
+              <Columns className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => onViewModeChange('calendar')}
+              className={cn(
+                "h-7 w-7 rounded-full flex items-center justify-center transition-colors",
+                viewMode === 'calendar' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              )}
+              aria-label="Calendar view"
+            >
+              <CalendarIcon className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
       </div>
+
+      {/* Thin divider line under tabs */}
+      <div className="h-px bg-border/60" />
     </div>
   );
 });
