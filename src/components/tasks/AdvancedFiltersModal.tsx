@@ -154,6 +154,7 @@ export function AdvancedFiltersModal({
                   <SelectItem value="created_at">Date Created</SelectItem>
                   <SelectItem value="scheduled_date">Due Date</SelectItem>
                   <SelectItem value="priority">Priority</SelectItem>
+                  <SelectItem value="energy">Energy Level</SelectItem>
                   <SelectItem value="task_text">Name</SelectItem>
                 </SelectContent>
               </Select>

@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { format, parseISO, isToday, isTomorrow, isPast, isThisWeek } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -122,6 +122,13 @@ export function TaskListView({
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState(600);
+
+  const handleSortByChange = (value: SortByOption) => {
+    setSortBy(value);
+    if (value === 'energy') {
+      setSortDirection('asc');
+    }
+  };
   
   // Calculate total open tasks for virtualization decision
   const totalOpenTasks = useMemo(() => {
@@ -196,22 +203,34 @@ export function TaskListView({
   }, [tasks]);
 
   // Sort tasks within groups
-  const sortTasks = (tasksToSort: Task[]): Task[] => {
+  const sortTasks = useCallback((tasksToSort: Task[]): Task[] => {
     return [...tasksToSort].sort((a, b) => {
       let comparison = 0;
       
       switch (sortBy) {
-        case 'scheduled_date':
+        case 'scheduled_date': {
           const dateA = a.scheduled_date || a.planned_day || '';
           const dateB = b.scheduled_date || b.planned_day || '';
           comparison = dateA.localeCompare(dateB);
           break;
-        case 'priority':
+        }
+        case 'priority': {
           const priorityOrder = { high: 3, medium: 2, low: 1 };
           const pA = priorityOrder[a.priority as keyof typeof priorityOrder] || 0;
           const pB = priorityOrder[b.priority as keyof typeof priorityOrder] || 0;
           comparison = pB - pA; // Default: high first
           break;
+        }
+        case 'energy': {
+          const energyOrder = { low_energy: 1, medium: 2, high_focus: 3 };
+          const aHasEnergy = a.energy_level ? 0 : 1;
+          const bHasEnergy = b.energy_level ? 0 : 1;
+          if (aHasEnergy !== bHasEnergy) return aHasEnergy - bHasEnergy;
+
+          const eA = energyOrder[a.energy_level as keyof typeof energyOrder] || 0;
+          const eB = energyOrder[b.energy_level as keyof typeof energyOrder] || 0;
+          return sortDirection === 'asc' ? eA - eB : eB - eA;
+        }
         case 'created_at':
           comparison = (b.created_at || '').localeCompare(a.created_at || '');
           break;
@@ -222,7 +241,7 @@ export function TaskListView({
       
       return sortDirection === 'asc' ? -comparison : comparison;
     });
-  };
+  }, [sortBy, sortDirection]);
 
   // Get date group for a task
   const getDateGroupId = (task: Task): string => {
@@ -284,7 +303,7 @@ export function TaskListView({
     });
 
     return { groups, completed: sortTasks(completedTasks) };
-  }, [filteredTasks, groupBy, sortBy, sortDirection]);
+  }, [filteredTasks, groupBy, sortTasks]);
 
   // Get group configs as a memoized value (to avoid hook-after-return issues)
   const groupConfigs = useMemo((): GroupConfig[] => {
@@ -414,8 +433,8 @@ export function TaskListView({
       <div className="flex items-center gap-2">
         <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm text-muted-foreground hidden sm:inline">Sort by:</span>
-        <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortByOption)}>
-          <SelectTrigger className="w-[130px] h-8">
+        <Select value={sortBy} onValueChange={(v) => handleSortByChange(v as SortByOption)}>
+          <SelectTrigger className="w-[140px] h-8">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -437,6 +456,11 @@ export function TaskListView({
             <ArrowDown className="h-4 w-4" />
           )}
         </Button>
+        {sortBy === 'energy' && (
+          <span className="rounded-md bg-success/10 px-2 py-1 text-xs font-medium text-success">
+            {sortDirection === 'asc' ? 'Low energy first' : 'High focus first'}
+          </span>
+        )}
       </div>
     </div>
   );
