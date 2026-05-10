@@ -1150,74 +1150,18 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
               </button>
               <button
                 type="button"
-                onClick={() => toggleCaptureType('income', true)}
+                onClick={() => toggleCaptureType('note', true)}
                 className={cn(
                   "flex items-center justify-center gap-1 px-3 py-2.5 text-sm font-medium rounded-lg transition-all touch-manipulation whitespace-nowrap",
-                  captureType === 'income'
-                    ? "bg-emerald-600 text-white shadow-sm"
+                  captureType === 'note'
+                    ? "bg-primary text-primary-foreground shadow-sm"
                     : "bg-muted text-muted-foreground"
                 )}
               >
-                <TrendingUp className="h-4 w-4" />
-                Income
-              </button>
-              <button
-                type="button"
-                onClick={() => toggleCaptureType('expense', true)}
-                className={cn(
-                  "flex items-center justify-center gap-1 px-3 py-2.5 text-sm font-medium rounded-lg transition-all touch-manipulation whitespace-nowrap",
-                  captureType === 'expense'
-                    ? "bg-rose-600 text-white shadow-sm"
-                    : "bg-muted text-muted-foreground"
-                )}
-              >
-                <TrendingDown className="h-4 w-4" />
-                Expense
+                <StickyNote className="h-4 w-4" />
+                Note
               </button>
             </div>
-
-            {/* Financial form for income/expense on mobile */}
-            {(captureType === 'income' || captureType === 'expense') && (
-              <div className="space-y-3">
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    ref={amountInputRef}
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={financialData.amount}
-                    onChange={(e) => setFinancialData(prev => ({ ...prev, amount: e.target.value }))}
-                    placeholder="0.00"
-                    className="text-xl h-14 pl-10 font-semibold"
-                  />
-                </div>
-                <Select
-                  value={financialData.category}
-                  onValueChange={(value) => setFinancialData(prev => ({ ...prev, category: value }))}
-                >
-                  <SelectTrigger className="h-12">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {financialCategories
-                      .filter(cat => cat.type === captureType)
-                      .map(cat => (
-                        <SelectItem key={cat.id} value={cat.name}>
-                          {cat.name}
-                        </SelectItem>
-                      ))
-                    }
-                  </SelectContent>
-                </Select>
-                <Input
-                  value={financialData.description}
-                  onChange={(e) => setFinancialData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Description (optional)"
-                  className="h-10"
-                />
-              </div>
-            )}
 
             {/* Multi-line Textarea for bulk entry - only for task/idea */}
             {true && (
