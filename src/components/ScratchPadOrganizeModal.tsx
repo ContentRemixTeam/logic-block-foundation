@@ -280,7 +280,7 @@ export function ScratchPadOrganizeModal({
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <ListTodo className="h-4 w-4 text-primary" />
-                  <h3 className="font-semibold">Tasks ({tasks.length})</h3>
+                  <h3 className="font-semibold">Send tasks to task list ({tasks.length})</h3>
                 </div>
                 <div className="space-y-3">
                   {tasks.map((task, idx) => (
