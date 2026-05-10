@@ -406,6 +406,15 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
   const [identity, setIdentity] = useState('');
   const [feeling, setFeeling] = useState('');
 
+  // Step 1b: WOOP + Energy Versions (behavior-change coaching)
+  const [wish, setWish] = useState('');
+  const [outcome, setOutcome] = useState('');
+  const [obstacle, setObstacle] = useState('');
+  const [ifThenPlan, setIfThenPlan] = useState('');
+  const [lowEnergyVersion, setLowEnergyVersion] = useState('');
+  const [mediumEnergyVersion, setMediumEnergyVersion] = useState('');
+  const [highEnergyVersion, setHighEnergyVersion] = useState('');
+
   // Step 2: Business Diagnostic
   const [discoverScore, setDiscoverScore] = useState(5);
   const [nurtureScore, setNurtureScore] = useState(5);
@@ -676,6 +685,13 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
           setWhy(cycleData.why || '');
           setIdentity(cycleData.identity || '');
           setFeeling(cycleData.target_feeling || '');
+          setWish((cycleData as any).wish || '');
+          setOutcome((cycleData as any).outcome || '');
+          setObstacle((cycleData as any).obstacle || '');
+          setIfThenPlan((cycleData as any).if_then_plan || '');
+          setLowEnergyVersion((cycleData as any).low_energy_version || '');
+          setMediumEnergyVersion((cycleData as any).medium_energy_version || '');
+          setHighEnergyVersion((cycleData as any).high_energy_version || '');
           setDiscoverScore(cycleData.discover_score || 5);
           setNurtureScore(cycleData.nurture_score || 5);
           setConvertScore(cycleData.convert_score || 5);
