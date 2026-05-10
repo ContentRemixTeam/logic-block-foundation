@@ -141,7 +141,8 @@ export default function Tasks() {
     const energyParam = searchParams.get('energy');
     const tabParam = searchParams.get('tab');
     let consumed = false;
-    if (energyParam === 'low_energy' && !filters.energy.includes('low_energy')) {
+    const normalizedEnergy = energyParam === 'low' ? 'low_energy' : energyParam;
+    if (normalizedEnergy === 'low_energy' && !filters.energy.includes('low_energy')) {
       setFilters(prev => ({ ...prev, energy: [...prev.energy, 'low_energy'] }));
       consumed = true;
     }
