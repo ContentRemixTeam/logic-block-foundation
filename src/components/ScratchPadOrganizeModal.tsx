@@ -399,17 +399,20 @@ export function ScratchPadOrganizeModal({
         </ScrollArea>
 
         <DialogFooter className="mt-4 flex-col gap-2 sm:flex-row">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
+            Process later
+          </Button>
           <Button variant="outline" onClick={handleUseDefaults} disabled={saving}>
-            Use Defaults
+            Use defaults
           </Button>
           <Button onClick={handleSaveAll} disabled={saving}>
             {saving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
+                Saving…
               </>
             ) : (
-              'Save Organization'
+              'Save organization'
             )}
           </Button>
         </DialogFooter>
