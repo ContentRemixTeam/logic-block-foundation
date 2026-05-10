@@ -79,9 +79,9 @@ export default function BrainDump() {
     convertCategory.mutate({ item, newCategory });
   }, [convertCategory]);
 
-  const handleCreate = useCallback((text: string, category: BrainDumpCategory) => {
-    createItem.mutate({ text, category });
-  }, [createItem]);
+  const handleCreateRaw = useCallback(async (raw: string, fallback: BrainDumpCategory) => {
+    return await createItemsFromText.mutateAsync({ raw, fallback });
+  }, [createItemsFromText]);
 
   const FILTER_BUTTONS: { key: FilterCategory; label: string; emoji?: string }[] = useMemo(() => [
     { key: 'all' as FilterCategory, label: 'All' },
