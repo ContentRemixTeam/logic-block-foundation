@@ -449,6 +449,9 @@ export default function WeeklyReview() {
       <div className="space-y-6 max-w-4xl mx-auto">
         {/* Save Status Banner */}
         <SaveStatusBanner status={saveStatus} onRetry={saveNow} />
+
+        {/* CEO Snapshot — week, season, and momentum at a glance */}
+        <CEOSnapshot />
         
         {/* Header */}
         <div className="flex items-center justify-between">
