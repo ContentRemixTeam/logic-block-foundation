@@ -340,11 +340,34 @@ export function TaskListView({
     setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
   };
 
+  // Compute the default scheduled date for inline-add inside a date-grouped section.
+  const getInlineDefaultDate = (groupId: string): Date | null => {
+    if (groupBy !== 'date') return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    switch (groupId) {
+      case 'today':
+      case 'overdue':
+        return today;
+      case 'tomorrow':
+        return addDays(today, 1);
+      case 'thisWeek':
+        return addDays(startOfWeek(today, { weekStartsOn: 1 }), 0); // Monday of this week
+      case 'later':
+        return addDays(today, 7);
+      case 'unscheduled':
+      default:
+        return null;
+    }
+  };
+
   const renderGroup = (
     config: GroupConfig,
     groupTasks: Task[],
     showRescheduleAll: boolean = false
   ) => {
+    // Render inline add even when the group is empty? No — only show the row inside groups that already have tasks
+    // so we don't fill the screen with empty add rows. Empty-group add stays in the global toolbar / dialog.
     if (groupTasks.length === 0) return null;
 
     const selectableTasks = groupTasks.filter(t => !t.is_completed);
@@ -418,6 +441,15 @@ export function TaskListView({
               showSelectionCheckbox={showSelectionCheckboxes && !task.is_completed}
             />
           ))}
+          {onInlineAddTask && (
+            <TaskQuickAdd
+              variant="inline"
+              defaultDate={getInlineDefaultDate(config.id)}
+              defaultGroup={config.id}
+              groupBy={groupBy}
+              onAddTask={onInlineAddTask}
+            />
+          )}
         </div>
       </div>
     );
