@@ -82,6 +82,7 @@ const BUILD_NAV = [
 
 const CAPTURE_NAV = [
   { name: 'Brain Dump', href: '/brain-dump', icon: Brain, questIcon: '🧠' },
+  { name: 'Open Loops', href: '/open-loops', icon: Inbox, questIcon: '📥' },
   { name: 'Notes', href: '/notes', icon: BookOpen, questIcon: '📒' },
   { name: 'Ideas', href: '/ideas', icon: Lightbulb, questIcon: '💡' },
   { name: 'Wins', href: '/wins', icon: Trophy, questIcon: '🏆' },
