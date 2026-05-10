@@ -120,10 +120,10 @@ export function cleanIdeaInput(input: string): string {
 
 const ENERGY_PATTERNS: Array<{ regex: RegExp; level: EnergyLevel }> = [
   { regex: /#low-energy\b/i,        level: 'low_energy' },
-  { regex: /#medium-energy\b/i,     level: 'medium_energy' },
+  { regex: /#medium-energy\b/i,     level: 'medium' },
   { regex: /#high-focus\b/i,        level: 'high_focus' },
   { regex: /\blow energy\b/i,       level: 'low_energy' },
-  { regex: /\bmedium energy\b/i,    level: 'medium_energy' },
+  { regex: /\bmedium energy\b/i,    level: 'medium' },
   { regex: /\bhigh focus\b/i,       level: 'high_focus' },
 ];
 
