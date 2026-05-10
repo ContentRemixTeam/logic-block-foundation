@@ -38,7 +38,7 @@ import { TasksPageToolbar } from '@/components/tasks/TasksPageToolbar';
 import { HelpButton } from '@/components/ui/help-button';
 import { TaskListView } from '@/components/tasks/views/TaskListView';
 import { TaskKanbanView } from '@/components/tasks/views/TaskKanbanView';
-import { TaskTimelineView } from '@/components/tasks/views/TaskTimelineView';
+
 import { TaskThreeDayView } from '@/components/tasks/views/TaskThreeDayView';
 import { TaskMondayBoardView } from '@/components/tasks/views/TaskMondayBoardView';
 import { TaskImportModal } from '@/components/tasks/TaskImportModal';
@@ -141,7 +141,8 @@ export default function Tasks() {
     const energyParam = searchParams.get('energy');
     const tabParam = searchParams.get('tab');
     let consumed = false;
-    if (energyParam === 'low_energy' && !filters.energy.includes('low_energy')) {
+    const normalizedEnergy = energyParam === 'low' ? 'low_energy' : energyParam;
+    if (normalizedEnergy === 'low_energy' && !filters.energy.includes('low_energy')) {
       setFilters(prev => ({ ...prev, energy: [...prev.energy, 'low_energy'] }));
       consumed = true;
     }
@@ -394,8 +395,10 @@ export default function Tasks() {
         const matchesDescription = task.task_description?.toLowerCase().includes(searchLower);
         const matchesSop = task.sop?.sop_name?.toLowerCase().includes(searchLower);
         const matchesNotes = task.notes?.toLowerCase().includes(searchLower);
-        
-        if (!matchesText && !matchesDescription && !matchesSop && !matchesNotes) {
+        const matchesProject = task.project?.name?.toLowerCase().includes(searchLower);
+        const matchesTags = Array.isArray(task.context_tags) && task.context_tags.some((t: string) => t?.toLowerCase().includes(searchLower));
+
+        if (!matchesText && !matchesDescription && !matchesSop && !matchesNotes && !matchesProject && !matchesTags) {
           return;
         }
       }
@@ -1133,6 +1136,23 @@ export default function Tasks() {
             onOpenDetail={openTaskDetail}
             onQuickReschedule={handleQuickReschedule}
             onAddTask={() => setIsAddDialogOpen(true)}
+            onInlineAddTask={async (parsed) => {
+              try {
+                await optimisticCreateTask.mutateAsync({
+                  task_text: parsed.text,
+                  scheduled_date: parsed.date ? format(parsed.date, 'yyyy-MM-dd') : null,
+                  priority: parsed.priority || null,
+                  estimated_minutes: parsed.duration ?? null,
+                  context_tags: parsed.tags ?? [],
+                  project_id: parsed.groupBy === 'project' && parsed.groupId && parsed.groupId !== 'no_project' ? parsed.groupId : null,
+                  energy_level: parsed.groupBy === 'energy' && parsed.groupId && parsed.groupId !== 'none' ? (parsed.groupId as any) : null,
+                  status: 'backlog',
+                });
+                toast.success('Task added');
+              } catch {
+                toast.error('Failed to add task');
+              }
+            }}
             selectedTaskIds={selectedTaskIds}
             onToggleTaskSelection={toggleTaskSelection}
             onSelectAllInGroup={handleSelectAllInGroup}
