@@ -36,6 +36,7 @@ import { ToastAction } from '@/components/ui/toast';
 import { WeeklySprintSection } from '@/components/weekly-plan/WeeklySprintSection';
 import { SummitCheckInCard } from '@/components/reviews/SummitCheckInCard';
 import { WeeklyContentScheduleCard } from '@/components/weekly-plan/WeeklyContentScheduleCard';
+import { ConfidenceScoreInput } from '@/components/reviews/ConfidenceScoreInput';
 import { useActiveSprint } from '@/hooks/useActiveSprint';
 import { useActiveSummits } from '@/hooks/useActiveSummits';
 
@@ -634,6 +635,7 @@ export default function WeeklyPlan() {
                           />
                         </div>
                       ))}
+                      <ConfidenceScoreInput weekId={weekId} />
                     </div>
                     
                     {/* Metric Targets */}
