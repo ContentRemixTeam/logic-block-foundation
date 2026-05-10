@@ -39,6 +39,7 @@ interface ProjectCardProps {
 
 export function ProjectCard({
   project,
+  stats,
   onEdit,
   onArchive,
   onComplete,
