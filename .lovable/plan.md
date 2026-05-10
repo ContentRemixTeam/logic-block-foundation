@@ -1,107 +1,68 @@
+## Audit findings (already in good shape)
 
-# Quick Capture — Phase 1 (planning-first refocus)
+Before scoping work, I checked the codebase against your 14 items. Several are already done or not blocking:
 
-A focused pass to (a) remove finance from the Quick Capture surface, (b) fix the time parser, (c) add tag-based energy + multi-destination routing, and (d) tighten draft safety. No schema changes. No AI. No deletes. Finance pages and the `financial_transactions` table stay intact.
+- **#1 Brain Dump wiring** — `BrainDump.tsx` already passes `onSubmitRaw={handleCreateRaw}` to `BrainDumpCreateForm`, which calls `createItemsFromText.mutateAsync`. Multi-line capture, failed-line retention, and tag routing are working from the previous Phase 1 pass. **No change needed.**
+- **#2 Tana-style tag inbox** — `captureTags.ts` already supports all the tags you listed (#task, #idea, #note, #project, #content, #question, #win, #low-energy, #medium-energy, #high-focus, #sales, #admin, etc.) and routing precedence. The capture form uses them. **Already shipped.**
+- **#10 Mobile bottom nav** — `MobileBottomNav.tsx` already shows Home / Tasks / Capture / Grow / More, and `/progress` is the live route. **Matches your spec.**
 
-## Pre-flight answers
+The real, scoped wins are #11 (stale routes), parts of #3/#4 (Next Best Action), parts of #5 (low-energy surfacing), and #12 (label consistency). Everything else (#3 full Today redesign, #6 Tasks polish round 2, #7 Project cards rework, #8 Business Season, #9 CEO Weekly Review redesign, #13 polish pass) is multi-hour redesign work that should be its own focused pass per area — bundling them risks regressions across autosave, offline, and existing planner data.
 
-**1. Files I will change**
-- `src/components/quick-capture/useCaptureTypeDetection.ts`
-  - Drop `'income' | 'expense'` from `CaptureType`; remove `INCOME_PHRASES`, `EXPENSE_PHRASES`, `CURRENCY_PATTERN` paths.
-  - Add `'note' | 'project' | 'content' | 'question' | 'reminder'` to `CaptureType` for routing parity with `captureTags.ts`.
-  - Fix the time regex (see §3).
-  - Add `energy_level` parsing to `parseTaskInput` (see §4) and to `ParsedTask`.
-  - Add a new `routeFromTags(input)` helper that reuses `src/lib/captureTags.ts` for line-level destination detection.
-  - Lower confidence behavior so untagged short input does not snap to `task` (see §3 default → `note`).
-- `src/components/quick-capture/QuickCaptureModal.tsx`
-  - Remove income/expense tabs, financial form, financial state, `financial_categories` fetch, `financial_transactions` insert, `TrendingUp`/`TrendingDown`/`DollarSign` imports, and `'income'/'expense'` branches in save / disabled / focus logic.
-  - Replace burst save with a tag-routed multi-line save: each line is routed to task/idea/note/project via `captureTags.ts`. Mixed lines work. Preserve the existing `useTaskMutations.createTask` path for task lines.
-  - Expand draft persistence to include: `input, captureType, parsedTask (date/priority/duration/tags/projectId/energy_level), ideaData (categoryId, priority, tags, projectId)`.
-  - Type pills become: Task · Idea · Note · Content (existing → ContentSaveModal). Note is the gentle inbox fallback. Project/Question/Reminder routing is reachable via tags from any pill (no extra pills needed in Phase 1).
-- `src/components/quick-capture/QuickChips.tsx`
-  - Add an Energy chip (Low / Medium / High focus) wired to `parsedTask.energy_level`.
-- `src/components/quick-capture/EditableChips.tsx`
-  - Same energy chip on desktop preview.
-- `src/pages/QuickAddApp.tsx` (PWA)
-  - Remove `expense`/`income` from `typeOptions`, the amount input, `financial_transactions` insert, finance icons, `isFinancial` branches.
-  - Switch grid to 3-column for Task/Idea/Note (Note added as inbox fallback). Reuse same routing helper for typed tags.
-- `src/pages/InstallQuickAdd.tsx`
-  - Drop Expenses/Income tiles + finance icons; rephrase the "switch with one tap" benefit copy to planning-only.
+## Phase 1 scope (this loop)
 
-**Out of scope this pass**: `BrainDump.tsx`, `SmartScratchPad.tsx`, `QuickCaptureProvider.tsx`, `QuickCaptureButton.tsx`, `IdeaQuickChips.tsx` — they don't reference finance and don't need behavior changes.
+Narrow, low-risk, high-leverage fixes only.
 
-**2. Removing finance safely**
-- No DB migration. `financial_transactions`, `financial_categories`, finance pages, and the `/finances` route stay.
-- We only delete the UI surfaces in Quick Capture / Quick Add PWA / Install screen.
-- Type union narrowed: `CaptureType` no longer includes `income | expense`. All branches that switched on these types are removed (validated by TS — build will surface any stragglers).
-- `'quick-capture-draft'` localStorage values from old versions that contain `captureType: 'income' | 'expense'` are sanitized on restore: if the loaded `captureType` is not in the new union, fall back to `'task'` and clear that field.
-- Recents (`quick-capture-recent-tags`, `quick-capture-recent-projects`) are untouched.
+### 1. Fix stale Mobile Quick Action routes (#11)
+- `src/components/mobile/MobileQuickActions.tsx`
+  - `/metrics` → `/progress`
+  - `/coach-yourself` → `/self-coaching` (drawer "Open Full Coach Tool" button)
+  - Rename action id `metrics` label to "Update progress" so it matches the destination.
 
-**3. Fixing the parser**
-Current `\b(\d{1,2})(:\d{2})?\s*(am|pm)?\b` strips bare numbers because `am|pm` is optional. Replacement:
-```
-const TIME_REGEX = /\b(\d{1,2}):(\d{2})\s*(am|pm)?\b|\b(\d{1,2})\s*(am|pm)\b/i;
-```
-Only matches `3pm`, `3:00`, `3:00pm`, `10am`. Bare `3` in "write 3 emails" is left in place. The same change is applied to `TIME_DATE_PATTERNS`.
+### 2. Add a deterministic "Next Best Action" panel (#4)
+- New component `src/components/today/NextBestAction.tsx` — pure presentation + a small deterministic hook.
+- New hook `src/hooks/useNextBestAction.ts` — reads existing data only:
+  - active 90-day cycle (existing query) → "Create your 90-day focus"
+  - this week's plan (existing query) → "Pick this week's Top 3"
+  - today's daily plan top-3 → "Choose today's Top 3"
+  - overdue tasks count from `useTasks()` → "Clear or reschedule N overdue tasks"
+  - unprocessed brain dump items from `useBrainDump()` → "Review your captured ideas"
+  - low-energy day flag on today's plan → "Pick one low-energy task"
+- Render at the top of `src/pages/DailyPlan.tsx` (Today) above existing sections. Calm card, single CTA button that routes to the relevant page. No schema changes.
 
-Also: when detection confidence is **low** and there are no tags, return `suggestedType: 'note'` (was `'task'`). The modal's existing override flag still lets the user switch back to Task with one tap, and chip values entered are kept on switch.
+### 3. Surface low-energy tasks (#5, partial)
+- In `src/components/tasks/TasksPageToolbar.tsx`, add a "Low energy" quick filter chip alongside existing filters (uses existing `energy_level = 'low_energy'` field). Persist in the same toolbar state pattern.
+- In the new `NextBestAction` panel, when low-energy is the suggestion, deep-link into `/tasks?energy=low_energy` and have the toolbar read that param on mount.
 
-**4. Energy parsing**
-- Recognize `#low-energy`, `#medium-energy`, `#high-focus` (from `captureTags.ts`) plus loose phrasings `"low energy"`, `"medium energy"`, `"high focus"`.
-- Map → `energy_level`: `low_energy` | `medium_energy` | `high_focus` (matching the existing string column on `tasks`).
-- Strip the matched tag/phrase from `cleanedText` so it doesn't appear in the saved task title; modifier tags from `captureTags.ts` (`sales`, `admin`, `email`, etc.) are kept in `tags[]` and saved into `context_tags`.
-- `ParsedTask` gains `energy_level?: 'low_energy' | 'medium_energy' | 'high_focus'`.
-- `createTask.mutateAsync` is called with `energy_level` (already supported by the schema).
+### 4. Copy standardization (#12, low-risk slice)
+- Audit + replace user-visible "Todo List" / "To-do" labels with "Tasks" in:
+  - `src/components/Layout.tsx` sidebar (if present)
+  - `src/components/MobileBottomNav.tsx` (already says Tasks — verify)
+  - `src/pages/Tasks.tsx` page header
+  - Any tab labels found via `rg -l "Todo List|To-do"` (will scope to user-facing strings only — not variable names, types, or DB columns).
 
-**5. Keeping existing task/idea saving working**
-- Task save path unchanged: `useTaskMutations().createTask` + `parsedTask` chips + `context_tags`. Burst path keeps the same mutation per line; only routing logic is added (lines tagged `#idea`/`#note`/`#project` are dispatched to their respective save calls already used in the modal: `save-idea` edge fn for ideas, direct insert into `journal_pages` for notes, direct insert into `ideas` for `#project`).
-- Idea save (`save-idea` edge fn) is unchanged; idea metadata chips and `IdeaQuickChips` keep working.
-- Recents update logic unchanged.
-- Cmd/Ctrl+K, Esc, mobile drawer, voice capture, draft recovery, burst mode, project chips: all preserved.
+### Out of scope this loop (deferred, will need their own passes)
 
-## Implementation steps
+- Full Today Command Center redesign (#3) — touches DailyPlan, Dashboard, Planning hierarchy
+- Tasks page round-2 polish (#6) — already had a pass; needs a focused calm/inline-add round
+- Projects cards + detail rework (#7) — needs design decisions on outcome / next-action surfacing
+- Business Season UX layer (#8) — needs preference storage decision (localStorage vs profile column)
+- Weekly CEO Review redesign (#9) — multi-section reflow, should be a dedicated loop
+- App-wide polish pass (#13) — should follow the structural changes
+- Data-safety banners (#14) — already present; will only re-audit when redesigning above
 
-1. **`useCaptureTypeDetection.ts`**
-   - Narrow `CaptureType`. Remove finance arrays/regex.
-   - Replace time regex to require am/pm or `H:MM`. Update `TIME_DATE_PATTERNS` accordingly.
-   - Add `ENERGY_TAGS` map; extend `parseTaskInput` to extract energy and strip from `cleanText`. Extend `ParsedTask`.
-   - Add `routeFromTags(input)` thin wrapper around `routeForLine` from `@/lib/captureTags`.
-   - Update default low-confidence return to `note`.
+## Risk
 
-2. **`QuickCaptureModal.tsx`**
-   - Strip all finance state, fetch, insert, validation, focus-on-amount, type-pill buttons (desktop + mobile), color overrides, save labels.
-   - Remove finance imports.
-   - Add Note pill (and keep Content pill which already opens `ContentSaveModal`).
-   - Replace `handleBurstSave` → `handleMultiLineSave(lines)` that routes each line: task → existing path; idea/project → existing idea insert; note → `journal_pages` insert (mirrors `useBrainDump.createItemsFromText`). Failed lines reported via toast; succeeded count tallied to `savedThisSession`.
-   - Save-button label: `Save Task` / `Save Idea` / `Save Note` / `Save N items` for multi-line.
-   - Persist full draft snapshot (`input, captureType, parsedTask, ideaData`) on debounced typing. On restore, sanitize legacy finance type and re-hydrate parsed/idea state. Also save draft on `onOpenChange(false)` with non-empty input.
-   - Energy chip wired through `handleQuickChipUpdate({ energy_level })`.
+- All Phase 1 changes are presentation/routing/derived-state only.
+- No schema changes, no edits to `useTasks`, `useBrainDump`, autosave, offline sync, or auth.
+- `NextBestAction` is additive (new files + one mount in `DailyPlan.tsx`); easy to revert.
+- Toolbar filter chip reuses existing filter state plumbing.
 
-3. **`QuickChips.tsx` / `EditableChips.tsx`**
-   - Add an Energy popover (Low / Medium / High focus) with the existing chip pattern. No styling overhaul.
+## Suggested next steps after Phase 1 ships
 
-4. **`QuickAddApp.tsx`**
-   - Remove finance from `typeOptions`, `isFinancial`, amount input, finance insert.
-   - Add Note option (saves to `journal_pages`); reuse routing helper so typed tags also work.
-   - Auth/ManifestSwitcher/session validation untouched.
+I'd recommend ordering future phases as:
+1. Today Command Center (#3) — anchors the rest of the UX
+2. Projects rework (#7) — second-most-visited daily surface
+3. Weekly CEO Review (#9) + Business Season (#8) together — they share planning vocabulary
+4. Tasks round-2 polish (#6) + app-wide polish (#13) — final calm/visual pass
 
-5. **`InstallQuickAdd.tsx`**
-   - Drop Expense/Income tiles; copy reads "Switch between task, idea, note with one tap".
-   - Keep all install/PWA logic.
-
-6. **Verify**
-   - Type-check (build runs automatically).
-   - Unit-spot check parser cases: `"write 3 emails"` keeps `text === "write 3 emails"`; `"call client tomorrow 3pm 30m !high #sales"` → date=tomorrow, time=3pm, duration=30, priority=high, tags=['sales']; `"deep work 2h #high-focus"` → duration=120, energy_level='high_focus'.
-   - Walk through modal: type a single task, multi-line mixed (task + idea + note + project), close mid-typing → reopen → draft restored, voice still works, finance pills gone.
-   - Confirm `/finances` page still loads and `financial_transactions` table is untouched.
-
-## Risks & mitigations
-- **Stale draft with `captureType: 'income'`** → sanitize on restore, fall back to `'task'`.
-- **Note insert path** mirrors `useBrainDump` (`journal_pages.insert({ user_id, title, content })`); same RLS already in use.
-- **Routing precedence** uses `task > project > idea > note > content > question > reminder`; matches `captureTags.ts` rules already shipped in Phase 1 of Brain Dump.
-
-## Out of scope
-- AI classification.
-- New schema columns (energy_level already exists; routing tags ride on `context_tags`).
-- Removing or migrating any finance data.
-- Redesigning Quick Capture beyond removing finance and adding Note pill + Energy chip.
+Want me to proceed with Phase 1 as scoped above?

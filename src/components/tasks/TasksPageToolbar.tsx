@@ -187,8 +187,24 @@ export const TasksPageToolbar = memo(function TasksPageToolbar({
           })}
         </div>
 
-        {/* Right cluster: search, filters, view */}
+        {/* Right cluster: low-energy chip, search, filters, view */}
         <div className="flex items-center gap-1.5">
+          {/* Low-energy quick toggle */}
+          <button
+            type="button"
+            onClick={() => toggleEnergy('low_energy')}
+            aria-pressed={filters.energy.includes('low_energy')}
+            className={cn(
+              "hidden sm:inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors",
+              filters.energy.includes('low_energy')
+                ? "bg-foreground text-background border-foreground"
+                : "border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/60"
+            )}
+            title="Show low-energy tasks"
+          >
+            <BatteryLow className="h-3.5 w-3.5" />
+            Low energy
+          </button>
           {/* Expanding search */}
           <div className="flex items-center">
             {searchOpen ? (

@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 export const SYNCABLE_TABLES = [
-  { key: 'tasks', label: 'Tasks', description: 'All your tasks and to-dos' },
+  { key: 'tasks', label: 'Tasks', description: 'All your tasks' },
   { key: 'cycles', label: '90-Day Cycles', description: 'Cycle goals and settings' },
   { key: 'daily_plans', label: 'Daily Plans', description: 'Daily priorities, brain dumps, reflections' },
   { key: 'weekly_plans', label: 'Weekly Plans', description: 'Weekly priorities and thoughts' },
