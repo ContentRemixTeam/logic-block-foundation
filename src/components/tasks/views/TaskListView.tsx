@@ -111,6 +111,7 @@ export function TaskListView({
   onQuickReschedule,
   onAddTask,
   onInlineAddTask,
+  selectedTaskIds = new Set(),
   onToggleTaskSelection,
   onSelectAllInGroup,
   showSelectionCheckboxes = false,
