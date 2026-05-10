@@ -5,6 +5,8 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Sunrise, Sun, Moon } from 'lucide-react';
 import { NextBestAction } from './NextBestAction';
+import { BusinessSeasonSelector } from './BusinessSeasonSelector';
+import { useBusinessSeason } from '@/hooks/useBusinessSeason';
 import { useAuth } from '@/hooks/useAuth';
 
 interface Top3Task {
