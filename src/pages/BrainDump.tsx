@@ -119,7 +119,7 @@ export default function BrainDump() {
               Brain Dump
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Capture everything. Categorize later. All notes flow to your planner automatically.
+              One calm inbox for tasks, ideas, notes, projects, questions, wins. Type freely — tags route it.
             </p>
           </div>
           <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
