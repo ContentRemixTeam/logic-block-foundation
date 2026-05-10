@@ -1025,6 +1025,9 @@ export default function DailyPlan() {
         {/* 2. Calendar Reconnect Banner */}
         <CalendarReconnectBanner />
 
+        {/* 2.1 Next Best Action — deterministic "what to do next" */}
+        <NextBestAction />
+
         {/* 2.5 Launch Mode Section (during active launches) */}
         {activeLaunch && (
           <LaunchModeSection launch={activeLaunch} />
