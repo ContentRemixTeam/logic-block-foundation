@@ -77,6 +77,7 @@ import { UnprocessedTagsWarning } from '@/components/daily-plan/UnprocessedTagsW
 import { InfoCards } from '@/components/daily/InfoCards';
 import { CustomizeTip } from '@/components/daily-plan/CustomizeTip';
 import { TodayCommandCenter } from '@/components/today/TodayCommandCenter';
+import { EvidenceQuickAdd } from '@/components/today/EvidenceQuickAdd';
 
 export default function DailyPlan() {
   const navigate = useNavigate();
