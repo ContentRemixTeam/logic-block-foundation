@@ -231,9 +231,7 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
       
       // Small delay to ensure modal is rendered
       setTimeout(() => {
-        if (lastCaptureType === 'income' || lastCaptureType === 'expense') {
-          amountInputRef.current?.focus();
-        } else if (isMobile && textareaRef.current) {
+        if (isMobile && textareaRef.current) {
           textareaRef.current.focus();
         } else if (inputRef.current) {
           inputRef.current.focus();
@@ -250,12 +248,6 @@ export function QuickCaptureModal({ open, onOpenChange, onReopenCapture, stayOpe
       setSavedThisSession(0);
       setBurstModeActive(false);
       setJustSaved(false);
-      setFinancialData({
-        amount: '',
-        category: '',
-        description: '',
-        date: format(new Date(), 'yyyy-MM-dd'),
-      });
       if (isListening) {
         stopListening();
       }
