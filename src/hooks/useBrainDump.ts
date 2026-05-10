@@ -288,11 +288,66 @@ export function useBrainDump() {
     },
   });
 
+  const createItemsFromText = useMutation({
+    mutationFn: async ({ raw, fallback = 'note' }: { raw: string; fallback?: BrainDumpCategory }) => {
+      if (!user) throw new Error('Not authenticated');
+      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+      const failed: string[] = [];
+      let saved = 0;
+      for (const line of lines) {
+        const routed = routeForLine(line, fallback);
+        const text = routed.cleanedText || line;
+        try {
+          if (routed.destination === 'note') {
+            const { error } = await supabase
+              .from('journal_pages')
+              .insert({ user_id: user.id, title: text, content: text });
+            if (error) throw error;
+          } else if (routed.destination === 'idea' || routed.destination === 'project') {
+            const { error } = await supabase
+              .from('ideas')
+              .insert({ user_id: user.id, content: text, project_id: null });
+            if (error) throw error;
+          } else if (routed.destination === 'task') {
+            await createTask.mutateAsync({
+              task_text: text,
+              source: 'brain_dump',
+              scheduled_date: new Date().toISOString().split('T')[0],
+            });
+          }
+          saved++;
+        } catch (err) {
+          console.error('createItemsFromText line failed:', err);
+          failed.push(line);
+        }
+      }
+      return { saved, failed, total: lines.length };
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['brain-dump'] });
+      queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['ideas'] });
+      if (res.failed.length === 0) {
+        toast({ title: res.saved === 1 ? 'Captured' : `Captured ${res.saved} items` });
+      } else {
+        toast({
+          title: `Saved ${res.saved} of ${res.total}`,
+          description: `${res.failed.length} line(s) kept in the box to retry.`,
+          variant: 'destructive',
+        });
+      }
+    },
+    onError: (err: any) => {
+      toast({ title: 'Capture failed', description: err.message, variant: 'destructive' });
+    },
+  });
+
   return {
     items: query.data || [],
     isLoading: query.isLoading,
     error: query.error,
     createItem,
+    createItemsFromText,
     deleteItem,
     updateItem,
     convertCategory,
