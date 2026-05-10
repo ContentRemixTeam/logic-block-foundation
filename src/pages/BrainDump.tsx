@@ -18,7 +18,7 @@ type ViewMode = 'board' | 'grid';
 type FilterCategory = 'all' | BrainDumpCategory;
 
 export default function BrainDump() {
-  const { items, isLoading, error, createItem, deleteItem, updateItem, convertCategory } = useBrainDump();
+  const { items, isLoading, error, createItemsFromText, deleteItem, updateItem, convertCategory } = useBrainDump();
 
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     return (localStorage.getItem('brain-dump-view') as ViewMode) || 'board';
