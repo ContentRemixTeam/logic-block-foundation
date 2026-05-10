@@ -76,7 +76,7 @@ import { SaveStatusIndicator, SaveStatusBanner } from '@/components/SaveStatusIn
 import { UnprocessedTagsWarning } from '@/components/daily-plan/UnprocessedTagsWarning';
 import { InfoCards } from '@/components/daily/InfoCards';
 import { CustomizeTip } from '@/components/daily-plan/CustomizeTip';
-import { NextBestAction } from '@/components/today/NextBestAction';
+import { TodayCommandCenter } from '@/components/today/TodayCommandCenter';
 
 export default function DailyPlan() {
   const navigate = useNavigate();
@@ -1025,8 +1025,8 @@ export default function DailyPlan() {
         {/* 2. Calendar Reconnect Banner */}
         <CalendarReconnectBanner />
 
-        {/* 2.1 Next Best Action — deterministic "what to do next" */}
-        <NextBestAction />
+        {/* 2.1 Today Command Center — greeting, Top 3 progress, Next Best Action */}
+        <TodayCommandCenter top3Tasks={top3Tasks} />
 
         {/* 2.5 Launch Mode Section (during active launches) */}
         {activeLaunch && (
