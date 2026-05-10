@@ -2042,8 +2042,12 @@ export type Database = {
           focus_area: string | null
           gap_strategy: string | null
           goal: string
+          high_energy_version: string | null
           identity: string | null
+          if_then_plan: string | null
           limiting_thought: string | null
+          low_energy_version: string | null
+          medium_energy_version: string | null
           metric_1_goal: number | null
           metric_1_name: string | null
           metric_1_start: number | null
@@ -2059,10 +2063,13 @@ export type Database = {
           metric_5_goal: number | null
           metric_5_name: string | null
           metric_5_start: number | null
+          minimum_viable_version: string | null
           nurture_score: number | null
+          obstacle: string | null
           office_hours_days: Json | null
           office_hours_end: string | null
           office_hours_start: string | null
+          outcome: string | null
           promotions: Json | null
           signature_message: string | null
           start_date: string
@@ -2076,6 +2083,7 @@ export type Database = {
           weekly_debrief_day: string | null
           weekly_planning_day: string | null
           why: string | null
+          wish: string | null
         }
         Insert: {
           accountability_person?: string | null
@@ -2099,8 +2107,12 @@ export type Database = {
           focus_area?: string | null
           gap_strategy?: string | null
           goal: string
+          high_energy_version?: string | null
           identity?: string | null
+          if_then_plan?: string | null
           limiting_thought?: string | null
+          low_energy_version?: string | null
+          medium_energy_version?: string | null
           metric_1_goal?: number | null
           metric_1_name?: string | null
           metric_1_start?: number | null
@@ -2116,10 +2128,13 @@ export type Database = {
           metric_5_goal?: number | null
           metric_5_name?: string | null
           metric_5_start?: number | null
+          minimum_viable_version?: string | null
           nurture_score?: number | null
+          obstacle?: string | null
           office_hours_days?: Json | null
           office_hours_end?: string | null
           office_hours_start?: string | null
+          outcome?: string | null
           promotions?: Json | null
           signature_message?: string | null
           start_date: string
@@ -2133,6 +2148,7 @@ export type Database = {
           weekly_debrief_day?: string | null
           weekly_planning_day?: string | null
           why?: string | null
+          wish?: string | null
         }
         Update: {
           accountability_person?: string | null
@@ -2156,8 +2172,12 @@ export type Database = {
           focus_area?: string | null
           gap_strategy?: string | null
           goal?: string
+          high_energy_version?: string | null
           identity?: string | null
+          if_then_plan?: string | null
           limiting_thought?: string | null
+          low_energy_version?: string | null
+          medium_energy_version?: string | null
           metric_1_goal?: number | null
           metric_1_name?: string | null
           metric_1_start?: number | null
@@ -2173,10 +2193,13 @@ export type Database = {
           metric_5_goal?: number | null
           metric_5_name?: string | null
           metric_5_start?: number | null
+          minimum_viable_version?: string | null
           nurture_score?: number | null
+          obstacle?: string | null
           office_hours_days?: Json | null
           office_hours_end?: string | null
           office_hours_start?: string | null
+          outcome?: string | null
           promotions?: Json | null
           signature_message?: string | null
           start_date?: string
@@ -2190,6 +2213,7 @@ export type Database = {
           weekly_debrief_day?: string | null
           weekly_planning_day?: string | null
           why?: string | null
+          wish?: string | null
         }
         Relationships: []
       }
@@ -2732,6 +2756,48 @@ export type Database = {
           id?: string
           last_synced_at?: string | null
           sync_direction?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      evidence_bank: {
+        Row: {
+          category: string | null
+          content: string
+          created_at: string
+          cycle_id: string | null
+          day_id: string | null
+          entry_date: string
+          id: string
+          source: string | null
+          task_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          content: string
+          created_at?: string
+          cycle_id?: string | null
+          day_id?: string | null
+          entry_date?: string
+          id?: string
+          source?: string | null
+          task_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          content?: string
+          created_at?: string
+          cycle_id?: string | null
+          day_id?: string | null
+          entry_date?: string
+          id?: string
+          source?: string | null
+          task_id?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -6160,6 +6226,7 @@ export type Database = {
           recurrence_interval: number | null
           recurrence_pattern: string | null
           recurrence_unit: string | null
+          reschedule_count: number
           reschedule_count_30d: number
           reschedule_loop_active: boolean
           reschedule_nudge_dismissed_until: string | null
@@ -6230,6 +6297,7 @@ export type Database = {
           recurrence_interval?: number | null
           recurrence_pattern?: string | null
           recurrence_unit?: string | null
+          reschedule_count?: number
           reschedule_count_30d?: number
           reschedule_loop_active?: boolean
           reschedule_nudge_dismissed_until?: string | null
@@ -6300,6 +6368,7 @@ export type Database = {
           recurrence_interval?: number | null
           recurrence_pattern?: string | null
           recurrence_unit?: string | null
+          reschedule_count?: number
           reschedule_count_30d?: number
           reschedule_loop_active?: boolean
           reschedule_nudge_dismissed_until?: string | null
@@ -6951,6 +7020,7 @@ export type Database = {
       }
       user_profiles: {
         Row: {
+          business_season: string | null
           created_at: string
           default_planning_level: string | null
           email: string | null
@@ -6966,6 +7036,7 @@ export type Database = {
           workshop_date: string | null
         }
         Insert: {
+          business_season?: string | null
           created_at?: string
           default_planning_level?: string | null
           email?: string | null
@@ -6981,6 +7052,7 @@ export type Database = {
           workshop_date?: string | null
         }
         Update: {
+          business_season?: string | null
           created_at?: string
           default_planning_level?: string | null
           email?: string | null
@@ -7446,6 +7518,7 @@ export type Database = {
           alignment_rating: number | null
           alignment_reflection: string | null
           challenges: string | null
+          confidence_score: number | null
           created_at: string | null
           cycle_id: string
           goal_checkin_notes: string | null
@@ -7475,6 +7548,7 @@ export type Database = {
           alignment_rating?: number | null
           alignment_reflection?: string | null
           challenges?: string | null
+          confidence_score?: number | null
           created_at?: string | null
           cycle_id: string
           goal_checkin_notes?: string | null
@@ -7504,6 +7578,7 @@ export type Database = {
           alignment_rating?: number | null
           alignment_reflection?: string | null
           challenges?: string | null
+          confidence_score?: number | null
           created_at?: string | null
           cycle_id?: string
           goal_checkin_notes?: string | null
