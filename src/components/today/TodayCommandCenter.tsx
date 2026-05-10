@@ -88,6 +88,10 @@ export function TodayCommandCenter({ top3Tasks = [], lowEnergyDay }: TodayComman
           </div>
         </div>
 
+        <div className="flex justify-end">
+          <BusinessSeasonSelector />
+        </div>
+
         {/* Next best action */}
         <NextBestAction lowEnergyDay={lowEnergyDay} className="border-dashed bg-background/60" />
       </CardContent>
