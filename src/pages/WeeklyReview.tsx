@@ -21,6 +21,7 @@ import { getNurtureStats } from "@/lib/contentService";
 import { useDataProtection } from "@/hooks/useDataProtection";
 import { SaveStatusIndicator, SaveStatusBanner } from "@/components/SaveStatusIndicator";
 import { LaunchCheckInCard } from "@/components/launch/LaunchCheckInCard";
+import { CEOSnapshot } from "@/components/reviews/CEOSnapshot";
 
 interface Belief {
   belief_id: string;
