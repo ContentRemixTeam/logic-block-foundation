@@ -907,267 +907,160 @@ export default function Tasks() {
     return { total, completed };
   };
 
+  // Editorial header content based on active tab
+  const headerTitle =
+    activeTab === 'today' ? 'Today' :
+    activeTab === 'week' ? 'This Week' :
+    activeTab === 'completed' ? 'Completed' :
+    'All Tasks';
+
+  const plannedMinutes = useMemo(() => {
+    return openTasks.reduce((sum: number, t: Task) => sum + (t.estimated_minutes || 0), 0);
+  }, [openTasks]);
+  const plannedHours = Math.round((plannedMinutes / 60) * 10) / 10;
+  const openCount =
+    activeTab === 'today' ? counts.today :
+    activeTab === 'week' ? counts.week :
+    activeTab === 'completed' ? counts.completed :
+    counts.all;
+
+  const isListView = viewMode === 'list';
+
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <Card className="overflow-hidden border-primary/10 bg-card shadow-sm">
-          <CardContent className="p-5 sm:p-6">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">Task Manager</p>
-                  <h1 className="text-3xl font-bold tracking-tight">Choose the right work for today</h1>
-                  <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-                    Match your tasks to your energy, your current project focus, and the planning rhythm you already use.
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="secondary" className="gap-1.5 rounded-full px-3 py-1">
-                    <CalendarDays className="h-3.5 w-3.5" />
-                    {counts.today} today
-                  </Badge>
-                  <Badge variant="outline" className="gap-1.5 rounded-full px-3 py-1">
-                    <CalendarRange className="h-3.5 w-3.5" />
-                    {counts.week} this week
-                  </Badge>
-                  <Badge variant="outline" className="gap-1.5 rounded-full px-3 py-1">
-                    <BatteryLow className="h-3.5 w-3.5 text-success" />
-                    {taskInsights.lowEnergy} low-energy
-                  </Badge>
-                  {overdueCount > 0 && (
-                    <Badge variant="destructive" className="gap-1.5 rounded-full px-3 py-1">
-                      <AlertTriangle className="h-3.5 w-3.5" />
-                      {overdueCount} overdue
-                    </Badge>
-                  )}
-                </div>
-              </div>
-              <div className="flex flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row">
-                <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  New task
-                </Button>
-                <Button variant="outline" onClick={() => focusEnergyFilter('low_energy')} className="gap-2">
-                  <BatteryLow className="h-4 w-4" />
-                  Low-energy list
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className={cn(
+        "min-h-screen bg-gradient-to-b from-background via-background to-muted/30",
+        isListView ? "pt-8 pb-24" : "pt-6 pb-12"
+      )}>
+        <div className={cn(
+          "mx-auto px-4 sm:px-6 space-y-6",
+          isListView ? "max-w-5xl" : "max-w-7xl"
+        )}>
 
-        {/* Overdue Tasks Banner */}
-        {overdueCount > 0 && (
-          <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
-              <div>
-                <p className="font-medium text-destructive">
-                  You have {overdueCount} overdue task{overdueCount !== 1 ? 's' : ''}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Clear your backlog to stay on track
-                </p>
-              </div>
-            </div>
-            <Button 
-              variant="destructive" 
-              size="sm"
-              onClick={() => setIsOverdueModalOpen(true)}
-              className="shrink-0"
-            >
-              Handle Overdue Tasks
-            </Button>
-          </div>
-        )}
-
-        {/* Cycle Progress */}
-        {activeCycle && (
-          <CycleTimeline 
-            startDate={activeCycle.start_date} 
-            endDate={activeCycle.end_date} 
-          />
-        )}
-
-        {/* New unified toolbar */}
-        <TasksPageToolbar
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          filters={filters}
-          onFiltersChange={setFilters}
-          counts={counts}
-          projects={projects}
-          launches={launches}
-        />
-
-        <div className="grid gap-3 md:grid-cols-3">
-          <button
-            type="button"
-            onClick={() => focusEnergyFilter('low_energy')}
-            className={cn(
-              "group rounded-xl border bg-success/5 p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-success/50 hover:bg-success/10 hover:shadow-md",
-              filters.energy.includes('low_energy') && "border-success/60 bg-success/10 ring-2 ring-success/15"
-            )}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-success/15 text-success">
-                  <BatteryLow className="h-5 w-5" />
+          {/* Quiet status strip — only when there's something to show */}
+          {(overdueCount > 0 || activeCycle) && (
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              {activeCycle && (
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary/60" />
+                  Current cycle
                 </span>
-                <div>
-                  <div className="text-sm font-semibold text-success">Low-energy list</div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Lighter admin, replies, and quick wins for low-capacity days.
-                  </p>
-                </div>
-              </div>
-              <Badge variant="secondary" className="rounded-full">{taskInsights.lowEnergy}</Badge>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => focusEnergyFilter('high_focus')}
-            className={cn(
-              "group rounded-xl border bg-destructive/5 p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-destructive/40 hover:bg-destructive/10 hover:shadow-md",
-              filters.energy.includes('high_focus') && "border-destructive/50 bg-destructive/10 ring-2 ring-destructive/10"
-            )}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-                  <Zap className="h-5 w-5" />
-                </span>
-                <div>
-                  <div className="text-sm font-semibold text-destructive">High-focus work</div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Deep work for windows where your brain and body have more room.
-                  </p>
-                </div>
-              </div>
-              <Badge variant="secondary" className="rounded-full">{taskInsights.highFocus}</Badge>
-            </div>
-          </button>
-
-          <div className="rounded-xl border bg-primary/5 p-4 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <FolderKanban className="h-5 w-5" />
-                </span>
-                <div>
-                  <div className="text-sm font-semibold">Project clarity</div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {taskInsights.missingEnergy > 0
-                      ? `Add energy to ${taskInsights.missingEnergy} task${taskInsights.missingEnergy === 1 ? '' : 's'} so planning feels easier later.`
-                      : 'Every open task has an energy level, so planning by capacity is ready.'}
-                  </p>
-                </div>
-              </div>
-              <Badge variant="outline" className="rounded-full">{taskInsights.inProjects}/{counts.all}</Badge>
-            </div>
-          </div>
-        </div>
-
-        {/* Import Modal */}
-        <TaskImportModal
-          open={isImportModalOpen}
-          onOpenChange={setIsImportModalOpen}
-           onImportComplete={() => queryClient.invalidateQueries({ queryKey: ['all-tasks'] })}
-        />
-
-        {/* Quick Add Bar */}
-        <div className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <div>
-              <span className="text-sm font-semibold">Capture a task</span>
-              <p className="text-xs text-muted-foreground">Get it out of your head now, refine the details when you have room.</p>
-            </div>
-            <HelpButton
-              title="Quick Add Syntax"
-              description="Add tasks faster using natural language shortcuts."
-              tips={[
-                "Type 'today' or 'tomorrow' to set the date",
-                "Use #tag for context (e.g., #calls, #deep-work)",
-                "Add !high, !med, or !low for priority",
-                "Include '30m' or '2h' to set duration"
-              ]}
-              learnMoreHref="/support"
-              side="right"
-            />
-          </div>
-          <TaskQuickAdd onAddTask={handleQuickAdd} />
-        </div>
-
-        {/* Recurring Tasks (collapsed by default) */}
-        {recurringParentTasks.length > 0 && (
-          <Collapsible open={recurringExpanded} onOpenChange={setRecurringExpanded}>
-            <Card className="border-dashed">
-              <CollapsibleTrigger asChild>
-                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
-                      <RefreshCw className="h-4 w-4" />
-                      Recurring Tasks
-                      <Badge variant="secondary">{recurringParentTasks.length}</Badge>
-                    </CardTitle>
-                    <ChevronDown className={cn("h-4 w-4 transition-transform text-muted-foreground", recurringExpanded && "rotate-180")} />
-                  </div>
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent className="pt-0 space-y-2">
-                  {recurringParentTasks.map((task: Task) => (
-                    <div 
-                      key={task.task_id} 
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 cursor-pointer" 
-                      onClick={() => openTaskDetail(task)}
-                    >
-                      <div>
-                        <p className="font-medium text-sm">{task.task_text}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {getRecurrenceLabel(task.recurrence_pattern, task.recurrence_days)}
-                        </p>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 text-destructive hover:text-destructive" 
-                        onClick={(e) => { e.stopPropagation(); initiateDelete(task); }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
-        )}
-
-        {/* Recovery and task count */}
-        <div className="space-y-2">
-          {/* Recovery banner for pending syncs/drafts */}
-          <TaskRecoveryBanner />
-
-          {/* Task count */}
-          {!isLoading && (
-            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <span>Showing {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}{hasMore && ' (more available)'}</span>
-              <Separator orientation="vertical" className="h-4" />
-              <Button variant={activeTab === 'all' ? 'secondary' : 'outline'} size="sm" className="h-7" onClick={() => setActiveTab('all')}>
-                All {counts.all}
-              </Button>
-              <Badge variant="outline">No date {counts.unscheduled}</Badge>
-              <Badge variant="outline">In projects {counts.projects}</Badge>
+              )}
+              {overdueCount > 0 && (
+                <button
+                  onClick={() => setIsOverdueModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 text-destructive/80 hover:text-destructive transition-colors"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-destructive/70" />
+                  {overdueCount} overdue · review
+                </button>
+              )}
             </div>
           )}
-        </div>
+
+          {/* Editorial header */}
+          <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-1.5">
+              <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">
+                {headerTitle}
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {format(new Date(), 'EEEE, MMMM d')}
+                <span className="mx-1.5 text-muted-foreground/40">·</span>
+                {openCount} {activeTab === 'completed' ? 'completed' : 'open'} task{openCount === 1 ? '' : 's'}
+                {plannedHours > 0 && activeTab !== 'completed' && (
+                  <>
+                    <span className="mx-1.5 text-muted-foreground/40">·</span>
+                    {plannedHours} hr{plannedHours === 1 ? '' : 's'} planned
+                  </>
+                )}
+              </p>
+              {activeTab === 'all' && (
+                <p className="text-xs text-muted-foreground/70">
+                  Tasks from your projects, plans, and wizards live here.
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsAddDialogOpen(true)}
+                className="gap-1.5 text-muted-foreground hover:text-foreground"
+              >
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">New task</span>
+              </Button>
+            </div>
+          </header>
+
+          {/* Quiet recovery banner (only when needed) */}
+          <TaskRecoveryBanner />
+
+          {/* Cycle progress — only when active */}
+          {activeCycle && (
+            <CycleTimeline
+              startDate={activeCycle.start_date}
+              endDate={activeCycle.end_date}
+            />
+          )}
+
+          {/* Toolbar */}
+          <TasksPageToolbar
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            filters={filters}
+            onFiltersChange={setFilters}
+            counts={counts}
+            projects={projects}
+            launches={launches}
+          />
+
+          {/* Import Modal */}
+          <TaskImportModal
+            open={isImportModalOpen}
+            onOpenChange={setIsImportModalOpen}
+            onImportComplete={() => queryClient.invalidateQueries({ queryKey: ['all-tasks'] })}
+          />
+
+          {/* Recurring Tasks (collapsed by default, very quiet) */}
+          {recurringParentTasks.length > 0 && (
+            <Collapsible open={recurringExpanded} onOpenChange={setRecurringExpanded}>
+              <CollapsibleTrigger className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                <RefreshCw className="h-3 w-3" />
+                <span className="uppercase tracking-wider">Recurring · {recurringParentTasks.length}</span>
+                <ChevronDown className={cn("h-3 w-3 transition-transform", recurringExpanded && "rotate-180")} />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2 space-y-1.5">
+                {recurringParentTasks.map((task: Task) => (
+                  <div
+                    key={task.task_id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 cursor-pointer"
+                    onClick={() => openTaskDetail(task)}
+                  >
+                    <div>
+                      <p className="font-medium text-sm">{task.task_text}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {getRecurrenceLabel(task.recurrence_pattern, task.recurrence_days)}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={(e) => { e.stopPropagation(); initiateDelete(task); }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
 
         {/* Main content */}
         {isLoading ? (
