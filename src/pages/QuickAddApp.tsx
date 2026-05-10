@@ -5,16 +5,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  CheckSquare, 
-  Lightbulb, 
-  TrendingDown, 
-  TrendingUp,
+import {
+  CheckSquare,
+  Lightbulb,
+  StickyNote,
   Plus,
   ExternalLink,
   Loader2,
   Zap,
-  DollarSign
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,8 +22,9 @@ import { ManifestSwitcher } from '@/components/pwa/ManifestSwitcher';
 import { IdeaQuickChips } from '@/components/quick-capture/IdeaQuickChips';
 import { useProjects } from '@/hooks/useProjects';
 import { useTaskMutations } from '@/hooks/useTasks';
+import { routeForLine, type CaptureDestination } from '@/lib/captureTags';
 
-type CaptureType = 'task' | 'idea' | 'expense' | 'income';
+type CaptureType = 'task' | 'idea' | 'note';
 
 interface TypeOption {
   id: CaptureType;
@@ -36,33 +35,26 @@ interface TypeOption {
 }
 
 const typeOptions: TypeOption[] = [
-  { 
-    id: 'task', 
-    label: 'Task', 
-    icon: <CheckSquare className="h-4 w-4" />, 
+  {
+    id: 'task',
+    label: 'Task',
+    icon: <CheckSquare className="h-4 w-4" />,
     placeholder: 'What needs to be done?',
-    color: 'bg-primary text-primary-foreground'
+    color: 'bg-primary text-primary-foreground',
   },
-  { 
-    id: 'idea', 
-    label: 'Idea', 
-    icon: <Lightbulb className="h-4 w-4" />, 
+  {
+    id: 'idea',
+    label: 'Idea',
+    icon: <Lightbulb className="h-4 w-4" />,
     placeholder: 'Capture your idea...',
-    color: 'bg-yellow-500 text-white'
+    color: 'bg-accent text-accent-foreground',
   },
-  { 
-    id: 'expense', 
-    label: 'Expense', 
-    icon: <TrendingDown className="h-4 w-4" />, 
-    placeholder: 'What did you spend on?',
-    color: 'bg-destructive text-destructive-foreground'
-  },
-  { 
-    id: 'income', 
-    label: 'Income', 
-    icon: <TrendingUp className="h-4 w-4" />, 
-    placeholder: 'What did you earn?',
-    color: 'bg-green-500 text-white'
+  {
+    id: 'note',
+    label: 'Note',
+    icon: <StickyNote className="h-4 w-4" />,
+    placeholder: 'Jot down a note...',
+    color: 'bg-secondary text-secondary-foreground',
   },
 ];
 
@@ -87,41 +79,30 @@ export default function QuickAddApp() {
   const { createTask } = useTaskMutations();
   const [selectedType, setSelectedType] = useState<CaptureType>('task');
   const [inputValue, setInputValue] = useState('');
-  const [amount, setAmount] = useState('');
   const [saving, setSaving] = useState(false);
   const [sessionCount, setSessionCount] = useState(0);
-  const [sessionValidating, setSessionValidating] = useState(false);
-  
-  // Idea metadata state
-  const [ideaData, setIdeaData] = useState<IdeaData>({ 
-    categoryId: null, 
-    priority: null, 
-    tags: [], 
-    projectId: null 
+
+  const [ideaData, setIdeaData] = useState<IdeaData>({
+    categoryId: null,
+    priority: null,
+    tags: [],
+    projectId: null,
   });
   const [ideaCategories, setIdeaCategories] = useState<IdeaCategory[]>([]);
 
-  const currentType = typeOptions.find(t => t.id === selectedType)!;
-  const isFinancial = selectedType === 'expense' || selectedType === 'income';
+  const currentType = typeOptions.find((t) => t.id === selectedType)!;
 
   // Proactively validate session on PWA launch (iOS fix)
   useEffect(() => {
     const validateSession = async () => {
       if (authLoading || !user) return;
-      setSessionValidating(true);
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
-          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-          if (refreshError || !refreshData?.session) {
-            // Session truly expired — don't redirect, just let the auth check below handle it
-            console.warn('Quick Add: session refresh failed');
-          }
+          await supabase.auth.refreshSession();
         }
       } catch (err) {
         console.error('Session validation error:', err);
-      } finally {
-        setSessionValidating(false);
       }
     };
     validateSession();
@@ -143,12 +124,51 @@ export default function QuickAddApp() {
     fetchCategories();
   }, [user]);
 
+  const saveOne = useCallback(
+    async (text: string, dest: CaptureDestination) => {
+      if (!user) throw new Error('Not logged in');
+      const content = text.trim();
+      if (!content) return;
+
+      if (dest === 'task') {
+        await createTask.mutateAsync({
+          task_text: content,
+          scheduled_date: new Date().toISOString().split('T')[0],
+          status: 'scheduled',
+          source: 'manual',
+        });
+      } else if (dest === 'idea' || dest === 'project') {
+        const { error } = await supabase.from('ideas').insert({
+          user_id: user.id,
+          content,
+          category_id: ideaData.categoryId,
+          priority: ideaData.priority,
+          project_id: ideaData.projectId,
+          tags:
+            dest === 'project'
+              ? [...new Set([...(ideaData.tags || []), 'project'])]
+              : ideaData.tags.length > 0
+              ? ideaData.tags
+              : null,
+          source_note_title: 'Quick Add',
+        });
+        if (error) throw error;
+      } else {
+        // note
+        const { error } = await supabase.from('journal_pages').insert({
+          user_id: user.id,
+          title: content.slice(0, 80) || 'Untitled note',
+          content,
+          page_type: 'note',
+        } as any);
+        if (error) throw error;
+      }
+    },
+    [user, ideaData, createTask],
+  );
+
   const handleSave = useCallback(async () => {
     if (!inputValue.trim()) return;
-    if (isFinancial && !amount) {
-      toast({ title: 'Please enter an amount', variant: 'destructive' });
-      return;
-    }
     if (!user) {
       toast({ title: 'Please log in to save', variant: 'destructive' });
       return;
@@ -157,61 +177,57 @@ export default function QuickAddApp() {
     setSaving(true);
 
     try {
-      if (selectedType === 'task') {
-        await createTask.mutateAsync({
-          task_text: inputValue.trim(),
-          scheduled_date: new Date().toISOString().split('T')[0],
-          status: 'scheduled',
-          source: 'manual',
-        });
-      } else if (selectedType === 'idea') {
-        const { error } = await supabase.from('ideas').insert({
-          user_id: user.id,
-          content: inputValue.trim(),
-          category_id: ideaData.categoryId,
-          priority: ideaData.priority,
-          project_id: ideaData.projectId,
-          tags: ideaData.tags.length > 0 ? ideaData.tags : null,
-          source_note_title: 'Quick Add',
-        });
-        if (error) throw error;
-      } else if (selectedType === 'expense' || selectedType === 'income') {
-        const { error } = await supabase.from('financial_transactions').insert({
-          user_id: user.id,
-          description: inputValue.trim(),
-          amount: parseFloat(amount),
-          type: selectedType,
-          category: selectedType === 'expense' ? 'Uncategorized' : 'Sales',
-          date: new Date().toISOString().split('T')[0],
-        });
-        if (error) throw error;
+      const lines = inputValue.split('\n').map((l) => l.trim()).filter(Boolean);
+      let savedCount = 0;
+      const failed: string[] = [];
+
+      if (lines.length > 1) {
+        for (const line of lines) {
+          const routed = routeForLine(line, selectedType as CaptureDestination);
+          try {
+            await saveOne(routed.cleanedText, routed.destination);
+            savedCount++;
+          } catch (err: any) {
+            failed.push(line);
+          }
+        }
+      } else {
+        const routed = routeForLine(inputValue.trim(), selectedType as CaptureDestination);
+        await saveOne(routed.cleanedText, routed.destination);
+        savedCount = 1;
       }
 
-      setSessionCount(prev => prev + 1);
-      setInputValue('');
-      setAmount('');
-      setIdeaData({ categoryId: null, priority: null, tags: [], projectId: null });
-      
-      // Haptic feedback on mobile
-      if (navigator.vibrate) {
-        navigator.vibrate(50);
+      setSessionCount((prev) => prev + savedCount);
+      if (failed.length === 0) {
+        setInputValue('');
+        setIdeaData({ categoryId: null, priority: null, tags: [], projectId: null });
+      } else {
+        setInputValue(failed.join('\n'));
       }
 
-      toast({ 
-        title: `${currentType.label} saved!`,
-        description: `Session total: ${sessionCount + 1}`,
+      if (navigator.vibrate) navigator.vibrate(50);
+
+      toast({
+        title:
+          savedCount === 1
+            ? `${currentType.label} saved!`
+            : `Saved ${savedCount} item${savedCount > 1 ? 's' : ''}`,
+        description:
+          failed.length > 0
+            ? `${failed.length} item(s) kept for retry`
+            : `Session total: ${sessionCount + savedCount}`,
       });
     } catch (error: any) {
       console.error('Save error:', error);
-      toast({ 
-        title: 'Failed to save', 
+      toast({
+        title: 'Failed to save',
         description: error.message,
-        variant: 'destructive' 
+        variant: 'destructive',
       });
     } finally {
       setSaving(false);
     }
-  }, [inputValue, amount, selectedType, user, sessionCount, isFinancial, currentType, toast, createTask]);
+  }, [inputValue, selectedType, user, sessionCount, currentType, toast, saveOne]);
 
   // Auto-focus input on mount and type change
   useEffect(() => {
@@ -219,7 +235,6 @@ export default function QuickAddApp() {
     if (input) input.focus();
   }, [selectedType]);
 
-  // Show auth message if not logged in
   if (!authLoading && !user) {
     return (
       <>
@@ -230,7 +245,7 @@ export default function QuickAddApp() {
               <Zap className="h-12 w-12 mx-auto text-primary" />
               <h1 className="text-xl font-bold">Quick Add</h1>
               <p className="text-muted-foreground">
-                Please log in to start capturing tasks, ideas, and finances.
+                Please log in to start capturing tasks, ideas, and notes.
               </p>
               <Button asChild className="w-full">
                 <Link to="/auth">Log In</Link>
@@ -257,7 +272,6 @@ export default function QuickAddApp() {
     <>
       <ManifestSwitcher />
       <div className="min-h-screen bg-background flex flex-col">
-        {/* Header */}
         <header className="border-b bg-card px-4 py-3 safe-area-inset-top">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -273,24 +287,21 @@ export default function QuickAddApp() {
           </div>
         </header>
 
-        {/* Main Content */}
         <main className="flex-1 p-4 flex flex-col">
           {/* Type Selector */}
-          <div className="grid grid-cols-4 gap-2 mb-6">
+          <div className="grid grid-cols-3 gap-2 mb-6">
             {typeOptions.map((type) => (
               <button
                 key={type.id}
                 onClick={() => {
                   setSelectedType(type.id);
-                  setInputValue('');
-                  setAmount('');
                   setIdeaData({ categoryId: null, priority: null, tags: [], projectId: null });
                 }}
                 className={cn(
                   'flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all',
                   selectedType === type.id
                     ? `${type.color} border-transparent shadow-md`
-                    : 'bg-card border-border hover:border-primary/50'
+                    : 'bg-card border-border hover:border-primary/50',
                 )}
               >
                 {type.icon}
@@ -299,10 +310,8 @@ export default function QuickAddApp() {
             ))}
           </div>
 
-          {/* Input Section */}
           <Card className="flex-1 flex flex-col">
             <CardContent className="pt-6 flex-1 flex flex-col gap-4">
-              {/* Main Input */}
               <div className="space-y-2">
                 <Label htmlFor="quick-add-input" className="sr-only">
                   {currentType.placeholder}
@@ -321,40 +330,15 @@ export default function QuickAddApp() {
                   }}
                   autoComplete="off"
                 />
+                <p className="text-xs text-muted-foreground px-1">
+                  Tip: use #task, #idea, #note, or #project to route lines automatically.
+                </p>
               </div>
 
-              {/* Amount Input for Financial Types */}
-              {isFinancial && (
-                <div className="space-y-2">
-                  <Label htmlFor="amount-input" className="text-sm text-muted-foreground">
-                    Amount
-                  </Label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input
-                      id="amount-input"
-                      type="number"
-                      inputMode="decimal"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      placeholder="0.00"
-                      className="h-14 text-lg pl-10"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSave();
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Idea metadata chips */}
               {selectedType === 'idea' && inputValue.trim() && (
                 <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
                   <div className="text-sm font-medium flex items-center gap-2 mb-2">
-                    <Lightbulb className="h-4 w-4 text-yellow-500" />
+                    <Lightbulb className="h-4 w-4 text-accent-foreground" />
                     <span className="text-muted-foreground">Add details</span>
                   </div>
                   <IdeaQuickChips
@@ -366,13 +350,11 @@ export default function QuickAddApp() {
                 </div>
               )}
 
-              {/* Spacer */}
               <div className="flex-1" />
 
-              {/* Save Button */}
               <Button
                 onClick={handleSave}
-                disabled={saving || !inputValue.trim() || (isFinancial && !amount)}
+                disabled={saving || !inputValue.trim()}
                 size="lg"
                 className={cn('h-14 text-lg w-full', currentType.color)}
               >
@@ -388,12 +370,13 @@ export default function QuickAddApp() {
             </CardContent>
           </Card>
 
-          {/* Footer Link */}
           <div className="mt-4 text-center">
             <button
               onClick={() => {
                 toast({ title: 'Opening in your browser...' });
-                setTimeout(() => { window.location.href = '/dashboard'; }, 300);
+                setTimeout(() => {
+                  window.location.href = '/dashboard';
+                }, 300);
               }}
               className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
