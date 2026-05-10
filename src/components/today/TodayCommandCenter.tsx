@@ -5,6 +5,8 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Sunrise, Sun, Moon } from 'lucide-react';
 import { NextBestAction } from './NextBestAction';
+import { BusinessSeasonSelector } from './BusinessSeasonSelector';
+import { useBusinessSeason } from '@/hooks/useBusinessSeason';
 import { useAuth } from '@/hooks/useAuth';
 
 interface Top3Task {
@@ -25,6 +27,7 @@ interface TodayCommandCenterProps {
  */
 export function TodayCommandCenter({ top3Tasks = [], lowEnergyDay }: TodayCommandCenterProps) {
   const { user } = useAuth();
+  const { seasonMeta } = useBusinessSeason();
 
   const { greeting, Icon } = useMemo(() => {
     const h = new Date().getHours();
@@ -59,6 +62,7 @@ export function TodayCommandCenter({ top3Tasks = [], lowEnergyDay }: TodayComman
               </h2>
               <p className="text-xs text-muted-foreground">
                 {format(new Date(), 'EEEE, MMMM d')}
+                {seasonMeta && <span className="ml-2">· {seasonMeta.emoji} {seasonMeta.todayPrompt}</span>}
               </p>
             </div>
           </div>
@@ -82,6 +86,10 @@ export function TodayCommandCenter({ top3Tasks = [], lowEnergyDay }: TodayComman
               <Progress value={pct} className="h-2" />
             </div>
           </div>
+        </div>
+
+        <div className="flex justify-end">
+          <BusinessSeasonSelector />
         </div>
 
         {/* Next best action */}
