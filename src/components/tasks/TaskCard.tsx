@@ -481,6 +481,7 @@ export function TaskCard({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      </div>
     </div>
   );
 }
