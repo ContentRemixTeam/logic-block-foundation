@@ -46,7 +46,14 @@ import { CampaignSlideIn } from '@/components/editorial-calendar/CampaignSlideIn
 import { CalendarStats } from '@/components/editorial-calendar/CalendarStats';
 import { DateModeSelector, CalendarDateMode } from '@/components/editorial-calendar/DateModeSelector';
 import { EditorialCalendarMobile } from '@/components/editorial-calendar/EditorialCalendarMobile';
+import { CalendarViewModeSwitcher, CalendarViewMode } from '@/components/editorial-calendar/CalendarViewModeSwitcher';
+import { CalendarListView } from '@/components/editorial-calendar/CalendarListView';
+import { CalendarPipelineView } from '@/components/editorial-calendar/CalendarPipelineView';
+import { CalendarGalleryView } from '@/components/editorial-calendar/CalendarGalleryView';
+import { CalendarCampaignView } from '@/components/editorial-calendar/CalendarCampaignView';
 import { toast } from 'sonner';
+
+const VIEW_MODE_KEY = 'editorial-calendar-view-mode';
 
 const DENSITY_LABELS: Record<CalendarDensity, string> = {
   compact: 'Compact',
@@ -67,6 +74,17 @@ export function EditorialCalendarView() {
 function EditorialCalendarViewInner() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [view, setView] = useState<'publish' | 'create'>('publish');
+  const [viewMode, setViewModeState] = useState<CalendarViewMode>(() => {
+    if (typeof window === 'undefined') return 'calendar';
+    const stored = localStorage.getItem(VIEW_MODE_KEY) as CalendarViewMode | null;
+    return stored && ['calendar', 'list', 'pipeline', 'gallery', 'campaign'].includes(stored)
+      ? stored
+      : 'calendar';
+  });
+  const setViewMode = useCallback((mode: CalendarViewMode) => {
+    setViewModeState(mode);
+    try { localStorage.setItem(VIEW_MODE_KEY, mode); } catch {}
+  }, []);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [activeItem, setActiveItem] = useState<CalendarItem | null>(null);
   const [editingItem, setEditingItem] = useState<CalendarItem | null>(null);
@@ -459,7 +477,9 @@ function EditorialCalendarViewInner() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <ViewToggle view={view} onViewChange={setView} />
+            <CalendarViewModeSwitcher mode={viewMode} onChange={setViewMode} />
+
+            {(viewMode === 'calendar' || viewMode === 'list') && <ViewToggle view={view} onViewChange={setView} />}
 
             <Button onClick={() => {
               setAddContentInitialDate(undefined);
@@ -516,21 +536,59 @@ function EditorialCalendarViewInner() {
         onDragEnd={handleDragEnd}
       >
         <div className="flex-1 flex min-h-0 overflow-hidden relative">
-          {/* Week Grid */}
-          <CalendarWeekView
-            weekStart={weekStart}
-            campaigns={campaigns}
-            getItemsForDay={getItemsForDay}
-            onItemClick={handleItemClick}
-            onAddClick={handleAddClick}
-            onCampaignClick={handleCampaignClick}
-            view={view}
-            selectedPlatforms={selectedPlatforms}
-            dateMode={calendarSettings.calendarDateMode}
-          />
+          {/* Main view — Calendar (drag/drop) or alternate presentation modes */}
+          {viewMode === 'calendar' && (
+            <CalendarWeekView
+              weekStart={weekStart}
+              campaigns={campaigns}
+              getItemsForDay={getItemsForDay}
+              onItemClick={handleItemClick}
+              onAddClick={handleAddClick}
+              onCampaignClick={handleCampaignClick}
+              view={view}
+              selectedPlatforms={selectedPlatforms}
+              dateMode={calendarSettings.calendarDateMode}
+            />
+          )}
+          {viewMode === 'list' && (
+            <CalendarListView
+              weekStart={weekStart}
+              getItemsForDay={getItemsForDay}
+              onItemClick={handleItemClick}
+              onAddClick={handleAddClick}
+              selectedPlatforms={selectedPlatforms}
+              dateMode={calendarSettings.calendarDateMode}
+            />
+          )}
+          {viewMode === 'pipeline' && (
+            <CalendarPipelineView
+              items={items}
+              unscheduledItems={unscheduledItems}
+              onItemClick={handleItemClick}
+              selectedPlatforms={selectedPlatforms}
+            />
+          )}
+          {viewMode === 'gallery' && (
+            <CalendarGalleryView
+              items={items}
+              unscheduledItems={unscheduledItems}
+              onItemClick={handleItemClick}
+              selectedPlatforms={selectedPlatforms}
+            />
+          )}
+          {viewMode === 'campaign' && (
+            <CalendarCampaignView
+              items={items}
+              unscheduledItems={unscheduledItems}
+              campaigns={campaigns}
+              onItemClick={handleItemClick}
+              onCampaignClick={handleCampaignClick}
+              selectedPlatforms={selectedPlatforms}
+            />
+          )}
 
           {/* Desktop: Sidebar Pool */}
-          {!isMobile && (
+          {!isMobile && (viewMode === 'calendar' || viewMode === 'list') && (
             <div className="shrink-0">
               <UnscheduledPool
                 items={unscheduledItems}
