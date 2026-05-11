@@ -1049,6 +1049,14 @@ export default function Tasks() {
             />
           )}
 
+          {/* Mastermind OS — momentum spine banner */}
+          <UnconnectedTasksBanner
+            tasks={tasks}
+            activeCycleId={activeCycle?.cycle_id ?? null}
+            activeGoal={activeCycle?.goal ?? null}
+            onOpenSweep={() => setIsSweepOpen(true)}
+          />
+
           {/* Toolbar */}
           <TasksPageToolbar
             activeTab={activeTab}
@@ -1062,6 +1070,14 @@ export default function Tasks() {
             counts={counts}
             projects={projects}
             launches={launches}
+          />
+
+          <ConnectTasksSweepModal
+            open={isSweepOpen}
+            onOpenChange={setIsSweepOpen}
+            tasks={tasks}
+            activeGoal={activeCycle?.goal ?? null}
+            activeCycleId={activeCycle?.cycle_id ?? null}
           />
 
           {/* Import Modal */}
