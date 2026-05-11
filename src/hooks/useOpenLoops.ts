@@ -499,7 +499,7 @@ export function useOpenLoopActions() {
     mutationFn: async ({ item, projectId }: { item: OpenLoopItem; projectId: string }) => {
       if (!user) throw new Error('Not authenticated');
       if (item.sourceTable === 'tasks') {
-        await updateTask.mutateAsync({ task_id: item.sourceId, project_id: projectId } as any);
+        await updateTask.mutateAsync({ taskId: item.sourceId, updates: { project_id: projectId } as any });
         return;
       }
       if (item.sourceTable === 'ideas') {
