@@ -493,6 +493,10 @@ function EditorialCalendarViewInner() {
           </div>
         </div>
 
+        {/* Weekly Summary + Insights (Slice A + C) */}
+        {(viewMode === 'calendar' || viewMode === 'list') && (
+          <WeeklySummaryPanel items={items} weekStart={weekStartDate} />
+        )}
         {/* Stats + Platform Filter - combined row */}
         <div className="flex items-center justify-between gap-4 px-5 py-2 border-t border-border/30 bg-muted/10 flex-wrap">
           <PlatformFilterBar
