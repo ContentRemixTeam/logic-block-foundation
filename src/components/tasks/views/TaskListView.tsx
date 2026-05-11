@@ -351,8 +351,11 @@ export function TaskListView({
         return today;
       case 'tomorrow':
         return addDays(today, 1);
-      case 'thisWeek':
-        return addDays(startOfWeek(today, { weekStartsOn: 1 }), 0); // Monday of this week
+      case 'thisWeek': {
+        // Default to today if Monday is already in the past; otherwise upcoming Monday.
+        const monday = startOfWeek(today, { weekStartsOn: 1 });
+        return monday < today ? today : monday;
+      }
       case 'later':
         return addDays(today, 7);
       case 'unscheduled':
@@ -366,9 +369,34 @@ export function TaskListView({
     groupTasks: Task[],
     showRescheduleAll: boolean = false
   ) => {
-    // Render inline add even when the group is empty? No — only show the row inside groups that already have tasks
-    // so we don't fill the screen with empty add rows. Empty-group add stays in the global toolbar / dialog.
-    if (groupTasks.length === 0) return null;
+    // Calm empty-group treatment only for the most useful date groups
+    // ("today" / "tomorrow"). Other empty groups stay hidden so we don't
+    // fill the screen with empty add rows.
+    const isPrimaryDateGroup =
+      groupBy === 'date' && (config.id === 'today' || config.id === 'tomorrow');
+
+    if (groupTasks.length === 0) {
+      if (!isPrimaryDateGroup || !onInlineAddTask) return null;
+      return (
+        <div key={config.id} className="space-y-2 animate-fade-in">
+          <div className="flex items-center gap-3 pb-1">
+            <span className="h-1.5 w-1.5 rounded-full shrink-0 bg-muted-foreground/40" />
+            <h2 className="text-[11px] font-medium uppercase tracking-[0.15em] whitespace-nowrap text-muted-foreground">
+              {config.name}
+            </h2>
+            <div className="h-px flex-1 bg-border/60" />
+          </div>
+          <p className="text-xs text-muted-foreground/70 italic px-2">Nothing planned.</p>
+          <TaskQuickAdd
+            variant="inline"
+            defaultDate={getInlineDefaultDate(config.id)}
+            defaultGroup={config.id}
+            groupBy={groupBy}
+            onAddTask={onInlineAddTask}
+          />
+        </div>
+      );
+    }
 
     const selectableTasks = groupTasks.filter(t => !t.is_completed);
     const selectedInGroup = selectableTasks.filter(t => selectedTaskIds.has(t.task_id)).length;
@@ -602,7 +630,16 @@ export function TaskListView({
     return (
       <div className="space-y-6" ref={containerRef}>
         {renderControls()}
-        
+
+        {/* Top-level quiet quick-add — preserves inline capture even when groups collapse into a virtualized list */}
+        {onInlineAddTask && (
+          <TaskQuickAdd
+            variant="inline"
+            groupBy={groupBy}
+            onAddTask={onInlineAddTask}
+          />
+        )}
+
         {/* Task count indicator */}
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>

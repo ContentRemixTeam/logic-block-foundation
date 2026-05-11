@@ -25,11 +25,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
   Plus, CalendarIcon, Clock, RefreshCw, ChevronDown, 
-  ClipboardList, ExternalLink, Unlink, LayoutList, Columns, 
-  Clock3, Zap, Battery, BatteryLow, Trash2, CalendarRange, Search, X, CheckSquare,
+  ClipboardList, ExternalLink, Unlink,
+  Zap, Battery, BatteryLow, Trash2, CheckSquare,
   AlertTriangle, Calendar as CalendarDays, Inbox, FolderKanban
 } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 // Import new components
@@ -37,7 +37,7 @@ import { TaskQuickAdd } from '@/components/tasks/TaskQuickAdd';
 import { TasksPageToolbar } from '@/components/tasks/TasksPageToolbar';
 import { HelpButton } from '@/components/ui/help-button';
 import { TaskListView } from '@/components/tasks/views/TaskListView';
-import { TaskKanbanView } from '@/components/tasks/views/TaskKanbanView';
+
 
 import { TaskThreeDayView } from '@/components/tasks/views/TaskThreeDayView';
 import { TaskMondayBoardView } from '@/components/tasks/views/TaskMondayBoardView';
@@ -63,7 +63,7 @@ import { useLaunches } from '@/hooks/useLaunches';
 
 export default function Tasks() {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
+
   
   // Google Calendar integration
   const { 
@@ -660,6 +660,20 @@ export default function Tasks() {
     toast.success(status === 'someday' ? 'Task moved to Someday' : 'Task rescheduled');
   }, [optimisticUpdateTask]);
 
+  // Convert a parsed time string like "2pm" or "10:30" to "HH:MM:00".
+  const normalizeTime = (raw?: string): string | null => {
+    if (!raw) return null;
+    const m = raw.trim().toLowerCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
+    if (!m) return null;
+    let hours = parseInt(m[1], 10);
+    const minutes = m[2] ? parseInt(m[2], 10) : 0;
+    const meridiem = m[3];
+    if (meridiem === 'pm' && hours < 12) hours += 12;
+    if (meridiem === 'am' && hours === 12) hours = 0;
+    if (hours > 23 || minutes > 59) return null;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
+  };
+
   const handleQuickAdd = useCallback((parsed: {
     text: string;
     date?: Date;
@@ -677,6 +691,7 @@ export default function Tasks() {
     optimisticCreateTask.mutate({
       task_text: parsed.text,
       scheduled_date: scheduledDate,
+      scheduled_time: normalizeTime(parsed.time),
       priority: parsed.priority || null,
       estimated_minutes: parsed.duration || null,
       context_tags: parsed.tags.length > 0 ? parsed.tags : null,
@@ -1138,15 +1153,32 @@ export default function Tasks() {
             onAddTask={() => setIsAddDialogOpen(true)}
             onInlineAddTask={async (parsed) => {
               try {
+                // Inherit group context unless the user explicitly typed a value.
+                const inheritedPriority =
+                  parsed.priority ||
+                  (parsed.groupBy === 'priority' && parsed.groupId && ['high', 'medium', 'low'].includes(parsed.groupId)
+                    ? (parsed.groupId as 'high' | 'medium' | 'low')
+                    : null);
+                const inheritedEnergy =
+                  parsed.groupBy === 'energy' && parsed.groupId && parsed.groupId !== 'none'
+                    ? (parsed.groupId as any)
+                    : null;
+                const inheritedProjectId =
+                  parsed.groupBy === 'project' && parsed.groupId && parsed.groupId !== 'no_project'
+                    ? parsed.groupId
+                    : null;
+                const scheduledDate = parsed.date ? format(parsed.date, 'yyyy-MM-dd') : null;
+
                 await optimisticCreateTask.mutateAsync({
                   task_text: parsed.text,
-                  scheduled_date: parsed.date ? format(parsed.date, 'yyyy-MM-dd') : null,
-                  priority: parsed.priority || null,
+                  scheduled_date: scheduledDate,
+                  scheduled_time: normalizeTime(parsed.time),
+                  priority: inheritedPriority,
                   estimated_minutes: parsed.duration ?? null,
                   context_tags: parsed.tags ?? [],
-                  project_id: parsed.groupBy === 'project' && parsed.groupId && parsed.groupId !== 'no_project' ? parsed.groupId : null,
-                  energy_level: parsed.groupBy === 'energy' && parsed.groupId && parsed.groupId !== 'none' ? (parsed.groupId as any) : null,
-                  status: 'backlog',
+                  project_id: inheritedProjectId,
+                  energy_level: inheritedEnergy,
+                  status: scheduledDate ? 'scheduled' : 'backlog',
                 });
                 toast.success('Task added');
               } catch {
