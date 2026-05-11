@@ -76,6 +76,7 @@ import { PageTransition, StaggerContainer, StaggerItem } from '@/components/tran
 import { ScorecardDashboard } from '@/components/scorecard/ScorecardDashboard';
 import { WeeklyScorecardForm } from '@/components/scorecard/WeeklyScorecardForm';
 import { getWeekNumber } from '@/hooks/useWeeklyScorecard';
+import { CEOWeeklyView } from '@/components/dashboard/CEOWeeklyView';
 
 // Dynamic alerts based on cycle day (excluding GAP alerts)
 function getDynamicAlert(currentDay: number) {
