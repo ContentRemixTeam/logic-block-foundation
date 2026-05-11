@@ -324,16 +324,7 @@ export default function ContentVault() {
               </div>
             ) : viewMode === 'table' ? (
               <ContentTable
-                items={items}
-                onEdit={handleEdit}
-                onDuplicate={handleDuplicate}
-                onDelete={handleDelete}
-                onMarkPublished={handleMarkPublished}
-                onLogSend={handleLogSend}
-              />
-            ) : (
-              <ContentCards
-                items={items}
+                items={displayItems}
                 onEdit={handleEdit}
                 onDuplicate={handleDuplicate}
                 onDelete={handleDelete}
