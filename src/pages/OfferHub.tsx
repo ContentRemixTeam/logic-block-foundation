@@ -18,6 +18,7 @@ import { useOffers, type Offer, type OfferInput } from '@/hooks/useOffers';
 import { useLaunches } from '@/hooks/useLaunches';
 import { useProjects } from '@/hooks/useProjects';
 import { Link } from 'react-router-dom';
+import { OfferDetailSheet } from '@/components/offers/OfferDetailSheet';
 
 const OFFER_TYPES = [
   { value: 'lead_magnet', label: 'Lead magnet' },
@@ -42,6 +43,13 @@ export default function OfferHub() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Offer | null>(null);
   const [form, setForm] = useState<OfferInput>({ name: '', status: 'active' });
+  const [detailOffer, setDetailOffer] = useState<Offer | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  const openDetail = (o: Offer) => {
+    setDetailOffer(o);
+    setDetailOpen(true);
+  };
 
   const startNew = () => {
     setEditing(null);
@@ -139,7 +147,7 @@ export default function OfferHub() {
                       const launch = launches.find((l: any) => l.id === o.launch_id);
                       const project = projects.find((p) => p.id === o.project_id);
                       return (
-                        <Card key={o.id} className="cursor-pointer hover:shadow-md transition" onClick={() => startEdit(o)}>
+                        <Card key={o.id} className="cursor-pointer hover:shadow-md transition" onClick={() => openDetail(o)}>
                           <CardHeader className="pb-2">
                             <div className="flex items-start justify-between gap-2">
                               <CardTitle className="text-base">{o.name}</CardTitle>
@@ -305,6 +313,16 @@ export default function OfferHub() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <OfferDetailSheet
+          offer={detailOffer}
+          open={detailOpen}
+          onOpenChange={setDetailOpen}
+          onEdit={(o) => {
+            setDetailOpen(false);
+            startEdit(o);
+          }}
+        />
       </div>
     </Layout>
   );
