@@ -132,25 +132,39 @@ export default function BrainDump() {
               One calm inbox for tasks, ideas, notes, projects, questions, wins. Type freely — tags route it.
             </p>
           </div>
-          <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-            <Button
-              variant={viewMode === 'board' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setView('board')}
-              className="h-8 gap-1.5"
-            >
-              <Columns3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Board</span>
-            </Button>
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setView('grid')}
-              className="h-8 gap-1.5"
-            >
-              <LayoutGrid className="h-4 w-4" />
-              <span className="hidden sm:inline">Grid</span>
-            </Button>
+          <div className="flex items-center gap-2">
+            {isMastermind && unprocessedItems.length > 0 && (
+              <Button
+                size="sm" variant="outline"
+                onClick={() => setSorterOpen(true)}
+                className="h-8 gap-1.5"
+                title="AI-sort unprocessed items"
+              >
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span className="hidden sm:inline">Sort with AI</span>
+                <Badge variant="secondary" className="h-4 px-1 text-[10px]">{unprocessedItems.length}</Badge>
+              </Button>
+            )}
+            <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+              <Button
+                variant={viewMode === 'board' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setView('board')}
+                className="h-8 gap-1.5"
+              >
+                <Columns3 className="h-4 w-4" />
+                <span className="hidden sm:inline">Board</span>
+              </Button>
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setView('grid')}
+                className="h-8 gap-1.5"
+              >
+                <LayoutGrid className="h-4 w-4" />
+                <span className="hidden sm:inline">Grid</span>
+              </Button>
+            </div>
           </div>
         </div>
 
