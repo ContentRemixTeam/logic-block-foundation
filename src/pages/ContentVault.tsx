@@ -331,6 +331,15 @@ export default function ContentVault() {
                 onMarkPublished={handleMarkPublished}
                 onLogSend={handleLogSend}
               />
+            ) : (
+              <ContentCards
+                items={displayItems}
+                onEdit={handleEdit}
+                onDuplicate={handleDuplicate}
+                onDelete={handleDelete}
+                onMarkPublished={handleMarkPublished}
+                onLogSend={handleLogSend}
+              />
             )}
           </TabsContent>
 
