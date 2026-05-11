@@ -409,6 +409,7 @@ export function useWizard<T extends Record<string, unknown>>({
     error,
     hasDraft,
     clearDraft,
+    markCompleted,
     totalSteps,
     lastServerSync,
     syncError,
