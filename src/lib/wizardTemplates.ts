@@ -34,20 +34,19 @@ export function canonicalTemplateName(name: string): string {
 export function viewLastRouteFor(completion: {
   template_name: string;
   created_cycle_id?: string | null;
-  created_project_id?: string | null;
-  created_launch_id?: string | null;
-  created_summit_id?: string | null;
 }): string | null {
   const t = canonicalTemplateName(completion.template_name);
   if (completion.created_cycle_id) return `/cycle-view/${completion.created_cycle_id}`;
-  if (completion.created_launch_id) return `/launches/${completion.created_launch_id}`;
-  if (completion.created_summit_id) return `/summits/${completion.created_summit_id}`;
-  if (completion.created_project_id) return `/projects?board=${completion.created_project_id}`;
-  // Fallbacks per wizard
+  // Per-wizard fallback destinations
   if (t === WIZARD_TEMPLATES.HABIT_PLANNER) return '/habits';
   if (t === WIZARD_TEMPLATES.CONTENT_PLANNER || t === WIZARD_TEMPLATES.CONTENT_CHALLENGE)
     return '/editorial-calendar';
   if (t === WIZARD_TEMPLATES.MONEY_MOMENTUM) return '/financial-tracker';
   if (t === WIZARD_TEMPLATES.PROJECT_DESIGNER) return '/projects';
+  if (t === WIZARD_TEMPLATES.LAUNCH_PLANNER) return '/launch-planner';
+  if (t === WIZARD_TEMPLATES.SUMMIT_PLANNER) return '/projects';
+  if (t === WIZARD_TEMPLATES.LEAD_MAGNET) return '/projects';
+  if (t === WIZARD_TEMPLATES.FLASH_SALE) return '/projects';
+  if (t === WIZARD_TEMPLATES.WEBINAR) return '/projects';
   return null;
 }
