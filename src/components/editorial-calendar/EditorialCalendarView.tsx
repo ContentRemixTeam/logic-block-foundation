@@ -46,7 +46,14 @@ import { CampaignSlideIn } from '@/components/editorial-calendar/CampaignSlideIn
 import { CalendarStats } from '@/components/editorial-calendar/CalendarStats';
 import { DateModeSelector, CalendarDateMode } from '@/components/editorial-calendar/DateModeSelector';
 import { EditorialCalendarMobile } from '@/components/editorial-calendar/EditorialCalendarMobile';
+import { CalendarViewModeSwitcher, CalendarViewMode } from '@/components/editorial-calendar/CalendarViewModeSwitcher';
+import { CalendarListView } from '@/components/editorial-calendar/CalendarListView';
+import { CalendarPipelineView } from '@/components/editorial-calendar/CalendarPipelineView';
+import { CalendarGalleryView } from '@/components/editorial-calendar/CalendarGalleryView';
+import { CalendarCampaignView } from '@/components/editorial-calendar/CalendarCampaignView';
 import { toast } from 'sonner';
+
+const VIEW_MODE_KEY = 'editorial-calendar-view-mode';
 
 const DENSITY_LABELS: Record<CalendarDensity, string> = {
   compact: 'Compact',
