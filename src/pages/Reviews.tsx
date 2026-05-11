@@ -7,6 +7,8 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, eachWeekOfInterval } from 'date-fns';
+import { useMembership } from '@/hooks/useMembership';
+import { WeeklyFocusCoach } from '@/components/mastermind/WeeklyFocusCoach';
 
 interface ReviewCard {
   title: string;
@@ -175,6 +177,8 @@ export default function Reviews() {
           <p className="text-muted-foreground">Your reflection command center</p>
         </div>
 
+        <MastermindCoachSlot />
+
         {/* Reviews Tracker */}
         <Card className="p-6">
           <h2 className="text-lg font-semibold mb-4">This Month's Review Progress</h2>
@@ -264,4 +268,10 @@ export default function Reviews() {
       </div>
     </Layout>
   );
+}
+
+function MastermindCoachSlot() {
+  const { isMastermind } = useMembership();
+  if (!isMastermind) return null;
+  return <WeeklyFocusCoach />;
 }

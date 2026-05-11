@@ -38,6 +38,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { TaskTimerButton } from '@/components/timer';
 import { StuckTaskBadge } from './StuckTaskBadge';
+import { Sparkles } from 'lucide-react';
+import { useMembership } from '@/hooks/useMembership';
+import { StuckTaskCoachModal } from '@/components/mastermind/StuckTaskCoachModal';
 
 interface TaskCardProps {
   task: Task;
@@ -96,6 +99,8 @@ export function TaskCard({
 }: TaskCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(task.task_text);
+  const [coachOpen, setCoachOpen] = useState(false);
+  const { isMastermind } = useMembership();
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -466,6 +471,12 @@ export function TaskCard({
               <Edit2 className="h-4 w-4 mr-2" />
               Edit details
             </DropdownMenuItem>
+            {isMastermind && (
+              <DropdownMenuItem onClick={() => setCoachOpen(true)}>
+                <Sparkles className="h-4 w-4 mr-2 text-primary" />
+                Make this easier
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={() => onUpdate(task.task_id, { status: 'focus' } as Partial<Task>)}>
               Move to Focus
             </DropdownMenuItem>
@@ -484,6 +495,9 @@ export function TaskCard({
         </DropdownMenu>
       </div>
       </div>
+      {isMastermind && (
+        <StuckTaskCoachModal task={coachOpen ? task : null} open={coachOpen} onOpenChange={setCoachOpen} />
+      )}
     </div>
   );
 }

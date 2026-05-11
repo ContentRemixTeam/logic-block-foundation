@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.test-api-key]
 verify_jwt = false
+
+[functions.mastermind-ai-coach]
+verify_jwt = false

@@ -10,15 +10,20 @@ import { BrainDumpBoard } from '@/components/brain-dump/BrainDumpBoard';
 import { BrainDumpGrid } from '@/components/brain-dump/BrainDumpGrid';
 import { PeriodSelector, type PeriodType, getDateRangeForPeriod } from '@/components/financial/PeriodSelector';
 import { useBrainDump, CATEGORY_CONFIG, type BrainDumpCategory, type BrainDumpItem } from '@/hooks/useBrainDump';
-import { Search, LayoutGrid, Columns3, X, Brain } from 'lucide-react';
+import { Search, LayoutGrid, Columns3, X, Brain, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseISO, isWithinInterval } from 'date-fns';
+import { useMembership } from '@/hooks/useMembership';
+import { BrainDumpSorterModal } from '@/components/mastermind/BrainDumpSorterModal';
 
 type ViewMode = 'board' | 'grid';
 type FilterCategory = 'all' | 'review' | BrainDumpCategory;
 
 export default function BrainDump() {
   const { items, isLoading, error, createItemsFromText, deleteItem, updateItem, convertCategory } = useBrainDump();
+  const { isMastermind } = useMembership();
+  const [sorterOpen, setSorterOpen] = useState(false);
+  const unprocessedItems = useMemo(() => items.filter(i => i.unprocessed), [items]);
 
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     return (localStorage.getItem('brain-dump-view') as ViewMode) || 'board';
@@ -127,25 +132,39 @@ export default function BrainDump() {
               One calm inbox for tasks, ideas, notes, projects, questions, wins. Type freely — tags route it.
             </p>
           </div>
-          <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-            <Button
-              variant={viewMode === 'board' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setView('board')}
-              className="h-8 gap-1.5"
-            >
-              <Columns3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Board</span>
-            </Button>
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setView('grid')}
-              className="h-8 gap-1.5"
-            >
-              <LayoutGrid className="h-4 w-4" />
-              <span className="hidden sm:inline">Grid</span>
-            </Button>
+          <div className="flex items-center gap-2">
+            {isMastermind && unprocessedItems.length > 0 && (
+              <Button
+                size="sm" variant="outline"
+                onClick={() => setSorterOpen(true)}
+                className="h-8 gap-1.5"
+                title="AI-sort unprocessed items"
+              >
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span className="hidden sm:inline">Sort with AI</span>
+                <Badge variant="secondary" className="h-4 px-1 text-[10px]">{unprocessedItems.length}</Badge>
+              </Button>
+            )}
+            <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+              <Button
+                variant={viewMode === 'board' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setView('board')}
+                className="h-8 gap-1.5"
+              >
+                <Columns3 className="h-4 w-4" />
+                <span className="hidden sm:inline">Board</span>
+              </Button>
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setView('grid')}
+                className="h-8 gap-1.5"
+              >
+                <LayoutGrid className="h-4 w-4" />
+                <span className="hidden sm:inline">Grid</span>
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -239,6 +258,14 @@ export default function BrainDump() {
           />
         )}
       </div>
+      {isMastermind && (
+        <BrainDumpSorterModal
+          items={unprocessedItems}
+          open={sorterOpen}
+          onOpenChange={setSorterOpen}
+          onConvert={(item, newCategory) => convertCategory.mutateAsync({ item, newCategory })}
+        />
+      )}
     </Layout>
   );
 }
