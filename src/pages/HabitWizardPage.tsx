@@ -180,6 +180,8 @@ export default function HabitWizardPage() {
         }
       }
 
+      // Clear draft + mark wizard completion so it doesn't keep reappearing in Resume.
+      try { await clearDraft(); } catch (e) { console.warn('clearDraft failed', e); }
       toast.success(`Created ${newHabits.length} new habits!`);
       navigate('/habits');
     } catch (error) {
