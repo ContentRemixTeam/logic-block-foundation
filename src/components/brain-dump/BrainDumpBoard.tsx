@@ -67,12 +67,17 @@ export function BrainDumpBoard({ items, onDelete, onUpdate, onConvertCategory, f
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
   );
 
+  const ALL_CATEGORIES: BrainDumpCategory[] = [
+    'task', 'idea', 'content', 'project', 'question', 'win', 'mindset', 'later', 'note',
+  ];
+
   const columns = useMemo(() => {
-    const grouped: Record<BrainDumpCategory, BrainDumpItem[]> = {
-      note: [], idea: [], task: [], project: [],
-    };
+    const grouped = ALL_CATEGORIES.reduce((acc, c) => {
+      acc[c] = [];
+      return acc;
+    }, {} as Record<BrainDumpCategory, BrainDumpItem[]>);
     items.forEach(item => {
-      grouped[item.category].push(item);
+      if (grouped[item.category]) grouped[item.category].push(item);
     });
     return grouped;
   }, [items]);
