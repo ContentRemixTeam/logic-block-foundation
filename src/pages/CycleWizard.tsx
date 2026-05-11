@@ -42,6 +42,13 @@ export default function CycleWizard() {
   const [showResumeDraft, setShowResumeDraft] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
+  const [taskOptions, setTaskOptions] = useState<CycleTaskOptions>(DEFAULT_CYCLE_TASK_OPTIONS);
+  const [successState, setSuccessState] = useState<{
+    cycleId: string;
+    tasksCreated: number;
+    tasksFailed: number;
+  } | null>(null);
+  const { resilientCreate } = useResilientTaskMutation();
 
   const {
     step,
