@@ -303,6 +303,12 @@ export function TaskCard({
 
           {/* Right cluster: subtle chips */}
           <div className="flex items-center gap-2 shrink-0 text-xs text-muted-foreground">
+            <MomentumChip
+              value={(task.momentum_type as MomentumType | null | undefined) ?? null}
+              onChange={(next) => onUpdate(task.task_id, { momentum_type: next })}
+              size="xs"
+              showPlaceholder={false}
+            />
             {task.energy_level && (
               <span
                 className="inline-flex h-5 w-5 items-center justify-center text-muted-foreground/80"
