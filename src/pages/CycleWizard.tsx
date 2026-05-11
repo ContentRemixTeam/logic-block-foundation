@@ -255,6 +255,53 @@ export default function CycleWizard() {
     setShowResumeDraft(false);
   }, [clearDraft]);
 
+  // Build preview sections from current data + chosen task options
+  const reviewSections: WizardReviewSection[] = useMemo(() => {
+    const drafts = generateCycleTaskDrafts(
+      {
+        goal: data.goal,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        weeklyPlanningDay: data.weeklyPlanningDay,
+        weeklyDebriefDay: data.weeklyDebriefDay,
+        metric1_name: data.metric1_name,
+        metric2_name: data.metric2_name,
+        metric3_name: data.metric3_name,
+      },
+      // Generate everything for preview; actual creation respects taskOptions
+      { monthlyCheckins: true, weeklyPlanning: true, firstThreeDays: true, lowEnergyBackups: true, endOfCycleReview: true },
+    );
+    const byKey = (key: string) => drafts.filter((d) => d.template_key === key).map((d) => `${d.task_text} \u00b7 ${d.scheduled_date}`);
+    return [
+      { key: 'cycle', title: '90-day cycle plan', count: 1, optional: false, defaultEnabled: true,
+        description: data.goal ? `Goal: ${data.goal}` : 'Your 90-day plan record.' },
+      { key: 'monthlyCheckins', title: 'Monthly check-ins', count: byKey('cycle_monthly_checkin').length,
+        description: 'Three review tasks, one per cycle month.', itemsPreview: byKey('cycle_monthly_checkin') },
+      { key: 'weeklyPlanning', title: 'Weekly planning reminder', count: byKey('cycle_weekly_planning').length,
+        description: 'Recurring weekly task to plan against your cycle goal.', itemsPreview: byKey('cycle_weekly_planning') },
+      { key: 'firstThreeDays', title: 'First 3 days of priority tasks', count: byKey('cycle_kickstart').length,
+        description: 'Kickstart tasks pulled from your success metrics.', itemsPreview: byKey('cycle_kickstart') },
+      { key: 'lowEnergyBackups', title: 'Low-energy backup tasks', count: byKey('cycle_low_energy_backup').length,
+        description: 'Lighter tasks for the days you don\u2019t feel sharp.', itemsPreview: byKey('cycle_low_energy_backup') },
+      { key: 'endOfCycleReview', title: 'End-of-cycle review', count: byKey('cycle_end_review').length,
+        description: 'A final review task scheduled for your end date.', itemsPreview: byKey('cycle_end_review') },
+    ];
+  }, [data]);
+
+  const enabledMap: Record<string, boolean> = {
+    cycle: true,
+    monthlyCheckins: taskOptions.monthlyCheckins,
+    weeklyPlanning: taskOptions.weeklyPlanning,
+    firstThreeDays: taskOptions.firstThreeDays,
+    lowEnergyBackups: taskOptions.lowEnergyBackups,
+    endOfCycleReview: taskOptions.endOfCycleReview,
+  };
+
+  const handleToggleSection = (key: string, value: boolean) => {
+    if (key === 'cycle') return; // not optional
+    setTaskOptions((opts) => ({ ...opts, [key]: value } as CycleTaskOptions));
+  };
+
   // Render current step content
   const renderStepContent = () => {
     const stepProps = { data, setData };
@@ -283,6 +330,17 @@ export default function CycleWizard() {
             onGoToStep={goToStep} 
             onExportPDF={handleExportPDF}
             isExporting={isExportingPDF}
+          />
+        );
+      case 10:
+        return (
+          <WizardReviewStep
+            sections={reviewSections}
+            enabled={enabledMap}
+            onToggle={handleToggleSection}
+            onConfirm={handleComplete}
+            isCreating={isCreating}
+            confirmLabel={editCycleId ? 'Update plan' : 'Create my 90-day cycle'}
           />
         );
       default:
