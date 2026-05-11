@@ -60,45 +60,10 @@ export class OpenAIService {
   }
   
   /**
-   * Test if OpenAI API key is valid
+   * @deprecated API key testing is now performed server-side via the
+   * `test-api-key` Supabase Edge Function (see useSaveAPIKey/useTestAPIKey).
+   * Calling provider APIs directly from the browser is no longer supported here.
    */
-  static async testAPIKey(apiKey: string): Promise<boolean> {
-    try {
-      const response = await fetch('https://api.openai.com/v1/models', {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`
-        }
-      });
-      return response.ok;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * Test if Anthropic API key is valid
-   */
-  static async testAnthropicKey(apiKey: string): Promise<boolean> {
-    try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 10,
-          messages: [{ role: 'user', content: 'Hi' }],
-        }),
-      });
-      // 200 means valid, 401 means invalid key
-      return response.ok;
-    } catch {
-      return false;
-    }
-  }
 
   /**
    * Get the active provider for a user (checks which keys exist)
