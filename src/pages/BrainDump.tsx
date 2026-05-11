@@ -21,6 +21,9 @@ type FilterCategory = 'all' | 'review' | BrainDumpCategory;
 
 export default function BrainDump() {
   const { items, isLoading, error, createItemsFromText, deleteItem, updateItem, convertCategory } = useBrainDump();
+  const { isMastermind } = useMembership();
+  const [sorterOpen, setSorterOpen] = useState(false);
+  const unprocessedItems = useMemo(() => items.filter(i => i.unprocessed), [items]);
 
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     return (localStorage.getItem('brain-dump-view') as ViewMode) || 'board';
