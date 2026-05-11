@@ -471,6 +471,12 @@ export function TaskCard({
               <Edit2 className="h-4 w-4 mr-2" />
               Edit details
             </DropdownMenuItem>
+            {isMastermind && (
+              <DropdownMenuItem onClick={() => setCoachOpen(true)}>
+                <Sparkles className="h-4 w-4 mr-2 text-primary" />
+                Make this easier
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={() => onUpdate(task.task_id, { status: 'focus' } as Partial<Task>)}>
               Move to Focus
             </DropdownMenuItem>
@@ -489,6 +495,9 @@ export function TaskCard({
         </DropdownMenu>
       </div>
       </div>
+      {isMastermind && (
+        <StuckTaskCoachModal task={coachOpen ? task : null} open={coachOpen} onOpenChange={setCoachOpen} />
+      )}
     </div>
   );
 }
