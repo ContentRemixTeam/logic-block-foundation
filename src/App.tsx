@@ -22,6 +22,7 @@ import { InstallPromptProvider } from "@/hooks/useInstallPrompt";
 import { DevDebugPanel } from "@/components/dev/DevDebugPanel";
 import { LoadingState } from "@/components/system/LoadingState";
 import { PerformanceMonitor } from "@/components/dev/PerformanceMonitor";
+import { ErrorBoundary } from "@/components/system/ErrorBoundary";
 
 // Eagerly load critical auth pages (small, needed immediately)
 import Auth from "./pages/Auth";
@@ -180,12 +181,15 @@ function OnlineStatusMonitor() {
   return null;
 }
 
-// Suspense wrapper for lazy-loaded pages
+// Suspense + per-route ErrorBoundary so a single page crash never
+// white-screens the whole app. Logs to backend via ErrorBoundary.
 function PageSuspense({ children }: { children: React.ReactNode }) {
   return (
-    <Suspense fallback={<LoadingState variant="skeleton" />}>
-      {children}
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingState variant="skeleton" />}>
+        {children}
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 
