@@ -79,15 +79,13 @@ export default function Settings() {
       }
 
       // Read from the shared user_settings cache instead of refetching via edge fn.
-      const { ensureUserSettings } = await import('@/lib/userSettingsCache');
-      const { useQueryClient } = await import('@tanstack/react-query');
-      // Tiny indirection: pull queryClient from window-attached app cache via dynamic import
-      // (avoids restructuring this large component to use hooks at top-level).
-      const qc: import('@tanstack/react-query').QueryClient = (window as unknown as { __APP_QUERY_CLIENT__?: import('@tanstack/react-query').QueryClient }).__APP_QUERY_CLIENT__!;
-      const data = qc ? await ensureUserSettings(qc, user.id) : null;
+      const data = await ensureUserSettings(queryClient, user.id);
       if (!data) {
         throw new Error('Failed to load settings');
       }
+
+      const themePref = (data.theme_preference || 'vibrant') as 'quest' | 'minimal' | 'vibrant' | 'bw';
+      const scratchMode = (data.scratch_pad_review_mode || 'quick_save') as 'quick_save' | 'organize_now';
 
       setSettings({
         minimal_mode: normalizeBoolean(data.minimal_mode),
@@ -95,8 +93,8 @@ export default function Settings() {
         habit_categories_enabled: normalizeBoolean(data.habit_categories_enabled, true),
         show_income_tracker: normalizeBoolean(data.show_income_tracker),
         show_ai_copywriting: normalizeBoolean(data.show_ai_copywriting),
-        theme_preference: data.theme_preference || 'vibrant',
-        scratch_pad_review_mode: data.scratch_pad_review_mode || 'quick_save',
+        theme_preference: themePref,
+        scratch_pad_review_mode: scratchMode,
         works_weekends: normalizeBoolean(data.works_weekends, false),
         show_mastermind_calls: normalizeBoolean(data.show_mastermind_calls, true),
       });
