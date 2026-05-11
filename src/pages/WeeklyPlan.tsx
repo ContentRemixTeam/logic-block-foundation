@@ -32,6 +32,7 @@ import { useMobileProtection } from '@/hooks/useMobileProtection';
 import { SaveStatusIndicator, SaveStatusBanner } from '@/components/SaveStatusIndicator';
 
 import { CycleProgressBanner } from '@/components/cycle/CycleProgressBanner';
+import { WeeklyTradeoffPanel } from '@/components/weekly-plan/WeeklyTradeoffPanel';
 import { ToastAction } from '@/components/ui/toast';
 import { WeeklySprintSection } from '@/components/weekly-plan/WeeklySprintSection';
 import { SummitCheckInCard } from '@/components/reviews/SummitCheckInCard';
