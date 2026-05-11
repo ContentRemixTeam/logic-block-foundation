@@ -536,18 +536,56 @@ function EditorialCalendarViewInner() {
         onDragEnd={handleDragEnd}
       >
         <div className="flex-1 flex min-h-0 overflow-hidden relative">
-          {/* Week Grid */}
-          <CalendarWeekView
-            weekStart={weekStart}
-            campaigns={campaigns}
-            getItemsForDay={getItemsForDay}
-            onItemClick={handleItemClick}
-            onAddClick={handleAddClick}
-            onCampaignClick={handleCampaignClick}
-            view={view}
-            selectedPlatforms={selectedPlatforms}
-            dateMode={calendarSettings.calendarDateMode}
-          />
+          {/* Main view — Calendar (drag/drop) or alternate presentation modes */}
+          {viewMode === 'calendar' && (
+            <CalendarWeekView
+              weekStart={weekStart}
+              campaigns={campaigns}
+              getItemsForDay={getItemsForDay}
+              onItemClick={handleItemClick}
+              onAddClick={handleAddClick}
+              onCampaignClick={handleCampaignClick}
+              view={view}
+              selectedPlatforms={selectedPlatforms}
+              dateMode={calendarSettings.calendarDateMode}
+            />
+          )}
+          {viewMode === 'list' && (
+            <CalendarListView
+              weekStart={weekStart}
+              getItemsForDay={getItemsForDay}
+              onItemClick={handleItemClick}
+              onAddClick={handleAddClick}
+              selectedPlatforms={selectedPlatforms}
+              dateMode={calendarSettings.calendarDateMode}
+            />
+          )}
+          {viewMode === 'pipeline' && (
+            <CalendarPipelineView
+              items={items}
+              unscheduledItems={unscheduledItems}
+              onItemClick={handleItemClick}
+              selectedPlatforms={selectedPlatforms}
+            />
+          )}
+          {viewMode === 'gallery' && (
+            <CalendarGalleryView
+              items={items}
+              unscheduledItems={unscheduledItems}
+              onItemClick={handleItemClick}
+              selectedPlatforms={selectedPlatforms}
+            />
+          )}
+          {viewMode === 'campaign' && (
+            <CalendarCampaignView
+              items={items}
+              unscheduledItems={unscheduledItems}
+              campaigns={campaigns}
+              onItemClick={handleItemClick}
+              onCampaignClick={handleCampaignClick}
+              selectedPlatforms={selectedPlatforms}
+            />
+          )}
 
           {/* Desktop: Sidebar Pool */}
           {!isMobile && (
