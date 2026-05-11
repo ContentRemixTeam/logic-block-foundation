@@ -103,7 +103,7 @@ export function BrainDumpBoard({ items, onDelete, onUpdate, onConvertCategory, f
     if (!draggedItem) return;
 
     const targetCategory = over.id as BrainDumpCategory;
-    if (['note', 'idea', 'task', 'project'].includes(targetCategory) && targetCategory !== draggedItem.category) {
+    if (ALL_CATEGORIES.includes(targetCategory) && targetCategory !== draggedItem.category) {
       onConvertCategory(draggedItem, targetCategory);
     }
   };
