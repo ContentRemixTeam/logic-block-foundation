@@ -86,18 +86,42 @@ export function WeeklyTradeoffPanel() {
     if (!user) return;
     setSaving(true);
     const minutes = Number(capacityHours) > 0 ? Math.round(Number(capacityHours) * 60) : null;
-    const payload = {
-      user_id: user.id,
-      start_of_week: weekStartISO,
+    const updates = {
       weekly_outcome: outcome || null,
       minimum_viable_week: mvp,
       life_happens_plan: lifeHappens || null,
       weekly_capacity_planned_minutes: minutes,
     };
 
-    const { data, error } = weekId
-      ? await supabase.from('weekly_plans').update(payload).eq('week_id', weekId).select('week_id').maybeSingle()
-      : await supabase.from('weekly_plans').insert(payload).select('week_id').maybeSingle();
+    let data: { week_id: string } | null = null;
+    let error: any = null;
+    if (weekId) {
+      const r = await supabase.from('weekly_plans').update(updates).eq('week_id', weekId).select('week_id').maybeSingle();
+      data = r.data; error = r.error;
+    } else {
+      // Need a cycle_id to insert. Find the active cycle for today.
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const { data: cycle } = await supabase
+        .from('cycles_90_day')
+        .select('cycle_id')
+        .eq('user_id', user.id)
+        .lte('start_date', today)
+        .gte('end_date', today)
+        .order('start_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!cycle?.cycle_id) {
+        setSaving(false);
+        toast.error('Start a 90-day cycle first to save weekly tradeoff.');
+        return;
+      }
+      const r = await supabase
+        .from('weekly_plans')
+        .insert({ user_id: user.id, start_of_week: weekStartISO, cycle_id: cycle.cycle_id, ...updates })
+        .select('week_id')
+        .maybeSingle();
+      data = r.data; error = r.error;
+    }
 
     setSaving(false);
     if (error) {
