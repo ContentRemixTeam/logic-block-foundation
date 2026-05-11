@@ -51,6 +51,7 @@ import { CalendarListView } from '@/components/editorial-calendar/CalendarListVi
 import { CalendarPipelineView } from '@/components/editorial-calendar/CalendarPipelineView';
 import { CalendarGalleryView } from '@/components/editorial-calendar/CalendarGalleryView';
 import { CalendarCampaignView } from '@/components/editorial-calendar/CalendarCampaignView';
+import { WeeklySummaryPanel } from '@/components/editorial-calendar/WeeklySummaryPanel';
 import { toast } from 'sonner';
 
 const VIEW_MODE_KEY = 'editorial-calendar-view-mode';
