@@ -75,19 +75,16 @@ export default function Settings() {
         return;
       }
 
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-user-settings`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (!res.ok) {
-        throw new Error(`Failed to load settings: ${res.status}`);
+      // Read from the shared user_settings cache instead of refetching via edge fn.
+      const { ensureUserSettings } = await import('@/lib/userSettingsCache');
+      const { useQueryClient } = await import('@tanstack/react-query');
+      // Tiny indirection: pull queryClient from window-attached app cache via dynamic import
+      // (avoids restructuring this large component to use hooks at top-level).
+      const qc: import('@tanstack/react-query').QueryClient = (window as unknown as { __APP_QUERY_CLIENT__?: import('@tanstack/react-query').QueryClient }).__APP_QUERY_CLIENT__!;
+      const data = qc ? await ensureUserSettings(qc, user.id) : null;
+      if (!data) {
+        throw new Error('Failed to load settings');
       }
-
-      const data = await res.json();
 
       setSettings({
         minimal_mode: normalizeBoolean(data.minimal_mode),
