@@ -509,6 +509,9 @@ export default function WeeklyPlan() {
         {/* 90-Day Cycle Progress */}
         <CycleProgressBanner compact />
 
+        {/* Weekly Tradeoff + Capacity Coach */}
+        <WeeklyTradeoffPanel />
+
         {/* Weekly Content Schedule (if enabled) */}
         <WeeklyContentScheduleCard />
 
