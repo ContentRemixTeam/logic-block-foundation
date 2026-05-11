@@ -35,7 +35,7 @@
    is_system_generated?: boolean | null;
    task_type?: string | null;
    template_key?: string | null;
-   energy_level?: 'low' | 'medium' | 'high' | null;
+   energy_level?: 'low_energy' | 'medium' | 'high_focus' | null;
    is_recurring?: boolean | null;
    recurrence_pattern?: string | null;
    category?: string | null;
