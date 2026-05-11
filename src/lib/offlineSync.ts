@@ -274,35 +274,51 @@ export async function getPendingCount(): Promise<number> {
 }
 
 /**
- * Setup automatic sync on reconnection
+ * Setup automatic sync on reconnection.
+ * SINGLETON: listeners are attached only once per page lifetime, even if
+ * multiple hooks/components call setupAutoSync. This prevents the
+ * "Sync already in progress" storms from N hooks each firing a sync.
  */
+let autoSyncInstalled = false;
+let lastSyncTriggerAt = 0;
+const SYNC_TRIGGER_DEDUPE_MS = 2000;
+
+function triggerSyncDebounced(reason: string) {
+  const now = Date.now();
+  if (now - lastSyncTriggerAt < SYNC_TRIGGER_DEDUPE_MS) {
+    return; // Skip silently — another trigger fired moments ago
+  }
+  lastSyncTriggerAt = now;
+  syncPendingMutations().catch((err) => {
+    console.warn(`[offlineSync] ${reason} sync failed:`, err);
+  });
+}
+
 export function setupAutoSync(): () => void {
+  if (autoSyncInstalled) {
+    // Already wired globally — return a no-op cleanup so per-hook unmount
+    // doesn't tear down the shared listeners.
+    return () => {};
+  }
+  autoSyncInstalled = true;
+
   const handleOnline = () => {
-    console.log('Connection restored, starting sync...');
-    // Delay sync slightly to ensure connection is stable
-    setTimeout(() => {
-      syncPendingMutations();
-    }, 1000);
+    setTimeout(() => triggerSyncDebounced('online'), 1000);
   };
 
-  window.addEventListener('online', handleOnline);
-
-  // Also sync on visibility change (when app comes to foreground)
   const handleVisibilityChange = () => {
     if (document.visibilityState === 'visible' && navigator.onLine) {
-      syncPendingMutations();
+      triggerSyncDebounced('visible');
     }
   };
 
+  window.addEventListener('online', handleOnline);
   document.addEventListener('visibilitychange', handleVisibilityChange);
 
-  // Initial sync if online
   if (navigator.onLine) {
-    syncPendingMutations();
+    triggerSyncDebounced('initial');
   }
 
-  return () => {
-    window.removeEventListener('online', handleOnline);
-    document.removeEventListener('visibilitychange', handleVisibilityChange);
-  };
+  // Intentionally never uninstall — singleton lives for page lifetime.
+  return () => {};
 }
