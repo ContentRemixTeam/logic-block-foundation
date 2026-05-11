@@ -282,7 +282,7 @@ export default function WizardHub() {
         ) : (
           <div className="space-y-2">
             {completions.map(completion => {
-              const template = templateMap[completion.template_name];
+              const template = templateMap[completion.template_name] || templateMap[canonicalTemplateName(completion.template_name)];
               const displayName = template?.displayName || completion.template_name;
               const iconName = template?.icon;
               const icon = iconName ? ICON_MAP_SMALL[iconName] : <Target className="h-5 w-5" />;
