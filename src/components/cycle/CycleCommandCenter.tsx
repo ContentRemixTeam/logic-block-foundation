@@ -277,10 +277,10 @@ export function CycleCommandCenter() {
                   <span className="text-foreground font-semibold">{stats.openCount}</span> open
                 </div>
                 <div className="space-y-2">
-                  {(Object.keys(MOMENTUM_META) as MomentumType[]).map((m) => {
+                  {MOMENTUM_TYPES.map((meta) => {
+                    const m = meta.value;
                     const count = stats.byMomentum[m] ?? 0;
                     const total = stats.totalMomentumTagged || 1;
-                    const meta = MOMENTUM_META[m];
                     const pct = Math.round((count / total) * 100);
                     return (
                       <div key={m}>
