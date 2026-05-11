@@ -588,7 +588,7 @@ function EditorialCalendarViewInner() {
           )}
 
           {/* Desktop: Sidebar Pool */}
-          {!isMobile && (
+          {!isMobile && (viewMode === 'calendar' || viewMode === 'list') && (
             <div className="shrink-0">
               <UnscheduledPool
                 items={unscheduledItems}
