@@ -7,6 +7,8 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, eachWeekOfInterval } from 'date-fns';
+import { useMembership } from '@/hooks/useMembership';
+import { WeeklyFocusCoach } from '@/components/mastermind/WeeklyFocusCoach';
 
 interface ReviewCard {
   title: string;
