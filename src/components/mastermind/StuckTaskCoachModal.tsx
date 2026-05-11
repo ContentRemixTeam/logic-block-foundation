@@ -87,6 +87,45 @@ export function StuckTaskCoachModal({ task, open, onOpenChange }: Props) {
     toast.success('Support question saved');
   };
 
+  const moveToSomeday = async () => {
+    await updateTask.mutateAsync({
+      taskId: task.task_id,
+      updates: { status: 'someday', scheduled_date: null },
+    });
+    toast.success('Moved to Someday');
+    onOpenChange(false);
+  };
+
+  const breakIntoSubtasks = async () => {
+    const res = await ai.mutateAsync({
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You break overwhelming tasks into 2–4 small, doable subtasks. Reply ONLY with JSON: {"subtasks": string[]}. Each subtask <= 80 chars, action-led.',
+        },
+        { role: 'user', content: `Parent task: "${task.task_text}". Return JSON now.` },
+      ],
+      temperature: 0.4,
+      max_tokens: 400,
+    });
+    const parsed = parseAIJson<{ subtasks: string[] }>(res.content);
+    if (!parsed?.subtasks?.length) {
+      toast.error('Could not generate subtasks.');
+      return;
+    }
+    for (const text of parsed.subtasks.slice(0, 4)) {
+      await createTask.mutateAsync({
+        task_text: text,
+        parent_task_id: task.task_id,
+        project_id: task.project_id ?? null,
+        priority: task.priority ?? 'medium',
+        status: 'backlog',
+      } as any);
+    }
+    toast.success(`Added ${parsed.subtasks.length} subtasks`);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
@@ -124,7 +163,7 @@ export function StuckTaskCoachModal({ task, open, onOpenChange }: Props) {
               onChange={v => setEdit({ ...edit, support_question: v })}
             />
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2">
               <Button size="sm" variant="default" onClick={applyAsReplacement} disabled={updateTask.isPending}>
                 Use 10-min step
               </Button>
@@ -133,6 +172,12 @@ export function StuckTaskCoachModal({ task, open, onOpenChange }: Props) {
               </Button>
               <Button size="sm" variant="outline" onClick={saveSupportQuestion} disabled={createTask.isPending}>
                 Save support Q
+              </Button>
+              <Button size="sm" variant="outline" onClick={breakIntoSubtasks} disabled={ai.isPending || createTask.isPending}>
+                Break into subtasks
+              </Button>
+              <Button size="sm" variant="outline" onClick={moveToSomeday} disabled={updateTask.isPending}>
+                Move to Someday
               </Button>
             </div>
           </div>

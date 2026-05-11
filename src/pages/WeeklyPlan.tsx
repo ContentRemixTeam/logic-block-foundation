@@ -32,6 +32,7 @@ import { useMobileProtection } from '@/hooks/useMobileProtection';
 import { SaveStatusIndicator, SaveStatusBanner } from '@/components/SaveStatusIndicator';
 
 import { CycleProgressBanner } from '@/components/cycle/CycleProgressBanner';
+import { WeeklyTradeoffPanel } from '@/components/weekly-plan/WeeklyTradeoffPanel';
 import { ToastAction } from '@/components/ui/toast';
 import { WeeklySprintSection } from '@/components/weekly-plan/WeeklySprintSection';
 import { SummitCheckInCard } from '@/components/reviews/SummitCheckInCard';
@@ -507,6 +508,9 @@ export default function WeeklyPlan() {
       <div className="mx-auto max-w-7xl space-y-6 px-4">
         {/* 90-Day Cycle Progress */}
         <CycleProgressBanner compact />
+
+        {/* Weekly Tradeoff + Capacity Coach */}
+        <WeeklyTradeoffPanel />
 
         {/* Weekly Content Schedule (if enabled) */}
         <WeeklyContentScheduleCard />
