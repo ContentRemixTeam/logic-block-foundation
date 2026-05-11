@@ -18,6 +18,7 @@ import { QuickCaptureProvider } from "@/components/quick-capture";
 import { SeasonalEffectsProvider } from "@/components/seasonal/SeasonalEffectsProvider";
 import { ManifestSwitcher } from "@/components/pwa/ManifestSwitcher";
 import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
+import { StorageDurabilityNotice } from "@/components/system/StorageDurabilityNotice";
 import { InstallPromptProvider } from "@/hooks/useInstallPrompt";
 import { DevDebugPanel } from "@/components/dev/DevDebugPanel";
 import { LoadingState } from "@/components/system/LoadingState";
@@ -210,6 +211,7 @@ const App = () => (
                     <OnlineStatusMonitor />
                     <ManifestSwitcher />
                     <PWAUpdatePrompt />
+                    <StorageDurabilityNotice />
                     <TourOverlay />
                     <TourWelcome />
                     <TourKeyboardHandler />
