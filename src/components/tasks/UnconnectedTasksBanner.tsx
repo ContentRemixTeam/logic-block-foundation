@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { Link } from '@/components/system/Link';
 import { Button } from '@/components/ui/button';
 import { Compass, Target, Wrench, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
