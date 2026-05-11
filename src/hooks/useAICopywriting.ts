@@ -265,6 +265,15 @@ export function useAPIKeys() {
   });
 }
 
+async function testApiKeyServerSide(params: { provider: AIProvider; apiKey?: string }): Promise<boolean> {
+  const { data, error } = await supabase.functions.invoke('test-api-key', {
+    body: params,
+  });
+  if (error) throw new Error(error.message || 'Failed to test API key');
+  if (!data) throw new Error('No response from key validation');
+  return Boolean((data as { valid?: boolean }).valid);
+}
+
 export function useSaveAPIKey() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -273,10 +282,8 @@ export function useSaveAPIKey() {
     mutationFn: async ({ apiKey, provider = 'openai' as AIProvider }: { apiKey: string; provider?: AIProvider }) => {
       if (!user) throw new Error('Not authenticated');
       
-      // Test the key based on provider
-      const isValid = provider === 'anthropic' 
-        ? await OpenAIService.testAnthropicKey(apiKey)
-        : await OpenAIService.testAPIKey(apiKey);
+      // Test the key server-side via edge function (avoids exposing CORS-restricted provider APIs to browser)
+      const isValid = await testApiKeyServerSide({ provider, apiKey });
       if (!isValid) {
         throw new Error('Invalid API key. Please check and try again.');
       }
@@ -340,12 +347,8 @@ export function useTestAPIKey() {
     mutationFn: async (provider: AIProvider = 'openai') => {
       if (!user) throw new Error('Not authenticated');
       
-      const apiKey = await OpenAIService.getUserAPIKey(user.id, provider);
-      if (!apiKey) throw new Error('No API key configured');
-      
-      const isValid = provider === 'anthropic'
-        ? await OpenAIService.testAnthropicKey(apiKey)
-        : await OpenAIService.testAPIKey(apiKey);
+      // Test stored key server-side; the edge function decrypts it on the server.
+      const isValid = await testApiKeyServerSide({ provider });
       
       // Update status in database
       await supabase
