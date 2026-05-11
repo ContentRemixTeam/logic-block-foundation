@@ -17,9 +17,10 @@ interface StepReviewLaunchProps {
   setData: (updates: Partial<ContentChallengeWizardData>) => void;
   goNext: () => void;
   goBack: () => void;
+  clearDraft?: () => Promise<void>;
 }
 
-export default function StepReviewLaunch({ data, setData }: StepReviewLaunchProps) {
+export default function StepReviewLaunch({ data, setData, clearDraft }: StepReviewLaunchProps) {
   const navigate = useNavigate();
   const [isCreating, setIsCreating] = useState(false);
 
