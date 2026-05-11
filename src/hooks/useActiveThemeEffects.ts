@@ -1,39 +1,30 @@
 /**
- * Hook to get the active (unlocked) theme's effect config
- * Returns ambient, celebration, and badge config for the currently applied theme
+ * Hook to get the active (unlocked) theme's effect config.
+ * Reads active_theme_id from the shared user_settings cache (no extra query).
  */
-import { useUnlockedThemes } from '@/hooks/useUnlockedThemes';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { parseThemeConfig, type ThemeConfig } from '@/lib/themeConfigSchema';
+import { useUserSettingsRow } from '@/hooks/useUserSettingsRow';
 
 export function useActiveThemeEffects() {
-  const { user } = useAuth();
+  const { data: activeThemeId } = useUserSettingsRow<string | null>(
+    (row) => row?.active_theme_id ?? null
+  );
 
   const { data: config, isLoading } = useQuery({
-    queryKey: ['active-theme-effects', user?.id],
+    queryKey: ['active-theme-effects', activeThemeId],
     queryFn: async (): Promise<ThemeConfig | null> => {
-      // Get user's active theme ID from settings
-      const { data: settings } = await supabase
-        .from('user_settings')
-        .select('active_theme_id')
-        .eq('user_id', user!.id)
-        .maybeSingle();
-
-      if (!settings?.active_theme_id) return null;
-
-      // Get theme config
+      if (!activeThemeId) return null;
       const { data: theme } = await supabase
         .from('app_themes')
         .select('config_json')
-        .eq('id', settings.active_theme_id)
+        .eq('id', activeThemeId)
         .single();
-
       if (!theme) return null;
       return parseThemeConfig(theme.config_json);
     },
-    enabled: !!user,
+    enabled: !!activeThemeId,
     staleTime: 10 * 60 * 1000,
   });
 

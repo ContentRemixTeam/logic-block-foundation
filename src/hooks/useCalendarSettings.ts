@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useUserSettingsRow, useUserSettingsCache } from '@/hooks/useUserSettingsRow';
 
 export type CalendarDateMode = 'dual' | 'create-only' | 'publish-only';
 
@@ -20,32 +21,15 @@ const DEFAULT_SETTINGS: CalendarSettings = {
 
 export function useCalendarSettings() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
+  const { patch } = useUserSettingsCache();
 
-  const { data: settings = DEFAULT_SETTINGS, isLoading } = useQuery({
-    queryKey: ['calendar-settings', user?.id],
-    queryFn: async (): Promise<CalendarSettings> => {
-      if (!user?.id) return DEFAULT_SETTINGS;
-
-      const { data, error } = await supabase
-        .from('user_settings')
-        .select('auto_create_content_tasks, show_content_in_planners, calendar_date_mode')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching calendar settings:', error);
-        return DEFAULT_SETTINGS;
-      }
-
-      return {
-        autoCreateContentTasks: data?.auto_create_content_tasks ?? true,
-        showContentInPlanners: data?.show_content_in_planners ?? true,
-        calendarDateMode: (data?.calendar_date_mode as CalendarDateMode) ?? 'dual',
-      };
-    },
-    enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+  const { data: settings = DEFAULT_SETTINGS, isLoading } = useUserSettingsRow<CalendarSettings>((row) => {
+    if (!row) return DEFAULT_SETTINGS;
+    return {
+      autoCreateContentTasks: row.auto_create_content_tasks ?? true,
+      showContentInPlanners: row.show_content_in_planners ?? true,
+      calendarDateMode: (row.calendar_date_mode as CalendarDateMode) ?? 'dual',
+    };
   });
 
   const updateMutation = useMutation({
@@ -67,37 +51,26 @@ export function useCalendarSettings() {
         .from('user_settings')
         .update(dbUpdates)
         .eq('user_id', user.id);
-
       if (error) throw error;
-      return updates;
+      return { dbUpdates, updates };
     },
-    onMutate: async (updates) => {
-      await queryClient.cancelQueries({ queryKey: ['calendar-settings', user?.id] });
-      const previous = queryClient.getQueryData<CalendarSettings>(['calendar-settings', user?.id]);
-      
-      queryClient.setQueryData<CalendarSettings>(['calendar-settings', user?.id], (old) => ({
-        ...DEFAULT_SETTINGS,
-        ...old,
-        ...updates,
-      }));
-      
-      return { previous };
-    },
-    onError: (err, _, context) => {
-      console.error('Error updating calendar settings:', err);
-      if (context?.previous) {
-        queryClient.setQueryData(['calendar-settings', user?.id], context.previous);
-      }
-      toast.error('Failed to update settings');
-    },
-    onSuccess: () => {
+    onMutate: ({ } = { } as never) => undefined,
+    onSuccess: ({ dbUpdates }) => {
+      patch(dbUpdates as never);
       toast.success('Settings updated');
+    },
+    onError: (err) => {
+      console.error('Error updating calendar settings:', err);
+      toast.error('Failed to update settings');
     },
   });
 
-  const updateSettings = useCallback((updates: Partial<CalendarSettings>) => {
-    updateMutation.mutate(updates);
-  }, [updateMutation]);
+  const updateSettings = useCallback(
+    (updates: Partial<CalendarSettings>) => {
+      updateMutation.mutate(updates);
+    },
+    [updateMutation]
+  );
 
   return {
     settings,

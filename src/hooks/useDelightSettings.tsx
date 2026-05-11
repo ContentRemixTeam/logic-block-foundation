@@ -1,14 +1,13 @@
 /**
- * Delight Settings Hook
- * Manages user preferences for themes, celebrations, and sounds
+ * Delight Settings Hook — now consumes the shared user_settings cache.
  */
-
-import { useState, useEffect, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { DelightIntensity } from '@/lib/themeConfigSchema';
+import { useUserSettingsRow, useUserSettingsCache } from '@/hooks/useUserSettingsRow';
 
 export interface DelightSettings {
   themes_enabled: boolean;
@@ -28,34 +27,17 @@ const DEFAULT_SETTINGS: DelightSettings = {
 
 export function useDelightSettings() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
+  const { patch } = useUserSettingsCache();
 
-  const { data: settings, isLoading } = useQuery({
-    queryKey: ['delight-settings', user?.id],
-    queryFn: async (): Promise<DelightSettings> => {
-      const { data, error } = await supabase
-        .from('user_settings')
-        .select('themes_enabled, celebrations_enabled, sound_enabled, delight_intensity, active_theme_id')
-        .eq('user_id', user!.id)
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching delight settings:', error);
-        return DEFAULT_SETTINGS;
-      }
-
-      if (!data) return DEFAULT_SETTINGS;
-
-      return {
-        themes_enabled: data.themes_enabled ?? true,
-        celebrations_enabled: data.celebrations_enabled ?? true,
-        sound_enabled: data.sound_enabled ?? false,
-        delight_intensity: (data.delight_intensity as DelightIntensity) ?? 'subtle',
-        active_theme_id: data.active_theme_id ?? null,
-      };
-    },
-    enabled: !!user,
-    staleTime: 5 * 60 * 1000,
+  const { data: settings, isLoading } = useUserSettingsRow<DelightSettings>((row) => {
+    if (!row) return DEFAULT_SETTINGS;
+    return {
+      themes_enabled: row.themes_enabled ?? true,
+      celebrations_enabled: row.celebrations_enabled ?? true,
+      sound_enabled: row.sound_enabled ?? false,
+      delight_intensity: (row.delight_intensity as DelightIntensity) ?? 'subtle',
+      active_theme_id: row.active_theme_id ?? null,
+    };
   });
 
   const updateMutation = useMutation({
@@ -64,11 +46,11 @@ export function useDelightSettings() {
         .from('user_settings')
         .update(updates)
         .eq('user_id', user!.id);
-
       if (error) throw error;
+      return updates;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['delight-settings'] });
+    onMutate: (updates) => {
+      patch(updates as never);
     },
     onError: (error: Error) => {
       console.error('Failed to update delight settings:', error);

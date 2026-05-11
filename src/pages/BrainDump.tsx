@@ -192,14 +192,14 @@ export default function BrainDump() {
               </Button>
             )}
           </div>
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap overflow-x-auto -mx-1 px-1 sm:overflow-visible">
             {FILTER_BUTTONS.map(fb => (
               <Button
                 key={fb.key}
                 variant={filterCategory === fb.key ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setFilterCategory(fb.key)}
-                className={cn('h-8 text-xs gap-1', filterCategory === fb.key && 'shadow-sm')}
+                className={cn('h-8 text-xs gap-1 shrink-0', filterCategory === fb.key && 'shadow-sm')}
               >
                 {fb.emoji && <span>{fb.emoji}</span>}
                 {fb.label}
