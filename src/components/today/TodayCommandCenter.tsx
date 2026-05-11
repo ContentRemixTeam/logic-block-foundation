@@ -3,11 +3,13 @@ import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Sunrise, Sun, Moon } from 'lucide-react';
+import { CheckCircle2, Sunrise, Sun, Moon, Quote } from 'lucide-react';
 import { NextBestAction } from './NextBestAction';
 import { BusinessSeasonSelector } from './BusinessSeasonSelector';
 import { useBusinessSeason } from '@/hooks/useBusinessSeason';
 import { useAuth } from '@/hooks/useAuth';
+import { format as formatDate } from 'date-fns';
+import { pickPrompt } from '@/lib/coachingPrompts';
 
 interface Top3Task {
   task_id?: string;
@@ -94,6 +96,17 @@ export function TodayCommandCenter({ top3Tasks = [], lowEnergyDay }: TodayComman
 
         {/* Next best action */}
         <NextBestAction lowEnergyDay={lowEnergyDay} className="border-dashed bg-background/60" />
+
+        {/* Mastermind coaching prompt — rotates daily, gentle interrupt */}
+        <div className="flex items-start gap-2 rounded-md border border-dashed border-primary/20 bg-primary/5 px-3 py-2">
+          <Quote className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+          <p className="text-xs italic text-foreground/80 leading-snug">
+            {pickPrompt(
+              top3Tasks.length === 0 ? 'today_no_brave_move' : 'tasks_unconnected',
+              formatDate(new Date(), 'yyyy-MM-dd')
+            )}
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
