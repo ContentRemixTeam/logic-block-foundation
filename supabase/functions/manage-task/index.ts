@@ -54,6 +54,11 @@ const OptionalTaskFields = z.object({
   content_creation_date: z.string().nullable().optional(),
   content_publish_date: z.string().nullable().optional(),
   content_item_id: z.string().uuid().nullable().optional(),
+  // Mastermind OS — momentum spine
+  momentum_type: z.enum(['revenue', 'audience', 'delivery', 'operations', 'mindset']).nullable().optional(),
+  is_maintenance: z.boolean().optional(),
+  done_enough_definition: z.string().max(500).nullable().optional(),
+  connection_swept_at: z.string().nullable().optional(),
 });
 
 const CreateTaskSchema = z.object({
