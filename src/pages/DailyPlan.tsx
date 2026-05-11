@@ -1016,6 +1016,9 @@ export default function DailyPlan() {
         {/* Customize Tip (dismissible onboarding) */}
         <CustomizeTip />
 
+        {/* Mastermind OS — Today's anchors (Brave Move / Low-Energy / Support / Not Today) */}
+        <BraveMoveSlots date={format(new Date(), 'yyyy-MM-dd')} dayId={dayId} />
+
         {/* ============================================ */}
         {/* BANNERS ZONE (always visible at top)        */}
         {/* ============================================ */}
