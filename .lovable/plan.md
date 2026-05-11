@@ -1,68 +1,71 @@
-## Audit findings (already in good shape)
+## Goal
 
-Before scoping work, I checked the codebase against your 14 items. Several are already done or not blocking:
+Make every Smart Wizard end with a clear, reassuring "Add this to my planner" experience — preview, confirm, success — so wizard answers reliably become tasks/projects/content/habits the user can find in the rest of the app.
 
-- **#1 Brain Dump wiring** — `BrainDump.tsx` already passes `onSubmitRaw={handleCreateRaw}` to `BrainDumpCreateForm`, which calls `createItemsFromText.mutateAsync`. Multi-line capture, failed-line retention, and tag routing are working from the previous Phase 1 pass. **No change needed.**
-- **#2 Tana-style tag inbox** — `captureTags.ts` already supports all the tags you listed (#task, #idea, #note, #project, #content, #question, #win, #low-energy, #medium-energy, #high-focus, #sales, #admin, etc.) and routing precedence. The capture form uses them. **Already shipped.**
-- **#10 Mobile bottom nav** — `MobileBottomNav.tsx` already shows Home / Tasks / Capture / Grow / More, and `/progress` is the live route. **Matches your spec.**
+Scope: 12 wizards under /cycle-wizard, /cycle-setup, /wizards/launch, /wizards/habits, /wizards/content, /wizards/summit, /wizards/money-momentum, /wizards/project-designer, /wizards/lead-magnet, /wizards/flash-sale, /wizards/webinar, /wizards/content-challenge.
 
-The real, scoped wins are #11 (stale routes), parts of #3/#4 (Next Best Action), parts of #5 (low-energy surfacing), and #12 (label consistency). Everything else (#3 full Today redesign, #6 Tasks polish round 2, #7 Project cards rework, #8 Business Season, #9 CEO Weekly Review redesign, #13 polish pass) is multi-hour redesign work that should be its own focused pass per area — bundling them risks regressions across autosave, offline, and existing planner data.
+## Approach: shared building blocks first, then per-wizard wiring
 
-## Phase 1 scope (this loop)
+Rather than rewriting each wizard from scratch, I'll add a small reusable layer and apply it everywhere. This keeps existing edge functions, drafts, and Supabase tables intact.
 
-Narrow, low-risk, high-leverage fixes only.
+### Phase 1 — Quick wins + shared infrastructure (this slice)
 
-### 1. Fix stale Mobile Quick Action routes (#11)
-- `src/components/mobile/MobileQuickActions.tsx`
-  - `/metrics` → `/progress`
-  - `/coach-yourself` → `/self-coaching` (drawer "Open Full Coach Tool" button)
-  - Rename action id `metrics` label to "Update progress" so it matches the destination.
+1. **Fix Wizard Hub bugs**
+   - "View Last" navigates to `/cycle-view/:id` (route exists) instead of broken `/cycle/:id`.
+   - Treat `launch-planner` and `launch-planner-v2` as the same wizard for history/last-completion lookup.
+   - Show "View Last" for any completion that has a created project/launch/etc., not only `created_cycle_id`.
+   - Group history entries under one display name when template aliases exist.
 
-### 2. Add a deterministic "Next Best Action" panel (#4)
-- New component `src/components/today/NextBestAction.tsx` — pure presentation + a small deterministic hook.
-- New hook `src/hooks/useNextBestAction.ts` — reads existing data only:
-  - active 90-day cycle (existing query) → "Create your 90-day focus"
-  - this week's plan (existing query) → "Pick this week's Top 3"
-  - today's daily plan top-3 → "Choose today's Top 3"
-  - overdue tasks count from `useTasks()` → "Clear or reschedule N overdue tasks"
-  - unprocessed brain dump items from `useBrainDump()` → "Review your captured ideas"
-  - low-energy day flag on today's plan → "Pick one low-energy task"
-- Render at the top of `src/pages/DailyPlan.tsx` (Today) above existing sections. Calm card, single CTA button that routes to the relevant page. No schema changes.
+2. **Standardize wizard template names** (constants module)
+   - New `src/lib/wizardTemplates.ts` exporting canonical names + alias map. All wizards import from here so completions, drafts, and hub all line up.
 
-### 3. Surface low-energy tasks (#5, partial)
-- In `src/components/tasks/TasksPageToolbar.tsx`, add a "Low energy" quick filter chip alongside existing filters (uses existing `energy_level = 'low_energy'` field). Persist in the same toolbar state pattern.
-- In the new `NextBestAction` panel, when low-energy is the suggestion, deep-link into `/tasks?energy=low_energy` and have the toolbar read that param on mount.
+3. **Shared review/success components** in `src/components/wizards/shared/`
+   - `WizardReviewStep`: shows "Here's what we'll add to your planner" with checkable sections (project / tasks / content / habits / events / recurring), counts, expandable previews, single "Create Now" button with double-click guard.
+   - `WizardSuccessScreen`: post-create screen with contextual buttons (View project, View tasks, Today, Weekly Plan, Editorial Calendar) based on what was created. Handles partial-success messaging + retry.
+   - `useWizardCreate` hook: idempotent submit guard, draft clearing only after success, partial-success state, calls `wizardIntegration` helpers.
 
-### 4. Copy standardization (#12, low-risk slice)
-- Audit + replace user-visible "Todo List" / "To-do" labels with "Tasks" in:
-  - `src/components/Layout.tsx` sidebar (if present)
-  - `src/components/MobileBottomNav.tsx` (already says Tasks — verify)
-  - `src/pages/Tasks.tsx` page header
-  - Any tab labels found via `rg -l "Todo List|To-do"` (will scope to user-facing strings only — not variable names, types, or DB columns).
+4. **Cycle Wizard / Cycle Setup disambiguation**
+   - Mark the richer one as "90-Day Business Planner (recommended)" and the other as "Quick cycle setup" in the hub + their page headers. No deletion.
+   - Add task creation options to Cycle Wizard review step:
+     - monthly check-in projects
+     - weekly planning recurring task
+     - first 3 days of cycle tasks (from Top 3)
+     - low-energy backup tasks
+     - end-of-cycle review task
 
-### Out of scope this loop (deferred, will need their own passes)
+5. **Habit Wizard draft cleanup**
+   - Clear draft + completion-mark in same transaction as habit creation success.
 
-- Full Today Command Center redesign (#3) — touches DailyPlan, Dashboard, Planning hierarchy
-- Tasks page round-2 polish (#6) — already had a pass; needs a focused calm/inline-add round
-- Projects cards + detail rework (#7) — needs design decisions on outcome / next-action surfacing
-- Business Season UX layer (#8) — needs preference storage decision (localStorage vs profile column)
-- Weekly CEO Review redesign (#9) — multi-section reflow, should be a dedicated loop
-- App-wide polish pass (#13) — should follow the structural changes
-- Data-safety banners (#14) — already present; will only re-audit when redesigning above
+6. **Project Designer: draft/resume/save status UI**
+   - Wire `useWizard` (already in other wizards) so it gets the same autosave + ResumeDraftDialog + WizardSaveStatus indicator as the rest.
 
-## Risk
+### Phase 2 — Per-wizard review screen + dual-write (separate slice)
 
-- All Phase 1 changes are presentation/routing/derived-state only.
-- No schema changes, no edits to `useTasks`, `useBrainDump`, autosave, offline sync, or auth.
-- `NextBestAction` is additive (new files + one mount in `DailyPlan.tsx`); easy to revert.
-- Toolbar filter chip reuses existing filter state plumbing.
+For each of: launch (v1+v2), content, summit, money-momentum, lead-magnet, flash-sale, webinar, content-challenge, project-designer:
 
-## Suggested next steps after Phase 1 ships
+- Insert `WizardReviewStep` as the final step before any creation call.
+- Map wizard data → preview sections (project/tasks/content/habits/events/recurring) with counts + expandable details.
+- Allow users to toggle off categories before confirm.
+- After successful creation, swap to `WizardSuccessScreen` with the right destination buttons.
+- Ensure tasks created go through the existing `useResilientTaskMutation` / `useTasks` path so they appear in Tasks, Today, Weekly Plan, project pages, and widgets (per the project memory rule).
+- Ensure projects use `useProjects` hooks; content uses `useContentVaultItems` + editorial calendar; habits use existing habit endpoints.
+- Add `system_source`, energy level, priority, scheduled_date, project_id on every generated task.
 
-I'd recommend ordering future phases as:
-1. Today Command Center (#3) — anchors the rest of the UX
-2. Projects rework (#7) — second-most-visited daily surface
-3. Weekly CEO Review (#9) + Business Season (#8) together — they share planning vocabulary
-4. Tasks round-2 polish (#6) + app-wide polish (#13) — final calm/visual pass
+### Phase 3 — Polish + verification (separate slice)
 
-Want me to proceed with Phase 1 as scoped above?
+- Audit each route end-to-end and confirm acceptance criteria.
+- Add a low-energy variant generator helper for big tasks.
+- Make sure double-submit guard, partial-success, and retry path are exercised.
+
+## Technical notes
+
+- No schema changes required for Phase 1. Phase 2 may add `system_source` strings only (no migration).
+- All draft clearing remains conditional on successful create (preserves recovery on failure).
+- All existing edge functions kept; we only add a thin client-side review/success layer around them.
+- Memory rule respected: task creation always via `useResilientTaskMutation`; never direct table writes.
+
+## What this slice ships
+
+Phase 1 only: hub fixes, shared `WizardReviewStep` + `WizardSuccessScreen` + `useWizardCreate`, Cycle wizard task options, Habit draft cleanup, Project Designer status UI, template name constants. Then I'll come back for Phase 2 (per-wizard wiring) and Phase 3 (polish) as follow-up slices so each is reviewable.
+
+Reply "go" to start Phase 1, or tell me to reorder / cut scope.

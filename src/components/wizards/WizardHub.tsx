@@ -10,6 +10,7 @@ import { Target, ArrowRight, RotateCcw, Rocket, Mail, Zap, DollarSign, History, 
 import { WizardTemplate, WizardCompletion } from '@/types/wizard';
 import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from 'sonner';
+import { canonicalTemplateName, viewLastRouteFor } from '@/lib/wizardTemplates';
 
 // Fully implemented wizards that should be shown
 const IMPLEMENTED_WIZARDS = [
@@ -103,7 +104,8 @@ export default function WizardHub() {
   }, [user]);
 
   const getLastCompletion = (templateName: string): WizardCompletion | undefined => {
-    return completions.find(c => c.template_name === templateName);
+    const canonical = canonicalTemplateName(templateName);
+    return completions.find(c => canonicalTemplateName(c.template_name) === canonical);
   };
 
   const handleStart = (templateName: string) => {
@@ -139,8 +141,11 @@ export default function WizardHub() {
   };
 
   const handleViewLast = (completion: WizardCompletion) => {
-    if (completion.created_cycle_id) {
-      navigate(`/cycle/${completion.created_cycle_id}`);
+    const route = viewLastRouteFor(completion);
+    if (route) {
+      navigate(route);
+    } else {
+      toast.info("Couldn't find where this was created. Try the relevant page directly.");
     }
   };
 
@@ -219,7 +224,7 @@ export default function WizardHub() {
                           </>
                         )}
                       </Button>
-                      {lastCompletion?.created_cycle_id && (
+                      {lastCompletion && viewLastRouteFor(lastCompletion) && (
                         <Button 
                           variant="outline"
                           onClick={() => handleViewLast(lastCompletion)}
@@ -277,7 +282,7 @@ export default function WizardHub() {
         ) : (
           <div className="space-y-2">
             {completions.map(completion => {
-              const template = templateMap[completion.template_name];
+              const template = templateMap[completion.template_name] || templateMap[canonicalTemplateName(completion.template_name)];
               const displayName = template?.displayName || completion.template_name;
               const iconName = template?.icon;
               const icon = iconName ? ICON_MAP_SMALL[iconName] : <Target className="h-5 w-5" />;
@@ -296,7 +301,7 @@ export default function WizardHub() {
                       <p className="font-medium truncate">{displayName}</p>
                       <p className="text-sm text-muted-foreground">{formattedDate}</p>
                     </div>
-                    {completion.created_cycle_id && (
+                    {viewLastRouteFor(completion) && (
                       <Button 
                         variant="ghost" 
                         size="sm"
