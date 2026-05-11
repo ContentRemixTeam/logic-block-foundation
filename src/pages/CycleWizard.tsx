@@ -1,17 +1,25 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { WizardLayout } from '@/components/wizards/WizardLayout';
 import { ResumeDraftDialog } from '@/components/wizards/ResumeDraftDialog';
 import { WizardSaveStatus } from '@/components/wizards/WizardSaveStatus';
+import { WizardReviewStep, WizardReviewSection } from '@/components/wizards/shared/WizardReviewStep';
+import { WizardSuccessScreen } from '@/components/wizards/shared/WizardSuccessScreen';
 import { useWizard } from '@/hooks/useWizard';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useResilientTaskMutation } from '@/hooks/useResilientTaskMutation';
 import { toast } from 'sonner';
 
 import { CycleWizardFormData, STEP_TITLES, TOTAL_STEPS } from '@/components/cycle-wizard/CycleWizardTypes';
 import { getDefaultFormData, validateStep } from '@/components/cycle-wizard/CycleWizardData';
 import { generateCycleWizardPDF } from '@/components/cycle-wizard/CycleWizardPDFExport';
+import {
+  generateCycleTaskDrafts,
+  DEFAULT_CYCLE_TASK_OPTIONS,
+  CycleTaskOptions,
+} from '@/lib/cycleWizardTaskGenerator';
 
 import {
   StepBigGoal,
@@ -34,6 +42,13 @@ export default function CycleWizard() {
   const [showResumeDraft, setShowResumeDraft] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
+  const [taskOptions, setTaskOptions] = useState<CycleTaskOptions>(DEFAULT_CYCLE_TASK_OPTIONS);
+  const [successState, setSuccessState] = useState<{
+    cycleId: string;
+    tasksCreated: number;
+    tasksFailed: number;
+  } | null>(null);
+  const { resilientCreate } = useResilientTaskMutation();
 
   const {
     step,
@@ -141,26 +156,64 @@ export default function CycleWizard() {
           .is('completed_at', null);
       }
 
-      // Clear draft
+      // Generate planner tasks based on user's selections (best-effort, partial-success allowed)
+      let tasksCreated = 0;
+      let tasksFailed = 0;
+      if (!editCycleId) {
+        const drafts = generateCycleTaskDrafts(
+          {
+            goal: data.goal,
+            startDate: data.startDate,
+            endDate: data.endDate,
+            weeklyPlanningDay: data.weeklyPlanningDay,
+            weeklyDebriefDay: data.weeklyDebriefDay,
+            metric1_name: data.metric1_name,
+            metric2_name: data.metric2_name,
+            metric3_name: data.metric3_name,
+          },
+          taskOptions,
+        );
+        for (const draft of drafts) {
+          try {
+            const r = await resilientCreate({
+              ...draft,
+              is_system_generated: true,
+            });
+            if (r.success) tasksCreated += 1;
+            else tasksFailed += 1;
+          } catch (e) {
+            console.warn('Cycle task create failed', e);
+            tasksFailed += 1;
+          }
+        }
+      }
+
+      // Clear draft only after successful cycle creation
       await clearDraft();
 
-      toast.success(editCycleId ? 'Your plan has been updated!' : '🎉 Your 90-day cycle is ready!');
-      navigate('/dashboard');
+      if (editCycleId) {
+        toast.success('Your plan has been updated!');
+        navigate('/dashboard');
+      } else {
+        // Show success screen with destinations + partial-success info
+        setSuccessState({ cycleId, tasksCreated, tasksFailed });
+      }
     } catch (error) {
       console.error('Error saving cycle:', error);
       toast.error('Failed to save your plan. Please try again.');
     } finally {
       setIsCreating(false);
     }
-  }, [user, data, editCycleId, clearDraft, navigate]);
+  }, [user, data, editCycleId, clearDraft, navigate, taskOptions, resilientCreate]);
 
   const handleNext = useCallback(() => {
+    // Step 10 has its own confirm button (WizardReviewStep), so the footer Next is disabled there.
     if (step === TOTAL_STEPS) {
-      handleComplete();
-    } else {
-      goNext();
+      // No-op: confirm happens via the WizardReviewStep button.
+      return;
     }
-  }, [step, goNext, handleComplete]);
+    goNext();
+  }, [step, goNext]);
 
   const handleSaveAndExit = useCallback(async () => {
     await saveDraft();
@@ -203,6 +256,53 @@ export default function CycleWizard() {
     setShowResumeDraft(false);
   }, [clearDraft]);
 
+  // Build preview sections from current data + chosen task options
+  const reviewSections: WizardReviewSection[] = useMemo(() => {
+    const drafts = generateCycleTaskDrafts(
+      {
+        goal: data.goal,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        weeklyPlanningDay: data.weeklyPlanningDay,
+        weeklyDebriefDay: data.weeklyDebriefDay,
+        metric1_name: data.metric1_name,
+        metric2_name: data.metric2_name,
+        metric3_name: data.metric3_name,
+      },
+      // Generate everything for preview; actual creation respects taskOptions
+      { monthlyCheckins: true, weeklyPlanning: true, firstThreeDays: true, lowEnergyBackups: true, endOfCycleReview: true },
+    );
+    const byKey = (key: string) => drafts.filter((d) => d.template_key === key).map((d) => `${d.task_text} \u00b7 ${d.scheduled_date}`);
+    return [
+      { key: 'cycle', title: '90-day cycle plan', count: 1, optional: false, defaultEnabled: true,
+        description: data.goal ? `Goal: ${data.goal}` : 'Your 90-day plan record.' },
+      { key: 'monthlyCheckins', title: 'Monthly check-ins', count: byKey('cycle_monthly_checkin').length,
+        description: 'Three review tasks, one per cycle month.', itemsPreview: byKey('cycle_monthly_checkin') },
+      { key: 'weeklyPlanning', title: 'Weekly planning reminder', count: byKey('cycle_weekly_planning').length,
+        description: 'Recurring weekly task to plan against your cycle goal.', itemsPreview: byKey('cycle_weekly_planning') },
+      { key: 'firstThreeDays', title: 'First 3 days of priority tasks', count: byKey('cycle_kickstart').length,
+        description: 'Kickstart tasks pulled from your success metrics.', itemsPreview: byKey('cycle_kickstart') },
+      { key: 'lowEnergyBackups', title: 'Low-energy backup tasks', count: byKey('cycle_low_energy_backup').length,
+        description: 'Lighter tasks for the days you don\u2019t feel sharp.', itemsPreview: byKey('cycle_low_energy_backup') },
+      { key: 'endOfCycleReview', title: 'End-of-cycle review', count: byKey('cycle_end_review').length,
+        description: 'A final review task scheduled for your end date.', itemsPreview: byKey('cycle_end_review') },
+    ];
+  }, [data]);
+
+  const enabledMap: Record<string, boolean> = {
+    cycle: true,
+    monthlyCheckins: taskOptions.monthlyCheckins,
+    weeklyPlanning: taskOptions.weeklyPlanning,
+    firstThreeDays: taskOptions.firstThreeDays,
+    lowEnergyBackups: taskOptions.lowEnergyBackups,
+    endOfCycleReview: taskOptions.endOfCycleReview,
+  };
+
+  const handleToggleSection = (key: string, value: boolean) => {
+    if (key === 'cycle') return; // not optional
+    setTaskOptions((opts) => ({ ...opts, [key]: value } as CycleTaskOptions));
+  };
+
   // Render current step content
   const renderStepContent = () => {
     const stepProps = { data, setData };
@@ -233,6 +333,17 @@ export default function CycleWizard() {
             isExporting={isExportingPDF}
           />
         );
+      case 10:
+        return (
+          <WizardReviewStep
+            sections={reviewSections}
+            enabled={enabledMap}
+            onToggle={handleToggleSection}
+            onConfirm={handleComplete}
+            isCreating={isCreating}
+            confirmLabel={editCycleId ? 'Update plan' : 'Create my 90-day cycle'}
+          />
+        );
       default:
         return null;
     }
@@ -248,6 +359,34 @@ export default function CycleWizard() {
     );
   }
 
+  // Success view (after a brand-new cycle is created with optional planner items)
+  if (successState) {
+    const { cycleId, tasksCreated, tasksFailed } = successState;
+    return (
+      <Layout>
+        <WizardSuccessScreen
+          title="Your 90-day cycle is live!"
+          message={
+            tasksCreated > 0
+              ? `Added your cycle plus ${tasksCreated} task${tasksCreated === 1 ? '' : 's'} to your planner.`
+              : 'Your cycle plan is saved. You can add planner tasks any time from the Tasks page.'
+          }
+          partial={
+            tasksFailed > 0
+              ? { failedLabel: `${tasksFailed} task${tasksFailed === 1 ? '' : 's'} couldn\u2019t be created right now. They\u2019ll retry automatically when you\u2019re online.` }
+              : undefined
+          }
+          destinations={[
+            { label: 'View cycle', to: `/cycle-view/${cycleId}` },
+            { label: 'Today', to: '/daily-plan', variant: 'outline' },
+            { label: 'Weekly Plan', to: '/weekly-plan', variant: 'outline' },
+            { label: 'All tasks', to: '/tasks', variant: 'outline' },
+          ]}
+        />
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <WizardLayout
@@ -258,10 +397,10 @@ export default function CycleWizard() {
         onBack={goBack}
         onNext={handleNext}
         onSave={handleSaveAndExit}
-        canProceed={canProceed}
+        canProceed={step === TOTAL_STEPS ? false : canProceed}
         isSaving={isSaving || isCreating}
         isLastStep={step === TOTAL_STEPS}
-        lastStepButtonText={isCreating ? 'Creating...' : (editCycleId ? 'Update Plan' : 'Create My 90-Day Cycle')}
+        lastStepButtonText={step === TOTAL_STEPS ? 'Use button above' : (editCycleId ? 'Update Plan' : 'Continue')}
         statusIndicator={
           <WizardSaveStatus
             lastSaved={lastServerSync}

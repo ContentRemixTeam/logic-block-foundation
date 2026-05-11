@@ -177,6 +177,8 @@ export function validateStep(step: number, data: CycleWizardFormData): boolean {
       return true; // Optional step
     case 9:
       return true; // Review step
+    case 10:
+      return true; // Add to planner
     default:
       return true;
   }

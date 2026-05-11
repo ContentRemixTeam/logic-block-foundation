@@ -28,8 +28,18 @@
    context_tags?: string[] | null;
    project_id?: string | null;
    section_id?: string | null;
-  status?: 'backlog' | 'focus' | 'scheduled' | 'someday' | 'waiting';
+   status?: 'backlog' | 'focus' | 'scheduled' | 'someday' | 'waiting';
    task_description?: string | null;
+   // Optional metadata for system-generated tasks (Phase 2 wizard integration)
+   system_source?: string | null;
+   is_system_generated?: boolean | null;
+   task_type?: string | null;
+   template_key?: string | null;
+   energy_level?: 'low_energy' | 'medium' | 'high_focus' | null;
+   is_recurring?: boolean | null;
+   recurrence_pattern?: string | null;
+   category?: string | null;
+   [key: string]: unknown;
  }
  
  // Generate a unique ID for drafts
