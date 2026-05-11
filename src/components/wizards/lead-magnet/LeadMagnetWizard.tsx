@@ -55,6 +55,7 @@ export function LeadMagnetWizard() {
     isSaving,
     isLoading,
     clearDraft,
+    markCompleted,
     totalSteps,
     hasDraft,
     lastServerSync,
