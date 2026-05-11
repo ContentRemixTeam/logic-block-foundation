@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveCycle } from '@/hooks/useActiveCycle';
-import { MOMENTUM_META, type MomentumType } from '@/lib/momentumTypes';
+import { MOMENTUM_BY_VALUE, MOMENTUM_TYPES, type MomentumType } from '@/lib/momentumTypes';
 import {
   Target, Calendar, Sparkles, FolderKanban, Trophy, AlertTriangle,
   ArrowRight, Compass, Flame,
