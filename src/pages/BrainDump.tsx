@@ -229,7 +229,7 @@ export default function BrainDump() {
             onDelete={handleDelete}
             onUpdate={handleUpdate}
             onConvertCategory={handleConvert}
-            filterCategory={filterCategory}
+            filterCategory={filterCategory === 'review' ? 'all' : filterCategory}
           />
         ) : (
           <BrainDumpGrid
