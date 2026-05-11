@@ -124,6 +124,7 @@ export function StuckTaskCoachModal({ task, open, onOpenChange }: Props) {
       } as any);
     }
     toast.success(`Added ${parsed.subtasks.length} subtasks`);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
