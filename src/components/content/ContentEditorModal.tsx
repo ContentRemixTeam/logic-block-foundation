@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { CONTENT_PURPOSES } from '@/lib/contentPurpose';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
