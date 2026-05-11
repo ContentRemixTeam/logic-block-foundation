@@ -132,6 +132,8 @@ export default function MoneyMomentumWizardPage() {
         .eq('template_name', 'money_momentum')
         .is('completed_at', null);
 
+      try { await clearDraft(); } catch (e) { console.warn('clearDraft failed', e); }
+
       toast.success('Your Money Momentum Sprint is ready! Let\'s go get that revenue.');
       navigate('/finances');
     } catch (error) {
