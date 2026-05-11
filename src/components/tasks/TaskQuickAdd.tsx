@@ -77,6 +77,14 @@ export function TaskQuickAdd({
       cleanText = cleanText.replace(/\d+(m|h|min|hr|hour)/i, '').trim();
     }
 
+    // Mastermind OS — $revenue, $audience, $delivery, $ops/$operations, $mindset
+    const momentumMatch = cleanText.match(/\$(revenue|audience|delivery|ops|operations|mindset)\b/i);
+    if (momentumMatch) {
+      const raw = momentumMatch[1].toLowerCase();
+      result.momentumType = (raw === 'ops' ? 'operations' : raw) as MomentumType;
+      cleanText = cleanText.replace(/\$(revenue|audience|delivery|ops|operations|mindset)\b/i, '').trim();
+    }
+
     const today = new Date();
     if (/\btoday\b/i.test(cleanText)) {
       result.date = today;
