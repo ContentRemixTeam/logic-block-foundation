@@ -42,6 +42,7 @@ export default function MoneyMomentumWizardPage() {
     goNext,
     goBack,
     save,
+    clearDraft,
     isSaving,
     isLoading,
     totalSteps,
