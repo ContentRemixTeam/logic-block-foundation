@@ -630,7 +630,16 @@ export function TaskListView({
     return (
       <div className="space-y-6" ref={containerRef}>
         {renderControls()}
-        
+
+        {/* Top-level quiet quick-add — preserves inline capture even when groups collapse into a virtualized list */}
+        {onInlineAddTask && (
+          <TaskQuickAdd
+            variant="inline"
+            groupBy={groupBy}
+            onAddTask={onInlineAddTask}
+          />
+        )}
+
         {/* Task count indicator */}
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>
