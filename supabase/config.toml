@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.mcp-server]
 verify_jwt = false
+
+[functions.test-api-key]
+verify_jwt = false
