@@ -55,6 +55,7 @@ export function WebinarWizard() {
     isSaving,
     isLoading,
     clearDraft,
+    markCompleted,
     totalSteps,
     hasDraft,
     lastServerSync,
