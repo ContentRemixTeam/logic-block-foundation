@@ -121,7 +121,7 @@ export default function SupportQueue() {
         ) : data.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="py-12 text-center">
-              <MessageSquareQuestion className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
+              <HelpCircle className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
               <h3 className="font-semibold text-lg mb-1">
                 {filter === 'open' ? 'No open questions' : 'Nothing here'}
               </h3>
