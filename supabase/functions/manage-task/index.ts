@@ -407,6 +407,10 @@ Deno.serve(async (req) => {
             content_creation_date: content_creation_date || null,
             content_publish_date: content_publish_date || null,
             content_item_id: content_item_id || null,
+            // Mastermind OS
+            momentum_type: momentum_type || null,
+            is_maintenance: is_maintenance ?? false,
+            done_enough_definition: done_enough_definition || null,
           })
           .select()
           .single();
