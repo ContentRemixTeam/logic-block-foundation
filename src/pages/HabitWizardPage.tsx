@@ -75,6 +75,7 @@ export default function HabitWizardPage() {
     isSaving,
     isLoading,
     totalSteps,
+    clearDraft,
   } = useWizard<HabitWizardData>({
     templateName: 'habit-planner',
     totalSteps: HABIT_WIZARD_STEPS.length,
