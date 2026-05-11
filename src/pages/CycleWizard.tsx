@@ -207,12 +207,13 @@ export default function CycleWizard() {
   }, [user, data, editCycleId, clearDraft, navigate, taskOptions, resilientCreate]);
 
   const handleNext = useCallback(() => {
+    // Step 10 has its own confirm button (WizardReviewStep), so the footer Next is disabled there.
     if (step === TOTAL_STEPS) {
-      handleComplete();
-    } else {
-      goNext();
+      // No-op: confirm happens via the WizardReviewStep button.
+      return;
     }
-  }, [step, goNext, handleComplete]);
+    goNext();
+  }, [step, goNext]);
 
   const handleSaveAndExit = useCallback(async () => {
     await saveDraft();
