@@ -37,8 +37,8 @@ const STATUSES = [
 
 export default function OfferHub() {
   const { data: offers = [], isLoading, createOffer, updateOffer, deleteOffer } = useOffers();
-  const { data: launches = [] } = useLaunches();
-  const { projects = [] } = useProjects();
+  const { launches = [] } = useLaunches();
+  const { data: projects = [] } = useProjects();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Offer | null>(null);
   const [form, setForm] = useState<OfferInput>({ name: '', status: 'active' });
