@@ -156,18 +156,55 @@ export default function CycleWizard() {
           .is('completed_at', null);
       }
 
-      // Clear draft
+      // Generate planner tasks based on user's selections (best-effort, partial-success allowed)
+      let tasksCreated = 0;
+      let tasksFailed = 0;
+      if (!editCycleId) {
+        const drafts = generateCycleTaskDrafts(
+          {
+            goal: data.goal,
+            startDate: data.startDate,
+            endDate: data.endDate,
+            weeklyPlanningDay: data.weeklyPlanningDay,
+            weeklyDebriefDay: data.weeklyDebriefDay,
+            metric1_name: data.metric1_name,
+            metric2_name: data.metric2_name,
+            metric3_name: data.metric3_name,
+          },
+          taskOptions,
+        );
+        for (const draft of drafts) {
+          try {
+            const r = await resilientCreate({
+              ...draft,
+              is_system_generated: true,
+            });
+            if (r.success) tasksCreated += 1;
+            else tasksFailed += 1;
+          } catch (e) {
+            console.warn('Cycle task create failed', e);
+            tasksFailed += 1;
+          }
+        }
+      }
+
+      // Clear draft only after successful cycle creation
       await clearDraft();
 
-      toast.success(editCycleId ? 'Your plan has been updated!' : '🎉 Your 90-day cycle is ready!');
-      navigate('/dashboard');
+      if (editCycleId) {
+        toast.success('Your plan has been updated!');
+        navigate('/dashboard');
+      } else {
+        // Show success screen with destinations + partial-success info
+        setSuccessState({ cycleId, tasksCreated, tasksFailed });
+      }
     } catch (error) {
       console.error('Error saving cycle:', error);
       toast.error('Failed to save your plan. Please try again.');
     } finally {
       setIsCreating(false);
     }
-  }, [user, data, editCycleId, clearDraft, navigate]);
+  }, [user, data, editCycleId, clearDraft, navigate, taskOptions, resilientCreate]);
 
   const handleNext = useCallback(() => {
     if (step === TOTAL_STEPS) {
