@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { CONTENT_PURPOSES } from '@/lib/contentPurpose';
 import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
