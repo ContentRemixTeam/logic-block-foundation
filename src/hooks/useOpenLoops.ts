@@ -396,7 +396,7 @@ export function useOpenLoopActions() {
       if (!user) throw new Error('Not authenticated');
       const date = when === 'today' ? todayStr() : when === 'tomorrow' ? dayOffsetStr(1) : dayOffsetStr(7);
       if (item.sourceTable === 'tasks') {
-        await updateTask.mutateAsync({ task_id: item.sourceId, scheduled_date: date, status: 'scheduled' } as any);
+        await updateTask.mutateAsync({ taskId: item.sourceId, updates: { scheduled_date: date, status: 'scheduled' } as any });
         return;
       }
       if (item.sourceTable === 'content_items') {
