@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, MutableRefObject } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format, subDays, startOfWeek } from 'date-fns';
+import { BraveMoveSlots } from '@/components/daily/BraveMoveSlots';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { detectGap, type GapStatus } from '@/utils/gapDetection';
 import { useActiveCycle } from '@/hooks/useActiveCycle';
