@@ -477,6 +477,8 @@ function EditorialCalendarViewInner() {
               </DropdownMenuContent>
             </DropdownMenu>
 
+            <CalendarViewModeSwitcher mode={viewMode} onChange={setViewMode} />
+
             <ViewToggle view={view} onViewChange={setView} />
 
             <Button onClick={() => {
