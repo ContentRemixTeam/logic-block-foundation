@@ -1153,15 +1153,32 @@ export default function Tasks() {
             onAddTask={() => setIsAddDialogOpen(true)}
             onInlineAddTask={async (parsed) => {
               try {
+                // Inherit group context unless the user explicitly typed a value.
+                const inheritedPriority =
+                  parsed.priority ||
+                  (parsed.groupBy === 'priority' && parsed.groupId && ['high', 'medium', 'low'].includes(parsed.groupId)
+                    ? (parsed.groupId as 'high' | 'medium' | 'low')
+                    : null);
+                const inheritedEnergy =
+                  parsed.groupBy === 'energy' && parsed.groupId && parsed.groupId !== 'none'
+                    ? (parsed.groupId as any)
+                    : null;
+                const inheritedProjectId =
+                  parsed.groupBy === 'project' && parsed.groupId && parsed.groupId !== 'no_project'
+                    ? parsed.groupId
+                    : null;
+                const scheduledDate = parsed.date ? format(parsed.date, 'yyyy-MM-dd') : null;
+
                 await optimisticCreateTask.mutateAsync({
                   task_text: parsed.text,
-                  scheduled_date: parsed.date ? format(parsed.date, 'yyyy-MM-dd') : null,
-                  priority: parsed.priority || null,
+                  scheduled_date: scheduledDate,
+                  scheduled_time: normalizeTime(parsed.time),
+                  priority: inheritedPriority,
                   estimated_minutes: parsed.duration ?? null,
                   context_tags: parsed.tags ?? [],
-                  project_id: parsed.groupBy === 'project' && parsed.groupId && parsed.groupId !== 'no_project' ? parsed.groupId : null,
-                  energy_level: parsed.groupBy === 'energy' && parsed.groupId && parsed.groupId !== 'none' ? (parsed.groupId as any) : null,
-                  status: 'backlog',
+                  project_id: inheritedProjectId,
+                  energy_level: inheritedEnergy,
+                  status: scheduledDate ? 'scheduled' : 'backlog',
                 });
                 toast.success('Task added');
               } catch {
