@@ -78,6 +78,7 @@ const HOME_NAV = [
 const BUILD_NAV = [
   { name: 'Tasks', href: '/tasks', icon: ListTodo, questIcon: '📜' },
   { name: 'Projects', href: '/projects', icon: FolderKanban, questIcon: '🚀', isActiveCheck: (path: string) => path.startsWith('/projects') },
+  { name: 'Offers', href: '/offers', icon: Package, questIcon: '📦' },
   { name: 'Content', href: '/editorial-calendar', icon: CalendarRange, questIcon: '📅' },
   { name: 'Wizards', href: '/wizards', icon: Sparkles, questIcon: '🪄', isActiveCheck: (path: string) => path.startsWith('/wizards') },
 ];
@@ -85,6 +86,7 @@ const BUILD_NAV = [
 const CAPTURE_NAV = [
   { name: 'Brain Dump', href: '/brain-dump', icon: Brain, questIcon: '🧠' },
   { name: 'Open Loops', href: '/open-loops', icon: Inbox, questIcon: '📥' },
+  { name: 'Support Queue', href: '/support-queue', icon: LifeBuoy, questIcon: '🛟' },
   { name: 'Notes', href: '/notes', icon: BookOpen, questIcon: '📒' },
   { name: 'Ideas', href: '/ideas', icon: Lightbulb, questIcon: '💡' },
   { name: 'Wins', href: '/wins', icon: Trophy, questIcon: '🏆' },
