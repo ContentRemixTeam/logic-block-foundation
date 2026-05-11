@@ -314,6 +314,7 @@ export default function ContentVault() {
                   <X className="h-4 w-4 mr-1" />
                   Clear
                 </Button>
+              )}
             </div>
 
             {/* Purpose Filter */}
