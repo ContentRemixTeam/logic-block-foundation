@@ -269,3 +269,9 @@ export default function Reviews() {
     </Layout>
   );
 }
+
+function MastermindCoachSlot() {
+  const { isMastermind } = useMembership();
+  if (!isMastermind) return null;
+  return <WeeklyFocusCoach />;
+}
