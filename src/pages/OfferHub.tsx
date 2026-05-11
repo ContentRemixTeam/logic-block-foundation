@@ -147,7 +147,7 @@ export default function OfferHub() {
                       const launch = launches.find((l: any) => l.id === o.launch_id);
                       const project = projects.find((p) => p.id === o.project_id);
                       return (
-                        <Card key={o.id} className="cursor-pointer hover:shadow-md transition" onClick={() => startEdit(o)}>
+                        <Card key={o.id} className="cursor-pointer hover:shadow-md transition" onClick={() => openDetail(o)}>
                           <CardHeader className="pb-2">
                             <div className="flex items-start justify-between gap-2">
                               <CardTitle className="text-base">{o.name}</CardTitle>
