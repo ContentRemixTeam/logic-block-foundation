@@ -313,6 +313,16 @@ export default function OfferHub() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <OfferDetailSheet
+          offer={detailOffer}
+          open={detailOpen}
+          onOpenChange={setDetailOpen}
+          onEdit={(o) => {
+            setDetailOpen(false);
+            startEdit(o);
+          }}
+        />
       </div>
     </Layout>
   );
