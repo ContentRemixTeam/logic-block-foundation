@@ -43,6 +43,13 @@ export default function OfferHub() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Offer | null>(null);
   const [form, setForm] = useState<OfferInput>({ name: '', status: 'active' });
+  const [detailOffer, setDetailOffer] = useState<Offer | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  const openDetail = (o: Offer) => {
+    setDetailOffer(o);
+    setDetailOpen(true);
+  };
 
   const startNew = () => {
     setEditing(null);
