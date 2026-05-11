@@ -70,7 +70,6 @@ const TAG_TO_CATEGORY: Array<[string, BrainDumpCategory]> = [
   ['mindset', 'mindset'],
   ['later', 'later'],
   ['question', 'question'],
-  ['support', 'question'],
   ['content', 'content'],
 ];
 

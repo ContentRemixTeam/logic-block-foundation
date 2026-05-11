@@ -30,7 +30,7 @@ export function BrainDumpSorterModal({ items, open, onOpenChange, onConvert }: P
     const list = items.slice(0, 30); // safety cap
     const res = await ai.mutateAsync({
       messages: [
-        { role: 'system', content: `You sort messy brain-dump notes into one of these categories: task, idea, project, content, question, mindset, later, note. Use "task" for actionable next steps, "project" for multi-step initiatives, "content" for content/post ideas, "question" for things to ask a coach/support, "mindset" for limiting beliefs or emotional blocks, "later" for someday/maybe, "idea" for raw ideas, "note" if unclear. Reply ONLY as JSON: {"items":[{"id":string,"category":string,"reason":string}]}.` },
+        { role: 'system', content: `You sort messy brain-dump notes into one of these categories: task, idea, project, content, question, mindset, later, note. Use "task" for actionable next steps, "project" for multi-step initiatives, "content" for content/post ideas, "question" for things to ask a coach, "mindset" for limiting beliefs or emotional blocks, "later" for someday/maybe, "idea" for raw ideas, "note" if unclear. Reply ONLY as JSON: {"items":[{"id":string,"category":string,"reason":string}]}.` },
         { role: 'user', content: JSON.stringify({ items: list.map(i => ({ id: i.id, text: i.text })) }) },
       ],
       temperature: 0.2,
