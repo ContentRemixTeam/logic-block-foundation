@@ -203,6 +203,24 @@ export function ContentEditorModal({ open, onOpenChange, item, cycleId, onSaved 
             </div>
 
             <div className="space-y-2">
+              <Label>Purpose</Label>
+              <Select
+                value={(formData as any).purpose || 'none'}
+                onValueChange={(v) => updateField('purpose' as any, (v === 'none' ? null : v) as any)}
+              >
+                <SelectTrigger><SelectValue placeholder="What's this content for?" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— None —</SelectItem>
+                  {CONTENT_PURPOSES.map((p) => (
+                    <SelectItem key={p.value} value={p.value}>
+                      {p.emoji} {p.label} — {p.description}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label>Tags</Label>
               <div className="flex gap-2">
                 <Input
