@@ -54,6 +54,11 @@ const OptionalTaskFields = z.object({
   content_creation_date: z.string().nullable().optional(),
   content_publish_date: z.string().nullable().optional(),
   content_item_id: z.string().uuid().nullable().optional(),
+  // Mastermind OS — momentum spine
+  momentum_type: z.enum(['revenue', 'audience', 'delivery', 'operations', 'mindset']).nullable().optional(),
+  is_maintenance: z.boolean().optional(),
+  done_enough_definition: z.string().max(500).nullable().optional(),
+  connection_swept_at: z.string().nullable().optional(),
 });
 
 const CreateTaskSchema = z.object({
@@ -99,6 +104,10 @@ const CreateTaskSchema = z.object({
   content_creation_date: z.string().nullable().optional(),
   content_publish_date: z.string().nullable().optional(),
   content_item_id: z.string().uuid().nullable().optional(),
+  // Mastermind OS — momentum spine
+  momentum_type: z.enum(['revenue', 'audience', 'delivery', 'operations', 'mindset']).nullable().optional(),
+  is_maintenance: z.boolean().optional(),
+  done_enough_definition: z.string().max(500).nullable().optional(),
 });
 
 const UpdateTaskSchema = OptionalTaskFields.extend({
@@ -328,7 +337,9 @@ Deno.serve(async (req) => {
           position_in_column, planned_day, day_order, project_id,
           project_column, section_id, cycle_id, source_note_id, source_note_title,
           // Content calendar fields
-          content_type, content_channel, content_creation_date, content_publish_date, content_item_id
+          content_type, content_channel, content_creation_date, content_publish_date, content_item_id,
+          // Mastermind OS
+          momentum_type, is_maintenance, done_enough_definition
         } = validatedData;
         
         const isRecurringParent = recurrence_pattern && recurrence_pattern !== 'none';
@@ -396,6 +407,10 @@ Deno.serve(async (req) => {
             content_creation_date: content_creation_date || null,
             content_publish_date: content_publish_date || null,
             content_item_id: content_item_id || null,
+            // Mastermind OS
+            momentum_type: momentum_type || null,
+            is_maintenance: is_maintenance ?? false,
+            done_enough_definition: done_enough_definition || null,
           })
           .select()
           .single();
@@ -459,6 +474,11 @@ Deno.serve(async (req) => {
         if (updateFields.content_creation_date !== undefined) updateData.content_creation_date = updateFields.content_creation_date;
         if (updateFields.content_publish_date !== undefined) updateData.content_publish_date = updateFields.content_publish_date;
         if (updateFields.content_item_id !== undefined) updateData.content_item_id = updateFields.content_item_id;
+        // Mastermind OS — momentum spine
+        if (updateFields.momentum_type !== undefined) updateData.momentum_type = updateFields.momentum_type;
+        if (updateFields.is_maintenance !== undefined) updateData.is_maintenance = updateFields.is_maintenance;
+        if (updateFields.done_enough_definition !== undefined) updateData.done_enough_definition = updateFields.done_enough_definition;
+        if (updateFields.connection_swept_at !== undefined) updateData.connection_swept_at = updateFields.connection_swept_at;
 
         // Track reschedules: if date/time is being changed for first time, store originals
         const isRescheduling = (

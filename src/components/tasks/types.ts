@@ -105,6 +105,11 @@ export interface Task {
   content_channel?: string | null;
   content_creation_date?: string | null;
   content_publish_date?: string | null;
+  // Mastermind OS — momentum spine
+  momentum_type?: 'revenue' | 'audience' | 'delivery' | 'operations' | 'mindset' | null;
+  is_maintenance?: boolean;
+  done_enough_definition?: string | null;
+  connection_swept_at?: string | null;
 }
 
 export type FilterTab = 'today' | 'week' | 'future' | 'all' | 'completed';

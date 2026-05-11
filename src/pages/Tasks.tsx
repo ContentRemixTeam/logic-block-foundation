@@ -37,6 +37,8 @@ import { TaskQuickAdd } from '@/components/tasks/TaskQuickAdd';
 import { TasksPageToolbar } from '@/components/tasks/TasksPageToolbar';
 import { HelpButton } from '@/components/ui/help-button';
 import { TaskListView } from '@/components/tasks/views/TaskListView';
+import { UnconnectedTasksBanner } from '@/components/tasks/UnconnectedTasksBanner';
+import { ConnectTasksSweepModal } from '@/components/tasks/ConnectTasksSweepModal';
 
 
 import { TaskThreeDayView } from '@/components/tasks/views/TaskThreeDayView';
@@ -170,6 +172,7 @@ export default function Tasks() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isSweepOpen, setIsSweepOpen] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [deleteTaskInfo, setDeleteTaskInfo] = useState<{ isRecurring: boolean; hasParent: boolean } | null>(null);
   const [deleteType, setDeleteType] = useState<DeleteType>('single');
@@ -1046,6 +1049,14 @@ export default function Tasks() {
             />
           )}
 
+          {/* Mastermind OS — momentum spine banner */}
+          <UnconnectedTasksBanner
+            tasks={tasks}
+            activeCycleId={activeCycle?.cycle_id ?? null}
+            activeGoal={activeCycle?.goal ?? null}
+            onOpenSweep={() => setIsSweepOpen(true)}
+          />
+
           {/* Toolbar */}
           <TasksPageToolbar
             activeTab={activeTab}
@@ -1059,6 +1070,14 @@ export default function Tasks() {
             counts={counts}
             projects={projects}
             launches={launches}
+          />
+
+          <ConnectTasksSweepModal
+            open={isSweepOpen}
+            onOpenChange={setIsSweepOpen}
+            tasks={tasks}
+            activeGoal={activeCycle?.goal ?? null}
+            activeCycleId={activeCycle?.cycle_id ?? null}
           />
 
           {/* Import Modal */}
@@ -1178,6 +1197,7 @@ export default function Tasks() {
                   context_tags: parsed.tags ?? [],
                   project_id: inheritedProjectId,
                   energy_level: inheritedEnergy,
+                  momentum_type: parsed.momentumType ?? null,
                   status: scheduledDate ? 'scheduled' : 'backlog',
                 });
                 toast.success('Task added');
