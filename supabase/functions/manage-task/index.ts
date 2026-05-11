@@ -337,7 +337,9 @@ Deno.serve(async (req) => {
           position_in_column, planned_day, day_order, project_id,
           project_column, section_id, cycle_id, source_note_id, source_note_title,
           // Content calendar fields
-          content_type, content_channel, content_creation_date, content_publish_date, content_item_id
+          content_type, content_channel, content_creation_date, content_publish_date, content_item_id,
+          // Mastermind OS
+          momentum_type, is_maintenance, done_enough_definition
         } = validatedData;
         
         const isRecurringParent = recurrence_pattern && recurrence_pattern !== 'none';
