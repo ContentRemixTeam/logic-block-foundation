@@ -59,7 +59,7 @@ export function UnscheduledPool({
             className="writing-mode-vertical text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 whitespace-nowrap"
             style={{ writingMode: 'vertical-rl', textOrientation: 'mixed', transform: 'rotate(180deg)' }}
           >
-            Unscheduled
+            Content Inbox
           </div>
           <div className="mt-3 h-6 w-6 rounded-full bg-muted flex items-center justify-center">
             <span className="text-[10px] font-bold text-muted-foreground">{filteredItems.length}</span>
