@@ -61,6 +61,7 @@ export default function ContentVault() {
   const [selectedTypes, setSelectedTypes] = useState<ContentType[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<ContentStatus[]>([]);
   const [filterThisCycle, setFilterThisCycle] = useState(false);
+  const [selectedPurposes, setSelectedPurposes] = useState<string[]>([]);
 
   // Keyboard shortcut: Shift+N to open new content modal
   useEffect(() => {
