@@ -125,14 +125,14 @@ export const BrainDumpCard = memo(function BrainDumpCard({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel className="text-xs">Move to…</DropdownMenuLabel>
-                    {(['note', 'task', 'idea', 'project'] as BrainDumpCategory[])
+                    {(['task', 'idea', 'content', 'project', 'question', 'win', 'mindset', 'later', 'note'] as BrainDumpCategory[])
                       .filter(c => c !== item.category)
                       .map(c => (
                         <DropdownMenuItem
                           key={c}
                           onClick={() => onConvertCategory(item, c)}
                         >
-                          {CATEGORY_CONFIG[c].emoji} {CATEGORY_CONFIG[c].label.slice(0, -1)}
+                          {CATEGORY_CONFIG[c].emoji} {CATEGORY_CONFIG[c].label.replace(/s$/, '')}
                         </DropdownMenuItem>
                       ))}
                   </DropdownMenuContent>
