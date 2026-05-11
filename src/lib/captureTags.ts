@@ -2,7 +2,7 @@
  * Universal capture tag registry shared by /brain-dump and Daily Plan SmartScratchPad.
  * Phase 1: simple typed-tag routing. No AI, no schema changes.
  */
-import { ListTodo, Lightbulb, StickyNote, Rocket, FileText, HelpCircle, Bell, Brain, Trophy, DollarSign, Settings, Mail, Battery, BatteryMedium, Zap } from 'lucide-react';
+import { ListTodo, Lightbulb, StickyNote, Rocket, FileText, HelpCircle, Bell, Brain, Trophy, DollarSign, Settings, Mail, Battery, BatteryMedium, Zap, LifeBuoy, Clock, Wind } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export type CaptureDestination = 'task' | 'idea' | 'note' | 'project';
