@@ -496,8 +496,11 @@ export type Database = {
           coaching_need: string | null
           created_at: string | null
           id: string
+          is_resolved: boolean
           main_question: string | null
           metrics: Json | null
+          resolution_note: string | null
+          resolved_at: string | null
           share_token: string | null
           updated_at: string | null
           user_id: string
@@ -509,8 +512,11 @@ export type Database = {
           coaching_need?: string | null
           created_at?: string | null
           id?: string
+          is_resolved?: boolean
           main_question?: string | null
           metrics?: Json | null
+          resolution_note?: string | null
+          resolved_at?: string | null
           share_token?: string | null
           updated_at?: string | null
           user_id: string
@@ -522,8 +528,11 @@ export type Database = {
           coaching_need?: string | null
           created_at?: string | null
           id?: string
+          is_resolved?: boolean
           main_question?: string | null
           metrics?: Json | null
+          resolution_note?: string | null
+          resolved_at?: string | null
           share_token?: string | null
           updated_at?: string | null
           user_id?: string

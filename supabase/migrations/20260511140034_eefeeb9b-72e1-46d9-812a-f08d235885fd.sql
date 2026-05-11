@@ -1,0 +1,5 @@
+
+ALTER TABLE public.coaching_call_prep
+  ADD COLUMN IF NOT EXISTS is_resolved BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS resolution_note TEXT;
