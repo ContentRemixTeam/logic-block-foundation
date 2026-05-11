@@ -314,9 +314,26 @@ export default function ContentVault() {
                   <X className="h-4 w-4 mr-1" />
                   Clear
                 </Button>
-              )}
             </div>
 
+            {/* Purpose Filter */}
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="text-xs text-muted-foreground mr-1">Purpose:</span>
+              {CONTENT_PURPOSES.map((p) => (
+                <Badge
+                  key={p.value}
+                  variant={selectedPurposes.includes(p.value) ? 'default' : 'outline'}
+                  className="cursor-pointer"
+                  onClick={() =>
+                    setSelectedPurposes((prev) =>
+                      prev.includes(p.value) ? prev.filter((v) => v !== p.value) : [...prev, p.value]
+                    )
+                  }
+                >
+                  {p.emoji} {p.label}
+                </Badge>
+              ))}
+            </div>
             {/* Content View */}
             {loading ? (
               <div className="flex items-center justify-center py-12">
