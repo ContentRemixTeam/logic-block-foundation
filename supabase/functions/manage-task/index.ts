@@ -474,6 +474,11 @@ Deno.serve(async (req) => {
         if (updateFields.content_creation_date !== undefined) updateData.content_creation_date = updateFields.content_creation_date;
         if (updateFields.content_publish_date !== undefined) updateData.content_publish_date = updateFields.content_publish_date;
         if (updateFields.content_item_id !== undefined) updateData.content_item_id = updateFields.content_item_id;
+        // Mastermind OS — momentum spine
+        if (updateFields.momentum_type !== undefined) updateData.momentum_type = updateFields.momentum_type;
+        if (updateFields.is_maintenance !== undefined) updateData.is_maintenance = updateFields.is_maintenance;
+        if (updateFields.done_enough_definition !== undefined) updateData.done_enough_definition = updateFields.done_enough_definition;
+        if (updateFields.connection_swept_at !== undefined) updateData.connection_swept_at = updateFields.connection_swept_at;
 
         // Track reschedules: if date/time is being changed for first time, store originals
         const isRescheduling = (
