@@ -181,7 +181,8 @@ async function processMutation(mutation: QueuedMutation): Promise<boolean> {
  */
 export async function syncPendingMutations(): Promise<{ synced: number; failed: number }> {
   if (isSyncing) {
-    console.log('Sync already in progress');
+    // Silently coalesce — another caller is already syncing
+    if (import.meta.env.DEV) console.debug('[offlineSync] coalesced (already in progress)');
     return { synced: 0, failed: 0 };
   }
 
