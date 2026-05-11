@@ -126,6 +126,16 @@ export default function CycleManagement() {
           </Button>
         </div>
 
+        {/* 90-Day Command Center (active cycle dashboard) */}
+        <CycleCommandCenter />
+
+        {/* All cycles list */}
+        <div className="pt-2">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+            All cycles
+          </h2>
+        </div>
+
         {/* Loading State */}
         {loading ? (
           <div className="space-y-4">
