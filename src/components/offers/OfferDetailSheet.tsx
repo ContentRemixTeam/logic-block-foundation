@@ -29,7 +29,7 @@ export function OfferDetailSheet({ offer, open, onOpenChange, onEdit }: Props) {
   const { user } = useAuth();
   const { launches = [] } = useLaunches();
   const { data: projects = [] } = useProjects();
-  const { allTasks = [] } = useTasks({ loadAll: true, enabled: !!offer && open }) as any;
+  const { tasks: allTasks = [] } = useTasks({ loadAll: true, enabled: !!offer && open }) as any;
 
   const launch = useMemo(
     () => launches.find((l: any) => l.id === offer?.launch_id),
