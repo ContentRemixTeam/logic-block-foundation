@@ -163,6 +163,47 @@ const faqData: FAQItem[] = [
     answer: 'Custom questions let you add personal check-ins to your Daily Page. Create questions with different input types: Checkbox (yes/no), Text (notes), Number (quantities), Rating (1-10 slider), Time (timestamps), or Dropdown (select options). Set questions as required, add validation (character limits, min/max), and your responses are saved with each day\'s plan for tracking over time.'
   },
   // Troubleshooting
+  // Mastermind AI (BYOK)
+  {
+    category: 'Mastermind AI',
+    question: 'What are the Mastermind AI coaches?',
+    answer: 'Mastermind members get three opt-in AI helpers that suggest — never silently change — anything: 1) Stuck Task Coach ("Make this easier" on any task → 10-minute step, low-energy version, support question, subtask breakdown, or move to Someday). 2) Brain Dump Sorter (classifies messy notes into task / idea / project / content / mindset / question / later). 3) Weekly Focus Coach on the Reviews page (reads your active 90-day cycle + this week\'s tasks and suggests 3–5 simple next moves). Every suggestion requires your approval before anything saves.'
+  },
+  {
+    category: 'Mastermind AI',
+    question: 'Why do I need my own API key (BYOK)?',
+    answer: 'The AI coaches use your own OpenAI or Anthropic (Claude) account so your usage stays private, you control the spend, and the planner stays affordable for everyone. Your key is encrypted in your browser with AES-GCM before it ever leaves your device, stored encrypted, and only decrypted server-side inside the mastermind-ai-coach function when you trigger an action. It\'s never logged or shared.'
+  },
+  {
+    category: 'Mastermind AI',
+    question: 'How do I get a Claude (Anthropic) API key?',
+    answer: '1) Go to console.anthropic.com and create a free account. 2) Settings → Billing → add a card and load $10–20 (most members spend $1–5/month). 3) Settings → Limits → set a monthly cap as a safety net. 4) Settings → API Keys → Create Key → copy the key (starts with "sk-ant-"). Paste it into Settings → AI Provider in the planner.'
+  },
+  {
+    category: 'Mastermind AI',
+    question: 'How do I get an OpenAI API key?',
+    answer: '1) Go to platform.openai.com and create a free account. 2) Billing → add a card and load $10–20. 3) Usage → Limits → set a monthly cap. 4) platform.openai.com/api-keys → Create new secret key → copy the key (starts with "sk-"). Paste it into Settings → AI Provider in the planner.'
+  },
+  {
+    category: 'Mastermind AI',
+    question: 'Where do I paste my AI key in the planner?',
+    answer: 'Open Settings → AI Provider, choose Claude or OpenAI, paste your key, and Save. The key is encrypted in your browser before it\'s stored. You can rotate or remove it at any time. Once saved, "Make this easier", "Sort with AI" on Brain Dump, and the Weekly Focus Coach card on the Reviews page all unlock.'
+  },
+  {
+    category: 'Mastermind AI',
+    question: 'Claude or OpenAI — which should I pick?',
+    answer: 'Either works. Claude (Sonnet) tends to feel warmer and more coach-like, which fits the planner well. OpenAI (GPT-4o) is slightly faster and a bit cheaper per token. You can switch providers anytime in Settings → AI Provider. You only need one key.'
+  },
+  {
+    category: 'Mastermind AI',
+    question: 'Will the AI ever change my tasks or notes without asking?',
+    answer: 'No. Every coach surfaces suggestions in a review modal. Nothing is created, edited, or deleted until you tick the items you want and click Apply. If a suggestion doesn\'t fit, skip it — the original data is untouched.'
+  },
+  {
+    category: 'Mastermind AI',
+    question: 'How much will the AI coaches cost me?',
+    answer: 'Real-world usage from members is typically $1–5 per month. Each coach call is a small JSON request (a few cents at most). Set a monthly spending cap on your provider dashboard and you can\'t overshoot it.'
+  },
   {
     category: 'Troubleshooting',
     question: 'Why aren\'t my habits showing up?',
