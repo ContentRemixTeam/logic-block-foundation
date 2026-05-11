@@ -660,6 +660,20 @@ export default function Tasks() {
     toast.success(status === 'someday' ? 'Task moved to Someday' : 'Task rescheduled');
   }, [optimisticUpdateTask]);
 
+  // Convert a parsed time string like "2pm" or "10:30" to "HH:MM:00".
+  const normalizeTime = (raw?: string): string | null => {
+    if (!raw) return null;
+    const m = raw.trim().toLowerCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
+    if (!m) return null;
+    let hours = parseInt(m[1], 10);
+    const minutes = m[2] ? parseInt(m[2], 10) : 0;
+    const meridiem = m[3];
+    if (meridiem === 'pm' && hours < 12) hours += 12;
+    if (meridiem === 'am' && hours === 12) hours = 0;
+    if (hours > 23 || minutes > 59) return null;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
+  };
+
   const handleQuickAdd = useCallback((parsed: {
     text: string;
     date?: Date;
@@ -677,6 +691,7 @@ export default function Tasks() {
     optimisticCreateTask.mutate({
       task_text: parsed.text,
       scheduled_date: scheduledDate,
+      scheduled_time: normalizeTime(parsed.time),
       priority: parsed.priority || null,
       estimated_minutes: parsed.duration || null,
       context_tags: parsed.tags.length > 0 ? parsed.tags : null,
