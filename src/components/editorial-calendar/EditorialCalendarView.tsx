@@ -479,7 +479,7 @@ function EditorialCalendarViewInner() {
 
             <CalendarViewModeSwitcher mode={viewMode} onChange={setViewMode} />
 
-            <ViewToggle view={view} onViewChange={setView} />
+            {(viewMode === 'calendar' || viewMode === 'list') && <ViewToggle view={view} onViewChange={setView} />}
 
             <Button onClick={() => {
               setAddContentInitialDate(undefined);
