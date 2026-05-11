@@ -10,6 +10,7 @@ import { Target, ArrowRight, RotateCcw, Rocket, Mail, Zap, DollarSign, History, 
 import { WizardTemplate, WizardCompletion } from '@/types/wizard';
 import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from 'sonner';
+import { canonicalTemplateName, viewLastRouteFor } from '@/lib/wizardTemplates';
 
 // Fully implemented wizards that should be shown
 const IMPLEMENTED_WIZARDS = [
