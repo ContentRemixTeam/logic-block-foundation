@@ -29,7 +29,7 @@ import {
   Zap, Battery, BatteryLow, Trash2, CheckSquare,
   AlertTriangle, Calendar as CalendarDays, Inbox, FolderKanban
 } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 // Import new components
