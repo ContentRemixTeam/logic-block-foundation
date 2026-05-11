@@ -49,7 +49,9 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: "autoUpdate",
+      // Use explicit prompt so we can flush pending writes BEFORE reloading.
+      // autoUpdate would silently swap the SW and could lose in-flight drafts.
+      registerType: "prompt",
       includeAssets: ["favicon.ico", "pwa-192x192.png", "pwa-512x512.png"],
       manifest: {
         id: "boss-planner-full",
@@ -101,6 +103,8 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MB
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
         // Cache app shell first
         runtimeCaching: [
           // Cache fonts (public, no auth - safe to cache)
