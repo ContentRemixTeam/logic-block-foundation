@@ -38,6 +38,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { TaskTimerButton } from '@/components/timer';
 import { StuckTaskBadge } from './StuckTaskBadge';
+import { Sparkles } from 'lucide-react';
+import { useMembership } from '@/hooks/useMembership';
+import { StuckTaskCoachModal } from '@/components/mastermind/StuckTaskCoachModal';
 
 interface TaskCardProps {
   task: Task;
