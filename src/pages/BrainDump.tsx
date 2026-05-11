@@ -10,9 +10,11 @@ import { BrainDumpBoard } from '@/components/brain-dump/BrainDumpBoard';
 import { BrainDumpGrid } from '@/components/brain-dump/BrainDumpGrid';
 import { PeriodSelector, type PeriodType, getDateRangeForPeriod } from '@/components/financial/PeriodSelector';
 import { useBrainDump, CATEGORY_CONFIG, type BrainDumpCategory, type BrainDumpItem } from '@/hooks/useBrainDump';
-import { Search, LayoutGrid, Columns3, X, Brain } from 'lucide-react';
+import { Search, LayoutGrid, Columns3, X, Brain, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseISO, isWithinInterval } from 'date-fns';
+import { useMembership } from '@/hooks/useMembership';
+import { BrainDumpSorterModal } from '@/components/mastermind/BrainDumpSorterModal';
 
 type ViewMode = 'board' | 'grid';
 type FilterCategory = 'all' | 'review' | BrainDumpCategory;
