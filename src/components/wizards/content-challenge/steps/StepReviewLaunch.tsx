@@ -18,9 +18,10 @@ interface StepReviewLaunchProps {
   goNext: () => void;
   goBack: () => void;
   clearDraft?: () => Promise<void>;
+  markCompleted?: (metadata?: Record<string, unknown>) => Promise<void>;
 }
 
-export default function StepReviewLaunch({ data, setData, clearDraft }: StepReviewLaunchProps) {
+export default function StepReviewLaunch({ data, setData, markCompleted }: StepReviewLaunchProps) {
   const navigate = useNavigate();
   const [isCreating, setIsCreating] = useState(false);
 
