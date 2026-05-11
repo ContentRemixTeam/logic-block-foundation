@@ -37,6 +37,8 @@ import { TaskQuickAdd } from '@/components/tasks/TaskQuickAdd';
 import { TasksPageToolbar } from '@/components/tasks/TasksPageToolbar';
 import { HelpButton } from '@/components/ui/help-button';
 import { TaskListView } from '@/components/tasks/views/TaskListView';
+import { UnconnectedTasksBanner } from '@/components/tasks/UnconnectedTasksBanner';
+import { ConnectTasksSweepModal } from '@/components/tasks/ConnectTasksSweepModal';
 
 
 import { TaskThreeDayView } from '@/components/tasks/views/TaskThreeDayView';
