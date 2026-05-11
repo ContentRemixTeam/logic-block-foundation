@@ -71,10 +71,6 @@ export function BrainDumpBoard({ items, onDelete, onUpdate, onConvertCategory, f
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
   );
 
-  const ALL_CATEGORIES: BrainDumpCategory[] = [
-    'task', 'idea', 'content', 'project', 'question', 'win', 'mindset', 'later', 'note',
-  ];
-
   const columns = useMemo(() => {
     const grouped = ALL_CATEGORIES.reduce((acc, c) => {
       acc[c] = [];
