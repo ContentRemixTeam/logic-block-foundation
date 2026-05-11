@@ -99,6 +99,8 @@ export function TaskCard({
 }: TaskCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(task.task_text);
+  const [coachOpen, setCoachOpen] = useState(false);
+  const { isMastermind } = useMembership();
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
