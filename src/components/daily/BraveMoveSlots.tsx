@@ -50,7 +50,7 @@ const QK = (date: string, userId: string | undefined) =>
 export function BraveMoveSlots({ date, dayId }: BraveMoveSlotsProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { tasks } = useTasks();
+  const { data: tasks = [] } = useTasks();
 
   // Load the slot fields for this date
   const { data: row } = useQuery({
