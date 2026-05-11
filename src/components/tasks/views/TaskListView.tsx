@@ -351,8 +351,11 @@ export function TaskListView({
         return today;
       case 'tomorrow':
         return addDays(today, 1);
-      case 'thisWeek':
-        return addDays(startOfWeek(today, { weekStartsOn: 1 }), 0); // Monday of this week
+      case 'thisWeek': {
+        // Default to today if Monday is already in the past; otherwise upcoming Monday.
+        const monday = startOfWeek(today, { weekStartsOn: 1 });
+        return monday < today ? today : monday;
+      }
       case 'later':
         return addDays(today, 7);
       case 'unscheduled':
