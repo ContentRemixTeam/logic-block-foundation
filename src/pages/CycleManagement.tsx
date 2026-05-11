@@ -11,6 +11,7 @@ import { Target, Plus, Edit, Eye, Calendar, TrendingUp, Download } from 'lucide-
 import { loadCycleForExport, exportCycleAsPDF } from '@/lib/cycleExport';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { CycleCommandCenter } from '@/components/cycle/CycleCommandCenter';
 
 interface Cycle {
   cycle_id: string;
