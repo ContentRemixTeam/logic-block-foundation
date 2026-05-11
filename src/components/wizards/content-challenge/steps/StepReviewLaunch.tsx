@@ -17,9 +17,11 @@ interface StepReviewLaunchProps {
   setData: (updates: Partial<ContentChallengeWizardData>) => void;
   goNext: () => void;
   goBack: () => void;
+  clearDraft?: () => Promise<void>;
+  markCompleted?: (metadata?: Record<string, unknown>) => Promise<void>;
 }
 
-export default function StepReviewLaunch({ data, setData }: StepReviewLaunchProps) {
+export default function StepReviewLaunch({ data, setData, markCompleted }: StepReviewLaunchProps) {
   const navigate = useNavigate();
   const [isCreating, setIsCreating] = useState(false);
 
@@ -70,6 +72,8 @@ export default function StepReviewLaunch({ data, setData }: StepReviewLaunchProp
       });
 
       if (error) throw error;
+
+      try { await markCompleted?.({ answers: JSON.parse(JSON.stringify(data)) }); } catch (e) { console.warn('markCompleted failed', e); }
 
       toast.success('30 Days of Content challenge created!');
       navigate('/editorial-calendar');

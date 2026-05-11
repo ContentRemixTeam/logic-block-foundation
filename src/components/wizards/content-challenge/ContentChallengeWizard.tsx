@@ -46,6 +46,8 @@ export default function ContentChallengeWizard() {
       setData: wizard.setData as (updates: Partial<ContentChallengeWizardData>) => void,
       goNext: wizard.goNext,
       goBack: wizard.goBack,
+      clearDraft: wizard.clearDraft,
+      markCompleted: wizard.markCompleted,
     };
 
     switch (wizard.step) {

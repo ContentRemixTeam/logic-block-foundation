@@ -42,6 +42,7 @@ export default function MoneyMomentumWizardPage() {
     goNext,
     goBack,
     save,
+    clearDraft,
     isSaving,
     isLoading,
     totalSteps,
@@ -130,6 +131,8 @@ export default function MoneyMomentumWizardPage() {
         .eq('user_id', user.id)
         .eq('template_name', 'money_momentum')
         .is('completed_at', null);
+
+      try { await clearDraft(); } catch (e) { console.warn('clearDraft failed', e); }
 
       toast.success('Your Money Momentum Sprint is ready! Let\'s go get that revenue.');
       navigate('/finances');
