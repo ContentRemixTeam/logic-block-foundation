@@ -30,7 +30,6 @@ const QUICK_TAGS: { tag: string; emoji: string; label: string }[] = [
   { tag: 'content',  emoji: '✍️', label: 'content' },
   { tag: 'project',  emoji: '🚀', label: 'project' },
   { tag: 'question', emoji: '❓', label: 'question' },
-  { tag: 'support',  emoji: '🆘', label: 'support' },
   { tag: 'win',      emoji: '🏆', label: 'win' },
   { tag: 'mindset',  emoji: '🧘', label: 'mindset' },
   { tag: 'later',    emoji: '⏳', label: 'later' },
@@ -117,7 +116,7 @@ export function BrainDumpCreateForm({ onSubmitRaw, isLoading }: BrainDumpCreateF
           'Examples:\n' +
           'Email Sarah about sales page #task #sales\n' +
           'New low-energy content batch idea #content\n' +
-          'Why are launches so heavy? #question #support\n' +
+          'Why are launches so heavy? #question\n' +
           'Hit my best week ever #win'
         }
         className="min-h-[140px] text-base bg-background border-input focus-visible:ring-1 resize-none"
@@ -143,7 +142,7 @@ export function BrainDumpCreateForm({ onSubmitRaw, isLoading }: BrainDumpCreateF
       <div className="flex flex-wrap items-center justify-between gap-3 mt-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Hash className="h-3 w-3" />
-          <span>Tag with #task, #idea, #content, #project, #question, #support, #win, #mindset, #later — or leave it messy.</span>
+          <span>Tag with #task, #idea, #content, #project, #question, #win, #mindset, #later — or leave it messy.</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">If untagged, save as</span>
