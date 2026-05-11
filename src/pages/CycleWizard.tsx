@@ -359,6 +359,34 @@ export default function CycleWizard() {
     );
   }
 
+  // Success view (after a brand-new cycle is created with optional planner items)
+  if (successState) {
+    const { cycleId, tasksCreated, tasksFailed } = successState;
+    return (
+      <Layout>
+        <WizardSuccessScreen
+          title="Your 90-day cycle is live!"
+          message={
+            tasksCreated > 0
+              ? `Added your cycle plus ${tasksCreated} task${tasksCreated === 1 ? '' : 's'} to your planner.`
+              : 'Your cycle plan is saved. You can add planner tasks any time from the Tasks page.'
+          }
+          partial={
+            tasksFailed > 0
+              ? { failedLabel: `${tasksFailed} task${tasksFailed === 1 ? '' : 's'} couldn\u2019t be created right now. They\u2019ll retry automatically when you\u2019re online.` }
+              : undefined
+          }
+          destinations={[
+            { label: 'View cycle', to: `/cycle-view/${cycleId}` },
+            { label: 'Today', to: '/daily-plan', variant: 'outline' },
+            { label: 'Weekly Plan', to: '/weekly-plan', variant: 'outline' },
+            { label: 'All tasks', to: '/tasks', variant: 'outline' },
+          ]}
+        />
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <WizardLayout
@@ -369,10 +397,10 @@ export default function CycleWizard() {
         onBack={goBack}
         onNext={handleNext}
         onSave={handleSaveAndExit}
-        canProceed={canProceed}
+        canProceed={step === TOTAL_STEPS ? false : canProceed}
         isSaving={isSaving || isCreating}
         isLastStep={step === TOTAL_STEPS}
-        lastStepButtonText={isCreating ? 'Creating...' : (editCycleId ? 'Update Plan' : 'Create My 90-Day Cycle')}
+        lastStepButtonText={step === TOTAL_STEPS ? 'Use button above' : (editCycleId ? 'Update Plan' : 'Continue')}
         statusIndicator={
           <WizardSaveStatus
             lastSaved={lastServerSync}
