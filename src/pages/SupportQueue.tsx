@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { CheckCircle2, MessageSquareQuestion, Plus, RotateCcw, Calendar } from 'lucide-react';
+import { CheckCircle2, HelpCircle, Plus, RotateCcw, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
