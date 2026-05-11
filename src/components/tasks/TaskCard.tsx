@@ -41,6 +41,8 @@ import { StuckTaskBadge } from './StuckTaskBadge';
 import { Sparkles } from 'lucide-react';
 import { useMembership } from '@/hooks/useMembership';
 import { StuckTaskCoachModal } from '@/components/mastermind/StuckTaskCoachModal';
+import { MomentumChip } from './MomentumChip';
+import type { MomentumType } from '@/lib/momentumTypes';
 
 interface TaskCardProps {
   task: Task;
