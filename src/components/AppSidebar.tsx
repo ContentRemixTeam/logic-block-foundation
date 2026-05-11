@@ -38,6 +38,8 @@ import {
   Trophy,
   MessageSquare,
   ClipboardCheck,
+  Package,
+  LifeBuoy,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
