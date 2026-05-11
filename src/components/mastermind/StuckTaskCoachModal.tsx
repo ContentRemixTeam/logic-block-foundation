@@ -163,7 +163,7 @@ export function StuckTaskCoachModal({ task, open, onOpenChange }: Props) {
               onChange={v => setEdit({ ...edit, support_question: v })}
             />
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2">
               <Button size="sm" variant="default" onClick={applyAsReplacement} disabled={updateTask.isPending}>
                 Use 10-min step
               </Button>
@@ -172,6 +172,12 @@ export function StuckTaskCoachModal({ task, open, onOpenChange }: Props) {
               </Button>
               <Button size="sm" variant="outline" onClick={saveSupportQuestion} disabled={createTask.isPending}>
                 Save support Q
+              </Button>
+              <Button size="sm" variant="outline" onClick={breakIntoSubtasks} disabled={ai.isPending || createTask.isPending}>
+                Break into subtasks
+              </Button>
+              <Button size="sm" variant="outline" onClick={moveToSomeday} disabled={updateTask.isPending}>
+                Move to Someday
               </Button>
             </div>
           </div>
