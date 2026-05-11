@@ -11,6 +11,7 @@ import { Target, Plus, Edit, Eye, Calendar, TrendingUp, Download } from 'lucide-
 import { loadCycleForExport, exportCycleAsPDF } from '@/lib/cycleExport';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { CycleCommandCenter } from '@/components/cycle/CycleCommandCenter';
 
 interface Cycle {
   cycle_id: string;
@@ -123,6 +124,16 @@ export default function CycleManagement() {
             <Plus className="h-4 w-4" />
             Start New Cycle
           </Button>
+        </div>
+
+        {/* 90-Day Command Center (active cycle dashboard) */}
+        <CycleCommandCenter />
+
+        {/* All cycles list */}
+        <div className="pt-2">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+            All cycles
+          </h2>
         </div>
 
         {/* Loading State */}
