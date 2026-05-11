@@ -3,11 +3,13 @@ import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Sunrise, Sun, Moon } from 'lucide-react';
+import { CheckCircle2, Sunrise, Sun, Moon, Quote } from 'lucide-react';
 import { NextBestAction } from './NextBestAction';
 import { BusinessSeasonSelector } from './BusinessSeasonSelector';
 import { useBusinessSeason } from '@/hooks/useBusinessSeason';
 import { useAuth } from '@/hooks/useAuth';
+import { format as formatDate } from 'date-fns';
+import { pickPrompt } from '@/lib/coachingPrompts';
 
 interface Top3Task {
   task_id?: string;
