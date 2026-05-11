@@ -301,7 +301,7 @@ export default function WizardHub() {
                       <p className="font-medium truncate">{displayName}</p>
                       <p className="text-sm text-muted-foreground">{formattedDate}</p>
                     </div>
-                    {completion.created_cycle_id && (
+                    {viewLastRouteFor(completion) && (
                       <Button 
                         variant="ghost" 
                         size="sm"
