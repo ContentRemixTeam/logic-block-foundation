@@ -63,7 +63,7 @@ import { useLaunches } from '@/hooks/useLaunches';
 
 export default function Tasks() {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
+
   
   // Google Calendar integration
   const { 
