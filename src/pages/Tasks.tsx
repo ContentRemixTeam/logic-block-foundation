@@ -37,7 +37,7 @@ import { TaskQuickAdd } from '@/components/tasks/TaskQuickAdd';
 import { TasksPageToolbar } from '@/components/tasks/TasksPageToolbar';
 import { HelpButton } from '@/components/ui/help-button';
 import { TaskListView } from '@/components/tasks/views/TaskListView';
-import { TaskKanbanView } from '@/components/tasks/views/TaskKanbanView';
+
 
 import { TaskThreeDayView } from '@/components/tasks/views/TaskThreeDayView';
 import { TaskMondayBoardView } from '@/components/tasks/views/TaskMondayBoardView';
