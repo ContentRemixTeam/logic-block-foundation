@@ -29,6 +29,7 @@ interface UseWizardReturn<T> {
   error: string | null;
   hasDraft: boolean;
   clearDraft: () => Promise<void>;
+  markCompleted: (metadata?: Record<string, unknown>) => Promise<void>;
   totalSteps: number;
   lastServerSync: Date | null;
   syncError: string | null;
