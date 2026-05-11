@@ -47,6 +47,7 @@ export default function ContentChallengeWizard() {
       goNext: wizard.goNext,
       goBack: wizard.goBack,
       clearDraft: wizard.clearDraft,
+      markCompleted: wizard.markCompleted,
     };
 
     switch (wizard.step) {
