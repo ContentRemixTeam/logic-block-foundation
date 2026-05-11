@@ -340,6 +340,55 @@ export function useWizard<T extends Record<string, unknown>>({
     }
   }, [user, templateName, localStorageKey]);
 
+  const markCompleted = useCallback(
+    async (metadata?: Record<string, unknown>) => {
+      if (!user) return;
+      try {
+        const payload: Record<string, unknown> = {
+          completed_at: new Date().toISOString(),
+        };
+        if (metadata) Object.assign(payload, metadata);
+
+        const { data: existing } = await supabase
+          .from('wizard_completions')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('template_name', templateName)
+          .is('completed_at', null)
+          .limit(1)
+          .maybeSingle();
+
+        if (existing) {
+          await supabase
+            .from('wizard_completions')
+            .update(payload)
+            .eq('id', existing.id);
+        } else {
+          await supabase
+            .from('wizard_completions')
+            .insert({
+              user_id: user.id,
+              template_name: templateName,
+              answers: {},
+              ...payload,
+            } as never);
+        }
+
+        try { localStorage.removeItem(localStorageKey); } catch (e) { void e; }
+        setHasDraft(false);
+        setDataState(defaultDataRef.current);
+        setStep(1);
+        setLastServerSync(null);
+        setDraftUpdatedAt(null);
+        hasUnsavedChanges.current = false;
+        lastSavedRef.current = '';
+      } catch (err) {
+        console.error('Error marking wizard completed:', err);
+      }
+    },
+    [user, templateName, localStorageKey],
+  );
+
   const getDraftAge = useCallback((): string | null => {
     if (!lastServerSync) return null;
     return formatDistanceToNow(lastServerSync, { addSuffix: true });
