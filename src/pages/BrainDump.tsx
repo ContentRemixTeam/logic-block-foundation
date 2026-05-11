@@ -51,7 +51,9 @@ export default function BrainDump() {
 
   const filteredItems = useMemo(() => {
     let result = items;
-    if (filterCategory !== 'all') {
+    if (filterCategory === 'review') {
+      result = result.filter(i => i.unprocessed);
+    } else if (filterCategory !== 'all') {
       result = result.filter(i => i.category === filterCategory);
     }
     if (search.trim()) {
