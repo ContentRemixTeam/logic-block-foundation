@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Plus, Command, Zap } from 'lucide-react';
 
+import type { MomentumType } from '@/lib/momentumTypes';
+
 export interface ParsedTask {
   text: string;
   date?: Date;
@@ -12,6 +14,8 @@ export interface ParsedTask {
   tags: string[];
   priority?: 'high' | 'medium' | 'low';
   duration?: number;
+  /** Mastermind OS — momentum classification, parsed from $revenue / $audience / etc. */
+  momentumType?: MomentumType;
   /** Group identifier the inline add originated from (e.g. 'today', 'tomorrow', a project_id). */
   groupId?: string;
   /** Active group-by mode at the time of add (e.g. 'date', 'project', 'priority', 'energy'). */
