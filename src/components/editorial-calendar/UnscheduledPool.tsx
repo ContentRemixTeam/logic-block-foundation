@@ -124,14 +124,14 @@ export function UnscheduledPool({
         <div className="p-2 space-y-1.5">
           {filteredItems.length === 0 ? (
             <div className="text-center py-10 px-4">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 mb-3">
-                <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-muted/60 mb-3">
+                <CheckCircle2 className="h-6 w-6 text-muted-foreground" />
               </div>
               <p className="text-sm font-semibold text-foreground mb-1">
-                All scheduled! 🎉
+                Your inbox is clear
               </p>
               <p className="text-xs text-muted-foreground leading-relaxed max-w-[180px] mx-auto">
-                Drag items here to unschedule, or create new content
+                Add a quick idea when inspiration hits.
               </p>
             </div>
           ) : (
