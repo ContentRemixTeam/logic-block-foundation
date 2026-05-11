@@ -104,7 +104,8 @@ export default function WizardHub() {
   }, [user]);
 
   const getLastCompletion = (templateName: string): WizardCompletion | undefined => {
-    return completions.find(c => c.template_name === templateName);
+    const canonical = canonicalTemplateName(templateName);
+    return completions.find(c => canonicalTemplateName(c.template_name) === canonical);
   };
 
   const handleStart = (templateName: string) => {
