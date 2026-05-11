@@ -231,7 +231,7 @@ const faqData: FAQItem[] = [
   }
 ];
 
-const categories = ['All', 'Getting Started', 'Task Management', 'Planning & Reviews', 'Metrics & Progress', 'Features', 'Troubleshooting'];
+const categories = ['All', 'Getting Started', 'Task Management', 'Planning & Reviews', 'Metrics & Progress', 'Features', 'Mastermind AI', 'Troubleshooting'];
 
 export function FAQSection() {
   const [searchQuery, setSearchQuery] = useState('');
