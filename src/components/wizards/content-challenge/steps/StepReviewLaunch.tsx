@@ -72,6 +72,8 @@ export default function StepReviewLaunch({ data, setData, clearDraft }: StepRevi
 
       if (error) throw error;
 
+      try { await clearDraft?.(); } catch (e) { console.warn('clearDraft failed', e); }
+
       toast.success('30 Days of Content challenge created!');
       navigate('/editorial-calendar');
     } catch (error) {
