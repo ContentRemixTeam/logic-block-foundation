@@ -111,7 +111,7 @@ export function WebinarWizard() {
       if (error) throw error;
       
       if (result?.success) {
-        await clearDraft();
+        await markCompleted({ answers: JSON.parse(JSON.stringify(data)) });
         toast.success(result.message || `Webinar created with ${result.tasks_created} tasks!`);
         navigate(`/projects/${result.project_id}`);
       } else {
