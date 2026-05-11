@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { questLabels, defaultLabels, getLevelTitle, calculateLevel } from '@/lib/questLabels';
 import { ThemeId, DEFAULT_THEME, isValidTheme, isQuestTheme } from '@/lib/themes';
+import { useUserSettingsRow } from '@/hooks/useUserSettingsRow';
 
 export type ThemeMode = ThemeId;
 
@@ -47,67 +48,49 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const isQuestMode = themeLoaded && theme ? isQuestTheme(theme) : false;
   const isMinimalMode = themeLoaded && theme === 'minimal';
 
-  const loadTheme = useCallback(async () => {
+  // Read from the shared user_settings cache (no extra network request).
+  const { data: settingsRow, refetch: refetchSettings } = useUserSettingsRow();
+
+  const applyFromRow = useCallback((row: typeof settingsRow) => {
     if (!user) {
-      // No user - set default theme and mark as loaded
       setThemeState(DEFAULT_THEME);
       document.documentElement.setAttribute('data-theme', DEFAULT_THEME);
       setThemeLoaded(true);
       return;
     }
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setThemeState(DEFAULT_THEME);
-        setThemeLoaded(true);
-        return;
-      }
-
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-user-settings`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const rawTheme = data.theme_preference || DEFAULT_THEME;
-        const userTheme = isValidTheme(rawTheme) ? rawTheme : DEFAULT_THEME;
-        setThemeState(userTheme);
-        document.documentElement.setAttribute('data-theme', userTheme);
-        
-        // Load XP and level data
-        const totalXP = data.xp_points || 0;
-        setXP(totalXP);
-        const levelInfo = calculateLevel(totalXP);
-        setLevel(levelInfo.level);
-        setLevelTitle(getLevelTitle(levelInfo.level));
-        setXpToNextLevel(levelInfo.xpToNextLevel);
-        setCurrentLevelXP(levelInfo.currentXP);
-        
-        // Load streak data
-        setStreak(data.current_debrief_streak || 0);
-        setLongestStreak(data.longest_debrief_streak || 0);
-        setPotions(data.streak_potions_remaining ?? 2);
-      } else {
-        setThemeState(DEFAULT_THEME);
-        document.documentElement.setAttribute('data-theme', DEFAULT_THEME);
-      }
-    } catch (error) {
-      console.error('Failed to load theme:', error);
+    if (!row) {
       setThemeState(DEFAULT_THEME);
       document.documentElement.setAttribute('data-theme', DEFAULT_THEME);
-    } finally {
       setThemeLoaded(true);
+      return;
     }
+    const rawTheme = (row.theme_preference as string) || DEFAULT_THEME;
+    const userTheme = isValidTheme(rawTheme) ? (rawTheme as ThemeMode) : DEFAULT_THEME;
+    setThemeState(userTheme);
+    document.documentElement.setAttribute('data-theme', userTheme);
+
+    const totalXP = row.xp_points ?? 0;
+    setXP(totalXP);
+    const levelInfo = calculateLevel(totalXP);
+    setLevel(levelInfo.level);
+    setLevelTitle(getLevelTitle(levelInfo.level));
+    setXpToNextLevel(levelInfo.xpToNextLevel);
+    setCurrentLevelXP(levelInfo.currentXP);
+
+    setStreak(row.current_debrief_streak ?? 0);
+    setLongestStreak(row.longest_debrief_streak ?? 0);
+    setPotions(row.streak_potions_remaining ?? 2);
+
+    setThemeLoaded(true);
   }, [user]);
 
   useEffect(() => {
-    loadTheme();
-  }, [loadTheme]);
+    applyFromRow(settingsRow);
+  }, [settingsRow, applyFromRow]);
+
+  const loadTheme = useCallback(async () => {
+    await refetchSettings();
+  }, [refetchSettings]);
 
   const setTheme = useCallback(async (newTheme: ThemeMode) => {
     if (!user) return;
