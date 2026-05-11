@@ -77,6 +77,7 @@ export const STEP_TITLES = [
   'THE GAP',
   'Mindset Anchors',
   'Review & Complete',
+  'Add to Planner',
 ] as const;
 
-export const TOTAL_STEPS = 9;
+export const TOTAL_STEPS = 10;
