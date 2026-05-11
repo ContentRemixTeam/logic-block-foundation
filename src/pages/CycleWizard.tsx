@@ -1,17 +1,25 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { WizardLayout } from '@/components/wizards/WizardLayout';
 import { ResumeDraftDialog } from '@/components/wizards/ResumeDraftDialog';
 import { WizardSaveStatus } from '@/components/wizards/WizardSaveStatus';
+import { WizardReviewStep, WizardReviewSection } from '@/components/wizards/shared/WizardReviewStep';
+import { WizardSuccessScreen } from '@/components/wizards/shared/WizardSuccessScreen';
 import { useWizard } from '@/hooks/useWizard';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useResilientTaskMutation } from '@/hooks/useResilientTaskMutation';
 import { toast } from 'sonner';
 
 import { CycleWizardFormData, STEP_TITLES, TOTAL_STEPS } from '@/components/cycle-wizard/CycleWizardTypes';
 import { getDefaultFormData, validateStep } from '@/components/cycle-wizard/CycleWizardData';
 import { generateCycleWizardPDF } from '@/components/cycle-wizard/CycleWizardPDFExport';
+import {
+  generateCycleTaskDrafts,
+  DEFAULT_CYCLE_TASK_OPTIONS,
+  CycleTaskOptions,
+} from '@/lib/cycleWizardTaskGenerator';
 
 import {
   StepBigGoal,
