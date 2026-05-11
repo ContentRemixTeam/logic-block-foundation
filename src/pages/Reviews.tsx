@@ -177,6 +177,8 @@ export default function Reviews() {
           <p className="text-muted-foreground">Your reflection command center</p>
         </div>
 
+        <MastermindCoachSlot />
+
         {/* Reviews Tracker */}
         <Card className="p-6">
           <h2 className="text-lg font-semibold mb-4">This Month's Review Progress</h2>
