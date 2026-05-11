@@ -76,6 +76,7 @@ import { PageTransition, StaggerContainer, StaggerItem } from '@/components/tran
 import { ScorecardDashboard } from '@/components/scorecard/ScorecardDashboard';
 import { WeeklyScorecardForm } from '@/components/scorecard/WeeklyScorecardForm';
 import { getWeekNumber } from '@/hooks/useWeeklyScorecard';
+import { CEOWeeklyView } from '@/components/dashboard/CEOWeeklyView';
 
 // Dynamic alerts based on cycle day (excluding GAP alerts)
 function getDynamicAlert(currentDay: number) {
@@ -438,17 +439,25 @@ export default function Dashboard() {
         </div>
 
         {/* Tabs: Scorecard (default) vs Classic Dashboard */}
-        <Tabs defaultValue="scorecard" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+        <Tabs defaultValue="ceo" className="space-y-6">
+          <TabsList className="grid w-full max-w-2xl grid-cols-3">
+            <TabsTrigger value="ceo" className="gap-2">
+              <Compass className="h-4 w-4" />
+              CEO Weekly
+            </TabsTrigger>
             <TabsTrigger value="scorecard" className="gap-2">
               <BarChart3 className="h-4 w-4" />
               Scorecard
             </TabsTrigger>
             <TabsTrigger value="classic" className="gap-2">
-              <Compass className="h-4 w-4" />
-              Overview
+              <Sparkles className="h-4 w-4" />
+              Full
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="ceo" className="space-y-6">
+            <CEOWeeklyView />
+          </TabsContent>
 
           {/* SCORECARD TAB */}
           <TabsContent value="scorecard" className="space-y-6">

@@ -496,8 +496,11 @@ export type Database = {
           coaching_need: string | null
           created_at: string | null
           id: string
+          is_resolved: boolean
           main_question: string | null
           metrics: Json | null
+          resolution_note: string | null
+          resolved_at: string | null
           share_token: string | null
           updated_at: string | null
           user_id: string
@@ -509,8 +512,11 @@ export type Database = {
           coaching_need?: string | null
           created_at?: string | null
           id?: string
+          is_resolved?: boolean
           main_question?: string | null
           metrics?: Json | null
+          resolution_note?: string | null
+          resolved_at?: string | null
           share_token?: string | null
           updated_at?: string | null
           user_id: string
@@ -522,8 +528,11 @@ export type Database = {
           coaching_need?: string | null
           created_at?: string | null
           id?: string
+          is_resolved?: boolean
           main_question?: string | null
           metrics?: Json | null
+          resolution_note?: string | null
+          resolved_at?: string | null
           share_token?: string | null
           updated_at?: string | null
           user_id?: string
@@ -763,6 +772,7 @@ export type Database = {
           promoting: string | null
           publish_task_id: string | null
           published_at: string | null
+          purpose: string | null
           recurrence_pattern: Json | null
           recurring_parent_id: string | null
           repurposed_from_id: string | null
@@ -815,6 +825,7 @@ export type Database = {
           promoting?: string | null
           publish_task_id?: string | null
           published_at?: string | null
+          purpose?: string | null
           recurrence_pattern?: Json | null
           recurring_parent_id?: string | null
           repurposed_from_id?: string | null
@@ -867,6 +878,7 @@ export type Database = {
           promoting?: string | null
           publish_task_id?: string | null
           published_at?: string | null
+          purpose?: string | null
           recurrence_pattern?: Json | null
           recurring_parent_id?: string | null
           repurposed_from_id?: string | null
@@ -4543,6 +4555,66 @@ export type Database = {
             referencedColumns: ["cycle_id"]
           },
         ]
+      }
+      offers: {
+        Row: {
+          color: string | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          id: string
+          launch_id: string | null
+          name: string
+          notes: string | null
+          offer_type: string | null
+          price: number | null
+          project_id: string | null
+          revenue_goal: number | null
+          sort_order: number | null
+          status: string
+          updated_at: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          launch_id?: string | null
+          name: string
+          notes?: string | null
+          offer_type?: string | null
+          price?: number | null
+          project_id?: string | null
+          revenue_goal?: number | null
+          sort_order?: number | null
+          status?: string
+          updated_at?: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          launch_id?: string | null
+          name?: string
+          notes?: string | null
+          offer_type?: string | null
+          price?: number | null
+          project_id?: string | null
+          revenue_goal?: number | null
+          sort_order?: number | null
+          status?: string
+          updated_at?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       office_hours: {
         Row: {

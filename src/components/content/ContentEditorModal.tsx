@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { CONTENT_PURPOSES } from '@/lib/contentPurpose';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -200,6 +201,24 @@ export function ContentEditorModal({ open, onOpenChange, item, cycleId, onSaved 
                   placeholder="e.g., Mindset, Sales, Content..."
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Purpose</Label>
+              <Select
+                value={(formData as any).purpose || 'none'}
+                onValueChange={(v) => updateField('purpose' as any, (v === 'none' ? null : v) as any)}
+              >
+                <SelectTrigger><SelectValue placeholder="What's this content for?" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— None —</SelectItem>
+                  {CONTENT_PURPOSES.map((p) => (
+                    <SelectItem key={p.value} value={p.value}>
+                      {p.emoji} {p.label} — {p.description}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">

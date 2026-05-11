@@ -145,6 +145,8 @@ const ContentChallengeWizardPage = lazyWithRetry(() => import('./pages/ContentCh
 const BrainDump = lazyWithRetry(() => import('./pages/BrainDump'));
 const Evidence = lazyWithRetry(() => import('./pages/Evidence'));
 const OpenLoops = lazyWithRetry(() => import('./pages/OpenLoops'));
+const OfferHub = lazyWithRetry(() => import('./pages/OfferHub'));
+const SupportQueue = lazyWithRetry(() => import('./pages/SupportQueue'));
 const MonthlyThemePage = lazyWithRetry(() => import('./pages/MonthlyThemePage'));
 const EffectsDemo = lazyWithRetry(() => import('./pages/EffectsDemo'));
 const PlannerMockups = lazyWithRetry(() => import('./pages/PlannerMockups'));
@@ -232,6 +234,8 @@ const App = () => (
                       <Route path="/brain-dump" element={<ProtectedRoute><PageSuspense><BrainDump /></PageSuspense></ProtectedRoute>} />
                       <Route path="/evidence" element={<ProtectedRoute><PageSuspense><Evidence /></PageSuspense></ProtectedRoute>} />
                       <Route path="/open-loops" element={<ProtectedRoute><PageSuspense><OpenLoops /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/offers" element={<ProtectedRoute><PageSuspense><OfferHub /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/support-queue" element={<ProtectedRoute><PageSuspense><SupportQueue /></PageSuspense></ProtectedRoute>} />
                       <Route path="/tasks" element={<ProtectedRoute><PageSuspense><Tasks /></PageSuspense></ProtectedRoute>} />
                       <Route path="/all-tasks" element={<ProtectedRoute><PageSuspense><AllTasks /></PageSuspense></ProtectedRoute>} />
                       <Route path="/projects" element={<ProtectedRoute><PageSuspense><Projects /></PageSuspense></ProtectedRoute>} />

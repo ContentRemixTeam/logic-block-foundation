@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { CONTENT_PURPOSES } from '@/lib/contentPurpose';
 import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -61,6 +62,7 @@ export default function ContentVault() {
   const [selectedTypes, setSelectedTypes] = useState<ContentType[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<ContentStatus[]>([]);
   const [filterThisCycle, setFilterThisCycle] = useState(false);
+  const [selectedPurposes, setSelectedPurposes] = useState<string[]>([]);
 
   // Keyboard shortcut: Shift+N to open new content modal
   useEffect(() => {
@@ -184,10 +186,15 @@ export default function ContentVault() {
     setSelectedTypes([]);
     setSelectedStatuses([]);
     setFilterThisCycle(false);
+    setSelectedPurposes([]);
     setSearchQuery('');
   };
 
-  const hasActiveFilters = selectedTypes.length > 0 || selectedStatuses.length > 0 || filterThisCycle || searchQuery;
+  const hasActiveFilters = selectedTypes.length > 0 || selectedStatuses.length > 0 || filterThisCycle || selectedPurposes.length > 0 || searchQuery;
+
+  const displayItems = selectedPurposes.length > 0
+    ? items.filter((it: any) => it.purpose && selectedPurposes.includes(it.purpose))
+    : items;
 
   return (
     <Layout>
@@ -311,6 +318,24 @@ export default function ContentVault() {
               )}
             </div>
 
+            {/* Purpose Filter */}
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="text-xs text-muted-foreground mr-1">Purpose:</span>
+              {CONTENT_PURPOSES.map((p) => (
+                <Badge
+                  key={p.value}
+                  variant={selectedPurposes.includes(p.value) ? 'default' : 'outline'}
+                  className="cursor-pointer"
+                  onClick={() =>
+                    setSelectedPurposes((prev) =>
+                      prev.includes(p.value) ? prev.filter((v) => v !== p.value) : [...prev, p.value]
+                    )
+                  }
+                >
+                  {p.emoji} {p.label}
+                </Badge>
+              ))}
+            </div>
             {/* Content View */}
             {loading ? (
               <div className="flex items-center justify-center py-12">
@@ -318,7 +343,7 @@ export default function ContentVault() {
               </div>
             ) : viewMode === 'table' ? (
               <ContentTable
-                items={items}
+                items={displayItems}
                 onEdit={handleEdit}
                 onDuplicate={handleDuplicate}
                 onDelete={handleDelete}
@@ -327,7 +352,7 @@ export default function ContentVault() {
               />
             ) : (
               <ContentCards
-                items={items}
+                items={displayItems}
                 onEdit={handleEdit}
                 onDuplicate={handleDuplicate}
                 onDelete={handleDelete}
