@@ -25,8 +25,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
   Plus, CalendarIcon, Clock, RefreshCw, ChevronDown, 
-  ClipboardList, ExternalLink, Unlink, LayoutList, Columns, 
-  Clock3, Zap, Battery, BatteryLow, Trash2, CalendarRange, Search, X, CheckSquare,
+  ClipboardList, ExternalLink, Unlink,
+  Zap, Battery, BatteryLow, Trash2, CheckSquare,
   AlertTriangle, Calendar as CalendarDays, Inbox, FolderKanban
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
