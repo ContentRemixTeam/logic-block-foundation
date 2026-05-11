@@ -2350,6 +2350,7 @@ export type Database = {
           active_launch_id: string | null
           alignment_score: number | null
           brain_dump: string | null
+          brave_move_task_id: string | null
           created_at: string | null
           custom_reflections: Json | null
           cycle_id: string | null
@@ -2360,12 +2361,15 @@ export type Database = {
           end_of_day_reflection: string | null
           feeling: string | null
           goal_rewrite: string | null
+          low_energy_task_id: string | null
           made_offer: boolean | null
+          not_today: string | null
           one_thing: string | null
           scratch_pad_content: string | null
           scratch_pad_processed_at: string | null
           scratch_pad_title: string | null
           selected_weekly_priorities: Json | null
+          support_task_id: string | null
           thought: string | null
           top_3_today: Json | null
           updated_at: string | null
@@ -2376,6 +2380,7 @@ export type Database = {
           active_launch_id?: string | null
           alignment_score?: number | null
           brain_dump?: string | null
+          brave_move_task_id?: string | null
           created_at?: string | null
           custom_reflections?: Json | null
           cycle_id?: string | null
@@ -2386,12 +2391,15 @@ export type Database = {
           end_of_day_reflection?: string | null
           feeling?: string | null
           goal_rewrite?: string | null
+          low_energy_task_id?: string | null
           made_offer?: boolean | null
+          not_today?: string | null
           one_thing?: string | null
           scratch_pad_content?: string | null
           scratch_pad_processed_at?: string | null
           scratch_pad_title?: string | null
           selected_weekly_priorities?: Json | null
+          support_task_id?: string | null
           thought?: string | null
           top_3_today?: Json | null
           updated_at?: string | null
@@ -2402,6 +2410,7 @@ export type Database = {
           active_launch_id?: string | null
           alignment_score?: number | null
           brain_dump?: string | null
+          brave_move_task_id?: string | null
           created_at?: string | null
           custom_reflections?: Json | null
           cycle_id?: string | null
@@ -2412,12 +2421,15 @@ export type Database = {
           end_of_day_reflection?: string | null
           feeling?: string | null
           goal_rewrite?: string | null
+          low_energy_task_id?: string | null
           made_offer?: boolean | null
+          not_today?: string | null
           one_thing?: string | null
           scratch_pad_content?: string | null
           scratch_pad_processed_at?: string | null
           scratch_pad_title?: string | null
           selected_weekly_priorities?: Json | null
+          support_task_id?: string | null
           thought?: string | null
           top_3_today?: Json | null
           updated_at?: string | null
@@ -2433,11 +2445,32 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "daily_plans_brave_move_task_id_fkey"
+            columns: ["brave_move_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
+          },
+          {
             foreignKeyName: "daily_plans_cycle_id_fkey"
             columns: ["cycle_id"]
             isOneToOne: false
             referencedRelation: "cycles_90_day"
             referencedColumns: ["cycle_id"]
+          },
+          {
+            foreignKeyName: "daily_plans_low_energy_task_id_fkey"
+            columns: ["low_energy_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "daily_plans_support_task_id_fkey"
+            columns: ["support_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
           },
           {
             foreignKeyName: "daily_plans_week_id_fkey"
@@ -6260,6 +6293,7 @@ export type Database = {
           category: string | null
           checklist_progress: Json | null
           completed_at: string | null
+          connection_swept_at: string | null
           content_channel: string | null
           content_creation_date: string | null
           content_item_id: string | null
@@ -6273,15 +6307,18 @@ export type Database = {
           daily_plan_id: string | null
           day_order: number | null
           deleted_at: string | null
+          done_enough_definition: string | null
           due_date: string | null
           energy_level: string | null
           estimated_minutes: number | null
           goal_id: string | null
           is_completed: boolean | null
+          is_maintenance: boolean
           is_recurring_parent: boolean | null
           is_system_generated: boolean | null
           last_rescheduled_at: string | null
           launch_id: string | null
+          momentum_type: Database["public"]["Enums"]["momentum_type"] | null
           month_in_cycle: number | null
           notes: string | null
           original_due_date: string | null
@@ -6331,6 +6368,7 @@ export type Database = {
           category?: string | null
           checklist_progress?: Json | null
           completed_at?: string | null
+          connection_swept_at?: string | null
           content_channel?: string | null
           content_creation_date?: string | null
           content_item_id?: string | null
@@ -6344,15 +6382,18 @@ export type Database = {
           daily_plan_id?: string | null
           day_order?: number | null
           deleted_at?: string | null
+          done_enough_definition?: string | null
           due_date?: string | null
           energy_level?: string | null
           estimated_minutes?: number | null
           goal_id?: string | null
           is_completed?: boolean | null
+          is_maintenance?: boolean
           is_recurring_parent?: boolean | null
           is_system_generated?: boolean | null
           last_rescheduled_at?: string | null
           launch_id?: string | null
+          momentum_type?: Database["public"]["Enums"]["momentum_type"] | null
           month_in_cycle?: number | null
           notes?: string | null
           original_due_date?: string | null
@@ -6402,6 +6443,7 @@ export type Database = {
           category?: string | null
           checklist_progress?: Json | null
           completed_at?: string | null
+          connection_swept_at?: string | null
           content_channel?: string | null
           content_creation_date?: string | null
           content_item_id?: string | null
@@ -6415,15 +6457,18 @@ export type Database = {
           daily_plan_id?: string | null
           day_order?: number | null
           deleted_at?: string | null
+          done_enough_definition?: string | null
           due_date?: string | null
           energy_level?: string | null
           estimated_minutes?: number | null
           goal_id?: string | null
           is_completed?: boolean | null
+          is_maintenance?: boolean
           is_recurring_parent?: boolean | null
           is_system_generated?: boolean | null
           last_rescheduled_at?: string | null
           launch_id?: string | null
+          momentum_type?: Database["public"]["Enums"]["momentum_type"] | null
           month_in_cycle?: number | null
           notes?: string | null
           original_due_date?: string | null
@@ -7602,15 +7647,19 @@ export type Database = {
           launch_revenue_logged: number | null
           launch_sales_count: number | null
           launch_week_reflection: string | null
+          life_happens_plan: string | null
           metric_1_target: number | null
           metric_2_target: number | null
           metric_3_target: number | null
+          minimum_viable_week: Json
           start_of_week: string
           top_3_priorities: Json | null
           updated_at: string | null
           user_id: string
           week_id: string
+          weekly_capacity_planned_minutes: number | null
           weekly_feeling: string | null
+          weekly_outcome: string | null
           weekly_scratch_pad: string | null
           weekly_thought: string | null
         }
@@ -7632,15 +7681,19 @@ export type Database = {
           launch_revenue_logged?: number | null
           launch_sales_count?: number | null
           launch_week_reflection?: string | null
+          life_happens_plan?: string | null
           metric_1_target?: number | null
           metric_2_target?: number | null
           metric_3_target?: number | null
+          minimum_viable_week?: Json
           start_of_week: string
           top_3_priorities?: Json | null
           updated_at?: string | null
           user_id: string
           week_id?: string
+          weekly_capacity_planned_minutes?: number | null
           weekly_feeling?: string | null
+          weekly_outcome?: string | null
           weekly_scratch_pad?: string | null
           weekly_thought?: string | null
         }
@@ -7662,15 +7715,19 @@ export type Database = {
           launch_revenue_logged?: number | null
           launch_sales_count?: number | null
           launch_week_reflection?: string | null
+          life_happens_plan?: string | null
           metric_1_target?: number | null
           metric_2_target?: number | null
           metric_3_target?: number | null
+          minimum_viable_week?: Json
           start_of_week?: string
           top_3_priorities?: Json | null
           updated_at?: string | null
           user_id?: string
           week_id?: string
+          weekly_capacity_planned_minutes?: number | null
           weekly_feeling?: string | null
+          weekly_outcome?: string | null
           weekly_scratch_pad?: string | null
           weekly_thought?: string | null
         }
@@ -8155,7 +8212,12 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      momentum_type:
+        | "revenue"
+        | "audience"
+        | "delivery"
+        | "operations"
+        | "mindset"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -8282,6 +8344,14 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      momentum_type: [
+        "revenue",
+        "audience",
+        "delivery",
+        "operations",
+        "mindset",
+      ],
+    },
   },
 } as const
