@@ -90,7 +90,7 @@ export function UnscheduledPool({
           <div className="p-1.5 rounded-lg bg-muted/60">
             <Inbox className="h-4 w-4 text-muted-foreground" />
           </div>
-          <span className="text-sm font-bold flex-1 text-foreground">Backlog</span>
+          <span className="text-sm font-bold flex-1 text-foreground">Content Inbox</span>
           <span className="text-[10px] font-bold text-muted-foreground bg-muted/80 px-2 py-0.5 rounded-full tabular-nums">
             {filteredItems.length}
           </span>
