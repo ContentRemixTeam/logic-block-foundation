@@ -141,8 +141,11 @@ export default function WizardHub() {
   };
 
   const handleViewLast = (completion: WizardCompletion) => {
-    if (completion.created_cycle_id) {
-      navigate(`/cycle/${completion.created_cycle_id}`);
+    const route = viewLastRouteFor(completion);
+    if (route) {
+      navigate(route);
+    } else {
+      toast.info("Couldn't find where this was created. Try the relevant page directly.");
     }
   };
 
