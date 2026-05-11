@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { parseISO, isWithinInterval } from 'date-fns';
 
 type ViewMode = 'board' | 'grid';
-type FilterCategory = 'all' | BrainDumpCategory;
+type FilterCategory = 'all' | 'review' | BrainDumpCategory;
 
 export default function BrainDump() {
   const { items, isLoading, error, createItemsFromText, deleteItem, updateItem, convertCategory } = useBrainDump();
@@ -51,7 +51,9 @@ export default function BrainDump() {
 
   const filteredItems = useMemo(() => {
     let result = items;
-    if (filterCategory !== 'all') {
+    if (filterCategory === 'review') {
+      result = result.filter(i => i.unprocessed);
+    } else if (filterCategory !== 'all') {
       result = result.filter(i => i.category === filterCategory);
     }
     if (search.trim()) {
@@ -83,8 +85,11 @@ export default function BrainDump() {
     return await createItemsFromText.mutateAsync({ raw, fallback });
   }, [createItemsFromText]);
 
+  const reviewCount = useMemo(() => items.filter(i => i.unprocessed).length, [items]);
+
   const FILTER_BUTTONS: { key: FilterCategory; label: string; emoji?: string }[] = useMemo(() => [
     { key: 'all' as FilterCategory, label: 'All' },
+    { key: 'review' as FilterCategory, label: 'Review', emoji: '🧹' },
     ...Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => ({
       key: key as FilterCategory,
       label: cfg.label,
@@ -93,12 +98,12 @@ export default function BrainDump() {
   ], []);
 
   const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: items.length };
+    const counts: Record<string, number> = { all: items.length, review: reviewCount };
     items.forEach(i => {
       counts[i.category] = (counts[i.category] || 0) + 1;
     });
     return counts;
-  }, [items]);
+  }, [items, reviewCount]);
 
   if (error) {
     return (
@@ -224,7 +229,7 @@ export default function BrainDump() {
             onDelete={handleDelete}
             onUpdate={handleUpdate}
             onConvertCategory={handleConvert}
-            filterCategory={filterCategory}
+            filterCategory={filterCategory === 'review' ? 'all' : filterCategory}
           />
         ) : (
           <BrainDumpGrid

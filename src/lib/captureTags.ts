@@ -2,7 +2,7 @@
  * Universal capture tag registry shared by /brain-dump and Daily Plan SmartScratchPad.
  * Phase 1: simple typed-tag routing. No AI, no schema changes.
  */
-import { ListTodo, Lightbulb, StickyNote, Rocket, FileText, HelpCircle, Bell, Brain, Trophy, DollarSign, Settings, Mail, Battery, BatteryMedium, Zap } from 'lucide-react';
+import { ListTodo, Lightbulb, StickyNote, Rocket, FileText, HelpCircle, Bell, Brain, Trophy, DollarSign, Settings, Mail, Battery, BatteryMedium, Zap, LifeBuoy, Clock, Wind } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export type CaptureDestination = 'task' | 'idea' | 'note' | 'project';
@@ -29,6 +29,9 @@ export const CAPTURE_TAGS: CaptureTag[] = [
   { tag: 'reminder', label: 'Reminder', emoji: '🔔', description: 'Reminder (task)',      icon: Bell,        kind: 'destination', destination: 'task' },
   { tag: 'thought',  label: 'Thought',  emoji: '🧠', description: 'Capture insight',      icon: Brain,       kind: 'destination', destination: 'note' },
   { tag: 'win',      label: 'Win',      emoji: '🏆', description: 'Celebrate win',        icon: Trophy,      kind: 'destination', destination: 'note' },
+  { tag: 'mindset',  label: 'Mindset',  emoji: '🧘', description: 'Mindset block',        icon: Wind,        kind: 'destination', destination: 'note' },
+  { tag: 'later',    label: 'Later',    emoji: '⏳', description: 'Park for later',       icon: Clock,       kind: 'destination', destination: 'note' },
+  { tag: 'support',  label: 'Support',  emoji: '🆘', description: 'Support question',     icon: LifeBuoy,    kind: 'destination', destination: 'note' },
   { tag: 'sales',         label: 'Sales',        emoji: '💰', description: 'Tag: sales',         icon: DollarSign,    kind: 'modifier' },
   { tag: 'admin',         label: 'Admin',        emoji: '⚙️', description: 'Tag: admin',         icon: Settings,      kind: 'modifier' },
   { tag: 'email',         label: 'Email',        emoji: '✉️', description: 'Tag: email',         icon: Mail,          kind: 'modifier' },

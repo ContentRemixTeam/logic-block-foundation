@@ -25,6 +25,10 @@ interface BrainDumpBoardProps {
   filterCategory?: 'all' | BrainDumpCategory;
 }
 
+const ALL_CATEGORIES: BrainDumpCategory[] = [
+  'task', 'idea', 'content', 'project', 'question', 'win', 'mindset', 'later', 'note',
+];
+
 function DroppableColumn({ category, children, count, isFullWidth }: { category: BrainDumpCategory; children: React.ReactNode; count: number; isFullWidth?: boolean }) {
   const config = CATEGORY_CONFIG[category];
   const { setNodeRef, isOver } = useDroppable({ id: category });
@@ -68,11 +72,12 @@ export function BrainDumpBoard({ items, onDelete, onUpdate, onConvertCategory, f
   );
 
   const columns = useMemo(() => {
-    const grouped: Record<BrainDumpCategory, BrainDumpItem[]> = {
-      note: [], idea: [], task: [], project: [],
-    };
+    const grouped = ALL_CATEGORIES.reduce((acc, c) => {
+      acc[c] = [];
+      return acc;
+    }, {} as Record<BrainDumpCategory, BrainDumpItem[]>);
     items.forEach(item => {
-      grouped[item.category].push(item);
+      if (grouped[item.category]) grouped[item.category].push(item);
     });
     return grouped;
   }, [items]);
@@ -98,7 +103,7 @@ export function BrainDumpBoard({ items, onDelete, onUpdate, onConvertCategory, f
     if (!draggedItem) return;
 
     const targetCategory = over.id as BrainDumpCategory;
-    if (['note', 'idea', 'task', 'project'].includes(targetCategory) && targetCategory !== draggedItem.category) {
+    if (ALL_CATEGORIES.includes(targetCategory) && targetCategory !== draggedItem.category) {
       onConvertCategory(draggedItem, targetCategory);
     }
   };
@@ -114,7 +119,7 @@ export function BrainDumpBoard({ items, onDelete, onUpdate, onConvertCategory, f
         'grid gap-4',
         isSingleCategory
           ? 'grid-cols-1'
-          : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
+          : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3'
       )}>
         {visibleCategories.map(cat => (
           <DroppableColumn key={cat} category={cat} count={columns[cat].length} isFullWidth={isSingleCategory}>
