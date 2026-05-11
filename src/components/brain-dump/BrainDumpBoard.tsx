@@ -25,6 +25,10 @@ interface BrainDumpBoardProps {
   filterCategory?: 'all' | BrainDumpCategory;
 }
 
+const ALL_CATEGORIES: BrainDumpCategory[] = [
+  'task', 'idea', 'content', 'project', 'question', 'win', 'mindset', 'later', 'note',
+];
+
 function DroppableColumn({ category, children, count, isFullWidth }: { category: BrainDumpCategory; children: React.ReactNode; count: number; isFullWidth?: boolean }) {
   const config = CATEGORY_CONFIG[category];
   const { setNodeRef, isOver } = useDroppable({ id: category });
