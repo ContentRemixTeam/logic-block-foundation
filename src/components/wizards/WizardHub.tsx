@@ -224,7 +224,7 @@ export default function WizardHub() {
                           </>
                         )}
                       </Button>
-                      {lastCompletion?.created_cycle_id && (
+                      {lastCompletion && viewLastRouteFor(lastCompletion) && (
                         <Button 
                           variant="outline"
                           onClick={() => handleViewLast(lastCompletion)}
