@@ -68,7 +68,7 @@ export function StuckTaskCoachModal({ task, open, onOpenChange }: Props) {
     await createTask.mutateAsync({
       task_text: edit.low_energy_version,
       project_id: task.project_id ?? null,
-      energy_level: 'low',
+      energy_level: 'low_energy',
       priority: task.priority ?? 'medium',
       status: 'backlog',
     });
