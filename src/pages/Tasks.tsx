@@ -1178,6 +1178,7 @@ export default function Tasks() {
                   context_tags: parsed.tags ?? [],
                   project_id: inheritedProjectId,
                   energy_level: inheritedEnergy,
+                  momentum_type: parsed.momentumType ?? null,
                   status: scheduledDate ? 'scheduled' : 'backlog',
                 });
                 toast.success('Task added');
