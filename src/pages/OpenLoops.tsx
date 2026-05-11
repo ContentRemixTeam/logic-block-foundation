@@ -1,146 +1,244 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useOpenLoops, OPEN_LOOP_GROUPS, OpenLoopType } from '@/hooks/useOpenLoops';
+import {
+  useOpenLoops,
+  useOpenLoopActions,
+  OPEN_LOOP_BUCKETS,
+  type OpenLoopBucket,
+  type OpenLoopItem,
+} from '@/hooks/useOpenLoops';
+import { useProjects } from '@/hooks/useProjects';
+import { Layout } from '@/components/Layout';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChevronRight, Inbox, RefreshCw } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Inbox, RefreshCw, MoreHorizontal, ExternalLink, Calendar, ListPlus, Archive, FolderInput } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function OpenLoops() {
   const { data, isLoading, refetch, isFetching } = useOpenLoops();
-  const [active, setActive] = useState<OpenLoopType | 'all'>('all');
+  const actions = useOpenLoopActions();
+  const projectsQuery = useProjects();
+  const [activeBucket, setActiveBucket] = useState<OpenLoopBucket | 'all'>('all');
 
   const items = data?.items || [];
-  const counts = data?.counts;
+  const bucketCounts = data?.bucketCounts;
   const total = items.length;
 
-  const filtered = useMemo(
-    () => (active === 'all' ? items : items.filter((i) => i.type === active)),
-    [active, items],
+  const visibleBuckets = useMemo(
+    () => (activeBucket === 'all' ? OPEN_LOOP_BUCKETS : OPEN_LOOP_BUCKETS.filter((b) => b.bucket === activeBucket)),
+    [activeBucket],
   );
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-5xl space-y-6">
-      <header className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Inbox className="h-7 w-7 text-primary" />
-            Open Loops
-          </h1>
-          <p className="text-muted-foreground mt-1 max-w-2xl">
-            Everything in your business that's waiting on a decision, a date, or a next step. Close the loop, move it forward, or send it to someday.
-          </p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </header>
+    <Layout>
+      <div className="container mx-auto px-4 py-6 max-w-5xl space-y-6">
+        <header className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+              <Inbox className="h-7 w-7 text-primary" />
+              Open Loops
+            </h1>
+            <p className="text-muted-foreground mt-1 max-w-2xl">
+              Your weekly command center. Every loose thread, in one calm place.
+              Decide what to <em>Do</em>, <em>Decide</em>, <em>Defer</em>, <em>Delete</em>, or <em>Ask for Support</em> on.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </header>
 
-      {/* Summary chips */}
-      <div className="flex flex-wrap gap-2">
-        <Chip
-          label={`All (${total})`}
-          active={active === 'all'}
-          onClick={() => setActive('all')}
-        />
-        {OPEN_LOOP_GROUPS.map((g) => {
-          const c = counts?.[g.type] || 0;
-          if (c === 0) return null;
-          return (
-            <Chip
-              key={g.type}
-              label={`${g.emoji} ${g.label} (${c})`}
-              active={active === g.type}
-              onClick={() => setActive(g.type)}
+        {/* Bucket pills */}
+        <div className="flex flex-wrap gap-2">
+          <Pill
+            active={activeBucket === 'all'}
+            onClick={() => setActiveBucket('all')}
+            label={`All · ${total}`}
+          />
+          {OPEN_LOOP_BUCKETS.map((b) => (
+            <Pill
+              key={b.bucket}
+              active={activeBucket === b.bucket}
+              onClick={() => setActiveBucket(b.bucket)}
+              label={`${b.emoji} ${b.label} · ${bucketCounts?.[b.bucket] || 0}`}
             />
-          );
-        })}
-      </div>
-
-      {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 w-full" />
           ))}
         </div>
-      ) : total === 0 ? (
-        <EmptyState />
-      ) : active === 'all' ? (
-        <GroupedList items={items} />
-      ) : (
-        <FlatList items={filtered} />
-      )}
-    </div>
+
+        {isLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+          </div>
+        ) : total === 0 ? (
+          <EmptyState />
+        ) : (
+          <div className="space-y-8">
+            {visibleBuckets.map((b) => {
+              const groupItems = items.filter((i) => i.bucket === b.bucket);
+              if (groupItems.length === 0) {
+                return activeBucket === 'all' ? null : (
+                  <BucketEmpty key={b.bucket} bucket={b} />
+                );
+              }
+              return (
+                <section key={b.bucket}>
+                  <div className="flex items-baseline justify-between mb-3">
+                    <h2 className="text-lg font-semibold flex items-center gap-2">
+                      <span>{b.emoji}</span>
+                      <span>{b.label}</span>
+                      <Badge variant="secondary" className="ml-1">{groupItems.length}</Badge>
+                    </h2>
+                    <span className="text-xs text-muted-foreground">{b.description}</span>
+                  </div>
+                  <div className="space-y-2">
+                    {groupItems.map((it) => (
+                      <LoopRow
+                        key={it.id}
+                        item={it}
+                        accent={b.tone}
+                        projects={projectsQuery.data || []}
+                        onSchedule={(when) => actions.schedule.mutate({ item: it, when })}
+                        onConvert={() => actions.convertToTask.mutate(it)}
+                        onArchive={() => actions.archive.mutate(it)}
+                        onLinkProject={(projectId) => actions.linkToProject.mutate({ item: it, projectId })}
+                      />
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </Layout>
   );
 }
 
-function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function Pill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
+      className={cn(
+        'px-3 py-1.5 rounded-full text-sm border transition-colors',
         active
           ? 'bg-primary text-primary-foreground border-primary'
-          : 'bg-background hover:bg-muted border-border text-foreground'
-      }`}
+          : 'bg-background hover:bg-muted border-border text-foreground',
+      )}
     >
       {label}
     </button>
   );
 }
 
-function GroupedList({ items }: { items: ReturnType<typeof useOpenLoops>['data'] extends infer D ? D extends { items: infer I } ? I : never : never }) {
+interface LoopRowProps {
+  item: OpenLoopItem;
+  accent: string;
+  projects: { id: string; name: string }[];
+  onSchedule: (when: 'today' | 'tomorrow' | 'next_week') => void;
+  onConvert: () => void;
+  onArchive: () => void;
+  onLinkProject: (projectId: string) => void;
+}
+
+function LoopRow({ item, accent, projects, onSchedule, onConvert, onArchive, onLinkProject }: LoopRowProps) {
+  const canConvert = item.sourceTable !== 'tasks' && item.sourceTable !== 'projects';
+  const canLinkProject = ['tasks', 'ideas', 'journal_pages', 'content_items'].includes(item.sourceTable);
+
   return (
-    <div className="space-y-6">
-      {OPEN_LOOP_GROUPS.map((g) => {
-        const groupItems = (items as any[]).filter((i) => i.type === g.type);
-        if (groupItems.length === 0) return null;
-        return (
-          <section key={g.type}>
-            <div className="flex items-baseline justify-between mb-2">
-              <h2 className="text-lg font-semibold">
-                {g.emoji} {g.label}
-                <span className="text-muted-foreground font-normal ml-2">{groupItems.length}</span>
-              </h2>
-              <span className="text-xs text-muted-foreground">{g.description}</span>
-            </div>
-            <FlatList items={groupItems as any} />
-          </section>
-        );
-      })}
-    </div>
+    <Card className={cn('p-4 border-l-4 hover:bg-muted/40 transition-colors', accent)}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <Badge variant="secondary" className="text-xs">{item.badgeLabel}</Badge>
+            {item.created_at && (
+              <span className="text-xs text-muted-foreground">
+                {new Date(item.created_at).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+          <p className="font-medium break-words">{item.title}</p>
+          {item.subtitle && (
+            <p className="text-sm text-muted-foreground mt-0.5 break-words">{item.subtitle}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <Button asChild variant="ghost" size="icon" className="h-8 w-8" aria-label="Open">
+            <Link to={item.link}><ExternalLink className="h-4 w-4" /></Link>
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="text-xs">Schedule</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => onSchedule('today')}>
+                <Calendar className="h-4 w-4 mr-2" /> Today
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onSchedule('tomorrow')}>
+                <Calendar className="h-4 w-4 mr-2" /> Tomorrow
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onSchedule('next_week')}>
+                <Calendar className="h-4 w-4 mr-2" /> Next week
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+
+              {canConvert && (
+                <DropdownMenuItem onClick={onConvert}>
+                  <ListPlus className="h-4 w-4 mr-2" /> Convert to task
+                </DropdownMenuItem>
+              )}
+
+              {canLinkProject && projects.length > 0 && (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <FolderInput className="h-4 w-4 mr-2" /> Link to project
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="max-h-72 overflow-y-auto">
+                    {projects.map((p) => (
+                      <DropdownMenuItem key={p.id} onClick={() => onLinkProject(p.id)}>
+                        {p.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              )}
+
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={onArchive} className="text-destructive focus:text-destructive">
+                <Archive className="h-4 w-4 mr-2" /> Archive / dismiss
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </Card>
   );
 }
 
-function FlatList({ items }: { items: any[] }) {
+function BucketEmpty({ bucket }: { bucket: typeof OPEN_LOOP_BUCKETS[number] }) {
   return (
-    <div className="space-y-2">
-      {items.map((item) => (
-        <Link to={item.link} key={item.id}>
-          <Card className="p-4 hover:bg-muted/50 transition-colors flex items-start justify-between gap-4 group">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <Badge variant="secondary" className="text-xs">
-                  {item.badgeLabel}
-                </Badge>
-                {item.created_at && (
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(item.created_at).toLocaleDateString()}
-                  </span>
-                )}
-              </div>
-              <p className="font-medium truncate">{item.title}</p>
-              {item.subtitle && (
-                <p className="text-sm text-muted-foreground truncate">{item.subtitle}</p>
-              )}
-            </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-1" />
-          </Card>
-        </Link>
-      ))}
-    </div>
+    <Card className="p-8 text-center text-muted-foreground">
+      <div className="text-3xl mb-2">{bucket.emoji}</div>
+      <p className="font-medium text-foreground">{bucket.label} is clear</p>
+      <p className="text-sm mt-1">{bucket.description}</p>
+    </Card>
   );
 }
 
