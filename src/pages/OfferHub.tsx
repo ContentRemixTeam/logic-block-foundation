@@ -18,6 +18,7 @@ import { useOffers, type Offer, type OfferInput } from '@/hooks/useOffers';
 import { useLaunches } from '@/hooks/useLaunches';
 import { useProjects } from '@/hooks/useProjects';
 import { Link } from 'react-router-dom';
+import { OfferDetailSheet } from '@/components/offers/OfferDetailSheet';
 
 const OFFER_TYPES = [
   { value: 'lead_magnet', label: 'Lead magnet' },
