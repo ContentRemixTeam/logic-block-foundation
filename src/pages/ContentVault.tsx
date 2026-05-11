@@ -185,10 +185,15 @@ export default function ContentVault() {
     setSelectedTypes([]);
     setSelectedStatuses([]);
     setFilterThisCycle(false);
+    setSelectedPurposes([]);
     setSearchQuery('');
   };
 
-  const hasActiveFilters = selectedTypes.length > 0 || selectedStatuses.length > 0 || filterThisCycle || searchQuery;
+  const hasActiveFilters = selectedTypes.length > 0 || selectedStatuses.length > 0 || filterThisCycle || selectedPurposes.length > 0 || searchQuery;
+
+  const displayItems = selectedPurposes.length > 0
+    ? items.filter((it: any) => it.purpose && selectedPurposes.includes(it.purpose))
+    : items;
 
   return (
     <Layout>
