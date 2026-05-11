@@ -19,6 +19,7 @@ import { SeasonalEffectsProvider } from "@/components/seasonal/SeasonalEffectsPr
 import { ManifestSwitcher } from "@/components/pwa/ManifestSwitcher";
 import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
 import { StorageDurabilityNotice } from "@/components/system/StorageDurabilityNotice";
+import { InstallNudge } from "@/components/install/InstallNudge";
 import { InstallPromptProvider } from "@/hooks/useInstallPrompt";
 import { DevDebugPanel } from "@/components/dev/DevDebugPanel";
 import { LoadingState } from "@/components/system/LoadingState";
@@ -212,6 +213,7 @@ const App = () => (
                     <ManifestSwitcher />
                     <PWAUpdatePrompt />
                     <StorageDurabilityNotice />
+                    <InstallNudge />
                     <TourOverlay />
                     <TourWelcome />
                     <TourKeyboardHandler />
