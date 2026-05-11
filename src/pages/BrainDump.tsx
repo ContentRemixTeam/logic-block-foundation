@@ -258,6 +258,14 @@ export default function BrainDump() {
           />
         )}
       </div>
+      {isMastermind && (
+        <BrainDumpSorterModal
+          items={unprocessedItems}
+          open={sorterOpen}
+          onOpenChange={setSorterOpen}
+          onConvert={(item, newCategory) => convertCategory.mutateAsync({ item, newCategory })}
+        />
+      )}
     </Layout>
   );
 }
