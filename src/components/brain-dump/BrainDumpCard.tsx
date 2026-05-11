@@ -19,17 +19,27 @@ interface BrainDumpCardProps {
 }
 
 const ACCENT_BAR: Record<BrainDumpCategory, string> = {
-  note: 'bg-muted-foreground/40',
-  idea: 'bg-accent',
-  task: 'bg-primary',
-  project: 'bg-primary/70',
+  note:     'bg-muted-foreground/40',
+  idea:     'bg-accent',
+  task:     'bg-primary',
+  project:  'bg-primary/70',
+  content:  'bg-pink-500/70',
+  question: 'bg-orange-500/70',
+  win:      'bg-amber-500/80',
+  mindset:  'bg-cyan-500/70',
+  later:    'bg-slate-400/60',
 };
 
 const PILL_TONE: Record<BrainDumpCategory, string> = {
-  note: 'bg-muted text-muted-foreground',
-  idea: 'bg-accent/15 text-foreground',
-  task: 'bg-primary/15 text-foreground',
-  project: 'bg-primary/10 text-foreground',
+  note:     'bg-muted text-muted-foreground',
+  idea:     'bg-accent/15 text-foreground',
+  task:     'bg-primary/15 text-foreground',
+  project:  'bg-primary/10 text-foreground',
+  content:  'bg-pink-500/10 text-foreground',
+  question: 'bg-orange-500/10 text-foreground',
+  win:      'bg-amber-500/15 text-foreground',
+  mindset:  'bg-cyan-500/10 text-foreground',
+  later:    'bg-slate-500/10 text-foreground',
 };
 
 export const BrainDumpCard = memo(function BrainDumpCard({
