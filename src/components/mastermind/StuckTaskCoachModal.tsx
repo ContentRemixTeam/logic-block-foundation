@@ -87,6 +87,44 @@ export function StuckTaskCoachModal({ task, open, onOpenChange }: Props) {
     toast.success('Support question saved');
   };
 
+  const moveToSomeday = async () => {
+    await updateTask.mutateAsync({
+      taskId: task.task_id,
+      updates: { status: 'someday', scheduled_date: null },
+    });
+    toast.success('Moved to Someday');
+    onOpenChange(false);
+  };
+
+  const breakIntoSubtasks = async () => {
+    const res = await ai.mutateAsync({
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You break overwhelming tasks into 2–4 small, doable subtasks. Reply ONLY with JSON: {"subtasks": string[]}. Each subtask <= 80 chars, action-led.',
+        },
+        { role: 'user', content: `Parent task: "${task.task_text}". Return JSON now.` },
+      ],
+      temperature: 0.4,
+      max_tokens: 400,
+    });
+    const parsed = parseAIJson<{ subtasks: string[] }>(res.content);
+    if (!parsed?.subtasks?.length) {
+      toast.error('Could not generate subtasks.');
+      return;
+    }
+    for (const text of parsed.subtasks.slice(0, 4)) {
+      await createTask.mutateAsync({
+        task_text: text,
+        parent_task_id: task.task_id,
+        project_id: task.project_id ?? null,
+        priority: task.priority ?? 'medium',
+        status: 'backlog',
+      } as any);
+    }
+    toast.success(`Added ${parsed.subtasks.length} subtasks`);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
