@@ -74,6 +74,17 @@ export function EditorialCalendarView() {
 function EditorialCalendarViewInner() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [view, setView] = useState<'publish' | 'create'>('publish');
+  const [viewMode, setViewModeState] = useState<CalendarViewMode>(() => {
+    if (typeof window === 'undefined') return 'calendar';
+    const stored = localStorage.getItem(VIEW_MODE_KEY) as CalendarViewMode | null;
+    return stored && ['calendar', 'list', 'pipeline', 'gallery', 'campaign'].includes(stored)
+      ? stored
+      : 'calendar';
+  });
+  const setViewMode = useCallback((mode: CalendarViewMode) => {
+    setViewModeState(mode);
+    try { localStorage.setItem(VIEW_MODE_KEY, mode); } catch {}
+  }, []);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [activeItem, setActiveItem] = useState<CalendarItem | null>(null);
   const [editingItem, setEditingItem] = useState<CalendarItem | null>(null);
