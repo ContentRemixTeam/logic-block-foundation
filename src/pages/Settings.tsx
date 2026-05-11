@@ -36,6 +36,7 @@ export default function Settings() {
   const { settings: arcadeSettings, updateSettings: updateArcadeSettings } = useArcade();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState({
