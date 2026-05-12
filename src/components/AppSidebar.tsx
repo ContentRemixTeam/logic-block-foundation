@@ -67,6 +67,7 @@ import { useQuickCapture } from '@/components/quick-capture';
 import { supabase } from '@/integrations/supabase/client';
 import { useArcade } from '@/hooks/useArcade';
 import { SidebarProjectsDropdown } from '@/components/sidebar/SidebarProjectsDropdown';
+import { prefetchRoute } from '@/lib/routePrefetch';
 
 // ── Core Navigation (4 groups) ──────────────────────────────────────
 const HOME_NAV = [
@@ -222,7 +223,13 @@ export function AppSidebar() {
                           <span className="truncate text-[13px]">{item.name}</span>
                         </a>
                       ) : (
-                        <Link to={item.href} data-tour={item.dataTour}>
+                        <Link
+                          to={item.href}
+                          data-tour={item.dataTour}
+                          onMouseEnter={() => prefetchRoute(item.href)}
+                          onFocus={() => prefetchRoute(item.href)}
+                          onTouchStart={() => prefetchRoute(item.href)}
+                        >
                           {isQuestMode ? (
                             <span className="text-base w-5 text-center">{item.questIcon}</span>
                           ) : (
