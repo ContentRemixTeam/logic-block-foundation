@@ -25,6 +25,8 @@ import { DevDebugPanel } from "@/components/dev/DevDebugPanel";
 import { LoadingState } from "@/components/system/LoadingState";
 import { PerformanceMonitor } from "@/components/dev/PerformanceMonitor";
 import { ErrorBoundary } from "@/components/system/ErrorBoundary";
+import { CommandPalette } from "@/components/system/CommandPalette";
+import { PageTransition } from "@/components/system/PageTransition";
 
 // Eagerly load critical auth pages (small, needed immediately)
 import Auth from "./pages/Auth";
@@ -189,7 +191,7 @@ function PageSuspense({ children }: { children: React.ReactNode }) {
   return (
     <ErrorBoundary>
       <Suspense fallback={<LoadingState variant="skeleton" />}>
-        {children}
+        <PageTransition>{children}</PageTransition>
       </Suspense>
     </ErrorBoundary>
   );
@@ -214,6 +216,7 @@ const App = () => (
                     <PWAUpdatePrompt />
                     <StorageDurabilityNotice />
                     <InstallNudge />
+                    <CommandPalette />
                     <TourOverlay />
                     <TourWelcome />
                     <TourKeyboardHandler />
