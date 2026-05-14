@@ -4368,6 +4368,66 @@ export type Database = {
         }
         Relationships: []
       }
+      money_moves_sprint_trackers: {
+        Row: {
+          actions: Json
+          block: string | null
+          community_posts: Json
+          completed_at: string | null
+          created_at: string
+          diagnostic_answers: Json
+          goal: string | null
+          id: string
+          move_title: string | null
+          move_why: string | null
+          proof: Json
+          result_note: string | null
+          rung: number
+          sale_logged: boolean
+          track: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actions?: Json
+          block?: string | null
+          community_posts?: Json
+          completed_at?: string | null
+          created_at?: string
+          diagnostic_answers?: Json
+          goal?: string | null
+          id?: string
+          move_title?: string | null
+          move_why?: string | null
+          proof?: Json
+          result_note?: string | null
+          rung?: number
+          sale_logged?: boolean
+          track: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actions?: Json
+          block?: string | null
+          community_posts?: Json
+          completed_at?: string | null
+          created_at?: string
+          diagnostic_answers?: Json
+          goal?: string | null
+          id?: string
+          move_title?: string | null
+          move_why?: string | null
+          proof?: Json
+          result_note?: string | null
+          rung?: number
+          sale_logged?: boolean
+          track?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       monthly_challenge_templates: {
         Row: {
           announcement_body: string | null

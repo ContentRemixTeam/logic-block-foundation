@@ -158,6 +158,7 @@ const PlannerMockups = lazyWithRetry(() => import('./pages/PlannerMockups'));
 const EngineBuilderPage = lazyWithRetry(() => import('./pages/EngineBuilderPage'));
 const WorkshopWelcomePage = lazyWithRetry(() => import('./pages/WorkshopWelcomePage'));
 const WorkshopRegisterPage = lazyWithRetry(() => import('./pages/WorkshopRegisterPage'));
+const MoneyMovesSprintPage = lazyWithRetry(() => import('./pages/MoneyMovesSprintPage'));
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -288,6 +289,7 @@ const App = () => (
                       <Route path="/wizards/webinar" element={<ProtectedRoute><PageSuspense><WebinarWizardPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/wizards/content-challenge" element={<ProtectedRoute><PageSuspense><ContentChallengeWizardPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/sprint-dashboard" element={<ProtectedRoute><PageSuspense><SprintDashboardPage /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/money-moves-sprint" element={<ProtectedRoute><PageSuspense><MoneyMovesSprintPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/settings/planner" element={<ProtectedRoute><PageSuspense><PlannerSettings /></PageSuspense></ProtectedRoute>} />
                       <Route path="/settings/daily-page" element={<ProtectedRoute><PageSuspense><DailyPageSettings /></PageSuspense></ProtectedRoute>} />
                       <Route path="/finances" element={<ProtectedRoute><PageSuspense><FinancialTracker /></PageSuspense></ProtectedRoute>} />
