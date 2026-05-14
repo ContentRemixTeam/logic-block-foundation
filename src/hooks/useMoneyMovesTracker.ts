@@ -101,8 +101,8 @@ export function useMoneyMovesTracker() {
           rung: input.rung,
           move_title: r.moveTitle,
           move_why: r.moveWhy,
-          actions: actions as unknown as object,
-          diagnostic_answers: input.diagnostic_answers as unknown as object,
+          actions: actions as unknown as never,
+          diagnostic_answers: input.diagnostic_answers as unknown as never,
         }])
         .select('*')
         .single();
