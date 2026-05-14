@@ -44,7 +44,7 @@ export function diagnose(a: DiagnosticAnswers): DiagnosisResult {
   }
 
   // 3. Nurture
-  if (a.q5 === 'no_list' || a.q5 === 'rarely' || (a.q2 === 'not_yet' && a.q3 !== 'nowhere')) {
+  if (a.q5 === 'no_list' || a.q5 === 'rarely' || a.q2 === 'not_yet') {
     let rung = 1;
     if (a.q5 === 'rarely') rung = 2;
     else if (a.q5 === 'sometimes') rung = 3;
