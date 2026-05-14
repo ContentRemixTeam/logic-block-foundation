@@ -9,7 +9,8 @@ import {
 } from '@/constants/moneyMovesConfig';
 
 export function AccessPanel() {
-  const { isMember } = useMembership();
+  const { membershipTier, membershipStatus } = useMembership();
+  const isMember = membershipTier === 'mastermind' && membershipStatus === 'active';
 
   if (isMember) {
     return (

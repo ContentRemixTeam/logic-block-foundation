@@ -5,7 +5,8 @@ import { MASTERMIND_URL } from '@/constants/moneyMovesConfig';
 import { useMembership } from '@/hooks/useMembership';
 
 export function MastermindCTA() {
-  const { isMember } = useMembership();
+  const { membershipTier, membershipStatus } = useMembership();
+  const isMember = membershipTier === 'mastermind' && membershipStatus === 'active';
   if (isMember) return null;
 
   return (

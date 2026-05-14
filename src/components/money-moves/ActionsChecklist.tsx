@@ -7,7 +7,7 @@ import { Copy, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useMoneyMovesTracker, type TrackerAction } from '@/hooks/useMoneyMovesTracker';
 import { postActionDone } from '@/lib/moneyMovesPosts';
-import { celebrate } from '@/lib/celebrationService';
+const celebrate = (msg: string) => toast.success(msg, { duration: 4000 });
 
 export function ActionsChecklist() {
   const { tracker, update } = useMoneyMovesTracker();
