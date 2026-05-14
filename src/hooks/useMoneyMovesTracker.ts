@@ -76,7 +76,7 @@ export function useMoneyMovesTracker() {
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      return (data as MoneyMovesTracker | null) ?? null;
+      return (data as unknown as MoneyMovesTracker | null) ?? null;
     },
   });
 
@@ -95,7 +95,7 @@ export function useMoneyMovesTracker() {
 
       const { data, error } = await supabase
         .from('money_moves_sprint_trackers')
-        .insert({
+        .insert([{
           user_id: user.id,
           track: input.track,
           rung: input.rung,
@@ -103,7 +103,7 @@ export function useMoneyMovesTracker() {
           move_why: r.moveWhy,
           actions: actions as unknown as object,
           diagnostic_answers: input.diagnostic_answers as unknown as object,
-        })
+        }])
         .select('*')
         .single();
       if (error) throw error;
