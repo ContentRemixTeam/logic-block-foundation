@@ -1,193 +1,193 @@
+# Money Moves Sprint Module
 
-# Phase 1 — Mastermind OS
+A focused diagnostic + tracker that answers one question for the user: **"What is the next money move I can actually take this week?"** Not a planning system. Not an offer workshop. Just diagnosis → rung → move → action → community post.
 
-Turn the planner into a coaching system anchored on the loop:
-**90-Day Goal → Weekly Commitments → Today's Brave Move → Evidence**
+## Scope guardrails
 
-Built on top of what already exists (`cycles_90_day`, `weekly_plans`, `daily_plans`, `tasks.energy_level`, `tasks.goal_id`, `tasks.cycle_id`, `tasks.reschedule_count_30d`, `Evidence` page, `WeeklyFocusCoach`, `BrainDumpSorterModal`, `StuckTaskCoachModal`, `CapacityIndicator`). Nothing existing gets removed.
+- **In scope:** diagnostic quiz, track assignment, ladder rung, weekly move, 3-action tracker, community post generator, celebrations, badges, VIP/free conditional panels, Mastermind CTA.
+- **Out of scope (explicitly):** full offer workshop, content calendar, funnel builder, email automation. Offer Foundation track is light-touch only and points to Digital Product Lab.
 
----
+## Route & entry points
 
-## 1. Schema (one migration)
+- New route: `/money-moves-sprint` (lazy-loaded page in `src/pages/MoneyMovesSprintPage.tsx`).
+- Wizards hub card: "Money Moves Sprint — Find your next money move."
+- Dashboard widget (Command Center): "Find Your Money Move" pill that deep-links to the diagnostic if no tracker exists, or to the active tracker if one exists.
+- Sidebar entry under **Grow** pillar.
 
-Add to `tasks`:
-- `momentum_type` (enum: `revenue` | `audience` | `delivery` | `operations` | `mindset` | null)
-- `is_maintenance` (boolean, default false) — momentum vs maintenance flag
-- `done_enough_definition` (text, nullable) — "what would 'done enough' look like"
-- `connection_swept_at` (timestamptz, nullable) — marks tasks the user has already triaged in the guided sweep, so we don't keep nagging
+## Database
 
-Add to `weekly_plans`:
-- `weekly_outcome` (text) — the ONE business outcome
-- `minimum_viable_week` (jsonb) — array of 1-3 things that count as "week was a win"
-- `life_happens_plan` (text) — what to drop if life intervenes
-- `weekly_capacity_planned_minutes` (int, nullable) — planned load total
-
-Add to `daily_plans`:
-- `brave_move_task_id` (uuid, nullable, FK tasks)
-- `low_energy_task_id` (uuid, nullable, FK tasks)
-- `support_task_id` (uuid, nullable, FK tasks)
-- `not_today` (text, nullable) — "one thing to not worry about today"
-
-Keep existing `category` text column free-form (launches/projects). `momentum_type` is the spine.
-
-RLS: mirror existing policies on each table (auth.uid() = user_id).
-
----
-
-## 2. Goal-to-Task Spine
-
-### TaskCard / TaskQuickAdd / inline edit
-- Add a small `MomentumChip` (Revenue / Audience / Delivery / Ops / Mindset) on the task card, next to existing energy chip.
-- Add inline pickers in `TaskQuickAdd` for `momentum_type` and `goal_id` (optional, skippable, remembered per session).
-- Tasks page gets a new group-by option: **Momentum Type**.
-
-### Tasks page top banner
-A compact summary strip at the top of `/tasks`:
-- **Moves your 90-day goal**: N tasks linked to active cycle goal
-- **Maintenance**: N maintenance tasks
-- **Unconnected**: N tasks with no goal/momentum (clickable → opens guided sweep)
-
-### Guided Sweep modal — `ConnectTasksSweepModal`
-Triggered from the "Unconnected" pill or a one-time auto-prompt.
-- Walks through unconnected tasks in batches of 10.
-- Each row: task text + dropdowns (goal, momentum_type, maintenance toggle) + "Skip" / "Send to Someday" / "Delete".
-- Optional "Suggest with AI" button per batch (uses existing `mastermind-ai-coach` edge function with a new `mode: 'classify_tasks'`).
-- Sets `connection_swept_at = now()` even on Skip so the same task isn't re-prompted.
-
----
-
-## 3. Today's Brave Move (Daily Plan rebuild — additive)
-
-New section at the top of `DailyPlan.tsx`, above the existing Top 3 / One Thing:
+One new table, RLS-protected, owner-only access.
 
 ```text
-┌─────────────────────────────────────────────────────────┐
-│  TODAY                                                  │
-│  ★ Brave Move      [pick from revenue/audience tasks]   │
-│  ◐ Low-Energy      [pick from low_energy tasks]         │
-│  ? Support / Ask   [pick from waiting/unclear tasks]    │
-│  ✕ Not Today       [free text]                          │
-└─────────────────────────────────────────────────────────┘
+money_moves_sprint_trackers
+  id              uuid pk
+  user_id         uuid (auth.users)
+  track           text  -- 'offer_foundation' | 'lead_gen' | 'nurture' | 'sell'
+  rung            int   -- 1..6
+  move_title      text
+  move_why        text
+  goal            text
+  block           text
+  actions         jsonb -- array of action objects (see schema below)
+  proof           jsonb
+  community_posts jsonb -- { diagnostic, action_done, all_done, sale }
+  sale_logged     bool default false
+  result_note     text
+  diagnostic_answers jsonb
+  completed_at    timestamptz
+  created_at      timestamptz default now()
+  updated_at      timestamptz default now()
 ```
 
-- Each slot is a single-task slot bound to a new `daily_plans` column.
-- Picker filtered: Brave Move suggests `momentum_type IN (revenue, audience)` + `energy_level = high_focus`. Low-Energy suggests `energy_level = low_energy`. Support suggests `status = waiting OR reschedule_loop_active`.
-- "Suggest with AI" button calls `mastermind-ai-coach` mode `daily_brave_move` and proposes 3 picks; user approves.
-- Existing Top 3 / One Thing / brain dump / scratch pad stay untouched below.
+Action JSON shape:
+```text
+{ id, label, due_date, completed, completed_at, notes, proof_url,
+  community_post_copied, community_post_shared }
+```
 
----
+Badges reuse existing `user_badges` table (already in project) — keys: `money_move_chosen`, `first_action_done`, `community_brave_move`, `rung_complete`, `made_the_ask`, `first_sale_logged`.
 
-## 4. Weekly Tradeoff + Capacity Coach (WeeklyPlan rebuild — additive)
+RLS: standard 4 policies (select/insert/update/delete) keyed on `auth.uid() = user_id`. Updated_at trigger via existing `update_updated_at_column()`.
 
-New top section in `WeeklyPlan.tsx`:
+## User flow
 
-1. **The One Outcome** — single text field (`weekly_outcome`)
-2. **3 Commitments** — reuse existing `top_3_priorities`
-3. **Minimum Viable Week** — 1-3 chip inputs (`minimum_viable_week`)
-4. **If life happens** — text (`life_happens_plan`)
+```text
+/money-moves-sprint
+  ├─ no tracker → Hero: "Find My Money Move" → Diagnostic (8 Qs)
+  │                                          → Diagnosis screen
+  │                                          → Tracker created (celebrate)
+  └─ has tracker → Tracker dashboard
+                    ├─ Move card (track, rung, move, why)
+                    ├─ 3-action checklist (notes, proof, copy post, mark shared)
+                    ├─ Community posts panel (4 templates, copy buttons)
+                    ├─ Sprint schedule (May 25/27/29 2026, 5pm ET)
+                    ├─ VIP / Free conditional panel
+                    ├─ Sprint prizes panel
+                    ├─ Badges earned
+                    └─ "Retake diagnostic" (with confirm)
 
-**Capacity bar** below: aggregates `estimated_minutes` of tasks assigned to this week, broken by:
-- High-energy load (sum of `high_focus`)
-- Revenue actions (sum where `momentum_type='revenue'`)
-- Content actions (sum where `momentum_type='audience'`)
-- Delivery/admin (sum where `momentum_type IN (delivery, operations)`)
+  on all 3 actions complete → celebration + Mastermind CTA
+```
 
-Compare against `weekly_capacity_planned_minutes` (default = workdays × 4h, editable). When over 100%, show:
-- Red "Over capacity" pill
-- "Rewrite to a realistic week" button → AI proposal (existing `WeeklyFocusCoach` infrastructure, new mode `realistic_week`) suggests which tasks to defer/shrink. User approves each before save.
+## Diagnostic logic
 
----
+8 single-select questions (per spec). Track assignment runs on the **earliest broken stage** in the revenue cycle:
 
-## 5. Avoidance Detector + Brave Action Loop
+1. If Q1 = "no" or Q1 = "kind of" → **Offer Foundation**
+2. Else if Q3 = "nowhere" or Q4 = "not showing up" → **Lead Gen**
+3. Else if Q5 ∈ {"rarely", "no list"} or Q2 = "not yet" with audience present → **Nurture**
+4. Else if Q6 = "no" or "hinted" → **Sell**
+5. Tie-break by Q7 (stuck point) then Q8 (doable action).
 
-Reuse existing `reschedule_count_30d` and `reschedule_loop_active`:
+Rung within track is chosen by combining Q2 (sold before), Q4 (consistency), Q5 (email rhythm), Q6 (recent ask), and Q8 (doable action). Codified as a pure function in `src/lib/moneyMovesDiagnosis.ts` so it's unit-testable.
 
-- New `AvoidanceCoachModal` triggered when a task with `reschedule_count_30d >= 3` is opened or rescheduled again.
-- Modal asks (no shame): *"This has moved 3 times. What's actually going on?"*
-- 5 buttons:
-  1. **It's unclear** → opens edit with `done_enough_definition` field focused
-  2. **It's too big** → AI proposes 3 subtasks (preview → approve)
-  3. **It's scary** → opens StuckTaskCoachModal "Make this easier" (already exists)
-  4. **Make a low-energy version** → AI rewrite, replaces or creates new
-  5. **Move to Someday / Ask for support** → updates status
-- Tasks page: new "Stuck" filter chip surfaces all `reschedule_loop_active` tasks. Existing `StuckTaskBadge` stays.
+## Ladder content
 
----
+Static content lives in `src/data/moneyMovesLadder.ts`:
 
-## 6. Coaching prompts (lightweight, in-context)
+```text
+ladder = {
+  offer_foundation: [rung1..rung3]   // light, 3 rungs only, ends with DPL CTA
+  lead_gen:         [rung1..rung6]
+  nurture:          [rung1..rung6]
+  sell:             [rung1..rung6]
+}
 
-A small `<CoachingPrompt />` component (random from a curated list, dismissible per session) shown:
-- On Tasks page when "Unconnected" count > 5: *"Is this task moving the business forward, or helping you feel productive?"*
-- On Today when no Brave Move set: *"What's the sales-generating version of today?"*
-- On Weekly when over capacity: *"What would you do if you trusted this could work?"*
+each rung = {
+  number, title, move_title, move_why,
+  default_actions: [{label, suggested_due_offset_days}, x3]
+}
+```
 
-Curated prompts in `src/lib/coachingPrompts.ts`. No new schema, just UI copy.
+Exact rung copy from the brief is preserved verbatim.
 
----
+## Components
 
-## 7. AI (BYOK) — extend existing `mastermind-ai-coach`
+```text
+src/pages/MoneyMovesSprintPage.tsx         shell + header + schedule
+src/components/money-moves/
+  Diagnostic.tsx                            8-question wizard (reuses wizard pattern)
+  DiagnosisResult.tsx                       reveal screen
+  TrackerDashboard.tsx                      main post-diagnostic view
+  MoveCard.tsx                              track/rung/move/why
+  ActionsChecklist.tsx                      3 actions, notes, proof, copy
+  CommunityPostsPanel.tsx                   4 templates, copy + mark-shared
+  SprintSchedulePanel.tsx                   3 dates, ET
+  AccessPanel.tsx                           VIP vs free conditional
+  PrizesPanel.tsx                           static editable copy
+  BadgesStrip.tsx                           reuses existing badge UI
+  MastermindCTA.tsx                         post-completion soft CTA
+src/hooks/useMoneyMovesTracker.ts           CRUD, query invalidation, optimistic updates
+src/lib/moneyMovesDiagnosis.ts              pure diagnosis function + tests
+src/lib/moneyMovesPosts.ts                  community post template fillers
+src/data/moneyMovesLadder.ts                ladder content
+src/constants/moneyMovesConfig.ts           prize copy, schedule, URLs
+```
 
-Add modes (all return JSON for user-approval flows, never silent edits):
-- `classify_tasks` — input: array of `{id, text}` → output: `{id, momentum_type, is_maintenance, suggested_goal}`
-- `daily_brave_move` — input: today's task list + cycle goal → output: 3 picks per slot
-- `realistic_week` — input: this week's tasks + capacity → output: defer/shrink/keep recommendations
-- `subtask_breakdown` — input: one task → output: 3 micro-steps
-- `low_energy_rewrite` — input: one task → output: low-energy variant text
+## Reuse of existing patterns
 
-All use existing encryption + `useMastermindAI` hook. Rate-limited per existing pattern.
+- Wizard chrome: existing wizard components (step indicator, next/back).
+- Celebrations: existing `celebrationService.ts` triggers.
+- Badges: existing `user_badges` insert pattern.
+- Toasts / loading / empty / error states: existing primitives.
+- Resilient writes: `useResilientTaskMutation`-style hook for tracker updates so offline edits don't lose data.
+- Layout, sidebar, route prefetch already in place.
+- Auth/membership: existing `useMembership` hook drives VIP panel; never invent a role — render-conditional only.
 
----
+## Community posts (4 templates)
 
-## 8. Files
+Generated with simple template substitution, copy button, and "Mark as posted" checkbox that flips a flag in `actions[i].community_post_shared` (or top-level for the diagnostic post). Templates exactly as specified in the brief. Community URL: `https://portal.faithmariah.com/communities/groups/money-moves/home` (added to `src/constants/community.ts`).
 
-**Migration:** one Supabase migration for sections (1).
+## Celebrations & badges
 
-**New components:**
-- `src/components/tasks/MomentumChip.tsx`
-- `src/components/tasks/ConnectTasksSweepModal.tsx`
-- `src/components/tasks/UnconnectedTasksBanner.tsx`
-- `src/components/daily/BraveMoveSlots.tsx`
-- `src/components/weekly-plan/WeeklyTradeoffPanel.tsx`
-- `src/components/weekly-plan/CapacityCoachBar.tsx`
-- `src/components/mastermind/AvoidanceCoachModal.tsx`
-- `src/components/coaching/CoachingPrompt.tsx`
-- `src/lib/coachingPrompts.ts`
-- `src/lib/momentumTypes.ts` (constants, labels, colors)
+Triggered in this order, idempotent (won't re-fire if badge already exists):
 
-**Edited (additive only):**
-- `src/components/tasks/TaskCard.tsx` (momentum chip)
-- `src/components/tasks/TaskQuickAdd.tsx` (inline picker)
-- `src/components/tasks/types.ts` (new fields)
-- `src/components/tasks/views/TaskListView.tsx` (group-by momentum, Stuck filter)
-- `src/pages/Tasks.tsx` (banner + sweep entry)
-- `src/pages/DailyPlan.tsx` (BraveMoveSlots top section)
-- `src/pages/WeeklyPlan.tsx` (tradeoff + capacity)
-- `src/hooks/useMastermindAI.ts` (new modes)
-- `supabase/functions/mastermind-ai-coach/index.ts` (new mode handlers)
+| Trigger | Celebration copy | Badge |
+|---|---|---|
+| Diagnostic complete | "You picked the move. Now we can coach the right thing." | money_move_chosen |
+| First action done | "First action done. Action counts before confidence." | first_action_done |
+| Community post marked shared | "You posted it. That makes it real." | community_brave_move |
+| All 3 actions done | "That rung is complete. Ready for the next honest step?" | rung_complete |
+| Sale logged | "You made the ask. That matters before the result does." | first_sale_logged |
 
-**Untouched:** all existing fields, filters, dialogs, calendar integration, content/launch/offer flows, mindset, scorecard, evidence page (we'll wire deeper integration in Phase 2).
+## Access model
 
----
+- All authenticated users can use the tracker (free + VIP + Mastermind).
+- `AccessPanel` reads `useMembership`:
+  - VIP → portal links + Zoom + replays + DPL.
+  - Free → YouTube live links + subscribe CTA.
+  - Mastermind → "You already have ongoing access — keep using this after the sprint."
+- No paywall on the tracker itself; conversion path is the post-completion Mastermind CTA.
 
-## 9. What's explicitly out of Phase 1
+## Mobile
 
-To keep this shippable, these are noted for Phase 2+:
-- Monthly Planning strategy room rebuild
-- 90-Day Command Center page rebuild
-- Evidence Bank deep integration into reviews
-- "Connection check" gate on every new task
-- Energy/load swap suggestions ("you planned 5 high-energy tasks today")
+Single-column layout below `md`. Tap targets ≥44px. Sticky bottom "Copy post" button on mobile community posts panel. Diagnostic uses one-question-per-screen on mobile.
 
-These build cleanly on Phase 1 schema; nothing in Phase 1 forecloses them.
+## Acceptance criteria
 
----
+- User can complete diagnostic and gets appropriate track/rung.
+- Tracker persists across refresh; offline edits sync when back online.
+- All 4 community post templates copyable; "shared" flag persists.
+- All 5 celebrations fire once each, badges awarded once.
+- "Retake diagnostic" works with confirmation and overwrites in place (no orphans).
+- RLS verified: user A cannot read user B's tracker.
+- Works at 375px width.
+- Wizards hub + dashboard widget + sidebar entry all link correctly.
 
-## 10. Acceptance checks
+## Build order (so we can ship incrementally)
 
-- A new task can be tagged with momentum + goal in one keystroke flow.
-- Tasks page shows a real "Unconnected" count and the sweep modal can clear it.
-- Today page shows 4 named slots that persist per day and survive reload.
-- Weekly page enforces (visually) one outcome + 3 commitments + MVP week, with a real capacity bar.
-- Rescheduling a task to its 4th date triggers the avoidance modal once per loop.
-- All AI suggestions require explicit per-item approval before write.
-- TypeScript build passes; no existing route, filter, or dialog regresses.
+1. Migration + RLS + types.
+2. Static content files (ladder, posts, config) + diagnosis function with tests.
+3. Diagnostic UI → diagnosis result → tracker creation.
+4. Tracker dashboard (move card + actions checklist).
+5. Community posts panel + celebrations + badges.
+6. Schedule, access, prizes, Mastermind CTA panels.
+7. Wizards hub card + dashboard widget + sidebar entry.
+8. QA pass on mobile + offline + RLS.
+
+## Out-of-scope confirmations
+
+- No new offer workshop.
+- No edits to existing wizards.
+- No changes to billing / membership logic.
+- Prize copy is static-editable in `moneyMovesConfig.ts`; no admin UI.
