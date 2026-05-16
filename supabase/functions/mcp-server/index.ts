@@ -16,9 +16,9 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
-        status: { type: "string", enum: ["scheduled", "in_progress", "done", "someday"], description: "Filter by status" },
+        status: { type: "string", enum: ["backlog", "scheduled", "in_progress", "waiting", "done", "someday"], description: "Filter by status" },
         scheduled_date: { type: "string", description: "Filter by date (YYYY-MM-DD)" },
-        priority: { type: "string", enum: ["low", "medium", "high", "critical"], description: "Filter by priority" },
+        priority: { type: "string", enum: ["low", "medium", "high"], description: "Filter by priority" },
         limit: { type: "number", description: "Max results (default 25)" },
       },
     },
@@ -30,10 +30,12 @@ const TOOLS = [
       type: "object",
       properties: {
         task_text: { type: "string", description: "Task description" },
+        task_description: { type: "string", description: "Longer task description or context" },
         scheduled_date: { type: "string", description: "Due date (YYYY-MM-DD)" },
-        priority: { type: "string", enum: ["low", "medium", "high", "critical"] },
+        priority: { type: "string", enum: ["low", "medium", "high"] },
         estimated_minutes: { type: "number", description: "Estimated time in minutes" },
         notes: { type: "string", description: "Additional notes" },
+        context_tags: { type: "array", items: { type: "string" }, description: "Optional labels or context tags" },
       },
       required: ["task_text"],
     },
@@ -58,8 +60,8 @@ const TOOLS = [
         task_id: { type: "string", description: "UUID of the task" },
         task_text: { type: "string" },
         scheduled_date: { type: "string" },
-        priority: { type: "string", enum: ["low", "medium", "high", "critical"] },
-        status: { type: "string", enum: ["scheduled", "in_progress", "done", "someday"] },
+        priority: { type: "string", enum: ["low", "medium", "high"] },
+        status: { type: "string", enum: ["backlog", "scheduled", "in_progress", "waiting", "done", "someday"] },
         notes: { type: "string" },
       },
       required: ["task_id"],
@@ -174,11 +176,16 @@ async function handleTool(
       const { data, error } = await supabase.from("tasks").insert({
         user_id: userId,
         task_text: args.task_text as string,
+        task_description: (args.task_description as string) || null,
         scheduled_date: (args.scheduled_date as string) || null,
         priority: (args.priority as string) || "medium",
         estimated_minutes: (args.estimated_minutes as number) || null,
         notes: (args.notes as string) || null,
-        status: "scheduled",
+        source: "ai_mcp",
+        context_tags: Array.isArray(args.context_tags)
+          ? Array.from(new Set([...(args.context_tags as string[]), "ai-created"]))
+          : ["ai-created"],
+        status: args.scheduled_date ? "scheduled" : "backlog",
       }).select("task_id, task_text, status, priority, scheduled_date").single();
       if (error) throw error;
       return { message: "Task created", task: data };
