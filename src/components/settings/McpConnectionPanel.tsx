@@ -5,13 +5,13 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Check, RefreshCw, ExternalLink, Bot } from 'lucide-react';
+import { Copy, Check, RefreshCw, ExternalLink, Bot, Terminal } from 'lucide-react';
 
 export function McpConnectionPanel() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [token, setToken] = useState<string | null>(null);
-  const [copied, setCopied] = useState<'token' | 'config' | null>(null);
+  const [copied, setCopied] = useState<'token' | 'config' | 'mac' | null>(null);
   const [loading, setLoading] = useState(false);
 
   const mcpUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mcp-server`;
@@ -44,7 +44,11 @@ export function McpConnectionPanel() {
     }
   }, null, 2);
 
-  const handleCopy = async (text: string, type: 'token' | 'config') => {
+  const macSetupCommand = `mkdir -p ~/Library/Application\\ Support/Claude && cat > ~/Library/Application\\ Support/Claude/claude_desktop_config.json << 'EOF'
+${claudeConfig}
+EOF`;
+
+  const handleCopy = async (text: string, type: 'token' | 'config' | 'mac') => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(type);
@@ -62,7 +66,7 @@ export function McpConnectionPanel() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bot className="h-5 w-5" />
-          Claude AI Connection (MCP)
+          AI Task Connection
         </CardTitle>
         <CardDescription>
           Connect Claude Desktop to your planner so it can read and write your tasks, daily plans, and habits.
@@ -122,6 +126,23 @@ export function McpConnectionPanel() {
             >
               {copied === 'config' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
             </Button>
+          </div>
+          <div className="pt-1">
+            <p className="text-xs text-muted-foreground mb-2">
+              On a Mac? Skip the manual file editing — copy this one command, paste it into Terminal, and hit Enter:
+            </p>
+            <Button
+              onClick={() => handleCopy(macSetupCommand, 'mac')}
+              variant="default"
+              size="sm"
+              disabled={!token}
+            >
+              {copied === 'mac' ? <Check className="h-4 w-4 mr-2" /> : <Terminal className="h-4 w-4 mr-2" />}
+              Copy Mac Setup Command
+            </Button>
+            {!token && (
+              <p className="text-xs text-muted-foreground mt-1">Get your token in Step 1 first.</p>
+            )}
           </div>
         </div>
 
