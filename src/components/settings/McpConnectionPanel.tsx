@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Check, RefreshCw, ExternalLink, Bot } from 'lucide-react';
+import { Copy, Check, RefreshCw, ExternalLink, Bot, Terminal } from 'lucide-react';
 
 export function McpConnectionPanel() {
   const { user } = useAuth();
