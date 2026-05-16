@@ -52,6 +52,7 @@ export default defineConfig(({ mode }) => ({
       // Use explicit prompt so we can flush pending writes BEFORE reloading.
       // autoUpdate would silently swap the SW and could lose in-flight drafts.
       registerType: "prompt",
+      filename: "app-sw.js",
       devOptions: {
         enabled: false,
       },
