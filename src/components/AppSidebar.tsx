@@ -326,6 +326,14 @@ export function AppSidebar() {
         <NavSection label="Build" items={BUILD_NAV} />
         <NavSection label="Capture" items={CAPTURE_NAV} />
         <NavSection label="Grow" items={GROW_NAV} />
+
+        {/* Faith-only: Asana private bridge */}
+        {user?.email?.toLowerCase() === 'faithhawks@gmail.com' && (
+          <NavSection
+            label="Private"
+            items={[{ name: 'Asana Inbox', href: '/asana-inbox', icon: Inbox, questIcon: '📨' }]}
+          />
+        )}
         
         {/* Advanced features — toggled via user settings */}
         {(userSettings as Record<string, unknown>)?.show_advanced_nav && (
