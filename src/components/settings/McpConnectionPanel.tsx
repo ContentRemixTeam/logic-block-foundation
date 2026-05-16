@@ -44,7 +44,11 @@ export function McpConnectionPanel() {
     }
   }, null, 2);
 
-  const handleCopy = async (text: string, type: 'token' | 'config') => {
+  const macSetupCommand = `mkdir -p ~/Library/Application\\ Support/Claude && cat > ~/Library/Application\\ Support/Claude/claude_desktop_config.json << 'EOF'
+${claudeConfig}
+EOF`;
+
+  const handleCopy = async (text: string, type: 'token' | 'config' | 'mac') => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(type);
