@@ -6371,6 +6371,11 @@ export type Database = {
           due_date: string | null
           energy_level: string | null
           estimated_minutes: number | null
+          external_id: string | null
+          external_raw: Json | null
+          external_source: string | null
+          external_updated_at: string | null
+          external_url: string | null
           goal_id: string | null
           is_completed: boolean | null
           is_maintenance: boolean
@@ -6446,6 +6451,11 @@ export type Database = {
           due_date?: string | null
           energy_level?: string | null
           estimated_minutes?: number | null
+          external_id?: string | null
+          external_raw?: Json | null
+          external_source?: string | null
+          external_updated_at?: string | null
+          external_url?: string | null
           goal_id?: string | null
           is_completed?: boolean | null
           is_maintenance?: boolean
@@ -6521,6 +6531,11 @@ export type Database = {
           due_date?: string | null
           energy_level?: string | null
           estimated_minutes?: number | null
+          external_id?: string | null
+          external_raw?: Json | null
+          external_source?: string | null
+          external_updated_at?: string | null
+          external_url?: string | null
           goal_id?: string | null
           is_completed?: boolean | null
           is_maintenance?: boolean
