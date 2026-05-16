@@ -139,6 +139,7 @@ const SummitWizardPage = lazyWithRetry(() => import('./pages/SummitWizardPage'))
 const EditorialCalendar = lazyWithRetry(() => import('./pages/EditorialCalendar'));
 const CoachPrep = lazyWithRetry(() => import('./pages/CoachPrep'));
 const MoneyMomentumWizardPage = lazyWithRetry(() => import('./pages/MoneyMomentumWizardPage'));
+const AsanaInbox = lazyWithRetry(() => import('./pages/AsanaInbox'));
 const SprintDashboardPage = lazyWithRetry(() => import('./pages/SprintDashboardPage'));
 const AllTasks = lazyWithRetry(() => import('./pages/AllTasks'));
 const ProjectDesignerPage = lazyWithRetry(() => import('./pages/ProjectDesignerPage'));
@@ -290,6 +291,7 @@ const App = () => (
                       <Route path="/wizards/content-challenge" element={<ProtectedRoute><PageSuspense><ContentChallengeWizardPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/sprint-dashboard" element={<ProtectedRoute><PageSuspense><SprintDashboardPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/money-moves-sprint" element={<ProtectedRoute><PageSuspense><MoneyMovesSprintPage /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/asana-inbox" element={<ProtectedRoute><PageSuspense><AsanaInbox /></PageSuspense></ProtectedRoute>} />
                       <Route path="/settings/planner" element={<ProtectedRoute><PageSuspense><PlannerSettings /></PageSuspense></ProtectedRoute>} />
                       <Route path="/settings/daily-page" element={<ProtectedRoute><PageSuspense><DailyPageSettings /></PageSuspense></ProtectedRoute>} />
                       <Route path="/finances" element={<ProtectedRoute><PageSuspense><FinancialTracker /></PageSuspense></ProtectedRoute>} />
