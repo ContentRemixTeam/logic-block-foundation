@@ -127,6 +127,23 @@ EOF`;
               {copied === 'config' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
             </Button>
           </div>
+          <div className="pt-1">
+            <p className="text-xs text-muted-foreground mb-2">
+              On a Mac? Skip the manual file editing — copy this one command, paste it into Terminal, and hit Enter:
+            </p>
+            <Button
+              onClick={() => handleCopy(macSetupCommand, 'mac')}
+              variant="default"
+              size="sm"
+              disabled={!token}
+            >
+              {copied === 'mac' ? <Check className="h-4 w-4 mr-2" /> : <Terminal className="h-4 w-4 mr-2" />}
+              Copy Mac Setup Command
+            </Button>
+            {!token && (
+              <p className="text-xs text-muted-foreground mt-1">Get your token in Step 1 first.</p>
+            )}
+          </div>
         </div>
 
         {/* Step 3 */}
