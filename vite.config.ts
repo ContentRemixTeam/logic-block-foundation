@@ -52,6 +52,9 @@ export default defineConfig(({ mode }) => ({
       // Use explicit prompt so we can flush pending writes BEFORE reloading.
       // autoUpdate would silently swap the SW and could lose in-flight drafts.
       registerType: "prompt",
+      devOptions: {
+        enabled: false,
+      },
       includeAssets: ["favicon.ico", "pwa-192x192.png", "pwa-512x512.png"],
       manifest: {
         id: "boss-planner-full",
@@ -105,8 +108,18 @@ export default defineConfig(({ mode }) => ({
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MB
         cleanupOutdatedCaches: true,
         clientsClaim: true,
+        skipWaiting: true,
+        navigateFallbackDenylist: [/^\/~oauth/, /^\/~flock/],
         // Cache app shell first
         runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === "navigate",
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "html-cache",
+              networkTimeoutSeconds: 3,
+            },
+          },
           // Cache fonts (public, no auth - safe to cache)
           {
             urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
