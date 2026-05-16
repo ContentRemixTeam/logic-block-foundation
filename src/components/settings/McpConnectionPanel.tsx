@@ -11,7 +11,7 @@ export function McpConnectionPanel() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [token, setToken] = useState<string | null>(null);
-  const [copied, setCopied] = useState<'token' | 'config' | null>(null);
+  const [copied, setCopied] = useState<'token' | 'config' | 'mac' | null>(null);
   const [loading, setLoading] = useState(false);
 
   const mcpUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mcp-server`;
