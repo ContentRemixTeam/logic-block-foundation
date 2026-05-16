@@ -66,7 +66,7 @@ EOF`;
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bot className="h-5 w-5" />
-          Claude AI Connection (MCP)
+          AI Task Connection
         </CardTitle>
         <CardDescription>
           Connect Claude Desktop to your planner so it can read and write your tasks, daily plans, and habits.
