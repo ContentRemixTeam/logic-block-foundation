@@ -171,7 +171,7 @@ PY`;
   const configPathMac = '~/Library/Application Support/Claude/claude_desktop_config.json';
   const configPathWin = '%APPDATA%\\Claude\\claude_desktop_config.json';
 
-  const handleCopy = async (text: string, type: 'key' | 'config' | 'mac-command' | 'prompt') => {
+  const handleCopy = async (text: string, type: 'key' | 'config' | 'mac-command' | 'win-command' | 'config-path-mac' | 'config-path-win' | 'prompt') => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(type);
