@@ -166,6 +166,11 @@ with open(path, "w") as file:
 print("Done. Now fully quit and reopen Claude Desktop.")
 PY`;
 
+  const winSetupCommand = `powershell -NoProfile -Command "$path = \\"$env:APPDATA\\Claude\\claude_desktop_config.json\\"; New-Item -ItemType Directory -Force -Path (Split-Path $path) | Out-Null; if (Test-Path $path) { $cfg = Get-Content $path -Raw | ConvertFrom-Json } else { $cfg = [PSCustomObject]@{} }; if (-not $cfg.mcpServers) { $cfg | Add-Member -NotePropertyName mcpServers -NotePropertyValue ([PSCustomObject]@{}) -Force }; $cfg.mcpServers | Add-Member -NotePropertyName 'boss-planner' -NotePropertyValue ([PSCustomObject]@{ command='npx'; args=@('-y','mcp-remote','${mcpUrl}'); env=[PSCustomObject]@{ AUTHORIZATION='Bearer ${tokenForCommands}' } }) -Force; $cfg | ConvertTo-Json -Depth 10 | Set-Content -Encoding UTF8 $path; Write-Host 'Done. Fully quit and reopen Claude Desktop.'"`;
+
+  const configPathMac = '~/Library/Application Support/Claude/claude_desktop_config.json';
+  const configPathWin = '%APPDATA%\\Claude\\claude_desktop_config.json';
+
   const handleCopy = async (text: string, type: 'key' | 'config' | 'mac-command' | 'prompt') => {
     try {
       await navigator.clipboard.writeText(text);
