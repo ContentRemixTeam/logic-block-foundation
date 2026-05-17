@@ -127,7 +127,23 @@ const TOOLS = [
 ];
 
 // ── Helper: get authenticated user ────────────────────────────────────
-function getSupabaseClient(authHeader: string) {
+// Supports two auth modes:
+//   1) Supabase JWT (Bearer eyJ...) — used by the planner web app
+//   2) Long-lived AI connection key (Bearer bp_live_...) — used by Claude/Codex/etc
+//
+// For bp_live_ keys, we use the service-role client (bypassing RLS) but
+// always scope every query to the resolved user_id.
+const AI_KEY_PREFIX = "bp_live_";
+
+async function sha256Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function getJwtClient(authHeader: string) {
   return createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_ANON_KEY")!,
@@ -135,22 +151,92 @@ function getSupabaseClient(authHeader: string) {
   );
 }
 
-async function getAuthUserId(authHeader: string): Promise<string> {
-  const supabase = getSupabaseClient(authHeader);
-  const token = authHeader.replace("Bearer ", "");
-  const { data, error } = await supabase.auth.getUser(token);
-  if (error || !data?.user?.id) throw new Error("Unauthorized");
-  return data.user.id;
+function getServiceClient() {
+  return createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+}
+
+// Auth resolution result
+type AuthCtx = {
+  userId: string;
+  client: ReturnType<typeof createClient>;
+  source: "jwt" | "ai_key";
+  keyId?: string;
+};
+
+class AuthError extends Error {
+  constructor(message: string, public code: "expired" | "revoked" | "invalid" = "invalid") {
+    super(message);
+  }
+}
+
+async function resolveAuth(authHeader: string): Promise<AuthCtx> {
+  const token = authHeader.replace("Bearer ", "").trim();
+
+  // ── AI connection key path ──
+  if (token.startsWith(AI_KEY_PREFIX)) {
+    const admin = getServiceClient();
+    const keyHash = await sha256Hex(token);
+    const { data: row, error } = await admin
+      .from("ai_connection_keys")
+      .select("id, user_id, expires_at, revoked_at")
+      .eq("key_hash", keyHash)
+      .maybeSingle();
+
+    if (error) throw new Error("Auth lookup failed");
+    if (!row) {
+      throw new AuthError(
+        "Invalid AI connection key. Open Boss Planner → Settings → AI Task Connection, create a new key, and reconnect.",
+        "invalid",
+      );
+    }
+    if (row.revoked_at) {
+      throw new AuthError(
+        "This AI connection key has been revoked. Open Boss Planner → Settings → AI Task Connection and create a new key.",
+        "revoked",
+      );
+    }
+    if (row.expires_at && new Date(row.expires_at).getTime() < Date.now()) {
+      throw new AuthError(
+        "This AI connection key has expired. Open Boss Planner → Settings → AI Task Connection and create a new key.",
+        "expired",
+      );
+    }
+
+    // Touch last_used_at (best-effort, fire-and-forget)
+    admin
+      .from("ai_connection_keys")
+      .update({ last_used_at: new Date().toISOString() })
+      .eq("id", row.id)
+      .then(() => {});
+
+    return {
+      userId: row.user_id as string,
+      client: admin,
+      source: "ai_key",
+      keyId: row.id as string,
+    };
+  }
+
+  // ── Supabase JWT path ──
+  const client = getJwtClient(authHeader);
+  const { data, error } = await client.auth.getUser(token);
+  if (error || !data?.user?.id) {
+    throw new AuthError("Unauthorized — invalid Supabase token", "invalid");
+  }
+  return { userId: data.user.id, client, source: "jwt" };
 }
 
 // ── Tool handlers ─────────────────────────────────────────────────────
 async function handleTool(
   name: string,
   args: Record<string, unknown>,
-  authHeader: string
+  ctx: AuthCtx,
 ): Promise<unknown> {
-  const supabase = getSupabaseClient(authHeader);
-  const userId = await getAuthUserId(authHeader);
+  const supabase = ctx.client;
+  const userId = ctx.userId;
   const today = new Date().toISOString().split("T")[0];
 
   switch (name) {
@@ -311,7 +397,7 @@ async function handleTool(
 }
 
 // ── MCP Protocol handler ──────────────────────────────────────────────
-async function handleMcpRequest(body: Record<string, unknown>, authHeader: string) {
+async function handleMcpRequest(body: Record<string, unknown>, ctx: AuthCtx) {
   const { jsonrpc, id, method, params } = body as {
     jsonrpc: string;
     id: unknown;
@@ -345,7 +431,7 @@ async function handleMcpRequest(body: Record<string, unknown>, authHeader: strin
       const toolName = (params as any)?.name as string;
       const toolArgs = (params as any)?.arguments || {};
       try {
-        const result = await handleTool(toolName, toolArgs, authHeader);
+        const result = await handleTool(toolName, toolArgs, ctx);
         return {
           jsonrpc: "2.0",
           id,
@@ -383,7 +469,28 @@ serve(async (req) => {
   // Require auth
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "Unauthorized — pass your Supabase auth token as Bearer token" }), {
+    return new Response(
+      JSON.stringify({
+        error:
+          "Unauthorized — pass a Boss Planner AI connection key (bp_live_...) or Supabase JWT as Bearer token. Create one in Boss Planner → Settings → AI Task Connection.",
+      }),
+      {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
+  }
+
+  // Resolve auth (JWT or bp_live_ key). On AuthError, return a clear 401 message.
+  let ctx: AuthCtx;
+  try {
+    ctx = await resolveAuth(authHeader);
+  } catch (err) {
+    const message =
+      err instanceof AuthError
+        ? err.message
+        : `Unauthorized: ${(err as Error).message}`;
+    return new Response(JSON.stringify({ error: message }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -399,7 +506,7 @@ serve(async (req) => {
       if (Array.isArray(body)) {
         const results = [];
         for (const item of body) {
-          const result = await handleMcpRequest(item, authHeader);
+          const result = await handleMcpRequest(item, ctx);
           if (result) results.push(result);
         }
         return new Response(JSON.stringify(results), {
@@ -407,7 +514,7 @@ serve(async (req) => {
         });
       }
 
-      const result = await handleMcpRequest(body, authHeader);
+      const result = await handleMcpRequest(body, ctx);
       if (!result) return new Response(null, { status: 204, headers: corsHeaders });
 
       return new Response(JSON.stringify(result), {
@@ -420,10 +527,12 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           name: "90-day-planner-mcp",
-          version: "1.0.0",
-          description: "MCP server for the 90-Day Planner app. Provides access to tasks, daily plans, brain dumps, and habits.",
+          version: "1.1.0",
+          description: "MCP server for the Boss Planner app. Provides access to tasks, daily plans, brain dumps, and habits.",
           tools: TOOLS.map((t) => ({ name: t.name, description: t.description })),
-          auth: "Bearer token required (Supabase auth JWT)",
+          auth: "Bearer token required (Boss Planner AI connection key 'bp_live_...' or Supabase JWT)",
+          authenticated_as: ctx.userId,
+          auth_source: ctx.source,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

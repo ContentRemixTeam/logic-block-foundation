@@ -1,11 +1,33 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Check, RefreshCw, Bot, ShieldCheck, Wrench, MessageSquareText } from 'lucide-react';
+import {
+  Copy,
+  Check,
+  KeyRound,
+  Bot,
+  ShieldCheck,
+  Wrench,
+  MessageSquareText,
+  AlertTriangle,
+  Trash2,
+  ExternalLink,
+} from 'lucide-react';
+
+interface KeyRecord {
+  id: string;
+  name: string;
+  key_prefix: string;
+  key_last4: string;
+  expires_at: string | null;
+  last_used_at: string | null;
+  revoked_at: string | null;
+  created_at: string;
+}
 
 const promptExamples = [
   'Add a task to follow up with Sarah tomorrow about the sales page.',
@@ -19,38 +41,92 @@ const promptExamples = [
 export function McpConnectionPanel() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [token, setToken] = useState<string | null>(null);
-  const [copied, setCopied] = useState<'token' | 'config' | 'mac-command' | 'prompt' | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [freshKey, setFreshKey] = useState<string | null>(null);
+  const [copied, setCopied] = useState<'key' | 'config' | 'mac-command' | 'prompt' | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [keys, setKeys] = useState<KeyRecord[]>([]);
+  const [loadingKeys, setLoadingKeys] = useState(false);
 
   const mcpUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mcp-server`;
 
-  const handleGetToken = async () => {
-    setLoading(true);
+  const loadKeys = async () => {
+    if (!user) return;
+    setLoadingKeys(true);
     try {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.access_token) {
-        setToken(data.session.access_token);
-      } else {
-        toast({ title: 'Not logged in', description: 'Please log in first.', variant: 'destructive' });
-      }
-    } catch {
-      toast({ title: 'Error', description: 'Could not get auth token.', variant: 'destructive' });
+      const { data, error } = await supabase
+        .from('ai_connection_keys')
+        .select('id, name, key_prefix, key_last4, expires_at, last_used_at, revoked_at, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setKeys((data as KeyRecord[]) ?? []);
+    } catch (err) {
+      console.error(err);
     } finally {
-      setLoading(false);
+      setLoadingKeys(false);
     }
   };
 
+  useEffect(() => {
+    loadKeys();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  const handleCreateKey = async () => {
+    setCreating(true);
+    setFreshKey(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-ai-connection-key', {
+        body: { name: 'Boss Planner AI Key' },
+      });
+      if (error) throw error;
+      const key = (data as { key?: string })?.key;
+      if (!key) throw new Error('No key returned');
+      setFreshKey(key);
+      toast({ title: 'AI connection key created', description: 'Copy it now — it will not be shown again.' });
+      await loadKeys();
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: 'Could not create key',
+        description: (err as Error).message ?? 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleRevoke = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('ai_connection_keys')
+        .update({ revoked_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+      toast({ title: 'Key revoked' });
+      await loadKeys();
+    } catch (err) {
+      toast({
+        title: 'Could not revoke',
+        description: (err as Error).message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const tokenForCommands = freshKey || 'YOUR_AI_CONNECTION_KEY_HERE';
+
   const mcpConfig = JSON.stringify({
     mcpServers: {
-      "boss-planner": {
-        command: "npx",
-        args: ["-y", "mcp-remote", mcpUrl],
+      'boss-planner': {
+        command: 'npx',
+        args: ['-y', 'mcp-remote', mcpUrl],
         env: {
-          AUTHORIZATION: `Bearer ${token || 'YOUR_TOKEN_HERE'}`
-        }
-      }
-    }
+          AUTHORIZATION: `Bearer ${tokenForCommands}`,
+        },
+      },
+    },
   }, null, 2);
 
   const macSetupCommand = `python3 - <<'PY'
@@ -71,7 +147,7 @@ config["mcpServers"]["boss-planner"] = {
     "command": "npx",
     "args": ["-y", "mcp-remote", "${mcpUrl}"],
     "env": {
-        "AUTHORIZATION": "Bearer ${token || 'YOUR_TOKEN_HERE'}"
+        "AUTHORIZATION": "Bearer ${tokenForCommands}"
     }
 }
 
@@ -81,7 +157,7 @@ with open(path, "w") as file:
 print("Done. Now fully quit and reopen Claude Desktop.")
 PY`;
 
-  const handleCopy = async (text: string, type: 'token' | 'config' | 'mac-command' | 'prompt') => {
+  const handleCopy = async (text: string, type: 'key' | 'config' | 'mac-command' | 'prompt') => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(type);
@@ -94,6 +170,8 @@ PY`;
 
   if (!user) return null;
 
+  const activeKeys = keys.filter((k) => !k.revoked_at);
+
   return (
     <Card>
       <CardHeader>
@@ -102,7 +180,7 @@ PY`;
           AI Task Connection
         </CardTitle>
         <CardDescription>
-          Connect Claude, Codex, or another AI tool so it can add tasks to your planner.
+          Connect Claude, Codex, or another AI tool so it can add tasks to your planner — with a single long-lived key.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -110,7 +188,7 @@ PY`;
           <p className="text-sm font-medium">What this does</p>
           <p className="mt-1 text-xs text-muted-foreground">
             This lets your AI assistant create planner tasks for you, read your planner tasks, update your daily plan, and log habits.
-            It does not connect anyone else to your account.
+            It only connects to <strong>your</strong> account.
           </p>
         </div>
 
@@ -121,58 +199,62 @@ PY`;
               <p className="text-sm font-medium">Beginner setup checklist</p>
               <ol className="list-decimal space-y-1 pl-4 text-xs text-muted-foreground">
                 <li>Stay logged into this planner account.</li>
-                <li>Click <strong>Get Token</strong> below.</li>
+                <li>Click <strong>Create AI Connection Key</strong> below.</li>
+                <li>Copy the key right away — it's only shown once.</li>
                 <li>Click <strong>Copy Mac Setup Command</strong>.</li>
-                <li>Open Terminal on your Mac.</li>
-                <li>Paste the command, press Enter, then fully restart Claude Desktop.</li>
+                <li>Open Terminal on your Mac, paste, press Enter, then fully restart Claude Desktop.</li>
                 <li>Ask Claude to add a simple test task, then check your Tasks page.</li>
               </ol>
               <p className="text-xs text-muted-foreground">
-                If you use Codex or another AI app, use the same server URL and token shown here.
+                If you use Codex or another AI app, use the same server URL and AI connection key.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Step 1 */}
+        {/* Step 1 — Create key */}
         <div className="space-y-2">
-          <p className="text-sm font-medium">Step 1: Get your private connection token</p>
+          <p className="text-sm font-medium">Step 1: Create your AI connection key</p>
           <p className="text-xs text-muted-foreground">
-            Think of this like a temporary key. It connects an AI tool to only your planner account.
-            If the connection stops working later, come back here and click Refresh Token.
+            This is a long-lived private key that starts with <span className="font-mono">bp_live_</span> and lasts <strong>1 year</strong>.
+            You only need to create it once. Treat it like a password — anyone with this key can add tasks to your planner.
           </p>
-          <div className="flex gap-2">
-            <Button onClick={handleGetToken} disabled={loading} variant="outline" size="sm">
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              {token ? 'Refresh Token' : 'Get Token'}
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={handleCreateKey} disabled={creating} size="sm">
+              <KeyRound className={`h-4 w-4 mr-2 ${creating ? 'animate-pulse' : ''}`} />
+              {creating ? 'Creating…' : 'Create AI Connection Key'}
             </Button>
-            {token && (
-              <Button
-                onClick={() => handleCopy(token, 'token')}
-                variant="outline"
-                size="sm"
-              >
-                {copied === 'token' ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-                Copy Token
+            {freshKey && (
+              <Button onClick={() => handleCopy(freshKey, 'key')} variant="outline" size="sm">
+                {copied === 'key' ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                Copy Key
               </Button>
             )}
           </div>
-          {token && (
-            <Input
-              readOnly
-              value={token.slice(0, 40) + '...'}
-              className="font-mono text-xs"
-            />
+
+          {freshKey && (
+            <div className="rounded-md border border-warning/40 bg-warning/5 p-3 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-medium text-warning">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Copy this key now — it will not be shown again.
+              </div>
+              <Input readOnly value={freshKey} className="font-mono text-xs" />
+            </div>
           )}
         </div>
 
-        {/* Step 2 */}
+        {/* Step 2 — Mac setup */}
         <div className="space-y-2">
-          <p className="text-sm font-medium">Step 2: Add the connection to your AI tool</p>
+          <p className="text-sm font-medium">Step 2: Add the connection to Claude Desktop (Mac)</p>
           <p className="text-xs text-muted-foreground">
             Easiest Mac option: copy this command, paste it into Terminal, and press Enter.
-            It keeps Claude's existing settings and adds this planner connection.
+            It keeps Claude's existing settings and adds your Boss Planner connection.
           </p>
+          {!freshKey && (
+            <p className="text-xs text-muted-foreground italic">
+              Tip: create a key in Step 1 first — the command will then include your real key.
+            </p>
+          )}
           <div className="relative">
             <pre className="bg-muted p-3 rounded-md text-xs font-mono overflow-x-auto max-h-40 overflow-y-auto">
               {macSetupCommand}
@@ -187,25 +269,18 @@ PY`;
               <span className="sr-only">Copy Mac Setup Command</span>
             </Button>
           </div>
-          {token && (
-            <Button
-              onClick={() => handleCopy(macSetupCommand, 'mac-command')}
-              variant="outline"
-              size="sm"
-            >
-              {copied === 'mac-command' ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-              Copy Mac Setup Command
-            </Button>
-          )}
+          <Button
+            onClick={() => handleCopy(macSetupCommand, 'mac-command')}
+            variant="outline"
+            size="sm"
+          >
+            {copied === 'mac-command' ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+            Copy Mac Setup Command
+          </Button>
 
-          <p className="text-xs text-muted-foreground">
-            Advanced/manual option: if Claude gives you a config box, copy this block instead.
+          <p className="text-xs text-muted-foreground pt-2">
+            Advanced/manual option: if Claude (or Codex) asks for a config block, use this:
           </p>
-          <ul className="text-xs text-muted-foreground list-disc list-inside space-y-1">
-            <li>If Claude gives you a config box, paste this whole block.</li>
-            <li>If Claude asks for a server URL, use the URL shown in the config.</li>
-            <li>If Claude asks for a token or authorization header, use the private token from Step 1.</li>
-          </ul>
           <div className="relative">
             <pre className="bg-muted p-3 rounded-md text-xs font-mono overflow-x-auto max-h-48 overflow-y-auto">
               {mcpConfig}
@@ -220,27 +295,15 @@ PY`;
               <span className="sr-only">Copy Config</span>
             </Button>
           </div>
-          {token && (
-            <Button
-              onClick={() => handleCopy(mcpConfig, 'config')}
-              variant="outline"
-              size="sm"
-            >
-              {copied === 'config' ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-              Copy Config
-            </Button>
-          )}
           <p className="text-xs text-muted-foreground">
             Server URL: <span className="font-mono">{mcpUrl}</span>
           </p>
         </div>
 
-        {/* Step 3 */}
+        {/* Step 3 — Try it */}
         <div className="space-y-2">
           <p className="text-sm font-medium">Step 3: Ask your AI to add tasks</p>
-          <p className="text-xs text-muted-foreground">
-            After connecting, copy one of these prompts into Claude or Codex:
-          </p>
+          <p className="text-xs text-muted-foreground">After connecting, copy one of these prompts into Claude or Codex:</p>
           <div className="grid gap-2">
             {promptExamples.map((prompt) => (
               <div key={prompt} className="flex items-start justify-between gap-2 rounded-md border bg-background p-2">
@@ -261,11 +324,66 @@ PY`;
           </div>
         </div>
 
+        {/* Existing keys */}
+        <div className="space-y-2 border-t pt-3">
+          <p className="text-sm font-medium">Your AI connection keys</p>
+          {loadingKeys ? (
+            <p className="text-xs text-muted-foreground">Loading…</p>
+          ) : keys.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No keys yet. Create one above.</p>
+          ) : (
+            <div className="space-y-2">
+              {keys.map((k) => {
+                const isRevoked = !!k.revoked_at;
+                const isExpired = k.expires_at && new Date(k.expires_at).getTime() < Date.now();
+                const status = isRevoked ? 'Revoked' : isExpired ? 'Expired' : 'Active';
+                return (
+                  <div key={k.id} className="flex items-center justify-between gap-2 rounded-md border p-2 text-xs">
+                    <div className="space-y-0.5">
+                      <div className="font-mono">{k.key_prefix}••••{k.key_last4}</div>
+                      <div className="text-muted-foreground">
+                        {status} · created {new Date(k.created_at).toLocaleDateString()}
+                        {k.expires_at ? ` · expires ${new Date(k.expires_at).toLocaleDateString()}` : ''}
+                        {k.last_used_at ? ` · last used ${new Date(k.last_used_at).toLocaleDateString()}` : ''}
+                      </div>
+                    </div>
+                    {!isRevoked && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-destructive"
+                        onClick={() => handleRevoke(k.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-1" />
+                        Revoke
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {activeKeys.length > 1 && (
+            <p className="text-xs text-muted-foreground">
+              Tip: you usually only need one active key. Revoke old ones you're not using.
+            </p>
+          )}
+        </div>
+
+        {/* Reconnect instructions */}
+        <div className="rounded-lg border bg-muted/40 p-3 space-y-1">
+          <p className="text-xs font-medium">If the AI connection disconnects</p>
+          <p className="text-xs text-muted-foreground">
+            Come back to this page, create a new key, copy the Mac setup command,
+            paste it into Terminal, then restart Claude Desktop or Codex.
+          </p>
+        </div>
+
         {/* What AI can access */}
         <div className="border-t pt-3 space-y-1">
           <p className="text-xs font-medium text-muted-foreground">What connected AI can access:</p>
           <div className="flex flex-wrap gap-2">
-            {['Tasks', 'Daily Plans', 'Brain Dumps', 'Habits'].map(item => (
+            {['Tasks', 'Daily Plans', 'Brain Dumps', 'Habits'].map((item) => (
               <span key={item} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                 {item}
               </span>
@@ -279,11 +397,25 @@ PY`;
             <div className="space-y-1">
               <p className="text-xs font-medium">Private per user</p>
               <p className="text-xs text-muted-foreground">
-                This connection uses the signed-in user's own token. One user's AI cannot add tasks to another user's account.
-                Treat your token like a password and do not post it publicly.
+                This connection uses your own AI connection key. One user's AI cannot add tasks to another user's account.
+                Treat your key like a password and do not post it publicly.
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Troubleshooting */}
+        <div className="text-xs text-muted-foreground">
+          Troubleshooting MCP connections?{' '}
+          <a
+            href="https://modelcontextprotocol.io/docs/tools/debugging"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-primary underline"
+          >
+            See the MCP debugging guide
+            <ExternalLink className="h-3 w-3" />
+          </a>
         </div>
       </CardContent>
     </Card>
