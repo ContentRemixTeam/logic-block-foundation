@@ -16,7 +16,16 @@ import {
   AlertTriangle,
   Trash2,
   ExternalLink,
+  Download,
+  Apple,
+  Monitor,
 } from 'lucide-react';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 
 interface KeyRecord {
   id: string;
