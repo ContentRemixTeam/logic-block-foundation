@@ -19,8 +19,14 @@ export function StorageDurabilityNotice() {
 
       const message = detail.warnings.join(' ');
       toast.warning('Heads up about your browser', {
-        description: message,
-        duration: 12000,
+        description: `${message} Not sure what this means? Tap "Fix it" for a plain-English guide.`,
+        duration: 15000,
+        action: {
+          label: 'Fix it',
+          onClick: () => {
+            window.location.href = '/help/browser-storage';
+          },
+        },
       });
     };
 
