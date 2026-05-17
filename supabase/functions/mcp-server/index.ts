@@ -233,10 +233,10 @@ async function resolveAuth(authHeader: string): Promise<AuthCtx> {
 async function handleTool(
   name: string,
   args: Record<string, unknown>,
-  authHeader: string
+  ctx: AuthCtx,
 ): Promise<unknown> {
-  const supabase = getSupabaseClient(authHeader);
-  const userId = await getAuthUserId(authHeader);
+  const supabase = ctx.client;
+  const userId = ctx.userId;
   const today = new Date().toISOString().split("T")[0];
 
   switch (name) {
