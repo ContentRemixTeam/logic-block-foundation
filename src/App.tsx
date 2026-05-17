@@ -105,6 +105,7 @@ const Notes = lazyWithRetry(() => import('./pages/Notes'));
 const SOPs = lazyWithRetry(() => import('./pages/SOPs'));
 const Wins = lazyWithRetry(() => import('./pages/Wins'));
 const Support = lazyWithRetry(() => import('./pages/Support'));
+const BrowserStorageHelp = lazyWithRetry(() => import('./pages/BrowserStorageHelp'));
 const CaptureLaunchPage = lazyWithRetry(() => import('./pages/CaptureLaunchPage'));
 const Install = lazyWithRetry(() => import('./pages/Install'));
 const InstallSuccess = lazyWithRetry(() => import('./pages/InstallSuccess'));
