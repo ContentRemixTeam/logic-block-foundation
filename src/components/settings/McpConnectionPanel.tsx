@@ -206,21 +206,56 @@ PY`;
           </p>
         </div>
 
+        {/* Prerequisites */}
+        <div className="rounded-lg border p-3 space-y-2">
+          <div className="flex gap-2">
+            <Download className="mt-0.5 h-4 w-4 text-primary" />
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Before you start (one-time setup)</p>
+              <ol className="list-decimal space-y-1 pl-4 text-xs text-muted-foreground">
+                <li>
+                  Install <strong>Node.js (LTS)</strong> — required so Claude/Codex can talk to the planner.{' '}
+                  <a
+                    href="https://nodejs.org/en/download"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary underline inline-flex items-center gap-1"
+                  >
+                    Download Node.js <ExternalLink className="h-3 w-3" />
+                  </a>
+                </li>
+                <li>
+                  Install <strong>Claude Desktop</strong> (or Codex).{' '}
+                  <a
+                    href="https://claude.ai/download"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary underline inline-flex items-center gap-1"
+                  >
+                    Download Claude Desktop <ExternalLink className="h-3 w-3" />
+                  </a>
+                </li>
+                <li>Stay logged into this planner in your browser.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
         <div className="rounded-lg border p-3">
           <div className="flex gap-2">
             <Wrench className="mt-0.5 h-4 w-4 text-primary" />
             <div className="space-y-2">
               <p className="text-sm font-medium">Beginner setup checklist</p>
               <ol className="list-decimal space-y-1 pl-4 text-xs text-muted-foreground">
-                <li>Stay logged into this planner account.</li>
                 <li>Click <strong>Create AI Connection Key</strong> below.</li>
                 <li>Copy the key right away — it's only shown once.</li>
-                <li>Click <strong>Copy Mac Setup Command</strong>.</li>
-                <li>Open Terminal on your Mac, paste, press Enter, then fully restart Claude Desktop.</li>
+                <li>Copy the <strong>Mac</strong> or <strong>Windows</strong> setup command for your computer.</li>
+                <li>Open <strong>Terminal</strong> (Mac) or <strong>PowerShell</strong> (Windows), paste it, and press Enter.</li>
+                <li>Fully quit Claude Desktop (right-click the icon → Quit), then reopen it.</li>
                 <li>Ask Claude to add a simple test task, then check your Tasks page.</li>
               </ol>
               <p className="text-xs text-muted-foreground">
-                If you use Codex or another AI app, use the same server URL and AI connection key.
+                If you use Codex or another AI app, use the same server URL and AI connection key in its MCP settings.
               </p>
             </div>
           </div>
@@ -257,61 +292,117 @@ PY`;
           )}
         </div>
 
-        {/* Step 2 — Mac setup */}
+        {/* Step 2 — Mac/Windows setup */}
         <div className="space-y-2">
-          <p className="text-sm font-medium">Step 2: Add the connection to Claude Desktop (Mac)</p>
-          <p className="text-xs text-muted-foreground">
-            Easiest Mac option: copy this command, paste it into Terminal, and press Enter.
-            It keeps Claude's existing settings and adds your Boss Planner connection.
-          </p>
+          <p className="text-sm font-medium">Step 2: Add the connection to Claude Desktop</p>
           {!freshKey && (
             <p className="text-xs text-muted-foreground italic">
-              Tip: create a key in Step 1 first — the command will then include your real key.
+              Tip: create a key in Step 1 first — the commands below will then include your real key.
             </p>
           )}
-          <div className="relative">
-            <pre className="bg-muted p-3 rounded-md text-xs font-mono overflow-x-auto max-h-40 overflow-y-auto">
-              {macSetupCommand}
-            </pre>
-            <Button
-              onClick={() => handleCopy(macSetupCommand, 'mac-command')}
-              variant="outline"
-              size="sm"
-              className="absolute top-2 right-2"
-            >
-              {copied === 'mac-command' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-              <span className="sr-only">Copy Mac Setup Command</span>
-            </Button>
-          </div>
-          <Button
-            onClick={() => handleCopy(macSetupCommand, 'mac-command')}
-            variant="outline"
-            size="sm"
-          >
-            {copied === 'mac-command' ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-            Copy Mac Setup Command
-          </Button>
 
-          <p className="text-xs text-muted-foreground pt-2">
-            Advanced/manual option: if Claude (or Codex) asks for a config block, use this:
-          </p>
-          <div className="relative">
-            <pre className="bg-muted p-3 rounded-md text-xs font-mono overflow-x-auto max-h-48 overflow-y-auto">
-              {mcpConfig}
-            </pre>
-            <Button
-              onClick={() => handleCopy(mcpConfig, 'config')}
-              variant="outline"
-              size="sm"
-              className="absolute top-2 right-2"
-            >
-              {copied === 'config' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-              <span className="sr-only">Copy Config</span>
+          {/* Mac */}
+          <div className="rounded-md border p-3 space-y-2">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Apple className="h-4 w-4" /> Mac (Terminal)
+            </div>
+            <ol className="list-decimal space-y-1 pl-4 text-xs text-muted-foreground">
+              <li>Press <kbd className="rounded border bg-muted px-1">⌘</kbd> + <kbd className="rounded border bg-muted px-1">Space</kbd>, type <strong>Terminal</strong>, press Enter.</li>
+              <li>Click <strong>Copy Mac Setup Command</strong> below.</li>
+              <li>Paste into Terminal (<kbd className="rounded border bg-muted px-1">⌘</kbd> + <kbd className="rounded border bg-muted px-1">V</kbd>) and press Enter.</li>
+              <li>Fully quit Claude Desktop and reopen it.</li>
+            </ol>
+            <div className="relative">
+              <pre className="bg-muted p-3 rounded-md text-xs font-mono overflow-x-auto max-h-40 overflow-y-auto">
+                {macSetupCommand}
+              </pre>
+              <Button
+                onClick={() => handleCopy(macSetupCommand, 'mac-command')}
+                variant="outline"
+                size="sm"
+                className="absolute top-2 right-2"
+              >
+                {copied === 'mac-command' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                <span className="sr-only">Copy Mac Setup Command</span>
+              </Button>
+            </div>
+            <Button onClick={() => handleCopy(macSetupCommand, 'mac-command')} variant="outline" size="sm">
+              {copied === 'mac-command' ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+              Copy Mac Setup Command
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Server URL: <span className="font-mono">{mcpUrl}</span>
-          </p>
+
+          {/* Windows */}
+          <div className="rounded-md border p-3 space-y-2">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Monitor className="h-4 w-4" /> Windows (PowerShell)
+            </div>
+            <ol className="list-decimal space-y-1 pl-4 text-xs text-muted-foreground">
+              <li>Press the <strong>Windows key</strong>, type <strong>PowerShell</strong>, press Enter.</li>
+              <li>Click <strong>Copy Windows Setup Command</strong> below.</li>
+              <li>Right-click inside PowerShell to paste, then press Enter.</li>
+              <li>Fully quit Claude Desktop (right-click tray icon → Quit) and reopen it.</li>
+            </ol>
+            <div className="relative">
+              <pre className="bg-muted p-3 rounded-md text-xs font-mono overflow-x-auto max-h-40 overflow-y-auto">
+                {winSetupCommand}
+              </pre>
+              <Button
+                onClick={() => handleCopy(winSetupCommand, 'win-command')}
+                variant="outline"
+                size="sm"
+                className="absolute top-2 right-2"
+              >
+                {copied === 'win-command' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                <span className="sr-only">Copy Windows Setup Command</span>
+              </Button>
+            </div>
+            <Button onClick={() => handleCopy(winSetupCommand, 'win-command')} variant="outline" size="sm">
+              {copied === 'win-command' ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+              Copy Windows Setup Command
+            </Button>
+          </div>
+
+          {/* Advanced / manual */}
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="manual" className="border rounded-md px-3">
+              <AccordionTrigger className="text-sm">Manual setup (for Codex or editing the config file yourself)</AccordionTrigger>
+              <AccordionContent className="space-y-3">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Open Claude Desktop's config file at:</p>
+                  <p className="text-xs"><strong>Mac:</strong> <span className="font-mono">{configPathMac}</span></p>
+                  <p className="text-xs"><strong>Windows:</strong> <span className="font-mono">{configPathWin}</span></p>
+                  <p className="text-xs text-muted-foreground">
+                    (In Claude Desktop you can also go to <strong>Settings → Developer → Edit Config</strong>.)
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Paste this block inside (merge with any existing <span className="font-mono">mcpServers</span>):
+                </p>
+                <div className="relative">
+                  <pre className="bg-muted p-3 rounded-md text-xs font-mono overflow-x-auto max-h-48 overflow-y-auto">
+                    {mcpConfig}
+                  </pre>
+                  <Button
+                    onClick={() => handleCopy(mcpConfig, 'config')}
+                    variant="outline"
+                    size="sm"
+                    className="absolute top-2 right-2"
+                  >
+                    {copied === 'config' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    <span className="sr-only">Copy Config</span>
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Server URL: <span className="font-mono">{mcpUrl}</span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  For <strong>Codex</strong>: add the same server (command <span className="font-mono">npx -y mcp-remote {mcpUrl}</span>)
+                  with header <span className="font-mono">Authorization: Bearer YOUR_KEY</span> in its MCP settings, then restart Codex.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </div>
 
         {/* Step 3 — Try it */}
