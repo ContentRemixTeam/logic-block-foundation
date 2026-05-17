@@ -41,7 +41,7 @@ const QK = (date: string, userId: string | undefined) =>
  * 4 named slots for the day:
  *   ★ Brave Move    — pick from revenue/audience high-focus tasks
  *   ◐ Low-Energy    — pick from low-energy tasks
- *   ? Support / Ask — pick from waiting / unclear tasks
+ *   ? Waiting On     — pick from tasks blocked / waiting on someone
  *   ✕ Not Today    — free text
  *
  * Persists to daily_plans via direct upsert. Decoupled from page autosave so it
@@ -182,7 +182,7 @@ export function BraveMoveSlots({ date, dayId }: BraveMoveSlotsProps) {
     {
       key: 'support_task_id',
       icon: <HelpCircle className="h-4 w-4" />,
-      label: 'Support / Ask',
+      label: 'Waiting On',
       accent: 'text-primary',
       candidates: supportCandidates,
       placeholderPromptCtx: null,
