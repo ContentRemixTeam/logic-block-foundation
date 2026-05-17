@@ -509,6 +509,24 @@ PY`;
           </div>
         </div>
 
+        {/* What you can ask the AI */}
+        <div className="rounded-lg border bg-primary/5 p-3 text-xs">
+          <p className="font-medium text-foreground">Not sure what to ask your AI?</p>
+          <p className="mt-1 text-muted-foreground">
+            Once connected, your AI can add tasks, update your daily plan, log habits, and more.
+            See examples and prompts in the Support Center.
+          </p>
+          <a
+            href="/support"
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-flex items-center gap-1 text-primary underline"
+          >
+            See what you can ask the AI
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
+
         {/* Troubleshooting */}
         <div className="text-xs text-muted-foreground">
           Troubleshooting MCP connections?{' '}
