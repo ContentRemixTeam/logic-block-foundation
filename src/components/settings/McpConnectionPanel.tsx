@@ -51,7 +51,7 @@ export function McpConnectionPanel() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [freshKey, setFreshKey] = useState<string | null>(null);
-  const [copied, setCopied] = useState<'key' | 'config' | 'mac-command' | 'prompt' | null>(null);
+  const [copied, setCopied] = useState<'key' | 'config' | 'mac-command' | 'win-command' | 'config-path-mac' | 'config-path-win' | 'prompt' | null>(null);
   const [creating, setCreating] = useState(false);
   const [keys, setKeys] = useState<KeyRecord[]>([]);
   const [loadingKeys, setLoadingKeys] = useState(false);
