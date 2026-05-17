@@ -397,7 +397,7 @@ async function handleTool(
 }
 
 // ── MCP Protocol handler ──────────────────────────────────────────────
-async function handleMcpRequest(body: Record<string, unknown>, authHeader: string) {
+async function handleMcpRequest(body: Record<string, unknown>, ctx: AuthCtx) {
   const { jsonrpc, id, method, params } = body as {
     jsonrpc: string;
     id: unknown;
@@ -431,7 +431,7 @@ async function handleMcpRequest(body: Record<string, unknown>, authHeader: strin
       const toolName = (params as any)?.name as string;
       const toolArgs = (params as any)?.arguments || {};
       try {
-        const result = await handleTool(toolName, toolArgs, authHeader);
+        const result = await handleTool(toolName, toolArgs, ctx);
         return {
           jsonrpc: "2.0",
           id,
@@ -469,7 +469,28 @@ serve(async (req) => {
   // Require auth
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "Unauthorized — pass your Supabase auth token as Bearer token" }), {
+    return new Response(
+      JSON.stringify({
+        error:
+          "Unauthorized — pass a Boss Planner AI connection key (bp_live_...) or Supabase JWT as Bearer token. Create one in Boss Planner → Settings → AI Task Connection.",
+      }),
+      {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
+  }
+
+  // Resolve auth (JWT or bp_live_ key). On AuthError, return a clear 401 message.
+  let ctx: AuthCtx;
+  try {
+    ctx = await resolveAuth(authHeader);
+  } catch (err) {
+    const message =
+      err instanceof AuthError
+        ? err.message
+        : `Unauthorized: ${(err as Error).message}`;
+    return new Response(JSON.stringify({ error: message }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -485,7 +506,7 @@ serve(async (req) => {
       if (Array.isArray(body)) {
         const results = [];
         for (const item of body) {
-          const result = await handleMcpRequest(item, authHeader);
+          const result = await handleMcpRequest(item, ctx);
           if (result) results.push(result);
         }
         return new Response(JSON.stringify(results), {
@@ -493,7 +514,7 @@ serve(async (req) => {
         });
       }
 
-      const result = await handleMcpRequest(body, authHeader);
+      const result = await handleMcpRequest(body, ctx);
       if (!result) return new Response(null, { status: 204, headers: corsHeaders });
 
       return new Response(JSON.stringify(result), {
@@ -506,10 +527,12 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           name: "90-day-planner-mcp",
-          version: "1.0.0",
-          description: "MCP server for the 90-Day Planner app. Provides access to tasks, daily plans, brain dumps, and habits.",
+          version: "1.1.0",
+          description: "MCP server for the Boss Planner app. Provides access to tasks, daily plans, brain dumps, and habits.",
           tools: TOOLS.map((t) => ({ name: t.name, description: t.description })),
-          auth: "Bearer token required (Supabase auth JWT)",
+          auth: "Bearer token required (Boss Planner AI connection key 'bp_live_...' or Supabase JWT)",
+          authenticated_as: ctx.userId,
+          auth_source: ctx.source,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
