@@ -78,7 +78,7 @@ export default function PlannerStorageHelp() {
               <ShieldCheck className="h-4 w-4" />
               <AlertTitle>New accounts set this up first</AlertTitle>
               <AlertDescription>
-                New users connect Google and create a planner Sheet before entering the app. Existing users can turn this on from Settings.
+                New users connect Google and create a planner Sheet before entering the app. Existing users can turn this on from Settings or from the optional reminder in the app.
               </AlertDescription>
             </Alert>
 

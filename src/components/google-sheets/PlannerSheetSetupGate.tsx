@@ -7,23 +7,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useAuth } from '@/hooks/useAuth';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { usePlannerSheetSetup } from '@/hooks/usePlannerSheetSetup';
-
-const DEFAULT_REQUIRED_AFTER = '2026-06-19T00:00:00.000Z';
-
-function shouldRequirePlannerSheet(userCreatedAt?: string): boolean {
-  if (import.meta.env.VITE_REQUIRE_PLANNER_SHEETS_FOR_NEW_USERS === 'false') {
-    return false;
-  }
-
-  if (!userCreatedAt) return false;
-
-  const requiredAfter = import.meta.env.VITE_PLANNER_SHEETS_REQUIRED_AFTER || DEFAULT_REQUIRED_AFTER;
-  const cutoff = Date.parse(requiredAfter);
-  const createdAt = Date.parse(userCreatedAt);
-
-  if (Number.isNaN(cutoff) || Number.isNaN(createdAt)) return false;
-  return createdAt >= cutoff;
-}
+import { shouldPromptLegacyPlannerSheet, shouldRequirePlannerSheet } from '@/lib/planner-storage/plannerSheetRollout';
+import { PlannerSheetLegacyPrompt } from '@/components/google-sheets/PlannerSheetLegacyPrompt';
 
 export function PlannerSheetSetupGate({ children }: { children: React.ReactNode }) {
   const { user, signOut } = useAuth();
@@ -48,6 +33,10 @@ export function PlannerSheetSetupGate({ children }: { children: React.ReactNode 
     () => shouldRequirePlannerSheet(user?.created_at),
     [user?.created_at],
   );
+  const shouldPromptLegacy = useMemo(
+    () => shouldPromptLegacyPlannerSheet(user?.created_at),
+    [user?.created_at],
+  );
 
   const hasPlannerSheet = Boolean(
     sheetStatus.connected &&
@@ -67,7 +56,17 @@ export function PlannerSheetSetupGate({ children }: { children: React.ReactNode 
   }, [handleOAuthReturn, refresh, refreshStatus]);
 
   if (!requiresPlannerSheet || hasPlannerSheet) {
-    return <>{children}</>;
+    return (
+      <>
+        {children}
+        <PlannerSheetLegacyPrompt
+          enabled={shouldPromptLegacy}
+          isLoading={sheetLoading}
+          status={sheetStatus}
+          userId={user?.id}
+        />
+      </>
+    );
   }
 
   const isLoading = sheetLoading || googleLoading || isRefreshingOAuth;
