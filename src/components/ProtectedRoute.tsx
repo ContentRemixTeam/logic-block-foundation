@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
+import { PlannerSheetSetupGate } from '@/components/google-sheets/PlannerSheetSetupGate';
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -38,8 +39,10 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   // Smooth fade-in transition
   return (
-    <div className={`transition-opacity duration-150 ${showContent ? 'opacity-100' : 'opacity-0'}`}>
-      {children}
-    </div>
+    <PlannerSheetSetupGate>
+      <div className={`transition-opacity duration-150 ${showContent ? 'opacity-100' : 'opacity-0'}`}>
+        {children}
+      </div>
+    </PlannerSheetSetupGate>
   );
 }
