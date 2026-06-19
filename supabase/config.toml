@@ -72,6 +72,12 @@ verify_jwt = false
 [functions.google-sheets-sync]
 verify_jwt = false
 
+[functions.planner-sheet-setup]
+verify_jwt = false
+
+[functions.planner-task-sync]
+verify_jwt = false
+
 [functions.mcp-server]
 verify_jwt = false
 

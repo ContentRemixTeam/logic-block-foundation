@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -25,26 +25,49 @@ export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const authNavigationHandledRef = useRef(false);
+
+  const getStoredRedirect = useCallback(() => {
+    const storedRedirect = sessionStorage.getItem('auth_redirect');
+    sessionStorage.removeItem('auth_redirect');
+    return storedRedirect || null;
+  }, []);
+
+  const navigateAfterAuth = useCallback(async (fallback = '/dashboard') => {
+    if (authNavigationHandledRef.current) return;
+    authNavigationHandledRef.current = true;
+
+    const storedRedirect = getStoredRedirect();
+
+    if (storedRedirect) {
+      navigate(storedRedirect);
+      return;
+    }
+
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+    if (!currentUser) {
+      navigate(fallback);
+      return;
+    }
+
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('user_type')
+      .eq('id', currentUser.id)
+      .single();
+
+    navigate(profile?.user_type === 'member' ? '/workshop' : fallback);
+  }, [getStoredRedirect, navigate]);
 
   useEffect(() => {
-    if (!user) return;
-    
-    // Check if user is a mastermind member and redirect accordingly
-    const checkAndRedirect = async () => {
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('user_type')
-        .eq('id', user.id)
-        .single();
-      
-      if (profile?.user_type === 'member') {
-        navigate('/workshop');
-      } else {
-        navigate('/dashboard');
-      }
-    };
-    checkAndRedirect();
-  }, [user, navigate]);
+    if (!user) {
+      authNavigationHandledRef.current = false;
+      return;
+    }
+
+    void navigateAfterAuth('/dashboard');
+  }, [user, navigateAfterAuth]);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -127,22 +150,7 @@ export default function Auth() {
           description: 'Successfully signed in.',
         });
         
-        // Redirect based on user type
-        const storedRedirect = sessionStorage.getItem('auth_redirect');
-        sessionStorage.removeItem('auth_redirect');
-        
-        if (storedRedirect) {
-          navigate(storedRedirect);
-        } else {
-          // Check user type for smart redirect
-          const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('user_type')
-            .eq('id', (await supabase.auth.getUser()).data.user?.id)
-            .single();
-          
-          navigate(profile?.user_type === 'member' ? '/workshop' : '/dashboard');
-        }
+        await navigateAfterAuth('/dashboard');
       } else {
         const redirectUrl = `${window.location.origin}/`;
         const { data, error } = await supabase.auth.signUp({
@@ -164,8 +172,7 @@ export default function Auth() {
             title: 'Welcome!',
             description: 'Your account has been created.',
           });
-          // New signups are guests, go to dashboard
-          navigate('/dashboard');
+          await navigateAfterAuth('/dashboard');
         } else {
           toast({
             title: 'Account created!',
@@ -174,20 +181,21 @@ export default function Auth() {
           setIsLogin(true);
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : '';
       // User-friendly error messages
       let errorMessage = 'An unexpected error occurred. Please try again.';
       
-      if (error.message?.includes('Invalid login credentials')) {
+      if (message.includes('Invalid login credentials')) {
         errorMessage = 'Invalid email or password. Please check your credentials.';
-      } else if (error.message?.includes('Email not confirmed')) {
+      } else if (message.includes('Email not confirmed')) {
         errorMessage = 'Please confirm your email address before signing in.';
-      } else if (error.message?.includes('User already registered') || error.message?.includes('already registered')) {
+      } else if (message.includes('User already registered') || message.includes('already registered')) {
         errorMessage = 'This email is already registered. Try signing in instead.';
         setIsLogin(true); // Switch to login mode
-      } else if (error.message?.includes('rate limit')) {
+      } else if (message.includes('rate limit')) {
         errorMessage = 'Too many attempts. Please wait a moment and try again.';
-      } else if (error.message?.includes('Database error')) {
+      } else if (message.includes('Database error')) {
         errorMessage = 'There was an issue creating your account. Please try again or contact support.';
       }
       
@@ -207,17 +215,18 @@ export default function Auth() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}/auth`,
         },
       });
 
       if (error) throw error;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : '';
       let errorMessage = 'Failed to sign in with Google. Please try again.';
       
-      if (error?.message?.includes('provider is not enabled') || error?.message?.includes('Provider not enabled')) {
+      if (message.includes('provider is not enabled') || message.includes('Provider not enabled')) {
         errorMessage = 'Google Sign-In is not available. Please use email and password instead.';
-      } else if (error?.message?.includes('popup')) {
+      } else if (message.includes('popup')) {
         errorMessage = 'Sign-in popup was blocked. Please allow popups and try again.';
       }
       
@@ -244,8 +253,8 @@ export default function Auth() {
               {isForgotPassword
                 ? 'Enter your email to receive a reset link'
                 : isLogin
-                ? 'Welcome back to the Becoming Boss Mastermind ⚡'
-                : 'Start your Becoming Boss transformation ⚡'}
+                ? 'Welcome back to Boss Planner'
+                : 'Create your Boss Planner account'}
             </CardDescription>
           </CardHeader>
         <CardContent>

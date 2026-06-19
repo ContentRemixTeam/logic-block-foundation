@@ -9,6 +9,7 @@ import { Task } from '@/components/tasks/types';
 import { mutationLogger } from '@/components/dev/DevDebugPanel';
 import { showOperationError } from '@/components/system/ErrorToast';
 import { emitQueryMetric } from '@/components/dev/PerformanceMonitor';
+import { syncCreatedTaskToPlannerSheet } from '@/lib/planner-storage/shadowTaskSync';
 
 // Re-export the Task type for convenience
 export type { Task } from '@/components/tasks/types';
@@ -443,6 +444,11 @@ export function useTaskMutations() {
           { queryKey: taskQueryKeys.all },
           oldData => upsertTaskInResponse(oldData, createdTask)
         );
+
+        syncCreatedTaskToPlannerSheet(createdTask).catch((error) => {
+          console.warn('[PlannerSheetSync] Task backup queued after sync failure:', error);
+          toast.warning('Task saved. Google Sheet backup will retry from Settings.');
+        });
       }
       queryClient.invalidateQueries({ queryKey: taskQueryKeys.all });
       // Also invalidate related views for cross-view sync

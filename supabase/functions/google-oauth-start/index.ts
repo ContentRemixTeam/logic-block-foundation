@@ -17,8 +17,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Default production origin
-const DEFAULT_ORIGIN = 'https://plan.faithmariah.com';
+// Default production origin; APP_ORIGIN can override this for previews or clones.
+const DEFAULT_ORIGIN = Deno.env.get('APP_ORIGIN') || 'https://plan.faithmariah.com';
 
 serve(async (req) => {
   // Handle CORS preflight requests

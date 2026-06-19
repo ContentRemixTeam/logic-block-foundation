@@ -22,6 +22,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTour } from '@/hooks/useTour';
 import { GoogleCalendarPanel } from '@/components/google-calendar/GoogleCalendarPanel';
 import { GoogleSheetsSyncPanel } from '@/components/google-sheets/GoogleSheetsSyncPanel';
+import { PlannerSheetStoragePanel } from '@/components/google-sheets/PlannerSheetStoragePanel';
 import { McpConnectionPanel } from '@/components/settings/McpConnectionPanel';
 import { THEMES, THEME_IDS, ThemeId } from '@/lib/themes';
 import { DelightSettingsCard, DataRecoveryCard } from '@/components/settings';
@@ -418,6 +419,9 @@ export default function Settings() {
 
         {/* Google Calendar Integration */}
         <GoogleCalendarPanel />
+
+        {/* Planner Data Storage */}
+        <PlannerSheetStoragePanel />
 
         {/* Google Sheets Sync */}
         <GoogleSheetsSyncPanel />
