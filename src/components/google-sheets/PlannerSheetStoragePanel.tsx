@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle2, Database, ExternalLink, FileSpreadsheet, RefreshCw, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { CheckCircle2, Database, ExternalLink, FileSpreadsheet, HelpCircle, RefreshCw, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { usePlannerSheetSetup } from '@/hooks/usePlannerSheetSetup';
@@ -200,6 +201,12 @@ export function PlannerSheetStoragePanel() {
         <p className="text-xs text-muted-foreground">
           Safety rule: existing members stay in safe mode until the Sheets primary rollout is enabled.
         </p>
+        <Button variant="link" size="sm" asChild className="h-auto p-0 text-xs">
+          <Link to="/help/planner-storage" className="gap-1">
+            <HelpCircle className="h-3.5 w-3.5" />
+            Planner storage help and troubleshooting
+          </Link>
+        </Button>
       </CardContent>
     </Card>
   );

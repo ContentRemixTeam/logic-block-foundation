@@ -108,6 +108,7 @@ const SOPs = lazyWithRetry(() => import('./pages/SOPs'));
 const Wins = lazyWithRetry(() => import('./pages/Wins'));
 const Support = lazyWithRetry(() => import('./pages/Support'));
 const BrowserStorageHelp = lazyWithRetry(() => import('./pages/BrowserStorageHelp'));
+const PlannerStorageHelp = lazyWithRetry(() => import('./pages/PlannerStorageHelp'));
 const CaptureLaunchPage = lazyWithRetry(() => import('./pages/CaptureLaunchPage'));
 const Install = lazyWithRetry(() => import('./pages/Install'));
 const InstallSuccess = lazyWithRetry(() => import('./pages/InstallSuccess'));
@@ -268,6 +269,7 @@ const App = () => (
                       <Route path="/90-day-planner" element={<PageSuspense><PlannerLaunch /></PageSuspense>} />
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/login-help" element={<LoginHelp />} />
+                      <Route path="/help/planner-storage" element={<PageSuspense><PlannerStorageHelp /></PageSuspense>} />
                       
                       {/* Protected routes with lazy loading */}
                       <Route path="/dashboard" element={<ProtectedRoute><PageSuspense><Dashboard /></PageSuspense></ProtectedRoute>} />

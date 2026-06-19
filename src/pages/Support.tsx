@@ -1,12 +1,14 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Layout } from '@/components/Layout';
+import { Card, CardContent } from '@/components/ui/card';
 import { QuickStartGuide } from '@/components/support/QuickStartGuide';
 import { FAQSection } from '@/components/support/FAQSection';
 import { FeaturesGuide } from '@/components/support/FeaturesGuide';
 import { FeatureRequestSection } from '@/components/support/FeatureRequestSection';
 import { ReportIssueSection } from '@/components/support/ReportIssueSection';
-import { Rocket, HelpCircle, Lightbulb, AlertTriangle, PlayCircle, BookOpen } from 'lucide-react';
+import { Rocket, HelpCircle, Lightbulb, AlertTriangle, PlayCircle, BookOpen, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTour } from '@/hooks/useTour';
 
@@ -33,6 +35,23 @@ export default function Support() {
             Start Walkthrough
           </Button>
         </div>
+
+        <Card className="mb-8 border-primary/20 bg-primary/5">
+          <CardContent className="flex flex-col gap-4 pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <FileSpreadsheet className="mt-0.5 h-5 w-5 text-primary" />
+              <div>
+                <h2 className="font-semibold">Google Drive planner storage</h2>
+                <p className="text-sm text-muted-foreground">
+                  Setup steps, what the planner Sheet does, and troubleshooting if Google backup needs attention.
+                </p>
+              </div>
+            </div>
+            <Button variant="outline" asChild className="shrink-0">
+              <Link to="/help/planner-storage">Open storage help</Link>
+            </Button>
+          </CardContent>
+        </Card>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 h-auto gap-2 bg-transparent p-0 mb-8">

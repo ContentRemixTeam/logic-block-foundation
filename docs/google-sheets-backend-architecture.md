@@ -68,14 +68,14 @@ Official references:
 
 ## User Setup Experience
 
-The setup should be a short guided flow in Settings or onboarding:
+The setup should be a short guided flow in onboarding and Settings:
 
 1. User clicks `Set up my Google Sheet`.
 2. App explains: "Your planning data will be stored in a Google Sheet owned by you. We keep a backup and never delete rows automatically."
 3. User connects Google or reconnects if current scopes are missing.
 4. User chooses:
    - `Create a new planner Sheet for me` (recommended)
-   - `Use an existing Sheet`
+   - `Use an existing Sheet` (later, after the core new-Sheet path is reliable)
 5. If creating a new Sheet, app creates:
    - spreadsheet title: `Becoming Boss Planner Data - {user email}`
    - tabs and headers
@@ -273,6 +273,7 @@ Add/replace with:
 
 Current experiment status:
 
+- New accounts created after the rollout cutoff are required to connect Google and create a planner Sheet before entering protected app pages. Existing accounts can opt in from Settings.
 - `planner-sheet-setup`, `planner_storage_connections`, `PlannerSheetStoragePanel`, and `usePlannerSheetSetup` create and verify the customer-owned planner Sheet.
 - Task create now has a shadow backup path through `planner-task-sync`, with local retry support when Google backup fails.
 - Tasks now have a first true `sheets_primary` path through the existing `get-all-tasks` and `manage-task` Edge Functions. When a user is switched to `sheets_primary`, task reads plus create/update/toggle/checklist/detach/soft-delete actions use the customer-owned Sheet instead of the permanent Supabase `tasks` table.
@@ -388,12 +389,11 @@ The first code slice should be:
 - Do we want Google Picker now, or start with "create a new Sheet" only?
 - What is the exact Supabase retention window for synced payloads: 7, 14, or 30 days?
 - What support/admin screen does Faith need to diagnose sync health?
-- Does the low-cost/lifetime product require users to connect Google before they can use the app?
 - Should Google access be requested through GIS/browser tokens for high-volume writes while keeping current server OAuth only for legacy calendar features?
 
 ## Recommendation
 
-Start with "create a new Sheet for me" and skip existing-Sheet import until the core storage path is reliable. That gives users the easiest setup and gives us a predictable schema.
+Start with "create a new Sheet for me" and skip existing-Sheet import until the core storage path is reliable. New users should complete Google connection during onboarding; existing users should be offered opt-in setup from Settings. That gives users the easiest setup and gives us a predictable schema.
 
 The safest initial promise is:
 

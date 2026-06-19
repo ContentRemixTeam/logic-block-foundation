@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, FileSpreadsheet, Loader2, LogOut, RefreshCw, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { CheckCircle2, FileSpreadsheet, HelpCircle, Loader2, LogOut, RefreshCw, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -172,6 +173,13 @@ export function PlannerSheetSetupGate({ children }: { children: React.ReactNode 
               <Button variant="ghost" onClick={signOut} className="w-full gap-2 text-muted-foreground">
                 <LogOut className="h-4 w-4" />
                 Sign out
+              </Button>
+
+              <Button variant="link" asChild className="w-full gap-2">
+                <Link to="/help/planner-storage">
+                  <HelpCircle className="h-4 w-4" />
+                  Planner storage help
+                </Link>
               </Button>
             </>
           )}

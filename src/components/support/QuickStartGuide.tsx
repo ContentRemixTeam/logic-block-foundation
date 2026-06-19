@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Circle, Target, BarChart3, Calendar, CalendarDays, Sparkles, ArrowRight, X } from 'lucide-react';
+import { Check, Circle, Target, BarChart3, Calendar, CalendarDays, Sparkles, ArrowRight, X, FileSpreadsheet } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -22,9 +22,23 @@ export function QuickStartGuide() {
   const [loading, setLoading] = useState(true);
   const [skipped, setSkipped] = useState(false);
 
-  const steps: OnboardingStep[] = [
+  const steps: OnboardingStep[] = useMemo(() => [
     {
       id: 1,
+      title: 'Confirm planner storage',
+      description: 'New accounts use a private Google Sheet in Drive. Existing accounts can turn it on from Settings.',
+      icon: FileSpreadsheet,
+      href: '/settings',
+      checkComplete: async () => {
+        if (!user) return false;
+        const { data } = await supabase.functions.invoke('planner-sheet-setup', {
+          body: { action: 'status' }
+        });
+        return Boolean(data?.connected && data?.spreadsheet_url && data?.is_healthy);
+      }
+    },
+    {
+      id: 2,
       title: 'Set up your first cycle',
       description: 'Define your 90-day goal and the identity you want to embody.',
       icon: Target,
@@ -38,7 +52,7 @@ export function QuickStartGuide() {
       }
     },
     {
-      id: 2,
+      id: 3,
       title: 'Define your 3 key metrics',
       description: 'Choose the numbers that matter most for tracking your progress.',
       icon: BarChart3,
@@ -52,7 +66,7 @@ export function QuickStartGuide() {
       }
     },
     {
-      id: 3,
+      id: 4,
       title: 'Create your first weekly plan',
       description: 'Set your top 3 priorities for the week ahead.',
       icon: Calendar,
@@ -66,7 +80,7 @@ export function QuickStartGuide() {
       }
     },
     {
-      id: 4,
+      id: 5,
       title: 'Complete your first daily plan',
       description: 'Decide what matters most for today.',
       icon: CalendarDays,
@@ -80,7 +94,7 @@ export function QuickStartGuide() {
       }
     },
     {
-      id: 5,
+      id: 6,
       title: 'Do your first daily review',
       description: 'Reflect on what worked and what you learned.',
       icon: Sparkles,
@@ -94,7 +108,7 @@ export function QuickStartGuide() {
       }
     },
     {
-      id: 6,
+      id: 7,
       title: 'Hatch your first pet 🐣',
       description: 'Complete 3 daily tasks in Pet Mode to grow and hatch your first virtual pet!',
       icon: Sparkles,
@@ -111,7 +125,7 @@ export function QuickStartGuide() {
         return data?.stage === 'adult' || (data?.pets_hatched_today && data.pets_hatched_today > 0);
       }
     }
-  ];
+  ], [user]);
 
   useEffect(() => {
     const checkProgress = async () => {
@@ -133,7 +147,7 @@ export function QuickStartGuide() {
     };
 
     checkProgress();
-  }, [user]);
+  }, [steps, user]);
 
   const progressPercentage = (completedSteps.length / steps.length) * 100;
 
