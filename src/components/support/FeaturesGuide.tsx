@@ -7,7 +7,7 @@ import {
   Search, Target, Calendar, CheckSquare, RefreshCw, ClipboardList, 
   BarChart3, Brain, Lightbulb, Zap, Clock, LayoutList, Columns,
   Trophy, Repeat, FileText, Sparkles, Smartphone, CalendarRange, Layers, ArrowUpDown,
-  Key
+  Key, FileSpreadsheet
 } from 'lucide-react';
 
 interface FeatureSection {
@@ -22,6 +22,25 @@ interface FeatureSection {
 
 const featuresData: FeatureSection[] = [
   // Core Planning
+  {
+    id: 'planner-storage',
+    category: 'Other Features',
+    title: 'Google Drive Planner Storage',
+    icon: FileSpreadsheet,
+    description: 'Create a private planner Sheet in your Google Drive for customer-owned storage and backup.',
+    details: [
+      'New accounts are guided through Google connection before entering the app',
+      'Existing accounts can connect from Settings when they are ready',
+      'The app creates the Sheet structure for you; you do not need to build tabs manually',
+      'Tasks can back up to Google while the app keeps a protected reliability layer',
+      'Settings shows storage mode, Sheet health, last verification time, and pending backup retries'
+    ],
+    tips: [
+      'Connect the Google account where you want the planner Sheet to live',
+      'Do not edit hidden system tabs or protected header rows in the Sheet',
+      'If backup is pending, your task is still saved in the app; retry from Settings when online'
+    ]
+  },
   {
     id: '90-day-cycle',
     category: 'Core Planning',

@@ -23,6 +23,12 @@ const STORAGE_KEY = 'boss-planner-onboarding-checklist';
 
 const checklistItems = [
   {
+    id: 'planner-storage',
+    label: 'Confirm planner storage',
+    description: 'New accounts use a private Google Sheet in Drive; existing accounts can turn it on from Settings.',
+    href: '/settings',
+  },
+  {
     id: 'community',
     label: 'Open the Mastermind community',
     description: 'Know where to post wins, questions, and stuck points.',

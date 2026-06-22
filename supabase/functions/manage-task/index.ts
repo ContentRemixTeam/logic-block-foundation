@@ -1,10 +1,26 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { z } from 'https://esm.sh/zod@3.23.8';
+import {
+  appendSheetTask,
+  defaultTask,
+  getSheetsContext,
+  readSheetTasks,
+  updateSheetTask,
+  type SheetTask,
+  type SheetTaskRecord,
+  type SheetsContext,
+} from '../_shared/planner_sheets.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+class HttpError extends Error {
+  constructor(message: string, public status = 500) {
+    super(message);
+  }
+}
 
 // ==================== ZOD SCHEMAS ====================
 
@@ -281,6 +297,165 @@ function isValidTimeValue(value: any): boolean {
   return !isNaN(date.getTime());
 }
 
+function cleanUndefined(input: Record<string, any>): Record<string, any> {
+  return Object.fromEntries(
+    Object.entries(input).filter(([, value]) => value !== undefined)
+  );
+}
+
+function findSheetTask(records: SheetTaskRecord[], taskId: string): SheetTaskRecord {
+  const record = records.find(item => item.task.task_id === taskId && !item.task.deleted_at);
+  if (!record) throw new HttpError('Task not found', 404);
+  return record;
+}
+
+function buildSheetTaskFromCreate(input: any): SheetTask {
+  const taskId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const isRecurringParent = input.recurrence_pattern && input.recurrence_pattern !== 'none';
+
+  return defaultTask({
+    ...input,
+    task_id: taskId,
+    task_text: input.task_text.substring(0, 500),
+    task_description: input.task_description ? input.task_description.substring(0, 5000) : null,
+    is_completed: false,
+    created_at: now,
+    updated_at: now,
+    source: input.source || 'manual',
+    status: input.status || 'backlog',
+    project_column: input.project_column || 'todo',
+    day_order: input.day_order || 0,
+    is_recurring_parent: Boolean(isRecurringParent),
+  });
+}
+
+function applySheetTaskUpdate(task: SheetTask, updates: Record<string, any>): SheetTask {
+  const now = new Date().toISOString();
+  const next = defaultTask({
+    ...task,
+    ...cleanUndefined(updates),
+    task_id: task.task_id,
+    task_text: updates.task_text ? updates.task_text.substring(0, 500) : task.task_text,
+    task_description: updates.task_description !== undefined
+      ? (updates.task_description ? updates.task_description.substring(0, 5000) : null)
+      : task.task_description,
+    updated_at: now,
+  });
+
+  if (updates.is_completed !== undefined) {
+    next.completed_at = updates.is_completed ? now : null;
+  }
+
+  if (updates.recurrence_pattern !== undefined) {
+    next.is_recurring_parent = Boolean(updates.recurrence_pattern && updates.recurrence_pattern !== 'none');
+  }
+
+  return next;
+}
+
+async function manageSheetTask(context: SheetsContext, userId: string, validatedData: any) {
+  const action = validatedData.action;
+  const records = action === 'create' ? [] : await readSheetTasks(context);
+
+  switch (action) {
+    case 'create': {
+      const task = buildSheetTaskFromCreate(validatedData);
+      await appendSheetTask(context, userId, task, task.task_id);
+      return task;
+    }
+
+    case 'update': {
+      const { task_id, change_source, action: _action, ...updateFields } = validatedData;
+      const record = findSheetTask(records, task_id);
+      const task = applySheetTaskUpdate(record.task, updateFields);
+      await updateSheetTask(context, userId, record.rowNumber, task, crypto.randomUUID(), change_source || 'update');
+      return task;
+    }
+
+    case 'toggle': {
+      const { task_id, actual_minutes } = validatedData;
+      const record = findSheetTask(records, task_id);
+      const nextState = !record.task.is_completed;
+      const task = applySheetTaskUpdate(record.task, {
+        is_completed: nextState,
+        actual_minutes: actual_minutes !== undefined ? actual_minutes : record.task.actual_minutes,
+      });
+      await updateSheetTask(context, userId, record.rowNumber, task, crypto.randomUUID(), 'complete');
+      return task;
+    }
+
+    case 'delete': {
+      const { task_id, delete_type } = validatedData;
+      const record = findSheetTask(records, task_id);
+      const now = new Date().toISOString();
+      const toDelete = [record];
+
+      if (delete_type === 'all' && record.task.is_recurring_parent) {
+        toDelete.push(...records.filter(item => item.task.parent_task_id === task_id && !item.task.deleted_at));
+      }
+
+      if (delete_type === 'future' && record.task.parent_task_id && record.task.scheduled_date) {
+        toDelete.push(...records.filter(item => (
+          item.task.parent_task_id === record.task.parent_task_id &&
+          !item.task.deleted_at &&
+          item.task.scheduled_date &&
+          item.task.scheduled_date >= record.task.scheduled_date!
+        )));
+      }
+
+      const uniqueRows = new Map(toDelete.map(item => [item.rowNumber, item]));
+      const updatedTasks = [];
+      for (const item of uniqueRows.values()) {
+        const task = applySheetTaskUpdate(item.task, { deleted_at: now });
+        await updateSheetTask(context, userId, item.rowNumber, task, crypto.randomUUID(), 'soft_delete');
+        updatedTasks.push(task);
+      }
+
+      return updatedTasks.length === 1 ? updatedTasks[0] : updatedTasks;
+    }
+
+    case 'toggle_checklist_item': {
+      const { task_id, item_id } = validatedData;
+      const record = findSheetTask(records, task_id);
+      const currentProgress = Array.isArray(record.task.checklist_progress)
+        ? record.task.checklist_progress as any[]
+        : [];
+      const itemIndex = currentProgress.findIndex((item: any) => item.item_id === item_id);
+
+      let nextProgress;
+      if (itemIndex >= 0) {
+        nextProgress = [...currentProgress];
+        nextProgress[itemIndex] = {
+          ...nextProgress[itemIndex],
+          completed: !nextProgress[itemIndex].completed,
+          completed_at: !nextProgress[itemIndex].completed ? new Date().toISOString() : null,
+        };
+      } else {
+        nextProgress = [...currentProgress, {
+          item_id,
+          completed: true,
+          completed_at: new Date().toISOString(),
+        }];
+      }
+
+      const task = applySheetTaskUpdate(record.task, { checklist_progress: nextProgress });
+      await updateSheetTask(context, userId, record.rowNumber, task, crypto.randomUUID(), 'toggle_checklist_item');
+      return task;
+    }
+
+    case 'detach_sop': {
+      const { task_id } = validatedData;
+      const record = findSheetTask(records, task_id);
+      const task = applySheetTaskUpdate(record.task, { sop_id: null, checklist_progress: [] });
+      await updateSheetTask(context, userId, record.rowNumber, task, crypto.randomUUID(), 'detach_sop');
+      return task;
+    }
+  }
+
+  throw new HttpError('Unsupported action', 400);
+}
+
 // ==================== MAIN HANDLER ====================
 
 Deno.serve(async (req) => {
@@ -322,6 +497,15 @@ Deno.serve(async (req) => {
     
     const validatedData = parseResult.data;
     const { action } = validatedData;
+
+    const sheetsContext = await getSheetsContext(supabase, userId, ['sheets_primary']);
+    if (sheetsContext) {
+      const sheetResult = await manageSheetTask(sheetsContext, userId, validatedData);
+      return new Response(JSON.stringify({ success: true, data: sheetResult }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     let result;
 
@@ -723,7 +907,7 @@ Deno.serve(async (req) => {
   } catch (error: any) {
     console.error('Unexpected error:', error);
     return new Response(JSON.stringify({ error: error?.message || 'Internal server error' }), {
-      status: 500,
+      status: error?.status || 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

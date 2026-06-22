@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { MembershipProvider } from "@/hooks/useMembership";
@@ -34,19 +34,20 @@ import LoginHelp from "./pages/LoginHelp";
 import NotFound from "./pages/NotFound";
 
 // Retry function for lazy imports that handles stale chunk errors
-function lazyWithRetry<T extends ComponentType<any>>(
+function lazyWithRetry<T extends ComponentType<unknown>>(
   componentImport: () => Promise<{ default: T }>
 ) {
   return lazy(async () => {
     try {
       return await componentImport();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : '';
       // Check if it's a chunk loading error
       const isChunkError = 
-        error?.message?.includes('Failed to fetch dynamically imported module') ||
-        error?.message?.includes('Importing a module script failed') ||
-        error?.message?.includes('Load failed') ||
-        error?.message?.includes('dynamically imported module');
+        errorMessage.includes('Failed to fetch dynamically imported module') ||
+        errorMessage.includes('Importing a module script failed') ||
+        errorMessage.includes('Load failed') ||
+        errorMessage.includes('dynamically imported module');
       
       if (isChunkError) {
         // Clear service worker and caches, then reload
@@ -78,6 +79,7 @@ function lazyWithRetry<T extends ComponentType<any>>(
 
 // Lazy load all other pages for code splitting with retry logic
 const Dashboard = lazyWithRetry(() => import('./pages/Dashboard'));
+const PlannerLaunch = lazyWithRetry(() => import('./pages/PlannerLaunch'));
 const Onboarding = lazyWithRetry(() => import('./pages/Onboarding'));
 const Planning = lazyWithRetry(() => import('./pages/Planning'));
 const Reviews = lazyWithRetry(() => import('./pages/Reviews'));
@@ -106,6 +108,7 @@ const SOPs = lazyWithRetry(() => import('./pages/SOPs'));
 const Wins = lazyWithRetry(() => import('./pages/Wins'));
 const Support = lazyWithRetry(() => import('./pages/Support'));
 const BrowserStorageHelp = lazyWithRetry(() => import('./pages/BrowserStorageHelp'));
+const PlannerStorageHelp = lazyWithRetry(() => import('./pages/PlannerStorageHelp'));
 const CaptureLaunchPage = lazyWithRetry(() => import('./pages/CaptureLaunchPage'));
 const Install = lazyWithRetry(() => import('./pages/Install'));
 const InstallSuccess = lazyWithRetry(() => import('./pages/InstallSuccess'));
@@ -188,6 +191,48 @@ function OnlineStatusMonitor() {
   return null;
 }
 
+const PUBLIC_OVERLAY_HIDDEN_ROUTES = [
+  '/',
+  '/planner',
+  '/90-day-planner',
+  '/auth',
+  '/login-help',
+  '/install',
+  '/install-quick-add',
+  '/install/success',
+  '/workshop',
+  '/workshop-planner',
+  '/engine',
+  '/capture',
+  '/quick-add',
+  '/trial',
+  '/join',
+  '/~oauth',
+];
+
+function AppOnlyOverlays() {
+  const location = useLocation();
+  const hideAppOverlays = PUBLIC_OVERLAY_HIDDEN_ROUTES.some((route) => {
+    if (route === '/') return location.pathname === '/';
+    return location.pathname.startsWith(route);
+  });
+
+  if (hideAppOverlays) return null;
+
+  return (
+    <>
+      <StorageDurabilityNotice />
+      <InstallNudge />
+      <CommandPalette />
+      <TourOverlay />
+      <TourWelcome />
+      <TourKeyboardHandler />
+      <DevDebugPanel />
+      <PerformanceMonitor />
+    </>
+  );
+}
+
 // Suspense + per-route ErrorBoundary so a single page crash never
 // white-screens the whole app. Logs to backend via ErrorBoundary.
 function PageSuspense({ children }: { children: React.ReactNode }) {
@@ -217,16 +262,14 @@ const App = () => (
                     <OnlineStatusMonitor />
                     <ManifestSwitcher />
                     <PWAUpdatePrompt />
-                    <StorageDurabilityNotice />
-                    <InstallNudge />
-                    <CommandPalette />
-                    <TourOverlay />
-                    <TourWelcome />
-                    <TourKeyboardHandler />
+                    <AppOnlyOverlays />
                     <Routes>
                       <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                      <Route path="/planner" element={<PageSuspense><PlannerLaunch /></PageSuspense>} />
+                      <Route path="/90-day-planner" element={<PageSuspense><PlannerLaunch /></PageSuspense>} />
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/login-help" element={<LoginHelp />} />
+                      <Route path="/help/planner-storage" element={<PageSuspense><PlannerStorageHelp /></PageSuspense>} />
                       
                       {/* Protected routes with lazy loading */}
                       <Route path="/dashboard" element={<ProtectedRoute><PageSuspense><Dashboard /></PageSuspense></ProtectedRoute>} />
@@ -319,8 +362,6 @@ const App = () => (
                       
                       <Route path="*" element={<NotFound />} />
                     </Routes>
-                    <DevDebugPanel />
-                    <PerformanceMonitor />
                   </SeasonalEffectsProvider>
                   </QuickCaptureProvider>
                   </InstallPromptProvider>

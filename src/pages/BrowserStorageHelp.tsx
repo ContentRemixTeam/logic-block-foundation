@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, HardDrive, Smartphone, Monitor, AlertTriangle, Lock, Wifi } from 'lucide-react';
+import { ArrowLeft, HardDrive, Smartphone, Monitor, AlertTriangle, Lock, Wifi, FileSpreadsheet } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 
 export default function BrowserStorageHelp() {
@@ -38,6 +38,19 @@ export default function BrowserStorageHelp() {
                 Your saved tasks, plans, and notes in the cloud are <strong>always safe</strong>. This
                 only affects offline backups on this specific device/browser.
               </p>
+            </section>
+
+            <section className="rounded-lg border border-primary/20 bg-primary/5 p-4 flex gap-3">
+              <FileSpreadsheet className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+              <div className="space-y-2">
+                <p className="font-medium">Looking for Google Drive planner storage?</p>
+                <p className="text-muted-foreground text-xs">
+                  Browser storage protects offline drafts on this device. Google Drive storage creates a private planner Sheet for backup and the new storage rollout.
+                </p>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/help/planner-storage">Open planner storage help</Link>
+                </Button>
+              </div>
             </section>
 
             <section className="space-y-3">

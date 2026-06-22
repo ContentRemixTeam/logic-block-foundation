@@ -1,4 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  filterAndPageTasks,
+  getSheetsContext,
+  readSheetTasks,
+} from '../_shared/planner_sheets.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -90,6 +95,38 @@ Deno.serve(async (req) => {
     // Enforce page size limits
     if (pageSize <= 0) pageSize = DEFAULT_PAGE_SIZE;
     if (pageSize > MAX_PAGE_SIZE) pageSize = MAX_PAGE_SIZE;
+
+    const sheetsContext = await getSheetsContext(supabase, userId, ['sheets_primary']);
+    if (sheetsContext) {
+      const sheetRecords = await readSheetTasks(sheetsContext);
+      const sheetResult = filterAndPageTasks({
+        tasks: sheetRecords.map(record => record.task),
+        loadAll,
+        pageSize,
+        cursor,
+        filters,
+      });
+
+      const queryTime = Date.now() - startTime;
+      console.log(`[get-all-tasks] Sheets primary query completed in ${queryTime}ms`, {
+        userId,
+        pageSize,
+        resultCount: sheetResult.data.length,
+        hasMore: sheetResult.metadata.hasMore,
+        cursor: cursor ? 'set' : 'none',
+      });
+
+      return new Response(JSON.stringify({
+        data: sheetResult.data,
+        metadata: {
+          ...sheetResult.metadata,
+          queryTime,
+        },
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Smart filtering mode: last 90 days + incomplete if load_all is false
     const useSmartFilter = !loadAll;

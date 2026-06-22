@@ -124,6 +124,16 @@ const faqData: FAQItem[] = [
   },
   {
     category: 'Features',
+    question: 'Why does the planner ask me to connect Google Drive?',
+    answer: 'New accounts use Google Drive storage so your planner can create a private Google Sheet that you own. The app starts in safe mode while backup is verified. Existing users can turn this on from Settings when they are ready.'
+  },
+  {
+    category: 'Features',
+    question: 'Where is my planner data stored?',
+    answer: 'During this rollout, tasks can back up to your private planner Sheet in Google Drive while the app keeps a protected reliability layer. Other planner sections stay in app storage until their Sheet tabs are activated. The app will tell you when Google backup needs attention.'
+  },
+  {
+    category: 'Features',
     question: 'What is Pet Mode?',
     answer: 'Pet Mode is a gamified daily task experience. Each day, choose a virtual pet (like a unicorn, dragon, or panda) and complete 3 tasks to grow it from an egg to an adult. Use the optional Pomodoro timer for focused work sessions. When you complete all 3 tasks, your pet hatches and joins your collection—then you can start fresh with a new egg!'
   },
@@ -228,6 +238,16 @@ const faqData: FAQItem[] = [
     category: 'Troubleshooting',
     question: 'Why can\'t I install the app on my iPhone?',
     answer: 'On iPhone and iPad, you MUST use Safari to install the app - Chrome and other browsers don\'t support installation on iOS. Open the Install App page in Safari, tap the Share button (square with arrow) at the bottom, scroll down, and tap "Add to Home Screen".'
+  },
+  {
+    category: 'Troubleshooting',
+    question: 'Google Drive storage setup is stuck. What should I try?',
+    answer: 'First, make sure you are in a normal Safari, Chrome, or Edge browser, not an in-app or private browser. Use the Google account where you want the planner Sheet to live. If Google is connected but no Sheet exists, go back and click Create my planner Sheet. If a Sheet exists but setup still fails, do not delete it. Contact support with your account email, Google account, browser/device, and the exact error message.'
+  },
+  {
+    category: 'Troubleshooting',
+    question: 'What does "Google backup pending" mean?',
+    answer: 'It means your task is saved in the app, but the Google Sheet backup needs another try. Go to Settings, find Planner Data Storage, and click Retry backup when you are online.'
   }
 ];
 

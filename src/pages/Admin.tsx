@@ -140,7 +140,7 @@ interface StudentLookupResult {
   coaching_entries: { count: number };
 }
 
-const SUPABASE_PROJECT_ID = 'wdxelomsouudmidakxiz';
+const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID || 'wdxelomsouudmidakxiz';
 
 export default function Admin() {
   const { user } = useAuth();

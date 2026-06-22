@@ -8,6 +8,7 @@
  * 
  * Supported origins:
  * - https://plan.faithmariah.com (production)
+ * - APP_ORIGIN / ALLOWED_APP_ORIGINS from the Supabase project
  * - https://*.lovableproject.com (preview/staging)
  * - http://localhost:* (local development)
  */
@@ -43,6 +44,14 @@ async function encryptToken(token: string): Promise<string> {
 function isValidOrigin(origin: string): boolean {
   try {
     const url = new URL(origin);
+    const configuredOrigins = [
+      Deno.env.get('APP_ORIGIN'),
+      ...(Deno.env.get('ALLOWED_APP_ORIGINS') || '').split(','),
+    ]
+      .map(item => item?.trim())
+      .filter(Boolean);
+
+    if (configuredOrigins.includes(url.origin)) return true;
     // Allow production domain
     if (url.hostname === 'plan.faithmariah.com') return true;
     // Allow lovable preview domains
@@ -55,8 +64,8 @@ function isValidOrigin(origin: string): boolean {
   }
 }
 
-// Default fallback origin (production)
-const DEFAULT_ORIGIN = 'https://plan.faithmariah.com';
+// Default production origin; APP_ORIGIN can override this for previews or clones.
+const DEFAULT_ORIGIN = Deno.env.get('APP_ORIGIN') || 'https://plan.faithmariah.com';
 
 serve(async (req) => {
   // Handle CORS preflight requests

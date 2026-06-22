@@ -39,6 +39,11 @@ export interface OAuthDebugInfo {
   lastOAuthParams?: Record<string, string>;
 }
 
+interface HandleOAuthReturnOptions {
+  openCalendarSelection?: boolean;
+  showToast?: boolean;
+}
+
 // Store last OAuth error for debugging
 let lastOAuthError: string | null = null;
 let lastOAuthParams: Record<string, string> = {};
@@ -113,7 +118,9 @@ export function useGoogleCalendar() {
   }, [fetchStatus]);
 
   // Handle OAuth return from redirect flow
-  const handleOAuthReturn = useCallback(() => {
+  const handleOAuthReturn = useCallback((options: HandleOAuthReturnOptions = {}) => {
+    const { openCalendarSelection = true, showToast = true } = options;
+
     // Prevent multiple executions
     if (oauthProcessedRef.current) return;
     
@@ -135,28 +142,43 @@ export function useGoogleCalendar() {
     if (oauthStatus === 'success' && calendarsParam) {
       try {
         const calendarsData = JSON.parse(decodeURIComponent(calendarsParam));
-        setCalendars(calendarsData);
-        setShowCalendarModal(true);
+        if (openCalendarSelection) {
+          setCalendars(calendarsData);
+          setShowCalendarModal(true);
+        }
         
         // Update status with email if provided
         if (emailParam) {
-          setStatus(prev => ({ ...prev, connectedEmail: decodeURIComponent(emailParam) }));
+          setStatus(prev => ({
+            ...prev,
+            connected: true,
+            connectedEmail: decodeURIComponent(emailParam),
+          }));
+        } else {
+          setStatus(prev => ({ ...prev, connected: true }));
         }
         
-        toast({
-          title: '✅ Connected to Google Calendar',
-          description: 'Please select which calendars to sync.',
-        });
+        if (showToast) {
+          toast({
+            title: '✅ Connected to Google Calendar',
+            description: openCalendarSelection
+              ? 'Please select which calendars to sync.'
+              : 'Google is connected.',
+          });
+        }
         
         lastOAuthError = null;
+        void fetchStatus();
       } catch (e) {
         console.error('Error parsing calendars:', e);
         lastOAuthError = 'Failed to parse calendar data';
-        toast({
-          title: 'Connection issue',
-          description: 'Connected but could not load calendars. Please try again.',
-          variant: 'destructive',
-        });
+        if (showToast) {
+          toast({
+            title: 'Connection issue',
+            description: 'Connected but could not load calendars. Please try again.',
+            variant: 'destructive',
+          });
+        }
       }
       // Clean URL
       window.history.replaceState({}, '', window.location.pathname);
@@ -169,14 +191,16 @@ export function useGoogleCalendar() {
       
       lastOAuthError = friendlyError;
       
-      toast({
-        title: 'Connection failed',
-        description: `${friendlyError}. Please try connecting again.`,
-        variant: 'destructive',
-      });
+      if (showToast) {
+        toast({
+          title: 'Connection failed',
+          description: `${friendlyError}. Please try connecting again.`,
+          variant: 'destructive',
+        });
+      }
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, [toast]);
+  }, [fetchStatus, toast]);
 
   const connect = useCallback(async (returnPath?: string) => {
     try {
@@ -205,61 +229,18 @@ export function useGoogleCalendar() {
       
       // Redirect to Google OAuth
       window.location.href = data.url;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[GoogleCalendar] Error starting OAuth:', error);
-      lastOAuthError = error?.message || 'Failed to start connection';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start connection';
+      lastOAuthError = errorMessage;
       toast({
         title: 'Failed to connect',
-        description: error?.message || 'Could not start Google Calendar connection.',
+        description: errorMessage || 'Could not start Google Calendar connection.',
         variant: 'destructive',
       });
       setConnecting(false);
     }
   }, [toast]);
-
-  // New multi-calendar selection
-  const selectCalendars = useCallback(async (calendarsToSelect: SelectedCalendar[]) => {
-    try {
-      const { error } = await supabase.functions.invoke('google-save-calendar-selection', {
-        body: { calendars: calendarsToSelect },
-      });
-
-      if (error) throw error;
-
-      setShowCalendarModal(false);
-      
-      const calendarNames = calendarsToSelect.map(c => c.name).join(', ');
-      
-      setStatus(prev => ({
-        ...prev,
-        connected: true,
-        calendarSelected: true,
-        calendarId: calendarsToSelect[0]?.id,
-        calendarName: calendarsToSelect[0]?.name,
-        selectedCalendars: calendarsToSelect,
-        syncStatus: 'active',
-      }));
-
-      toast({
-        title: 'Calendars selected',
-        description: `Syncing with ${calendarsToSelect.length} calendar${calendarsToSelect.length > 1 ? 's' : ''}: ${calendarNames}`,
-      });
-
-      // Trigger initial sync
-      syncNow();
-    } catch (error) {
-      console.error('Error saving calendar selection:', error);
-      toast({
-        title: 'Failed to save selection',
-        variant: 'destructive',
-      });
-    }
-  }, [toast]);
-
-  // Keep backward compatible single calendar selection
-  const selectCalendar = useCallback(async (calendarId: string, calendarName: string) => {
-    await selectCalendars([{ id: calendarId, name: calendarName, isEnabled: true }]);
-  }, [selectCalendars]);
 
   const disconnect = useCallback(async () => {
     try {
@@ -333,11 +314,11 @@ export function useGoogleCalendar() {
       }
 
       await fetchStatus();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error syncing:', error);
       
       // Check for invalid_grant in error message
-      const errorMsg = error?.message || '';
+      const errorMsg = error instanceof Error ? error.message : String(error || '');
       if (errorMsg.includes('invalid_grant') || errorMsg.includes('Token expired')) {
         setStatus({
           connected: false,
@@ -364,6 +345,50 @@ export function useGoogleCalendar() {
       setSyncing(false);
     }
   }, [toast, fetchStatus]);
+
+  // New multi-calendar selection
+  const selectCalendars = useCallback(async (calendarsToSelect: SelectedCalendar[]) => {
+    try {
+      const { error } = await supabase.functions.invoke('google-save-calendar-selection', {
+        body: { calendars: calendarsToSelect },
+      });
+
+      if (error) throw error;
+
+      setShowCalendarModal(false);
+      
+      const calendarNames = calendarsToSelect.map(c => c.name).join(', ');
+      
+      setStatus(prev => ({
+        ...prev,
+        connected: true,
+        calendarSelected: true,
+        calendarId: calendarsToSelect[0]?.id,
+        calendarName: calendarsToSelect[0]?.name,
+        selectedCalendars: calendarsToSelect,
+        syncStatus: 'active',
+      }));
+
+      toast({
+        title: 'Calendars selected',
+        description: `Syncing with ${calendarsToSelect.length} calendar${calendarsToSelect.length > 1 ? 's' : ''}: ${calendarNames}`,
+      });
+
+      // Trigger initial sync
+      syncNow();
+    } catch (error) {
+      console.error('Error saving calendar selection:', error);
+      toast({
+        title: 'Failed to save selection',
+        variant: 'destructive',
+      });
+    }
+  }, [syncNow, toast]);
+
+  // Keep backward compatible single calendar selection
+  const selectCalendar = useCallback(async (calendarId: string, calendarName: string) => {
+    await selectCalendars([{ id: calendarId, name: calendarName, isEnabled: true }]);
+  }, [selectCalendars]);
 
   const pushBlock = useCallback(async (
     blockId: string,
