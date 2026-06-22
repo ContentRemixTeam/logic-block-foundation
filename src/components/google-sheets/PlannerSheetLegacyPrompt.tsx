@@ -6,7 +6,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -123,45 +122,57 @@ export function PlannerSheetLegacyPrompt({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-[34rem] overflow-y-auto p-5 sm:p-6">
         <DialogHeader>
           <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <FileSpreadsheet className="h-6 w-6" />
           </div>
           <DialogTitle>Back up your planner in Google Drive</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="leading-relaxed">
             Your current planner data stays in the app. Connecting Google adds a private planner Sheet you own and gets your account ready for the new storage rollout.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3 rounded-lg border bg-muted/30 p-4 text-sm">
-          <div className="flex gap-3">
+        <div className="space-y-3 rounded-lg border bg-muted/30 p-4 text-sm leading-relaxed">
+          <div className="flex min-w-0 gap-3">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            <span>Use the Google Drive account where you want your planner backup to live.</span>
+            <span className="min-w-0">Use the Google Drive account where you want your planner backup to live.</span>
           </div>
-          <div className="flex gap-3">
+          <div className="flex min-w-0 gap-3">
             <FileSpreadsheet className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            <span>The app creates the Sheet for you, so you do not have to build anything manually.</span>
+            <span className="min-w-0">The app creates the Sheet for you, so you do not have to build anything manually.</span>
           </div>
-          <div className="flex gap-3">
+          <div className="flex min-w-0 gap-3">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            <span>You can keep using the planner while setup stays optional for existing accounts.</span>
+            <span className="min-w-0">You can keep using the planner while setup stays optional for existing accounts.</span>
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="ghost" onClick={() => mutePrompt(NOT_NOW_MS)}>
+        <div className="grid gap-2 sm:grid-cols-3">
+          <Button
+            variant="ghost"
+            className="h-auto min-h-10 w-full whitespace-normal px-3 py-2 text-center leading-tight"
+            onClick={() => mutePrompt(NOT_NOW_MS)}
+          >
             Not right now
           </Button>
-          <Button variant="outline" onClick={() => mutePrompt(REMIND_LATER_MS)}>
+          <Button
+            variant="outline"
+            className="h-auto min-h-10 w-full whitespace-normal px-3 py-2 text-center leading-tight"
+            onClick={() => mutePrompt(REMIND_LATER_MS)}
+          >
             Remind me next week
           </Button>
-          <Button asChild onClick={() => mutePrompt(REMIND_LATER_MS)}>
+          <Button
+            asChild
+            className="h-auto min-h-10 w-full whitespace-normal px-3 py-2 text-center leading-tight"
+            onClick={() => mutePrompt(REMIND_LATER_MS)}
+          >
             <Link to="/settings">{setupLabel}</Link>
           </Button>
-        </DialogFooter>
+        </div>
 
-        <Button variant="link" size="sm" asChild className="mx-auto h-auto p-0 text-xs">
+        <Button variant="link" size="sm" asChild className="mx-auto h-auto max-w-full whitespace-normal p-0 text-center text-xs leading-tight">
           <Link to="/help/planner-storage" onClick={() => mutePrompt(REMIND_LATER_MS)}>
             How Google Drive planner storage works
           </Link>
