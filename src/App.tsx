@@ -90,6 +90,7 @@ const WeeklyReview = lazyWithRetry(() => import('./pages/WeeklyReview'));
 const WeeklyReflection = lazyWithRetry(() => import('./pages/WeeklyReflection'));
 const MonthlyReview = lazyWithRetry(() => import('./pages/MonthlyReview'));
 const CycleSummary = lazyWithRetry(() => import('./pages/CycleSummary'));
+const QuarterDebrief = lazyWithRetry(() => import('./pages/QuarterDebrief'));
 const DailyPlan = lazyWithRetry(() => import('./pages/DailyPlan'));
 const DailyReview = lazyWithRetry(() => import('./pages/DailyReview'));
 const Habits = lazyWithRetry(() => import('./pages/Habits'));
@@ -241,6 +242,8 @@ const App = () => (
                       <Route path="/weekly-reflection" element={<ProtectedRoute><PageSuspense><WeeklyReflection /></PageSuspense></ProtectedRoute>} />
                       <Route path="/monthly-review" element={<ProtectedRoute><PageSuspense><MonthlyReview /></PageSuspense></ProtectedRoute>} />
                       <Route path="/cycle-summary" element={<ProtectedRoute><PageSuspense><CycleSummary /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/last-quarter-debrief" element={<ProtectedRoute><PageSuspense><QuarterDebrief /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/quarter-debrief" element={<ProtectedRoute><PageSuspense><QuarterDebrief /></PageSuspense></ProtectedRoute>} />
                       <Route path="/progress" element={<ProtectedRoute><PageSuspense><Progress /></PageSuspense></ProtectedRoute>} />
                       <Route path="/daily-plan" element={<ProtectedRoute><PageSuspense><DailyPlan /></PageSuspense></ProtectedRoute>} />
                       <Route path="/daily-review" element={<ProtectedRoute><PageSuspense><DailyReview /></PageSuspense></ProtectedRoute>} />
