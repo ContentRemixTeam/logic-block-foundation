@@ -5325,6 +5325,72 @@ export type Database = {
         }
         Relationships: []
       }
+      quarter_debriefs: {
+        Row: {
+          business_sections: Json
+          carry_forward: Json
+          completed_at: string | null
+          created_at: string
+          cycle_score: number | null
+          id: string
+          leave_behind: Json
+          lessons_learned: Json
+          next_quarter_focus: string | null
+          quarter_end_date: string | null
+          quarter_key: string
+          quarter_label: string
+          quarter_start_date: string | null
+          support_needed: string | null
+          updated_at: string
+          user_id: string
+          wants_next_quarter_plan: boolean | null
+          what_did_not_work: Json
+          what_worked: Json
+        }
+        Insert: {
+          business_sections?: Json
+          carry_forward?: Json
+          completed_at?: string | null
+          created_at?: string
+          cycle_score?: number | null
+          id?: string
+          leave_behind?: Json
+          lessons_learned?: Json
+          next_quarter_focus?: string | null
+          quarter_end_date?: string | null
+          quarter_key: string
+          quarter_label: string
+          quarter_start_date?: string | null
+          support_needed?: string | null
+          updated_at?: string
+          user_id: string
+          wants_next_quarter_plan?: boolean | null
+          what_did_not_work?: Json
+          what_worked?: Json
+        }
+        Update: {
+          business_sections?: Json
+          carry_forward?: Json
+          completed_at?: string | null
+          created_at?: string
+          cycle_score?: number | null
+          id?: string
+          leave_behind?: Json
+          lessons_learned?: Json
+          next_quarter_focus?: string | null
+          quarter_end_date?: string | null
+          quarter_key?: string
+          quarter_label?: string
+          quarter_start_date?: string | null
+          support_needed?: string | null
+          updated_at?: string
+          user_id?: string
+          wants_next_quarter_plan?: boolean | null
+          what_did_not_work?: Json
+          what_worked?: Json
+        }
+        Relationships: []
+      }
       rate_limits: {
         Row: {
           created_at: string | null
