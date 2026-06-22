@@ -338,7 +338,7 @@ export function useGoogleCalendar() {
       await logApiError('google-poll-changes', error, { action: 'sync-failed' });
       toast({
         title: 'Sync failed',
-        description: error?.message || 'Could not sync with Google Calendar.',
+        description: (error instanceof Error ? error.message : null) || 'Could not sync with Google Calendar.',
         variant: 'destructive',
       });
     } finally {
