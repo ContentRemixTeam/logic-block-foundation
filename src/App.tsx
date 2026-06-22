@@ -164,6 +164,7 @@ const EngineBuilderPage = lazyWithRetry(() => import('./pages/EngineBuilderPage'
 const WorkshopWelcomePage = lazyWithRetry(() => import('./pages/WorkshopWelcomePage'));
 const WorkshopRegisterPage = lazyWithRetry(() => import('./pages/WorkshopRegisterPage'));
 const MoneyMovesSprintPage = lazyWithRetry(() => import('./pages/MoneyMovesSprintPage'));
+const QuarterDebrief = lazyWithRetry(() => import('./pages/QuarterDebrief'));
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -310,6 +311,8 @@ const App = () => (
                       <Route path="/admin/mastermind-roster" element={<ProtectedRoute><PageSuspense><MastermindRosterImport /></PageSuspense></ProtectedRoute>} />
                       <Route path="/support" element={<ProtectedRoute><PageSuspense><Support /></PageSuspense></ProtectedRoute>} />
                       <Route path="/help/browser-storage" element={<ProtectedRoute><PageSuspense><BrowserStorageHelp /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/last-quarter-debrief" element={<ProtectedRoute><PageSuspense><QuarterDebrief /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/quarter-debrief" element={<ProtectedRoute><PageSuspense><QuarterDebrief /></PageSuspense></ProtectedRoute>} />
                       <Route path="/settings" element={<ProtectedRoute><PageSuspense><Settings /></PageSuspense></ProtectedRoute>} />
                       <Route path="/admin" element={<ProtectedRoute><PageSuspense><Admin /></PageSuspense></ProtectedRoute>} />
                       <Route path="/coaching-log" element={<ProtectedRoute><PageSuspense><CoachingLog /></PageSuspense></ProtectedRoute>} />
