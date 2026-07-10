@@ -202,17 +202,26 @@ export function useServerSync<T>({
     setStatus('idle');
   }, []);
 
-  // Cleanup on unmount
+  // Cleanup on unmount — flush any pending debounced save so navigating
+  // away never drops the last ~2 seconds of edits.
   useEffect(() => {
     return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
       }
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+        // Fire the save now (fire-and-forget). If offline, performSave
+        // will short-circuit and the data stays in dataRef for retry.
+        if (dataRef.current !== null) {
+          try { void performSave(dataRef.current); } catch { /* noop */ }
+        }
+      }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   return {
     sync,
