@@ -440,6 +440,82 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Cycle-first hero — the anchor of the whole planner */}
+        <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background">
+          <CardContent className="p-6 sm:p-8">
+            {cycleLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-8 w-2/3" />
+                <Skeleton className="h-2 w-full" />
+              </div>
+            ) : !cycle?.cycle_id ? (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="space-y-1.5">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+                    Your 90-Day Cycle
+                  </p>
+                  <h2 className="text-xl sm:text-2xl font-semibold">
+                    Start your first 90-day cycle
+                  </h2>
+                  <p className="text-sm text-muted-foreground max-w-md">
+                    One gentle goal, three months, at your own pace.
+                  </p>
+                </div>
+                <Button size="lg" asChild>
+                  <Link to="/cycle-wizard" className="gap-2">
+                    <Rocket className="h-4 w-4" />
+                    Start a Cycle
+                  </Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div className="space-y-1.5 min-w-0">
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+                      Your 90-Day Cycle
+                    </p>
+                    <h2 className="text-xl sm:text-2xl font-semibold leading-snug truncate">
+                      {cycle.goal || 'Your current cycle'}
+                    </h2>
+                  </div>
+                  {typeof cycle.days_remaining === 'number' && (
+                    <div className="text-right shrink-0">
+                      <p className="text-2xl sm:text-3xl font-bold text-primary tabular-nums">
+                        Day {Math.max(1, 90 - cycle.days_remaining)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">of 90 · {cycle.days_remaining} days to go</p>
+                    </div>
+                  )}
+                </div>
+                {typeof cycle.days_remaining === 'number' && (
+                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full bg-primary/70 transition-all"
+                      style={{ width: `${Math.min(100, Math.max(0, ((90 - cycle.days_remaining) / 90) * 100))}%` }}
+                    />
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/weekly-plan" className="gap-2">
+                      <CalendarIcon className="h-4 w-4" />
+                      This week's focus
+                    </Link>
+                  </Button>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/daily-plan" className="gap-2">
+                      <Flame className="h-4 w-4" />
+                      Today's plan
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Tabs: Scorecard (default) vs Classic Dashboard */}
         <Tabs defaultValue="ceo" className="space-y-6">
           <TabsList className="grid w-full max-w-2xl grid-cols-3">
