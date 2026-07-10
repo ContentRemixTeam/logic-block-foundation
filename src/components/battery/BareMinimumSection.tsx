@@ -17,6 +17,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useCelebrate } from '@/hooks/useCelebrate';
 import { useTodayBattery } from '@/hooks/useBatteryCheckin';
+import { OnceHint } from '@/components/system/OnceHint';
 
 interface Props {
   dateISO: string;
@@ -94,6 +95,12 @@ export function BareMinimumSection({ dateISO, compact, className }: Props) {
             {done}/{total}
           </span>
         </div>
+
+        {!compact && (
+          <OnceHint hintKey="bare-minimum-intro">
+            The tiny list that makes the day count — even on your hardest day.
+          </OnceHint>
+        )}
 
         {!compact && (
           <p className="text-xs text-muted-foreground">

@@ -67,15 +67,17 @@ export function pickMessage(moment: CelebrationMoment): string {
 
 export function celebrationConfettiType(
   moment: CelebrationMoment,
-): 'task_complete' | 'habit_logged' | 'streak' | 'all_done' | 'milestone' {
+): 'task_complete' | 'habit_logged' | 'streak' | 'all_done' | 'milestone' | 'low_battery' {
   switch (moment) {
     case 'task_complete':
       return 'task_complete';
     case 'first_task':
     case 'bare_minimum_all':
-    case 'bare_minimum_all_low_battery':
     case 'daily_plan_complete':
       return 'all_done';
+    // Extra-warm, gentler variant — no confetti storm on hard days.
+    case 'bare_minimum_all_low_battery':
+      return 'low_battery';
     case 'weekly_review':
       return 'milestone';
     case 'cycle_milestone_25':

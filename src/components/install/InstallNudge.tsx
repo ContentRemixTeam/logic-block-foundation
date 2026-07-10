@@ -85,7 +85,7 @@ export function InstallNudge() {
             <p className="mt-0.5 text-xs text-muted-foreground">
               {device === 'ios'
                 ? 'Tap Share, then "Add to Home Screen" — opens like a real app.'
-                : 'One tap to install — works offline, no app store needed.'}
+                : 'One tap to install — no app store needed.'}
             </p>
             <div className="mt-2 flex items-center gap-2">
               {isInstallable ? (

@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, Flame, Star, Trophy, Sparkles } from 'lucide-react';
 
-type CelebrationType = 'task_complete' | 'habit_logged' | 'streak' | 'all_done' | 'milestone';
+type CelebrationType = 'task_complete' | 'habit_logged' | 'streak' | 'all_done' | 'milestone' | 'low_battery';
 
 interface CelebrationEvent {
   type: CelebrationType;
@@ -84,6 +84,13 @@ const CELEBRATION_CONFIG: Record<CelebrationType, {
     defaultMessage: 'Milestone reached!',
     emoji: '⭐',
     showConfetti: true,
+  },
+  // Extra-warm, no confetti storm — a gentle heart for low-battery wins.
+  low_battery: {
+    icon: Sparkles,
+    defaultMessage: 'You did it on a low-battery day. That is huge. 💛',
+    emoji: '💛',
+    showConfetti: false,
   },
 };
 

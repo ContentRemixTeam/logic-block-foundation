@@ -68,6 +68,7 @@ import { TagManager } from '@/components/tasks/TagManager';
 import { TaskRecoveryBanner } from '@/components/tasks/TaskRecoveryBanner';
 import { useProjects } from '@/hooks/useProjects';
 import { useLaunches } from '@/hooks/useLaunches';
+import { OnceHint } from '@/components/system/OnceHint';
 
 export default function Tasks() {
   const queryClient = useQueryClient();
@@ -1092,6 +1093,9 @@ export default function Tasks() {
                 <Battery className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Match my energy</span>
               </Button>
+              <OnceHint hintKey="match-my-energy-intro" className="basis-full">
+                Filters your task list to what fits today's battery. Tap the button to try it.
+              </OnceHint>
               <Button
                 variant="ghost"
                 size="sm"

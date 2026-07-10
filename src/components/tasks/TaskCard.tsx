@@ -43,6 +43,8 @@ import { useMembership } from '@/hooks/useMembership';
 import { StuckTaskCoachModal } from '@/components/mastermind/StuckTaskCoachModal';
 import { MomentumChip } from './MomentumChip';
 import type { MomentumType } from '@/lib/momentumTypes';
+import { EnergyChip } from '@/components/battery/EnergyChip';
+import { useToggleBareMinimum } from '@/hooks/useBareMinimum';
 
 interface TaskCardProps {
   task: Task;
@@ -104,6 +106,8 @@ export function TaskCard({
   const [coachOpen, setCoachOpen] = useState(false);
   const { isMastermind } = useMembership();
   const inputRef = useRef<HTMLInputElement>(null);
+  const toggleBM = useToggleBareMinimum();
+  const taskExtras = task as unknown as { energy_cost?: string | null; is_bare_minimum?: boolean | null };
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -309,6 +313,15 @@ export function TaskCard({
               size="xs"
               showPlaceholder={false}
             />
+            {taskExtras.energy_cost && <EnergyChip energy={taskExtras.energy_cost} compact />}
+            {taskExtras.is_bare_minimum && (
+              <span
+                className="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                title="Bare minimum for today"
+              >
+                ★
+              </span>
+            )}
             {task.energy_level && (
               <span
                 className="inline-flex h-5 w-5 items-center justify-center text-muted-foreground/80"
@@ -490,6 +503,11 @@ export function TaskCard({
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onUpdate(task.task_id, { status: 'backlog' } as Partial<Task>)}>
               Move to Backlog
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => toggleBM.mutate({ taskId: task.task_id, value: !taskExtras.is_bare_minimum })}
+            >
+              {taskExtras.is_bare_minimum ? 'Remove from bare minimum' : 'Add to bare minimum'}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
