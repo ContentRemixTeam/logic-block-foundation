@@ -849,26 +849,30 @@ export default function Dashboard() {
               )}
             </WidgetCard>
 
-            {/* Launch Zone - replaces old Launch Countdown widget */}
-            {launchesLoading && (
-              <WidgetCard
-                title="Launch Zone"
-                icon={<Rocket className="h-5 w-5 text-primary" />}
-                gradientClass="from-orange-500/5"
-              >
-                <div className="space-y-3">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-16 w-full" />
-                </div>
-              </WidgetCard>
-            )}
+            {/* Launch Zone — only when Launch Tools feature is on */}
+            {isEnabled('launch_tools') && (
+              <>
+                {launchesLoading && (
+                  <WidgetCard
+                    title="Launch Zone"
+                    icon={<Rocket className="h-5 w-5 text-primary" />}
+                    gradientClass="from-orange-500/5"
+                  >
+                    <div className="space-y-3">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-16 w-full" />
+                    </div>
+                  </WidgetCard>
+                )}
 
-            {!launchesLoading && !nextLaunch && (
-              <LaunchZone hasLaunch={false} />
-            )}
+                {!launchesLoading && !nextLaunch && (
+                  <LaunchZone hasLaunch={false} />
+                )}
 
-            {!launchesLoading && nextLaunch && (
-              <LaunchZone hasLaunch={true} launchName={nextLaunch.name} launch={nextLaunch} />
+                {!launchesLoading && nextLaunch && (
+                  <LaunchZone hasLaunch={true} launchName={nextLaunch.name} launch={nextLaunch} />
+                )}
+              </>
             )}
 
             {/* Sales Goal Tracker */}
