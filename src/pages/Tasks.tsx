@@ -2039,6 +2039,9 @@ export default function Tasks() {
         initialSelected={calendarStatus.selectedCalendars}
       />
 
+      {/* Fresh Start — Clean Up */}
+      <CleanUpDialog open={isCleanUpOpen} onOpenChange={setIsCleanUpOpen} />
+
       {/* Overdue Tasks Modal */}
       <Dialog open={isOverdueModalOpen} onOpenChange={setIsOverdueModalOpen}>
         <DialogContent className="max-w-md">
