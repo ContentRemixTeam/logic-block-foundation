@@ -2418,6 +2418,7 @@ export type Database = {
         Row: {
           active_launch_id: string | null
           alignment_score: number | null
+          archived_at: string | null
           brain_dump: string | null
           brave_move_task_id: string | null
           created_at: string | null
@@ -2450,6 +2451,7 @@ export type Database = {
         Insert: {
           active_launch_id?: string | null
           alignment_score?: number | null
+          archived_at?: string | null
           brain_dump?: string | null
           brave_move_task_id?: string | null
           created_at?: string | null
@@ -2482,6 +2484,7 @@ export type Database = {
         Update: {
           active_launch_id?: string | null
           alignment_score?: number | null
+          archived_at?: string | null
           brain_dump?: string | null
           brave_move_task_id?: string | null
           created_at?: string | null
@@ -6491,6 +6494,7 @@ export type Database = {
       tasks: {
         Row: {
           actual_minutes: number | null
+          archived_at: string | null
           category: string | null
           checklist_progress: Json | null
           completed_at: string | null
@@ -6573,6 +6577,7 @@ export type Database = {
         }
         Insert: {
           actual_minutes?: number | null
+          archived_at?: string | null
           category?: string | null
           checklist_progress?: Json | null
           completed_at?: string | null
@@ -6655,6 +6660,7 @@ export type Database = {
         }
         Update: {
           actual_minutes?: number | null
+          archived_at?: string | null
           category?: string | null
           checklist_progress?: Json | null
           completed_at?: string | null
