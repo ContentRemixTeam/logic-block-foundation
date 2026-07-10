@@ -403,7 +403,7 @@ export default function Settings() {
               Install Apps
             </CardTitle>
             <CardDescription>
-              Install Boss Planner apps on your home screen
+              Install Low Battery Business Planner apps on your home screen
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -416,7 +416,7 @@ export default function Settings() {
                   <LayoutGrid className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <div className="font-medium">Boss Planner</div>
+                  <div className="font-medium">Low Battery Business Planner</div>
                   <div className="text-sm text-muted-foreground">Full planning experience</div>
                 </div>
               </div>
@@ -615,7 +615,7 @@ export default function Settings() {
               Mobile App
             </CardTitle>
             <CardDescription>
-              Install Boss Planner on your phone for the best mobile experience
+              Install Low Battery Business Planner on your phone for the best mobile experience
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

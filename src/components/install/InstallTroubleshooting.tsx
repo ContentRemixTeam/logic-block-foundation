@@ -19,24 +19,24 @@ export function InstallTroubleshooting() {
 • **Refresh the page**: Sometimes a quick refresh helps. Pull down on mobile or press Ctrl+R on desktop.`
     },
     {
-      question: "What's the difference between Quick Add and Boss Planner?",
+      question: "What's the difference between Quick Add and Low Battery Business Planner?",
       answer: `**Quick Add ⚡** is for fast capture:
 • Opens instantly (1 second)
 • Minimal interface - just type and save
 • Perfect for capturing ideas on the go
 • Captures tasks, ideas, expenses, and income
 
-**Boss Planner 📊** is your full planning hub:
+**Low Battery Business Planner 📊** is your full planning hub:
 • Daily planning with Top 3 priorities
 • Weekly planning and reflection
 • 90-day goal tracking
 • Habits, projects, content planning, and more
 
-**Tip**: Install both! Use Quick Add when you need to capture something fast, and Boss Planner when you're ready to plan and organize.`
+**Tip**: Install both! Use Quick Add when you need to capture something fast, and Low Battery Business Planner when you're ready to plan and organize.`
     },
     {
       question: "Can I use this on my computer?",
-      answer: `Yes! Boss Planner works great on desktop.
+      answer: `Yes! Low Battery Business Planner works great on desktop.
 
 **Chrome or Edge**: Look for the install icon (⊕) on the right side of your address bar. Click it and select "Install".
 
@@ -80,7 +80,7 @@ Your data stays safe in your account even if you uninstall the apps.`
 
 1. **Wait a moment**: Sometimes it takes a few seconds for the app to fully install.
 
-2. **Check your home screen**: The app might be on a different screen or in a folder. Search for "Quick Add" or "Boss Planner".
+2. **Check your home screen**: The app might be on a different screen or in a folder. Search for "Quick Add" or "Low Battery Business Planner".
 
 3. **Restart your device**: This can resolve installation issues.
 

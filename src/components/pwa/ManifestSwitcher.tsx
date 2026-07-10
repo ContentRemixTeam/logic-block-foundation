@@ -31,7 +31,7 @@ export function ManifestSwitcher() {
     // Also update apple-mobile-web-app-title for iOS
     let appleTitleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]') as HTMLMetaElement;
     if (appleTitleMeta) {
-      appleTitleMeta.content = isQuickAddRoute ? 'Quick Add' : 'Boss Planner';
+      appleTitleMeta.content = isQuickAddRoute ? 'Quick Add' : 'Low Battery Planner';
     }
   }, [location.pathname]);
 

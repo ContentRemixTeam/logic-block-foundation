@@ -58,15 +58,15 @@ export default defineConfig(({ mode }) => ({
       },
       includeAssets: ["favicon.ico", "pwa-192x192.png", "pwa-512x512.png"],
       manifest: {
-        id: "boss-planner-full",
-        name: "Boss Planner",
-        short_name: "Boss Planner",
-        description: "The Becoming Boss Mastermind. Plan your 90 days with clarity and focus.",
+        id: "low-battery-business-planner",
+        name: "Low Battery Business Planner",
+        short_name: "Low Battery",
+        description: "Low Battery Business Planner — your 25% still counts.",
         start_url: "/dashboard",
         scope: "/",
         display: "standalone",
-        background_color: "#0077b6",
-        theme_color: "#0077b6",
+        background_color: "#FAF7F2",
+        theme_color: "#E87B93",
         orientation: "portrait-primary",
         icons: [
           {

@@ -1,18 +1,21 @@
+import logoMark from '/brand/logo-mark.svg';
+
 export function AuthLogo() {
   return (
     <div className="flex flex-col items-center mb-6">
-      <div className="flex items-center gap-2 text-2xl tracking-[0.3em] font-light mb-4">
-        <span className="text-foreground">FAITH</span>
-        <span className="h-2 w-2 rounded-full bg-primary" />
-        <span className="text-foreground">MARIAH</span>
-      </div>
-      
-      <h1 className="text-xl font-semibold tracking-wide text-center">
-        BOSS PLANNER
+      <img
+        src={logoMark}
+        alt="Low Battery Business Planner"
+        className="w-20 h-20 mb-4"
+      />
+      <h1 className="text-3xl font-serif font-bold tracking-tight text-foreground">
+        Low Battery
       </h1>
-      
-      <p className="text-sm text-muted-foreground mt-2">
-        90-Day Business Planning System
+      <p className="text-xs font-medium tracking-[0.35em] text-muted-foreground mt-1">
+        BUSINESS PLANNER
+      </p>
+      <p className="text-sm text-muted-foreground mt-3 italic">
+        your 25% still counts
       </p>
     </div>
   );

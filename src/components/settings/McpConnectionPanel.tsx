@@ -86,7 +86,7 @@ export function McpConnectionPanel() {
     setFreshKey(null);
     try {
       const { data, error } = await supabase.functions.invoke('create-ai-connection-key', {
-        body: { name: 'Boss Planner AI Key' },
+        body: { name: 'Low Battery Business Planner AI Key' },
       });
       if (error) throw error;
       const key = (data as { key?: string })?.key;

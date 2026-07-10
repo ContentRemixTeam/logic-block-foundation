@@ -188,19 +188,19 @@ async function resolveAuth(authHeader: string): Promise<AuthCtx> {
     if (error) throw new Error("Auth lookup failed");
     if (!row) {
       throw new AuthError(
-        "Invalid AI connection key. Open Boss Planner → Settings → AI Task Connection, create a new key, and reconnect.",
+        "Invalid AI connection key. Open Low Battery Business Planner → Settings → AI Task Connection, create a new key, and reconnect.",
         "invalid",
       );
     }
     if (row.revoked_at) {
       throw new AuthError(
-        "This AI connection key has been revoked. Open Boss Planner → Settings → AI Task Connection and create a new key.",
+        "This AI connection key has been revoked. Open Low Battery Business Planner → Settings → AI Task Connection and create a new key.",
         "revoked",
       );
     }
     if (row.expires_at && new Date(row.expires_at).getTime() < Date.now()) {
       throw new AuthError(
-        "This AI connection key has expired. Open Boss Planner → Settings → AI Task Connection and create a new key.",
+        "This AI connection key has expired. Open Low Battery Business Planner → Settings → AI Task Connection and create a new key.",
         "expired",
       );
     }
@@ -472,7 +472,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         error:
-          "Unauthorized — pass a Boss Planner AI connection key (bp_live_...) or Supabase JWT as Bearer token. Create one in Boss Planner → Settings → AI Task Connection.",
+          "Unauthorized — pass a Low Battery Business Planner AI connection key (bp_live_...) or Supabase JWT as Bearer token. Create one in Low Battery Business Planner → Settings → AI Task Connection.",
       }),
       {
         status: 401,
@@ -528,9 +528,9 @@ serve(async (req) => {
         JSON.stringify({
           name: "90-day-planner-mcp",
           version: "1.1.0",
-          description: "MCP server for the Boss Planner app. Provides access to tasks, daily plans, brain dumps, and habits.",
+          description: "MCP server for the Low Battery Business Planner app. Provides access to tasks, daily plans, brain dumps, and habits.",
           tools: TOOLS.map((t) => ({ name: t.name, description: t.description })),
-          auth: "Bearer token required (Boss Planner AI connection key 'bp_live_...' or Supabase JWT)",
+          auth: "Bearer token required (Low Battery Business Planner AI connection key 'bp_live_...' or Supabase JWT)",
           authenticated_as: ctx.userId,
           auth_source: ctx.source,
         }),

@@ -66,7 +66,7 @@ serve(async (req) => {
     const userId = userData.user.id;
 
     // Parse optional body { name?: string }
-    let name = "Boss Planner AI Key";
+    let name = "Low Battery Business Planner AI Key";
     try {
       const body = await req.json();
       if (body?.name && typeof body.name === "string") {

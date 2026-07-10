@@ -16,7 +16,7 @@ interface DeviceInstallStepsProps {
   appName?: string;
 }
 
-export function DeviceInstallSteps({ device, appName = 'Boss Planner' }: DeviceInstallStepsProps) {
+export function DeviceInstallSteps({ device, appName = 'Low Battery Business Planner' }: DeviceInstallStepsProps) {
   if (device === 'ios') {
     return (
       <div className="space-y-3">

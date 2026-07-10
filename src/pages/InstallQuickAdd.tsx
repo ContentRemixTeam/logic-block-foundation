@@ -71,7 +71,7 @@ export default function InstallQuickAdd() {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium">Step 1 of 2</p>
-                  <p className="text-xs text-muted-foreground">After this, install the full Boss Planner app</p>
+                  <p className="text-xs text-muted-foreground">After this, install the full Low Battery Business Planner app</p>
                 </div>
               </div>
             </CardContent>
@@ -115,7 +115,7 @@ export default function InstallQuickAdd() {
                   'Instant launch from your home screen',
                   'Minimal interface - no distractions',
                   'Switch between task, idea, and note with one tap',
-                  'Syncs to your Boss Planner account',
+                  'Syncs to your Low Battery Business Planner account',
                   'Works offline - captures sync when online',
                   'Session counter tracks your productivity',
                 ].map((benefit, i) => (
@@ -168,7 +168,7 @@ export default function InstallQuickAdd() {
               <Button asChild size="lg" className="w-full">
                 <Link to="/install">
                   <Smartphone className="h-4 w-4 mr-2" />
-                  Step 2: Install Boss Planner →
+                  Step 2: Install Low Battery Business Planner →
                 </Link>
               </Button>
             </CardContent>

@@ -254,8 +254,8 @@ export default function Auth() {
               {isForgotPassword
                 ? 'Enter your email to receive a reset link'
                 : isLogin
-                ? 'Welcome back to Boss Planner'
-                : 'Create your Boss Planner account'}
+                ? 'Welcome back — your 25% still counts.'
+                : 'Create your account — gentle planning starts here.'}
             </CardDescription>
           </CardHeader>
         <CardContent>

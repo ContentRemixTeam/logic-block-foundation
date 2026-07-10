@@ -388,7 +388,7 @@ export default function Planning() {
               Mastermind planning system
             </Badge>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Boss Planner Home</h1>
+              <h1 className="text-3xl font-bold tracking-tight">Low Battery Business Planner Home</h1>
               <p className="mt-2 text-muted-foreground">
                 Hold the bigger vision, choose the 90-day focus, then move through monthly, weekly, and daily action.
               </p>

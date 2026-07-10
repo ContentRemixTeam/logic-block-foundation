@@ -104,7 +104,7 @@ export function TrialSignupCard({ workshopDate = '2026-01-10', redirectTo = '/wo
       }
 
       toast({
-        title: 'Welcome to Boss Planner!',
+        title: 'Welcome to Low Battery Business Planner!',
         description: 'Your 3-day trial has started.',
       });
 
@@ -126,7 +126,7 @@ export function TrialSignupCard({ workshopDate = '2026-01-10', redirectTo = '/wo
       <CardHeader>
         <CardTitle>Get Started - Free 3-Day Trial</CardTitle>
         <CardDescription>
-          Create your 90-day plan and explore the full Boss Planner system
+          Create your 90-day plan and explore the full Low Battery Business Planner system
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -136,7 +136,7 @@ export function TrialSignupCard({ workshopDate = '2026-01-10', redirectTo = '/wo
             <span className="font-semibold">3-Day Full Access Trial</span>
           </div>
           <p className="text-sm text-muted-foreground mb-3">
-            Get complete access to Boss Planner for 3 days after the workshop:
+            Get complete access to Low Battery Business Planner for 3 days after the workshop:
           </p>
           <ul className="text-sm text-muted-foreground space-y-1.5">
             <li className="flex items-center gap-2">
