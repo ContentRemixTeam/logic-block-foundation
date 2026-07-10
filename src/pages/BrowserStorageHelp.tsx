@@ -29,14 +29,15 @@ export default function BrowserStorageHelp() {
             <section className="space-y-2">
               <h2 className="font-semibold text-base">What happened?</h2>
               <p className="text-muted-foreground">
-                Your browser didn't give us permission to <strong>permanently save</strong> your planner
-                data on this device. Everything will still work — but if your phone or laptop runs low on
-                space, the browser <em>could</em> clear out your offline drafts (things you typed while
-                disconnected from the internet).
+                Your browser didn't give us permission to <strong>permanently save</strong> a small
+                local backup on this device. Everything will still work — but if your phone or laptop
+                runs low on space, the browser <em>could</em> clear out drafts that were held on-device
+                during a connection blip.
               </p>
               <p className="text-muted-foreground">
                 Your saved tasks, plans, and notes in the cloud are <strong>always safe</strong>. This
-                only affects offline backups on this specific device/browser.
+                just makes your work extra-protected on this specific device if your connection drops
+                mid-edit.
               </p>
             </section>
 

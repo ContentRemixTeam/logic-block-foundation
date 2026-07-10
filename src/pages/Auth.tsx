@@ -169,10 +169,11 @@ export default function Auth() {
         // If auto-confirm is enabled, they're already logged in
         if (data?.session) {
           toast({
-            title: 'Welcome!',
-            description: 'Your account has been created.',
+            title: 'Welcome in.',
+            description: "Let's set things up gently.",
           });
-          await navigateAfterAuth('/dashboard');
+          // New signups get the calm 5-step onboarding. Existing users skip it.
+          await navigateAfterAuth('/onboarding');
         } else {
           toast({
             title: 'Account created!',

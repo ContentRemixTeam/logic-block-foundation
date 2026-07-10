@@ -119,8 +119,8 @@ const faqData: FAQItem[] = [
   },
   {
     category: 'Features',
-    question: 'Does the app work offline?',
-    answer: 'Yes! Once installed, the app works offline for capturing tasks and ideas. Your captures sync automatically when you\'re back online. Core pages are cached for fast loading even with poor connectivity.'
+    question: 'What happens if my connection drops?',
+    answer: "Your in-progress work is protected on this device if your connection drops mid-edit — nothing you type goes missing. When you're back online it syncs. Full offline mode isn't a promise right now; if you go fully offline for long, wait until you're reconnected before making big changes."
   },
   {
     category: 'Features',
