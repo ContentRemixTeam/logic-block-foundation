@@ -470,48 +470,60 @@ export default function Dashboard() {
                 </Button>
               </div>
             ) : (
-              <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                  <div className="space-y-1.5 min-w-0">
-                    <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
-                      Your 90-Day Cycle
-                    </p>
-                    <h2 className="text-xl sm:text-2xl font-semibold leading-snug truncate">
-                      {cycle.goal || 'Your current cycle'}
-                    </h2>
-                  </div>
-                  {typeof cycle.days_remaining === 'number' && (
-                    <div className="text-right shrink-0">
-                      <p className="text-2xl sm:text-3xl font-bold text-primary tabular-nums">
-                        Day {Math.max(1, 90 - cycle.days_remaining)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">of 90 · {cycle.days_remaining} days to go</p>
+              (() => {
+                const startD = cycle.start_date ? parseISO(cycle.start_date) : null;
+                const endD = cycle.end_date ? parseISO(cycle.end_date) : null;
+                const today = new Date();
+                const dayNum = startD ? Math.max(1, Math.min(90, differenceInDays(today, startD) + 1)) : null;
+                const daysRemaining = endD ? Math.max(0, differenceInDays(endD, today)) : null;
+                const percent = dayNum ? Math.min(100, (dayNum / 90) * 100) : 0;
+                return (
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                      <div className="space-y-1.5 min-w-0">
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+                          Your 90-Day Cycle
+                        </p>
+                        <h2 className="text-xl sm:text-2xl font-semibold leading-snug truncate">
+                          {cycle.goal || 'Your current cycle'}
+                        </h2>
+                      </div>
+                      {dayNum !== null && (
+                        <div className="text-right shrink-0">
+                          <p className="text-2xl sm:text-3xl font-bold text-primary tabular-nums">
+                            Day {dayNum}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            of 90{daysRemaining !== null ? ` · ${daysRemaining} days to go` : ''}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                {typeof cycle.days_remaining === 'number' && (
-                  <div className="h-2 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full bg-primary/70 transition-all"
-                      style={{ width: `${Math.min(100, Math.max(0, ((90 - cycle.days_remaining) / 90) * 100))}%` }}
-                    />
+                    {dayNum !== null && (
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full bg-primary/70 transition-all"
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                    )}
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to="/weekly-plan" className="gap-2">
+                          <CalendarIcon className="h-4 w-4" />
+                          This week's focus
+                        </Link>
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to="/daily-plan" className="gap-2">
+                          <Flame className="h-4 w-4" />
+                          Today's plan
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
-                )}
-                <div className="flex flex-wrap gap-2 pt-1">
-                  <Button variant="outline" size="sm" asChild>
-                    <Link to="/weekly-plan" className="gap-2">
-                      <CalendarIcon className="h-4 w-4" />
-                      This week's focus
-                    </Link>
-                  </Button>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link to="/daily-plan" className="gap-2">
-                      <Flame className="h-4 w-4" />
-                      Today's plan
-                    </Link>
-                  </Button>
-                </div>
-              </div>
+                );
+              })()
             )}
           </CardContent>
         </Card>
