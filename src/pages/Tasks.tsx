@@ -1044,10 +1044,10 @@ export default function Tasks() {
               {overdueCount > 0 && (
                 <button
                   onClick={() => setIsOverdueModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 text-destructive/80 hover:text-destructive transition-colors"
+                  className="inline-flex items-center gap-1.5 text-waiting hover:text-waiting-foreground transition-colors"
                 >
-                  <span className="h-1.5 w-1.5 rounded-full bg-destructive/70" />
-                  {overdueCount} overdue · review
+                  <span className="h-1.5 w-1.5 rounded-full bg-waiting/70" />
+                  {overdueCount} waiting for you · review
                 </button>
               )}
             </div>
@@ -2020,11 +2020,11 @@ export default function Tasks() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              Handle {overdueCount} Overdue Task{overdueCount !== 1 ? 's' : ''}
+              <AlertTriangle className="h-5 w-5 text-waiting" />
+              {overdueCount} task{overdueCount !== 1 ? 's' : ''} waiting for you
             </DialogTitle>
             <DialogDescription>
-              Choose how to handle your overdue tasks. This will update all {overdueCount} overdue tasks at once.
+              Life happens — pick where these should land. You can undo any of this from the Archive.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-4">
