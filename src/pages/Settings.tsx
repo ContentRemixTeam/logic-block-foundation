@@ -32,6 +32,7 @@ import { BatteryCheckinToggleCard } from '@/components/settings/BatteryCheckinTo
 
 import { AIAssistantSection } from '@/components/settings/AIAssistantSection';
 import { FreshStartSettingsCard } from '@/components/settings/FreshStartSettingsCard';
+import { ProfileSettingsCard } from '@/components/settings/ProfileSettingsCard';
 import { ThemeGallery } from '@/components/themes';
 import { CalendarSettingsCard } from '@/components/editorial-calendar';
 import { ChallengeProgressWidget } from '@/components/challenges/ChallengeProgressWidget';
@@ -905,20 +906,9 @@ export default function Settings() {
         {/* Help Section */}
         <HelpSection />
 
-        {/* Account Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Account</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="text-sm">
-                <span className="font-medium">Email:</span>{' '}
-                <span className="text-muted-foreground">{user?.email}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Profile */}
+        <ProfileSettingsCard />
+
       </div>
 
       {/* Debug Data Modal */}
