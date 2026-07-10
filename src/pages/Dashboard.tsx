@@ -1058,8 +1058,8 @@ export default function Dashboard() {
             {/* Customize Daily Page Promo */}
             <CustomizePromoWidget />
 
-            {/* Monthly Challenge Progress */}
-            <ChallengeProgressWidget />
+            {/* Monthly Challenge Progress — only when Challenges is on */}
+            {isEnabled('challenges') && <ChallengeProgressWidget />}
 
             {/* Habit Tracker */}
             <HabitTrackerWidget />
@@ -1070,14 +1070,16 @@ export default function Dashboard() {
               cycleStartDate={cycle?.start_date}
             />
 
-            {/* Mastermind Calls */}
-            <WidgetCard
-              title="Mastermind Calls"
-              icon={<Calendar className="h-5 w-5 text-primary" />}
-              gradientClass="from-indigo-500/5"
-            >
-              <MastermindCallWidget />
-            </WidgetCard>
+            {/* Mastermind Calls — only when Coaching feature is on */}
+            {isEnabled('coaching') && (
+              <WidgetCard
+                title="Mastermind Calls"
+                icon={<Calendar className="h-5 w-5 text-primary" />}
+                gradientClass="from-indigo-500/5"
+              >
+                <MastermindCallWidget />
+              </WidgetCard>
+            )}
 
             {/* Podcast */}
             <WidgetCard
