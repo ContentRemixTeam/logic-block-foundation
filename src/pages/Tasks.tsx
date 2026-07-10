@@ -1092,6 +1092,27 @@ export default function Tasks() {
               <Button
                 variant="ghost"
                 size="sm"
+                onClick={() => setIsCleanUpOpen(true)}
+                className="gap-1.5 text-muted-foreground hover:text-foreground"
+                title="Clean up — archive or reschedule in bulk"
+              >
+                <Sparkles className="h-4 w-4" />
+                <span className="hidden sm:inline">Clean up</span>
+              </Button>
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-muted-foreground hover:text-foreground"
+              >
+                <Link to="/tasks/archive">
+                  <ArchiveIcon className="h-4 w-4" />
+                  <span className="hidden sm:inline">Archive</span>
+                </Link>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setIsAddDialogOpen(true)}
                 className="gap-1.5 text-muted-foreground hover:text-foreground"
               >
