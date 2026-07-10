@@ -9,8 +9,11 @@ import { AppSidebar } from '@/components/AppSidebar';
 import { QuickCaptureButton } from '@/components/quick-capture';
 import { TrialBanner, TrialExpiredScreen } from '@/components/trial';
 import { useArcade } from '@/hooks/useArcade';
-import { OfflineBanner, OfflineIndicator } from '@/components/OfflineIndicator';
-import { UnsyncedDataBanner } from '@/components/UnsyncedDataBanner';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
+// NOTE: OfflineBanner + UnsyncedDataBanner intentionally not rendered —
+// consolidated into the single compact OfflineIndicator in the top bar
+// so users see one calm status message, not stacked banners.
+
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { MobileQuickActions } from '@/components/mobile/MobileQuickActions';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -68,9 +71,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <OfflineBanner />
-      <UnsyncedDataBanner />
       <SidebarProvider>
+
         <div className="flex min-h-screen w-full">
         {/* Premium Sidebar */}
         <AppSidebar />

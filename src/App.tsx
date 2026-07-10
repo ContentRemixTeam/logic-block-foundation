@@ -268,8 +268,9 @@ const App = () => (
                       <Route path="/" element={<Navigate to="/dashboard" replace />} />
                       <Route path="/planner" element={<PageSuspense><PlannerLaunch /></PageSuspense>} />
                       <Route path="/90-day-planner" element={<PageSuspense><PlannerLaunch /></PageSuspense>} />
-                      <Route path="/auth" element={<Auth />} />
-                      <Route path="/login-help" element={<LoginHelp />} />
+                      <Route path="/auth" element={<PageSuspense><Auth /></PageSuspense>} />
+                      <Route path="/login-help" element={<PageSuspense><LoginHelp /></PageSuspense>} />
+
                       <Route path="/help/planner-storage" element={<PageSuspense><PlannerStorageHelp /></PageSuspense>} />
                       
                       {/* Protected routes with lazy loading */}
