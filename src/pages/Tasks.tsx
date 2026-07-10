@@ -264,7 +264,12 @@ export default function Tasks() {
         queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
       } catch (error) {
         console.error('Failed to generate recurring tasks:', error);
+        try {
+          const { gentleSaveWarning } = await import('@/lib/gentleErrorToast');
+          gentleSaveWarning('recurring-tasks', "We couldn't refresh your recurring tasks just now. We'll try again next time you open Tasks.");
+        } catch { /* noop */ }
       }
+
     };
 
     generateRecurring();

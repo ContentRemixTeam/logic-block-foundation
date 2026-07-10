@@ -63,7 +63,12 @@ export default function UsefulThoughts() {
       }
     } catch (error) {
       console.error('Failed to load backup:', error);
+      try {
+        const { gentleLoadWarning } = await import('@/lib/gentleErrorToast');
+        gentleLoadWarning('useful-thoughts-backup', "We couldn't restore your draft. Anything you type now is being saved fresh.");
+      } catch { /* noop */ }
     }
+
   }, []);
 
   // Save form to local storage on changes
@@ -78,7 +83,12 @@ export default function UsefulThoughts() {
       }
     } catch (error) {
       console.error('Failed to save backup:', error);
+      try {
+        const { gentleSaveWarning } = await import('@/lib/gentleErrorToast');
+        gentleSaveWarning('useful-thoughts-save');
+      } catch { /* noop */ }
     }
+
   }, [newThought, newThoughtCategory]);
 
   // Backup form on changes

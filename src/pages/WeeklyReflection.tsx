@@ -111,7 +111,12 @@ export default function WeeklyReflection() {
       }
     } catch (error) {
       console.error('Error loading cycle data:', error);
+      try {
+        const { gentleLoadWarning } = await import('@/lib/gentleErrorToast');
+        gentleLoadWarning('weekly-reflection-cycle', "We couldn't load your current 90-day goal. Your reflection will still save.");
+      } catch { /* noop */ }
     }
+
   };
 
   const loadReflection = async () => {
@@ -165,7 +170,12 @@ export default function WeeklyReflection() {
             }
           } catch (e) {
             console.error('Error parsing stored reflection:', e);
+            try {
+              const { gentleLoadWarning } = await import('@/lib/gentleErrorToast');
+              gentleLoadWarning('weekly-reflection-parse', "We couldn't recover your saved draft. Feel free to start fresh — nothing else was affected.");
+            } catch { /* noop */ }
           }
+
         }
       }
     } catch (error) {
