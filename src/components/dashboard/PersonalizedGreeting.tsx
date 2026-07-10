@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
+import { useDisplayName } from '@/hooks/useDisplayName';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, startOfDay, subDays } from 'date-fns';
-import { Flame, Sun, Moon, Coffee, Sparkles } from 'lucide-react';
+import { Flame, Sun, Moon, Coffee } from 'lucide-react';
 
 function getTimeOfDay() {
   const hour = new Date().getHours();
@@ -13,13 +14,6 @@ function getTimeOfDay() {
   if (hour < 17) return { greeting: 'Good afternoon', icon: Sun, emoji: '🌤️' };
   if (hour < 21) return { greeting: 'Good evening', icon: Moon, emoji: '🌆' };
   return { greeting: 'Winding down', icon: Moon, emoji: '🌙' };
-}
-
-function getFirstName(email?: string | null) {
-  if (!email) return '';
-  const name = email.split('@')[0];
-  // Capitalize and clean up
-  return name.charAt(0).toUpperCase() + name.slice(1).replace(/[._-]/g, ' ').split(' ')[0];
 }
 
 const MOTIVATIONAL_LINES = [
@@ -36,7 +30,7 @@ const MOTIVATIONAL_LINES = [
 export function PersonalizedGreeting() {
   const { user } = useAuth();
   const timeInfo = useMemo(() => getTimeOfDay(), []);
-  const firstName = useMemo(() => getFirstName(user?.email), [user?.email]);
+  const firstName = useDisplayName() ?? '';
   const motivation = useMemo(
     () => MOTIVATIONAL_LINES[new Date().getDate() % MOTIVATIONAL_LINES.length],
     []
