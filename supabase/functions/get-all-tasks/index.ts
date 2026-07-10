@@ -141,7 +141,8 @@ Deno.serve(async (req) => {
       .from('tasks')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .is('deleted_at', null);
+      .is('deleted_at', null)
+      .is('archived_at', null);
 
     // Apply smart filtering to count query too
     if (useSmartFilter) {
