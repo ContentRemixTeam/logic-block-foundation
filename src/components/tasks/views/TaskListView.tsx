@@ -51,7 +51,7 @@ interface GroupConfig {
 }
 
 const DATE_GROUPS: GroupConfig[] = [
-  { id: 'overdue', name: 'Overdue', icon: <AlertTriangle className="h-5 w-5" />, color: 'text-destructive' },
+  { id: 'overdue', name: 'Waiting for you', icon: <AlertTriangle className="h-5 w-5" />, color: 'text-waiting' },
   { id: 'today', name: 'Today', icon: <Sun className="h-5 w-5" />, color: 'text-amber-500' },
   { id: 'tomorrow', name: 'Tomorrow', icon: <Sunrise className="h-5 w-5" />, color: 'text-blue-500' },
   { id: 'thisWeek', name: 'This Week', icon: <Calendar className="h-5 w-5" /> },
