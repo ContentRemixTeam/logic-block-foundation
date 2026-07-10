@@ -2,14 +2,39 @@ import { useState, useEffect, createContext, useContext, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { clearAllOfflineData } from '@/lib/offlineDb';
+import { clearAllOfflineData, getMutationCount } from '@/lib/offlineDb';
+import { syncPendingMutations } from '@/lib/offlineSync';
+import { getPendingTaskDrafts } from '@/hooks/useResilientTaskMutation';
 import { queryClient } from '@/App';
+import { toast } from 'sonner';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signOut: () => Promise<void>;
+  signOut: (options?: { force?: boolean }) => Promise<boolean>;
+}
+
+async function countPendingWork(): Promise<number> {
+  try {
+    const [queued, drafts] = await Promise.all([
+      getMutationCount('pending').catch(() => 0),
+      Promise.resolve(getPendingTaskDrafts().length).catch(() => 0),
+    ]);
+    return (queued || 0) + (drafts || 0);
+  } catch {
+    return 0;
+  }
+}
+
+async function attemptFinalSync(): Promise<number> {
+  if (!navigator.onLine) return await countPendingWork();
+  try {
+    await syncPendingMutations();
+  } catch (err) {
+    console.warn('[useAuth] final sync attempt failed:', err);
+  }
+  return await countPendingWork();
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
