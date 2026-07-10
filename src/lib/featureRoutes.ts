@@ -14,7 +14,6 @@ export type FeatureKey =
   | 'courses'
   | 'focus_pets'
   | 'ai_writing'
-  | 'launch_tools'
   | 'coaching'
   | 'challenges';
 
@@ -22,7 +21,6 @@ export const FEATURE_DEFAULTS: Record<FeatureKey, boolean> = {
   courses: false,
   focus_pets: false,
   ai_writing: false,
-  launch_tools: false,
   coaching: false,
   challenges: false,
 };
@@ -48,12 +46,6 @@ export const FEATURE_LIST: FeatureMeta[] = [
     key: 'ai_writing',
     label: 'AI Writing Assistant',
     description: 'Draft posts, emails, and content with AI help.',
-  },
-  {
-    key: 'launch_tools',
-    label: 'Launch Tools',
-    description:
-      'Launches, summits, flash sales, webinars, content challenges, and money-momentum sprints.',
   },
   {
     key: 'coaching',
