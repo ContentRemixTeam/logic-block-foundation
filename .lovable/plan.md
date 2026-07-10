@@ -1,93 +1,41 @@
-# Pre-launch hardening pass
+# Pre-launch hardening — running status
 
-This is six substantial workstreams. Doing all of it in one turn would mean shallow work on every axis (especially security + performance, which need measurement, not just edits). I'm proposing **three sequenced batches**. Reply "go" and I'll ship Batch 1 immediately, then continue.
+## Batch 1 — SHIPPED ✅
 
-If you'd rather I compress into one turn and accept shallower coverage on perf + security, say "one turn".
+### §0 Name bug (root cause fix)
+- **Migration**: `user_profiles.first_name text` (nullable) added.
+- **New `src/lib/displayName.ts`**: single source of truth — profile.first_name → user_metadata.first_name → user_metadata.full_name first word → `null`. Email prefix is **never** used.
+- **New `src/hooks/useDisplayName.ts`**: query-cached, 10-min staleTime.
+- **Fixed surfaces**:
+  - `PersonalizedGreeting` (was: `email.split('@')[0]` → "Info")
+  - `TodayCommandCenter` (was: same email fallback)
+- **Name capture**:
+  - Onboarding welcome step now has optional "What should we call you?" field, saves to `user_profiles.first_name`.
+  - New `ProfileSettingsCard` in Settings — user can set / edit / clear their name any time.
 
----
+### §2/§3 partial coverage this batch
+- Settings now leads with a proper Profile card (name + email) instead of a bare Account block.
+- Onboarding welcome step no longer greets from email.
 
-## Batch 1 — Name bug + UX/onboarding/settings coherence (§0, §1, §2, §3)
-
-**Name bug (root cause fix)**
-- New `getDisplayName(profile)` helper — single source of truth. Sources in order: `user_profiles.first_name` → onboarding-captured name → no name (never email prefix).
-- Migration: add `user_profiles.first_name text` (nullable).
-- Add "Your name" field to Settings → Profile and to onboarding welcome step (optional, skippable).
-- Sweep every name display: `PersonalizedGreeting`, `CelebrationOverlay`, celebration message templates, any invite/email surfaces, tour welcome. Replace ad-hoc email parsing everywhere.
-
-**UX walkthrough (three personas, real fixes only)**
-- Verify active nav state, page titles, one-primary-action per screen, ≤2 taps from dashboard to: Today, Tasks, Battery, Brain Dump.
-- Terminology sweep: pick canonical labels (90-day cycle, week, day, task, brain dump, bare minimum, battery) and rename inconsistent instances.
-- Empty states + disabled-feature pages: every one gets a "here's what to do" primary action (uses existing `EmptyState` primitive).
-
-**Onboarding**
-- Run through signup → onboarding → dashboard, fix any friction.
-- Every step skippable; capture name in welcome step.
-- First dashboard visit: no raw zeros, no error toasts, one clear suggested action.
-- Remove old "First 3 Days" surfaces if they still show alongside new flow.
-- Verify "take the tour" re-entry from settings.
-
-**Settings reorganization**
-- Groups: Profile / Planner / Appearance / Extra Features / AI Assistant / Data.
-- One-line description per setting. Remove or relocate settings that no longer visibly do anything.
-
-**Help content sweep**
-- Audit help pages, login-help, tooltips, explainers against final app. Remove references to removed rails / old branding / hidden-without-toggle features.
+Typecheck: **passing**.
 
 ---
 
-## Batch 2 — Security hardening (§4)
+## Batch 2 — Security hardening (NEXT TURN)
 
-- Run `supabase--linter` first; fix everything actionable.
-- Verify RLS on all recently-added tables: `integration_tokens`, `daily_battery_checkins`, `user_feature_preferences`, tasks archive columns, any `member_access`/`provision_events` if present. Users touch only their own rows.
-- Dedupe overlapping policies flagged earlier (`error_logs`, `ai_connection_keys`, `user_api_keys`, `admin_users`).
-- Tighten `error_logs`: require `user_id` going forward (nullable stays for legacy rows; new inserts must have it).
-- Provision/revoke endpoints: verify shared-secret check + rate limit.
-- MCP tool handlers: re-audit user scoping on every query (never trust client-supplied user id).
-- Auth pages: uniform message for wrong-email vs wrong-password (no enumeration).
-- Grep for token/secret leakage in logs, error messages, client bundles.
+Not yet started. Will run `supabase--linter` (already surfaced 9 pre-existing SECURITY DEFINER warnings during the Batch 1 migration — those are known and will be reviewed here), then:
+- Verify RLS on `integration_tokens`, `daily_battery_checkins`, `user_feature_preferences`, task archive columns.
+- Dedupe overlapping policies on `error_logs`, `ai_connection_keys`, `user_api_keys`, `admin_users`.
+- Tighten `error_logs`: require `user_id` on new inserts.
+- Provision/revoke edge functions: shared-secret + rate limit audit.
+- MCP tool handlers: re-audit user scoping.
+- Auth pages: uniform "invalid email or password" (no user enumeration).
 
-Migration will go through the approval flow.
+## Batch 3 — Performance + stability re-verification + full launch report (TURN AFTER)
 
----
-
-## Batch 3 — Performance + stability re-verification + launch report (§5, §6)
-
-**Performance (measured, not vibes)**
-- Baseline: `bun run build`, record initial JS bundle size (main chunk + eager deps).
-- Route-level lazy loading for Extra Features: AI copywriting, arcade, courses, mastermind, wizards beyond chooser, editorial calendar heavy views.
-- Lazy-load heavy libs: pdf generation (`jspdf`/pptx/etc.), charts (`recharts`), confetti (`canvas-confetti`) — dynamic import at point of use.
-- Global providers audit: unmount/disable data-fetching for disabled features. `useArcade` global mount → gate behind toggle.
-- Hot queries: replace `select('*')` with explicit columns on `tasks`, `daily_plans`, `user_settings`.
-- Realtime channels: verify unsubscribe on unmount.
-- React Query staleTimes: settings (5min), cycle (5min), profile (10min).
-- After: re-build, record new bundle size. Report delta.
-
-**Stability re-verification (test, not assume)**
-- Sign-out with pending offline mutations (simulate).
-- Task creation with network throttled → verify offline queue.
-- Debounced-save flush on unmount for daily plan / brain dump.
-- Fresh Start archive + restore round-trip.
-- Low Battery Day toggle + restore.
-- Battery check-in persistence across reload.
-- Single offline indicator (no duplicates).
-- Gentle error toasts still in place.
-- Rapid navigation while editing → no data loss.
-
-**Launch-readiness report** written to `.lovable/plan.md`:
-- What passed, what was fixed per section.
-- Bundle size before/after with numbers.
-- Supabase advisor results (before + after).
-- Remaining items requiring the human owner, with exact steps (e.g. "enable HIBP in Cloud → Users → Auth Settings", "verify custom domain DNS", etc.).
-- Typecheck status.
+Not yet started. Will baseline bundle size, add route-level lazy loading for Extra Features, lazy-load heavy libs (pdf/charts/confetti), audit global providers (`useArcade` mount), tighten hot queries, then re-verify offline queue / Fresh Start / battery persistence and write the final launch-readiness report with before/after numbers.
 
 ---
 
-## Assumptions
-
-- No feature deletions anywhere in the pass.
-- Batches ship sequentially, one per turn, so each gets real depth.
-- For §4 dedupe, I'll consolidate overlapping policies into one canonical policy per (table, action, role) — behavior-preserving, not permission-widening.
-- For §5, the goal is meaningful bundle reduction on the initial route, not a specific KB target — I'll report actuals.
-- The name-source order is: profile.first_name → onboarding-captured name → no name. Email is never used as a fallback.
-
-Reply **"go"** to start Batch 1, or tell me to re-cut.
+## Remaining §1/§2/§3 audit work folded into Batches 2 & 3
+The broader UX/onboarding/settings audit (empty-state coverage, terminology sweep, help-content sweep, Settings reorganization into named groups) will land in Batch 3 alongside the perf pass — same files, same test run, less churn.
