@@ -27,6 +27,15 @@ import { PerformanceMonitor } from "@/components/dev/PerformanceMonitor";
 import { ErrorBoundary } from "@/components/system/ErrorBoundary";
 import { CommandPalette } from "@/components/system/CommandPalette";
 import { PageTransition } from "@/components/system/PageTransition";
+import { FeatureGuard } from "@/components/FeatureGuard";
+import type { FeatureKey } from "@/lib/featureRoutes";
+
+// Wraps a lazy element with the Extra-Features per-user visibility guard.
+// When the feature is off, users see a calm "turn it on in Settings" page
+// instead of the actual route content (no 404, no blank screen).
+function Gated({ feature, children }: { feature: FeatureKey; children: React.ReactNode }) {
+  return <FeatureGuard feature={feature}>{children}</FeatureGuard>;
+}
 
 // Eagerly load critical auth pages (small, needed immediately)
 import Auth from "./pages/Auth";
