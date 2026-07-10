@@ -96,7 +96,7 @@ const CAPTURE_NAV = [
 ];
 
 const GROW_NAV = [
-  { name: 'Money Moves', href: '/money-moves-sprint', icon: DollarSign, questIcon: '💵', feature: 'launch_tools' as FeatureKey },
+  { name: 'Money Moves', href: '/money-moves-sprint', icon: DollarSign, questIcon: '💵' },
   { name: 'Progress', href: '/progress', icon: TrendingUp, questIcon: '📊' },
   { name: 'Learning', href: '/courses', icon: GraduationCap, questIcon: '🎓', feature: 'courses' as FeatureKey },
   { name: 'Mindset', href: '/mindset', icon: Compass, questIcon: '🧠', isActiveCheck: (path: string) => path === '/mindset' || path.includes('useful-thoughts') || path.includes('belief-builder') || path.includes('identity-anchors') || path.includes('self-coaching') || path.includes('coaching-log') },
