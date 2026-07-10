@@ -6,6 +6,7 @@ import { useTodayBattery } from '@/hooks/useBatteryCheckin';
 import { matchesBattery } from '@/lib/energyMatching';
 import { BatteryHeaderChip } from '@/components/battery/BatteryHeaderChip';
 import { triggerCelebration } from '@/components/celebrations/CelebrationOverlay';
+import { useCelebrate } from '@/hooks/useCelebrate';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
