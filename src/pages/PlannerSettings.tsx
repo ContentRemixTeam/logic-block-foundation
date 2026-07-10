@@ -6,6 +6,7 @@ import { Settings, Check, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usePlannerPreferences, PLANNER_STYLE_PRESETS, PlannerStyle } from '@/hooks/usePlannerPreferences';
 import { PlannerPreferencesStep } from '@/components/cycle/PlannerPreferencesStep';
+import { BareMinimumTemplateSection } from '@/components/settings/BareMinimumTemplateSection';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 
