@@ -63,11 +63,13 @@ export default function UsefulThoughts() {
       }
     } catch (error) {
       console.error('Failed to load backup:', error);
-      try {
-        const { gentleLoadWarning } = await import('@/lib/gentleErrorToast');
-        gentleLoadWarning('useful-thoughts-backup', "We couldn't restore your draft. Anything you type now is being saved fresh.");
-      } catch { /* noop */ }
+      import('@/lib/gentleErrorToast')
+        .then(({ gentleLoadWarning }) =>
+          gentleLoadWarning('useful-thoughts-backup', "We couldn't restore your draft. Anything you type now is being saved fresh."),
+        )
+        .catch(() => {});
     }
+
 
   }, []);
 
@@ -83,11 +85,11 @@ export default function UsefulThoughts() {
       }
     } catch (error) {
       console.error('Failed to save backup:', error);
-      try {
-        const { gentleSaveWarning } = await import('@/lib/gentleErrorToast');
-        gentleSaveWarning('useful-thoughts-save');
-      } catch { /* noop */ }
+      import('@/lib/gentleErrorToast')
+        .then(({ gentleSaveWarning }) => gentleSaveWarning('useful-thoughts-save'))
+        .catch(() => {});
     }
+
 
   }, [newThought, newThoughtCategory]);
 
