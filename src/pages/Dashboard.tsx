@@ -412,8 +412,8 @@ export default function Dashboard() {
         {/* Install Banner for mobile */}
         <InstallBanner />
 
-        {/* Monthly Challenge Auto-Popup */}
-        <MonthlyChallengeAutoPopup />
+        {/* Monthly Challenge Auto-Popup — only when Challenges feature is on */}
+        {isEnabled('challenges') && <MonthlyChallengeAutoPopup />}
 
         {/* Header with Personalized Greeting */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
