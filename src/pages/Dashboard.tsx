@@ -191,6 +191,36 @@ export default function Dashboard() {
   const { data: cycle, isLoading: cycleLoading } = useActiveCycle();
   const { data: launches = [], isLoading: launchesLoading } = useActiveLaunches();
   const { isEnabled } = useFeatureToggles();
+  const celebrate = useCelebrate();
+
+  // Cycle milestone celebrations — 25 / 50 / 75 / 100. Each fires once per
+  // cycle (stored in localStorage keyed by cycle_id).
+  useEffect(() => {
+    if (!cycle?.cycle_id) return;
+    const progress = (() => {
+      if (!cycle.start_date) return 0;
+      const start = parseISO(cycle.start_date);
+      const currentDay = Math.min(Math.max(0, differenceInDays(new Date(), start)) + 1, 90);
+      return Math.round((currentDay / 90) * 100);
+    })();
+    const thresholds: Array<[number, 'cycle_milestone_25' | 'cycle_milestone_50' | 'cycle_milestone_75' | 'cycle_milestone_100']> = [
+      [100, 'cycle_milestone_100'],
+      [75, 'cycle_milestone_75'],
+      [50, 'cycle_milestone_50'],
+      [25, 'cycle_milestone_25'],
+    ];
+    for (const [threshold, moment] of thresholds) {
+      if (progress >= threshold) {
+        const key = `lbb-cycle-milestone-${cycle.cycle_id}-${threshold}`;
+        if (typeof window !== 'undefined' && !localStorage.getItem(key)) {
+          localStorage.setItem(key, new Date().toISOString());
+          celebrate(moment);
+        }
+        break; // only fire the highest reached this render
+      }
+    }
+  }, [cycle?.cycle_id, cycle?.start_date, celebrate]);
+
   
   // Get the next upcoming launch (first one since they're ordered by cart_opens)
   const nextLaunch = launches[0] || null;
