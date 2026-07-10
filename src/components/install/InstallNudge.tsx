@@ -8,21 +8,26 @@ import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { PhoneQRDialog } from './PhoneQRDialog';
 
 const DISMISS_KEY = 'install_nudge_dismissed_at';
-const DISMISS_DAYS = 7;
+const SHOWN_COUNT_KEY = 'install_nudge_shown_count';
+const MAX_SHOWS = 2;
+const DISMISS_DAYS = 30;
 const SHOW_DELAY_MS = 8000;
 
 // Routes where the nudge should never appear (auth, install flow itself, etc.)
 const HIDDEN_ROUTES = ['/auth', '/install', '/install-quick-add', '/install-success', '/login-help', '/~oauth'];
 
-function isDismissed(): boolean {
+function shouldSuppress(): boolean {
   try {
+    const shown = parseInt(localStorage.getItem(SHOWN_COUNT_KEY) || '0', 10);
+    if (shown >= MAX_SHOWS) return true;
     const dismissed = localStorage.getItem(DISMISS_KEY);
-    if (!dismissed) return false;
-    const dismissedAt = parseInt(dismissed, 10);
-    const daysSince = (Date.now() - dismissedAt) / (1000 * 60 * 60 * 24);
-    return daysSince < DISMISS_DAYS;
-  } catch {
+    if (dismissed) {
+      const daysSince = (Date.now() - parseInt(dismissed, 10)) / (1000 * 60 * 60 * 24);
+      if (daysSince < DISMISS_DAYS) return true;
+    }
     return false;
+  } catch {
+    return true;
   }
 }
 
@@ -46,8 +51,16 @@ export function InstallNudge() {
 
   useEffect(() => {
     if (isStandalone()) return;
-    if (isDismissed()) return;
-    const t = setTimeout(() => setVisible(true), SHOW_DELAY_MS);
+    if (shouldSuppress()) return;
+    const t = setTimeout(() => {
+      setVisible(true);
+      try {
+        const shown = parseInt(localStorage.getItem(SHOWN_COUNT_KEY) || '0', 10);
+        localStorage.setItem(SHOWN_COUNT_KEY, String(shown + 1));
+      } catch {
+        /* ignore */
+      }
+    }, SHOW_DELAY_MS);
     return () => clearTimeout(t);
   }, []);
 
