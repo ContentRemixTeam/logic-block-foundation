@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useTodayBattery, BATTERY_LEVELS, type BatteryLevel } from '@/hooks/useBatteryCheckin';
+import { useBatteryPromptEnabled } from '@/hooks/useBatteryPromptEnabled';
 import { cn } from '@/lib/utils';
 
 const dismissKey = (date: string) => `battery_prompt_dismissed_${date}`;
@@ -19,10 +20,12 @@ interface Props {
  */
 export function BatteryCheckinPrompt({ force, open: controlledOpen, onOpenChange }: Props) {
   const { hasChecked, setLevel, date, level } = useTodayBattery();
+  const { enabled: promptEnabled } = useBatteryPromptEnabled();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (force) return; // controlled
+    if (!promptEnabled) return; // user disabled the auto-prompt
     if (hasChecked) return;
     if (typeof window === 'undefined') return;
     const dismissed = window.localStorage.getItem(dismissKey(date));
@@ -30,7 +33,14 @@ export function BatteryCheckinPrompt({ force, open: controlledOpen, onOpenChange
     // Small delay so it doesn't slam in with the page render
     const t = window.setTimeout(() => setOpen(true), 800);
     return () => window.clearTimeout(t);
-  }, [hasChecked, date, force]);
+  }, [hasChecked, date, force, promptEnabled]);
+
+  // If the user turns the setting off while the auto-prompt is showing, close it.
+  useEffect(() => {
+    if (!force && !promptEnabled && open) setOpen(false);
+  }, [promptEnabled, force, open]);
+
+
 
   const isOpen = controlledOpen ?? open;
   const setIsOpen = (v: boolean) => {
