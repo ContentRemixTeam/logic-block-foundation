@@ -1,159 +1,176 @@
-# Comprehensive Audit — Boss Planner → "Low Battery Business Planner"
+# Simplify around the rebrand — hide, never delete
 
-Read-only report. No code changes. Findings backed by file paths, line numbers, and SQL queries against the live database. (Full version saved at `.lovable/plan.md`.)
+Everything stays in the codebase and database. This adds a per-user visibility layer, reorders the dashboard, and softens tone on core pages. Nothing is removed.
+
+Before I start: two decisions I'd like to confirm — see **Assumptions** at the end.
 
 ---
 
-## 1. Data Integrity & Save Architecture — Risk: **HIGH**
+## 1. Feature-toggle backend
 
-**How saving actually works:**
+**Storage.** Add one JSONB column to the existing `user_settings` table rather than a new table:
 
-```text
-Component state
-  → React Query mutation → supabase.functions.invoke('manage-task' / 'save-*')   [primary]
-  → useLocalStorageSync / useFormDraftProtection → localStorage + IDB('drafts')  [draft net]
-  → usePeriodicBackup → IDB('backups') every 5 min                               [snapshot]
-  → useBeforeUnload → emergencySave → sendBeacon + localStorage + IDB            [crash net]
-  → useOfflineSync + offlineDb('mutationQueue') → edge fns on reconnect          [offline queue — partial]
+```sql
+ALTER TABLE public.user_settings
+ADD COLUMN feature_toggles JSONB NOT NULL DEFAULT '{}'::jsonb;
 ```
 
-One IndexedDB (`boss-planner-offline`, v2, 9 stores) via `src/lib/offlineDb.ts`. Infrastructure itself is well-engineered. The **wiring** is the problem.
+Reads happen alongside the rest of settings (one row, already cached). Merging with a defaults constant in code means we never write until the user actually flips a switch.
 
-**4 overlapping "you're offline / have unsynced data" UIs** all read the same `useOfflineSync()` state and can render simultaneously: `OfflineBanner` (Layout.tsx:71), `UnsyncedDataBanner` (Layout.tsx:72), `OfflineIndicator` badge (Layout.tsx:124), `OfflineDetector` toasts. Plus 3 separate "we found unsaved data" UIs (`DraftRestoreBanner`, `DataRecoveredPopup`, `ConflictResolutionModal` wired only into 2 review pages).
+**Feature keys (all default OFF for new users):**
 
-**Concrete data-loss holes (worst first):**
+| Key | Label | Description |
+|---|---|---|
+| `courses` | Courses & Study Plans | Track courses you're taking and build gentle study plans |
+| `focus_pets` | Focus Pets & Rewards | Little companions, quests, and small celebrations while you work |
+| `ai_writing` | AI Writing Assistant | Draft posts, emails, and content with AI help |
+| `launch_tools` | Launch Tools | Launches, summits, flash sales, webinars, content challenges, money-momentum sprints |
+| `coaching` | Coaching & Mastermind Tools | Mastermind hub, office hours, coaching log & prep |
+| `challenges` | Challenges & Celebrations | Monthly challenges, streaks, celebration overlays |
 
-1. **Sign-out unconditionally destroys the offline queue.** `useAuth.tsx:66-96` → `clearAllOfflineData()` (`offlineDb.ts:466`) wipes `mutationQueue`/`drafts`/`backups`/`emergencySaves` with no `getPendingCount()` check. Sign-out or session-expiry auto-signout with pending writes = silent loss.
-2. **Task creation has zero offline resilience.** `useTasks.tsx:389-458` — `onError` (438) only toasts. `useOfflineTasks.tsx` and `useOfflineSafeWrite.ts` are fully built but **dead code**. `useResilientTaskMutation` is used only by `CycleWizard`.
-3. **Debounce-unmount race in `useServerSync.ts`.** Cleanup (206-215) clears the 2s timer but doesn't flush. ~2s loss window on every navigation during autosave.
-4. **Mutation queue fixed table whitelist** (`offlineSync.ts:59-96`). Unlisted tables → `default:` branch → `console.warn` + `return false`; mutation stays `pending` forever.
-5. **`emergencySave` recovery only reads localStorage.** IDB `emergencySaves` and server beacon are write-only (`getEmergencySaves()` in offlineDb.ts:714 has no callers).
-6. **`emergencySave` beacon fails silently** if Supabase localStorage key format changes or token expired (`emergencySave.ts:36-55`).
-7. **"Discard Changes"** in `UnsyncedDataRecovery.tsx:53-65` permanently deletes with only a toast, no undo.
-8. **Two parallel Sheets backup queues.** `sheetsPrimaryTaskService.ts` (fully built, zero callers, live landmine if `plannerSheetRollout.ts` flag flips) and `shadowTaskSync.ts` (fire-and-forget after Supabase success). Neither is cross-referenced with `offlineDb.mutationQueue`. Retry only from Settings, not on reconnect.
-9. **Cross-tab conflict is last-write-wins by timestamp** (`useLocalStorageSync.ts:96-117`); only 2 pages route into a real merge UI.
+**Auto-enable migration (one-time backfill so no existing user loses anything):**
 
-**Rating: HIGH.** Not Critical only because the infrastructure is sound and daily/weekly/cycle drafts are actually protected.
+For every user, check the relevant tables and set the matching key to `true`:
 
----
+- `courses` → any row in `courses` or `course_study_plans`
+- `focus_pets` → any row in `arcade_wallet`, `arcade_daily_pet`, `arcade_game_sessions`, `arcade_pomodoro_sessions`, `hatched_pets`, `earned_trophies`
+- `ai_writing` → any row in `ai_copy_generations`, `ai_connection_keys`, `user_api_keys`, `brand_profiles`, `messaging_frameworks`
+- `launch_tools` → any row in `launches`, `launch_templates`, `launch_debriefs`, `summits`, `summit_speakers`, `flash_sales`, `webinars`, `content_challenges`, `revenue_sprints`, `money_moves_sprint_trackers`
+- `coaching` → any row in `coaching_entries`, `coaching_call_prep`, `office_hours`, `user_mastermind_rsvps`
+- `challenges` → any row in `user_monthly_challenges`, `user_badges`, `earned_trophies`
 
-## 2. Database & Security — Overall: **Solid**
+Written as a single SQL `UPDATE ... SET feature_toggles = feature_toggles || jsonb_build_object(...)` per key, guarded by `EXISTS` subqueries. Idempotent.
 
-Universal RLS coverage, `auth.uid()` scoping, no `anon` grants, all 26 SECURITY DEFINER functions pin `search_path`. **Zero Critical findings.**
+**Client hook.** New `src/hooks/useFeatureToggles.ts`:
 
-- **High:** `error_logs.user_id` nullable + two overlapping INSERT policies both allow `user_id IS NULL` (orphan PII rows nobody can delete). Duplicate policies on `ai_connection_keys`, `user_api_keys`, `error_logs`, `admin_users`.
-- **Medium:** `admin_users.user_id` nullable with email-fallback matching; blanket `USING (true)` SELECT on `feature_flags`/`feature_releases`/`wizard_templates`; public INSERT on `workshop_testimonials` with no rate limit; ~55 tables missing `created_at`/`updated_at` (including `error_logs`, `time_entries`, `sales_log`, `task_schedule_history`).
-- **Low:** **44 tables have 0 rows** across all users (`launches`, `evidence_bank`, `content_challenges`, `flash_sales`, `summits`, `webinars`, courses tables, `revenue_sprints`, `email_campaigns`, `feature_requests`, `financial_transactions`, +30 more) — data-layer confirmation of the feature bloat in §4. `launches` needs a `(user_id, status/date)` composite index before it fills.
+```ts
+export const FEATURE_DEFAULTS = { courses: false, focus_pets: false, ai_writing: false,
+  launch_tools: false, coaching: false, challenges: false };
 
-Indexes on the hot tables (tasks, daily_plans, weekly_plans, cycles_90_day, content_items, journal_pages, habit_logs, evidence_bank) are strong.
+export function useFeatureToggles(): {
+  toggles: FeatureToggles;
+  isEnabled: (key: FeatureKey) => boolean;
+  setToggle: (key: FeatureKey, value: boolean) => Promise<void>;
+  isLoading: boolean;
+};
+```
 
----
-
-## 3. Auth — Risk: **HIGH** (mid-edit safety)
-
-- `/auth` and `/login-help` render **outside** `PageSuspense`/`ErrorBoundary` (App.tsx:271-272). Login-screen crash = true white screen.
-- **No unsaved-changes guard between `signOut()` and any open form** (compounds §1 hole #1).
-- **Session expiry mid-edit** — `onAuthStateChange` triggers `queryClient.clear()` (useAuth.tsx:43-46) with no warning; open pages lose their cache under active editing.
-- Password reset (`Auth.tsx` `isForgotPassword` mode) — validation is skipped in that mode (reasonable) but the full submit/error path wasn't sampled.
-- Google OAuth via edge functions (`google-oauth-start`, `google-oauth-callback`); no client-side callback error handling visible.
-
----
-
-## 4. Feature Inventory & Bloat
-
-~85 routes across essentially three different products bolted together.
-
-**KEEP (core value for target user):** Daily/Weekly/Monthly/Quarterly planning + 90-day cycles; tasks, brain dump, notes, wins, open loops; financial tracker (simplified); one lightweight onboarding + PWA install; one consolidated Reflections surface.
-
-**SIMPLIFY:**
-- **Mindset sprawl** — 5 overlapping pages (`Mindset`, `UsefulThoughts`, `BeliefBuilder`, `IdentityAnchors`, `SelfCoaching` + `Evidence`) → merge into one Reflections feature.
-- **Content planner + editorial calendar + AI copywriting** = **59 files** (`ai-copywriting/` alone = 22). Keep calendar; reduce AI copy to a single optional assist button or cut.
-- **Google integrations** — keep Calendar if lifetime buyers expect it, cut Sheets sync unless demanded. OAuth-token maintenance is a real recurring cost for a low-priced lifetime product.
-- **Themes/seasonal/challenges/badges** — keep visual skin; cut challenge/streak/celebration mechanics (pressure ≠ calm).
-- **Focus/pomodoro** — keep simple timer, cut arcade/quest/pet layer (`arcade/` 12 + `quest/` 7 + `timer/` 3).
-- **Wizards** — `src/components/wizards/` is **152 files**, largest folder in the repo. Kill Summit / Flash Sale / Content Challenge / Money Momentum / Webinar as separate wizards; keep one generic template.
-- **Habits/evidence/beliefs/identity** — consolidate.
-
-**CUT:**
-- `src/pages/Index.tsx` — Vite scaffold, not routed.
-- `LaunchWizardPage` v1 at `/wizards/launch-v1` — v2 exists.
-- **Mastermind hub, roster import, office hours, coaching log/prep, money-moves-sprint, prizes/community panels, podcast widget** (~20 files) — bespoke group-coaching infrastructure; highest mismatch with a self-serve lifetime-deal rebrand.
-- **Courses / study system** (unless the rebrand ships a course).
-- **Arcade / quest / gamification** — contradicts "calm."
-- **Dead offline hooks** — `useOfflineTasks.tsx`, `useOfflineSafeWrite.ts` (never imported).
-- **`SheetsPrimaryTaskService`** — zero callers, landmine.
-
-**Net:** cutting mastermind + wizards + AI copy + arcade + courses removes 200+ files.
+Backed by the existing `user_settings` query; writes go through a mutation that patches the JSONB and invalidates the settings cache. Optimistic update so the sidebar changes instantly.
 
 ---
 
-## 5. Error Handling & Stability — Risk: **HIGH**
+## 2. Route & nav guarding
 
-- Route-scoped `ErrorBoundary` via `PageSuspense` is done well (App.tsx:239-247). **Exception: `/auth` and `/login-help` unprotected.**
-- ~1,537 catch blocks; no fully empty ones, but most log to console with **no user toast**.
-- **Top 10 silent-catch spots to fix:** `useMonthlyTheme.ts:76-77` (explicit "silent" comment), `WeeklyReflection.tsx:112-114`, `WeeklyReflection.tsx:242-244`, `UsefulThoughts.tsx:64-97`, `Tasks.tsx:265-267` (recurring generation silently stops), `useCrossTabSync.ts:165-234` (4 spots), `emergencySave.ts:138-180` (last-resort layer, silent), `pdfGenerator.ts:589-596`, `DailyPageSettings.tsx:218-220`, `useLocalStorageSync.ts:188-190` (corrupted local data silently discarded).
+**Route → feature map** in a single file (`src/lib/featureRoutes.ts`) so nav + guard + settings share one source of truth:
 
----
+```
+/courses, /courses/:id              → courses
+/arcade, /focus, /quest, /timer     → focus_pets
+/ai-copywriting, /content-vault     → ai_writing
+/wizards/launch, /wizards/launch-v2, /wizards/summit,
+  /wizards/money-momentum, /wizards/content-challenge,
+  /launch-debrief, /sprint-dashboard  → launch_tools
+/mastermind, /mastermind/*, /office-hours,
+  /coaching-log, /coach-prep         → coaching
+/challenges, /monthly-theme routes   → challenges
+```
 
-## 6. Performance & Cost — Risk: **MEDIUM**
+Everything else stays core.
 
-- Heavy deps: `framer-motion`, `recharts`, `jspdf` + `html2canvas` (expensive), `@sentry/react` v10, `embla-carousel`, three `@dnd-kit/*`. AI SDKs kept server-side (right pattern).
-- Realtime: 4 `.channel()` calls; verify `useTasks` unsubscribes on unmount.
-- ~140 edge functions, narrow CRUD-per-entity, cold-start prone. `google-token-keepalive` suggests a cron — verify cost.
-- 107 `select('*')` occurrences; watch `useTasks`, `useUserSettingsRow`, `useArcade` (mounted globally), `useAICopywriting` (6× in one file).
-- React Query config (App.tsx:168-187) is sensible.
+**Guarded routes.** New `<FeatureGuard feature="courses">…</FeatureGuard>` wrapper. When disabled, renders a calm `FeatureDisabledPage`:
 
----
+> **This feature is turned off**
+> You can turn it on any time in Settings → Extra Features.
+> [ Open Settings ] [ Go home ]
 
-## 7. Mobile, PWA & Accessibility — Risk: **HIGH (PWA reality vs. claim)**
+Never a 404. Never a blank screen. Uses the same padded card layout as the empty states we already have.
 
-- **`public/sw.js` is a self-destroying kill-switch worker** — deletes all caches and unregisters itself on activate. **The PWA has zero offline caching.** IDB fallbacks in `emergencySave`/`useLocalStorageSync` are the only offline mechanism, decoupled from the SW. Any marketing claim of "offline mode" is false today.
-- Manifest well-formed; `ManifestSwitcher` handles dual planner/quick-add setup correctly; install flow (`src/components/install/*`, 9 files) is thorough.
-- `MobileBottomNav`: `h-16`, `min-w-[64px]`, `touch-manipulation` — good.
-- **A11y gaps:** 163 hardcoded color utilities in `.tsx` (breaks theming/contrast); 186 `size="icon"` buttons — majority lack `aria-label`; 3 `<img>` tags missing `alt`.
-
----
-
-## 8. Launch-Readiness Priorities
-
-### (A) Critical — must fix before selling "your data is safe"
-1. Guard sign-out against pending offline data (`useAuth.tsx:66`).
-2. Route `useTasks.createTask` through the offline mutation queue (`useTasks.tsx:389`).
-3. Flush pending debounced saves on unmount in `useServerSync` (line 206).
-4. Wrap `/auth` + `/login-help` in `ErrorBoundary` (App.tsx:271-272).
-5. Replace the kill-switch SW with real offline shell (via `vite-plugin-pwa`, already installed) OR remove all "offline" language from marketing (`public/sw.js`).
-6. Delete `SheetsPrimaryTaskService` (dead landmine).
-7. Tighten `error_logs` RLS + dedupe overlapping policies on 4 tables.
-8. Wire user-visible errors into the top-10 silent catches, especially `emergencySave`.
-
-### (B) High-value
-9. Delete dead code: `src/pages/Index.tsx`, `LaunchWizardPage` v1, `useOfflineTasks.tsx`, `useOfflineSafeWrite.ts`.
-10. Consolidate 4 overlapping offline/unsynced UI surfaces into 1.
-11. Cut mastermind/office-hours/coaching-log/money-moves-sprint (~20 files, ~15 empty tables).
-12. Reduce `wizards/` (152 files) to one generic Launch/Project template wizard.
-13. Merge 5 mindset pages into 1 Reflections surface.
-14. Cut arcade/quest/gamification.
-15. Add `aria-label` to icon-only buttons; replace 163 hardcoded colors with semantic tokens.
-16. Add `created_at` to `error_logs`, `time_entries`, `sales_log`, `task_schedule_history`.
-17. Backfill `admin_users.user_id` and drop the email-fallback policy branch.
-18. Verify `useTasks` realtime channel unsubscribes on unmount.
-19. Audit `useAICopywriting`'s 6× `select('*')`.
-20. Replace `jspdf + html2canvas` with a lighter server-side PDF path if PDF is kept.
-
-### (C) Nice-to-have
-21. Run `depcheck` to remove unused deps.
-22. Drop v1 launch wizard code once rollout complete.
-23. Consolidate two Sheets pending-write queues + `offlineDb.mutationQueue` into one source of truth.
-24. Unify near-duplicate `useFormDraftProtection` + `useLocalStorageSync`.
-25. Wire `ConflictResolutionModal` into daily/weekly/cycle surfaces or delete.
-26. Add composite `(user_id, status)` / `(user_id, date)` index on `launches`.
-27. Review Google OAuth callback client-side error handling.
-28. Reduce theme/challenge/badge system to a subtle togglable skin.
+**Sidebar (`AppSidebar.tsx`) & mobile bottom nav (`MobileBottomNav.tsx`).** Each nav item declares an optional `feature` key; `isEnabled(item.feature ?? core)` filters the list. No item ever hard-disappears if it's core.
 
 ---
 
-### Bottom line
+## 3. Core (always visible) surface
 
-**Infrastructure** for data safety is impressively thorough — better than most SaaS at this scale. **Wiring** is inconsistent: the most-used write path (task creation) is unprotected, sign-out destroys the queue, and the marquee offline-recovery UI sits on a service worker that does nothing. **Product surface** is at least 2× larger than the "calm chronically-ill founder" positioning warrants — shrinking it reduces data-loss surface area, hosting cost, and user cognitive load simultaneously.
+Dashboard, Today, Weekly, Monthly, 90-Day Cycle, Tasks, Brain Dump, Notes/Reflections, Content calendar (editorial calendar), Financial tracker, Settings.
 
-Fix the 8 Critical items and the app is genuinely safe to sell.
+Anything not in that list and not in the toggle map still exists in the codebase and remains reachable by direct URL — it just doesn't show up in nav for the default user. (This matters for lesser-used pages like Support, SOPs, Wins, Ideas — they're not features to hide, just secondary.)
+
+---
+
+## 4. Dashboard reorder — cycle-first
+
+Rework `src/pages/Dashboard.tsx` visual hierarchy:
+
+```text
+┌─────────────────────────────────────────┐
+│  90-Day Cycle — [Goal]                  │  ← hero, largest
+│  Day 34 of 90 · progress bar            │
+├─────────────────────────────────────────┤
+│  This week's focus                      │  ← medium
+│  • Priority 1  • Priority 2  • Priority 3│
+├─────────────────────────────────────────┤
+│  Today                                  │  ← medium
+│  Top 3 · quick link into Daily Plan     │
+├─────────────────────────────────────────┤
+│  (Optional widgets, only if enabled)    │  ← small, calm
+└─────────────────────────────────────────┘
+```
+
+- Any widget belonging to a disabled feature (arcade pet, mastermind card, launch countdown, monthly challenge, course reminders, AI drafts) returns `null` when its feature is off.
+- If no cycle exists yet: the hero becomes a gentle "Start your first 90-day cycle" card instead of empty scaffolding.
+- Strip the current widget stack down to the three-block hero; keep the rest available but visually secondary.
+
+I'll list every dashboard widget I touch in the change summary so you can spot-check.
+
+---
+
+## 5. Tone pass (core pages only)
+
+Sweep the copy in: Dashboard, Today/DailyPlan, WeeklyPlan, MonthlyReview, CycleView/CycleSetup, Tasks, BrainDump, Notes, EditorialCalendar, FinancialTracker, Settings, and shared Layout/empty-state components.
+
+Replace hustle language with calm, energy-aware language. Examples:
+
+| Before | After |
+|---|---|
+| "Crush your goals" | "Make gentle progress" |
+| "Dominate this week" | "Shape your week" |
+| "Power through your tasks" | "Work through what feels doable" |
+| "Get sh*t done" | "Get to what matters" |
+| "Beast mode" | "Focused time" |
+| "Grind it out" | "Steady pace" |
+| "Level up" | "Grow at your own pace" |
+
+I won't touch strings inside hidden-feature files (arcade, launches, ai-copywriting, etc.) — that's a later batch tied to the rebrand.
+
+---
+
+## 6. Settings → Extra Features section
+
+New `src/components/settings/ExtraFeaturesSection.tsx` mounted in the existing Settings page. Simple card list, one `<Switch>` per feature with the label + one-line description above. Saving flips the JSONB immediately and toasts a short confirmation ("Turned on — you'll see it in the sidebar"). Toggling off does not touch any data.
+
+---
+
+## 7. Files touched (rough)
+
+- **Migration**: 1 SQL migration (schema + backfill)
+- **New**: `useFeatureToggles.ts`, `featureRoutes.ts`, `FeatureGuard.tsx`, `FeatureDisabledPage.tsx`, `ExtraFeaturesSection.tsx`
+- **Edited**: `App.tsx` (wrap ~15 routes), `AppSidebar.tsx`, `MobileBottomNav.tsx`, `Dashboard.tsx`, `Settings.tsx`, plus tone-pass edits (~10 core files, string-only)
+- **No file deleted. No route removed. No table dropped.**
+
+---
+
+## 8. Verification
+
+1. `tsgo --noEmit` clean.
+2. Playwright smoke: load `/`, `/dashboard`, `/settings`, `/courses` unauthenticated redirect flow works.
+3. Manual walk-through I'll ask you to do after: sign in as a fresh account (all toggles off → minimal nav), toggle Courses on in Settings (Courses appears immediately), toggle it off (disappears), visit `/courses` while off (calm disabled page).
+4. Auto-enable: I'll run a `SELECT user_id, feature_toggles FROM user_settings WHERE feature_toggles != '{}'` after the migration and share the count so you can sanity-check that existing users kept their features.
+
+---
+
+## Assumptions to confirm before I start
+
+1. **Grouping**: I've grouped all launch-family wizards (launch, summit, flash sale, webinar, content challenge, money-momentum, sprint dashboard, launch debrief) under one `launch_tools` toggle as your prompt suggested. Say the word if you'd rather split e.g. "Summits" out.
+2. **Editorial calendar is core, AI writing is a toggle.** So the calendar renders for everyone but the "Draft with AI" buttons/panels inside it will hide when `ai_writing` is off. OK?
+
+If both are fine, reply "go" and I'll ship it in one pass.
