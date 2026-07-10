@@ -51,7 +51,7 @@ interface GroupConfig {
 }
 
 const DATE_GROUPS: GroupConfig[] = [
-  { id: 'overdue', name: 'Overdue', icon: <AlertTriangle className="h-5 w-5" />, color: 'text-destructive' },
+  { id: 'overdue', name: 'Waiting for you', icon: <AlertTriangle className="h-5 w-5" />, color: 'text-waiting' },
   { id: 'today', name: 'Today', icon: <Sun className="h-5 w-5" />, color: 'text-amber-500' },
   { id: 'tomorrow', name: 'Tomorrow', icon: <Sunrise className="h-5 w-5" />, color: 'text-blue-500' },
   { id: 'thisWeek', name: 'This Week', icon: <Calendar className="h-5 w-5" /> },
@@ -427,13 +427,13 @@ export function TaskListView({
           <span
             className={cn(
               "h-1.5 w-1.5 rounded-full shrink-0",
-              isOverdue ? "bg-destructive/70" : "bg-muted-foreground/40"
+              isOverdue ? "bg-waiting/70" : "bg-muted-foreground/40"
             )}
           />
           <h2
             className={cn(
               "text-[11px] font-medium uppercase tracking-[0.15em] whitespace-nowrap",
-              isOverdue ? "text-destructive/80" : "text-muted-foreground"
+              isOverdue ? "text-waiting" : "text-muted-foreground"
             )}
           >
             {config.name} <span className="text-muted-foreground/60 ml-1">· {groupTasks.length}</span>

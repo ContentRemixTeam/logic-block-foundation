@@ -85,12 +85,12 @@ export function TaskViewsToolbar({
           )}
           
           {overdueCount > 0 && (
-            <Badge 
-              variant="destructive" 
-              className="gap-1 animate-pulse"
+            <Badge
+              variant="outline"
+              className="gap-1 border-waiting/40 bg-waiting-soft text-waiting-foreground"
             >
               <AlertTriangle className="h-3 w-3" />
-              {overdueCount} overdue
+              {overdueCount} waiting
             </Badge>
           )}
         </div>

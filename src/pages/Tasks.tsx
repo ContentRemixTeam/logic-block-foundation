@@ -27,13 +27,15 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { 
-  Plus, CalendarIcon, Clock, RefreshCw, ChevronDown, 
+import {
+  Plus, CalendarIcon, Clock, RefreshCw, ChevronDown,
   ClipboardList, ExternalLink, Unlink,
   Zap, Battery, BatteryLow, Trash2, CheckSquare,
-  AlertTriangle, Calendar as CalendarDays, Inbox, FolderKanban
+  AlertTriangle, Calendar as CalendarDays, Inbox, FolderKanban,
+  Sparkles, Archive as ArchiveIcon,
 } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
+import { CleanUpDialog } from '@/components/fresh-start/CleanUpDialog';
 import { cn } from '@/lib/utils';
 
 // Import new components
@@ -194,6 +196,7 @@ export default function Tasks() {
   const [bulkSelectionMode, setBulkSelectionMode] = useState(false);
   const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
   const [isOverdueModalOpen, setIsOverdueModalOpen] = useState(false);
+  const [isCleanUpOpen, setIsCleanUpOpen] = useState(false);
   const [isProcessingOverdue, setIsProcessingOverdue] = useState(false);
   const [detailDatePopoverOpen, setDetailDatePopoverOpen] = useState(false);
   
@@ -1044,10 +1047,10 @@ export default function Tasks() {
               {overdueCount > 0 && (
                 <button
                   onClick={() => setIsOverdueModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 text-destructive/80 hover:text-destructive transition-colors"
+                  className="inline-flex items-center gap-1.5 text-waiting hover:text-waiting-foreground transition-colors"
                 >
-                  <span className="h-1.5 w-1.5 rounded-full bg-destructive/70" />
-                  {overdueCount} overdue · review
+                  <span className="h-1.5 w-1.5 rounded-full bg-waiting/70" />
+                  {overdueCount} waiting for you · review
                 </button>
               )}
             </div>
@@ -1088,6 +1091,27 @@ export default function Tasks() {
               >
                 <Battery className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Match my energy</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsCleanUpOpen(true)}
+                className="gap-1.5 text-muted-foreground hover:text-foreground"
+                title="Clean up — archive or reschedule in bulk"
+              >
+                <Sparkles className="h-4 w-4" />
+                <span className="hidden sm:inline">Clean up</span>
+              </Button>
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-muted-foreground hover:text-foreground"
+              >
+                <Link to="/tasks/archive">
+                  <ArchiveIcon className="h-4 w-4" />
+                  <span className="hidden sm:inline">Archive</span>
+                </Link>
               </Button>
               <Button
                 variant="ghost"
@@ -2015,16 +2039,19 @@ export default function Tasks() {
         initialSelected={calendarStatus.selectedCalendars}
       />
 
+      {/* Fresh Start — Clean Up */}
+      <CleanUpDialog open={isCleanUpOpen} onOpenChange={setIsCleanUpOpen} />
+
       {/* Overdue Tasks Modal */}
       <Dialog open={isOverdueModalOpen} onOpenChange={setIsOverdueModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              Handle {overdueCount} Overdue Task{overdueCount !== 1 ? 's' : ''}
+              <AlertTriangle className="h-5 w-5 text-waiting" />
+              {overdueCount} task{overdueCount !== 1 ? 's' : ''} waiting for you
             </DialogTitle>
             <DialogDescription>
-              Choose how to handle your overdue tasks. This will update all {overdueCount} overdue tasks at once.
+              Life happens — pick where these should land. You can undo any of this from the Archive.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-4">

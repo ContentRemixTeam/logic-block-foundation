@@ -71,6 +71,14 @@
     --info-light: 199 89% 95%;
     --info-foreground: 0 0% 100%;
 
+    /* === TONE (calm-planner semantics) ===
+       Waiting = a warm neutral for overdue / stale items that must NOT feel
+       alarming. Never use --destructive for overdue states — that is reserved
+       for truly destructive actions (delete, sign-out warnings, etc.). */
+    --tone-waiting: 32 55% 48%;               /* soft amber */
+    --tone-waiting-foreground: 32 55% 22%;
+    --tone-waiting-soft: 32 65% 96%;
+
     /* === MUTED === */
     --muted: 240 5% 96%;
     --muted-foreground: 220 9% 46%;

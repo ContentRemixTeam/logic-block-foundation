@@ -1,136 +1,65 @@
-# Low Battery signature features
+# Fresh Start + calm-design pass
 
-Six-part batch that integrates battery-awareness into the existing daily plan, task, and cycle systems. Nothing deleted, additive migrations, calm/permission-giving copy throughout.
+This work is real-designer, not a coat-of-paint pass. To keep quality high, I'm splitting delivery into a **Batch 1 (this turn)** and a **Batch 2 (next turn)**. Batch 1 ships the whole "Fresh Start" feature end-to-end plus the design-system foundations that unblock every other page. Batch 2 does per-page composition work.
 
----
+If you want a different split, tell me and I'll re-cut.
 
-## 1. Data model (one migration, additive only)
+## Batch 1 — this turn
 
-**New table** `daily_battery_checkins`
-```
-user_id uuid, date date, level text ('full'|'half'|'low'|'empty'),
-created_at, updated_at
-PRIMARY KEY (user_id, date)
-```
-+ GRANTs to `authenticated`/`service_role`, RLS `user_id = auth.uid()`, `updated_at` trigger. Upsert on (user_id, date) so re-adjustments overwrite same row.
+### Part B: Fresh Start feature (complete)
 
-**Additive columns** (all nullable, no defaults that touch existing rows):
-- `tasks.energy_cost text` — `'low'|'medium'|'high'` or null
-- `tasks.is_bare_minimum boolean default false`
-- `user_settings.bare_minimum_template jsonb default '[]'::jsonb` — array of `{text, energy_cost?}` strings the user wants pre-filled each day
-- `daily_plans.low_battery_mode boolean default false`
-- `daily_plans.deferred_task_ids jsonb default '[]'::jsonb` — snapshot of which tasks were parked when Low Battery Day was toggled on, so "restore my day" can undo
+1. **Migration** — additive only:
+   - `tasks.archived_at timestamptz null` + index on `(user_id, archived_at)`.
+   - `daily_plans.archived_at timestamptz null` for stale plan carry-overs.
+   - Default all list queries filter out `archived_at is not null`.
 
-CHECK constraint would break restores → use a `validate_battery_level` trigger for the enum instead.
+2. **Welcome-back flow** (`WelcomeBackDialog.tsx`):
+   - On sign-in, read `user_profiles.last_activity_date`. If gap >= 7 days AND `localStorage['lbb-welcome-back-shown-{returnDate}']` unset, open dialog before any overdue UI paints.
+   - 3 primary options (Fresh start / Move forward / Look around), one-tap dismiss, warm copy.
+   - Fires once per return, dismissible.
 
----
+3. **Bulk actions hook** (`useFreshStart.ts`):
+   - `archiveOverdue()` — sets `archived_at` on incomplete tasks with `scheduled_date < today` + on `daily_plans` whose date < today.
+   - `moveOverdueForward(mode: 'today' | 'this_week' | 'unscheduled')` — reuses existing task update path so no reschedule-friction banners fire (I'll pass a `silent: true` flag through `useResilientTaskMutation`).
+   - Returns preview counts before commit.
+   - Emits an undo token stored in memory for 20s (`undoLastFreshStart()`).
 
-## 2. Battery check-in
+4. **Manual "Clean up" dialog** (`CleanUpDialog.tsx`):
+   - Trigger on `/tasks` header + Settings.
+   - Sections: archive before [date], reschedule overdue to [today/this week/unscheduled], archive completed older than [30/60/90 days].
+   - Live counts before confirm. Undo snackbar for 20s.
 
-- `src/hooks/useBatteryCheckin.ts` — `useTodayBattery()` returns `{ level, hasChecked, setLevel, isLoading }`, cached in React Query, shared app-wide.
-- `src/components/battery/BatteryCheckinPrompt.tsx` — one-tap sheet with 4 large buttons (Full 🔋 / Half 🪫 / Low 🔻 / Empty ⚪) + "Skip for now" link. Renders once per day at `Dashboard` and `DailyPlan` mount if `!hasChecked` (localStorage flag `battery_prompt_dismissed_<date>` for skips so it doesn't re-nag same day; a fresh day resets).
-- `src/components/battery/BatteryHeaderChip.tsx` — small pill in the daily-plan header + dashboard hero showing current level, tap to reopen chooser. Always available.
+5. **Archive page** (`/tasks/archive`):
+   - Lists archived tasks + archived daily plans, searchable, restore single or in bulk (sets `archived_at = null`).
+   - Nav entry lives quietly in Tasks page menu + Settings link.
 
-Copy: "How's your battery today? (Totally optional — this just helps the planner match your day.)"
+6. **De-alarm overdue**:
+   - Sweep the codebase for red-badge overdue styling. Neutralize to `text-muted-foreground` + a soft amber accent only where truly informational. Replace "X days overdue" phrasing with "waiting for you" / "from {date}".
 
----
+### Part A: design foundations only (not per-page redesigns)
 
-## 3. Bare Minimum plan
+The following are reusable primitives every core page can adopt. Actual page-by-page composition sits in Batch 2.
 
-- Task toggle: `is_bare_minimum` — a small battery icon button on `TaskCard` / task edit sheet. Optimistic + resilient mutation via existing `useResilientTaskMutation`.
-- Settings: new subsection in `ExtraFeaturesSection` sibling `BareMinimumTemplateSection` under Settings → Planner (existing `PlannerSettings.tsx`). List editor (1–3 items with an energy tag). Saves to `user_settings.bare_minimum_template`.
-- Daily-plan pre-fill: on first render of a `DailyPlan` for a date with no template-derived tasks yet, we do NOT auto-create tasks (keeps things reversible). Instead, `<BareMinimumSection>` reads the template + any tasks flagged `is_bare_minimum` scheduled for that date, and shows them together at the top of the daily plan. Tapping a template item that has no backing task offers "Add to today" which creates a task via `useResilientTaskMutation` with `is_bare_minimum=true`.
-- Visual: calm outlined card with small battery icon, above the existing Top 3 block. Copy: "Today's bare minimum — the tiny things that make today count."
+1. **`<AppCard />`** — one canonical card (radius, border, subtle shadow) built on shadcn Card so we don't touch 40 files at once.
+2. **`<PageSkeleton />` + `<CardSkeleton />`** — shared skeletons; swap spinners on the 4 highest-traffic pages (Dashboard, DailyPlan, Tasks, Cycle) this turn.
+3. **`<EmptyState />`** — icon + one warm sentence + one primary action; drop into Tasks empty view + Archive empty view this turn as reference implementation.
+4. **Motion guard util** — `useRespectMotion()` returning bool; used by PageTransition + celebrations (already respected there).
+5. **Overdue tone tokens** — add `--tone-waiting` semantic (warm neutral) to `index.css`; use it for waiting/overdue states everywhere the sweep touches.
 
----
+## Batch 2 — next turn (I will not do this turn)
 
-## 4. Energy on tasks + "Match my energy" filter
+- Per-page composition pass on Dashboard, DailyPlan, WeeklyPlan, Cycle, Tasks, BrainDump, Reflections, Wizards chooser, Settings, Auth: hierarchy, whitespace, single primary action, 375px audit.
+- Empty states rolled out to every remaining core page using the primitive from Batch 1.
+- Auth/first-run premium polish pass.
 
-- `EnergyChip` component (Low = soft green, Medium = soft amber, High = soft rose — semantic tokens only). Optional selector in task create/edit alongside importance.
-- `Tasks.tsx` filter bar: new "Match my energy" toggle. Logic in `src/lib/energyMatching.ts`:
-  ```
-  empty  → is_bare_minimum only
-  low    → energy_cost in [null, 'low']  (null = unknown = safe to include)
-  half   → [null, 'low', 'medium']
-  full   → all
-  ```
-  Wait — for `low`, showing all null tasks would be too much. Refined: `empty → bare minimum only`; `low → energy 'low' + bare minimum`; `half → 'low' + 'medium' + bare minimum + null (untagged)`; `full → all`. Sorted by existing importance/priority within the filtered set.
-- Filter state persists in localStorage per session.
+Doing that page work in the same turn as Batch 1 would mean either shallow work on Fresh Start or shallow work on the design pass — neither is what you asked for.
 
----
+## Assumptions I'm making
 
-## 5. Low Battery Day mode
+- "Archive everything overdue/stale" for Fresh Start = incomplete tasks with `scheduled_date < today` + `daily_plans` with `date < today`. Notes, reflections, cycle, completed tasks are untouched.
+- Undo window = 20 seconds via snackbar; after that, users restore from Archive.
+- `last_activity_date` on `user_profiles` is already updated by the `update_last_activity` trigger — I'll rely on it. If it's stale for a specific user, the welcome dialog just won't fire; it's not destructive.
+- Bulk reschedule "this week" spreads across the next 5 weekdays evenly.
+- Archive page lives at `/tasks/archive` and is always accessible (no feature toggle).
 
-- Button on daily plan header: "Make this a Low Battery Day 🔻". Also surfaced automatically as a soft suggestion card when the check-in returns `low` or `empty`.
-- On enable:
-  1. Snapshot the current scheduled task IDs for today (minus bare-minimum and any tasks the user opts to keep in a small confirm sheet: "Keep these low-energy tasks too?") into `daily_plans.deferred_task_ids`.
-  2. Update those tasks' `scheduled_date` to tomorrow via existing task update path — but pass a `skipRescheduleTracking: true` flag through `useTaskMutations` so `useRescheduleTracking` doesn't fire the friction banner. (Add the flag; default false.)
-  3. Set `daily_plans.low_battery_mode = true`.
-  4. Toast: "Everything else is safely parked for tomorrow. Doing your minimum today is a win."
-- Daily plan view: when `low_battery_mode`, hide the full task grid and show only the Bare Minimum section + any kept low-energy tasks + the "Restore my day" button.
-- Restore: reads `deferred_task_ids`, moves them back to today (again with `skipRescheduleTracking`), clears the flag and array. Copy: "Restored. Take it at your pace."
-- Celebration: on completing all bare-minimum items while `low_battery_mode`, fire the existing `celebrationService.celebrate('daily-complete')` with a gentler `variant: 'low-battery'` (add variant → warmer copy, no confetti burst, small heart animation). All-bare-minimum on a normal day also celebrates but with the standard variant.
-
----
-
-## 6. Dashboard integration
-
-- `Dashboard.tsx` today-section: read `useTodayBattery()` + today's `daily_plans` row.
-  - If `low_battery_mode`: replace Top-3 widget content with `<BareMinimumSection compact />`.
-  - Otherwise: existing Top-3 widget, but show `BatteryHeaderChip` in its header.
-- 90-day cycle hero stays untouched.
-
----
-
-## 7. Copy principles applied everywhere
-
-- Never "you only did X".
-- Reframes: "Bare minimum done — that's a full day today." / "Battery low? That's information, not a verdict." / "Everything else is safely parked."
-- Skip links on every prompt.
-
----
-
-## 8. Files touched (rough)
-
-**New**
-- `supabase/migrations/<ts>_low_battery_features.sql`
-- `src/hooks/useBatteryCheckin.ts`
-- `src/hooks/useBareMinimum.ts`
-- `src/lib/energyMatching.ts`
-- `src/components/battery/BatteryCheckinPrompt.tsx`
-- `src/components/battery/BatteryHeaderChip.tsx`
-- `src/components/battery/BareMinimumSection.tsx`
-- `src/components/battery/LowBatteryDayToggle.tsx`
-- `src/components/battery/EnergyChip.tsx`
-- `src/components/battery/EnergySelector.tsx`
-- `src/components/settings/BareMinimumTemplateSection.tsx`
-
-**Edited (small, targeted)**
-- `src/pages/DailyPlan.tsx` (header chip, bare-minimum section, low-battery button/render branch)
-- `src/pages/Dashboard.tsx` (checkin prompt mount, today-section swap)
-- `src/pages/Tasks.tsx` (Match-my-energy filter)
-- Task card + task create/edit dialog (energy chip/selector, bare-minimum toggle)
-- `src/hooks/useTasks.tsx` / `useResilientTaskMutation.tsx` (add `skipRescheduleTracking` option)
-- `src/hooks/useRescheduleTracking.tsx` (respect the flag)
-- `src/lib/celebrationService.ts` (add `low-battery` variant)
-- `src/pages/PlannerSettings.tsx` (mount `BareMinimumTemplateSection`)
-- `src/integrations/supabase/types.ts` regenerates after migration
-
-No file, route, table, or feature deleted. No behavior change for users who ignore the new features (all optional/nullable).
-
----
-
-## 9. Verification
-
-1. `tsgo --noEmit` clean.
-2. Playwright: check-in prompt appears on `/dashboard` on first visit of a day, dismisses, doesn't reappear same day; re-openable from chip.
-3. Manual (I'll ask you): mark a task bare minimum → appears in bare-minimum section; set energy on 3 tasks, flip Match-my-energy at each battery level; enable Low Battery Day → non-kept tasks move to tomorrow, no reschedule banner fires; hit Restore → they come back; complete bare minimums in low-battery mode → gentle celebration.
-
----
-
-## Two decisions to confirm before I ship
-
-1. **Bare-minimum template storage**: on `user_settings.bare_minimum_template` (single JSONB) rather than a new `bare_minimum_templates` table. Simpler, fits the "one-row settings" pattern already used. Say if you'd rather have per-weekday templates (that'd be a new table).
-2. **Low-Battery-Day defer target**: tasks move to **tomorrow's** scheduled date (as the prompt says "rescheduled to tomorrow/unscheduled pool"). I'll default to tomorrow; if you'd rather I dump them into the unscheduled pool instead, say the word.
-
-Reply "go" (or with adjustments) and I'll implement in one pass.
+Reply "go" to proceed with Batch 1 as scoped, or tell me what to cut/add.

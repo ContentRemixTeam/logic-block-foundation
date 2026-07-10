@@ -141,7 +141,8 @@ Deno.serve(async (req) => {
       .from('tasks')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .is('deleted_at', null);
+      .is('deleted_at', null)
+      .is('archived_at', null);
 
     // Apply smart filtering to count query too
     if (useSmartFilter) {
@@ -169,7 +170,8 @@ Deno.serve(async (req) => {
         project:projects!fk_tasks_project(id, name, color, is_launch, launch_start_date, launch_end_date)
       `)
       .eq('user_id', userId)
-      .is('deleted_at', null); // Exclude soft-deleted tasks
+      .is('deleted_at', null) // Exclude soft-deleted tasks
+      .is('archived_at', null); // Exclude Fresh-Start archived tasks
 
     // Apply smart filtering: get tasks from last 90 days + all incomplete tasks
     if (useSmartFilter) {

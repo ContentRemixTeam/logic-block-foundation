@@ -24,6 +24,8 @@ import { PlannerDividerTabs } from '@/components/PlannerDividerTabs';
 import { MonthlyThemeHelloBar } from '@/components/monthly-theme/MonthlyThemeHelloBar';
 import { MonthlyThemePopup } from '@/components/monthly-theme/MonthlyThemePopup';
 import { CelebrationOverlay } from '@/components/celebrations/CelebrationOverlay';
+import { WelcomeBackDialog } from '@/components/fresh-start/WelcomeBackDialog';
+import { useWelcomeBackTrigger } from '@/hooks/useWelcomeBackTrigger';
 import { Loader2, Sparkles, ArrowRight, X } from 'lucide-react';
 
 // Lazy load heavy arcade components - only loaded when arcade is enabled
@@ -43,6 +45,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const [arcadeOpen, setArcadeOpen] = useState(false);
   const [arcadeDefaultTab, setArcadeDefaultTab] = useState('tasks');
   useTheme();
+
+  // Welcome-back detector: fires once per return after 7+ days away.
+  const welcomeBack = useWelcomeBackTrigger();
 
   const hasNoPlan = !cyclesLoading && user && (!cycles || cycles.length === 0);
 
@@ -161,6 +166,14 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         
         {/* Celebration overlay */}
         <CelebrationOverlay />
+
+        {/* Welcome Back — fires at most once per return day */}
+        <WelcomeBackDialog
+          open={welcomeBack.shouldShow}
+          onOpenChange={(v) => { if (!v) welcomeBack.dismiss(); }}
+          daysAway={welcomeBack.daysAway}
+        />
+
         
         {/* Arcade Drawer - lazy loaded */}
         {settings.arcade_enabled && (

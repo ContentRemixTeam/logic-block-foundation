@@ -112,6 +112,7 @@ const SelfCoaching = lazyWithRetry(() => import('./pages/SelfCoaching'));
 const Settings = lazyWithRetry(() => import('./pages/Settings'));
 const Progress = lazyWithRetry(() => import('./pages/Progress'));
 const Tasks = lazyWithRetry(() => import('./pages/Tasks'));
+const Archive = lazyWithRetry(() => import('./pages/Archive'));
 const Notes = lazyWithRetry(() => import('./pages/Notes'));
 const SOPs = lazyWithRetry(() => import('./pages/SOPs'));
 const Wins = lazyWithRetry(() => import('./pages/Wins'));
@@ -305,6 +306,7 @@ const App = () => (
                       <Route path="/offers" element={<ProtectedRoute><PageSuspense><OfferHub /></PageSuspense></ProtectedRoute>} />
                       
                       <Route path="/tasks" element={<ProtectedRoute><PageSuspense><Tasks /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/tasks/archive" element={<ProtectedRoute><PageSuspense><Archive /></PageSuspense></ProtectedRoute>} />
                       <Route path="/all-tasks" element={<ProtectedRoute><PageSuspense><AllTasks /></PageSuspense></ProtectedRoute>} />
                       <Route path="/projects" element={<ProtectedRoute><PageSuspense><Projects /></PageSuspense></ProtectedRoute>} />
                       <Route path="/projects/:id" element={<ProtectedRoute><PageSuspense><ProjectDetail /></PageSuspense></ProtectedRoute>} />
