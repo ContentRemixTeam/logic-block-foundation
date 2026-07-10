@@ -1,260 +1,101 @@
-import { useState, useEffect, useMemo } from 'react';
+/**
+ * Quick Start Guide — describes ONLY what a new user actually sees today.
+ * Steps match the current calm, energy-aware flow:
+ *   1. Do your daily battery check-in
+ *   2. Set your bare-minimum list (Settings → Planner)
+ *   3. Start a 90-day cycle when you're ready
+ *   4. Plan today (just today)
+ *   5. Come back tomorrow — no streak pressure
+ *
+ * Extra features (Finance, Content Vault, Arcade, Challenges, etc.) live
+ * behind Settings → Extra Features and are intentionally not surfaced here.
+ */
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Check, Circle, Target, BarChart3, Calendar, CalendarDays, Sparkles, ArrowRight, X, FileSpreadsheet } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import {
+  BatteryLow,
+  BatteryCharging,
+  Compass,
+  ListChecks,
+  Sparkles,
+  Sunrise,
+  ArrowRight,
+} from 'lucide-react';
 
-interface OnboardingStep {
-  id: number;
-  title: string;
-  description: string;
-  icon: React.ElementType;
-  href: string;
-  checkComplete: () => Promise<boolean>;
-}
+const STEPS = [
+  {
+    icon: BatteryCharging,
+    title: 'Start with a battery check-in',
+    body: 'Each day the planner asks how much energy you have. Your answer shapes suggestions — nothing more. Skippable, always changeable.',
+    href: '/daily-plan',
+    cta: 'Open today',
+  },
+  {
+    icon: BatteryLow,
+    title: 'Set your bare-minimum list',
+    body: '1–3 tiny things that make a day count, even on your hardest day. Doing these = a full day.',
+    href: '/settings/planner',
+    cta: 'Edit bare minimum',
+  },
+  {
+    icon: Compass,
+    title: 'Start a 90-day cycle when ready',
+    body: "The 90-day cycle is the heart of the planner: one clear direction, at your pace. Start it now, or later — it's always there.",
+    href: '/cycle-setup',
+    cta: 'Start a cycle',
+  },
+  {
+    icon: ListChecks,
+    title: 'Plan just today',
+    body: 'Add a small number of things for today. Match my energy filters the list to what fits your battery.',
+    href: '/tasks',
+    cta: 'Open my tasks',
+  },
+  {
+    icon: Sunrise,
+    title: 'Come back tomorrow',
+    body: 'No streaks in the core planner. No penalty for a rest day. Life happens — your planner resets in one tap.',
+    href: '/dashboard',
+    cta: 'Go to dashboard',
+  },
+];
 
 export function QuickStartGuide() {
-  const { user } = useAuth();
-  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [skipped, setSkipped] = useState(false);
-
-  const steps: OnboardingStep[] = useMemo(() => [
-    {
-      id: 1,
-      title: 'Confirm planner storage',
-      description: 'New accounts use a private Google Sheet in Drive. Existing accounts can turn it on from Settings.',
-      icon: FileSpreadsheet,
-      href: '/settings',
-      checkComplete: async () => {
-        if (!user) return false;
-        const { data } = await supabase.functions.invoke('planner-sheet-setup', {
-          body: { action: 'status' }
-        });
-        return Boolean(data?.connected && data?.spreadsheet_url && data?.is_healthy);
-      }
-    },
-    {
-      id: 2,
-      title: 'Set up your first cycle',
-      description: 'Define your 90-day goal and the identity you want to embody.',
-      icon: Target,
-      href: '/cycle-setup',
-      checkComplete: async () => {
-        if (!user) return false;
-        const { data } = await supabase.functions.invoke('get-current-cycle-or-create', {
-          body: { user_id: user.id }
-        });
-        return !!data?.cycle;
-      }
-    },
-    {
-      id: 3,
-      title: 'Define your 3 key metrics',
-      description: 'Choose the numbers that matter most for tracking your progress.',
-      icon: BarChart3,
-      href: '/cycle-setup',
-      checkComplete: async () => {
-        if (!user) return false;
-        const { data } = await supabase.functions.invoke('get-current-cycle-or-create', {
-          body: { user_id: user.id }
-        });
-        return !!(data?.cycle?.metric_1_name || data?.cycle?.metric_2_name || data?.cycle?.metric_3_name);
-      }
-    },
-    {
-      id: 4,
-      title: 'Create your first weekly plan',
-      description: 'Set your top 3 priorities for the week ahead.',
-      icon: Calendar,
-      href: '/weekly-plan',
-      checkComplete: async () => {
-        if (!user) return false;
-        const { data } = await supabase.functions.invoke('get-weekly-plan', {
-          body: { user_id: user.id }
-        });
-        return !!data?.week?.top_3_priorities?.length;
-      }
-    },
-    {
-      id: 5,
-      title: 'Complete your first daily plan',
-      description: 'Decide what matters most for today.',
-      icon: CalendarDays,
-      href: '/daily-plan',
-      checkComplete: async () => {
-        if (!user) return false;
-        const { data } = await supabase.functions.invoke('get-daily-plan', {
-          body: { user_id: user.id }
-        });
-        return !!data?.day?.top_3_today?.length;
-      }
-    },
-    {
-      id: 6,
-      title: 'Do your first daily review',
-      description: 'Reflect on what worked and what you learned.',
-      icon: Sparkles,
-      href: '/daily-review',
-      checkComplete: async () => {
-        if (!user) return false;
-        const { data } = await supabase.functions.invoke('get-daily-review', {
-          body: { user_id: user.id }
-        });
-        return !!(data?.review?.wins || data?.review?.what_worked);
-      }
-    },
-    {
-      id: 7,
-      title: 'Hatch your first pet 🐣',
-      description: 'Complete 3 daily tasks in Pet Mode to grow and hatch your first virtual pet!',
-      icon: Sparkles,
-      href: '/arcade',
-      checkComplete: async () => {
-        if (!user) return false;
-        const today = new Date().toISOString().split('T')[0];
-        const { data } = await supabase
-          .from('arcade_daily_pet')
-          .select('stage, pets_hatched_today')
-          .eq('user_id', user.id)
-          .eq('date', today)
-          .maybeSingle();
-        return data?.stage === 'adult' || (data?.pets_hatched_today && data.pets_hatched_today > 0);
-      }
-    }
-  ], [user]);
-
-  useEffect(() => {
-    const checkProgress = async () => {
-      if (!user) return;
-      
-      const completed: number[] = [];
-      for (const step of steps) {
-        try {
-          const isComplete = await step.checkComplete();
-          if (isComplete) {
-            completed.push(step.id);
-          }
-        } catch (error) {
-          console.error(`Error checking step ${step.id}:`, error);
-        }
-      }
-      setCompletedSteps(completed);
-      setLoading(false);
-    };
-
-    checkProgress();
-  }, [steps, user]);
-
-  const progressPercentage = (completedSteps.length / steps.length) * 100;
-
-  if (skipped) {
-    return (
-      <Card className="border-border bg-card">
-        <CardContent className="pt-6 text-center">
-          <p className="text-muted-foreground mb-4">
-            Tour skipped. You can always come back here anytime you need guidance!
-          </p>
-          <Button variant="outline" onClick={() => setSkipped(false)}>
-            Show Quick Start Guide
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      {/* Welcome Card */}
       <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
         <CardHeader>
-          <div className="flex items-start justify-between">
-            <div>
-              <CardTitle className="text-2xl mb-2">Welcome to Your 90-Day Journey! 🎯</CardTitle>
-              <CardDescription className="text-base">
-                The 90-day planning philosophy is simple: long enough to achieve meaningful change, 
-                short enough to stay focused and motivated. You'll plan at three levels—cycle, weekly, 
-                and daily—and review regularly to stay on track.
-              </CardDescription>
-            </div>
-            <Button variant="ghost" size="sm" onClick={() => setSkipped(true)} className="text-muted-foreground">
-              <X className="h-4 w-4 mr-1" />
-              Skip tour
-            </Button>
-          </div>
+          <CardTitle className="text-2xl">Welcome in.</CardTitle>
+          <CardDescription className="text-base">
+            This planner works <em>with</em> your energy, not against it. Here's the calm
+            first-week rhythm — no urgency, everything skippable, rest counts.
+          </CardDescription>
         </CardHeader>
       </Card>
 
-      {/* Progress Indicator */}
-      <Card className="border-border bg-card">
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-foreground">Your Progress</span>
-            <Badge variant={completedSteps.length === steps.length ? 'default' : 'secondary'}>
-              {completedSteps.length} of {steps.length} complete
-            </Badge>
-          </div>
-          <div className="w-full h-3 bg-secondary rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-primary transition-all duration-500 ease-out rounded-full"
-              style={{ width: `${progressPercentage}%` }}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Steps */}
-      <div className="space-y-4">
-        {steps.map((step, index) => {
-          const isComplete = completedSteps.includes(step.id);
-          const isNext = !isComplete && completedSteps.length === index;
+      <div className="space-y-3">
+        {STEPS.map((step, i) => {
           const Icon = step.icon;
-
           return (
-            <Card 
-              key={step.id} 
-              className={`border-border transition-all ${
-                isNext ? 'ring-2 ring-primary/50 border-primary/50' : ''
-              } ${isComplete ? 'bg-primary/5' : 'bg-card'}`}
-            >
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-4">
-                  <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-                    isComplete 
-                      ? 'bg-primary text-primary-foreground' 
-                      : isNext 
-                        ? 'bg-primary/20 text-primary' 
-                        : 'bg-secondary text-muted-foreground'
-                  }`}>
-                    {isComplete ? (
-                      <Check className="h-5 w-5" />
-                    ) : (
-                      <span className="font-semibold">{step.id}</span>
-                    )}
+            <Card key={step.title} className="border-border/60">
+              <CardContent className="flex items-start gap-4 p-5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Step {i + 1}
+                    </span>
+                    <h3 className="font-semibold">{step.title}</h3>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Icon className="h-4 w-4 text-primary" />
-                      <h3 className={`font-semibold ${isComplete ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
-                        {step.title}
-                      </h3>
-                      {isComplete && (
-                        <Badge variant="outline" className="text-primary border-primary/30">
-                          Done!
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-3">{step.description}</p>
-                    <Button asChild variant={isNext ? 'default' : 'outline'} size="sm">
-                      <Link to={step.href}>
-                        {isComplete ? 'Review' : isNext ? 'Start Now' : 'Go to step'}
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </Link>
-                    </Button>
-                  </div>
+                  <p className="text-sm text-muted-foreground">{step.body}</p>
+                  <Button asChild variant="outline" size="sm" className="gap-2">
+                    <Link to={step.href}>
+                      {step.cta} <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -262,18 +103,16 @@ export function QuickStartGuide() {
         })}
       </div>
 
-      {/* Completion Message */}
-      {completedSteps.length === steps.length && (
-        <Card className="border-primary bg-primary/10">
-          <CardContent className="pt-6 text-center">
-            <div className="text-4xl mb-3">🎉</div>
-            <h3 className="text-xl font-semibold text-foreground mb-2">You're all set!</h3>
-            <p className="text-muted-foreground">
-              You've completed the quick start guide. Now it's time to build your momentum—one day at a time.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      <Card className="border-border/60 bg-muted/20">
+        <CardContent className="flex items-start gap-3 p-4 text-sm">
+          <Sparkles className="mt-0.5 h-4 w-4 text-primary/70" />
+          <p className="text-muted-foreground">
+            Looking for Finance, Content Vault, Arcade, Coaching, or Challenges? Turn them on
+            in <Link to="/settings" className="underline">Settings → Extra Features</Link>. They stay off by
+            default so the core stays calm.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
