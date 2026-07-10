@@ -583,17 +583,37 @@ export function useTaskMutations() {
     },
   });
 
-  // Delete task mutation
+  // Delete task mutation — network failures queue for retry.
   const deleteTask = useMutation({
     mutationFn: async ({ taskId, deleteType = 'single' }: { taskId: string; deleteType?: string }) => {
       const session = await getSession();
-      const response = await supabase.functions.invoke('manage-task', {
-        body: { action: 'delete', task_id: taskId, delete_type: deleteType },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      if (response.error) throw response.error;
-      return taskId;
+
+      const queueForRetry = async () => {
+        try {
+          const { queueMutation } = await import('@/lib/offlineDb');
+          await queueMutation({ type: 'delete', table: 'tasks', data: { action: 'delete', task_id: taskId, delete_type: deleteType } });
+        } catch (queueErr) {
+          console.error('[useTasks.deleteTask] queueing failed:', queueErr);
+        }
+        return taskId;
+      };
+
+      try {
+        if (!navigator.onLine) return await queueForRetry();
+        const response = await supabase.functions.invoke('manage-task', {
+          body: { action: 'delete', task_id: taskId, delete_type: deleteType },
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (response.error) throw response.error;
+        return taskId;
+      } catch (error: any) {
+        const msg = String(error?.message || '');
+        const isNetwork = msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('network') || !navigator.onLine;
+        if (isNetwork) return await queueForRetry();
+        throw error;
+      }
     },
+
     onMutate: async ({ taskId }) => {
       await queryClient.cancelQueries({ queryKey: taskQueryKeys.all });
       const snapshot = snapshotAll();
