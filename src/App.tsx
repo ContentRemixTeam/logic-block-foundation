@@ -232,7 +232,7 @@ function AppOnlyOverlays() {
 
   return (
     <>
-      <StorageDurabilityNotice />
+      {/* StorageDurabilityNotice intentionally removed — surfaced calmly on the /install page instead. */}
       <InstallNudge />
       <CommandPalette />
       <TourOverlay />
