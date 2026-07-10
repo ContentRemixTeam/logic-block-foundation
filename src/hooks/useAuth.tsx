@@ -2,8 +2,8 @@ import { useState, useEffect, createContext, useContext, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { clearAllOfflineData, getMutationCount } from '@/lib/offlineDb';
-import { syncPendingMutations } from '@/lib/offlineSync';
+import { clearAllOfflineData, getAllDrafts } from '@/lib/offlineDb';
+import { getPendingCount, syncPendingMutations } from '@/lib/offlineSync';
 import { getPendingTaskDrafts } from '@/hooks/useResilientTaskMutation';
 import { queryClient } from '@/App';
 import { toast } from 'sonner';
@@ -22,11 +22,12 @@ interface AuthContextType {
 
 async function countPendingWork(): Promise<number> {
   try {
-    const [queued, drafts] = await Promise.all([
-      getMutationCount('pending').catch(() => 0),
+    const [queued, drafts, taskDrafts] = await Promise.all([
+      getPendingCount().catch(() => 0),
+      getAllDrafts().then(drafts => drafts.length).catch(() => 0),
       Promise.resolve(getPendingTaskDrafts().length).catch(() => 0),
     ]);
-    return (queued || 0) + (drafts || 0);
+    return (queued || 0) + (drafts || 0) + (taskDrafts || 0);
   } catch {
     return 0;
   }
@@ -111,12 +112,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Attempt a final sync first while we still have credentials.
       const remaining = await attemptFinalSync();
       if (remaining > 0) {
-        const proceed = window.confirm(
+        const retryNow = window.confirm(
           `You have ${remaining} unsaved change${remaining === 1 ? '' : 's'} that haven't synced yet.\n\n` +
-          `Signing out now will keep them on this device but they won't reach the cloud until you sign back in on this same browser.\n\n` +
-          `• OK — sign out anyway\n• Cancel — stay signed in and let it sync`
+          `For your safety, we won't sign you out until those changes finish syncing.\n\n` +
+          `• OK — try syncing now\n• Cancel — stay signed in`
         );
-        if (!proceed) {
+        if (retryNow) {
+          const afterRetry = await attemptFinalSync();
+          if (afterRetry === 0) {
+            toast.success('All changes synced', {
+              description: 'It is safe to sign out now.',
+            });
+          } else {
+            toast.warning('Still waiting to sync', {
+              description: `${afterRetry} change${afterRetry === 1 ? '' : 's'} are protected on this device. Please try signing out again after they sync.`,
+              duration: 8000,
+            });
+            return;
+          }
+        } else {
           toast.info('Staying signed in', {
             description: 'We\'ll keep trying to sync your changes.',
           });

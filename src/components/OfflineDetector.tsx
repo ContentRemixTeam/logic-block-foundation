@@ -1,8 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { useToast } from '@/hooks/use-toast';
 
 export function OfflineDetector() {
-  const { toast } = useToast();
   const isFirstRender = useRef(true);
 
   useEffect(() => {
@@ -13,21 +11,12 @@ export function OfflineDetector() {
         return;
       }
       
-      toast({
-        title: "Back online",
-        description: "Your connection is back. We'll sync any changes you made.",
-        duration: 4000,
-      });
+      // User-visible status is consolidated into OfflineIndicator.
     };
 
     const handleOffline = () => {
       isFirstRender.current = false;
-
-      toast({
-        title: "Connection dropped",
-        description: "Your work is protected on this device and will sync when you're back online.",
-        duration: 8000,
-      });
+      // User-visible status is consolidated into OfflineIndicator.
     };
 
 
@@ -41,7 +30,7 @@ export function OfflineDetector() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [toast]);
+  }, []);
 
   return null; // This component only handles side effects
 }

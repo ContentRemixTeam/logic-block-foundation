@@ -217,6 +217,10 @@ export default function WeeklyReflection() {
       if (error) throw error;
     } catch (error) {
       console.error('Error saving reflection:', error);
+      try {
+        const { gentleSaveWarning } = await import('@/lib/gentleErrorToast');
+        gentleSaveWarning('weekly-reflection-save');
+      } catch { /* noop */ }
     } finally {
       setSaving(false);
     }
@@ -251,6 +255,10 @@ export default function WeeklyReflection() {
       setShareCount((prev) => prev + 1);
     } catch (error) {
       console.error('Error updating share count:', error);
+      try {
+        const { gentleSaveWarning } = await import('@/lib/gentleErrorToast');
+        gentleSaveWarning('weekly-reflection-share', "We couldn't update sharing just now. Your reflection is still kept safely on this device.");
+      } catch { /* noop */ }
     }
   };
 

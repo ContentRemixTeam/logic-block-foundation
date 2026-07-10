@@ -385,6 +385,28 @@ export function useTaskMutations() {
     ['habit-logs'],
   ];
 
+  const isRetryableTaskWriteError = (error: any) => {
+    const msg = String(error?.message || '').toLowerCase();
+    return !navigator.onLine || msg.includes('failed to fetch') || msg.includes('network') || msg.includes('timeout');
+  };
+
+  const queueTaskMutationForRetry = async (
+    type: 'create' | 'update' | 'delete',
+    data: Record<string, unknown>,
+    source: string,
+  ) => {
+    try {
+      const { queueMutation } = await import('@/lib/offlineDb');
+      await queueMutation({ type, table: 'tasks', data });
+      const { gentleSaveWarning } = await import('@/lib/gentleErrorToast');
+      gentleSaveWarning(`task-${source}`, "We couldn't save that just now — your work is kept safely on this device and we'll retry.");
+    } catch (queueErr) {
+      console.error(`[useTasks.${source}] queueing failed:`, queueErr);
+      const { gentleSaveWarning } = await import('@/lib/gentleErrorToast');
+      gentleSaveWarning(`task-${source}-queue-failed`, "We couldn't save that just now. Your screen still has the latest changes — please try again before leaving.");
+    }
+  };
+
   // Create task mutation — wraps API call so network failures route the
   // task through the offline mutation queue (see useOfflineSync /
   // useResilientTaskMutation) rather than throwing away the user's input.
@@ -414,12 +436,7 @@ export function useTaskMutations() {
       const startTime = Date.now();
 
       const queueForRetry = async (reason: string): Promise<Task> => {
-        try {
-          const { queueMutation } = await import('@/lib/offlineDb');
-          await queueMutation({ type: 'create', table: 'tasks', data: { action: 'create', ...params } });
-        } catch (queueErr) {
-          console.error('[useTasks.createTask] queueing failed:', queueErr);
-        }
+        await queueTaskMutationForRetry('create', { action: 'create', ...params }, 'createTask');
         mutationLogger.updateStatus(logId, 'success', `queued: ${reason}`, Date.now() - startTime);
         // Return a synthetic task so optimistic UI stays intact.
         const now = new Date().toISOString();
@@ -433,7 +450,6 @@ export function useTaskMutations() {
 
       try {
         if (!navigator.onLine) {
-          toast.info('Saved on this device', { description: 'We\'ll sync your task when you\'re back online.' });
           return await queueForRetry('offline');
         }
 
@@ -452,9 +468,7 @@ export function useTaskMutations() {
         return response.data?.data as Task;
       } catch (error: any) {
         const msg = String(error?.message || '');
-        const isNetwork = msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('network') || !navigator.onLine;
-        if (isNetwork) {
-          toast.info('Saved on this device', { description: 'We\'ll retry syncing your task automatically.' });
+        if (isRetryableTaskWriteError(error)) {
           return await queueForRetry(msg || 'network');
         }
         mutationLogger.updateStatus(logId, 'error', error?.message, Date.now() - startTime);
@@ -498,12 +512,7 @@ export function useTaskMutations() {
       const startTime = Date.now();
 
       const queueForRetry = async (reason: string) => {
-        try {
-          const { queueMutation } = await import('@/lib/offlineDb');
-          await queueMutation({ type: 'update', table: 'tasks', data: { action: 'update', task_id: taskId, ...updates } });
-        } catch (queueErr) {
-          console.error('[useTasks.updateTask] queueing failed:', queueErr);
-        }
+        await queueTaskMutationForRetry('update', { action: 'update', task_id: taskId, ...updates }, 'updateTask');
         mutationLogger.updateStatus(logId, 'success', `queued: ${reason}`, Date.now() - startTime);
         return { task_id: taskId, ...updates } as Task;
       };
@@ -522,8 +531,7 @@ export function useTaskMutations() {
         return response.data?.data as Task;
       } catch (error: any) {
         const msg = String(error?.message || '');
-        const isNetwork = msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('network') || !navigator.onLine;
-        if (isNetwork) {
+        if (isRetryableTaskWriteError(error)) {
           return await queueForRetry(msg || 'network');
         }
         mutationLogger.updateStatus(logId, 'error', error?.message, Date.now() - startTime);
@@ -553,13 +561,25 @@ export function useTaskMutations() {
   // Toggle task completion (with optional time tracking)
   const toggleComplete = useMutation({
     mutationFn: async ({ taskId, actual_minutes }: { taskId: string; actual_minutes?: number }) => {
+      const queueForRetry = async () => {
+        await queueTaskMutationForRetry('update', { action: 'toggle', task_id: taskId, actual_minutes }, 'toggleComplete');
+        return { task_id: taskId } as Task;
+      };
+
+      if (!navigator.onLine) return await queueForRetry();
+
       const session = await getSession();
-      const response = await supabase.functions.invoke('manage-task', {
-        body: { action: 'toggle', task_id: taskId, actual_minutes },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      if (response.error) throw response.error;
-      return response.data?.data as Task;
+      try {
+        const response = await supabase.functions.invoke('manage-task', {
+          body: { action: 'toggle', task_id: taskId, actual_minutes },
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (response.error) throw response.error;
+        return response.data?.data as Task;
+      } catch (error) {
+        if (isRetryableTaskWriteError(error)) return await queueForRetry();
+        throw error;
+      }
     },
     onMutate: async ({ taskId }) => {
       await queryClient.cancelQueries({ queryKey: taskQueryKeys.all });
@@ -589,12 +609,7 @@ export function useTaskMutations() {
       const session = await getSession();
 
       const queueForRetry = async () => {
-        try {
-          const { queueMutation } = await import('@/lib/offlineDb');
-          await queueMutation({ type: 'delete', table: 'tasks', data: { action: 'delete', task_id: taskId, delete_type: deleteType } });
-        } catch (queueErr) {
-          console.error('[useTasks.deleteTask] queueing failed:', queueErr);
-        }
+        await queueTaskMutationForRetry('delete', { action: 'delete', task_id: taskId, delete_type: deleteType }, 'deleteTask');
         return taskId;
       };
 
@@ -608,8 +623,7 @@ export function useTaskMutations() {
         return taskId;
       } catch (error: any) {
         const msg = String(error?.message || '');
-        const isNetwork = msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('network') || !navigator.onLine;
-        if (isNetwork) return await queueForRetry();
+        if (isRetryableTaskWriteError(error)) return await queueForRetry();
         throw error;
       }
     },
@@ -636,19 +650,32 @@ export function useTaskMutations() {
   // Move task to a specific day (also clears time_block_start)
   const moveToDay = useMutation({
     mutationFn: async ({ taskId, plannedDay, dayOrder }: { taskId: string; plannedDay: string | null; dayOrder?: number }) => {
+      const body = { 
+        action: 'update', 
+        task_id: taskId, 
+        planned_day: plannedDay,
+        day_order: dayOrder ?? 0,
+        time_block_start: null,
+      };
+      const queueForRetry = async () => {
+        await queueTaskMutationForRetry('update', body, 'moveToDay');
+        return { task_id: taskId, planned_day: plannedDay, day_order: dayOrder ?? 0, time_block_start: null } as Task;
+      };
+
+      if (!navigator.onLine) return await queueForRetry();
+
       const session = await getSession();
-      const response = await supabase.functions.invoke('manage-task', {
-        body: { 
-          action: 'update', 
-          task_id: taskId, 
-          planned_day: plannedDay,
-          day_order: dayOrder ?? 0,
-          time_block_start: null, // Clear time block when using moveToDay
-        },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      if (response.error) throw response.error;
-      return response.data?.data as Task;
+      try {
+        const response = await supabase.functions.invoke('manage-task', {
+          body,
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (response.error) throw response.error;
+        return response.data?.data as Task;
+      } catch (error) {
+        if (isRetryableTaskWriteError(error)) return await queueForRetry();
+        throw error;
+      }
     },
     onMutate: async ({ taskId, plannedDay, dayOrder }) => {
       await queryClient.cancelQueries({ queryKey: taskQueryKeys.all });
@@ -675,18 +702,31 @@ export function useTaskMutations() {
   // Set time block
   const setTimeBlock = useMutation({
     mutationFn: async ({ taskId, start, end }: { taskId: string; start: string | null; end: string | null }) => {
+      const body = { 
+        action: 'update', 
+        task_id: taskId, 
+        time_block_start: start,
+        time_block_end: end,
+      };
+      const queueForRetry = async () => {
+        await queueTaskMutationForRetry('update', body, 'setTimeBlock');
+        return { task_id: taskId, time_block_start: start, time_block_end: end } as Task;
+      };
+
+      if (!navigator.onLine) return await queueForRetry();
+
       const session = await getSession();
-      const response = await supabase.functions.invoke('manage-task', {
-        body: { 
-          action: 'update', 
-          task_id: taskId, 
-          time_block_start: start,
-          time_block_end: end,
-        },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      if (response.error) throw response.error;
-      return response.data?.data as Task;
+      try {
+        const response = await supabase.functions.invoke('manage-task', {
+          body,
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (response.error) throw response.error;
+        return response.data?.data as Task;
+      } catch (error) {
+        if (isRetryableTaskWriteError(error)) return await queueForRetry();
+        throw error;
+      }
     },
     onMutate: async ({ taskId, start, end }) => {
       await queryClient.cancelQueries({ queryKey: taskQueryKeys.all });
@@ -710,13 +750,26 @@ export function useTaskMutations() {
   // Toggle checklist item
   const toggleChecklistItem = useMutation({
     mutationFn: async ({ taskId, itemId }: { taskId: string; itemId: string }) => {
+      const body = { action: 'toggle_checklist_item', task_id: taskId, item_id: itemId };
+      const queueForRetry = async () => {
+        await queueTaskMutationForRetry('update', body, 'toggleChecklistItem');
+        return { task_id: taskId } as Task;
+      };
+
+      if (!navigator.onLine) return await queueForRetry();
+
       const session = await getSession();
-      const response = await supabase.functions.invoke('manage-task', {
-        body: { action: 'toggle_checklist_item', task_id: taskId, item_id: itemId },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      if (response.error) throw response.error;
-      return response.data?.data as Task;
+      try {
+        const response = await supabase.functions.invoke('manage-task', {
+          body,
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (response.error) throw response.error;
+        return response.data?.data as Task;
+      } catch (error) {
+        if (isRetryableTaskWriteError(error)) return await queueForRetry();
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: taskQueryKeys.all });

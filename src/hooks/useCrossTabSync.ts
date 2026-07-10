@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react';
+import { gentleSaveWarning, gentleLoadWarning } from '@/lib/gentleErrorToast';
 
 interface CrossTabMessage<T = unknown> {
   type: 'data-update' | 'save-complete' | 'conflict-detected' | 'tab-focus';
@@ -136,6 +137,7 @@ export function useCrossTabSync<T = unknown>({
 
       channel.onmessageerror = (error) => {
         console.warn('[useCrossTabSync] Message error:', error);
+        gentleLoadWarning('cross-tab-message', "We couldn't read an update from another tab. Your work in this tab is still protected.");
       };
 
       // Notify other tabs when this tab gains focus
@@ -151,6 +153,7 @@ export function useCrossTabSync<T = unknown>({
             channelRef.current.postMessage(message);
           } catch {
             // Channel may be closed
+            gentleSaveWarning('cross-tab-focus', "We couldn't update another open tab just now. Your work in this tab is still protected.");
           }
         }
       };
@@ -164,6 +167,7 @@ export function useCrossTabSync<T = unknown>({
       };
     } catch (error) {
       console.warn('[useCrossTabSync] Failed to create BroadcastChannel:', error);
+      gentleLoadWarning('cross-tab-create', "We couldn't connect your open tabs just now. Your work is still protected in this tab.");
     }
   }, [key, enabled, onRemoteUpdate, onConflict, onTabFocus]);
 
@@ -189,6 +193,7 @@ export function useCrossTabSync<T = unknown>({
       channelRef.current.postMessage(message);
     } catch (error) {
       console.warn('[useCrossTabSync] Failed to broadcast:', error);
+      gentleSaveWarning('cross-tab-broadcast', "We couldn't update another open tab just now. Your work in this tab is still protected.");
     }
   }, [key]);
 
@@ -212,6 +217,7 @@ export function useCrossTabSync<T = unknown>({
       channelRef.current.postMessage(message);
     } catch (error) {
       console.warn('[useCrossTabSync] Failed to broadcast save complete:', error);
+      gentleSaveWarning('cross-tab-save-complete', "We couldn't update another open tab just now. Your work in this tab is still protected.");
     }
   }, [key]);
 
@@ -233,6 +239,7 @@ export function useCrossTabSync<T = unknown>({
       channelRef.current.postMessage(message);
     } catch (error) {
       console.warn('[useCrossTabSync] Failed to request sync:', error);
+      gentleSaveWarning('cross-tab-request', "We couldn't check another open tab just now. Your work in this tab is still protected.");
     }
   }, [key]);
 

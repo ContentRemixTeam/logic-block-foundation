@@ -593,6 +593,9 @@ export function downloadPDF(blob: Blob, filename: string): boolean {
         console.log('[PDF Download] Cleanup completed');
       } catch (cleanupError) {
         console.warn('[PDF Download] Cleanup warning:', cleanupError);
+        import('@/lib/gentleErrorToast')
+          .then(({ gentleLoadWarning }) => gentleLoadWarning('pdf-cleanup', 'Your PDF was created, but we could not finish cleaning up the download helper. You can keep working normally.'))
+          .catch(() => {});
       }
     }, 1000); // Increased from 100ms to 1000ms
 
