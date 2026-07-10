@@ -33,20 +33,19 @@ export interface BareMinimumTask {
 
 function readTemplate(raw: unknown): BareMinimumTemplateItem[] {
   if (!Array.isArray(raw)) return [];
-  return raw
-    .map((r, i) => {
-      if (!r || typeof r !== 'object') return null;
-      const o = r as Record<string, unknown>;
-      const text = typeof o.text === 'string' ? o.text.trim() : '';
-      if (!text) return null;
-      const energy = o.energy_cost === 'low' || o.energy_cost === 'medium' || o.energy_cost === 'high'
-        ? (o.energy_cost as BareMinimumTemplateItem['energy_cost'])
-        : null;
-      const id = typeof o.id === 'string' && o.id ? o.id : `t${i}-${text.slice(0, 12)}`;
-      return { id, text, energy_cost: energy };
-    })
-    .filter((x): x is BareMinimumTemplateItem => !!x)
-    .slice(0, 3);
+  const out: BareMinimumTemplateItem[] = [];
+  raw.forEach((r, i) => {
+    if (!r || typeof r !== 'object') return;
+    const o = r as Record<string, unknown>;
+    const text = typeof o.text === 'string' ? o.text.trim() : '';
+    if (!text) return;
+    const energy = o.energy_cost === 'low' || o.energy_cost === 'medium' || o.energy_cost === 'high'
+      ? (o.energy_cost as BareMinimumTemplateItem['energy_cost'])
+      : null;
+    const id = typeof o.id === 'string' && o.id ? o.id : `t${i}-${text.slice(0, 12)}`;
+    out.push({ id, text, energy_cost: energy });
+  });
+  return out.slice(0, 3);
 }
 
 /** Template CRUD (mounted in Settings → Planner). */
