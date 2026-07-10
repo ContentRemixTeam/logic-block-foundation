@@ -100,6 +100,13 @@ export default function Tasks() {
   
   // Consolidated filter state - persist to localStorage
   const [searchQuery, setSearchQuery] = useState('');
+  const [matchMyEnergy, setMatchMyEnergy] = useState(() => {
+    try { return localStorage.getItem('tasks-match-energy') === '1'; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('tasks-match-energy', matchMyEnergy ? '1' : '0'); } catch { /* noop */ }
+  }, [matchMyEnergy]);
+  const { level: batteryLevel } = useTodayBattery();
   const [filters, setFilters] = useState(() => {
     try {
       const saved = localStorage.getItem('tasks-filters');
