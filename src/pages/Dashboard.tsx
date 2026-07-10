@@ -593,8 +593,8 @@ export default function Dashboard() {
           {/* Main Content - spans 2 cols on desktop */}
           <div className="lg:col-span-2 space-y-6">
             
-            {/* Active Sprint Widget — only when Launch Tools feature is on */}
-            {isEnabled('launch_tools') && <ActiveSprintWidget />}
+            {/* Active Sprint Widget (self-hides when no active sprint) */}
+            <ActiveSprintWidget />
 
             {/* Quarter Progress */}
             <WidgetCard
@@ -849,30 +849,10 @@ export default function Dashboard() {
               )}
             </WidgetCard>
 
-            {/* Launch Zone — only when Launch Tools feature is on */}
-            {isEnabled('launch_tools') && (
-              <>
-                {launchesLoading && (
-                  <WidgetCard
-                    title="Launch Zone"
-                    icon={<Rocket className="h-5 w-5 text-primary" />}
-                    gradientClass="from-orange-500/5"
-                  >
-                    <div className="space-y-3">
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-16 w-full" />
-                    </div>
-                  </WidgetCard>
-                )}
-
-                {!launchesLoading && !nextLaunch && (
-                  <LaunchZone hasLaunch={false} />
-                )}
-
-                {!launchesLoading && nextLaunch && (
-                  <LaunchZone hasLaunch={true} launchName={nextLaunch.name} launch={nextLaunch} />
-                )}
-              </>
+            {/* Launch Zone — only render when there's an actual active launch.
+                No empty-state widget for users who haven't started one. */}
+            {!launchesLoading && nextLaunch && (
+              <LaunchZone hasLaunch={true} launchName={nextLaunch.name} launch={nextLaunch} />
             )}
 
             {/* Sales Goal Tracker */}

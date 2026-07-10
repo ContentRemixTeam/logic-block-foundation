@@ -14,7 +14,6 @@ export type FeatureKey =
   | 'courses'
   | 'focus_pets'
   | 'ai_writing'
-  | 'launch_tools'
   | 'coaching'
   | 'challenges';
 
@@ -22,7 +21,6 @@ export const FEATURE_DEFAULTS: Record<FeatureKey, boolean> = {
   courses: false,
   focus_pets: false,
   ai_writing: false,
-  launch_tools: false,
   coaching: false,
   challenges: false,
 };
@@ -48,12 +46,6 @@ export const FEATURE_LIST: FeatureMeta[] = [
     key: 'ai_writing',
     label: 'AI Writing Assistant',
     description: 'Draft posts, emails, and content with AI help.',
-  },
-  {
-    key: 'launch_tools',
-    label: 'Launch Tools',
-    description:
-      'Launches, summits, flash sales, webinars, content challenges, and money-momentum sprints.',
   },
   {
     key: 'coaching',
@@ -85,18 +77,9 @@ export const ROUTE_FEATURE_MAP: Array<{ prefix: string; feature: FeatureKey }> =
   { prefix: '/ai-copywriting', feature: 'ai_writing' },
   { prefix: '/content-vault', feature: 'ai_writing' },
 
-  // launch_tools
-  { prefix: '/wizards/launch', feature: 'launch_tools' },
-  { prefix: '/wizards/launch-v1', feature: 'launch_tools' },
-  { prefix: '/wizards/summit', feature: 'launch_tools' },
-  { prefix: '/wizards/money-momentum', feature: 'launch_tools' },
-  { prefix: '/wizards/flash-sale', feature: 'launch_tools' },
-  { prefix: '/wizards/webinar', feature: 'launch_tools' },
-  { prefix: '/wizards/content-challenge', feature: 'launch_tools' },
-  { prefix: '/wizards/lead-magnet', feature: 'launch_tools' },
-  { prefix: '/launch-debrief', feature: 'launch_tools' },
-  { prefix: '/sprint-dashboard', feature: 'launch_tools' },
-  { prefix: '/money-moves-sprint', feature: 'launch_tools' },
+  // launch/project wizards are CORE — always visible, never toggled.
+
+
 
   // coaching
   { prefix: '/mastermind', feature: 'coaching' },
