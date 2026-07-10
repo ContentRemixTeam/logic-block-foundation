@@ -593,8 +593,8 @@ export default function Dashboard() {
           {/* Main Content - spans 2 cols on desktop */}
           <div className="lg:col-span-2 space-y-6">
             
-            {/* Active Sprint Widget — only when Launch Tools feature is on */}
-            {isEnabled('launch_tools') && <ActiveSprintWidget />}
+            {/* Active Sprint Widget (self-hides when no active sprint) */}
+            <ActiveSprintWidget />
 
             {/* Quarter Progress */}
             <WidgetCard
