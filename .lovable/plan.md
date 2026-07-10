@@ -1,65 +1,93 @@
-# Fresh Start + calm-design pass
+# Pre-launch hardening pass
 
-This work is real-designer, not a coat-of-paint pass. To keep quality high, I'm splitting delivery into a **Batch 1 (this turn)** and a **Batch 2 (next turn)**. Batch 1 ships the whole "Fresh Start" feature end-to-end plus the design-system foundations that unblock every other page. Batch 2 does per-page composition work.
+This is six substantial workstreams. Doing all of it in one turn would mean shallow work on every axis (especially security + performance, which need measurement, not just edits). I'm proposing **three sequenced batches**. Reply "go" and I'll ship Batch 1 immediately, then continue.
 
-If you want a different split, tell me and I'll re-cut.
+If you'd rather I compress into one turn and accept shallower coverage on perf + security, say "one turn".
 
-## Batch 1 — this turn
+---
 
-### Part B: Fresh Start feature (complete)
+## Batch 1 — Name bug + UX/onboarding/settings coherence (§0, §1, §2, §3)
 
-1. **Migration** — additive only:
-   - `tasks.archived_at timestamptz null` + index on `(user_id, archived_at)`.
-   - `daily_plans.archived_at timestamptz null` for stale plan carry-overs.
-   - Default all list queries filter out `archived_at is not null`.
+**Name bug (root cause fix)**
+- New `getDisplayName(profile)` helper — single source of truth. Sources in order: `user_profiles.first_name` → onboarding-captured name → no name (never email prefix).
+- Migration: add `user_profiles.first_name text` (nullable).
+- Add "Your name" field to Settings → Profile and to onboarding welcome step (optional, skippable).
+- Sweep every name display: `PersonalizedGreeting`, `CelebrationOverlay`, celebration message templates, any invite/email surfaces, tour welcome. Replace ad-hoc email parsing everywhere.
 
-2. **Welcome-back flow** (`WelcomeBackDialog.tsx`):
-   - On sign-in, read `user_profiles.last_activity_date`. If gap >= 7 days AND `localStorage['lbb-welcome-back-shown-{returnDate}']` unset, open dialog before any overdue UI paints.
-   - 3 primary options (Fresh start / Move forward / Look around), one-tap dismiss, warm copy.
-   - Fires once per return, dismissible.
+**UX walkthrough (three personas, real fixes only)**
+- Verify active nav state, page titles, one-primary-action per screen, ≤2 taps from dashboard to: Today, Tasks, Battery, Brain Dump.
+- Terminology sweep: pick canonical labels (90-day cycle, week, day, task, brain dump, bare minimum, battery) and rename inconsistent instances.
+- Empty states + disabled-feature pages: every one gets a "here's what to do" primary action (uses existing `EmptyState` primitive).
 
-3. **Bulk actions hook** (`useFreshStart.ts`):
-   - `archiveOverdue()` — sets `archived_at` on incomplete tasks with `scheduled_date < today` + on `daily_plans` whose date < today.
-   - `moveOverdueForward(mode: 'today' | 'this_week' | 'unscheduled')` — reuses existing task update path so no reschedule-friction banners fire (I'll pass a `silent: true` flag through `useResilientTaskMutation`).
-   - Returns preview counts before commit.
-   - Emits an undo token stored in memory for 20s (`undoLastFreshStart()`).
+**Onboarding**
+- Run through signup → onboarding → dashboard, fix any friction.
+- Every step skippable; capture name in welcome step.
+- First dashboard visit: no raw zeros, no error toasts, one clear suggested action.
+- Remove old "First 3 Days" surfaces if they still show alongside new flow.
+- Verify "take the tour" re-entry from settings.
 
-4. **Manual "Clean up" dialog** (`CleanUpDialog.tsx`):
-   - Trigger on `/tasks` header + Settings.
-   - Sections: archive before [date], reschedule overdue to [today/this week/unscheduled], archive completed older than [30/60/90 days].
-   - Live counts before confirm. Undo snackbar for 20s.
+**Settings reorganization**
+- Groups: Profile / Planner / Appearance / Extra Features / AI Assistant / Data.
+- One-line description per setting. Remove or relocate settings that no longer visibly do anything.
 
-5. **Archive page** (`/tasks/archive`):
-   - Lists archived tasks + archived daily plans, searchable, restore single or in bulk (sets `archived_at = null`).
-   - Nav entry lives quietly in Tasks page menu + Settings link.
+**Help content sweep**
+- Audit help pages, login-help, tooltips, explainers against final app. Remove references to removed rails / old branding / hidden-without-toggle features.
 
-6. **De-alarm overdue**:
-   - Sweep the codebase for red-badge overdue styling. Neutralize to `text-muted-foreground` + a soft amber accent only where truly informational. Replace "X days overdue" phrasing with "waiting for you" / "from {date}".
+---
 
-### Part A: design foundations only (not per-page redesigns)
+## Batch 2 — Security hardening (§4)
 
-The following are reusable primitives every core page can adopt. Actual page-by-page composition sits in Batch 2.
+- Run `supabase--linter` first; fix everything actionable.
+- Verify RLS on all recently-added tables: `integration_tokens`, `daily_battery_checkins`, `user_feature_preferences`, tasks archive columns, any `member_access`/`provision_events` if present. Users touch only their own rows.
+- Dedupe overlapping policies flagged earlier (`error_logs`, `ai_connection_keys`, `user_api_keys`, `admin_users`).
+- Tighten `error_logs`: require `user_id` going forward (nullable stays for legacy rows; new inserts must have it).
+- Provision/revoke endpoints: verify shared-secret check + rate limit.
+- MCP tool handlers: re-audit user scoping on every query (never trust client-supplied user id).
+- Auth pages: uniform message for wrong-email vs wrong-password (no enumeration).
+- Grep for token/secret leakage in logs, error messages, client bundles.
 
-1. **`<AppCard />`** — one canonical card (radius, border, subtle shadow) built on shadcn Card so we don't touch 40 files at once.
-2. **`<PageSkeleton />` + `<CardSkeleton />`** — shared skeletons; swap spinners on the 4 highest-traffic pages (Dashboard, DailyPlan, Tasks, Cycle) this turn.
-3. **`<EmptyState />`** — icon + one warm sentence + one primary action; drop into Tasks empty view + Archive empty view this turn as reference implementation.
-4. **Motion guard util** — `useRespectMotion()` returning bool; used by PageTransition + celebrations (already respected there).
-5. **Overdue tone tokens** — add `--tone-waiting` semantic (warm neutral) to `index.css`; use it for waiting/overdue states everywhere the sweep touches.
+Migration will go through the approval flow.
 
-## Batch 2 — next turn (I will not do this turn)
+---
 
-- Per-page composition pass on Dashboard, DailyPlan, WeeklyPlan, Cycle, Tasks, BrainDump, Reflections, Wizards chooser, Settings, Auth: hierarchy, whitespace, single primary action, 375px audit.
-- Empty states rolled out to every remaining core page using the primitive from Batch 1.
-- Auth/first-run premium polish pass.
+## Batch 3 — Performance + stability re-verification + launch report (§5, §6)
 
-Doing that page work in the same turn as Batch 1 would mean either shallow work on Fresh Start or shallow work on the design pass — neither is what you asked for.
+**Performance (measured, not vibes)**
+- Baseline: `bun run build`, record initial JS bundle size (main chunk + eager deps).
+- Route-level lazy loading for Extra Features: AI copywriting, arcade, courses, mastermind, wizards beyond chooser, editorial calendar heavy views.
+- Lazy-load heavy libs: pdf generation (`jspdf`/pptx/etc.), charts (`recharts`), confetti (`canvas-confetti`) — dynamic import at point of use.
+- Global providers audit: unmount/disable data-fetching for disabled features. `useArcade` global mount → gate behind toggle.
+- Hot queries: replace `select('*')` with explicit columns on `tasks`, `daily_plans`, `user_settings`.
+- Realtime channels: verify unsubscribe on unmount.
+- React Query staleTimes: settings (5min), cycle (5min), profile (10min).
+- After: re-build, record new bundle size. Report delta.
 
-## Assumptions I'm making
+**Stability re-verification (test, not assume)**
+- Sign-out with pending offline mutations (simulate).
+- Task creation with network throttled → verify offline queue.
+- Debounced-save flush on unmount for daily plan / brain dump.
+- Fresh Start archive + restore round-trip.
+- Low Battery Day toggle + restore.
+- Battery check-in persistence across reload.
+- Single offline indicator (no duplicates).
+- Gentle error toasts still in place.
+- Rapid navigation while editing → no data loss.
 
-- "Archive everything overdue/stale" for Fresh Start = incomplete tasks with `scheduled_date < today` + `daily_plans` with `date < today`. Notes, reflections, cycle, completed tasks are untouched.
-- Undo window = 20 seconds via snackbar; after that, users restore from Archive.
-- `last_activity_date` on `user_profiles` is already updated by the `update_last_activity` trigger — I'll rely on it. If it's stale for a specific user, the welcome dialog just won't fire; it's not destructive.
-- Bulk reschedule "this week" spreads across the next 5 weekdays evenly.
-- Archive page lives at `/tasks/archive` and is always accessible (no feature toggle).
+**Launch-readiness report** written to `.lovable/plan.md`:
+- What passed, what was fixed per section.
+- Bundle size before/after with numbers.
+- Supabase advisor results (before + after).
+- Remaining items requiring the human owner, with exact steps (e.g. "enable HIBP in Cloud → Users → Auth Settings", "verify custom domain DNS", etc.).
+- Typecheck status.
 
-Reply "go" to proceed with Batch 1 as scoped, or tell me what to cut/add.
+---
+
+## Assumptions
+
+- No feature deletions anywhere in the pass.
+- Batches ship sequentially, one per turn, so each gets real depth.
+- For §4 dedupe, I'll consolidate overlapping policies into one canonical policy per (table, action, role) — behavior-preserving, not permission-widening.
+- For §5, the goal is meaningful bundle reduction on the initial route, not a specific KB target — I'll report actuals.
+- The name-source order is: profile.first_name → onboarding-captured name → no name. Email is never used as a fallback.
+
+Reply **"go"** to start Batch 1, or tell me to re-cut.
