@@ -187,6 +187,7 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const { data: cycle, isLoading: cycleLoading } = useActiveCycle();
   const { data: launches = [], isLoading: launchesLoading } = useActiveLaunches();
+  const { isEnabled } = useFeatureToggles();
   
   // Get the next upcoming launch (first one since they're ordered by cart_opens)
   const nextLaunch = launches[0] || null;
