@@ -121,7 +121,7 @@ export default function MemberSignup() {
           </div>
           <CardTitle className="text-2xl">Mastermind Member Signup</CardTitle>
           <CardDescription>
-            Create your Boss Planner account to get started with the mastermind program.
+            Create your Low Battery Business Planner account to get started with the mastermind program.
           </CardDescription>
         </CardHeader>
         <CardContent>

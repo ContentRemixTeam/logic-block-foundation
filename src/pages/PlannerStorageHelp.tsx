@@ -70,7 +70,7 @@ export default function PlannerStorageHelp() {
             </div>
             <CardTitle className="text-3xl">Google Drive planner storage</CardTitle>
             <CardDescription className="text-base">
-              Boss Planner creates a private Google Sheet in your Drive so your planner data has a customer-owned storage layer.
+              Low Battery Business Planner creates a private Google Sheet in your Drive so your planner data has a customer-owned storage layer.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">

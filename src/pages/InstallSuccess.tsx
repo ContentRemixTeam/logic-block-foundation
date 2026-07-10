@@ -21,7 +21,7 @@ export default function InstallSuccess() {
   
   const apps: InstalledApp[] = state?.apps ?? [
     { name: 'Quick Add', installed: true },
-    { name: 'Boss Planner', installed: true },
+    { name: 'Low Battery Business Planner', installed: true },
   ];
   
   const allInstalled = apps.every(app => app.installed);
@@ -83,7 +83,7 @@ export default function InstallSuccess() {
               </CardHeader>
               <CardContent className="text-sm space-y-2">
                 <p>• Use <strong>Quick Add</strong> when ideas strike - it opens instantly</p>
-                <p>• Open <strong>Boss Planner</strong> each morning to plan your day</p>
+                <p>• Open <strong>Low Battery Business Planner</strong> each morning to plan your day</p>
                 <p>• Everything syncs automatically between apps</p>
                 <p>• Both apps work offline - changes sync when you're back online</p>
               </CardContent>

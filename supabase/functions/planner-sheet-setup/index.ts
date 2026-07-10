@@ -160,7 +160,7 @@ async function createPlannerSpreadsheet(accessToken: string, email: string) {
     },
     body: JSON.stringify({
       properties: {
-        title: `Becoming Boss Planner Data - ${email || 'User'}`,
+        title: `Low Battery Business Planner Data - ${email || 'User'}`,
       },
       sheets: allTabs.map(tab => ({
         properties: {

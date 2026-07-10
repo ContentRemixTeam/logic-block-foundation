@@ -281,7 +281,7 @@ export function AppSidebar() {
                   className="text-sm font-semibold truncate leading-tight"
                   style={{ fontFamily: isQuestMode ? 'Cinzel, serif' : 'Inter, system-ui, sans-serif' }}
                 >
-                  {isQuestMode ? 'Boss Quest' : 'Boss Planner'}
+                  {isQuestMode ? 'Boss Quest' : 'Low Battery'}
                 </span>
                 <span className="text-[10px] text-muted-foreground">Mastermind</span>
               </div>

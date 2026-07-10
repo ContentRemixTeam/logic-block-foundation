@@ -141,7 +141,7 @@ export default function PlannerLaunch() {
             <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <Compass className="h-4 w-4" />
             </span>
-            <span>Boss Planner</span>
+            <span>Low Battery Business Planner</span>
           </Link>
           <nav className="flex items-center gap-2">
             <Button variant="ghost" asChild>
@@ -165,7 +165,7 @@ export default function PlannerLaunch() {
               Guided 90-day business planning
             </Badge>
             <h1 className="max-w-3xl text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
-              90-Day Boss Planner
+              90-Day Low Battery Business Planner
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl">
               Build a business plan you can actually follow, then turn it into weekly actions that fit your brain, your capacity, and the thing you are selling next.

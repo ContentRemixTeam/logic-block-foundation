@@ -480,7 +480,7 @@ const featuresData: FeatureSection[] = [
     category: 'Other Features',
     title: 'Mobile App (Install to Home Screen)',
     icon: Smartphone,
-    description: 'Install Boss Planner as an app on your phone for the best mobile experience with touch-optimized features.',
+    description: 'Install Low Battery Business Planner as an app on your phone for the best mobile experience with touch-optimized features.',
     details: [
       'Install from your browser - no app store download required',
       'Works on iPhone (via Safari), Android (via Chrome), and Desktop',

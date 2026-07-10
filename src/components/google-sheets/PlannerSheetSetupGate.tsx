@@ -86,7 +86,7 @@ export function PlannerSheetSetupGate({ children }: { children: React.ReactNode 
           </div>
           <CardTitle className="text-2xl">Create your planner Sheet</CardTitle>
           <CardDescription>
-            New Boss Planner accounts start with a private Google Sheet connected to this app.
+            New Low Battery Business Planner accounts start with a private Google Sheet connected to this app.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
