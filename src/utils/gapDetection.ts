@@ -53,21 +53,23 @@ export async function detectGap(userId: string): Promise<GapStatus> {
     ? differenceInDays(new Date(), new Date(profile.last_activity_date))
     : 999;
   
-  // Determine severity and message
+  // Determine severity and message — warm, non-alarming tone.
   let message = '';
   let severity: 'warning' | 'urgent' | 'critical' = 'warning';
-  
+
+  const gap = Math.max(missedDaysInRow, daysSinceLastCheckIn);
+
   if (missedDaysInRow >= 7 || daysSinceLastCheckIn >= 10) {
     severity = 'critical';
-    message = `YOU'VE BEEN GONE FOR ${Math.max(missedDaysInRow, daysSinceLastCheckIn)} DAYS`;
+    message = `Welcome back — it's been ${gap} days. Take it gently.`;
   } else if (missedDaysInRow >= 5 || daysSinceLastCheckIn >= 7) {
     severity = 'urgent';
-    message = `IT'S BEEN ${Math.max(missedDaysInRow, daysSinceLastCheckIn)} DAYS`;
+    message = `It's been ${gap} days since your last check-in.`;
   } else if (missedDaysInRow >= 3 || daysSinceLastCheckIn >= 5) {
     severity = 'warning';
-    message = `YOU HAVEN'T CHECKED IN FOR ${Math.max(missedDaysInRow, daysSinceLastCheckIn)} DAYS`;
+    message = `A ${gap}-day break — no pressure to catch up.`;
   }
-  
+
   const shouldShowAlert = missedDaysInRow >= 3 || daysSinceLastCheckIn >= 5;
   
   return {
