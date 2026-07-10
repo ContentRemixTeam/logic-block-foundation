@@ -54,8 +54,10 @@ export const FEATURE_LIST: FeatureMeta[] = [
   },
   {
     key: 'challenges',
-    label: 'Challenges & Celebrations',
-    description: 'Monthly challenges, streaks, and celebration overlays.',
+    label: 'Challenges',
+    description:
+      'Monthly challenges, streaks, and competitive mechanics. ' +
+      "Celebrations are on for everyone by default — you don't need this turned on for confetti.",
   },
 ];
 

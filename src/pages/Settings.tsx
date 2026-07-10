@@ -27,6 +27,7 @@ import { McpConnectionPanel } from '@/components/settings/McpConnectionPanel';
 import { THEMES, THEME_IDS, ThemeId } from '@/lib/themes';
 import { DelightSettingsCard, DataRecoveryCard } from '@/components/settings';
 import { ExtraFeaturesSection } from '@/components/settings/ExtraFeaturesSection';
+import { CelebrationsToggleCard } from '@/components/settings/CelebrationsToggleCard';
 import { ThemeGallery } from '@/components/themes';
 import { CalendarSettingsCard } from '@/components/editorial-calendar';
 import { ChallengeProgressWidget } from '@/components/challenges/ChallengeProgressWidget';
@@ -303,6 +304,9 @@ export default function Settings() {
 
         {/* Extra Features — per-user visibility toggles */}
         <ExtraFeaturesSection />
+
+        {/* Celebrations — core, on by default */}
+        <CelebrationsToggleCard />
 
         {/* Theme Selector */}
         <Card>

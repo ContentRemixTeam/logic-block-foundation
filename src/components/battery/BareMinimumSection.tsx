@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -15,6 +15,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { useCelebrate } from '@/hooks/useCelebrate';
+import { useTodayBattery } from '@/hooks/useBatteryCheckin';
 
 interface Props {
   dateISO: string;
@@ -35,6 +37,8 @@ export function BareMinimumSection({ dateISO, compact, className }: Props) {
   const toggleBM = useToggleBareMinimum();
   const qc = useQueryClient();
   const { user } = useAuth();
+  const celebrate = useCelebrate();
+  const { level: batteryLevel } = useTodayBattery();
 
   // Template items whose text isn't already present as a task
   const pendingTemplate = useMemo(() => {
@@ -44,6 +48,21 @@ export function BareMinimumSection({ dateISO, compact, className }: Props) {
 
   const total = tasks.length + pendingTemplate.length;
   const done = tasks.filter((t) => t.status === 'done').length;
+
+  // Fire the "bare minimum all done" celebration exactly once per session when
+  // the count transitions to complete. Low-battery days get the extra-warm copy.
+  const celebratedRef = useRef(false);
+  useEffect(() => {
+    if (tasks.length > 0 && done === tasks.length && pendingTemplate.length === 0) {
+      if (!celebratedRef.current) {
+        celebratedRef.current = true;
+        const lowDay = batteryLevel === 'low' || batteryLevel === 'empty';
+        celebrate(lowDay ? 'bare_minimum_all_low_battery' : 'bare_minimum_all');
+      }
+    } else {
+      celebratedRef.current = false;
+    }
+  }, [tasks.length, done, pendingTemplate.length, batteryLevel, celebrate]);
 
   if (total === 0) return null;
 

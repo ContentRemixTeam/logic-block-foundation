@@ -6,6 +6,7 @@ import { useTodayBattery } from '@/hooks/useBatteryCheckin';
 import { matchesBattery } from '@/lib/energyMatching';
 import { BatteryHeaderChip } from '@/components/battery/BatteryHeaderChip';
 import { triggerCelebration } from '@/components/celebrations/CelebrationOverlay';
+import { useCelebrate } from '@/hooks/useCelebrate';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -68,6 +69,8 @@ import { useLaunches } from '@/hooks/useLaunches';
 
 export default function Tasks() {
   const queryClient = useQueryClient();
+  const celebrate = useCelebrate();
+
 
   
   // Google Calendar integration
@@ -681,9 +684,16 @@ export default function Tasks() {
     toggleComplete.mutate({ taskId });
     
     if (isCompleting) {
-      triggerCelebration({ type: 'task_complete' });
+      // First-ever task celebration wins over the standard one.
+      const firstKey = 'lbb-first-task-celebrated';
+      if (typeof window !== 'undefined' && !localStorage.getItem(firstKey)) {
+        localStorage.setItem(firstKey, new Date().toISOString());
+        celebrate('first_task');
+      } else {
+        celebrate('task_complete');
+      }
     }
-  }, [toggleComplete, filteredTasks]);
+  }, [toggleComplete, filteredTasks, celebrate]);
 
   const handleUpdateTask = useCallback((taskId: string, updates: Partial<Task>) => {
     // Uses optimistic update for instant feedback
