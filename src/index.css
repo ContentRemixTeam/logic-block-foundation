@@ -361,57 +361,57 @@
 
   /* ===== DARK MODE ===== */
   .dark {
-    --background: 240 5% 10%;
-    --surface: 222 47% 10%;
-    --surface-elevated: 222 47% 12%;
-    --surface-sunken: 222 47% 5%;
+    --background: 34 6% 10%;
+    --surface: 34 6% 12%;
+    --surface-elevated: 34 6% 15%;
+    --surface-sunken: 34 6% 7%;
 
-    --foreground: 0 0% 98%;
-    --foreground-muted: 215 20% 65%;
-    --foreground-subtle: 215 20% 50%;
+    --foreground: 40 33% 96%;
+    --foreground-muted: 38 12% 72%;
+    --foreground-subtle: 38 10% 58%;
 
-    --border: 240 5% 33%;
-    --border-subtle: 217 33% 12%;
-    --border-strong: 217 33% 25%;
+    --border: 34 6% 28%;
+    --border-subtle: 34 6% 18%;
+    --border-strong: 34 6% 38%;
 
-    --muted: 240 3% 46%;
-    --muted-foreground: 0 0% 98%;
+    --muted: 34 6% 22%;
+    --muted-foreground: 38 12% 72%;
 
-    --card: 240 3% 15%;
-    --card-foreground: 0 0% 98%;
+    --card: 34 6% 14%;
+    --card-foreground: 40 33% 96%;
 
-    --popover: 240 5% 15%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 34 6% 14%;
+    --popover-foreground: 40 33% 96%;
 
-    --input: 240 5% 33%;
+    --input: 34 6% 28%;
 
-    --sidebar-background: 222 47% 7%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-accent: 330 81% 65%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 240 5% 33%;
-    --sidebar-primary: 330 81% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-ring: 330 81% 60%;
-    
-    --primary: 330 81% 60%;
-    --primary-hover: 330 81% 55%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 240 3% 20%;
-    --secondary-foreground: 0 0% 98%;
-    --accent: 330 50% 20%;
-    --accent-foreground: 330 81% 70%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 85% 97%;
-    --ring: 330 81% 60%;
-    
-    --chart-1: 330 81% 60%;
-    --chart-2: 173 80% 50%;
-    --chart-3: 55 90% 70%;
-    --chart-4: 258 89% 66%;
-    --chart-5: 220 9% 46%;
-    --sidebar: 240 3% 15%;
-    
+    --sidebar-background: 34 6% 9%;
+    --sidebar-foreground: 40 33% 96%;
+    --sidebar-accent: 347 55% 28%;
+    --sidebar-accent-foreground: 347 80% 88%;
+    --sidebar-border: 34 6% 28%;
+    --sidebar-primary: 347 70% 72%;
+    --sidebar-primary-foreground: 34 6% 10%;
+    --sidebar-ring: 347 70% 72%;
+
+    --primary: 347 70% 72%;
+    --primary-hover: 347 62% 66%;
+    --primary-foreground: 34 6% 10%;
+    --secondary: 34 6% 20%;
+    --secondary-foreground: 40 33% 96%;
+    --accent: 347 40% 24%;
+    --accent-foreground: 347 80% 88%;
+    --destructive: 0 55% 60%;
+    --destructive-foreground: 40 33% 96%;
+    --ring: 347 70% 72%;
+
+    --chart-1: 347 70% 72%;
+    --chart-2: 173 45% 55%;
+    --chart-3: 39 77% 65%;
+    --chart-4: 262 45% 65%;
+    --chart-5: 38 12% 72%;
+    --sidebar: 34 6% 14%;
+
     --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
     --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
     --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
