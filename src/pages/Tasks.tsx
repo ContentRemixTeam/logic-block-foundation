@@ -27,13 +27,15 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { 
-  Plus, CalendarIcon, Clock, RefreshCw, ChevronDown, 
+import {
+  Plus, CalendarIcon, Clock, RefreshCw, ChevronDown,
   ClipboardList, ExternalLink, Unlink,
   Zap, Battery, BatteryLow, Trash2, CheckSquare,
-  AlertTriangle, Calendar as CalendarDays, Inbox, FolderKanban
+  AlertTriangle, Calendar as CalendarDays, Inbox, FolderKanban,
+  Sparkles, Archive as ArchiveIcon,
 } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
+import { CleanUpDialog } from '@/components/fresh-start/CleanUpDialog';
 import { cn } from '@/lib/utils';
 
 // Import new components
