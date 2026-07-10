@@ -268,10 +268,15 @@ export function getSyncStatus(): { isSyncing: boolean } {
 }
 
 /**
- * Get pending mutation count
+ * Get unsynced mutation count. Failed mutations are included because signing
+ * out clears the same local queue and would otherwise wipe retryable work.
  */
 export async function getPendingCount(): Promise<number> {
-  return getMutationCount('pending');
+  const [pending, failed] = await Promise.all([
+    getMutationCount('pending'),
+    getMutationCount('failed'),
+  ]);
+  return pending + failed;
 }
 
 /**

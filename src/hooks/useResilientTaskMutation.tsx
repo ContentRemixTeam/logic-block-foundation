@@ -136,7 +136,7 @@
            ...taskData,
          });
          clearPendingTaskDraft(draftId);
-         toast.info('Saved offline', {
+          toast.info('Saved on this device', {
            description: 'Task will sync when you\'re back online.',
            duration: 3000,
          });

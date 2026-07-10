@@ -278,16 +278,36 @@ export default function Tasks() {
   // Manage task mutation
   const manageMutation = useMutation({
     mutationFn: async (params: Record<string, unknown>) => {
+      const action = String(params.action || 'update');
+      const queueType = action === 'create' ? 'create' : action === 'delete' ? 'delete' : 'update';
+      const queueForRetry = async () => {
+        const { queueMutation } = await import('@/lib/offlineDb');
+        await queueMutation({ type: queueType, table: 'tasks', data: params });
+        const { gentleSaveWarning } = await import('@/lib/gentleErrorToast');
+        gentleSaveWarning('tasks-page-manage', "We couldn't save that just now — your work is kept safely on this device and we'll retry.");
+        return { queued: true, params };
+      };
+
+      if (!navigator.onLine) return await queueForRetry();
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const response = await supabase.functions.invoke('manage-task', {
-        body: params,
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      try {
+        const response = await supabase.functions.invoke('manage-task', {
+          body: params,
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
 
-      if (response.error) throw response.error;
-      return response.data;
+        if (response.error) throw response.error;
+        return response.data;
+      } catch (error: any) {
+        const message = String(error?.message || '').toLowerCase();
+        if (!navigator.onLine || message.includes('failed to fetch') || message.includes('network') || message.includes('timeout')) {
+          return await queueForRetry();
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['all-tasks'] });

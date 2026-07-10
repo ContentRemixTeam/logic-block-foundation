@@ -217,6 +217,8 @@ export default function DailyPageSettings() {
       setHasChanges(false);
     } catch (error) {
       // Error already handled in hook
+      const { gentleSaveWarning } = await import('@/lib/gentleErrorToast');
+      gentleSaveWarning('daily-page-reset', "We couldn't reset that just now. Your current layout is still safe.");
     }
   };
 

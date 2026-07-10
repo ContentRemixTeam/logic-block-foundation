@@ -202,10 +202,6 @@ export function useDataProtection<T extends Record<string, any>>({
     const handleOnline = () => {
       setIsOnline(true);
       setSaveStatus('pending');
-      toast({
-        title: '🟢 Back online',
-        description: 'Attempting to save your work...',
-      });
       if (dataRef.current && hasUnsavedChanges) {
         performSave();
       }
@@ -214,10 +210,6 @@ export function useDataProtection<T extends Record<string, any>>({
     const handleOffline = () => {
       setIsOnline(false);
       setSaveStatus('offline');
-      toast({
-        title: 'Connection dropped',
-        description: "Your work is protected on this device and will sync when you're back online.",
-      });
     };
 
 

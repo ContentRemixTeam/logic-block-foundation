@@ -52,9 +52,9 @@ export function UnsyncedDataBanner({ className }: UnsyncedDataBannerProps) {
                 : "text-foreground"
           )}>
             {!isOnline 
-              ? `${totalUnsynced} change${totalUnsynced > 1 ? 's' : ''} saved locally (offline)`
+              ? `${totalUnsynced} change${totalUnsynced > 1 ? 's' : ''} protected on this device`
               : failedCount > 0
-                ? `${failedCount} change${failedCount > 1 ? 's' : ''} failed to sync`
+                ? `${failedCount} change${failedCount > 1 ? 's' : ''} still waiting to sync`
                 : `${pendingCount} change${pendingCount > 1 ? 's' : ''} waiting to sync`
             }
           </span>

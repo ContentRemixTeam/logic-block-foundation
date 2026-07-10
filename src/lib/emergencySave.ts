@@ -17,6 +17,12 @@
 import { saveEmergencyData } from './offlineDb';
 import { supabase } from '@/integrations/supabase/client';
 
+function showEmergencySaveWarning(key: string) {
+  import('@/lib/gentleErrorToast')
+    .then(({ gentleSaveWarning }) => gentleSaveWarning(key, "We couldn't save that just now — your work is kept safely on this device and we'll retry."))
+    .catch(() => {});
+}
+
 interface EmergencySavePayload {
   token: string; // Access token for authentication
   pageType: string;
@@ -99,6 +105,7 @@ export function sendEmergencyBeacon(
     return success;
   } catch (error) {
     console.error('[EmergencySave] Beacon error:', error);
+    showEmergencySaveWarning('emergency-beacon');
     return false;
   }
 }
@@ -137,11 +144,13 @@ export function emergencySave(
     localStorage.setItem(key, JSON.stringify(backup));
   } catch (error) {
     console.warn('[EmergencySave] localStorage fallback failed:', error);
+    showEmergencySaveWarning('emergency-local');
   }
 
   // Layer 3: IndexedDB backup (async, fire-and-forget)
   saveEmergencyData(userId, pageType, data).catch((error) => {
     console.warn('[EmergencySave] IndexedDB fallback failed:', error);
+    showEmergencySaveWarning('emergency-idb');
   });
 }
 
@@ -165,6 +174,9 @@ export function checkEmergencySaves(pageType: string, pageId?: string): any | nu
     }
   } catch (error) {
     console.warn('[EmergencySave] Check failed:', error);
+    import('@/lib/gentleErrorToast')
+      .then(({ gentleLoadWarning }) => gentleLoadWarning('emergency-check', "We couldn't check for a saved recovery copy just now. You can keep working normally."))
+      .catch(() => {});
   }
   return null;
 }
@@ -178,5 +190,6 @@ export function clearEmergencySave(pageType: string, pageId?: string): void {
     localStorage.removeItem(key);
   } catch (error) {
     console.warn('[EmergencySave] Clear failed:', error);
+    showEmergencySaveWarning('emergency-clear');
   }
 }
