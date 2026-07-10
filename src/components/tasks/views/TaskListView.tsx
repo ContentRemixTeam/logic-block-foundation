@@ -427,13 +427,13 @@ export function TaskListView({
           <span
             className={cn(
               "h-1.5 w-1.5 rounded-full shrink-0",
-              isOverdue ? "bg-destructive/70" : "bg-muted-foreground/40"
+              isOverdue ? "bg-waiting/70" : "bg-muted-foreground/40"
             )}
           />
           <h2
             className={cn(
               "text-[11px] font-medium uppercase tracking-[0.15em] whitespace-nowrap",
-              isOverdue ? "text-destructive/80" : "text-muted-foreground"
+              isOverdue ? "text-waiting" : "text-muted-foreground"
             )}
           >
             {config.name} <span className="text-muted-foreground/60 ml-1">· {groupTasks.length}</span>
