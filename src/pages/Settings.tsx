@@ -28,6 +28,8 @@ import { THEMES, THEME_IDS, ThemeId } from '@/lib/themes';
 import { DelightSettingsCard, DataRecoveryCard } from '@/components/settings';
 import { ExtraFeaturesSection } from '@/components/settings/ExtraFeaturesSection';
 import { CelebrationsToggleCard } from '@/components/settings/CelebrationsToggleCard';
+import { BatteryCheckinToggleCard } from '@/components/settings/BatteryCheckinToggleCard';
+
 import { AIAssistantSection } from '@/components/settings/AIAssistantSection';
 import { FreshStartSettingsCard } from '@/components/settings/FreshStartSettingsCard';
 import { ThemeGallery } from '@/components/themes';
