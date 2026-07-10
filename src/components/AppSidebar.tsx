@@ -133,6 +133,7 @@ export function AppSidebar() {
   const { openQuickCapture } = useQuickCapture();
   const { settings: arcadeSettings, isLoading: arcadeLoading } = useArcade();
   const { settings: userSettings } = useUserSettings();
+  const { isEnabled: isFeatureEnabled } = useFeatureToggles();
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -182,12 +183,14 @@ export function AppSidebar() {
     items,
     showLabel = true,
   }: { 
-    label?: string; 
-    items: Array<{ name: string; href: string; icon: any; questIcon: string; isExternal?: boolean; isActiveCheck?: (path: string) => boolean; settingsKey?: string; dataTour?: string }>;
+    label?: string;
+    items: Array<{ name: string; href: string; icon: any; questIcon: string; isExternal?: boolean; isActiveCheck?: (path: string) => boolean; settingsKey?: string; feature?: FeatureKey; dataTour?: string }>;
     showLabel?: boolean;
   }) => {
-    // Filter items based on user settings
+    // Filter items based on user settings and per-user Extra Features toggles
     const visibleItems = items.filter(item => {
+      // Extra-Features toggle wins: hide if the feature is off
+      if (item.feature && !isFeatureEnabled(item.feature)) return false;
       if (!item.settingsKey) return true; // No setting = always show
       if (!userSettings) return true; // Settings not loaded = show all
       return (userSettings as Record<string, unknown>)[item.settingsKey] === true;
