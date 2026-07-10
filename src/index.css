@@ -14,99 +14,97 @@
 
 @layer base {
   :root {
-    /* === BOSS PLANNER PREMIUM PALETTE === */
-    --bp-primary: 330 81% 54%;           /* #dd3386 */
-    --bp-primary-soft: 340 76% 83%;      /* #f0b6d2 */
-    --bp-highlight: 55 90% 82%;          /* #f7f0ab */
-    --bp-background: 240 20% 99%;        /* #FAFAFC */
-    --bp-text: 0 0% 7%;                  /* #111111 */
-    --bp-muted: 220 9% 46%;              /* #6B7280 */
-    --bp-teal: 173 80% 40%;              /* Teal for "do" */
+    /* === LOW BATTERY BUSINESS PLANNER — GENTLE CHARGE PALETTE ===
+       Cream #FAF7F2 · Charcoal #3D3A36 · Warm Rose #E87B93
+       Gold Spark #E8B24B · Soft Taupe #D8D2C8 · Muted Stone #8A8378 */
+    --lb-cream: 40 33% 97%;
+    --lb-charcoal: 34 6% 22%;
+    --lb-rose: 347 70% 70%;
+    --lb-gold: 39 77% 60%;
+    --lb-taupe: 38 17% 82%;
+    --lb-stone: 37 7% 51%;
 
     /* === SURFACE HIERARCHY === */
-    --background: 240 20% 99%;           /* #FAFAFC */
-    --surface: 0 0% 100%;
+    --background: 40 33% 97%;            /* Cream */
+    --surface: 40 40% 99%;
     --surface-elevated: 0 0% 100%;
-    --surface-sunken: 240 14% 97%;
+    --surface-sunken: 40 25% 94%;
 
     /* === TEXT HIERARCHY === */
-    --foreground: 0 0% 7%;               /* #111111 */
-    --foreground-muted: 220 9% 46%;      /* #6B7280 */
-    --foreground-subtle: 220 9% 60%;
+    --foreground: 34 6% 22%;             /* Charcoal */
+    --foreground-muted: 37 7% 51%;       /* Stone */
+    --foreground-subtle: 38 10% 62%;
 
     /* === BORDER & DIVIDERS === */
-    --border: 0 0% 7% / 0.08;            /* rgba(17,17,17,0.08) */
-    --border-subtle: 220 13% 96%;
-    --border-strong: 220 13% 88%;
+    --border: 38 17% 82%;                /* Taupe */
+    --border-subtle: 38 20% 90%;
+    --border-strong: 38 15% 72%;
 
-    /* === PRIMARY BRAND (Pink) === */
-    --primary: 330 81% 54%;              /* #dd3386 */
-    --primary-hover: 330 81% 48%;
-    --primary-foreground: 0 0% 100%;
+    /* === PRIMARY BRAND (Warm Rose) === */
+    --primary: 347 70% 70%;
+    --primary-hover: 347 62% 62%;
+    --primary-foreground: 40 40% 99%;
 
     /* === SECONDARY === */
-    --secondary: 240 5% 96%;
-    --secondary-hover: 240 5% 92%;
-    --secondary-foreground: 0 0% 7%;
+    --secondary: 38 25% 92%;
+    --secondary-hover: 38 20% 88%;
+    --secondary-foreground: 34 6% 22%;
 
-    /* === ACCENT (Pink Premium) === */
-    --accent: 330 81% 97%;
-    --accent-hover: 330 81% 55%;
-    --accent-foreground: 330 81% 54%;
+    /* === ACCENT === */
+    --accent: 347 70% 96%;
+    --accent-hover: 347 70% 92%;
+    --accent-foreground: 347 55% 40%;
 
     /* === SEMANTIC COLORS === */
-    --success: 142 71% 45%;
-    --success-light: 142 71% 95%;
+    --success: 142 45% 45%;
+    --success-light: 142 45% 94%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
-    --warning-light: 38 92% 95%;
-    --warning-foreground: 0 0% 100%;
+    --warning: 39 77% 60%;               /* Gold Spark */
+    --warning-light: 39 77% 94%;
+    --warning-foreground: 34 6% 22%;
 
-    --destructive: 0 72% 50%;
-    --destructive-light: 0 84% 97%;
-    --destructive-foreground: 0 85% 97%;
+    --destructive: 0 55% 55%;
+    --destructive-light: 0 55% 96%;
+    --destructive-foreground: 40 40% 99%;
 
-    --info: 199 89% 48%;
-    --info-light: 199 89% 95%;
+    --info: 199 55% 55%;
+    --info-light: 199 55% 95%;
     --info-foreground: 0 0% 100%;
 
-    /* === TONE (calm-planner semantics) ===
-       Waiting = a warm neutral for overdue / stale items that must NOT feel
-       alarming. Never use --destructive for overdue states — that is reserved
-       for truly destructive actions (delete, sign-out warnings, etc.). */
-    --tone-waiting: 32 55% 48%;               /* soft amber */
-    --tone-waiting-foreground: 32 55% 22%;
-    --tone-waiting-soft: 32 65% 96%;
+    /* === TONE (calm-planner semantics) === */
+    --tone-waiting: 37 7% 51%;
+    --tone-waiting-foreground: 34 6% 22%;
+    --tone-waiting-soft: 38 20% 94%;
 
     /* === MUTED === */
-    --muted: 240 5% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 38 20% 92%;
+    --muted-foreground: 37 7% 51%;
 
     /* === CARDS & POPOVERS === */
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 7%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 7%;
+    --card: 40 40% 99%;
+    --card-foreground: 34 6% 22%;
+    --popover: 40 40% 99%;
+    --popover-foreground: 34 6% 22%;
 
     /* === INPUT & RING === */
-    --input: 0 0% 7% / 0.08;
-    --ring: 330 81% 54%;
+    --input: 38 17% 82%;
+    --ring: 347 70% 70%;
 
-    /* === RADIUS SCALE (Premium larger radius) === */
-    --radius: 0.625rem;         /* 10px */
-    --radius-sm: 0.5rem;        /* 8px */
-    --radius-lg: 1rem;          /* 16px */
-    --radius-xl: 1.25rem;       /* 20px */
+    /* === RADIUS SCALE === */
+    --radius: 0.625rem;
+    --radius-sm: 0.5rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.25rem;
     --radius-full: 9999px;
 
-    /* === SHADOW SCALE (Softer, more premium) === */
-    --shadow-xs: 0 1px 2px 0px hsl(0 0% 0% / 0.03);
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
-    --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
-    --shadow-lg: 0 8px 24px rgba(0,0,0,0.08);
-    --shadow-xl: 0 12px 32px rgba(0,0,0,0.12);
-    --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.03);
+    /* === SHADOW SCALE === */
+    --shadow-xs: 0 1px 2px 0px hsl(34 6% 22% / 0.04);
+    --shadow-sm: 0 1px 3px hsl(34 6% 22% / 0.05), 0 4px 12px hsl(34 6% 22% / 0.04);
+    --shadow-md: 0 4px 16px hsl(34 6% 22% / 0.07);
+    --shadow-lg: 0 8px 24px hsl(34 6% 22% / 0.09);
+    --shadow-xl: 0 12px 32px hsl(34 6% 22% / 0.12);
+    --shadow-inner: inset 0 2px 4px 0 hsl(34 6% 22% / 0.04);
 
     /* === SPACING SCALE === */
     --space-1: 0.25rem;
@@ -120,72 +118,72 @@
     --space-12: 3rem;
 
     /* === SIDEBAR === */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 7%;
-    --sidebar-primary: 330 81% 54%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 330 81% 97%;
-    --sidebar-accent-foreground: 330 81% 54%;
-    --sidebar-border: 0 0% 7% / 0.08;
-    --sidebar-ring: 330 81% 54%;
+    --sidebar-background: 40 40% 99%;
+    --sidebar-foreground: 34 6% 22%;
+    --sidebar-primary: 347 70% 70%;
+    --sidebar-primary-foreground: 40 40% 99%;
+    --sidebar-accent: 347 70% 96%;
+    --sidebar-accent-foreground: 347 55% 40%;
+    --sidebar-border: 38 17% 82%;
+    --sidebar-ring: 347 70% 70%;
 
     /* === THEME COLORS === */
-    --theme-pink: 330 81% 54%;
-    --theme-yellow: 55 90% 70%;
-    --theme-teal: 173 80% 40%;
-    --theme-gray: 220 9% 46%;
+    --theme-pink: 347 70% 70%;
+    --theme-yellow: 39 77% 60%;
+    --theme-teal: 173 45% 45%;
+    --theme-gray: 37 7% 51%;
 
     /* === QUEST MODE COLORS === */
-    --quest-gold: 45 93% 47%;
-    --quest-gold-light: 48 96% 53%;
-    --quest-copper: 28 65% 52%;
-    --quest-forest: 160 84% 39%;
-    --quest-emerald: 160 84% 45%;
-    --quest-purple: 262 83% 58%;
-    --quest-blue: 217 91% 60%;
+    --quest-gold: 39 77% 60%;
+    --quest-gold-light: 39 85% 68%;
+    --quest-copper: 28 55% 52%;
+    --quest-forest: 160 50% 39%;
+    --quest-emerald: 160 55% 45%;
+    --quest-purple: 262 45% 58%;
+    --quest-blue: 217 50% 60%;
 
     /* === SEMANTIC STATUS COLORS === */
-    --status-unscheduled: 220 9% 56%;
-    --status-today: 330 81% 54%;
-    --status-this-week: 217 91% 60%;
-    --status-next-week: 173 80% 40%;
-    --status-next-quarter: 262 83% 58%;
-    --status-someday: 38 92% 50%;
-    /* Legacy status colors for backwards compatibility */
-    --status-focus: 330 81% 54%;
-    --status-scheduled: 217 91% 60%;
-    --status-backlog: 38 92% 50%;
-    --status-waiting: 262 83% 58%;
-    
+    --status-unscheduled: 37 7% 51%;
+    --status-today: 347 70% 70%;
+    --status-this-week: 217 50% 60%;
+    --status-next-week: 173 45% 45%;
+    --status-next-quarter: 262 45% 58%;
+    --status-someday: 39 77% 60%;
+    --status-focus: 347 70% 70%;
+    --status-scheduled: 217 50% 60%;
+    --status-backlog: 39 77% 60%;
+    --status-waiting: 37 7% 51%;
+
     /* === SEMANTIC PRIORITY COLORS === */
-    --priority-high: 0 72% 50%;
-    --priority-medium: 38 92% 50%;
-    --priority-low: 142 71% 45%;
-    
+    --priority-high: 0 55% 55%;
+    --priority-medium: 39 77% 60%;
+    --priority-low: 142 45% 45%;
+
     /* === SEMANTIC CATEGORY COLORS === */
-    --category-content: 217 91% 60%;
-    --category-nurture: 330 81% 54%;
-    --category-offer: 142 71% 45%;
+    --category-content: 217 50% 60%;
+    --category-nurture: 347 70% 70%;
+    --category-offer: 142 45% 45%;
 
     /* === FONT === */
     --font-sans: 'Montserrat', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
     --font-heading: 'Inter', system-ui, sans-serif;
-    --font-serif: 'Cormorant Garamond', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+    --font-serif: Georgia, 'Cormorant Garamond', ui-serif, Cambria, 'Times New Roman', Times, serif;
     --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-    
+
     /* === CHART COLORS === */
-    --chart-1: 330 81% 54%;
-    --chart-2: 173 80% 40%;
-    --chart-3: 55 90% 70%;
-    --chart-4: 258 89% 66%;
-    --chart-5: 220 9% 46%;
-    --sidebar: 0 0% 100%;
-    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.03);
-    --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
-    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.20);
+    --chart-1: 347 70% 70%;
+    --chart-2: 173 45% 45%;
+    --chart-3: 39 77% 60%;
+    --chart-4: 262 45% 58%;
+    --chart-5: 37 7% 51%;
+    --sidebar: 40 40% 99%;
+    --shadow-2xs: 0 1px 3px 0px hsl(34 6% 22% / 0.03);
+    --shadow: 0 1px 3px hsl(34 6% 22% / 0.05), 0 4px 12px hsl(34 6% 22% / 0.04);
+    --shadow-2xl: 0 1px 3px 0px hsl(34 6% 22% / 0.20);
     --tracking-normal: 0em;
     --spacing: 0.25rem;
   }
+
 
   /* ===== PINK PREMIUM THEME ===== */
   [data-theme="pink"],
