@@ -45,6 +45,7 @@ import { cn } from '@/lib/utils';
 
 import { QuickLogCard } from '@/components/content';
 import { triggerCelebration } from '@/components/celebrations/CelebrationOverlay';
+import { useCelebrate } from '@/hooks/useCelebrate';
 import { PageTransition } from '@/components/transitions/PageTransition';
 import { NurtureCheckinCard } from '@/components/nurture';
 import { HabitTrackerCard } from '@/components/habits';
