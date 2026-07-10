@@ -57,6 +57,8 @@ import { DailySprintSection } from '@/components/daily-plan/DailySprintSection';
 import { SummitModeSection } from '@/components/daily-plan/SummitModeSection';
 import { useActiveLaunches } from '@/hooks/useActiveLaunches';
 import { useActiveSummits } from '@/hooks/useActiveSummits';
+import { BatteryDailyBlock } from '@/components/battery/BatteryDailyBlock';
+import { BatteryCheckinPrompt } from '@/components/battery/BatteryCheckinPrompt';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1029,6 +1031,11 @@ export default function DailyPlan() {
 
         {/* 2. Calendar Reconnect Banner */}
         <CalendarReconnectBanner />
+
+        {/* 2.05 Battery + Bare Minimum — calm daily anchor */}
+        <BatteryCheckinPrompt />
+        <BatteryDailyBlock dateISO={format(new Date(), 'yyyy-MM-dd')} />
+
 
         {/* 2.1 Today Command Center — greeting, Top 3 progress, Next Best Action */}
         <TodayCommandCenter top3Tasks={top3Tasks} />

@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { BatteryCheckinPrompt } from '@/components/battery/BatteryCheckinPrompt';
+import { BatteryDailyBlock } from '@/components/battery/BatteryDailyBlock';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { differenceInDays, format, parseISO, startOfWeek as getStartOfWeek, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter } from 'date-fns';
@@ -411,6 +413,12 @@ export default function Dashboard() {
       <div className="space-y-6">
         {/* Install Banner for mobile */}
         <InstallBanner />
+
+        {/* Once-per-day battery check-in prompt (skippable) */}
+        <BatteryCheckinPrompt />
+
+        {/* Battery + Bare Minimum block */}
+        <BatteryDailyBlock compact />
 
         {/* Monthly Challenge Auto-Popup — only when Challenges feature is on */}
         {isEnabled('challenges') && <MonthlyChallengeAutoPopup />}

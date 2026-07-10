@@ -6,6 +6,7 @@ import { Settings, Check, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usePlannerPreferences, PLANNER_STYLE_PRESETS, PlannerStyle } from '@/hooks/usePlannerPreferences';
 import { PlannerPreferencesStep } from '@/components/cycle/PlannerPreferencesStep';
+import { BareMinimumTemplateSection } from '@/components/settings/BareMinimumTemplateSection';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -90,8 +91,11 @@ export default function PlannerSettings() {
             />
           </CardContent>
         </Card>
+        {/* Bare Minimum template — the tiny daily non-negotiables */}
+        <BareMinimumTemplateSection />
 
         {/* Actions */}
+
         <div className="flex items-center justify-between">
           <Button variant="outline" onClick={handleReset}>
             Reset to Balanced
