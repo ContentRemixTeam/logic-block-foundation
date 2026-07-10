@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { useCelebrate } from '@/hooks/useCelebrate';
 import { BatteryCheckinPrompt } from '@/components/battery/BatteryCheckinPrompt';
 import { BatteryDailyBlock } from '@/components/battery/BatteryDailyBlock';
 import { Link } from 'react-router-dom';
