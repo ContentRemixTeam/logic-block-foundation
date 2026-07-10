@@ -51,8 +51,16 @@ export function InstallNudge() {
 
   useEffect(() => {
     if (isStandalone()) return;
-    if (isDismissed()) return;
-    const t = setTimeout(() => setVisible(true), SHOW_DELAY_MS);
+    if (shouldSuppress()) return;
+    const t = setTimeout(() => {
+      setVisible(true);
+      try {
+        const shown = parseInt(localStorage.getItem(SHOWN_COUNT_KEY) || '0', 10);
+        localStorage.setItem(SHOWN_COUNT_KEY, String(shown + 1));
+      } catch {
+        /* ignore */
+      }
+    }, SHOW_DELAY_MS);
     return () => clearTimeout(t);
   }, []);
 
