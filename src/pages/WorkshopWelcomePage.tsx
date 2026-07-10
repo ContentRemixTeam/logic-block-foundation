@@ -327,7 +327,7 @@ export default function WorkshopWelcomePage() {
                 Upgrade to Boss Mode
               </h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Get <strong className="text-foreground">30 days in the Becoming Boss Mastermind</strong> — full access to coaching, community, the Boss Planner, and all the tools to build your engine at top speed.
+                Get <strong className="text-foreground">30 days in the Becoming Boss Mastermind</strong> — full access to coaching, community, the Low Battery Business Planner, and all the tools to build your engine at top speed.
               </p>
               <a
                 href="https://faithmariah.com/bundle-offer"
