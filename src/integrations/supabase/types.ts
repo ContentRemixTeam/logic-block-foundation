@@ -3697,6 +3697,48 @@ export type Database = {
         }
         Relationships: []
       }
+      integration_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          last_used_at: string | null
+          name: string
+          request_count_1m: number
+          revoked_at: string | null
+          token_hash: string
+          token_prefix: string
+          updated_at: string
+          user_id: string
+          window_start_1m: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          name: string
+          request_count_1m?: number
+          revoked_at?: string | null
+          token_hash: string
+          token_prefix: string
+          updated_at?: string
+          user_id: string
+          window_start_1m?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          request_count_1m?: number
+          revoked_at?: string | null
+          token_hash?: string
+          token_prefix?: string
+          updated_at?: string
+          user_id?: string
+          window_start_1m?: string
+        }
+        Relationships: []
+      }
       issue_reports: {
         Row: {
           browser_info: string | null
