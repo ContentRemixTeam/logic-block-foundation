@@ -310,6 +310,9 @@ export default function Settings() {
         {/* Celebrations — core, on by default */}
         <CelebrationsToggleCard />
 
+        {/* AI Assistant (MCP) — connect Claude, Codex, etc. */}
+        <AIAssistantSection />
+
         {/* Fresh Start — clean up + archive */}
         <FreshStartSettingsCard />
 
