@@ -1,13 +1,13 @@
 {
-  "id": "boss-planner-full",
-  "name": "Boss Planner",
-  "short_name": "Boss Planner",
-  "description": "The Becoming Boss Mastermind. Plan your 90 days with clarity and focus.",
+  "id": "low-battery-business-planner",
+  "name": "Low Battery Business Planner",
+  "short_name": "Low Battery",
+  "description": "A calm planner for entrepreneurs with limited energy. Your 25% still counts.",
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0077b6",
-  "theme_color": "#0077b6",
+  "background_color": "#FAF7F2",
+  "theme_color": "#E87B93",
   "orientation": "portrait-primary",
   "icons": [
     {
