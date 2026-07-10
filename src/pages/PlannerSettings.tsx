@@ -91,8 +91,11 @@ export default function PlannerSettings() {
             />
           </CardContent>
         </Card>
+        {/* Bare Minimum template — the tiny daily non-negotiables */}
+        <BareMinimumTemplateSection />
 
         {/* Actions */}
+
         <div className="flex items-center justify-between">
           <Button variant="outline" onClick={handleReset}>
             Reset to Balanced
