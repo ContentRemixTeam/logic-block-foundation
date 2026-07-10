@@ -1,25 +1,17 @@
 import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
 
+/**
+ * Tracks online/offline state. The user-visible surface for this is the
+ * single compact OfflineIndicator in the top bar (see Layout.tsx) — this
+ * hook intentionally does NOT fire its own toasts to avoid stacking 3+
+ * "you're offline" messages from different subsystems.
+ */
 export function useOnlineStatus() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      toast.success('Connection restored', {
-        description: 'You are back online.',
-      });
-    };
-
-    const handleOffline = () => {
-      setIsOnline(false);
-      toast.error('Connection lost', {
-        description: 'Please check your internet connection. Changes may not be saved.',
-        duration: Infinity,
-        id: 'offline-toast',
-      });
-    };
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -32,3 +24,4 @@ export function useOnlineStatus() {
 
   return isOnline;
 }
+

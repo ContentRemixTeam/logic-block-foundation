@@ -215,11 +215,11 @@ export function useDataProtection<T extends Record<string, any>>({
       setIsOnline(false);
       setSaveStatus('offline');
       toast({
-        title: '🔴 Connection lost',
-        description: 'Your changes are saved locally and will sync when you\'re back online',
-        variant: 'destructive',
+        title: 'Connection dropped',
+        description: "Your work is protected on this device and will sync when you're back online.",
       });
     };
+
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
