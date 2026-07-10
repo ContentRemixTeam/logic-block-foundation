@@ -8,6 +8,7 @@ import { NextBestAction } from './NextBestAction';
 import { BusinessSeasonSelector } from './BusinessSeasonSelector';
 import { useBusinessSeason } from '@/hooks/useBusinessSeason';
 import { useAuth } from '@/hooks/useAuth';
+import { useDisplayName } from '@/hooks/useDisplayName';
 import { format as formatDate } from 'date-fns';
 import { pickPrompt } from '@/lib/coachingPrompts';
 
