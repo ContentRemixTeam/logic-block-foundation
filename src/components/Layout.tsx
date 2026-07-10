@@ -46,6 +46,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const [arcadeDefaultTab, setArcadeDefaultTab] = useState('tasks');
   useTheme();
 
+  // Welcome-back detector: fires once per return after 7+ days away.
+  const welcomeBack = useWelcomeBackTrigger();
+
   const hasNoPlan = !cyclesLoading && user && (!cycles || cycles.length === 0);
 
   // Timeout to prevent infinite loading
@@ -163,6 +166,14 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         
         {/* Celebration overlay */}
         <CelebrationOverlay />
+
+        {/* Welcome Back — fires at most once per return day */}
+        <WelcomeBackDialog
+          open={welcomeBack.shouldShow}
+          onOpenChange={(v) => { if (!v) welcomeBack.dismiss(); }}
+          daysAway={welcomeBack.daysAway}
+        />
+
         
         {/* Arcade Drawer - lazy loaded */}
         {settings.arcade_enabled && (
