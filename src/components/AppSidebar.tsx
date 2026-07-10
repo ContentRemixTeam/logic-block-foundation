@@ -44,6 +44,8 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useUserSettings } from '@/hooks/useUserSettings';
+import { useFeatureToggles } from '@/hooks/useFeatureToggles';
+import type { FeatureKey } from '@/lib/featureRoutes';
 import {
   Sidebar,
   SidebarContent,
@@ -94,9 +96,9 @@ const CAPTURE_NAV = [
 ];
 
 const GROW_NAV = [
-  { name: 'Money Moves', href: '/money-moves-sprint', icon: DollarSign, questIcon: '💵' },
+  { name: 'Money Moves', href: '/money-moves-sprint', icon: DollarSign, questIcon: '💵', feature: 'launch_tools' as FeatureKey },
   { name: 'Progress', href: '/progress', icon: TrendingUp, questIcon: '📊' },
-  { name: 'Learning', href: '/courses', icon: GraduationCap, questIcon: '🎓' },
+  { name: 'Learning', href: '/courses', icon: GraduationCap, questIcon: '🎓', feature: 'courses' as FeatureKey },
   { name: 'Mindset', href: '/mindset', icon: Compass, questIcon: '🧠', isActiveCheck: (path: string) => path === '/mindset' || path.includes('useful-thoughts') || path.includes('belief-builder') || path.includes('identity-anchors') || path.includes('self-coaching') || path.includes('coaching-log') },
   { name: 'Reviews', href: '/planning', icon: ClipboardCheck, questIcon: '✅', isActiveCheck: (path: string) => path.includes('review') || path === '/planning' },
 ];
@@ -105,16 +107,16 @@ const GROW_NAV = [
 const ADVANCED_NAV = [
   { name: 'Planning', href: '/planning', icon: Map, questIcon: '🧭', isActiveCheck: (path: string) => path.startsWith('/planning') || path.startsWith('/cycles') || path.startsWith('/cycle-') },
   { name: 'Wizards', href: '/wizards', icon: Sparkles, questIcon: '🪄', isActiveCheck: (path: string) => path.startsWith('/wizards') },
-  { name: 'Content Vault', href: '/content-vault', icon: Library, questIcon: '📚' },
+  { name: 'Content Vault', href: '/content-vault', icon: Library, questIcon: '📚', feature: 'ai_writing' as FeatureKey },
   { name: 'SOPs', href: '/sops', icon: ClipboardList, questIcon: '📖' },
   { name: 'Habits', href: '/habits', icon: CheckSquare, questIcon: '🔥' },
   { name: 'Finances', href: '/finances', icon: DollarSign, questIcon: '💰', settingsKey: 'show_income_tracker' },
-  { name: 'AI Copywriting', href: '/ai-copywriting', icon: Sparkle, questIcon: '✨', isActiveCheck: (path: string) => path.startsWith('/ai-copywriting'), settingsKey: 'show_ai_copywriting' },
+  { name: 'AI Copywriting', href: '/ai-copywriting', icon: Sparkle, questIcon: '✨', isActiveCheck: (path: string) => path.startsWith('/ai-copywriting'), feature: 'ai_writing' as FeatureKey },
 ];
 
 const COMMUNITY_NAV = [
   { name: 'Community', href: 'https://portal.faithmariah.com/communities/groups/mastermind/home', icon: Users, questIcon: '🏆', isExternal: true },
-  { name: 'Mastermind', href: '/mastermind', icon: Sparkle, questIcon: '🎓' },
+  { name: 'Mastermind', href: '/mastermind', icon: Sparkle, questIcon: '🎓', feature: 'coaching' as FeatureKey },
 ];
 
 const SETTINGS_NAV = [
@@ -131,6 +133,7 @@ export function AppSidebar() {
   const { openQuickCapture } = useQuickCapture();
   const { settings: arcadeSettings, isLoading: arcadeLoading } = useArcade();
   const { settings: userSettings } = useUserSettings();
+  const { isEnabled: isFeatureEnabled } = useFeatureToggles();
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -180,12 +183,14 @@ export function AppSidebar() {
     items,
     showLabel = true,
   }: { 
-    label?: string; 
-    items: Array<{ name: string; href: string; icon: any; questIcon: string; isExternal?: boolean; isActiveCheck?: (path: string) => boolean; settingsKey?: string; dataTour?: string }>;
+    label?: string;
+    items: Array<{ name: string; href: string; icon: any; questIcon: string; isExternal?: boolean; isActiveCheck?: (path: string) => boolean; settingsKey?: string; feature?: FeatureKey; dataTour?: string }>;
     showLabel?: boolean;
   }) => {
-    // Filter items based on user settings
+    // Filter items based on user settings and per-user Extra Features toggles
     const visibleItems = items.filter(item => {
+      // Extra-Features toggle wins: hide if the feature is off
+      if (item.feature && !isFeatureEnabled(item.feature)) return false;
       if (!item.settingsKey) return true; // No setting = always show
       if (!userSettings) return true; // Settings not loaded = show all
       return (userSettings as Record<string, unknown>)[item.settingsKey] === true;
@@ -343,7 +348,7 @@ export function AppSidebar() {
         <NavSection label="Community" items={COMMUNITY_NAV} />
         
         {/* Focus Mode - Only visible when arcade is enabled */}
-        {!arcadeLoading && arcadeSettings.arcade_enabled && (
+        {!arcadeLoading && arcadeSettings.arcade_enabled && isFeatureEnabled('focus_pets') && (
           <SidebarGroup className="py-1 px-2">
             {sidebarOpen && (
               <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-semibold px-2 h-6 mb-0">

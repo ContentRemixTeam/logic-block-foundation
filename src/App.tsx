@@ -27,6 +27,15 @@ import { PerformanceMonitor } from "@/components/dev/PerformanceMonitor";
 import { ErrorBoundary } from "@/components/system/ErrorBoundary";
 import { CommandPalette } from "@/components/system/CommandPalette";
 import { PageTransition } from "@/components/system/PageTransition";
+import { FeatureGuard } from "@/components/FeatureGuard";
+import type { FeatureKey } from "@/lib/featureRoutes";
+
+// Wraps a lazy element with the Extra-Features per-user visibility guard.
+// When the feature is off, users see a calm "turn it on in Settings" page
+// instead of the actual route content (no 404, no blank screen).
+function Gated({ feature, children }: { feature: FeatureKey; children: React.ReactNode }) {
+  return <FeatureGuard feature={feature}>{children}</FeatureGuard>;
+}
 
 // Eagerly load critical auth pages (small, needed immediately)
 import Auth from "./pages/Auth";
@@ -308,7 +317,7 @@ const App = () => (
                       <Route path="/belief-builder" element={<ProtectedRoute><PageSuspense><BeliefBuilder /></PageSuspense></ProtectedRoute>} />
                       <Route path="/identity-anchors" element={<ProtectedRoute><PageSuspense><IdentityAnchors /></PageSuspense></ProtectedRoute>} />
                       <Route path="/self-coaching" element={<ProtectedRoute><PageSuspense><SelfCoaching /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/mastermind" element={<ProtectedRoute><PageSuspense><MastermindHub /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/mastermind" element={<ProtectedRoute><PageSuspense><Gated feature="coaching"><MastermindHub /></Gated></PageSuspense></ProtectedRoute>} />
                       <Route path="/admin/mastermind-roster" element={<ProtectedRoute><PageSuspense><MastermindRosterImport /></PageSuspense></ProtectedRoute>} />
                       <Route path="/support" element={<ProtectedRoute><PageSuspense><Support /></PageSuspense></ProtectedRoute>} />
                       <Route path="/help/browser-storage" element={<ProtectedRoute><PageSuspense><BrowserStorageHelp /></PageSuspense></ProtectedRoute>} />
@@ -316,37 +325,37 @@ const App = () => (
                       <Route path="/quarter-debrief" element={<ProtectedRoute><PageSuspense><QuarterDebrief /></PageSuspense></ProtectedRoute>} />
                       <Route path="/settings" element={<ProtectedRoute><PageSuspense><Settings /></PageSuspense></ProtectedRoute>} />
                       <Route path="/admin" element={<ProtectedRoute><PageSuspense><Admin /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/coaching-log" element={<ProtectedRoute><PageSuspense><CoachingLog /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/coach-prep" element={<ProtectedRoute><PageSuspense><CoachPrep /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/content-vault" element={<ProtectedRoute><PageSuspense><ContentVault /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/coaching-log" element={<ProtectedRoute><PageSuspense><Gated feature="coaching"><CoachingLog /></Gated></PageSuspense></ProtectedRoute>} />
+                      <Route path="/coach-prep" element={<ProtectedRoute><PageSuspense><Gated feature="coaching"><CoachPrep /></Gated></PageSuspense></ProtectedRoute>} />
+                      <Route path="/content-vault" element={<ProtectedRoute><PageSuspense><Gated feature="ai_writing"><ContentVault /></Gated></PageSuspense></ProtectedRoute>} />
                       <Route path="/editorial-calendar" element={<ProtectedRoute><PageSuspense><EditorialCalendar /></PageSuspense></ProtectedRoute>} />
                       <Route path="/trash" element={<ProtectedRoute><PageSuspense><Trash /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/arcade" element={<ProtectedRoute><PageSuspense><Arcade /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/focus" element={<ProtectedRoute><PageSuspense><Focus /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/courses" element={<ProtectedRoute><PageSuspense><Courses /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/courses/:id" element={<ProtectedRoute><PageSuspense><CourseDetail /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/arcade" element={<ProtectedRoute><PageSuspense><Gated feature="focus_pets"><Arcade /></Gated></PageSuspense></ProtectedRoute>} />
+                      <Route path="/focus" element={<ProtectedRoute><PageSuspense><Gated feature="focus_pets"><Focus /></Gated></PageSuspense></ProtectedRoute>} />
+                      <Route path="/courses" element={<ProtectedRoute><PageSuspense><Gated feature="courses"><Courses /></Gated></PageSuspense></ProtectedRoute>} />
+                      <Route path="/courses/:id" element={<ProtectedRoute><PageSuspense><Gated feature="courses"><CourseDetail /></Gated></PageSuspense></ProtectedRoute>} />
                       <Route path="/wizards" element={<ProtectedRoute><PageSuspense><Wizards /></PageSuspense></ProtectedRoute>} />
                       <Route path="/cycle-wizard" element={<ProtectedRoute><PageSuspense><CycleWizard /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/wizards/launch" element={<ProtectedRoute><PageSuspense><LaunchWizardV2Page /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/wizards/launch-v1" element={<ProtectedRoute><PageSuspense><LaunchWizardPage /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/wizards/launch" element={<ProtectedRoute><PageSuspense><Gated feature="launch_tools"><LaunchWizardV2Page /></Gated></PageSuspense></ProtectedRoute>} />
+                      <Route path="/wizards/launch-v1" element={<ProtectedRoute><PageSuspense><Gated feature="launch_tools"><LaunchWizardPage /></Gated></PageSuspense></ProtectedRoute>} />
                       <Route path="/wizards/habits" element={<ProtectedRoute><PageSuspense><HabitWizardPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/wizards/content" element={<ProtectedRoute><PageSuspense><ContentPlannerPage /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/wizards/summit" element={<ProtectedRoute><PageSuspense><SummitWizardPage /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/wizards/money-momentum" element={<ProtectedRoute><PageSuspense><MoneyMomentumWizardPage /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/wizards/summit" element={<ProtectedRoute><PageSuspense><Gated feature="launch_tools"><SummitWizardPage /></Gated></PageSuspense></ProtectedRoute>} />
+                      <Route path="/wizards/money-momentum" element={<ProtectedRoute><PageSuspense><Gated feature="launch_tools"><MoneyMomentumWizardPage /></Gated></PageSuspense></ProtectedRoute>} />
                       <Route path="/wizards/project-designer" element={<ProtectedRoute><PageSuspense><ProjectDesignerPage /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/wizards/lead-magnet" element={<ProtectedRoute><PageSuspense><LeadMagnetWizardPage /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/wizards/flash-sale" element={<ProtectedRoute><PageSuspense><FlashSaleWizardPage /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/wizards/webinar" element={<ProtectedRoute><PageSuspense><WebinarWizardPage /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/wizards/content-challenge" element={<ProtectedRoute><PageSuspense><ContentChallengeWizardPage /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/sprint-dashboard" element={<ProtectedRoute><PageSuspense><SprintDashboardPage /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/money-moves-sprint" element={<ProtectedRoute><PageSuspense><MoneyMovesSprintPage /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/wizards/lead-magnet" element={<ProtectedRoute><PageSuspense><Gated feature="launch_tools"><LeadMagnetWizardPage /></Gated></PageSuspense></ProtectedRoute>} />
+                      <Route path="/wizards/flash-sale" element={<ProtectedRoute><PageSuspense><Gated feature="launch_tools"><FlashSaleWizardPage /></Gated></PageSuspense></ProtectedRoute>} />
+                      <Route path="/wizards/webinar" element={<ProtectedRoute><PageSuspense><Gated feature="launch_tools"><WebinarWizardPage /></Gated></PageSuspense></ProtectedRoute>} />
+                      <Route path="/wizards/content-challenge" element={<ProtectedRoute><PageSuspense><Gated feature="launch_tools"><ContentChallengeWizardPage /></Gated></PageSuspense></ProtectedRoute>} />
+                      <Route path="/sprint-dashboard" element={<ProtectedRoute><PageSuspense><Gated feature="launch_tools"><SprintDashboardPage /></Gated></PageSuspense></ProtectedRoute>} />
+                      <Route path="/money-moves-sprint" element={<ProtectedRoute><PageSuspense><Gated feature="launch_tools"><MoneyMovesSprintPage /></Gated></PageSuspense></ProtectedRoute>} />
                       <Route path="/asana-inbox" element={<ProtectedRoute><PageSuspense><AsanaInbox /></PageSuspense></ProtectedRoute>} />
                       <Route path="/settings/planner" element={<ProtectedRoute><PageSuspense><PlannerSettings /></PageSuspense></ProtectedRoute>} />
                       <Route path="/settings/daily-page" element={<ProtectedRoute><PageSuspense><DailyPageSettings /></PageSuspense></ProtectedRoute>} />
                       <Route path="/finances" element={<ProtectedRoute><PageSuspense><FinancialTracker /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/launch-debrief/:launchId" element={<ProtectedRoute><PageSuspense><LaunchDebrief /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/ai-copywriting/*" element={<ProtectedRoute><PageSuspense><AICopywriting /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/monthly-theme" element={<ProtectedRoute><PageSuspense><MonthlyThemePage /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/launch-debrief/:launchId" element={<ProtectedRoute><PageSuspense><Gated feature="launch_tools"><LaunchDebrief /></Gated></PageSuspense></ProtectedRoute>} />
+                      <Route path="/ai-copywriting/*" element={<ProtectedRoute><PageSuspense><Gated feature="ai_writing"><AICopywriting /></Gated></PageSuspense></ProtectedRoute>} />
+                      <Route path="/monthly-theme" element={<ProtectedRoute><PageSuspense><Gated feature="challenges"><MonthlyThemePage /></Gated></PageSuspense></ProtectedRoute>} />
                       <Route path="/effects-demo" element={<ProtectedRoute><PageSuspense><EffectsDemo /></PageSuspense></ProtectedRoute>} />
                       <Route path="/planner-mockups" element={<ProtectedRoute><PageSuspense><PlannerMockups /></PageSuspense></ProtectedRoute>} />
                       

@@ -77,6 +77,7 @@ import { ScorecardDashboard } from '@/components/scorecard/ScorecardDashboard';
 import { WeeklyScorecardForm } from '@/components/scorecard/WeeklyScorecardForm';
 import { getWeekNumber } from '@/hooks/useWeeklyScorecard';
 import { CEOWeeklyView } from '@/components/dashboard/CEOWeeklyView';
+import { useFeatureToggles } from '@/hooks/useFeatureToggles';
 
 // Dynamic alerts based on cycle day (excluding GAP alerts)
 function getDynamicAlert(currentDay: number) {
@@ -186,6 +187,7 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const { data: cycle, isLoading: cycleLoading } = useActiveCycle();
   const { data: launches = [], isLoading: launchesLoading } = useActiveLaunches();
+  const { isEnabled } = useFeatureToggles();
   
   // Get the next upcoming launch (first one since they're ordered by cart_opens)
   const nextLaunch = launches[0] || null;
@@ -410,8 +412,8 @@ export default function Dashboard() {
         {/* Install Banner for mobile */}
         <InstallBanner />
 
-        {/* Monthly Challenge Auto-Popup */}
-        <MonthlyChallengeAutoPopup />
+        {/* Monthly Challenge Auto-Popup — only when Challenges feature is on */}
+        {isEnabled('challenges') && <MonthlyChallengeAutoPopup />}
 
         {/* Header with Personalized Greeting */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -437,6 +439,94 @@ export default function Dashboard() {
             </Button>
           </div>
         </div>
+
+        {/* Cycle-first hero — the anchor of the whole planner */}
+        <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background">
+          <CardContent className="p-6 sm:p-8">
+            {cycleLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-8 w-2/3" />
+                <Skeleton className="h-2 w-full" />
+              </div>
+            ) : !cycle?.cycle_id ? (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="space-y-1.5">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+                    Your 90-Day Cycle
+                  </p>
+                  <h2 className="text-xl sm:text-2xl font-semibold">
+                    Start your first 90-day cycle
+                  </h2>
+                  <p className="text-sm text-muted-foreground max-w-md">
+                    One gentle goal, three months, at your own pace.
+                  </p>
+                </div>
+                <Button size="lg" asChild>
+                  <Link to="/cycle-wizard" className="gap-2">
+                    <Rocket className="h-4 w-4" />
+                    Start a Cycle
+                  </Link>
+                </Button>
+              </div>
+            ) : (
+              (() => {
+                const startD = cycle.start_date ? parseISO(cycle.start_date) : null;
+                const endD = cycle.end_date ? parseISO(cycle.end_date) : null;
+                const today = new Date();
+                const dayNum = startD ? Math.max(1, Math.min(90, differenceInDays(today, startD) + 1)) : null;
+                const daysRemaining = endD ? Math.max(0, differenceInDays(endD, today)) : null;
+                const percent = dayNum ? Math.min(100, (dayNum / 90) * 100) : 0;
+                return (
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                      <div className="space-y-1.5 min-w-0">
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+                          Your 90-Day Cycle
+                        </p>
+                        <h2 className="text-xl sm:text-2xl font-semibold leading-snug truncate">
+                          {cycle.goal || 'Your current cycle'}
+                        </h2>
+                      </div>
+                      {dayNum !== null && (
+                        <div className="text-right shrink-0">
+                          <p className="text-2xl sm:text-3xl font-bold text-primary tabular-nums">
+                            Day {dayNum}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            of 90{daysRemaining !== null ? ` · ${daysRemaining} days to go` : ''}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    {dayNum !== null && (
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full bg-primary/70 transition-all"
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                    )}
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to="/weekly-plan" className="gap-2">
+                          <CalendarIcon className="h-4 w-4" />
+                          This week's focus
+                        </Link>
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to="/daily-plan" className="gap-2">
+                          <Flame className="h-4 w-4" />
+                          Today's plan
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })()
+            )}
+          </CardContent>
+        </Card>
 
         {/* Tabs: Scorecard (default) vs Classic Dashboard */}
         <Tabs defaultValue="ceo" className="space-y-6">
@@ -503,8 +593,8 @@ export default function Dashboard() {
           {/* Main Content - spans 2 cols on desktop */}
           <div className="lg:col-span-2 space-y-6">
             
-            {/* Active Sprint Widget - Shows only if user has active sprint */}
-            <ActiveSprintWidget />
+            {/* Active Sprint Widget — only when Launch Tools feature is on */}
+            {isEnabled('launch_tools') && <ActiveSprintWidget />}
 
             {/* Quarter Progress */}
             <WidgetCard
@@ -759,26 +849,30 @@ export default function Dashboard() {
               )}
             </WidgetCard>
 
-            {/* Launch Zone - replaces old Launch Countdown widget */}
-            {launchesLoading && (
-              <WidgetCard
-                title="Launch Zone"
-                icon={<Rocket className="h-5 w-5 text-primary" />}
-                gradientClass="from-orange-500/5"
-              >
-                <div className="space-y-3">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-16 w-full" />
-                </div>
-              </WidgetCard>
-            )}
+            {/* Launch Zone — only when Launch Tools feature is on */}
+            {isEnabled('launch_tools') && (
+              <>
+                {launchesLoading && (
+                  <WidgetCard
+                    title="Launch Zone"
+                    icon={<Rocket className="h-5 w-5 text-primary" />}
+                    gradientClass="from-orange-500/5"
+                  >
+                    <div className="space-y-3">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-16 w-full" />
+                    </div>
+                  </WidgetCard>
+                )}
 
-            {!launchesLoading && !nextLaunch && (
-              <LaunchZone hasLaunch={false} />
-            )}
+                {!launchesLoading && !nextLaunch && (
+                  <LaunchZone hasLaunch={false} />
+                )}
 
-            {!launchesLoading && nextLaunch && (
-              <LaunchZone hasLaunch={true} launchName={nextLaunch.name} launch={nextLaunch} />
+                {!launchesLoading && nextLaunch && (
+                  <LaunchZone hasLaunch={true} launchName={nextLaunch.name} launch={nextLaunch} />
+                )}
+              </>
             )}
 
             {/* Sales Goal Tracker */}
@@ -964,8 +1058,8 @@ export default function Dashboard() {
             {/* Customize Daily Page Promo */}
             <CustomizePromoWidget />
 
-            {/* Monthly Challenge Progress */}
-            <ChallengeProgressWidget />
+            {/* Monthly Challenge Progress — only when Challenges is on */}
+            {isEnabled('challenges') && <ChallengeProgressWidget />}
 
             {/* Habit Tracker */}
             <HabitTrackerWidget />
@@ -976,14 +1070,16 @@ export default function Dashboard() {
               cycleStartDate={cycle?.start_date}
             />
 
-            {/* Mastermind Calls */}
-            <WidgetCard
-              title="Mastermind Calls"
-              icon={<Calendar className="h-5 w-5 text-primary" />}
-              gradientClass="from-indigo-500/5"
-            >
-              <MastermindCallWidget />
-            </WidgetCard>
+            {/* Mastermind Calls — only when Coaching feature is on */}
+            {isEnabled('coaching') && (
+              <WidgetCard
+                title="Mastermind Calls"
+                icon={<Calendar className="h-5 w-5 text-primary" />}
+                gradientClass="from-indigo-500/5"
+              >
+                <MastermindCallWidget />
+              </WidgetCard>
+            )}
 
             {/* Podcast */}
             <WidgetCard

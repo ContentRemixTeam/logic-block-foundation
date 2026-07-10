@@ -46,6 +46,8 @@ import { useQuickCapture } from '@/components/quick-capture';
 import { supabase } from '@/integrations/supabase/client';
 import { useArcade } from '@/hooks/useArcade';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useFeatureToggles } from '@/hooks/useFeatureToggles';
+import type { FeatureKey } from '@/lib/featureRoutes';
 
 const MAIN_NAV = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, questIcon: '🗺️' },
@@ -58,8 +60,8 @@ const ORGANIZE_NAV = [
   { name: 'Brain Dump', href: '/brain-dump', icon: Brain, questIcon: '🧠' },
   { name: 'Notes', href: '/notes', icon: BookOpen, questIcon: '📒' },
   { name: 'Ideas', href: '/ideas', icon: Lightbulb, questIcon: '💡' },
-  { name: 'Learning', href: '/courses', icon: GraduationCap, questIcon: '🎓' },
-  { name: 'Content Vault', href: '/content-vault', icon: Library, questIcon: '📚' },
+  { name: 'Learning', href: '/courses', icon: GraduationCap, questIcon: '🎓', feature: 'courses' as FeatureKey },
+  { name: 'Content Vault', href: '/content-vault', icon: Library, questIcon: '📚', feature: 'ai_writing' as FeatureKey },
   { name: 'SOPs', href: '/sops', icon: ClipboardList, questIcon: '📖' },
   { name: 'Finances', href: '/finances', icon: DollarSign, questIcon: '💰', settingsKey: 'show_income_tracker' },
 ];
@@ -82,7 +84,7 @@ const MINDSET_NAV = [
 
 const COMMUNITY_NAV = [
   { name: 'Community', href: 'https://portal.faithmariah.com/communities/groups/mastermind/home', icon: Users, questIcon: '🏆', isExternal: true },
-  { name: 'Mastermind', href: '/mastermind', icon: Sparkle, questIcon: '🎓' },
+  { name: 'Mastermind', href: '/mastermind', icon: Sparkle, questIcon: '🎓', feature: 'coaching' as FeatureKey },
 ];
 
 const SETTINGS_NAV = [
@@ -100,6 +102,7 @@ export function MobileSidebarContent() {
   const { openQuickCapture } = useQuickCapture();
   const { settings: arcadeSettings, isLoading: arcadeLoading } = useArcade();
   const { settings: userSettings } = useUserSettings();
+  const { isEnabled: isFeatureEnabled } = useFeatureToggles();
   const { data: projects = [] } = useProjects();
   const [isAdmin, setIsAdmin] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
@@ -147,10 +150,11 @@ export function MobileSidebarContent() {
     showLabel = true,
   }: { 
     label?: string; 
-    items: Array<{ name: string; href: string; icon: any; questIcon: string; isExternal?: boolean; isActiveCheck?: (path: string) => boolean; settingsKey?: string }>;
+    items: Array<{ name: string; href: string; icon: any; questIcon: string; isExternal?: boolean; isActiveCheck?: (path: string) => boolean; settingsKey?: string; feature?: FeatureKey }>;
     showLabel?: boolean;
   }) => {
     const visibleItems = items.filter(item => {
+      if (item.feature && !isFeatureEnabled(item.feature)) return false;
       if (!item.settingsKey) return true;
       if (!userSettings) return true;
       return (userSettings as Record<string, unknown>)[item.settingsKey] === true;
