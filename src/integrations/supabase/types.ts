@@ -2274,6 +2274,30 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_battery_checkins: {
+        Row: {
+          created_at: string
+          date: string
+          level: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          level: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          level?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_checkins: {
         Row: {
           checkin_date: string
@@ -2403,9 +2427,11 @@ export type Database = {
           date: string
           day_id: string
           deep_mode_notes: Json | null
+          deferred_task_ids: Json
           end_of_day_reflection: string | null
           feeling: string | null
           goal_rewrite: string | null
+          low_battery_mode: boolean
           low_energy_task_id: string | null
           made_offer: boolean | null
           not_today: string | null
@@ -2433,9 +2459,11 @@ export type Database = {
           date: string
           day_id?: string
           deep_mode_notes?: Json | null
+          deferred_task_ids?: Json
           end_of_day_reflection?: string | null
           feeling?: string | null
           goal_rewrite?: string | null
+          low_battery_mode?: boolean
           low_energy_task_id?: string | null
           made_offer?: boolean | null
           not_today?: string | null
@@ -2463,9 +2491,11 @@ export type Database = {
           date?: string
           day_id?: string
           deep_mode_notes?: Json | null
+          deferred_task_ids?: Json
           end_of_day_reflection?: string | null
           feeling?: string | null
           goal_rewrite?: string | null
+          low_battery_mode?: boolean
           low_energy_task_id?: string | null
           made_offer?: boolean | null
           not_today?: string | null
@@ -6480,6 +6510,7 @@ export type Database = {
           deleted_at: string | null
           done_enough_definition: string | null
           due_date: string | null
+          energy_cost: string | null
           energy_level: string | null
           estimated_minutes: number | null
           external_id: string | null
@@ -6488,6 +6519,7 @@ export type Database = {
           external_updated_at: string | null
           external_url: string | null
           goal_id: string | null
+          is_bare_minimum: boolean
           is_completed: boolean | null
           is_maintenance: boolean
           is_recurring_parent: boolean | null
@@ -6560,6 +6592,7 @@ export type Database = {
           deleted_at?: string | null
           done_enough_definition?: string | null
           due_date?: string | null
+          energy_cost?: string | null
           energy_level?: string | null
           estimated_minutes?: number | null
           external_id?: string | null
@@ -6568,6 +6601,7 @@ export type Database = {
           external_updated_at?: string | null
           external_url?: string | null
           goal_id?: string | null
+          is_bare_minimum?: boolean
           is_completed?: boolean | null
           is_maintenance?: boolean
           is_recurring_parent?: boolean | null
@@ -6640,6 +6674,7 @@ export type Database = {
           deleted_at?: string | null
           done_enough_definition?: string | null
           due_date?: string | null
+          energy_cost?: string | null
           energy_level?: string | null
           estimated_minutes?: number | null
           external_id?: string | null
@@ -6648,6 +6683,7 @@ export type Database = {
           external_updated_at?: string | null
           external_url?: string | null
           goal_id?: string | null
+          is_bare_minimum?: boolean
           is_completed?: boolean | null
           is_maintenance?: boolean
           is_recurring_parent?: boolean | null
@@ -7380,6 +7416,7 @@ export type Database = {
           arcade_reduce_motion: boolean | null
           arcade_sounds_off: boolean | null
           auto_create_content_tasks: boolean | null
+          bare_minimum_template: Json
           calendar_date_mode: string | null
           celebrations_enabled: boolean
           created_at: string | null
@@ -7436,6 +7473,7 @@ export type Database = {
           arcade_reduce_motion?: boolean | null
           arcade_sounds_off?: boolean | null
           auto_create_content_tasks?: boolean | null
+          bare_minimum_template?: Json
           calendar_date_mode?: string | null
           celebrations_enabled?: boolean
           created_at?: string | null
@@ -7492,6 +7530,7 @@ export type Database = {
           arcade_reduce_motion?: boolean | null
           arcade_sounds_off?: boolean | null
           auto_create_content_tasks?: boolean | null
+          bare_minimum_template?: Json
           calendar_date_mode?: string | null
           celebrations_enabled?: boolean
           created_at?: string | null
