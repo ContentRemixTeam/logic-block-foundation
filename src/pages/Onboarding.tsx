@@ -28,6 +28,9 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useTodayBattery, BATTERY_LEVELS, type BatteryLevel } from '@/hooks/useBatteryCheckin';
 import { useBareMinimumTemplate, type BareMinimumTemplateItem } from '@/hooks/useBareMinimum';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 const COMPLETE_KEY = 'lbb-onboarding-complete';
 
@@ -93,6 +96,24 @@ export default function Onboarding() {
 
 /* ---------- Step 1: Welcome ---------- */
 function StepWelcome({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const [name, setName] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleNext = async () => {
+    const trimmed = name.trim();
+    if (trimmed && user?.id) {
+      setSaving(true);
+      try {
+        await supabase.from('user_profiles').update({ first_name: trimmed }).eq('id', user.id);
+        await qc.invalidateQueries({ queryKey: ['user-profile-first-name', user.id] });
+      } catch { /* non-blocking */ }
+      finally { setSaving(false); }
+    }
+    onNext();
+  };
+
   return (
     <div className="space-y-5 text-center">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -106,11 +127,25 @@ function StepWelcome({ onNext, onSkip }: { onNext: () => void; onSkip: () => voi
           and everything life brings.
         </p>
       </div>
+      <div className="space-y-1.5 text-left">
+        <label htmlFor="onboarding-name" className="text-sm font-medium">
+          What should we call you? <span className="text-muted-foreground font-normal">(optional)</span>
+        </label>
+        <Input
+          id="onboarding-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g. Faith"
+          maxLength={40}
+          autoComplete="given-name"
+          disabled={saving}
+        />
+      </div>
       <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-center">
-        <Button onClick={onNext} className="gap-2">
+        <Button onClick={handleNext} className="gap-2" disabled={saving}>
           Let's set it up gently <ArrowRight className="h-4 w-4" />
         </Button>
-        <Button variant="ghost" onClick={onSkip}>Skip</Button>
+        <Button variant="ghost" onClick={onSkip} disabled={saving}>Skip</Button>
       </div>
     </div>
   );
