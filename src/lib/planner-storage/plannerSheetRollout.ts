@@ -1,38 +1,16 @@
-const DEFAULT_REQUIRED_AFTER = '2026-06-19T00:00:00.000Z';
+/**
+ * Planner Sheets rollout gate.
+ *
+ * INTENTIONALLY DISABLED: Google Sheets as the primary planner storage backend
+ * is not shipped yet. Until it is officially launched, both helpers return
+ * false so `SheetsPrimaryTaskService` can never accidentally activate for any
+ * user (new or existing). Do not re-enable without an explicit launch decision.
+ */
 
-function getRequiredAfterTimestamp(): number | null {
-  const requiredAfter = import.meta.env.VITE_PLANNER_SHEETS_REQUIRED_AFTER || DEFAULT_REQUIRED_AFTER;
-  const cutoff = Date.parse(requiredAfter);
-  return Number.isNaN(cutoff) ? null : cutoff;
+export function shouldRequirePlannerSheet(_userCreatedAt?: string): boolean {
+  return false;
 }
 
-function getUserCreatedTimestamp(userCreatedAt?: string): number | null {
-  if (!userCreatedAt) return null;
-
-  const createdAt = Date.parse(userCreatedAt);
-  return Number.isNaN(createdAt) ? null : createdAt;
-}
-
-export function shouldRequirePlannerSheet(userCreatedAt?: string): boolean {
-  if (import.meta.env.VITE_REQUIRE_PLANNER_SHEETS_FOR_NEW_USERS === 'false') {
-    return false;
-  }
-
-  const cutoff = getRequiredAfterTimestamp();
-  const createdAt = getUserCreatedTimestamp(userCreatedAt);
-
-  if (cutoff === null || createdAt === null) return false;
-  return createdAt >= cutoff;
-}
-
-export function shouldPromptLegacyPlannerSheet(userCreatedAt?: string): boolean {
-  if (import.meta.env.VITE_SHOW_LEGACY_PLANNER_SHEET_PROMPT === 'false') {
-    return false;
-  }
-
-  const cutoff = getRequiredAfterTimestamp();
-  const createdAt = getUserCreatedTimestamp(userCreatedAt);
-
-  if (cutoff === null || createdAt === null) return false;
-  return createdAt < cutoff;
+export function shouldPromptLegacyPlannerSheet(_userCreatedAt?: string): boolean {
+  return false;
 }
