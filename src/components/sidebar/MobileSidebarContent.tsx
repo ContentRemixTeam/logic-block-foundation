@@ -229,13 +229,13 @@ export function MobileSidebarContent() {
             </div>
           )}
           <div className="flex flex-col">
-            <span 
+            <span
               className="text-sm font-semibold leading-tight"
-              style={{ fontFamily: isQuestMode ? 'Cinzel, serif' : 'Inter, system-ui, sans-serif' }}
+              style={{ fontFamily: isQuestMode ? 'Cinzel, serif' : 'Georgia, serif' }}
             >
               {isQuestMode ? 'Boss Quest' : 'Low Battery'}
             </span>
-            <span className="text-[10px] text-muted-foreground">Mastermind</span>
+            <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Business Planner</span>
           </div>
         </div>
 
