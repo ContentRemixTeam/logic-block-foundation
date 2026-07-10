@@ -77,6 +77,7 @@ import { ScorecardDashboard } from '@/components/scorecard/ScorecardDashboard';
 import { WeeklyScorecardForm } from '@/components/scorecard/WeeklyScorecardForm';
 import { getWeekNumber } from '@/hooks/useWeeklyScorecard';
 import { CEOWeeklyView } from '@/components/dashboard/CEOWeeklyView';
+import { useFeatureToggles } from '@/hooks/useFeatureToggles';
 
 // Dynamic alerts based on cycle day (excluding GAP alerts)
 function getDynamicAlert(currentDay: number) {
