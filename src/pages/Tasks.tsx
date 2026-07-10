@@ -473,15 +473,23 @@ export default function Tasks() {
           return;
         }
       }
-      
+
+      // STEP 6: Match my energy — filter to what fits today's battery
+      if (matchMyEnergy && batteryLevel) {
+        if (!matchesBattery(
+          { energy_cost: task.energy_cost as string | null | undefined, is_bare_minimum: task.is_bare_minimum },
+          batteryLevel,
+        )) return;
+      }
+
       regular.push(task);
     });
-    
-    return { 
-      filteredTasks: regular, 
+
+    return {
+      filteredTasks: regular,
       recurringParentTasks: recurring
     };
-  }, [tasks, activeTab, searchQuery, filters]);
+  }, [tasks, activeTab, searchQuery, filters, matchMyEnergy, batteryLevel]);
 
   // Bulk selection hook
   const {
