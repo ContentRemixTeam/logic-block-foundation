@@ -7411,6 +7411,7 @@ export type Database = {
           created_at: string
           default_planning_level: string | null
           email: string | null
+          first_name: string | null
           id: string
           last_activity_date: string | null
           membership_status: string | null
@@ -7427,6 +7428,7 @@ export type Database = {
           created_at?: string
           default_planning_level?: string | null
           email?: string | null
+          first_name?: string | null
           id: string
           last_activity_date?: string | null
           membership_status?: string | null
@@ -7443,6 +7445,7 @@ export type Database = {
           created_at?: string
           default_planning_level?: string | null
           email?: string | null
+          first_name?: string | null
           id?: string
           last_activity_date?: string | null
           membership_status?: string | null
