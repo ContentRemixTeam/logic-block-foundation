@@ -485,35 +485,6 @@ export function useTaskMutations() {
   });
 
 
-  // Update task mutation
-  const updateTask = useMutation({
-    mutationFn: async ({ taskId, updates }: { taskId: string; updates: Partial<Task> }) => {
-      const session = await getSession();
-      
-      // Log mutation start
-      const logId = mutationLogger.log({
-        type: 'update',
-        taskId,
-        updates,
-        status: 'pending',
-      });
-      const startTime = Date.now();
-      
-      try {
-        const response = await supabase.functions.invoke('manage-task', {
-          body: { action: 'update', task_id: taskId, ...updates },
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-        if (response.error) throw response.error;
-        
-        mutationLogger.updateStatus(logId, 'success', undefined, Date.now() - startTime);
-        return response.data?.data as Task;
-      } catch (error: any) {
-        mutationLogger.updateStatus(logId, 'error', error?.message, Date.now() - startTime);
-        throw error;
-      }
-    },
-  // Update task mutation — network failures queue for retry.
   const updateTask = useMutation({
     mutationFn: async ({ taskId, updates }: { taskId: string; updates: Partial<Task> }) => {
       const session = await getSession();
