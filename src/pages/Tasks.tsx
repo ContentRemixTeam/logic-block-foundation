@@ -196,6 +196,7 @@ export default function Tasks() {
   const [bulkSelectionMode, setBulkSelectionMode] = useState(false);
   const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
   const [isOverdueModalOpen, setIsOverdueModalOpen] = useState(false);
+  const [isCleanUpOpen, setIsCleanUpOpen] = useState(false);
   const [isProcessingOverdue, setIsProcessingOverdue] = useState(false);
   const [detailDatePopoverOpen, setDetailDatePopoverOpen] = useState(false);
   
