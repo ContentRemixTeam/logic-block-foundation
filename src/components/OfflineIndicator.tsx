@@ -91,17 +91,18 @@ export function OfflineIndicator({
           </TooltipTrigger>
           <TooltipContent>
             {!isOnline ? (
-              <p>You're offline. Changes are saved locally.</p>
+              <p>Your connection dropped. Your work is protected on this device and will sync when you're back online.</p>
             ) : isSyncing ? (
               <p>Syncing your changes...</p>
             ) : pendingCount > 0 ? (
-              <p>{pendingCount} changes waiting to sync</p>
+              <p>{pendingCount} change{pendingCount === 1 ? '' : 's'} waiting to sync — your work is safe on this device.</p>
             ) : failedCount > 0 ? (
-              <p>{failedCount} changes failed to sync</p>
+              <p>{failedCount} change{failedCount === 1 ? '' : 's'} still saved on this device. We'll retry automatically.</p>
             ) : (
               <p>All changes synced</p>
             )}
           </TooltipContent>
+
         </Tooltip>
       </TooltipProvider>
     );
@@ -174,13 +175,14 @@ export function OfflineBanner() {
   if (isOnline) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-destructive text-destructive-foreground px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
+    <div className="fixed top-0 left-0 right-0 z-50 bg-muted text-foreground px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2 border-b border-border">
       <WifiOff className="h-4 w-4" />
       <span>
-        You're offline. 
-        {pendingCount > 0 && ` ${pendingCount} changes saved locally.`}
-        {' '}Your work will sync when you reconnect.
+        Your connection dropped.
+        {pendingCount > 0 && ` ${pendingCount} change${pendingCount === 1 ? '' : 's'} kept safely on this device.`}
+        {' '}They'll sync automatically when you're back online.
       </span>
     </div>
   );
 }
+

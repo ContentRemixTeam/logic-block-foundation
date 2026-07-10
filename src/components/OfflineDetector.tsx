@@ -14,22 +14,22 @@ export function OfflineDetector() {
       }
       
       toast({
-        title: "Back Online",
-        description: "Your connection has been restored. You can now sync your data.",
+        title: "Back online",
+        description: "Your connection is back. We'll sync any changes you made.",
         duration: 4000,
       });
     };
 
     const handleOffline = () => {
       isFirstRender.current = false;
-      
+
       toast({
-        title: "Connection Lost",
-        description: "You're offline. Your work is saved locally. Please reconnect to sync to the cloud.",
-        variant: "destructive", 
-        duration: 15000,
+        title: "Connection dropped",
+        description: "Your work is protected on this device and will sync when you're back online.",
+        duration: 8000,
       });
     };
+
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
