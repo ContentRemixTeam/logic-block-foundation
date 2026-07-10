@@ -310,6 +310,10 @@ export default function Settings() {
         {/* Celebrations — core, on by default */}
         <CelebrationsToggleCard />
 
+        {/* Daily battery check-in auto-prompt — core, on by default */}
+        <BatteryCheckinToggleCard />
+
+
         {/* AI Assistant (MCP) — connect Claude, Codex, etc. */}
         <AIAssistantSection />
 
