@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { WeeklyReflectionForm, type ReflectionData } from '@/components/reflections/WeeklyReflectionForm';
 import { ShareReflectionCard } from '@/components/reflections/ShareReflectionCard';
+import { useCelebrate } from '@/hooks/useCelebrate';
 
 const STORAGE_KEY = 'weekly_reflection_draft';
 
@@ -23,6 +24,7 @@ export default function WeeklyReflection() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const celebrate = useCelebrate();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -215,6 +217,15 @@ export default function WeeklyReflection() {
         });
 
       if (error) throw error;
+
+      // Warm celebration once meaningful content is present.
+      const hasContent = [
+        reflectionData.wins,
+        reflectionData.wentWell,
+        reflectionData.learned,
+        reflectionData.nextWeekFocus,
+      ].some((v) => (v ?? '').trim().length > 0);
+      if (hasContent) celebrate('weekly_review');
     } catch (error) {
       console.error('Error saving reflection:', error);
       try {
