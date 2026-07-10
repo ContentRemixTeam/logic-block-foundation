@@ -218,14 +218,18 @@ export default function WeeklyReflection() {
 
       if (error) throw error;
 
-      // Warm celebration once meaningful content is present.
+      // Warm celebration — fire once per week, only when there's real content.
       const hasContent = [
         reflectionData.wins,
         reflectionData.wentWell,
         reflectionData.learned,
         reflectionData.nextWeekFocus,
       ].some((v) => (v ?? '').trim().length > 0);
-      if (hasContent) celebrate('weekly_review');
+      const weekKey = `lbb-weekly-review-celebrated-${weekStartStr}`;
+      if (hasContent && typeof window !== 'undefined' && !localStorage.getItem(weekKey)) {
+        localStorage.setItem(weekKey, '1');
+        celebrate('weekly_review');
+      }
     } catch (error) {
       console.error('Error saving reflection:', error);
       try {
