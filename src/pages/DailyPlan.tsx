@@ -88,6 +88,7 @@ export default function DailyPlan() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const celebrate = useCelebrate();
   const { data: activeCycleData } = useActiveCycle();
   const { data: activeLaunches = [] } = useActiveLaunches();
   const { data: activeSummits = [] } = useActiveSummits();
@@ -737,9 +738,9 @@ export default function DailyPlan() {
         // Check if all top 3 tasks are now done
         const allDone = top3Tasks.every(t => t.task_id === taskId ? true : t.is_completed);
         if (allDone && top3Tasks.length > 0) {
-          triggerCelebration({ type: 'all_done' });
+          celebrate('daily_plan_complete');
         } else {
-          triggerCelebration({ type: 'task_complete' });
+          celebrate('task_complete');
         }
       }
       
