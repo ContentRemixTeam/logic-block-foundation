@@ -8,6 +8,7 @@ import { NextBestAction } from './NextBestAction';
 import { BusinessSeasonSelector } from './BusinessSeasonSelector';
 import { useBusinessSeason } from '@/hooks/useBusinessSeason';
 import { useAuth } from '@/hooks/useAuth';
+import { useDisplayName } from '@/hooks/useDisplayName';
 import { format as formatDate } from 'date-fns';
 import { pickPrompt } from '@/lib/coachingPrompts';
 
@@ -38,11 +39,7 @@ export function TodayCommandCenter({ top3Tasks = [], lowEnergyDay }: TodayComman
     return { greeting: 'Good evening', Icon: Moon };
   }, []);
 
-  const firstName =
-    (user?.user_metadata?.first_name as string | undefined) ||
-    (user?.user_metadata?.full_name as string | undefined)?.split(' ')[0] ||
-    (user?.email as string | undefined)?.split('@')[0] ||
-    '';
+  const firstName = useDisplayName() ?? '';
 
   const total = top3Tasks.length;
   const completed = top3Tasks.filter(t => t.is_completed).length;
