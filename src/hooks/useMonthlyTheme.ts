@@ -75,8 +75,11 @@ export function useMonthlyTheme() {
         return res.json();
       } catch (err) {
         console.warn('useMonthlyTheme: fetch failed silently', err);
+        const { gentleLoadWarning } = await import('@/lib/gentleErrorToast');
+        gentleLoadWarning('monthly-theme', "We couldn't load your monthly theme just now. It'll show up next time you're online.");
         return { active: false, template: null, challenge: null, dismissal: { popup_dismissed: false, hello_bar_dismissed: false }, theme_unlocked: false, progress: null };
       }
+
     },
     enabled: !!user,
     staleTime: 10 * 60 * 1000, // 10 min

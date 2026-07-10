@@ -548,11 +548,16 @@ export async function generatePDFBlob(data: CycleExportData): Promise<PDFGenerat
     return { success: true, blob };
   } catch (error) {
     console.error('PDF generation error:', error);
+    try {
+      const { toast } = await import('sonner');
+      toast.error("We couldn't build that PDF", { description: 'Please try again in a moment.' });
+    } catch { /* noop */ }
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error generating PDF',
     };
   }
+
 }
 
 /**

@@ -186,9 +186,13 @@ export function useLocalStorageSync<T extends Record<string, unknown>>({
           const backup = JSON.parse(stored);
           return backup.data as T;
         } catch {
-          // Corrupted data, continue to fallbacks
           console.warn('[useLocalStorageSync] Corrupted localStorage data, trying IDB');
+          try {
+            const { gentleLoadWarning } = await import('@/lib/gentleErrorToast');
+            gentleLoadWarning('local-corrupt', "Some locally saved data looked scrambled. We're loading a backup instead — nothing lost.");
+          } catch { /* noop */ }
         }
+
       }
       
       // Priority 2: Try IndexedDB drafts store

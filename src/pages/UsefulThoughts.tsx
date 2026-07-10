@@ -63,7 +63,14 @@ export default function UsefulThoughts() {
       }
     } catch (error) {
       console.error('Failed to load backup:', error);
+      import('@/lib/gentleErrorToast')
+        .then(({ gentleLoadWarning }) =>
+          gentleLoadWarning('useful-thoughts-backup', "We couldn't restore your draft. Anything you type now is being saved fresh."),
+        )
+        .catch(() => {});
     }
+
+
   }, []);
 
   // Save form to local storage on changes
@@ -78,7 +85,12 @@ export default function UsefulThoughts() {
       }
     } catch (error) {
       console.error('Failed to save backup:', error);
+      import('@/lib/gentleErrorToast')
+        .then(({ gentleSaveWarning }) => gentleSaveWarning('useful-thoughts-save'))
+        .catch(() => {});
     }
+
+
   }, [newThought, newThoughtCategory]);
 
   // Backup form on changes
