@@ -113,6 +113,11 @@ export default {
   				light: 'hsl(var(--info-light))',
   				foreground: 'hsl(var(--info-foreground))'
   			},
+  			waiting: {
+  				DEFAULT: 'hsl(var(--tone-waiting))',
+  				soft: 'hsl(var(--tone-waiting-soft))',
+  				foreground: 'hsl(var(--tone-waiting-foreground))'
+  			},
   			popover: {
   				DEFAULT: 'hsl(var(--popover))',
   				foreground: 'hsl(var(--popover-foreground))'
