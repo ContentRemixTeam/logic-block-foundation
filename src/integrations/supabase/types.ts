@@ -7465,6 +7465,7 @@ export type Database = {
           arcade_sounds_off: boolean | null
           auto_create_content_tasks: boolean | null
           bare_minimum_template: Json
+          battery_checkin_prompt_enabled: boolean
           calendar_date_mode: string | null
           celebrations_enabled: boolean
           created_at: string | null
@@ -7522,6 +7523,7 @@ export type Database = {
           arcade_sounds_off?: boolean | null
           auto_create_content_tasks?: boolean | null
           bare_minimum_template?: Json
+          battery_checkin_prompt_enabled?: boolean
           calendar_date_mode?: string | null
           celebrations_enabled?: boolean
           created_at?: string | null
@@ -7579,6 +7581,7 @@ export type Database = {
           arcade_sounds_off?: boolean | null
           auto_create_content_tasks?: boolean | null
           bare_minimum_template?: Json
+          battery_checkin_prompt_enabled?: boolean
           calendar_date_mode?: string | null
           celebrations_enabled?: boolean
           created_at?: string | null

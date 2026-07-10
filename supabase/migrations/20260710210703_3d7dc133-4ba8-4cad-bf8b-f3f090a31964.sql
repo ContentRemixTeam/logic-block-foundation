@@ -1,0 +1,1 @@
+ALTER TABLE public.user_settings ADD COLUMN IF NOT EXISTS battery_checkin_prompt_enabled boolean NOT NULL DEFAULT true;
