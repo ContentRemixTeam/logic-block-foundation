@@ -7391,6 +7391,7 @@ export type Database = {
           dashboard_widgets: Json | null
           delight_intensity: string
           dismissed_launch_debriefs: Json | null
+          feature_toggles: Json
           habit_categories_enabled: boolean | null
           has_completed_setup: boolean | null
           has_seen_tour: boolean | null
@@ -7446,6 +7447,7 @@ export type Database = {
           dashboard_widgets?: Json | null
           delight_intensity?: string
           dismissed_launch_debriefs?: Json | null
+          feature_toggles?: Json
           habit_categories_enabled?: boolean | null
           has_completed_setup?: boolean | null
           has_seen_tour?: boolean | null
@@ -7501,6 +7503,7 @@ export type Database = {
           dashboard_widgets?: Json | null
           delight_intensity?: string
           dismissed_launch_debriefs?: Json | null
+          feature_toggles?: Json
           habit_categories_enabled?: boolean | null
           has_completed_setup?: boolean | null
           has_seen_tour?: boolean | null
