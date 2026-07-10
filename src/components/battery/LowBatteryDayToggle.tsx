@@ -25,6 +25,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { OnceHint } from '@/components/system/OnceHint';
 
 interface Props {
   dateISO: string;
@@ -161,16 +162,21 @@ export function LowBatteryDayToggle({
 
   return (
     <>
-      <Button
-        variant="outline"
-        size="sm"
-        className={cn('gap-1.5', className)}
-        onClick={() => setConfirmOpen(true)}
-        disabled={busy}
-      >
-        <BatteryLow className="h-3.5 w-3.5" />
-        Make this a Low Battery Day
-      </Button>
+      <div className={cn('flex flex-col gap-1.5', className)}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5 self-start"
+          onClick={() => setConfirmOpen(true)}
+          disabled={busy}
+        >
+          <BatteryLow className="h-3.5 w-3.5" />
+          Make this a Low Battery Day
+        </Button>
+        <OnceHint hintKey="low-battery-day-intro">
+          Parks everything except your bare minimum for tomorrow. Nothing lost, fully reversible.
+        </OnceHint>
+      </div>
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

@@ -504,6 +504,11 @@ export function TaskCard({
             <DropdownMenuItem onClick={() => onUpdate(task.task_id, { status: 'backlog' } as Partial<Task>)}>
               Move to Backlog
             </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => toggleBM.mutate({ taskId: task.task_id, value: !taskExtras.is_bare_minimum })}
+            >
+              {taskExtras.is_bare_minimum ? 'Remove from bare minimum' : 'Add to bare minimum'}
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               onClick={() => onDelete(task)}

@@ -55,7 +55,7 @@ export function BatteryCheckinPrompt({ force, open: controlledOpen, onOpenChange
         <DialogHeader>
           <DialogTitle className="text-xl">How's your battery today?</DialogTitle>
           <DialogDescription>
-            Totally optional — this just helps the planner match your day. You can change it any time.
+            This helps your planner match your energy. Totally optional, changeable any time.
           </DialogDescription>
         </DialogHeader>
 
