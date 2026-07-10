@@ -26,6 +26,7 @@ import { PlannerSheetStoragePanel } from '@/components/google-sheets/PlannerShee
 import { McpConnectionPanel } from '@/components/settings/McpConnectionPanel';
 import { THEMES, THEME_IDS, ThemeId } from '@/lib/themes';
 import { DelightSettingsCard, DataRecoveryCard } from '@/components/settings';
+import { ExtraFeaturesSection } from '@/components/settings/ExtraFeaturesSection';
 import { ThemeGallery } from '@/components/themes';
 import { CalendarSettingsCard } from '@/components/editorial-calendar';
 import { ChallengeProgressWidget } from '@/components/challenges/ChallengeProgressWidget';
@@ -299,6 +300,9 @@ export default function Settings() {
             Dashboard
           </Button>
         </div>
+
+        {/* Extra Features — per-user visibility toggles */}
+        <ExtraFeaturesSection />
 
         {/* Theme Selector */}
         <Card>
