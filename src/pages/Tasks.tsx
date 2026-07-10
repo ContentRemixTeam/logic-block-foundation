@@ -1066,7 +1066,19 @@ export default function Tasks() {
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <BatteryHeaderChip size="sm" />
+              <Button
+                variant={matchMyEnergy ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setMatchMyEnergy((v) => !v)}
+                className="gap-1.5 h-8"
+                title={batteryLevel ? 'Show only tasks that fit today\u2019s battery' : 'Set your battery first to use this'}
+                disabled={!batteryLevel}
+              >
+                <Battery className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Match my energy</span>
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
