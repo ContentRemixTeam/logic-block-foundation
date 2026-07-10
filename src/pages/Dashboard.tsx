@@ -412,6 +412,12 @@ export default function Dashboard() {
         {/* Install Banner for mobile */}
         <InstallBanner />
 
+        {/* Once-per-day battery check-in prompt (skippable) */}
+        <BatteryCheckinPrompt />
+
+        {/* Battery + Bare Minimum block */}
+        <BatteryDailyBlock compact />
+
         {/* Monthly Challenge Auto-Popup — only when Challenges feature is on */}
         {isEnabled('challenges') && <MonthlyChallengeAutoPopup />}
 
