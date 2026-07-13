@@ -121,15 +121,31 @@ const TOOLS = [
           enum: ['low', 'medium', 'high'],
           description: 'Filter by task energy cost.',
         },
+        project_id: { type: 'string', description: 'Filter by project UUID.' },
         limit: { type: 'integer', minimum: 1, maximum: 200, default: 50 },
       },
       additionalProperties: false,
     },
   },
   {
+    name: 'search_tasks',
+    description:
+      "Full-text search across the user's task titles and descriptions. Case-insensitive. Use when the user says 'find my task about X' or 'what did I write about the launch email?'.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', minLength: 1, maxLength: 200 },
+        include_completed: { type: 'boolean', default: false },
+        limit: { type: 'integer', minimum: 1, maximum: 100, default: 25 },
+      },
+      required: ['query'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'create_task',
     description:
-      "Create a new task for the signed-in user. If `date` is provided the task is scheduled to that date; otherwise it lands in the unscheduled bucket. Set `is_bare_minimum: true` to add it to the user's bare-minimum-for-the-day list. Set `energy_cost` to help energy-matching work.",
+      "Create a new task for the signed-in user. If `date` is provided the task is scheduled to that date; otherwise it lands in the unscheduled bucket. Set `is_bare_minimum: true` to add it to the user's bare-minimum-for-the-day list. Set `energy_cost` to help energy-matching work. Optionally attach to a project via `project_id` (use `list_projects` to find one).",
     inputSchema: {
       type: 'object',
       properties: {
@@ -137,8 +153,9 @@ const TOOLS = [
         description: { type: 'string', maxLength: 4000 },
         date: { type: 'string', description: 'ISO date YYYY-MM-DD.' },
         energy_cost: { type: 'string', enum: ['low', 'medium', 'high'] },
-        importance: { type: 'string', enum: ['low', 'medium', 'high'] },
+        priority: { type: 'string', enum: ['low', 'medium', 'high'] },
         is_bare_minimum: { type: 'boolean', default: false },
+        project_id: { type: 'string', description: 'Optional project UUID from list_projects.' },
       },
       required: ['title'],
       additionalProperties: false,
@@ -147,7 +164,7 @@ const TOOLS = [
   {
     name: 'update_task',
     description:
-      "Update a task the signed-in user owns. Use to reschedule (set `date`), mark done (`status: 'done'`), rename (`title`), change energy (`energy_cost`), or toggle bare-minimum. Only fields you pass are changed.",
+      "Update a task the signed-in user owns. Use to reschedule (set `date`), rename (`title`), change energy (`energy_cost`), or toggle bare-minimum. To mark a task done, prefer `complete_task`. Only fields you pass are changed.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -157,7 +174,7 @@ const TOOLS = [
         date: { type: ['string', 'null'], description: 'ISO date YYYY-MM-DD, or null to unschedule.' },
         status: { type: 'string', enum: ['scheduled', 'done', 'someday', 'focus', 'backlog'] },
         energy_cost: { type: ['string', 'null'], enum: ['low', 'medium', 'high', null] },
-        importance: { type: 'string', enum: ['low', 'medium', 'high'] },
+        priority: { type: 'string', enum: ['low', 'medium', 'high'] },
         is_bare_minimum: { type: 'boolean' },
       },
       required: ['task_id'],
@@ -165,9 +182,34 @@ const TOOLS = [
     },
   },
   {
+    name: 'complete_task',
+    description:
+      "Mark a task done for the signed-in user. Sets status='done', is_completed=true, and completed_at=now(). Use when the user says 'I finished X' or 'mark X as done'.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        task_id: { type: 'string', description: 'UUID of the task to complete.' },
+      },
+      required: ['task_id'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'list_projects',
+    description:
+      "List the user's active projects (id, name, color, status). Use to find a project_id before creating a task inside a project, or to answer 'what am I working on?'.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        include_archived: { type: 'boolean', default: false },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'add_note',
     description:
-      "Quick-capture a thought into the user's brain-dump/notes. Use for anything that isn't a task — ideas, decisions, things to remember.",
+      "Quick-capture a thought into the user's brain-dump/notes. Use for anything that isn't a task — meeting notes, decisions, things to remember.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -177,6 +219,39 @@ const TOOLS = [
       required: ['text'],
       additionalProperties: false,
     },
+  },
+  {
+    name: 'create_idea',
+    description:
+      "Capture an idea into the user's Ideas inbox (for content, offers, or future exploration). Different from a task or note — ideas are things to think about later.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        content: { type: 'string', minLength: 1, maxLength: 4000 },
+        priority: { type: 'string', enum: ['low', 'medium', 'high'] },
+        tags: { type: 'array', items: { type: 'string' }, maxItems: 10 },
+      },
+      required: ['content'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'list_ideas',
+    description:
+      "List recent ideas from the user's Ideas inbox. Use for 'what ideas have I been sitting on?' or to help pick something to act on.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'get_latest_weekly_review',
+    description:
+      "Return the user's most recent weekly review (wins, challenges, adjustments). Use when the user asks 'what did I reflect on last week?' or wants to plan based on last week's learnings.",
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
   },
 ] as const;
 
@@ -270,11 +345,12 @@ async function toolGetCurrentCycle(userId: string) {
 
 async function toolListTasks(userId: string, input: any) {
   const sb = admin();
-  let q = sb.from('tasks').select('task_id, task_text, task_description, status, scheduled_date, scheduled_time, energy_cost, importance, is_bare_minimum, project_id').eq('user_id', userId);
+  let q = sb.from('tasks').select('task_id, task_text, task_description, status, scheduled_date, scheduled_time, energy_cost, priority, is_bare_minimum, project_id').eq('user_id', userId);
   if (input?.date_from) q = q.gte('scheduled_date', String(input.date_from));
   if (input?.date_to) q = q.lte('scheduled_date', String(input.date_to));
   if (input?.status) q = q.eq('status', String(input.status));
   if (input?.energy_cost) q = q.eq('energy_cost', String(input.energy_cost));
+  if (input?.project_id) q = q.eq('project_id', String(input.project_id));
   const limit = Math.min(200, Math.max(1, Number(input?.limit ?? 50)));
   q = q.order('scheduled_date', { ascending: true, nullsFirst: false }).limit(limit);
   const { data, error } = await q;
@@ -285,18 +361,19 @@ async function toolListTasks(userId: string, input: any) {
 async function toolCreateTask(userId: string, input: any) {
   if (!input?.title || typeof input.title !== 'string') throw new Error('title is required');
   const sb = admin();
-  const row = {
+  const row: Record<string, unknown> = {
     user_id: userId,
     task_text: String(input.title).slice(0, 280),
     task_description: input.description ? String(input.description).slice(0, 4000) : null,
     scheduled_date: input.date ? String(input.date) : null,
     energy_cost: input.energy_cost ?? null,
-    importance: input.importance ?? null,
+    priority: input.priority ?? null,
     is_bare_minimum: !!input.is_bare_minimum,
     status: input.date ? 'scheduled' : 'someday',
     source: 'mcp',
   };
-  const { data, error } = await sb.from('tasks').insert(row).select('task_id, task_text, scheduled_date, status').single();
+  if (input.project_id) row.project_id = String(input.project_id);
+  const { data, error } = await sb.from('tasks').insert(row).select('task_id, task_text, scheduled_date, status, project_id').single();
   if (error) throw new Error(error.message);
   return { task: data };
 }
@@ -308,10 +385,15 @@ async function toolUpdateTask(userId: string, input: any) {
   if (typeof input.title === 'string') patch.task_text = input.title.slice(0, 280);
   if (typeof input.description === 'string') patch.task_description = input.description.slice(0, 4000);
   if ('date' in input) patch.scheduled_date = input.date === null ? null : String(input.date);
-  if (input.status) patch.status = String(input.status);
-  if (input.status === 'done') patch.completed_at = new Date().toISOString();
+  if (input.status) {
+    patch.status = String(input.status);
+    if (input.status === 'done') {
+      patch.is_completed = true;
+      patch.completed_at = new Date().toISOString();
+    }
+  }
   if ('energy_cost' in input) patch.energy_cost = input.energy_cost;
-  if (input.importance) patch.importance = String(input.importance);
+  if (input.priority) patch.priority = String(input.priority);
   if (typeof input.is_bare_minimum === 'boolean') patch.is_bare_minimum = input.is_bare_minimum;
 
   const { data, error } = await sb
@@ -324,6 +406,48 @@ async function toolUpdateTask(userId: string, input: any) {
   if (error) throw new Error(error.message);
   if (!data) throw new Error('Task not found or not yours');
   return { task: data };
+}
+
+async function toolCompleteTask(userId: string, input: any) {
+  if (!input?.task_id) throw new Error('task_id is required');
+  const sb = admin();
+  const { data, error } = await sb
+    .from('tasks')
+    .update({ status: 'done', is_completed: true, completed_at: new Date().toISOString() })
+    .eq('task_id', String(input.task_id))
+    .eq('user_id', userId)
+    .select('task_id, task_text, status, completed_at')
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error('Task not found or not yours');
+  return { task: data };
+}
+
+async function toolListProjects(userId: string, input: any) {
+  const sb = admin();
+  let q = sb.from('projects').select('id, name, color, status, description').eq('user_id', userId);
+  if (!input?.include_archived) q = q.neq('status', 'archived');
+  q = q.order('created_at', { ascending: false }).limit(100);
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return { count: data?.length ?? 0, projects: data ?? [] };
+}
+
+async function toolSearchTasks(userId: string, input: any) {
+  if (!input?.query) throw new Error('query is required');
+  const sb = admin();
+  const term = String(input.query).replace(/[%_]/g, ' ').slice(0, 200);
+  const pattern = `%${term}%`;
+  const limit = Math.min(100, Math.max(1, Number(input.limit ?? 25)));
+  let q = sb.from('tasks')
+    .select('task_id, task_text, task_description, status, scheduled_date, energy_cost, is_bare_minimum, project_id')
+    .eq('user_id', userId)
+    .or(`task_text.ilike.${pattern},task_description.ilike.${pattern}`);
+  if (!input.include_completed) q = q.neq('status', 'done');
+  q = q.order('scheduled_date', { ascending: false, nullsFirst: false }).limit(limit);
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return { count: data?.length ?? 0, tasks: data ?? [] };
 }
 
 async function toolAddNote(userId: string, input: any) {
@@ -340,15 +464,62 @@ async function toolAddNote(userId: string, input: any) {
   return { note: data };
 }
 
+async function toolCreateIdea(userId: string, input: any) {
+  if (!input?.content) throw new Error('content is required');
+  const sb = admin();
+  const row: Record<string, unknown> = {
+    user_id: userId,
+    content: String(input.content).slice(0, 4000),
+    priority: input.priority ?? 'medium',
+  };
+  if (Array.isArray(input.tags)) row.tags = input.tags.slice(0, 10).map((t: unknown) => String(t).slice(0, 40));
+  const { data, error } = await sb.from('ideas').insert(row).select('id, content, priority, created_at').single();
+  if (error) throw new Error(error.message);
+  return { idea: data };
+}
+
+async function toolListIdeas(userId: string, input: any) {
+  const sb = admin();
+  const limit = Math.min(100, Math.max(1, Number(input?.limit ?? 20)));
+  const { data, error } = await sb
+    .from('ideas')
+    .select('id, content, priority, tags, created_at')
+    .eq('user_id', userId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  return { count: data?.length ?? 0, ideas: data ?? [] };
+}
+
+async function toolGetLatestWeeklyReview(userId: string) {
+  const sb = admin();
+  const { data, error } = await sb
+    .from('weekly_reviews')
+    .select('review_id, week_id, wins, challenges, adjustments, goal_support, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return { review: data ?? null };
+}
+
 async function runTool(userId: string, name: string, args: any) {
   switch (name) {
     case 'get_today': return await toolGetToday(userId);
     case 'get_week': return await toolGetWeek(userId);
     case 'get_current_cycle': return await toolGetCurrentCycle(userId);
     case 'list_tasks': return await toolListTasks(userId, args ?? {});
+    case 'search_tasks': return await toolSearchTasks(userId, args ?? {});
     case 'create_task': return await toolCreateTask(userId, args ?? {});
     case 'update_task': return await toolUpdateTask(userId, args ?? {});
+    case 'complete_task': return await toolCompleteTask(userId, args ?? {});
+    case 'list_projects': return await toolListProjects(userId, args ?? {});
     case 'add_note': return await toolAddNote(userId, args ?? {});
+    case 'create_idea': return await toolCreateIdea(userId, args ?? {});
+    case 'list_ideas': return await toolListIdeas(userId, args ?? {});
+    case 'get_latest_weekly_review': return await toolGetLatestWeeklyReview(userId);
     default: throw new Error(`Unknown tool: ${name}`);
   }
 }

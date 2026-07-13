@@ -23,7 +23,7 @@ import { useTour } from '@/hooks/useTour';
 import { GoogleCalendarPanel } from '@/components/google-calendar/GoogleCalendarPanel';
 import { GoogleSheetsSyncPanel } from '@/components/google-sheets/GoogleSheetsSyncPanel';
 import { PlannerSheetStoragePanel } from '@/components/google-sheets/PlannerSheetStoragePanel';
-import { McpConnectionPanel } from '@/components/settings/McpConnectionPanel';
+
 import { THEMES, THEME_IDS, ThemeId } from '@/lib/themes';
 import { DelightSettingsCard, DataRecoveryCard } from '@/components/settings';
 import { ExtraFeaturesSection } from '@/components/settings/ExtraFeaturesSection';
@@ -449,8 +449,7 @@ export default function Settings() {
         {/* Google Sheets Sync */}
         <GoogleSheetsSyncPanel />
 
-        {/* Claude AI MCP Connection */}
-        <McpConnectionPanel />
+        {/* AI Assistant / MCP connection lives in the AIAssistantSection card above */}
 
         {/* Calendar Integration */}
         <CalendarSettingsCard />

@@ -1,41 +1,63 @@
-# Pre-launch hardening — running status
 
-## Batch 1 — SHIPPED ✅
+## Context
 
-### §0 Name bug (root cause fix)
-- **Migration**: `user_profiles.first_name text` (nullable) added.
-- **New `src/lib/displayName.ts`**: single source of truth — profile.first_name → user_metadata.first_name → user_metadata.full_name first word → `null`. Email prefix is **never** used.
-- **New `src/hooks/useDisplayName.ts`**: query-cached, 10-min staleTime.
-- **Fixed surfaces**:
-  - `PersonalizedGreeting` (was: `email.split('@')[0]` → "Info")
-  - `TodayCommandCenter` (was: same email fallback)
-- **Name capture**:
-  - Onboarding welcome step now has optional "What should we call you?" field, saves to `user_profiles.first_name`.
-  - New `ProfileSettingsCard` in Settings — user can set / edit / clear their name any time.
+An MCP (Model Context Protocol) server for the planner is **already built** — users don't have to wait for it. It lives at `/functions/v1/mcp`, uses per-user Personal Access Tokens (hashed in the DB, revocable), and today exposes 7 tools: `get_today`, `get_week`, `get_current_cycle`, `list_tasks`, `create_task`, `update_task`, `add_note`. Settings → **AI Assistant** already has a panel to mint a token and see the connection URL.
 
-### §2/§3 partial coverage this batch
-- Settings now leads with a proper Profile card (name + email) instead of a bare Account block.
-- Onboarding welcome step no longer greets from email.
+This plan is a hardening/expansion pass so it feels production-ready for Claude Desktop, Claude Code, and Codex.
 
-Typecheck: **passing**.
+## 1. Verify end-to-end (no-code first, then fix anything broken)
 
----
+- Hit the live edge function with a real minted token and confirm:
+  - `initialize` returns proper protocol version + serverInfo
+  - `tools/list` returns all tools with valid JSON Schemas
+  - `tools/call` round-trip for `get_today` and `create_task` returns MCP-shaped content
+  - Revoked token → 401
+  - Missing/invalid token → 401
+  - Rate limit (60/min) trips and recovers
+  - Cross-user isolation: token A cannot read user B's rows (query attempted via service-role client scoped to token's user_id)
+- Confirm CORS headers include `Accept: application/json, text/event-stream` handling and expose `mcp-session-id` (already in code — verify with a live OPTIONS preflight).
+- Fix any failures found; do not just note them.
 
-## Batch 2 — Security hardening (NEXT TURN)
+## 2. Expand the toolset
 
-Not yet started. Will run `supabase--linter` (already surfaced 9 pre-existing SECURITY DEFINER warnings during the Batch 1 migration — those are known and will be reviewed here), then:
-- Verify RLS on `integration_tokens`, `daily_battery_checkins`, `user_feature_preferences`, task archive columns.
-- Dedupe overlapping policies on `error_logs`, `ai_connection_keys`, `user_api_keys`, `admin_users`.
-- Tighten `error_logs`: require `user_id` on new inserts.
-- Provision/revoke edge functions: shared-secret + rate limit audit.
-- MCP tool handlers: re-audit user scoping.
-- Auth pages: uniform "invalid email or password" (no user enumeration).
+Add write/read tools users will actually want from Claude/Codex:
 
-## Batch 3 — Performance + stability re-verification + full launch report (TURN AFTER)
+- `complete_task` — mark a task done (sets `is_completed`, `completed_at`)
+- `list_projects` — active projects with id/name/color
+- `create_idea` — capture to brain dump / ideas inbox
+- `list_ideas` — recent ideas (with optional tag filter)
+- `get_weekly_review` — latest weekly review (wins/challenges/adjustments)
+- `search_tasks` — text search across active tasks (title + description)
 
-Not yet started. Will baseline bundle size, add route-level lazy loading for Extra Features, lazy-load heavy libs (pdf/charts/confetti), audit global providers (`useArcade` mount), tighten hot queries, then re-verify offline queue / Fresh Start / battery persistence and write the final launch-readiness report with before/after numbers.
+Each: strict Zod-ish JSON Schema in `tools/list`, per-user scoping via token's `user_id` only (never trust client input `user_id`), returns MCP `content: [{ type: 'text', text: JSON.stringify(...) }]`.
 
----
+## 3. Polish the Settings → AI Assistant UX
 
-## Remaining §1/§2/§3 audit work folded into Batches 2 & 3
-The broader UX/onboarding/settings audit (empty-state coverage, terminology sweep, help-content sweep, Settings reorganization into named groups) will land in Batch 3 alongside the perf pass — same files, same test run, less churn.
+- Rewrite `McpConnectionPanel` copy so it's non-technical:
+  - "Connect Claude / Codex to your planner in 60 seconds"
+  - Big one-tap **Generate token** button; show token ONCE with copy-to-clipboard + a "you won't see this again" warning
+  - Show the connection URL prominently, copy button
+  - Three collapsible cards: **Claude Desktop**, **Claude Code**, **Codex / other MCP client**
+    - Each with a copy-paste JSON snippet pre-filled with the user's URL (token placeholder — never embed the real token in rendered HTML for copy history reasons; user pastes it into the highlighted spot)
+  - Troubleshooting section: revoked token, 401, rate limit, "which tools can it call?"
+- List active tokens with created date, last-used, and a **Revoke** button (revocation effective immediately — already server-side).
+- Add a small "Test connection" button that calls `tools/list` from the browser using the pasted token and shows ✓ / error inline.
+
+## 4. Verify again after changes
+
+- Typecheck passes
+- Live curl of every new tool with a fresh test token
+- Revoke test token at end of session
+- Confirm Settings panel renders correctly at 375px (mobile install audience)
+
+## Technical notes
+
+- No schema changes expected — reuses existing `mcp_personal_access_tokens` (or equivalent) table from the earlier migration.
+- New tools are additive edits in `supabase/functions/mcp/index.ts` only.
+- No secrets to add — the function already uses `SUPABASE_SERVICE_ROLE_KEY` server-side and scopes every query by the token's user.
+- Deferred: OAuth 2.1 flow (Claude web's newer connector UI). Current bearer-token flow works for Claude Desktop, Claude Code, and Codex today; OAuth can be a later batch if you want the "one-click add to Claude web" experience.
+
+## Out of scope
+
+- Any rebrand, unrelated settings changes, or auth surface changes.
+- Building an in-app AI chatbot (this is the opposite direction — external AI → your planner).
