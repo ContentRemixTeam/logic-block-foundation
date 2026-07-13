@@ -449,8 +449,7 @@ export default function Settings() {
         {/* Google Sheets Sync */}
         <GoogleSheetsSyncPanel />
 
-        {/* Claude AI MCP Connection */}
-        <McpConnectionPanel />
+        {/* AI Assistant / MCP connection lives in the AIAssistantSection card above */}
 
         {/* Calendar Integration */}
         <CalendarSettingsCard />
