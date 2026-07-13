@@ -360,18 +360,19 @@ async function toolListTasks(userId: string, input: any) {
 async function toolCreateTask(userId: string, input: any) {
   if (!input?.title || typeof input.title !== 'string') throw new Error('title is required');
   const sb = admin();
-  const row = {
+  const row: Record<string, unknown> = {
     user_id: userId,
     task_text: String(input.title).slice(0, 280),
     task_description: input.description ? String(input.description).slice(0, 4000) : null,
     scheduled_date: input.date ? String(input.date) : null,
     energy_cost: input.energy_cost ?? null,
-    importance: input.importance ?? null,
+    priority: input.priority ?? null,
     is_bare_minimum: !!input.is_bare_minimum,
     status: input.date ? 'scheduled' : 'someday',
     source: 'mcp',
   };
-  const { data, error } = await sb.from('tasks').insert(row).select('task_id, task_text, scheduled_date, status').single();
+  if (input.project_id) row.project_id = String(input.project_id);
+  const { data, error } = await sb.from('tasks').insert(row).select('task_id, task_text, scheduled_date, status, project_id').single();
   if (error) throw new Error(error.message);
   return { task: data };
 }
@@ -383,10 +384,15 @@ async function toolUpdateTask(userId: string, input: any) {
   if (typeof input.title === 'string') patch.task_text = input.title.slice(0, 280);
   if (typeof input.description === 'string') patch.task_description = input.description.slice(0, 4000);
   if ('date' in input) patch.scheduled_date = input.date === null ? null : String(input.date);
-  if (input.status) patch.status = String(input.status);
-  if (input.status === 'done') patch.completed_at = new Date().toISOString();
+  if (input.status) {
+    patch.status = String(input.status);
+    if (input.status === 'done') {
+      patch.is_completed = true;
+      patch.completed_at = new Date().toISOString();
+    }
+  }
   if ('energy_cost' in input) patch.energy_cost = input.energy_cost;
-  if (input.importance) patch.importance = String(input.importance);
+  if (input.priority) patch.priority = String(input.priority);
   if (typeof input.is_bare_minimum === 'boolean') patch.is_bare_minimum = input.is_bare_minimum;
 
   const { data, error } = await sb
@@ -399,6 +405,48 @@ async function toolUpdateTask(userId: string, input: any) {
   if (error) throw new Error(error.message);
   if (!data) throw new Error('Task not found or not yours');
   return { task: data };
+}
+
+async function toolCompleteTask(userId: string, input: any) {
+  if (!input?.task_id) throw new Error('task_id is required');
+  const sb = admin();
+  const { data, error } = await sb
+    .from('tasks')
+    .update({ status: 'done', is_completed: true, completed_at: new Date().toISOString() })
+    .eq('task_id', String(input.task_id))
+    .eq('user_id', userId)
+    .select('task_id, task_text, status, completed_at')
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error('Task not found or not yours');
+  return { task: data };
+}
+
+async function toolListProjects(userId: string, input: any) {
+  const sb = admin();
+  let q = sb.from('projects').select('id, name, color, status, description').eq('user_id', userId);
+  if (!input?.include_archived) q = q.neq('status', 'archived');
+  q = q.order('created_at', { ascending: false }).limit(100);
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return { count: data?.length ?? 0, projects: data ?? [] };
+}
+
+async function toolSearchTasks(userId: string, input: any) {
+  if (!input?.query) throw new Error('query is required');
+  const sb = admin();
+  const term = String(input.query).replace(/[%_]/g, ' ').slice(0, 200);
+  const pattern = `%${term}%`;
+  const limit = Math.min(100, Math.max(1, Number(input.limit ?? 25)));
+  let q = sb.from('tasks')
+    .select('task_id, task_text, task_description, status, scheduled_date, energy_cost, is_bare_minimum, project_id')
+    .eq('user_id', userId)
+    .or(`task_text.ilike.${pattern},task_description.ilike.${pattern}`);
+  if (!input.include_completed) q = q.neq('status', 'done');
+  q = q.order('scheduled_date', { ascending: false, nullsFirst: false }).limit(limit);
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return { count: data?.length ?? 0, tasks: data ?? [] };
 }
 
 async function toolAddNote(userId: string, input: any) {
@@ -415,15 +463,62 @@ async function toolAddNote(userId: string, input: any) {
   return { note: data };
 }
 
+async function toolCreateIdea(userId: string, input: any) {
+  if (!input?.content) throw new Error('content is required');
+  const sb = admin();
+  const row: Record<string, unknown> = {
+    user_id: userId,
+    content: String(input.content).slice(0, 4000),
+    priority: input.priority ?? 'medium',
+  };
+  if (Array.isArray(input.tags)) row.tags = input.tags.slice(0, 10).map((t: unknown) => String(t).slice(0, 40));
+  const { data, error } = await sb.from('ideas').insert(row).select('id, content, priority, created_at').single();
+  if (error) throw new Error(error.message);
+  return { idea: data };
+}
+
+async function toolListIdeas(userId: string, input: any) {
+  const sb = admin();
+  const limit = Math.min(100, Math.max(1, Number(input?.limit ?? 20)));
+  const { data, error } = await sb
+    .from('ideas')
+    .select('id, content, priority, tags, created_at')
+    .eq('user_id', userId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  return { count: data?.length ?? 0, ideas: data ?? [] };
+}
+
+async function toolGetLatestWeeklyReview(userId: string) {
+  const sb = admin();
+  const { data, error } = await sb
+    .from('weekly_reviews')
+    .select('review_id, week_id, wins, challenges, adjustments, goal_support, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return { review: data ?? null };
+}
+
 async function runTool(userId: string, name: string, args: any) {
   switch (name) {
     case 'get_today': return await toolGetToday(userId);
     case 'get_week': return await toolGetWeek(userId);
     case 'get_current_cycle': return await toolGetCurrentCycle(userId);
     case 'list_tasks': return await toolListTasks(userId, args ?? {});
+    case 'search_tasks': return await toolSearchTasks(userId, args ?? {});
     case 'create_task': return await toolCreateTask(userId, args ?? {});
     case 'update_task': return await toolUpdateTask(userId, args ?? {});
+    case 'complete_task': return await toolCompleteTask(userId, args ?? {});
+    case 'list_projects': return await toolListProjects(userId, args ?? {});
     case 'add_note': return await toolAddNote(userId, args ?? {});
+    case 'create_idea': return await toolCreateIdea(userId, args ?? {});
+    case 'list_ideas': return await toolListIdeas(userId, args ?? {});
+    case 'get_latest_weekly_review': return await toolGetLatestWeeklyReview(userId);
     default: throw new Error(`Unknown tool: ${name}`);
   }
 }
