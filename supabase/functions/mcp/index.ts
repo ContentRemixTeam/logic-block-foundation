@@ -345,11 +345,12 @@ async function toolGetCurrentCycle(userId: string) {
 
 async function toolListTasks(userId: string, input: any) {
   const sb = admin();
-  let q = sb.from('tasks').select('task_id, task_text, task_description, status, scheduled_date, scheduled_time, energy_cost, importance, is_bare_minimum, project_id').eq('user_id', userId);
+  let q = sb.from('tasks').select('task_id, task_text, task_description, status, scheduled_date, scheduled_time, energy_cost, priority, is_bare_minimum, project_id').eq('user_id', userId);
   if (input?.date_from) q = q.gte('scheduled_date', String(input.date_from));
   if (input?.date_to) q = q.lte('scheduled_date', String(input.date_to));
   if (input?.status) q = q.eq('status', String(input.status));
   if (input?.energy_cost) q = q.eq('energy_cost', String(input.energy_cost));
+  if (input?.project_id) q = q.eq('project_id', String(input.project_id));
   const limit = Math.min(200, Math.max(1, Number(input?.limit ?? 50)));
   q = q.order('scheduled_date', { ascending: true, nullsFirst: false }).limit(limit);
   const { data, error } = await q;
