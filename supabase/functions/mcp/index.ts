@@ -121,15 +121,31 @@ const TOOLS = [
           enum: ['low', 'medium', 'high'],
           description: 'Filter by task energy cost.',
         },
+        project_id: { type: 'string', description: 'Filter by project UUID.' },
         limit: { type: 'integer', minimum: 1, maximum: 200, default: 50 },
       },
       additionalProperties: false,
     },
   },
   {
+    name: 'search_tasks',
+    description:
+      "Full-text search across the user's task titles and descriptions. Case-insensitive. Use when the user says 'find my task about X' or 'what did I write about the launch email?'.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', minLength: 1, maxLength: 200 },
+        include_completed: { type: 'boolean', default: false },
+        limit: { type: 'integer', minimum: 1, maximum: 100, default: 25 },
+      },
+      required: ['query'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'create_task',
     description:
-      "Create a new task for the signed-in user. If `date` is provided the task is scheduled to that date; otherwise it lands in the unscheduled bucket. Set `is_bare_minimum: true` to add it to the user's bare-minimum-for-the-day list. Set `energy_cost` to help energy-matching work.",
+      "Create a new task for the signed-in user. If `date` is provided the task is scheduled to that date; otherwise it lands in the unscheduled bucket. Set `is_bare_minimum: true` to add it to the user's bare-minimum-for-the-day list. Set `energy_cost` to help energy-matching work. Optionally attach to a project via `project_id` (use `list_projects` to find one).",
     inputSchema: {
       type: 'object',
       properties: {
@@ -137,8 +153,9 @@ const TOOLS = [
         description: { type: 'string', maxLength: 4000 },
         date: { type: 'string', description: 'ISO date YYYY-MM-DD.' },
         energy_cost: { type: 'string', enum: ['low', 'medium', 'high'] },
-        importance: { type: 'string', enum: ['low', 'medium', 'high'] },
+        priority: { type: 'string', enum: ['low', 'medium', 'high'] },
         is_bare_minimum: { type: 'boolean', default: false },
+        project_id: { type: 'string', description: 'Optional project UUID from list_projects.' },
       },
       required: ['title'],
       additionalProperties: false,
@@ -147,7 +164,7 @@ const TOOLS = [
   {
     name: 'update_task',
     description:
-      "Update a task the signed-in user owns. Use to reschedule (set `date`), mark done (`status: 'done'`), rename (`title`), change energy (`energy_cost`), or toggle bare-minimum. Only fields you pass are changed.",
+      "Update a task the signed-in user owns. Use to reschedule (set `date`), rename (`title`), change energy (`energy_cost`), or toggle bare-minimum. To mark a task done, prefer `complete_task`. Only fields you pass are changed.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -157,7 +174,7 @@ const TOOLS = [
         date: { type: ['string', 'null'], description: 'ISO date YYYY-MM-DD, or null to unschedule.' },
         status: { type: 'string', enum: ['scheduled', 'done', 'someday', 'focus', 'backlog'] },
         energy_cost: { type: ['string', 'null'], enum: ['low', 'medium', 'high', null] },
-        importance: { type: 'string', enum: ['low', 'medium', 'high'] },
+        priority: { type: 'string', enum: ['low', 'medium', 'high'] },
         is_bare_minimum: { type: 'boolean' },
       },
       required: ['task_id'],
@@ -165,9 +182,34 @@ const TOOLS = [
     },
   },
   {
+    name: 'complete_task',
+    description:
+      "Mark a task done for the signed-in user. Sets status='done', is_completed=true, and completed_at=now(). Use when the user says 'I finished X' or 'mark X as done'.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        task_id: { type: 'string', description: 'UUID of the task to complete.' },
+      },
+      required: ['task_id'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'list_projects',
+    description:
+      "List the user's active projects (id, name, color, status). Use to find a project_id before creating a task inside a project, or to answer 'what am I working on?'.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        include_archived: { type: 'boolean', default: false },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'add_note',
     description:
-      "Quick-capture a thought into the user's brain-dump/notes. Use for anything that isn't a task — ideas, decisions, things to remember.",
+      "Quick-capture a thought into the user's brain-dump/notes. Use for anything that isn't a task — meeting notes, decisions, things to remember.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -177,6 +219,39 @@ const TOOLS = [
       required: ['text'],
       additionalProperties: false,
     },
+  },
+  {
+    name: 'create_idea',
+    description:
+      "Capture an idea into the user's Ideas inbox (for content, offers, or future exploration). Different from a task or note — ideas are things to think about later.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        content: { type: 'string', minLength: 1, maxLength: 4000 },
+        priority: { type: 'string', enum: ['low', 'medium', 'high'] },
+        tags: { type: 'array', items: { type: 'string' }, maxItems: 10 },
+      },
+      required: ['content'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'list_ideas',
+    description:
+      "List recent ideas from the user's Ideas inbox. Use for 'what ideas have I been sitting on?' or to help pick something to act on.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'get_latest_weekly_review',
+    description:
+      "Return the user's most recent weekly review (wins, challenges, adjustments). Use when the user asks 'what did I reflect on last week?' or wants to plan based on last week's learnings.",
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
   },
 ] as const;
 
