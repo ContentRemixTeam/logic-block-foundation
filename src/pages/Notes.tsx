@@ -932,7 +932,33 @@ export default function Notes() {
                                 {/* Linked items (tasks/ideas created from this note) */}
                                 <NoteLinkedItems noteId={entry.day_id} noteType="entry" />
 
+                                {/* Entry tags */}
+                                {(() => {
+                                  const entryTags = getEntryTags(entry.scratch_pad_content);
+                                  return entryTags.length > 0 ? (
+                                    <div className="flex flex-wrap gap-1.5 mt-3">
+                                      {entryTags.slice(0, 8).map(tag => (
+                                        <Link
+                                          key={tag}
+                                          to={`/tags/${encodeURIComponent(tag)}`}
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <Badge variant="secondary" className="text-xs hover:bg-primary/20 cursor-pointer">
+                                            #{tag}
+                                          </Badge>
+                                        </Link>
+                                      ))}
+                                      {entryTags.length > 8 && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          +{entryTags.length - 8} more
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  ) : null;
+                                })()}
+
                                 {/* Metadata and actions */}
+
                                 <div className="flex flex-wrap items-center justify-between gap-4 mt-3">
                                   <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
                                     {entry.scratch_pad_processed_at && (
