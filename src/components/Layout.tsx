@@ -20,7 +20,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { LaunchDebriefBanner } from '@/components/LaunchDebriefBanner';
 import { FloatingTimerBar } from '@/components/timer';
 import { QueryPerformanceWarning } from '@/components/system/QueryPerformanceWarning';
-import { PlannerDividerTabs } from '@/components/PlannerDividerTabs';
+// PlannerDividerTabs intentionally not rendered — replaced by sidebar + mobile bottom nav.
 import { MonthlyThemeHelloBar } from '@/components/monthly-theme/MonthlyThemeHelloBar';
 import { MonthlyThemePopup } from '@/components/monthly-theme/MonthlyThemePopup';
 import { CelebrationOverlay } from '@/components/celebrations/CelebrationOverlay';
