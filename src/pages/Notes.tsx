@@ -116,6 +116,21 @@ const countMatches = (content: string, searchTerm: string): number => {
   return (content.match(regex) || []).length;
 };
 
+// Get unique bare tags from entry content, preserving first-seen order
+const getEntryTags = (content: string): string[] => {
+  const tags = extractTags(content || '');
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const tag of tags) {
+    if (!seen.has(tag)) {
+      seen.add(tag);
+      out.push(tag);
+    }
+  }
+  return out;
+};
+
+
 export default function Notes() {
   const queryClient = useQueryClient();
   const { data: projects = [] } = useProjects();
