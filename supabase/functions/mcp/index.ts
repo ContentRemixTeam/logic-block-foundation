@@ -651,12 +651,45 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   const url = new URL(req.url);
+  const resource = mcpResourceUrl(req);
+
+  // ---- Well-known discovery routes ----
+  // Supabase strips the function name from the incoming URL, so the path we
+  // see is the trailing sub-path. We match both to be safe.
+  const isWellKnown = (marker: string) =>
+    url.pathname.endsWith(`/.well-known/${marker}`) || url.pathname === `/.well-known/${marker}`;
+
+  if (req.method === 'GET' && isWellKnown('oauth-protected-resource')) {
+    // RFC 9728: point clients at the OAuth authorization server.
+    return json({
+      resource,
+      authorization_servers: [OAUTH_ISSUER],
+      bearer_methods_supported: ['header'],
+      scopes_supported: ['openid', 'profile', 'email'],
+      resource_documentation: `${url.origin}/functions/v1/mcp`,
+    });
+  }
+
+  if (req.method === 'GET' && isWellKnown('oauth-authorization-server')) {
+    // Proxy Supabase's AS metadata verbatim so clients that fetch it relative
+    // to the resource origin still get a valid document.
+    try {
+      const upstream = await fetch(`${OAUTH_ISSUER}/.well-known/oauth-authorization-server`);
+      const doc = await upstream.json();
+      return json(doc);
+    } catch {
+      return json({ error: 'authorization_server_metadata_unavailable' }, 502);
+    }
+  }
+
+  // ---- Human-readable landing (GET root) ----
   if (req.method === 'GET') {
     return json({
       name: 'Low Battery Business Planner — MCP',
       transport: 'streamable-http',
-      endpoint: url.origin + url.pathname,
-      auth: 'Bearer <personal-access-token from Settings → AI Assistant>',
+      endpoint: resource,
+      auth: 'OAuth 2.1 (PKCE) via Supabase, or Personal Access Token from Settings → AI Assistant',
+      oauth_metadata: `${resource}/.well-known/oauth-protected-resource`,
       tools: TOOLS.map((t) => t.name),
     });
   }
@@ -666,7 +699,12 @@ Deno.serve(async (req) => {
   }
 
   const auth = await resolveToken(req.headers.get('authorization'));
-  if (!auth.ok) return json(rpcError(null, -32001, auth.message), auth.status);
+  if (!auth.ok) {
+    // Per MCP spec: 401 with WWW-Authenticate points clients at resource
+    // metadata so they can discover the OAuth server and begin the flow.
+    if (auth.status === 401) return unauthorized(req, auth.message);
+    return json(rpcError(null, -32001, auth.message), auth.status);
+  }
 
   let body: any;
   try { body = await req.json(); } catch {
@@ -682,3 +720,4 @@ Deno.serve(async (req) => {
   if (result === null) return new Response(null, { status: 204, headers: corsHeaders });
   return json(result);
 });
+
