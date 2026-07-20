@@ -52,6 +52,8 @@ import { SelectableNoteContent } from '@/components/notes/SelectableNoteContent'
 import { NoteLinkedItems } from '@/components/notes/NoteLinkedItems';
 import { CoachingLogTab } from '@/components/notes/CoachingLogTab';
 import { WinsTab } from '@/components/notes/WinsTab';
+import { extractTags } from '@/lib/captureTags';
+
 
 const PAGE_SIZE = 50;
 
