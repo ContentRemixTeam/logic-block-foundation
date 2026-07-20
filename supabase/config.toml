@@ -89,3 +89,9 @@ verify_jwt = false
 
 [functions.sync-asana-tasks]
 verify_jwt = false
+
+[functions.provision-member]
+verify_jwt = false
+
+[functions.revoke-member]
+verify_jwt = false
