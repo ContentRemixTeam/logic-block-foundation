@@ -114,6 +114,7 @@ const Progress = lazyWithRetry(() => import('./pages/Progress'));
 const Tasks = lazyWithRetry(() => import('./pages/Tasks'));
 const Archive = lazyWithRetry(() => import('./pages/Archive'));
 const Notes = lazyWithRetry(() => import('./pages/Notes'));
+const Tag = lazyWithRetry(() => import('./pages/Tag'));
 const SOPs = lazyWithRetry(() => import('./pages/SOPs'));
 const Wins = lazyWithRetry(() => import('./pages/Wins'));
 const Support = lazyWithRetry(() => import('./pages/Support'));
@@ -300,6 +301,7 @@ const App = () => (
                       <Route path="/daily-plan" element={<ProtectedRoute><PageSuspense><DailyPlan /></PageSuspense></ProtectedRoute>} />
                       <Route path="/daily-review" element={<ProtectedRoute><PageSuspense><DailyReview /></PageSuspense></ProtectedRoute>} />
                       <Route path="/notes" element={<ProtectedRoute><PageSuspense><Notes /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/tags/:tag" element={<ProtectedRoute><PageSuspense><Tag /></PageSuspense></ProtectedRoute>} />
                       <Route path="/brain-dump" element={<ProtectedRoute><PageSuspense><BrainDump /></PageSuspense></ProtectedRoute>} />
                       <Route path="/evidence" element={<ProtectedRoute><PageSuspense><Evidence /></PageSuspense></ProtectedRoute>} />
                       <Route path="/open-loops" element={<ProtectedRoute><PageSuspense><OpenLoops /></PageSuspense></ProtectedRoute>} />

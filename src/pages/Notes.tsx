@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { 
   CalendarIcon, 
   ChevronLeft, 
@@ -130,6 +130,8 @@ export default function Notes() {
   
   // Get courses list
   const courses = coursesData?.courses || [];
+  const [searchParams, setSearchParams] = useSearchParams();
+  const openPageIdFromUrl = searchParams.get('pageId');
   
   // Page editor state
   const [pageModalOpen, setPageModalOpen] = useState(false);
@@ -307,6 +309,29 @@ export default function Notes() {
   const allTags: string[] = pagesData?.allTags || [];
   const pagesTotalCount: number = pagesData?.totalCount || pages.length;
   const pagesHasMore: boolean = pagesData?.hasMore || false;
+
+  // If ?pageId=X is in the URL, jump to Pages tab and open that page.
+  useEffect(() => {
+    if (!openPageIdFromUrl) return;
+    if (activeTab !== 'pages') setActiveTab('pages');
+    const match = pages.find(p => p.id === openPageIdFromUrl);
+    if (match) {
+      setEditingPage(match);
+      setPageTitle(match.title);
+      setPageContent(match.content);
+      setPageProjectId(match.project_id);
+      setPageCourseId(match.course_id);
+      setPageCourseTitle(match.course_title || match.course?.title || null);
+      setPageTags(Array.isArray(match.tags) ? match.tags : []);
+      setNewTagInput('');
+      setPageModalOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete('pageId');
+      setSearchParams(next, { replace: true });
+    }
+  }, [openPageIdFromUrl, pages]);
+
+
 
   // Filter entries based on search, date range, and hashtag
   const filteredEntries = useMemo(() => {
@@ -718,16 +743,19 @@ export default function Notes() {
                 {(activeTab === 'entries' 
                   ? HASHTAG_FILTERS 
                   : [...new Set([...HASHTAG_FILTERS, ...allTags])].sort()
-                ).map(tag => (
-                  <Badge
-                    key={tag}
-                    variant={hashtagFilter === tag ? "default" : "outline"}
-                    className="cursor-pointer hover:bg-primary/20 transition-colors"
-                    onClick={() => setHashtagFilter(hashtagFilter === tag ? null : tag)}
-                  >
-                    {tag}
-                  </Badge>
-                ))}
+                ).map(tag => {
+                  const bare = tag.replace(/^#/, '');
+                  return (
+                    <Link key={tag} to={`/tags/${encodeURIComponent(bare)}`}>
+                      <Badge
+                        variant={hashtagFilter === tag ? 'default' : 'outline'}
+                        className="cursor-pointer hover:bg-primary/20 transition-colors"
+                      >
+                        {tag.startsWith('#') ? tag : `#${bare}`}
+                      </Badge>
+                    </Link>
+                  );
+                })}
                 {hasActiveFilters && (
                   <Button variant="ghost" size="sm" onClick={clearFilters} className="ml-auto">
                     <X className="h-4 w-4 mr-1" />
@@ -1006,11 +1034,20 @@ export default function Notes() {
                           {/* Tags */}
                           {Array.isArray(page.tags) && page.tags.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-2">
-                              {page.tags.slice(0, 5).map(tag => (
-                                <Badge key={tag} variant="secondary" className="text-xs">
-                                  {tag}
-                                </Badge>
-                              ))}
+                              {page.tags.slice(0, 5).map(tag => {
+                                const bare = tag.replace(/^#/, '');
+                                return (
+                                  <Link
+                                    key={tag}
+                                    to={`/tags/${encodeURIComponent(bare)}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Badge variant="secondary" className="text-xs hover:bg-primary/20 cursor-pointer">
+                                      {tag.startsWith('#') ? tag : `#${bare}`}
+                                    </Badge>
+                                  </Link>
+                                );
+                              })}
                               {page.tags.length > 5 && (
                                 <Badge variant="secondary" className="text-xs">
                                   +{page.tags.length - 5} more

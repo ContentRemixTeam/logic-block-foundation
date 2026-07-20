@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, CheckSquare, Brain, TrendingUp, Menu } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Brain, BookOpen, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import {
@@ -11,11 +11,13 @@ import {
 } from '@/components/ui/sheet';
 import { MobileSidebarContent } from '@/components/sidebar/MobileSidebarContent';
 
+// Order: Home · Notes · Capture · Tasks · More
+// (Grow / Progress lives inside the "More" sheet)
 const navItems = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
-  { href: '/tasks', label: 'Tasks', icon: CheckSquare },
+  { href: '/notes', label: 'Notes', icon: BookOpen },
   { href: '/brain-dump', label: 'Capture', icon: Brain },
-  { href: '/progress', label: 'Grow', icon: TrendingUp },
+  { href: '/tasks', label: 'Tasks', icon: CheckSquare },
 ];
 
 export function MobileBottomNav() {
@@ -26,8 +28,8 @@ export function MobileBottomNav() {
     if (href === '/dashboard') {
       return location.pathname === '/' || location.pathname === '/dashboard';
     }
-    if (href === '/projects') {
-      return location.pathname.startsWith('/projects');
+    if (href === '/notes') {
+      return location.pathname.startsWith('/notes') || location.pathname.startsWith('/tags');
     }
     return location.pathname.startsWith(href);
   };
