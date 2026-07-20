@@ -119,10 +119,8 @@ Deno.serve(async (req) => {
         .eq('id', existing.id);
       if (updErr) throw updErr;
     } else {
-      // Look for existing auth user with this email
+      // Look for existing auth user with this email via profiles table
       let userId: string | null = null;
-      const { data: userList } = await admin.auth.admin.listUsers({ page: 1, perPage: 1 });
-      // listUsers can't filter; use RPC-less approach: try to find via profiles table
       try {
         const { data: prof } = await admin
           .from('user_profiles')
