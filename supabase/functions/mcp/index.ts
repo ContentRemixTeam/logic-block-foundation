@@ -33,7 +33,11 @@ const JWKS = createRemoteJWKSet(new URL(`${OAUTH_ISSUER}/.well-known/jwks.json`)
 // resource metadata. Must be stable across redeploys.
 function mcpResourceUrl(req: Request): string {
   const url = new URL(req.url);
-  return `${url.origin}/functions/v1/mcp`;
+  // Force https — Supabase's edge runtime hands us a URL with `http` even
+  // though clients (Claude) always reach us over HTTPS, and MCP clients
+  // refuse non-HTTPS resource URLs.
+  const host = req.headers.get('x-forwarded-host') ?? url.host;
+  return `https://${host}/functions/v1/mcp`;
 }
 
 // Broad CORS so any MCP client (Claude web, Claude Code, Codex, custom) can reach it.
