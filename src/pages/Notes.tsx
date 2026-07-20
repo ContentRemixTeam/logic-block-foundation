@@ -718,16 +718,19 @@ export default function Notes() {
                 {(activeTab === 'entries' 
                   ? HASHTAG_FILTERS 
                   : [...new Set([...HASHTAG_FILTERS, ...allTags])].sort()
-                ).map(tag => (
-                  <Badge
-                    key={tag}
-                    variant={hashtagFilter === tag ? "default" : "outline"}
-                    className="cursor-pointer hover:bg-primary/20 transition-colors"
-                    onClick={() => setHashtagFilter(hashtagFilter === tag ? null : tag)}
-                  >
-                    {tag}
-                  </Badge>
-                ))}
+                ).map(tag => {
+                  const bare = tag.replace(/^#/, '');
+                  return (
+                    <Link key={tag} to={`/tags/${encodeURIComponent(bare)}`}>
+                      <Badge
+                        variant={hashtagFilter === tag ? 'default' : 'outline'}
+                        className="cursor-pointer hover:bg-primary/20 transition-colors"
+                      >
+                        {tag.startsWith('#') ? tag : `#${bare}`}
+                      </Badge>
+                    </Link>
+                  );
+                })}
                 {hasActiveFilters && (
                   <Button variant="ghost" size="sm" onClick={clearFilters} className="ml-auto">
                     <X className="h-4 w-4 mr-1" />
@@ -1006,11 +1009,20 @@ export default function Notes() {
                           {/* Tags */}
                           {Array.isArray(page.tags) && page.tags.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-2">
-                              {page.tags.slice(0, 5).map(tag => (
-                                <Badge key={tag} variant="secondary" className="text-xs">
-                                  {tag}
-                                </Badge>
-                              ))}
+                              {page.tags.slice(0, 5).map(tag => {
+                                const bare = tag.replace(/^#/, '');
+                                return (
+                                  <Link
+                                    key={tag}
+                                    to={`/tags/${encodeURIComponent(bare)}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Badge variant="secondary" className="text-xs hover:bg-primary/20 cursor-pointer">
+                                      {tag.startsWith('#') ? tag : `#${bare}`}
+                                    </Badge>
+                                  </Link>
+                                );
+                              })}
                               {page.tags.length > 5 && (
                                 <Badge variant="secondary" className="text-xs">
                                   +{page.tags.length - 5} more
