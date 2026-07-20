@@ -310,6 +310,20 @@ export default function Notes() {
   const pagesTotalCount: number = pagesData?.totalCount || pages.length;
   const pagesHasMore: boolean = pagesData?.hasMore || false;
 
+  // If ?pageId=X is in the URL, jump to Pages tab and open that page.
+  useEffect(() => {
+    if (!openPageIdFromUrl) return;
+    if (activeTab !== 'pages') setActiveTab('pages');
+    const match = pages.find(p => p.id === openPageIdFromUrl);
+    if (match) {
+      openEditPageModal(match);
+      const next = new URLSearchParams(searchParams);
+      next.delete('pageId');
+      setSearchParams(next, { replace: true });
+    }
+  }, [openPageIdFromUrl, pages]);
+
+
   // Filter entries based on search, date range, and hashtag
   const filteredEntries = useMemo(() => {
     let result = entries;
