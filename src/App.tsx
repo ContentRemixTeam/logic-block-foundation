@@ -39,6 +39,7 @@ function Gated({ feature, children }: { feature: FeatureKey; children: React.Rea
 
 // Eagerly load critical auth pages (small, needed immediately)
 import Auth from "./pages/Auth";
+const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 import LoginHelp from "./pages/LoginHelp";
 import NotFound from "./pages/NotFound";
 
@@ -280,6 +281,7 @@ const App = () => (
                       <Route path="/planner" element={<PageSuspense><PlannerLaunch /></PageSuspense>} />
                       <Route path="/90-day-planner" element={<PageSuspense><PlannerLaunch /></PageSuspense>} />
                       <Route path="/auth" element={<PageSuspense><Auth /></PageSuspense>} />
+                      <Route path="/.lovable/oauth/consent" element={<PageSuspense><OAuthConsent /></PageSuspense>} />
                       <Route path="/login-help" element={<PageSuspense><LoginHelp /></PageSuspense>} />
 
                       <Route path="/help/planner-storage" element={<PageSuspense><PlannerStorageHelp /></PageSuspense>} />
