@@ -130,6 +130,8 @@ export default function Notes() {
   
   // Get courses list
   const courses = coursesData?.courses || [];
+  const [searchParams, setSearchParams] = useSearchParams();
+  const openPageIdFromUrl = searchParams.get('pageId');
   
   // Page editor state
   const [pageModalOpen, setPageModalOpen] = useState(false);
