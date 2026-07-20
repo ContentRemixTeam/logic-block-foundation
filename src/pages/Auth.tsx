@@ -178,7 +178,9 @@ export default function Auth() {
         
         await navigateAfterAuth('/dashboard');
       } else {
-        const redirectUrl = `${window.location.origin}/`;
+        const nextParam = getNextParam();
+        const nextSuffix = nextParam ? `?next=${encodeURIComponent(nextParam)}` : '';
+        const redirectUrl = `${window.location.origin}/${nextSuffix ? `auth${nextSuffix}` : ''}`;
         const { data, error } = await supabase.auth.signUp({
           email: email.trim().toLowerCase(),
           password,
