@@ -3,26 +3,27 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
 import { PlannerSheetSetupGate } from '@/components/google-sheets/PlannerSheetSetupGate';
+import { useAccessCheck } from '@/hooks/useAccessCheck';
+import { AccessPaywall } from '@/components/access/AccessPaywall';
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const access = useAccessCheck();
   const navigate = useNavigate();
   const location = useLocation();
   const [showContent, setShowContent] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
-      // Store intended destination for redirect after login
       sessionStorage.setItem('auth_redirect', location.pathname);
       navigate('/auth');
     } else if (!loading && user) {
-      // Small delay for smoother transition
       const timer = setTimeout(() => setShowContent(true), 50);
       return () => clearTimeout(timer);
     }
   }, [user, loading, navigate, location.pathname]);
 
-  if (loading) {
+  if (loading || access.loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
@@ -33,11 +34,12 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!user) {
-    return null;
+  if (!user) return null;
+
+  if (!access.hasAccess) {
+    return <AccessPaywall status={access.status as 'revoked' | 'expired' | 'none'} />;
   }
 
-  // Smooth fade-in transition
   return (
     <PlannerSheetSetupGate>
       <div className={`transition-opacity duration-150 ${showContent ? 'opacity-100' : 'opacity-0'}`}>
@@ -46,3 +48,4 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     </PlannerSheetSetupGate>
   );
 }
+
