@@ -150,11 +150,11 @@ export function LowBatteryDayToggle({
       <Button
         variant="outline"
         size="sm"
-        className={cn('gap-1.5', className)}
+        className={cn('gap-1.5 max-w-full whitespace-normal text-left', className)}
         onClick={restoreDay}
         disabled={busy}
       >
-        <Undo2 className="h-3.5 w-3.5" />
+        <Undo2 className="h-3.5 w-3.5 shrink-0" />
         Restore my day
       </Button>
     );
@@ -162,16 +162,16 @@ export function LowBatteryDayToggle({
 
   return (
     <>
-      <div className={cn('flex flex-col gap-1.5', className)}>
+      <div className={cn('flex flex-col gap-1.5 max-w-full min-w-0', className)}>
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 self-start"
+          className="gap-1.5 self-start max-w-full whitespace-normal text-left h-auto py-1.5"
           onClick={() => setConfirmOpen(true)}
           disabled={busy}
         >
-          <BatteryLow className="h-3.5 w-3.5" />
-          Make this a Low Battery Day
+          <BatteryLow className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate sm:whitespace-normal">Low Battery Day</span>
         </Button>
         <OnceHint hintKey="low-battery-day-intro">
           Parks everything except your bare minimum for tomorrow. Nothing lost, fully reversible.

@@ -5,15 +5,15 @@ import { useDisplayName } from '@/hooks/useDisplayName';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, startOfDay, subDays } from 'date-fns';
-import { Flame, Sun, Moon, Coffee } from 'lucide-react';
+import { Flame } from 'lucide-react';
 
 function getTimeOfDay() {
   const hour = new Date().getHours();
-  if (hour < 5) return { greeting: 'Burning the midnight oil', icon: Moon, emoji: '🌙' };
-  if (hour < 12) return { greeting: 'Good morning', icon: Coffee, emoji: '☀️' };
-  if (hour < 17) return { greeting: 'Good afternoon', icon: Sun, emoji: '🌤️' };
-  if (hour < 21) return { greeting: 'Good evening', icon: Moon, emoji: '🌆' };
-  return { greeting: 'Winding down', icon: Moon, emoji: '🌙' };
+  if (hour < 5) return { greeting: 'Hello' };
+  if (hour < 12) return { greeting: 'Good morning' };
+  if (hour < 17) return { greeting: 'Good afternoon' };
+  if (hour < 21) return { greeting: 'Good evening' };
+  return { greeting: 'Good evening' };
 }
 
 const MOTIVATIONAL_LINES = [
@@ -87,15 +87,15 @@ export function PersonalizedGreeting() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-1 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
           <motion.h1
-            className="text-2xl sm:text-3xl font-bold tracking-tight"
+            className="text-2xl sm:text-3xl font-semibold tracking-tight break-words min-w-0"
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1, duration: 0.4 }}
           >
-            {timeInfo.greeting}{firstName ? `, ${firstName}` : ''} {timeInfo.emoji}
+            {timeInfo.greeting}{firstName ? `, ${firstName}` : ''}
           </motion.h1>
         </div>
 
