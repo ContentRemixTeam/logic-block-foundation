@@ -147,12 +147,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          {/* Paper Planner Divider Tabs */}
-          <PlannerDividerTabs />
-
           {/* Page Content - Add bottom padding on mobile for nav */}
-          <main className="flex-1 overflow-auto bg-background">
-            <div className={`mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8 ${isMobile ? 'pb-24' : ''}`}>
+          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background">
+            <div className={`mx-auto max-w-7xl w-full px-4 py-6 md:px-6 lg:px-8 ${isMobile ? 'pb-24' : ''}`}>
               {/* Launch Debrief Banner - persistent until completed or dismissed */}
               <LaunchDebriefBanner />
               {children}

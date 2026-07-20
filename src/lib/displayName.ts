@@ -10,21 +10,41 @@
  * We NEVER derive a name from the email prefix. That produced the
  * "Hi, Info" bug for shared inboxes (info@…, hello@…, team@…).
  */
+// Shared-inbox / placeholder names that should NEVER be shown as a greeting.
+// If a user typed one of these (or an invite auto-captured an email prefix
+// like "info@…"), we prefer no name over a wrong one.
+const PLACEHOLDER_NAMES = new Set([
+  'info', 'hello', 'hi', 'hey', 'team', 'admin', 'contact', 'support',
+  'sales', 'help', 'noreply', 'no-reply', 'mail', 'email', 'user', 'me',
+  'owner', 'office',
+]);
+
+function sanitize(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  if (PLACEHOLDER_NAMES.has(trimmed.toLowerCase())) return null;
+  return trimmed;
+}
+
 export function pickDisplayName(
   profileFirstName?: string | null,
   metadata?: { first_name?: unknown; full_name?: unknown } | null,
 ): string | null {
-  const p = typeof profileFirstName === 'string' ? profileFirstName.trim() : '';
-  if (p) return p;
+  if (typeof profileFirstName === 'string') {
+    const s = sanitize(profileFirstName);
+    if (s) return s;
+  }
 
   const meta = metadata ?? {};
-  const metaFirst = typeof meta.first_name === 'string' ? meta.first_name.trim() : '';
-  if (metaFirst) return metaFirst;
+  if (typeof meta.first_name === 'string') {
+    const s = sanitize(meta.first_name);
+    if (s) return s;
+  }
 
-  const metaFull = typeof meta.full_name === 'string' ? meta.full_name.trim() : '';
-  if (metaFull) {
-    const first = metaFull.split(/\s+/)[0];
-    if (first) return first;
+  if (typeof meta.full_name === 'string') {
+    const first = meta.full_name.trim().split(/\s+/)[0] ?? '';
+    const s = sanitize(first);
+    if (s) return s;
   }
 
   return null;
