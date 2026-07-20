@@ -52,6 +52,8 @@ import { SelectableNoteContent } from '@/components/notes/SelectableNoteContent'
 import { NoteLinkedItems } from '@/components/notes/NoteLinkedItems';
 import { CoachingLogTab } from '@/components/notes/CoachingLogTab';
 import { WinsTab } from '@/components/notes/WinsTab';
+import { extractTags } from '@/lib/captureTags';
+
 
 const PAGE_SIZE = 50;
 
@@ -113,6 +115,21 @@ const countMatches = (content: string, searchTerm: string): number => {
   const regex = new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
   return (content.match(regex) || []).length;
 };
+
+// Get unique bare tags from entry content, preserving first-seen order
+const getEntryTags = (content: string): string[] => {
+  const tags = extractTags(content || '');
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const tag of tags) {
+    if (!seen.has(tag)) {
+      seen.add(tag);
+      out.push(tag);
+    }
+  }
+  return out;
+};
+
 
 export default function Notes() {
   const queryClient = useQueryClient();
@@ -915,7 +932,33 @@ export default function Notes() {
                                 {/* Linked items (tasks/ideas created from this note) */}
                                 <NoteLinkedItems noteId={entry.day_id} noteType="entry" />
 
+                                {/* Entry tags */}
+                                {(() => {
+                                  const entryTags = getEntryTags(entry.scratch_pad_content);
+                                  return entryTags.length > 0 ? (
+                                    <div className="flex flex-wrap gap-1.5 mt-3">
+                                      {entryTags.slice(0, 8).map(tag => (
+                                        <Link
+                                          key={tag}
+                                          to={`/tags/${encodeURIComponent(tag)}`}
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <Badge variant="secondary" className="text-xs hover:bg-primary/20 cursor-pointer">
+                                            #{tag}
+                                          </Badge>
+                                        </Link>
+                                      ))}
+                                      {entryTags.length > 8 && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          +{entryTags.length - 8} more
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  ) : null;
+                                })()}
+
                                 {/* Metadata and actions */}
+
                                 <div className="flex flex-wrap items-center justify-between gap-4 mt-3">
                                   <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
                                     {entry.scratch_pad_processed_at && (
