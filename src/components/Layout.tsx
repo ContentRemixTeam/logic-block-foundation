@@ -26,6 +26,7 @@ import { MonthlyThemePopup } from '@/components/monthly-theme/MonthlyThemePopup'
 import { CelebrationOverlay } from '@/components/celebrations/CelebrationOverlay';
 import { WelcomeBackDialog } from '@/components/fresh-start/WelcomeBackDialog';
 import { useWelcomeBackTrigger } from '@/hooks/useWelcomeBackTrigger';
+import { AccessExpiryBanner } from '@/components/access/AccessExpiryBanner';
 import { Loader2, Sparkles, ArrowRight, X } from 'lucide-react';
 
 // Lazy load heavy arcade components - only loaded when arcade is enabled
@@ -105,6 +106,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               </button>
             </div>
           )}
+
+          {/* Annual access expiring soon (14-day gentle heads-up) */}
+          <AccessExpiryBanner />
 
           {/* Monthly Theme Hello Bar */}
           <MonthlyThemeHelloBar />
