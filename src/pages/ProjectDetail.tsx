@@ -433,7 +433,9 @@ export default function ProjectDetail() {
                 </Card>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {projectNotes.map((note) => (
                     <Card
+
                       key={note.id}
                       className="hover:shadow-md transition-shadow cursor-pointer"
                       onClick={() => navigate(`/notes?pageId=${note.id}`)}
