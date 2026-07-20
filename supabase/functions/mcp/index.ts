@@ -1,31 +1,67 @@
 // Supabase Edge Function: MCP server for the Low Battery Business Planner.
-// Implements the MCP Streamable HTTP transport (JSON-RPC 2.0 over HTTP POST).
-// Auth: Personal Access Tokens (sha-256 hashed in the DB), sent as
-// `Authorization: Bearer <token>`. Every query is scoped to the token's user;
-// client-supplied user_ids are ignored.
+// Implements MCP Streamable HTTP transport (JSON-RPC 2.0 over HTTP POST)
+// with the MCP 2025-06-18 authorization spec:
 //
-// Endpoints:
-//   POST /functions/v1/mcp   → JSON-RPC (initialize | tools/list | tools/call)
-//   GET  /functions/v1/mcp   → tiny discovery blob (helps humans confirm URL)
+//   • Unauthenticated requests → 401 + WWW-Authenticate: Bearer resource_metadata="..."
+//   • GET /functions/v1/mcp/.well-known/oauth-protected-resource
+//     → resource metadata pointing at Supabase's OAuth server.
+//   • GET /functions/v1/mcp/.well-known/oauth-authorization-server
+//     → proxied AS metadata from Supabase (some clients fetch it here).
+//   • Authorization: Bearer <token>  accepts EITHER:
+//       (a) A Supabase OAuth-issued access token (JWT) — verified via JWKS,
+//           requires iss + client_id + not expired. This is the claude.ai
+//           web/desktop/mobile custom-connector path (PKCE, dynamic
+//           registration handled by Supabase).
+//       (b) A Personal Access Token (sha-256 hashed row in
+//           integration_tokens). Used by Claude Code / Codex / Cursor.
+//   • Every query is scoped to the resolved user; client-supplied user_ids
+//     are ignored.
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createRemoteJWKSet, jwtVerify } from 'npm:jose@5';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const RATE_LIMIT_PER_MIN = 60;
 
+// Direct issuer (never the .lovable.cloud proxy). Built from SUPABASE_URL.
+// Supabase's discovery document publishes issuer as
+// https://<ref>.supabase.co/auth/v1 — match it exactly.
+const OAUTH_ISSUER = `${SUPABASE_URL.replace(/\/$/, '')}/auth/v1`;
+const JWKS = createRemoteJWKSet(new URL(`${OAUTH_ISSUER}/.well-known/jwks.json`));
+
+// The MCP resource URL as advertised in the WWW-Authenticate hint and in
+// resource metadata. Must be stable across redeploys.
+function mcpResourceUrl(req: Request): string {
+  const url = new URL(req.url);
+  return `${url.origin}/functions/v1/mcp`;
+}
+
 // Broad CORS so any MCP client (Claude web, Claude Code, Codex, custom) can reach it.
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, content-type, mcp-session-id, mcp-protocol-version',
+  'Access-Control-Allow-Headers': 'authorization, content-type, mcp-session-id, mcp-protocol-version, accept',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Expose-Headers': 'mcp-session-id',
+  'Access-Control-Expose-Headers': 'mcp-session-id, www-authenticate',
 };
 
-const json = (body: unknown, status = 200) =>
+const json = (body: unknown, status = 200, extraHeaders: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...corsHeaders, 'Content-Type': 'application/json', ...extraHeaders },
   });
+
+function unauthorized(req: Request, reason: string) {
+  const resource = mcpResourceUrl(req);
+  const metadataUrl = `${resource}/.well-known/oauth-protected-resource`;
+  return json(
+    { jsonrpc: '2.0', id: null, error: { code: -32001, message: reason } },
+    401,
+    {
+      // Per MCP auth spec + RFC 9728: point clients at the resource metadata.
+      'WWW-Authenticate': `Bearer realm="mcp", resource_metadata="${metadataUrl}", error="invalid_token"`,
+    },
+  );
+}
 
 // SHA-256 → hex
 async function sha256Hex(input: string): Promise<string> {
@@ -41,28 +77,57 @@ interface TokenRow {
   window_start_1m: string;
 }
 
-async function resolveToken(bearer: string | null): Promise<
-  | { ok: true; userId: string; tokenId: string }
-  | { ok: false; status: number; message: string }
-> {
-  if (!bearer) return { ok: false, status: 401, message: 'Missing bearer token' };
-  const raw = bearer.replace(/^Bearer\s+/i, '').trim();
-  if (!raw) return { ok: false, status: 401, message: 'Missing bearer token' };
+type AuthResult =
+  | { ok: true; userId: string; kind: 'oauth' | 'pat'; tokenId?: string }
+  | { ok: false; status: number; message: string };
 
+/** Try to verify a Supabase-issued OAuth access token (JWT). */
+async function tryOAuthJwt(raw: string): Promise<AuthResult | null> {
+  // Cheap shape check: JWTs have three base64url segments.
+  if (raw.split('.').length !== 3) return null;
+  try {
+    const { payload } = await jwtVerify(raw, JWKS, {
+      issuer: OAUTH_ISSUER,
+      // Supabase issues access tokens with aud="authenticated". We do not
+      // strict-check against the MCP resource URL because Supabase's OAuth
+      // server does not yet echo a `resource` param into `aud`; instead we
+      // require `client_id` (present only on OAuth-issued tokens, absent on
+      // copied user-session JWTs) — this is the same guard mcp-js uses.
+    });
+    const sub = typeof payload.sub === 'string' ? payload.sub : null;
+    const clientId = typeof (payload as { client_id?: unknown }).client_id === 'string'
+      ? (payload as { client_id: string }).client_id
+      : null;
+    if (!sub) return { ok: false, status: 401, message: 'Token missing subject' };
+    if (!clientId) {
+      // Reject app-session JWTs pasted as bearer tokens — those are not
+      // OAuth-client tokens and should not grant MCP access.
+      return { ok: false, status: 401, message: 'Token is not an OAuth-client token' };
+    }
+    return { ok: true, userId: sub, kind: 'oauth' };
+  } catch {
+    // Not a valid Supabase-issued JWT (bad signature, expired, wrong iss).
+    // Fall through so the caller can try the PAT path.
+    return null;
+  }
+}
+
+/** Look up a Personal Access Token by hashed value. */
+async function tryPersonalAccessToken(raw: string): Promise<AuthResult | null> {
   const hash = await sha256Hex(raw);
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data, error } = await admin
+  const { data } = await admin
     .from('integration_tokens')
     .select('id, user_id, revoked_at, request_count_1m, window_start_1m')
     .eq('token_hash', hash)
     .maybeSingle<TokenRow>();
 
-  if (error || !data) return { ok: false, status: 401, message: 'Invalid token' };
+  if (!data) return null;
   if (data.revoked_at) return { ok: false, status: 401, message: 'Token has been revoked' };
 
-  // Sliding 1-minute window rate limit.
+  // Sliding 1-minute window rate limit (PAT only — OAuth clients are trusted).
   const now = new Date();
   const windowStart = new Date(data.window_start_1m);
   const withinWindow = now.getTime() - windowStart.getTime() < 60_000;
@@ -79,8 +144,23 @@ async function resolveToken(bearer: string | null): Promise<
     })
     .eq('id', data.id);
 
-  return { ok: true, userId: data.user_id, tokenId: data.id };
+  return { ok: true, userId: data.user_id, kind: 'pat', tokenId: data.id };
 }
+
+async function resolveToken(bearer: string | null): Promise<AuthResult> {
+  if (!bearer) return { ok: false, status: 401, message: 'Missing bearer token' };
+  const raw = bearer.replace(/^Bearer\s+/i, '').trim();
+  if (!raw) return { ok: false, status: 401, message: 'Missing bearer token' };
+
+  const oauth = await tryOAuthJwt(raw);
+  if (oauth) return oauth; // either success or definitive failure
+  const pat = await tryPersonalAccessToken(raw);
+  if (pat) return pat;
+
+  return { ok: false, status: 401, message: 'Invalid token' };
+}
+
+
 
 // ---------- Tool definitions (JSON schemas returned to tools/list) ----------
 const TOOLS = [
