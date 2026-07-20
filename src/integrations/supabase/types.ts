@@ -4407,6 +4407,48 @@ export type Database = {
           },
         ]
       }
+      member_access: {
+        Row: {
+          access_expires_at: string | null
+          access_level: string
+          created_at: string
+          email: string
+          ghl_contact_id: string | null
+          id: string
+          revoked_at: string | null
+          source: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          access_expires_at?: string | null
+          access_level: string
+          created_at?: string
+          email: string
+          ghl_contact_id?: string | null
+          id?: string
+          revoked_at?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          access_expires_at?: string | null
+          access_level?: string
+          created_at?: string
+          email?: string
+          ghl_contact_id?: string | null
+          id?: string
+          revoked_at?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       messaging_frameworks: {
         Row: {
           core_narrative: string | null
@@ -5397,6 +5439,30 @@ export type Database = {
           total_generations?: number | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      provision_events: {
+        Row: {
+          action: string
+          created_at: string
+          email: string
+          id: string
+          payload: Json
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          email: string
+          id?: string
+          payload?: Json
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          email?: string
+          id?: string
+          payload?: Json
         }
         Relationships: []
       }
