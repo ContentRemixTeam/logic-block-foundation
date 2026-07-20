@@ -27,6 +27,24 @@ export default function Auth() {
   const { user } = useAuth();
   const authNavigationHandledRef = useRef(false);
 
+  // Same-origin relative path guard so ?next=... can only redirect inside
+  // this app (prevents open-redirect abuse from OAuth flows).
+  const sanitizeNext = useCallback((raw: string | null): string | null => {
+    if (!raw) return null;
+    try {
+      const decoded = decodeURIComponent(raw);
+      if (!decoded.startsWith('/') || decoded.startsWith('//')) return null;
+      return decoded;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const getNextParam = useCallback(() => {
+    const params = new URLSearchParams(window.location.search);
+    return sanitizeNext(params.get('next'));
+  }, [sanitizeNext]);
+
   const getStoredRedirect = useCallback(() => {
     const storedRedirect = sessionStorage.getItem('auth_redirect');
     sessionStorage.removeItem('auth_redirect');
@@ -36,6 +54,14 @@ export default function Auth() {
   const navigateAfterAuth = useCallback(async (fallback = '/dashboard') => {
     if (authNavigationHandledRef.current) return;
     authNavigationHandledRef.current = true;
+
+    // ?next=… (e.g. from the OAuth consent route) wins over stored redirects
+    // so users return to the exact page they were sent from.
+    const nextParam = getNextParam();
+    if (nextParam) {
+      navigate(nextParam);
+      return;
+    }
 
     const storedRedirect = getStoredRedirect();
 
@@ -58,7 +84,7 @@ export default function Auth() {
       .single();
 
     navigate(profile?.user_type === 'member' ? '/workshop' : fallback);
-  }, [getStoredRedirect, navigate]);
+  }, [getStoredRedirect, getNextParam, navigate]);
 
   useEffect(() => {
     if (!user) {
