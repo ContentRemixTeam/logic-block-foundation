@@ -316,12 +316,21 @@ export default function Notes() {
     if (activeTab !== 'pages') setActiveTab('pages');
     const match = pages.find(p => p.id === openPageIdFromUrl);
     if (match) {
-      openEditPageModal(match);
+      setEditingPage(match);
+      setPageTitle(match.title);
+      setPageContent(match.content);
+      setPageProjectId(match.project_id);
+      setPageCourseId(match.course_id);
+      setPageCourseTitle(match.course_title || match.course?.title || null);
+      setPageTags(Array.isArray(match.tags) ? match.tags : []);
+      setNewTagInput('');
+      setPageModalOpen(true);
       const next = new URLSearchParams(searchParams);
       next.delete('pageId');
       setSearchParams(next, { replace: true });
     }
   }, [openPageIdFromUrl, pages]);
+
 
 
   // Filter entries based on search, date range, and hashtag
