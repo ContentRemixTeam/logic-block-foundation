@@ -225,176 +225,205 @@ headers = { Authorization = "Bearer YOUR_TOKEN" }`,
           <Badge variant="secondary" className="ml-1 text-[10px]">New</Badge>
         </CardTitle>
         <CardDescription>
-          Connect Claude, Claude Code, Codex, or any MCP-compatible AI to your planner.
-          Your assistant sees your day, adds tasks, and helps you plan — always scoped to your account.
+          Let Claude (or another AI) see your day, add tasks, and help you plan — always scoped to your account.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Server URL */}
-        <div className="space-y-1.5">
-          <Label className="text-xs uppercase tracking-wider text-muted-foreground">MCP Server URL</Label>
-          <CodeBlock>{MCP_URL || '(URL will appear once the project is deployed)'}</CodeBlock>
-        </div>
+        <Tabs defaultValue="claude">
+          <TabsList className="w-full">
+            <TabsTrigger value="claude" className="flex-1">Claude (recommended)</TabsTrigger>
+            <TabsTrigger value="advanced" className="flex-1">Claude Code, Codex &amp; other tools</TabsTrigger>
+          </TabsList>
 
-        {/* Freshly-minted token */}
-        {freshToken && (
-          <Alert className="border-primary/40 bg-primary/5">
-            <ShieldAlert className="h-4 w-4 text-primary" />
-            <AlertDescription className="space-y-2">
-              <p className="font-medium text-foreground">Copy your token now — you won't see it again.</p>
-              <CodeBlock>{freshToken}</CodeBlock>
-              <div className="flex justify-end">
-                <Button size="sm" variant="ghost" onClick={() => setFreshToken(null)}>
-                  I've saved it
+          {/* ---------- PATH A: Claude via OAuth ---------- */}
+          <TabsContent value="claude" className="space-y-5 pt-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                1. Copy this URL
+              </Label>
+              <CodeBlock>{MCP_URL || '(URL will appear once the project is deployed)'}</CodeBlock>
+            </div>
+
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p className="text-foreground font-medium">2. Add it to Claude</p>
+              <ol className="list-decimal space-y-1 pl-5">
+                <li>In Claude, go to <em>Settings → Connectors → Add custom connector</em>.</li>
+                <li>Paste the URL above and click <em>Add</em>.</li>
+              </ol>
+
+              <p className="pt-2 text-foreground font-medium">3. Connect &amp; sign in</p>
+              <ol className="list-decimal space-y-1 pl-5" start={3}>
+                <li>Click <em>Connect</em>. A window opens asking you to sign in with your planner account.</li>
+                <li>Approve the connection when prompted.</li>
+              </ol>
+
+              <p className="pt-2 text-foreground font-medium">4. Turn it on in a chat</p>
+              <ol className="list-decimal space-y-1 pl-5" start={5}>
+                <li>Open any Claude chat, tap the <em>+</em> / connectors menu, and switch on your planner.</li>
+              </ol>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">
+                <Sparkles className="h-3 w-3" /> Try asking Claude
+              </Label>
+              <ul className="space-y-1.5 text-sm text-muted-foreground">
+                <li className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+                  "What should I focus on today given my battery level?"
+                </li>
+                <li className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+                  "Add these to Thursday: draft newsletter, record voice note, reply to Beth."
+                </li>
+                <li className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+                  "How am I tracking against my 90-day goal?"
+                </li>
+              </ul>
+            </div>
+
+            <Alert>
+              <ShieldAlert className="h-4 w-4" />
+              <AlertDescription className="text-xs text-muted-foreground">
+                To disconnect Claude later, remove the connector inside Claude's settings.
+                Your planner data is never sent anywhere unless a chat has the connector turned on.
+              </AlertDescription>
+            </Alert>
+          </TabsContent>
+
+          {/* ---------- PATH B: Personal Access Tokens ---------- */}
+          <TabsContent value="advanced" className="space-y-5 pt-4">
+            <p className="text-sm text-muted-foreground">
+              Claude Code, Codex, Cursor, and other command-line tools use a Personal Access Token instead of the sign-in flow above.
+            </p>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">MCP Server URL</Label>
+              <CodeBlock>{MCP_URL || '(URL will appear once the project is deployed)'}</CodeBlock>
+            </div>
+
+            {/* Freshly-minted token */}
+            {freshToken && (
+              <Alert className="border-primary/40 bg-primary/5">
+                <ShieldAlert className="h-4 w-4 text-primary" />
+                <AlertDescription className="space-y-2">
+                  <p className="font-medium text-foreground">Copy your token now — you won't see it again.</p>
+                  <CodeBlock>{freshToken}</CodeBlock>
+                  <div className="flex justify-end">
+                    <Button size="sm" variant="ghost" onClick={() => setFreshToken(null)}>
+                      I've saved it
+                    </Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Create token */}
+            <div className="space-y-2">
+              <Label htmlFor="token-name" className="text-sm">Create a token</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="token-name"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="e.g. Claude Code, Codex, Cursor"
+                  maxLength={60}
+                  disabled={creating}
+                />
+                <Button onClick={createToken} disabled={creating || !newName.trim()} className="gap-1.5">
+                  <Plus className="h-4 w-4" /> Create
                 </Button>
               </div>
-            </AlertDescription>
-          </Alert>
-        )}
+              <p className="text-xs text-muted-foreground">
+                Name it after the tool so you can revoke just that one later.
+              </p>
+            </div>
 
-        {/* Create token */}
-        <div className="space-y-2">
-          <Label htmlFor="token-name" className="text-sm">Create a token</Label>
-          <div className="flex gap-2">
-            <Input
-              id="token-name"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="e.g. Claude, Claude Code, Codex, Cursor"
-              maxLength={60}
-              disabled={creating}
-            />
-            <Button onClick={createToken} disabled={creating || !newName.trim()} className="gap-1.5">
-              <Plus className="h-4 w-4" /> Create
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Name it after the tool you're connecting so you can revoke just that one later.
-          </p>
-        </div>
+            {/* Token list */}
+            <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                Active tokens
+              </Label>
+              {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
+              {!loading && tokens.length === 0 && (
+                <p className="text-sm text-muted-foreground">No tokens yet.</p>
+              )}
+              <ul className="space-y-2">
+                {tokens.map((t) => {
+                  const revoked = !!t.revoked_at;
+                  return (
+                    <li key={t.id} className="flex items-center gap-3 rounded-lg border border-border/60 p-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate font-medium">{t.name}</span>
+                          {revoked && <Badge variant="outline" className="text-[10px]">revoked</Badge>}
+                        </div>
+                        <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                          {t.token_prefix}…
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {t.last_used_at
+                            ? `Last used ${formatDistanceToNow(new Date(t.last_used_at))} ago`
+                            : 'Not used yet'}
+                        </p>
+                      </div>
+                      {!revoked && (
+                        <Button variant="ghost" size="sm" onClick={() => revoke(t.id)} className="gap-1 text-muted-foreground hover:text-destructive">
+                          <Trash2 className="h-3.5 w-3.5" /> Revoke
+                        </Button>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
 
-        {/* Token list */}
-        <div className="space-y-2">
-          <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-            Active tokens
-          </Label>
-          {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
-          {!loading && tokens.length === 0 && (
-            <p className="text-sm text-muted-foreground">No tokens yet. Create one above to get started.</p>
-          )}
-          <ul className="space-y-2">
-            {tokens.map((t) => {
-              const revoked = !!t.revoked_at;
-              return (
-                <li key={t.id} className="flex items-center gap-3 rounded-lg border border-border/60 p-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate font-medium">{t.name}</span>
-                      {revoked && <Badge variant="outline" className="text-[10px]">revoked</Badge>}
-                    </div>
-                    <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
-                      {t.token_prefix}…
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {t.last_used_at
-                        ? `Last used ${formatDistanceToNow(new Date(t.last_used_at))} ago`
-                        : 'Not used yet'}
-                    </p>
-                  </div>
-                  {!revoked && (
-                    <Button variant="ghost" size="sm" onClick={() => revoke(t.id)} className="gap-1 text-muted-foreground hover:text-destructive">
-                      <Trash2 className="h-3.5 w-3.5" /> Revoke
-                    </Button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+            {/* Client-specific config */}
+            <Tabs defaultValue="claude-code">
+              <TabsList>
+                <TabsTrigger value="claude-code">Claude Code</TabsTrigger>
+                <TabsTrigger value="codex">Codex</TabsTrigger>
+                <TabsTrigger value="generic">Other (JSON)</TabsTrigger>
+              </TabsList>
+              <TabsContent value="claude-code" className="space-y-2 pt-3 text-sm">
+                <p className="text-muted-foreground">Run in your terminal (replace <code className="rounded bg-muted px-1">YOUR_TOKEN</code>):</p>
+                <CodeBlock>{claudeCodeCmd}</CodeBlock>
+              </TabsContent>
+              <TabsContent value="codex" className="space-y-2 pt-3 text-sm">
+                <p className="text-muted-foreground">Add this to your Codex MCP config, then restart Codex:</p>
+                <CodeBlock>{codexToml}</CodeBlock>
+              </TabsContent>
+              <TabsContent value="generic" className="space-y-2 pt-3 text-sm">
+                <p className="text-muted-foreground">Any MCP client that supports Streamable HTTP:</p>
+                <CodeBlock>{configJson}</CodeBlock>
+              </TabsContent>
+            </Tabs>
 
-        {/* Setup instructions */}
-        <div className="space-y-2">
-          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Connect a client</Label>
-          <Tabs defaultValue="claude">
-            <TabsList>
-              <TabsTrigger value="claude">Claude</TabsTrigger>
-              <TabsTrigger value="claude-code">Claude Code</TabsTrigger>
-              <TabsTrigger value="codex">Codex</TabsTrigger>
-              <TabsTrigger value="generic">Other (JSON)</TabsTrigger>
-            </TabsList>
-            <TabsContent value="claude" className="space-y-2 pt-3 text-sm">
-              <ol className="list-decimal space-y-1 pl-5 text-muted-foreground">
-                <li>Open Claude → Settings → Connectors → Add custom connector.</li>
-                <li>Name it <em>Low Battery Planner</em>.</li>
-                <li>Paste the MCP Server URL above.</li>
-                <li>Add header: <code className="rounded bg-muted px-1">Authorization</code> = <code className="rounded bg-muted px-1">Bearer YOUR_TOKEN</code>.</li>
-                <li>Enable it from the chat composer and ask Claude about your day.</li>
-              </ol>
-            </TabsContent>
-            <TabsContent value="claude-code" className="space-y-2 pt-3 text-sm">
-              <p className="text-muted-foreground">Run in your terminal (replace <code className="rounded bg-muted px-1">YOUR_TOKEN</code>):</p>
-              <CodeBlock>{claudeCodeCmd}</CodeBlock>
-            </TabsContent>
-            <TabsContent value="codex" className="space-y-2 pt-3 text-sm">
-              <p className="text-muted-foreground">Add this block to your Codex MCP config, then restart Codex:</p>
-              <CodeBlock>{codexToml}</CodeBlock>
-            </TabsContent>
-            <TabsContent value="generic" className="space-y-2 pt-3 text-sm">
-              <p className="text-muted-foreground">Any MCP client that supports the Streamable HTTP transport:</p>
-              <CodeBlock>{configJson}</CodeBlock>
-            </TabsContent>
-          </Tabs>
-        </div>
+            {/* Test connection */}
+            <div className="space-y-2 rounded-lg border border-border/60 p-3">
+              <Label className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">
+                <PlugZap className="h-3 w-3" /> Test connection
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  type="password"
+                  value={testToken}
+                  onChange={(e) => setTestToken(e.target.value)}
+                  placeholder="lbp_…"
+                  className="font-mono text-xs"
+                />
+                <Button onClick={runTestConnection} disabled={testing || !MCP_URL} size="sm">
+                  {testing ? 'Testing…' : 'Test'}
+                </Button>
+              </div>
+              {testResult && (
+                <p className={`text-xs ${testResult.ok ? 'text-emerald-600' : 'text-destructive'}`}>
+                  {testResult.ok ? '✓ ' : '✗ '}{testResult.message}
+                </p>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
 
-        {/* Test connection */}
-        <div className="space-y-2 rounded-lg border border-border/60 p-3">
-          <Label className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">
-            <PlugZap className="h-3 w-3" /> Test connection
-          </Label>
-          <p className="text-xs text-muted-foreground">
-            Paste a token and we'll try to reach the MCP server as if we were Claude.
-          </p>
-          <div className="flex gap-2">
-            <Input
-              type="password"
-              value={testToken}
-              onChange={(e) => setTestToken(e.target.value)}
-              placeholder="lbp_…"
-              className="font-mono text-xs"
-            />
-            <Button onClick={runTestConnection} disabled={testing || !MCP_URL} size="sm">
-              {testing ? 'Testing…' : 'Test'}
-            </Button>
-          </div>
-          {testResult && (
-            <p className={`text-xs ${testResult.ok ? 'text-emerald-600' : 'text-destructive'}`}>
-              {testResult.ok ? '✓ ' : '✗ '}{testResult.message}
-            </p>
-          )}
-        </div>
-
-        {/* Example prompts */}
-        <div className="space-y-2">
-          <Label className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">
-            <Sparkles className="h-3 w-3" /> Try asking your assistant
-          </Label>
-          <ul className="space-y-1.5 text-sm text-muted-foreground">
-            <li className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
-              "What should I focus on today given my battery level?"
-            </li>
-            <li className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
-              "Add these three tasks to Thursday: draft newsletter, record voice note, reply to Beth."
-            </li>
-            <li className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
-              "Mark 'record podcast intro' as done, and add a new low-energy task for tomorrow."
-            </li>
-            <li className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
-              "How am I tracking against my 90-day goal? What did I reflect on last week?"
-            </li>
-          </ul>
-        </div>
-
-        {/* Tools + troubleshooting */}
+        {/* Tools + troubleshooting (shared) */}
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="tools" className="border rounded-md px-3">
             <AccordionTrigger className="text-sm">
@@ -416,9 +445,9 @@ headers = { Authorization = "Bearer YOUR_TOKEN" }`,
               <span className="flex items-center gap-1.5"><HelpCircle className="h-3.5 w-3.5" /> Troubleshooting</span>
             </AccordionTrigger>
             <AccordionContent className="space-y-2 text-xs text-muted-foreground">
-              <p><strong>401 Invalid token</strong> — the token was mistyped or revoked. Create a fresh one above.</p>
-              <p><strong>429 Rate limit exceeded</strong> — 60 requests per minute per token. Wait a minute and try again.</p>
-              <p><strong>Tool not found</strong> — restart your MCP client; some clients cache the tool list.</p>
+              <p><strong>Claude says "sign-in failed"</strong> — check that pop-ups aren't blocked, then click Connect again.</p>
+              <p><strong>401 Invalid token</strong> (advanced tab) — the token was mistyped or revoked. Create a fresh one.</p>
+              <p><strong>429 Rate limit</strong> — 60 requests per minute per token. Wait a minute and try again.</p>
               <p><strong>Nothing happens in Claude</strong> — make sure the connector is toggled ON in the chat composer (Claude only enables custom connectors per-conversation).</p>
               <p><strong>Lost a token?</strong> — revoke it and create a new one. Old tokens can't be recovered (we only store a hash).</p>
             </AccordionContent>
@@ -428,3 +457,4 @@ headers = { Authorization = "Bearer YOUR_TOKEN" }`,
     </Card>
   );
 }
+
