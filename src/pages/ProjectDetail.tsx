@@ -434,7 +434,12 @@ export default function ProjectDetail() {
               ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {projectNotes.map((note) => (
-                    <Card key={note.id} className="hover:shadow-md transition-shadow">
+                    <Card
+
+                      key={note.id}
+                      className="hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => navigate(`/notes?pageId=${note.id}`)}
+                    >
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 space-y-2">
@@ -458,10 +463,14 @@ export default function ProjectDetail() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => navigate('/notes')}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/notes?pageId=${note.id}`);
+                            }}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
+
                         </div>
                       </CardHeader>
                       <CardContent className="pt-0">
