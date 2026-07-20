@@ -241,10 +241,12 @@ export default function Auth() {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     try {
+      const nextParam = getNextParam();
+      const suffix = nextParam ? `?next=${encodeURIComponent(nextParam)}` : '';
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth`,
+          redirectTo: `${window.location.origin}/auth${suffix}`,
         },
       });
 
