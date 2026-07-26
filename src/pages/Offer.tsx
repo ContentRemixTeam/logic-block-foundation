@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardMock, TasksMock } from "@/components/offer/AppMock";
+import { FeatureWalkthrough } from "@/components/offer/FeatureWalkthrough";
 import logoMark from "/brand/logo-mark.svg";
 
 /**
@@ -362,6 +363,23 @@ export default function Offer() {
             <p className="mt-3 text-center text-xs text-muted-foreground">
               Every task carries an energy cost, so you can plan the day you have.
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* WALKTHROUGH */}
+      <section className="border-b border-border-subtle bg-surface-sunken">
+        <div className="mx-auto w-full max-w-5xl px-5 py-16 sm:py-20">
+          <SectionLabel>Take the tour</SectionLabel>
+          <h2 className="max-w-2xl font-serif text-3xl leading-snug sm:text-4xl">
+            See it working before you buy it.
+          </h2>
+          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+            Six screens, in the order you&rsquo;d actually meet them. Tap
+            through at your own pace.
+          </p>
+          <div className="mt-10">
+            <FeatureWalkthrough />
           </div>
         </div>
       </section>
