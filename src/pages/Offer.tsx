@@ -505,6 +505,23 @@ export default function Offer() {
         </div>
       </section>
 
+      {/* REAL SCREENS */}
+      <section className="border-b border-border-subtle bg-surface-sunken">
+        <div className="mx-auto w-full max-w-5xl px-5 py-16 sm:py-20">
+          <SectionLabel>Real screens</SectionLabel>
+          <h2 className="max-w-2xl font-serif text-3xl leading-snug sm:text-4xl">
+            This is the actual planner. No mockups.
+          </h2>
+          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+            Straight from inside the app you get access to today.
+          </p>
+          <div className="mt-10">
+            <ScreenshotGallery />
+          </div>
+        </div>
+      </section>
+
+
       {/* 90 DAY SYSTEM */}
       <section className="border-b border-border-subtle bg-surface-sunken">
         <div className="mx-auto w-full max-w-5xl px-5 py-16 sm:py-20">
