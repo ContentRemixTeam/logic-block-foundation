@@ -2,8 +2,8 @@
 // Uses Lovable AI to generate lead magnet ideas
 
 import { Hono } from 'https://deno.land/x/hono@v3.12.11/mod.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { guardAiRequest } from '../_shared/ai_guard.ts';
+import { callUserAI } from '../_shared/byok.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
