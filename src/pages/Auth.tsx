@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable/index';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -242,25 +244,32 @@ export default function Auth() {
     setGoogleLoading(true);
     try {
       const nextParam = getNextParam();
-      const suffix = nextParam ? `?next=${encodeURIComponent(nextParam)}` : '';
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth${suffix}`,
-        },
+      if (nextParam) {
+        try {
+          sessionStorage.setItem('auth_redirect', nextParam);
+        } catch {
+          /* storage unavailable — fall back to default landing */
+        }
+      }
+
+      const result = await lovable.auth.signInWithOAuth('google', {
+        redirect_uri: `${window.location.origin}/auth`,
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
+      if (result.redirected) return;
+      await navigateAfterAuth();
+
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : '';
       let errorMessage = 'Failed to sign in with Google. Please try again.';
-      
+
       if (message.includes('provider is not enabled') || message.includes('Provider not enabled')) {
         errorMessage = 'Google Sign-In is not available. Please use email and password instead.';
-      } else if (message.includes('popup')) {
+      } else if (message.toLowerCase().includes('popup')) {
         errorMessage = 'Sign-in popup was blocked. Please allow popups and try again.';
       }
-      
+
       toast({
         title: 'Google Sign-In Unavailable',
         description: errorMessage,
@@ -269,6 +278,7 @@ export default function Auth() {
       setGoogleLoading(false);
     }
   };
+
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
