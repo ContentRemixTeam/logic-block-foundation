@@ -157,7 +157,7 @@ export default function Offer() {
       <section className="relative border-b border-border-subtle">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_0%,hsl(var(--accent))_0%,transparent_70%)]"
+          className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-accent/50 blur-3xl"
         />
         <div className="relative mx-auto w-full max-w-3xl px-5 py-16 text-center sm:py-24">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
