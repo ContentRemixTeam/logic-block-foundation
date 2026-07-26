@@ -7,20 +7,26 @@ import {
   BatteryLow,
   BatteryMedium,
   BatteryWarning,
-  CalendarRange,
+  Brain,
   CheckCircle2,
   CloudOff,
   Download,
   HeartHandshake,
-  Lightbulb,
   ListChecks,
   Moon,
+  ShieldCheck,
   Smartphone,
   Sparkles,
   Target,
   Wand2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { DashboardMock, TasksMock } from "@/components/offer/AppMock";
 import { FeatureWalkthrough } from "@/components/offer/FeatureWalkthrough";
 import logoMark from "/brand/logo-mark.svg";
@@ -57,6 +63,29 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+const batteryLevels = [
+  {
+    icon: BatteryFull,
+    label: "Full",
+    body: "Ready for deep work and high-energy tasks.",
+  },
+  {
+    icon: BatteryMedium,
+    label: "Half",
+    body: "Steady pace, focusing on medium-energy items.",
+  },
+  {
+    icon: BatteryLow,
+    label: "Low",
+    body: "Bare minimum plan. Essential tasks only.",
+  },
+  {
+    icon: BatteryWarning,
+    label: "Empty",
+    body: "Rest day. Move non-essential work away.",
+  },
+];
+
 const batteryFeatures = [
   {
     icon: BatteryMedium,
@@ -86,39 +115,48 @@ const batteryFeatures = [
   {
     icon: Sparkles,
     title: "Celebrations built in",
-    body: "Finishing should feel like something. Gentle, reduced-motion-friendly moments when you close out a day, a plan or a milestone.",
+    body: "Gentle, reduced-motion-friendly moments when you close out a day, a plan or a milestone.",
   },
 ];
 
-const cycleFeatures = [
-  "90-day cycle command centre with one clear focus at the top",
-  "Daily, weekly, monthly and quarterly views all connected to the same plan",
-  "Tasks generated from your plan, so Monday is never a blank page",
-  "Weekly and monthly reviews that show what is actually working",
-  "Milestone moments so a 90-day stretch never feels like one long slog",
-];
-
-const extras = [
-  { icon: Lightbulb, label: "Brain dump capture", body: "Somewhere to put the 2am ideas so they stop circling." },
-  { icon: Wand2, label: "Planning wizards", body: "Guided flows for launches, content and offers." },
-  { icon: Download, label: "Export to PDF", body: "Take your plan anywhere, anytime you want it on paper." },
-  { icon: Smartphone, label: "Installs like an app", body: "Two taps to add it to your phone home screen." },
-  { icon: CloudOff, label: "Saves as you type", body: "Works offline. Losing your work is the one thing it refuses to do." },
-  { icon: Target, label: "Minimum, normal, expansion", body: "Three modes so the plan flexes with the week you actually get." },
+const systemFeatures = [
+  {
+    icon: Target,
+    title: "90-Day Command Centre",
+    body: "Your entire quarter at a glance. See what's coming without feeling overwhelmed.",
+  },
+  {
+    icon: Brain,
+    title: "Brain Dump Capture",
+    body: "Get it out of your head and onto the page. Sort it later, when you have the energy.",
+  },
+  {
+    icon: Wand2,
+    title: "Planning Wizards",
+    body: "Step-by-step guidance for daily and weekly planning, so you never start from a blank page.",
+  },
+  {
+    icon: Download,
+    title: "Export to PDF",
+    body: "Need it on paper? Export your plan to PDF anytime and take it with you.",
+  },
+  {
+    icon: Smartphone,
+    title: "Installs Like an App",
+    body: "Add it to your home screen. It feels and acts like a native app on your phone.",
+  },
+  {
+    icon: CloudOff,
+    title: "Saves as You Type",
+    body: "Never lose your work. Everything saves instantly, across all your devices.",
+  },
 ];
 
 const included = [
   "Guided 90-day planning",
   "Weekly planning and daily system",
   "Daily planning wizards",
-  "Support guides",
-  "Planner tools",
-];
-
-const afterSteps = [
-  { n: "1", title: "Pay once", body: "$27, one time. Nothing renews on you." },
-  { n: "2", title: "Create your login", body: "Straight after checkout, in under a minute." },
-  { n: "3", title: "Set your first 90 days", body: "A guided setup walks you through it, gently." },
+  "Support guides & planner tools",
 ];
 
 const testimonials = [
@@ -140,8 +178,16 @@ const testimonials = [
 
 const faqs = [
   {
+    q: "What if it's just not for me?",
+    a: "Try it for 7 days. If it's not helping, email support and it's refunded. No form, no hoop.",
+  },
+  {
     q: "Is this a subscription?",
-    a: "No. $27 once, and you have the planner for 12 months. Nothing renews without you choosing it.",
+    a: "No. It's a one-time payment of $27 for 12 months of access. Nothing renews without you choosing it.",
+  },
+  {
+    q: "Does it work on my phone?",
+    a: "Yes — it works beautifully on phone, tablet and desktop, and you can add it to your home screen in two taps.",
   },
   {
     q: "What if I fall behind?",
@@ -150,14 +196,6 @@ const faqs = [
   {
     q: "Do I need to be sick or diagnosed to use it?",
     a: "No. It was built for entrepreneurs with chronic illness, but anyone whose energy is inconsistent — parents, carers, burnt-out founders — runs their business better in it.",
-  },
-  {
-    q: "Do I have to download anything?",
-    a: "No. It runs in your browser and you can add it to your phone home screen in two taps if you want it to feel like an app.",
-  },
-  {
-    q: "What happens to my work if my wifi drops?",
-    a: "It keeps saving. Losing your work is the one thing this planner refuses to do.",
   },
 ];
 
@@ -255,6 +293,21 @@ export default function Offer() {
         </div>
       </header>
 
+      {/* CONFIRMATION STRIP */}
+      <div className="border-b border-border-subtle bg-accent/50">
+        <div className="mx-auto w-full max-w-2xl px-5 py-4 text-center">
+          <p className="flex items-center justify-center gap-2 text-sm font-semibold">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+            You&rsquo;re in. Plan Like a Boss is on its way to your inbox right
+            now.
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            While that&rsquo;s landing, here&rsquo;s the other half of what you
+            just started.
+          </p>
+        </div>
+      </div>
+
       {/* HERO */}
       <section id="offer-hero" className="border-b border-border-subtle bg-surface">
         <div className="mx-auto w-full max-w-5xl px-5 py-14 sm:py-20">
@@ -274,6 +327,10 @@ export default function Offer() {
               not run on a schedule. Not another app that assumes a full battery
               — one built for the days you actually have.
             </p>
+            <p className="mx-auto mt-5 max-w-xl rounded-xl border border-border-subtle bg-card px-4 py-3 text-sm leading-relaxed text-muted-foreground">
+              You already tried this. Your free retreat access includes 3 days
+              inside the app. This is what happens after those 3 days end.
+            </p>
 
             <div className="mt-8 flex flex-col items-center gap-2.5">
               <CtaButton />
@@ -290,8 +347,31 @@ export default function Offer() {
         </div>
       </section>
 
-      {/* PROBLEM */}
+      {/* WHY I BUILT THIS */}
       <section className="border-b border-border-subtle">
+        <div className="mx-auto w-full max-w-2xl px-5 py-16 sm:py-20">
+          <SectionLabel>Why I built this</SectionLabel>
+          <div className="space-y-4 text-lg leading-relaxed text-muted-foreground">
+            <p>
+              I didn&rsquo;t build this because the workbook wasn&rsquo;t good
+              enough. The workbook works. I built this because a plan on paper
+              doesn&rsquo;t know what kind of day you&rsquo;re having, and mine
+              never has.
+            </p>
+            <p>
+              I built $900K+ online while living with ADHD and chronic illness,
+              on energy I couldn&rsquo;t predict from one Tuesday to the next.
+              The retreat you just claimed gives you the plan. This is the part
+              that knows when you&rsquo;re running on empty and adjusts without
+              making you feel like you failed.
+            </p>
+          </div>
+          <p className="mt-6 font-serif text-xl text-foreground">&mdash; Faith</p>
+        </div>
+      </section>
+
+      {/* PROBLEM */}
+      <section className="border-b border-border-subtle bg-surface-sunken">
         <div className="mx-auto w-full max-w-2xl px-5 py-16 sm:py-20">
           <SectionLabel>Why the last planner didn&rsquo;t stick</SectionLabel>
           <h2 className="font-serif text-3xl leading-snug sm:text-4xl">
@@ -314,6 +394,44 @@ export default function Offer() {
         </div>
       </section>
 
+      {/* TWO VERSIONS OF NEXT QUARTER */}
+      <section className="border-b border-border-subtle">
+        <div className="mx-auto w-full max-w-5xl px-5 py-16 sm:py-20">
+          <h2 className="max-w-2xl font-serif text-3xl leading-snug sm:text-4xl">
+            Two versions of next quarter
+          </h2>
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border border-border-subtle bg-surface-sunken p-6 sm:p-7">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                The old way
+              </h3>
+              <p className="mt-4 leading-relaxed text-muted-foreground">
+                Next quarter can look exactly like this one. A plan built on a
+                good day, a hard week that knocks it sideways, and a fresh
+                notebook in October because this one&rsquo;s page count got too
+                honest to keep opening.
+              </p>
+            </div>
+            <div className="rounded-2xl border-2 border-primary/25 bg-card p-6 shadow-sm sm:p-7">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
+                The new way
+              </h3>
+              <p className="mt-4 leading-relaxed">
+                Or next quarter can look like this instead: a low battery day
+                that costs you an afternoon, not the whole plan. Week four
+                arriving and you&rsquo;re still in it, because the tool already
+                expected week four to be hard. The same 90 days, still running —
+                on the days you had, not the days you were supposed to have.
+              </p>
+            </div>
+          </div>
+          <p className="mt-8 max-w-2xl font-serif text-xl leading-snug">
+            That&rsquo;s the only difference this changes. Not your energy. What
+            your plan does with it.
+          </p>
+        </div>
+      </section>
+
       {/* BATTERY SYSTEM */}
       <section className="border-b border-border-subtle bg-surface-sunken">
         <div className="mx-auto w-full max-w-5xl px-5 py-16 sm:py-20">
@@ -322,28 +440,28 @@ export default function Offer() {
             <h2 className="font-serif text-3xl leading-snug sm:text-4xl">
               A planner that asks how you are before it asks what you&rsquo;ll do.
             </h2>
-            <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-              {[
-                { icon: BatteryFull, label: "Full" },
-                { icon: BatteryMedium, label: "Half" },
-                { icon: BatteryLow, label: "Low" },
-                { icon: BatteryWarning, label: "Empty" },
-              ].map(({ icon: Icon, label }) => (
-                <div
-                  key={label}
-                  className="flex items-center gap-2 rounded-xl border border-border-subtle bg-card px-3 py-2.5"
-                >
-                  <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                  <span className="text-sm font-medium">{label}</span>
-                </div>
-              ))}
-            </div>
-            <p className="mt-2.5 text-xs text-muted-foreground">
-              Your plan adjusts to whichever one you woke up with.
+            <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+              Full, Half, Low or Empty. Your plan adjusts to whichever one you
+              woke up with.
             </p>
           </div>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {batteryLevels.map(({ icon: Icon, label, body }) => (
+              <div
+                key={label}
+                className="rounded-2xl border border-border-subtle bg-card p-5"
+              >
+                <Icon className="h-5 w-5 text-primary" aria-hidden />
+                <h3 className="mt-3 text-base font-semibold">{label}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                  {body}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {batteryFeatures.map(({ icon: Icon, title, body }) => (
               <div
                 key={title}
@@ -368,7 +486,7 @@ export default function Offer() {
       </section>
 
       {/* WALKTHROUGH */}
-      <section className="border-b border-border-subtle bg-surface-sunken">
+      <section className="border-b border-border-subtle">
         <div className="mx-auto w-full max-w-5xl px-5 py-16 sm:py-20">
           <SectionLabel>Take the tour</SectionLabel>
           <h2 className="max-w-2xl font-serif text-3xl leading-snug sm:text-4xl">
@@ -385,52 +503,22 @@ export default function Offer() {
       </section>
 
       {/* 90 DAY SYSTEM */}
-      <section className="border-b border-border-subtle">
-        <div className="mx-auto grid w-full max-w-5xl gap-10 px-5 py-16 sm:py-20 lg:grid-cols-2 lg:items-center">
-          <div>
-            <SectionLabel>The 90-day system</SectionLabel>
-            <h2 className="font-serif text-3xl leading-snug sm:text-4xl">
-              The same quarterly system we teach live in the Mastermind.
-            </h2>
-            <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
-              Now something you carry with you, instead of rebuilding it from a
-              blank workbook every quarter. One focus, ninety days, and a plan
-              that keeps working on the weeks you cannot.
-            </p>
-          </div>
-          <ul className="space-y-3">
-            {cycleFeatures.map((item) => (
-              <li
-                key={item}
-                className="flex items-start gap-3 rounded-xl border border-border-subtle bg-card p-4"
-              >
-                <CalendarRange
-                  className="mt-0.5 h-4 w-4 shrink-0 text-primary"
-                  aria-hidden
-                />
-                <span className="text-sm leading-relaxed">{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      {/* EXTRAS */}
       <section className="border-b border-border-subtle bg-surface-sunken">
         <div className="mx-auto w-full max-w-5xl px-5 py-16 sm:py-20">
-          <SectionLabel>Also included</SectionLabel>
-          <h2 className="font-serif text-3xl leading-snug sm:text-4xl">
-            Everything else, quietly in the background.
+          <SectionLabel>The 90-day system</SectionLabel>
+          <h2 className="max-w-2xl font-serif text-3xl leading-snug sm:text-4xl">
+            One focus, ninety days, and a plan that keeps working on the weeks
+            you cannot.
           </h2>
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {extras.map(({ icon: Icon, label, body }) => (
+            {systemFeatures.map(({ icon: Icon, title, body }) => (
               <div
-                key={label}
-                className="rounded-2xl border border-border-subtle bg-card p-5 shadow-sm"
+                key={title}
+                className="rounded-2xl border border-border-subtle bg-card p-6 shadow-sm"
               >
                 <Icon className="h-5 w-5 text-primary" aria-hidden />
-                <h3 className="mt-3 text-sm font-semibold">{label}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                <h3 className="mt-4 text-base font-semibold">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {body}
                 </p>
               </div>
@@ -442,7 +530,7 @@ export default function Offer() {
       {/* TESTIMONIALS */}
       <section className="border-b border-border-subtle">
         <div className="mx-auto w-full max-w-5xl px-5 py-16 sm:py-20">
-          <SectionLabel>From people running the 90-day system</SectionLabel>
+          <SectionLabel>From people running the system</SectionLabel>
           <div className="mt-8 grid gap-4 md:grid-cols-3">
             {testimonials.map(({ quote, name }) => (
               <figure
@@ -481,9 +569,9 @@ export default function Offer() {
             id="offer-card"
             className="rounded-3xl border-2 border-primary/25 bg-card p-7 shadow-xl sm:p-10"
           >
-            <SectionLabel>The offer</SectionLabel>
+            <SectionLabel>12-Month Access</SectionLabel>
             <h2 className="font-serif text-3xl leading-snug sm:text-4xl">
-              12-Month Access &mdash; 90-Day Low Battery Business Planner
+              90-Day Low Battery Business Planner
             </h2>
             <p className="mt-4 text-base leading-relaxed text-muted-foreground">
               A special price, just for claiming Plan Like a Boss through
@@ -536,29 +624,18 @@ export default function Offer() {
         </div>
       </section>
 
-      {/* AFTER YOU BUY */}
+      {/* GUARANTEE */}
       <section className="border-b border-border-subtle">
-        <div className="mx-auto w-full max-w-5xl px-5 py-16 sm:py-20">
-          <SectionLabel>What happens next</SectionLabel>
-          <h2 className="font-serif text-3xl leading-snug sm:text-4xl">
-            Three steps, then you&rsquo;re planning.
+        <div className="mx-auto w-full max-w-2xl px-5 py-16 text-center sm:py-20">
+          <ShieldCheck className="mx-auto h-8 w-8 text-primary" aria-hidden />
+          <h2 className="mt-4 font-serif text-3xl leading-snug sm:text-4xl">
+            The 7-day guarantee
           </h2>
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            {afterSteps.map(({ n, title, body }) => (
-              <div
-                key={n}
-                className="rounded-2xl border border-border-subtle bg-card p-6 shadow-sm"
-              >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-sm font-semibold text-accent-foreground">
-                  {n}
-                </span>
-                <h3 className="mt-4 text-base font-semibold">{title}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                  {body}
-                </p>
-              </div>
-            ))}
-          </div>
+          <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
+            If it&rsquo;s not a fit, that&rsquo;s a fair trade for $27. Use it
+            for 7 days. If it&rsquo;s not doing what a planner should do for
+            you, email support and I&rsquo;ll refund it. No form, no hoop.
+          </p>
         </div>
       </section>
 
@@ -569,16 +646,18 @@ export default function Offer() {
           <h2 className="font-serif text-3xl leading-snug sm:text-4xl">
             The questions people actually ask.
           </h2>
-          <dl className="mt-8 divide-y divide-border-subtle">
+          <Accordion type="single" collapsible className="mt-8">
             {faqs.map(({ q, a }) => (
-              <div key={q} className="py-5">
-                <dt className="text-base font-semibold">{q}</dt>
-                <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              <AccordionItem key={q} value={q} className="border-border-subtle">
+                <AccordionTrigger className="text-left text-base font-semibold">
+                  {q}
+                </AccordionTrigger>
+                <AccordionContent className="text-sm leading-relaxed text-muted-foreground">
                   {a}
-                </dd>
-              </div>
+                </AccordionContent>
+              </AccordionItem>
             ))}
-          </dl>
+          </Accordion>
         </div>
       </section>
 
@@ -641,7 +720,6 @@ export default function Offer() {
         </div>,
         document.body,
       )}
-
     </main>
   );
 }
