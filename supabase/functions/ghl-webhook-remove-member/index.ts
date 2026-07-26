@@ -15,7 +15,7 @@ Deno.serve((req) =>
       .maybeSingle();
 
     if (!existing) {
-      console.log(`[${FN}] no entitlement found for`, email);
+      console.log(`[${FN}] no entitlement found for the requested contact`);
       return json({
         success: true,
         action: 'noop',
@@ -24,7 +24,7 @@ Deno.serve((req) =>
     }
 
     if (existing.status === 'cancelled') {
-      console.log(`[${FN}] already cancelled for`, email);
+      console.log(`[${FN}] entitlement already cancelled`);
       return json({
         success: true,
         action: 'noop',
@@ -58,7 +58,7 @@ Deno.serve((req) =>
       console.log(`[${FN}] profile not updated:`, profileError.message);
     }
 
-    console.log(`[${FN}] mastermind access cancelled for`, email, reason ? `(reason: ${reason})` : '');
+    console.log(`[${FN}] mastermind access cancelled`, reason ? '(reason provided)' : '');
     return json({
       success: true,
       action: 'cancelled',

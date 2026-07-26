@@ -53,7 +53,7 @@ Deno.serve((req) =>
       console.log(`[${FN}] profile not updated (user may not exist yet):`, profileError.message);
     }
 
-    console.log(`[${FN}] mastermind access active for`, email);
+    console.log(`[${FN}] mastermind access activated`);
     return json({
       success: true,
       action: existing ? 'updated' : 'created',
