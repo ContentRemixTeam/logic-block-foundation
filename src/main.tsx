@@ -24,41 +24,32 @@ const clearBrowserCaches = async () => {
   }
 };
 
-const recoverFromStaleBuild = async () => {
+/**
+ * Preview/iframe safety only.
+ *
+ * Production updates are handled by ONE mechanism: the waiting service worker
+ * + PWAUpdatePrompt (registerType: "prompt"). We deliberately do NOT clear
+ * caches or force a reload in production here — that used to race with the
+ * update prompt and could reload someone mid-edit.
+ */
+const cleanupPreviewServiceWorkers = async () => {
   const isPreviewHost =
     window.location.hostname.includes("id-preview--") ||
     window.location.hostname.includes("lovableproject.com");
 
-  if (isPreviewHost || isInIframe()) {
-    try {
-      const registrations = await navigator.serviceWorker?.getRegistrations();
-      await Promise.all((registrations ?? []).map((registration) => registration.unregister()));
-      await clearBrowserCaches();
-    } catch {
-      /* non-fatal */
-    }
-    return;
-  }
+  if (!isPreviewHost && !isInIframe()) return;
 
   try {
-    if (localStorage.getItem("boss-planner-cache-release") === APP_CACHE_RELEASE) {
-      return;
-    }
-
-    localStorage.setItem("boss-planner-cache-release", APP_CACHE_RELEASE);
+    const registrations = await navigator.serviceWorker?.getRegistrations();
+    await Promise.all((registrations ?? []).map((registration) => registration.unregister()));
     await clearBrowserCaches();
-
-    const url = new URL(window.location.href);
-    url.searchParams.set("app-refresh", APP_CACHE_RELEASE);
-    window.location.replace(url.toString());
   } catch {
     /* non-fatal */
   }
 };
 
-void recoverFromStaleBuild();
+void cleanupPreviewServiceWorkers();
 
-// Request persistent storage and detect private/incognito mode early so
 // IndexedDB-backed offline drafts survive disk pressure across browsers.
 initStorageDurability().catch(() => {
   /* non-fatal */
