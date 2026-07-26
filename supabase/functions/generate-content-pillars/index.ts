@@ -18,8 +18,8 @@ serve(async (req) => {
 
   try {
     const { idealCustomer, problemsSolved, topicsOfInterest, promotionContext } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+
 
     const prompt = `Based on the following business context, suggest 5-7 content pillars (themes/categories) that would resonate with the ideal customer.
 
