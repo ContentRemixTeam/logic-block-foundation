@@ -458,7 +458,7 @@ function ContentDayCard({
           </div>
           <div className="flex flex-col gap-2">
             {day.status === 'idea' && (
-              <Button size="sm" onClick={onGenerateCopy} disabled={isGenerating}>
+              <Button size="sm" onClick={onGenerateCopy} disabled={isGenerating || !canGenerate}>
                 {isGenerating ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
