@@ -7,7 +7,6 @@ import { initErrorTracking } from "./lib/errorTracking";
 
 initErrorTracking();
 
-const APP_CACHE_RELEASE = "legacy-prompt-layout-2026-06-22-v1";
 
 const isInIframe = () => {
   try {
@@ -50,6 +49,7 @@ const cleanupPreviewServiceWorkers = async () => {
 
 void cleanupPreviewServiceWorkers();
 
+// Request persistent storage and detect private/incognito mode early so
 // IndexedDB-backed offline drafts survive disk pressure across browsers.
 initStorageDurability().catch(() => {
   /* non-fatal */
