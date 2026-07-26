@@ -123,9 +123,15 @@ export function WorkshopTestimonialForm({ engineData }: WorkshopTestimonialFormP
         className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
       />
 
+      {error && (
+        <p className="text-sm text-destructive text-center" role="alert">
+          {error}
+        </p>
+      )}
+
       <button
         onClick={handleSubmit}
-        disabled={!name.trim() || !testimonial.trim() || submitting}
+        disabled={!name.trim() || !testimonial.trim() || !email.trim() || submitting}
         className="w-full px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
       >
         {submitting ? 'Sending...' : '💛 Submit Testimonial'}
