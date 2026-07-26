@@ -59,8 +59,10 @@ export function SocialPostIdeation({ platform, onComplete, onSkip }: SocialPostI
   const [userThoughts, setUserThoughts] = useState('');
   const [activeTab, setActiveTab] = useState<'braindump' | 'prompts'>('braindump');
   const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
+  const { hasAPIKey, isLoading: keyLoading } = useHasAIKey();
 
   const generateTopics = async () => {
+    if (!hasAPIKey) return;
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-topic-ideas', {
@@ -68,11 +70,12 @@ export function SocialPostIdeation({ platform, onComplete, onSkip }: SocialPostI
       });
 
       if (error) throw error;
-      
+      if (data?.error) throw new Error(data.error);
+
       setTopics(data.topics || []);
     } catch (error) {
       console.error('Failed to generate topics:', error);
-      toast.error('Failed to generate topics. Please try again.');
+      await handleAIGenerationError(error, 'Failed to generate topics. Please try again.', (error as { data?: unknown })?.data);
     } finally {
       setIsGenerating(false);
     }
