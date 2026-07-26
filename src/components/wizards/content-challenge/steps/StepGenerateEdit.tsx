@@ -40,6 +40,7 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
   const [isGeneratingCopy, setIsGeneratingCopy] = useState<number | null>(null);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [editingCopy, setEditingCopy] = useState('');
+  const { hasAPIKey, isLoading: keyLoading } = useHasAIKey();
 
   const currentPlatform = data.platformOrder?.[data.currentPlatformIndex] || data.selectedPlatforms?.[0];
   const currentPlatformInfo = AVAILABLE_PLATFORMS.find(p => p.id === currentPlatform);
@@ -47,7 +48,7 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
   const Icon = currentPlatform ? PLATFORM_ICONS[currentPlatform] || FileText : FileText;
 
   const handleGenerateIdeas = async () => {
-    if (!currentPlatform) return;
+    if (!currentPlatform || !hasAPIKey) return;
 
     setIsGeneratingIdeas(true);
     try {
