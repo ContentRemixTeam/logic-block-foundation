@@ -107,3 +107,6 @@ verify_jwt = true
 
 [functions.generate-topic-ideas]
 verify_jwt = true
+
+[functions.submit-workshop-testimonial]
+verify_jwt = false
