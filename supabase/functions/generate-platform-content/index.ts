@@ -40,23 +40,16 @@ Return a JSON array with exactly 30 items:
 
 Mix promotional content (20%) with value-driven content (80%). Ensure variety across pillars.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.8,
-      }),
-    });
+    const ai = await callUserAI(
+      guard.supabase,
+      guard.userId,
+      [{ role: "user", content: prompt }],
+      { temperature: 0.8, maxTokens: 8000, headers: corsHeaders }
+    );
+    if (!ai.ok) return ai.response;
 
-    if (!response.ok) throw new Error("AI generation failed");
+    const content = ai.content || "[]";
 
-    const result = await response.json();
-    const content = result.choices?.[0]?.message?.content || "[]";
     const jsonMatch = content.match(/\[[\s\S]*\]/);
     const ideas = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
 
