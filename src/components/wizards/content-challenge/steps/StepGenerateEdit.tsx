@@ -288,6 +288,8 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
         </Card>
       )}
 
+      {currentContent.length > 0 && !keyLoading && !hasAPIKey && <MissingAIKeyNotice />}
+
       {/* Content List */}
       {currentContent.length > 0 && (
         <Tabs defaultValue="all" className="w-full">
