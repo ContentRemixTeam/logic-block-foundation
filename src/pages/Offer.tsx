@@ -324,8 +324,11 @@ export default function Offer() {
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground">
               A calm 90-day planning system for entrepreneurs whose energy does
-              not run on a schedule. Not another app that assumes a full battery
-              — one built for the days you actually have.
+              not run on a schedule.
+            </p>
+            <p className="mx-auto mt-3 max-w-xl text-lg leading-relaxed text-muted-foreground">
+              Not another app that assumes a full battery — one built for the
+              days you actually have.
             </p>
             <p className="mx-auto mt-5 max-w-xl rounded-xl border border-border-subtle bg-card px-4 py-3 text-sm leading-relaxed text-muted-foreground">
               You already tried this. Your free retreat access includes 3 days
