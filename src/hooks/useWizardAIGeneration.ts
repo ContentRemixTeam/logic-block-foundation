@@ -181,42 +181,20 @@ export function useWizardAIGeneration({ wizardType, wizardData }: UseWizardAIGen
     };
   }, [wizardType, wizardData, brandProfile]);
 
-  // Call OpenAI API directly
+  // Call the user's AI provider through the SERVER proxy.
+  // The key is decrypted inside the edge function and never reaches the browser.
   const callOpenAI = async (params: CallOpenAIParams): Promise<CallOpenAIResult> => {
     if (!user) throw new Error('Not authenticated');
-    
-    const userApiKey = await OpenAIService.getUserAPIKey(user.id);
-    if (!userApiKey) {
-      throw new Error('No API key configured. Please add your OpenAI API key in AI Copywriting settings.');
-    }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${userApiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: params.systemPrompt },
-          { role: 'user', content: params.userPrompt },
-        ],
-        temperature: params.temperature,
-        max_tokens: 4000,
-      }),
+    return callUserAIProxy({
+      provider,
+      temperature: params.temperature,
+      maxTokens: 4000,
+      messages: [
+        { role: 'system', content: params.systemPrompt },
+        { role: 'user', content: params.userPrompt },
+      ],
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'OpenAI API call failed');
-    }
-
-    const data = await response.json();
-    return {
-      content: data.choices[0]?.message?.content || '',
-      tokens: data.usage?.total_tokens || 0,
-    };
   };
 
   // Parse email sequence from generated text
