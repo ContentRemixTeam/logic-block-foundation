@@ -13,6 +13,9 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { ContentChallengeWizardData, ContentDayDraft, AVAILABLE_PLATFORMS } from '@/types/contentChallenge';
 import { toast } from 'sonner';
+import { useHasAIKey } from '@/hooks/useAICopywriting';
+import { MissingAIKeyNotice } from '@/components/ai-copywriting/MissingAIKeyNotice';
+import { handleAIGenerationError } from '@/lib/aiKeyErrors';
 
 interface StepGenerateEditProps {
   data: ContentChallengeWizardData;
