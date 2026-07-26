@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Sparkles, Rocket, X } from 'lucide-react';
 import { getStorageItem } from '@/lib/storage';
 
-const PUBLIC_ROUTES = ['/engine', '/workshop', '/workshop/engine-builder'];
+const PUBLIC_ROUTES = ['/engine', '/workshop', '/workshop/engine-builder', '/offer'];
 
 export function TourWelcome() {
   const location = useLocation();
