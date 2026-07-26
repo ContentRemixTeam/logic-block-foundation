@@ -596,28 +596,32 @@ export default function Offer() {
         </div>
       </footer>
 
-      {/* STICKY MOBILE CTA */}
-      <div
-        className={`fixed inset-x-0 bottom-0 z-50 border-t border-border-subtle bg-background/95 backdrop-blur transition-transform duration-300 sm:hidden ${
-          showStickyCta ? "translate-y-0" : "translate-y-full"
-        }`}
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-      >
-        <div className="flex items-center gap-3 px-4 py-3">
-          <div className="min-w-0 leading-tight">
-            <p className="text-base font-semibold">$27</p>
-            <p className="truncate text-[11px] text-muted-foreground">
-              12 months, one-time
-            </p>
+      {/* STICKY MOBILE CTA — portalled so an ancestor transform can't trap it */}
+      {createPortal(
+        <div
+          className={`fixed inset-x-0 bottom-0 z-50 border-t border-border-subtle bg-background/95 backdrop-blur transition-transform duration-300 sm:hidden ${
+            showStickyCta ? "translate-y-0" : "translate-y-full"
+          }`}
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
+          <div className="flex items-center gap-3 px-4 py-3">
+            <div className="min-w-0 leading-tight">
+              <p className="text-base font-semibold">$27</p>
+              <p className="truncate text-[11px] text-muted-foreground">
+                12 months, one-time
+              </p>
+            </div>
+            <Button
+              asChild
+              className="ml-auto h-auto shrink-0 rounded-full px-5 py-3 text-sm font-semibold"
+            >
+              <a href={CHECKOUT_URL}>Get access &rarr;</a>
+            </Button>
           </div>
-          <Button
-            asChild
-            className="ml-auto h-auto shrink-0 rounded-full px-5 py-3 text-sm font-semibold"
-          >
-            <a href={CHECKOUT_URL}>Get access &rarr;</a>
-          </Button>
-        </div>
-      </div>
+        </div>,
+        document.body,
+      )}
+
     </main>
   );
 }
