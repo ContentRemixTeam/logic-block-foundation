@@ -253,25 +253,48 @@ export function useServerSync<T>({
     setStatus('idle');
   }, []);
 
-  // Cleanup on unmount — flush any pending debounced save so navigating
-  // away never drops the last ~2 seconds of edits.
+  // Always call through the latest performSave (saveFn changes each render).
+  const performSaveRef = useRef(performSave);
+  useEffect(() => {
+    performSaveRef.current = performSave;
+  }, [performSave]);
+
+  // Cleanup on unmount — FLUSH any pending debounced save so navigating away
+  // never drops the last couple of seconds of edits.
   useEffect(() => {
     return () => {
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
       }
+
+      const hadPendingDebounce = saveTimeoutRef.current !== null;
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = null;
-        // Fire the save now (fire-and-forget). If offline, performSave
-        // will short-circuit and the data stays in dataRef for retry.
-        if (dataRef.current !== null) {
-          try { void performSave(dataRef.current); } catch { /* noop */ }
-        }
       }
+
+      const pending = dataRef.current;
+      if (pending === null) return;
+      if (!hadPendingDebounce && !isSavingRef.current && !resaveQueuedRef.current) return;
+
+      // Fire-and-forget flush. If a save is still in flight, wait for it to
+      // finish and then send the newest data (the component is gone, so the
+      // in-hook follow-up would never run).
+      void (async () => {
+        try {
+          for (let i = 0; i < 40 && isSavingRef.current; i++) {
+            await new Promise((resolve) => setTimeout(resolve, 250));
+          }
+          await performSaveRef.current(dataRef.current as T);
+        } catch {
+          /* local backups remain as the safety net */
+        }
+      })();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
 
   return {
