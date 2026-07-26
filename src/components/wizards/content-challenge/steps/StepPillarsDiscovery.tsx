@@ -11,6 +11,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useContentPillars } from '@/hooks/useContentPillars';
 import { ContentChallengeWizardData, ContentPillar, PILLAR_COLORS } from '@/types/contentChallenge';
 import { toast } from 'sonner';
+import { useHasAIKey } from '@/hooks/useAICopywriting';
+import { MissingAIKeyNotice } from '@/components/ai-copywriting/MissingAIKeyNotice';
+import { handleAIGenerationError } from '@/lib/aiKeyErrors';
 
 interface StepPillarsDiscoveryProps {
   data: ContentChallengeWizardData;
