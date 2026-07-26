@@ -44,9 +44,9 @@ import wizardsShot from "@/assets/offer/wizards.jpg";
 
 /**
  * PUBLIC SALES PAGE — $27 / 12 months
- * Replace CHECKOUT_URL with the live GHL checkout link.
+ * Live checkout link (FastPayDirect).
  */
-const CHECKOUT_URL = "https://faithmariah.com/low-battery-planner-checkout";
+const CHECKOUT_URL = "https://link.fastpaydirect.com/payment-link/6a661ffd7b99151a540408ac";
 
 function CtaButton({
   label = "Get 12 Months For $27",
