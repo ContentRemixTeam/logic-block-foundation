@@ -18,8 +18,8 @@ serve(async (req) => {
 
   try {
     const { platform, title, hook, contentIdea, pillarName, idealCustomer, promotionContext } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+
 
     const prompt = `Write a complete ${platform} post based on this content idea.
 
