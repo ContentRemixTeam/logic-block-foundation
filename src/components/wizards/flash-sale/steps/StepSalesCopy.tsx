@@ -8,6 +8,9 @@ import { FlashSaleWizardData } from '@/types/flashSale';
 import { Sparkles, X, Plus, Wand2, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useHasAIKey } from '@/hooks/useAICopywriting';
+import { MissingAIKeyNotice } from '@/components/ai-copywriting/MissingAIKeyNotice';
+import { handleAIGenerationError } from '@/lib/aiKeyErrors';
 
 interface StepProps {
   data: FlashSaleWizardData;
