@@ -4,10 +4,10 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useBrandProfile, useAPIKey } from '@/hooks/useAICopywriting';
+import { useBrandProfile, useAPIKey, useHasAIKey } from '@/hooks/useAICopywriting';
 import { useSaveToVault } from '@/hooks/useSaveToVault';
 import { useAddCopyToCalendar } from '@/hooks/useAddCopyToCalendar';
-import { OpenAIService } from '@/lib/openai-service';
+import { callUserAIProxy } from '@/lib/aiProxyClient';
 import { checkAIDetection } from '@/lib/ai-detection-checker';
 import { toast } from 'sonner';
 import {
