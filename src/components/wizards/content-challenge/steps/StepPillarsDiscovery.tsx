@@ -34,8 +34,10 @@ export default function StepPillarsDiscovery({ data, setData }: StepPillarsDisco
   const [suggestedPillars, setSuggestedPillars] = useState<SuggestedPillar[]>([]);
   const [showAddNew, setShowAddNew] = useState(false);
   const [newPillar, setNewPillar] = useState({ name: '', description: '', color: PILLAR_COLORS[0], emoji: '' });
+  const { hasAPIKey, isLoading: keyLoading } = useHasAIKey();
 
   const handleGeneratePillars = async () => {
+    if (!hasAPIKey) return;
     if (!data.idealCustomer.trim()) {
       toast.error('Please describe your ideal customer first');
       return;
@@ -53,6 +55,7 @@ export default function StepPillarsDiscovery({ data, setData }: StepPillarsDisco
       });
 
       if (error) throw error;
+      if (result?.error) throw new Error(result.error);
 
       if (result?.pillars) {
         setSuggestedPillars(result.pillars);
@@ -60,7 +63,7 @@ export default function StepPillarsDiscovery({ data, setData }: StepPillarsDisco
       }
     } catch (error) {
       console.error('Error generating pillars:', error);
-      toast.error('Failed to generate pillar suggestions');
+      await handleAIGenerationError(error, 'Failed to generate pillar suggestions');
     } finally {
       setIsGenerating(false);
     }
