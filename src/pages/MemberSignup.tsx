@@ -31,10 +31,10 @@ export default function MemberSignup() {
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/dashboard`,
+          // Account type is set server-side from verified entitlements only.
           data: {
             first_name: firstName,
             last_name: lastName,
-            user_type: 'member',
           },
         },
       });
