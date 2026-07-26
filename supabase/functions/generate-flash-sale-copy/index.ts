@@ -72,30 +72,19 @@ Respond ONLY with valid JSON in this exact format:
   "cta": "..."
 }`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: "You are an expert direct response copywriter. Always respond with valid JSON only, no markdown." },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.7,
-      }),
-    });
+    const ai = await callUserAI(
+      guard.supabase,
+      guard.userId,
+      [
+        { role: "system", content: "You are an expert direct response copywriter. Always respond with valid JSON only, no markdown." },
+        { role: "user", content: prompt },
+      ],
+      { temperature: 0.7, headers: corsHeaders }
+    );
+    if (!ai.ok) return ai.response;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      throw new Error(`AI gateway error: ${response.status}`);
-    }
+    const content = ai.content;
 
-    const aiResult = await response.json();
-    const content = aiResult.choices?.[0]?.message?.content;
 
     if (!content) {
       throw new Error("No content in AI response");
