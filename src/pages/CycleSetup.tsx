@@ -1572,12 +1572,14 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
         // DON'T return - still try to save related data
       } else {
         console.log('✅ Cycle verified successfully:', verifyData.goal?.substring(0, 50));
-        // NOW it's safe to clear the draft since cycle is verified
-        clearDraft();
-        // Clear the setup visit marker since save succeeded
-        localStorage.removeItem('last_cycle_setup_visit');
-        console.log('✅ Draft cleared after successful verification');
+        // NOTE: the draft is intentionally NOT cleared here. It is only cleared
+        // once every required child record has saved successfully (see below),
+        // so a partial save always stays recoverable.
       }
+
+      // Collects any failures from the child-table inserts below. If this is
+      // non-empty at the end, we keep the draft and tell the user.
+      const childErrors: string[] = [];
 
       // Update progress
       setSaveProgress(prev => ({ ...prev, currentStep: 'Saving strategy...', completedSteps: 1 }));
@@ -1618,7 +1620,10 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
           nurture_platforms: nurturePlatforms.filter(p => p.method.trim()),
         } as any);
 
-      if (strategyError) console.error('Strategy error:', strategyError);
+      if (strategyError) {
+        console.error('Strategy error:', strategyError);
+        childErrors.push('strategy');
+      }
       
       // Update progress
       setSaveProgress(prev => ({ ...prev, currentStep: 'Creating offers...', completedSteps: 2 }));
@@ -1641,7 +1646,10 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
         const { error: offersError } = await supabase
           .from('cycle_offers')
           .insert(offersToCreate);
-        if (offersError) console.error('Offers error:', offersError);
+        if (offersError) {
+          console.error('Offers error:', offersError);
+          childErrors.push('offers');
+        }
       }
 
       // Create limited time offers (flash sales, promos)
@@ -1663,7 +1671,10 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
         const { error: ltoError } = await supabase
           .from('cycle_limited_offers')
           .insert(ltoToCreate);
-        if (ltoError) console.error('Limited offers error:', ltoError);
+        if (ltoError) {
+          console.error('Limited offers error:', ltoError);
+          childErrors.push('limited-time offers');
+        }
       }
 
       // Create revenue plan
@@ -1678,7 +1689,10 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
           launch_schedule: launchSchedule || null,
         });
 
-      if (revenueError) console.error('Revenue plan error:', revenueError);
+      if (revenueError) {
+        console.error('Revenue plan error:', revenueError);
+        childErrors.push('revenue plan');
+      }
 
       // Create month plans
       const monthPlansToCreate = monthPlans.map((mp, idx) => ({
@@ -1695,7 +1709,10 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
         .from('cycle_month_plans')
         .insert(monthPlansToCreate);
 
-      if (monthError) console.error('Month plans error:', monthError);
+      if (monthError) {
+        console.error('Month plans error:', monthError);
+        childErrors.push('month plans');
+      }
       
       // Update progress
       setSaveProgress(prev => ({ ...prev, currentStep: 'Creating projects...', completedSteps: 3 }));
@@ -1714,7 +1731,10 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
         const { error: projectsError } = await supabase
           .from('projects')
           .insert(projectsToCreate);
-        if (projectsError) console.error('Projects error:', projectsError);
+        if (projectsError) {
+          console.error('Projects error:', projectsError);
+          childErrors.push('projects');
+        }
       }
 
       // Create habits (integrated with existing habits system)
@@ -1732,7 +1752,10 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
         const { error: habitsError } = await supabase
           .from('habits')
           .insert(habitsToCreate);
-        if (habitsError) console.error('Habits error:', habitsError);
+        if (habitsError) {
+          console.error('Habits error:', habitsError);
+          childErrors.push('habits');
+        }
       }
       
       // Update progress  
@@ -2291,8 +2314,22 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
         }
       }
 
-      // Draft is already cleared in verification block above (line ~1346)
-      // Only show success toast here
+      // ALL-OR-NOTHING GATE: only clear the recovery draft once every required
+      // child record saved. If anything failed, keep the draft, tell the user,
+      // and stay on the page so they can retry.
+      if (childErrors.length > 0) {
+        toast({
+          title: 'Some of your plan didn\'t save',
+          description: `We couldn't save: ${childErrors.join(', ')}. Nothing is lost — your plan is still saved here. Press "Create My Plan" again to retry.`,
+          variant: 'destructive',
+          duration: 20000,
+        });
+        return; // do NOT clear the draft, do NOT navigate away
+      }
+
+      clearDraft();
+      localStorage.removeItem('last_cycle_setup_visit');
+      console.log('✅ Draft cleared after all child records saved');
 
       toast({
         title: '🎉 You\'re Ready to Execute!',
