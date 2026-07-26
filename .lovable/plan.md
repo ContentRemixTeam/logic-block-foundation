@@ -1,90 +1,54 @@
-# MCP OAuth 2.1 Upgrade — Plan
+## Audit: /offer sales page
 
-## Goal
-Let claude.ai custom connectors (OAuth-only) connect to the planner's MCP server while keeping the existing Personal Access Token (PAT) path working for Claude Code / Codex / Cursor.
+Reviewed live at 1280px and 375px. Structurally sound, no overflow, copy is strong. But it reads like a well-typeset **essay**, not a SaaS sales page. Below is the honest critique, then what I'd change.
 
-## Key research findings (MCP spec 2025-06-18 + our stack)
+### What's working
+- Message hierarchy and copy voice are genuinely good — the problem section earns the offer.
+- One consistent card style, one shadow level, clean serif/sans pairing.
+- Section rhythm is predictable and readable; no layout bugs at either width.
+- FAQ placed after the offer (correct — it handles objections at the decision point).
 
-1. **MCP spec** requires: unauth request → `401` + `WWW-Authenticate: Bearer resource_metadata="<url>"`; that URL serves `oauth-protected-resource` metadata pointing at an `authorization_server`; the authorization server publishes `oauth-authorization-server` metadata with `authorize`, `token`, and (ideally) `registration` endpoints; PKCE S256 required; token audience must equal the MCP resource URL.
+### What's not working (ranked by conversion impact)
 
-2. **Supabase already ships an OAuth 2.1 authorization server** (activated with `supabase--configure_oauth_server`). It provides authorize / token / JWKS / dynamic client registration and a consent-page hook at `/.lovable/oauth/consent`. Building our own AS is explicitly discouraged in Lovable's knowledge — we should use Supabase's.
+**1. Zero product visuals. This is the single biggest problem.**
+Every SaaS page that converts cold traffic shows the product within the first screen. Right now a stranger reads ~120 words of prose before any evidence the app exists. Features are described ("Low Battery Day mode", "Bare Minimum Plan") but never *shown*, so they read as claims. Needs: a hero device shot of the dashboard, and 2–3 real UI crops beside the battery-system and 90-day sections.
 
-3. **Routing constraint (Supabase-specific):** edge functions live under `https://<ref>.supabase.co/functions/v1/<name>`. Claude fetches `<resource-origin>/.well-known/oauth-protected-resource`. Two viable options:
-   - **(chosen)** Advertise the MCP resource as `.../functions/v1/mcp` and serve the well-known documents from the *same function* at sub-paths (`/functions/v1/mcp/.well-known/oauth-protected-resource`). The MCP spec allows path-scoped resource metadata; Claude follows the `resource_metadata` URL from the `WWW-Authenticate` header, so it does not require root-hosted well-knowns.
-   - Alternative (rejected): host well-knowns via a Vite public route — breaks in preview and adds a second origin.
+**2. The hero is a wall of centred text with four stacked messages.**
+Eyebrow → headline → bold context line → muted paragraph. Two subheads doing the same job. On mobile the battery icon detaches and floats to the left of a wrapped two-line headline, which looks broken rather than deliberate. Cut to: eyebrow, headline, ONE sub-line, CTA, product image.
 
-4. **PAT compatibility:** Supabase-issued OAuth JWTs and our existing PAT hashes are different token shapes. The MCP function needs a dual verifier: try OAuth JWT (verify signature + issuer + audience against Supabase JWKS) → fall back to PAT lookup in `integration_tokens`. Both resolve to a `user_id` used for RLS-scoped queries.
+**3. No brand frame.** No logo bar, no nav. Cold traffic lands with no signal of who this is or that it's a real product. A minimal top bar with the wordmark (and a quiet "Sign in") raises legitimacy cheaply.
 
-5. **`@lovable.dev/mcp-js` vs. hand-written function:** the current `supabase/functions/mcp/index.ts` is hand-authored with 13 tools. Migrating to mcp-js would auto-generate the function and gain OAuth verification for free — but mcp-js's default verifier rejects tokens without `client_id` (i.e. PATs would break), and rewriting 13 tools is a large surface change. **Decision: keep the hand-written function, add OAuth ourselves, keep dual auth.** We accept the extra code in exchange for zero regression on the PAT path.
+**4. The palette isn't showing.** Rose and gold are defined in the design system, but the rendered page is cream + near-black. The CTA is a generic black pill. Nothing on the page is *the brand colour*, so it looks like a template, not a product.
 
-## Implementation
+**5. Trust and risk reversal are missing.**
+- No guarantee. At $27 cold, a 14/30-day refund line typically moves conversion more than any copy edit.
+- Testimonials are unattributed revenue claims ("$7K/month") about the Mastermind, not the planner. Cold traffic reads big income numbers with no photo/context as *less* credible, and it's a compliance risk. Needs faces, roles, and at least one quote about using the tool.
+- No payment/security reassurance near the button.
 
-### 1. Activate Supabase OAuth server
-- Call `supabase--configure_oauth_server` (no params).
-- Add consent route at `src/pages/OAuthConsent.tsx` mounted at `/.lovable/oauth/consent`. Uses `supabase.auth.oauth.{getAuthorizationDetails, approveAuthorization, denyAuthorization}`. Preserves `authorization_id` through login/signup/social redirects. Calm branded copy: *"Allow your AI assistant to view and manage your planner."*
-- Ensure `/login` and social OAuth `redirect_uri` re-consume the `next` param so unauthenticated visitors return to the consent screen.
+**6. No price anchoring.** "$27" appears with nothing to compare it against. The "four 90-day cycles for one quiet weekend" line is poetic but not an anchor. Show a struck-through or stated value, or a per-month breakdown ($2.25/month).
 
-### 2. Discovery on the MCP function
-Extend `supabase/functions/mcp/index.ts` to route on path:
-- `GET /functions/v1/mcp/.well-known/oauth-protected-resource` → JSON:
-  ```json
-  {
-    "resource": "https://<ref>.supabase.co/functions/v1/mcp",
-    "authorization_servers": ["https://<ref>.supabase.co/auth/v1"],
-    "bearer_methods_supported": ["header"],
-    "scopes_supported": ["mcp"]
-  }
-  ```
-- `GET /functions/v1/mcp/.well-known/oauth-authorization-server` → proxy Supabase's `/auth/v1/.well-known/oauth-authorization-server` (Claude sometimes fetches it relative to the resource).
-- Any unauth POST/GET to the MCP endpoint returns:
-  ```
-  401
-  WWW-Authenticate: Bearer resource_metadata="https://<ref>.supabase.co/functions/v1/mcp/.well-known/oauth-protected-resource"
-  ```
+**7. Flat visual crescendo.** Every section is `py-16`, same label→h2→body pattern, alternating two backgrounds. Nothing escalates toward the offer. The offer card should be visibly the loudest moment on the page; currently it's the same weight as the FAQ.
 
-### 3. Dual bearer verification
-New helper `verifyBearer(req)` in the function:
-1. Extract `Authorization: Bearer <token>`.
-2. **Try OAuth JWT:** verify signature via cached Supabase JWKS (`https://<ref>.supabase.co/auth/v1/.well-known/jwks.json`); require `iss === https://<ref>.supabase.co/auth/v1`, `aud` contains our MCP resource URL, `client_id` claim present, not expired. Return `{ userId: claims.sub, kind: 'oauth' }`.
-3. **Fall back to PAT:** hash → look up `integration_tokens` where `revoked_at IS NULL`, bump `last_used_at`. Return `{ userId, kind: 'pat' }`.
-4. Neither → return the 401 + WWW-Authenticate response.
+**8. Jittery left edge.** Container widths vary 2xl / 4xl / 5xl / 3xl section to section, so the text column shifts horizontally as you scroll. Pick one content width and one wide width.
 
-All 13 existing tools already scope by `user_id`; no changes needed there.
+**9. Mobile has no persistent CTA.** The page is ~7 screens on a phone; after the hero the buy button disappears until the offer section. A sticky bottom bar (price + button) is standard and materially lifts mobile conversion.
 
-### 4. Refresh + revocation
-- Refresh tokens are Supabase-managed — clients rotate via `/auth/v1/token`. No app code required.
-- Revocation: extend the existing Settings UI to list active OAuth grants. Query Supabase's `auth.oauth_clients` / grants tables via a small edge function `list-oauth-grants` and `revoke-oauth-grant` (service-role, scoped by `auth.uid()`). Sign-out already invalidates the session and any grants tied to it.
+**10. Weak sections.** "Also included" is a bare icon-text list — the least designed block on the page. And there's no "what happens after you pay" step block, which cold buyers want before entering a card.
 
-### 5. Settings UI — two clear paths
-Rewrite `src/components/settings/AIAssistantSection.tsx`:
+### Proposed changes (design/presentation only, `src/pages/Offer.tsx`)
 
-**Path A — Claude (recommended)** [default expanded]
-- Big "Connect Claude" card with numbered steps and exact copy from the request (URL copy button, screenshots-in-text for Settings → Connectors → Add custom connector, Connect, + menu). Three example prompts.
-- "Connected assistants" table: client name, granted, last used, [Revoke] per row.
+1. **Add product imagery** — capture real dashboard / daily / 90-day cycle screenshots from the running app, frame them in a subtle device mock, place one in the hero and two inline beside feature sections.
+2. **Rebuild the hero** — slim brand bar with wordmark; eyebrow, headline with inline battery icon (icon locked to the first line so it can't detach on mobile), one sub-line, CTA + microcopy, product shot below. Move the Full/Half/Low/Empty chips out of the hero into the battery-system section where they have context.
+3. **Brand the CTA** — primary button uses the rose accent with gold hover/focus detail; single consistent CTA component everywhere.
+4. **Trust layer** — guarantee line under every CTA, a refund/guarantee badge in the offer card, secure-payment microcopy, and testimonials reworked with avatars + role and one product-specific quote (I'll need a real quote or I'll leave a clearly-marked placeholder rather than invent one).
+5. **Offer card as the visual peak** — price anchor ($27 one-time vs. $2.25/mo), stronger border/shadow/scale than any other card, checklist, guarantee, CTA.
+6. **Rhythm and grid** — one content width (max-w-2xl) and one wide width (max-w-5xl); vary section padding so the offer gets more air; upgrade "Also included" into a proper card grid.
+7. **Sticky mobile CTA bar** — appears after the hero scrolls out, hides at the offer section, respects safe-area inset.
+8. **Add an "After you buy" 3-step strip** before the FAQ.
+9. **SEO/meta** — real head tags plus JSON-LD Product/Offer, single H1 retained.
 
-**Path B — Claude Code, Codex & other tools (advanced)** [collapsed by default]
-- Existing PAT create/revoke UI, unchanged. Per-client JSON snippets for Claude Code, Codex, Cursor with the PAT and MCP URL prefilled.
+### Technical notes
+Screenshots captured via Playwright against localhost, cropped, stored in `src/assets/` and imported as ES6 assets. No backend or business-logic changes. All colours through existing semantic tokens — no hardcoded hex. Verify at 375px and 1280px after, typecheck must pass.
 
-Warm, non-technical copy on Path A. Advanced framing on Path B.
-
-### 6. Verification
-- Curl: unauth POST → assert `401` + correct `WWW-Authenticate` header.
-- Curl: `GET .../mcp/.well-known/oauth-protected-resource` and `.../oauth-authorization-server` return valid JSON with matching issuer.
-- Run MCP Inspector against the URL: complete PKCE flow through Supabase's authorize/token endpoints, verify `tools/list` and one `tools/call` (e.g. `get_today`) succeed with the resulting access token.
-- Refresh: sleep past `expires_in`, refresh, retry — same 200.
-- Revoke via new Settings row → next `tools/call` returns 401.
-- PAT path: existing token still returns 200 on `tools/list`.
-- Cross-user isolation: two accounts, each connector only sees its own tasks.
-
-### 7. Document in `.lovable/plan.md`
-Under a new "MCP OAuth" section: the well-known routing choice (path-scoped under `/functions/v1/mcp/`), the dual-verifier design, and the reason we didn't migrate to `@lovable.dev/mcp-js` (PAT preservation).
-
-## What I need from you before I start
-
-**One decision** — everything else follows the plan above:
-
-**Migrate to `@lovable.dev/mcp-js` now, or keep the hand-written function?**
-- **Keep hand-written (recommended, in the plan above):** zero risk to PAT users, ~1 file of new OAuth-verifier code, 13 tools untouched.
-- **Migrate to mcp-js:** cleaner long-term, gets OAuth "for free" via `auth.oauth.issuer(...)`, but requires rewriting all 13 tools as `defineTool` files and losing PAT support unless we shim it (mcp-js rejects tokens without `client_id`).
-
-Reply "keep" or "migrate" and I'll ship it.
+### Open question
+The testimonials: I can keep the existing three, but they're Mastermind income claims. If you have even one line from someone who used the *app*, that will outperform all three with cold traffic.
