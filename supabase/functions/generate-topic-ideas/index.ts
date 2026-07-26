@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { guardAiRequest } from "../_shared/ai_guard.ts";
+import { callUserAI } from "../_shared/byok.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,11 +25,8 @@ serve(async (req) => {
 
   try {
     const { platform } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY not configured");
-    }
+
+
 
     let userContext = "";
 
@@ -78,27 +76,16 @@ Return ONLY valid JSON in this format:
   ]
 }`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.9,
-      }),
-    });
+    const ai = await callUserAI(
+      guard.supabase,
+      guard.userId,
+      [{ role: "user", content: prompt }],
+      { temperature: 0.9, headers: corsHeaders }
+    );
+    if (!ai.ok) return ai.response;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI API error:", errorText);
-      throw new Error("Failed to generate topic ideas");
-    }
+    const content = ai.content || "";
 
-    const result = await response.json();
-    const content = result.choices?.[0]?.message?.content || "";
     
     // Parse JSON from response
     let topics = [];

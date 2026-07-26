@@ -2,8 +2,8 @@
 // Uses Lovable AI to generate lead magnet ideas
 
 import { Hono } from 'https://deno.land/x/hono@v3.12.11/mod.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { guardAiRequest } from '../_shared/ai_guard.ts';
+import { callUserAI } from '../_shared/byok.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -36,10 +36,8 @@ app.post('/', async (c) => {
       return c.json({ error: 'Missing required fields' }, 400);
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
+
+
 
     const previousIdeasContext = previousIdeas.length > 0
       ? `\n\nAVOID these ideas that were already generated: ${previousIdeas.join(', ')}`
@@ -82,31 +80,19 @@ PAID OFFER: ${paidOffer}${previousIdeasContext}
 
 Return the ideas as JSON.`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.8,
-        max_tokens: 2000,
-      }),
-    });
+    const ai = await callUserAI(
+      guard.supabase,
+      guard.userId,
+      [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      { temperature: 0.8, maxTokens: 2000, headers: corsHeaders }
+    );
+    if (!ai.ok) return ai.response;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI API error:', errorText);
-      throw new Error(`AI API error: ${response.status}`);
-    }
+    const content = ai.content;
 
-    const aiResponse = await response.json();
-    const content = aiResponse.choices?.[0]?.message?.content;
 
     if (!content) {
       throw new Error('No content in AI response');

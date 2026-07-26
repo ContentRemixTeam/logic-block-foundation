@@ -91,18 +91,21 @@ serve(async (req) => {
 
     const userId = userData.user.id;
 
-    // Get encrypted API key
+    // Get encrypted API key for the openai provider specifically.
+    // (Users may have both an OpenAI and an Anthropic key stored.)
     const { data: keyData, error: keyError } = await supabase
       .from("user_api_keys")
       .select("encrypted_key, key_status")
       .eq("user_id", userId)
-      .single();
+      .eq("provider", "openai")
+      .maybeSingle();
 
-    if (keyError || !keyData) {
+    if (keyError || !keyData?.encrypted_key) {
       return new Response(
         JSON.stringify({
-          error:
-            "No API key configured. Please add your OpenAI API key in settings.",
+          error: "NO_API_KEY",
+          message:
+            "Add your OpenAI or Anthropic API key in Settings to use AI features.",
         }),
         {
           status: 400,
@@ -110,6 +113,7 @@ serve(async (req) => {
         }
       );
     }
+
 
     // Decrypt the API key
     const apiKey = await decryptAPIKey(keyData.encrypted_key, userId);

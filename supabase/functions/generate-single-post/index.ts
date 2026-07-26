@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { guardAiRequest } from "../_shared/ai_guard.ts";
+import { callUserAI } from "../_shared/byok.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,8 +18,8 @@ serve(async (req) => {
 
   try {
     const { platform, title, hook, contentIdea, pillarName, idealCustomer, promotionContext } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+
 
     const prompt = `Write a complete ${platform} post based on this content idea.
 
@@ -33,23 +34,16 @@ Write the full post copy optimized for ${platform}. Follow platform best practic
 
 Return ONLY the post copy, no explanations or formatting markers.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-      }),
-    });
+    const ai = await callUserAI(
+      guard.supabase,
+      guard.userId,
+      [{ role: "user", content: prompt }],
+      { temperature: 0.7, headers: corsHeaders }
+    );
+    if (!ai.ok) return ai.response;
 
-    if (!response.ok) throw new Error("AI generation failed");
+    const copy = ai.content || "";
 
-    const result = await response.json();
-    const copy = result.choices?.[0]?.message?.content || "";
 
     return new Response(JSON.stringify({ copy }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
