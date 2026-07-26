@@ -109,7 +109,7 @@ export function WorkshopTestimonialForm({ engineData }: WorkshopTestimonialFormP
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="Email (optional — we may feature you!)"
+        placeholder="Your email * (we may feature you!)"
         maxLength={255}
         className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
       />
