@@ -64,6 +64,7 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
       });
 
       if (error) throw error;
+      if (result?.error) throw new Error(result.error);
 
       if (result?.ideas) {
         const ideas: ContentDayDraft[] = result.ideas.map((idea: any, index: number) => ({
