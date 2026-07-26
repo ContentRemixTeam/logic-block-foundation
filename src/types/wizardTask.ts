@@ -7,6 +7,8 @@ export interface WizardTask {
   phase: string;
   priority: 'high' | 'medium' | 'low';
   estimated_minutes: number | null;
+  /** Optional explicit energy cost; inferred from the task text when absent. */
+  energy_cost?: 'low' | 'medium' | 'high' | null;
 }
 
 export interface TaskDateOverride {
