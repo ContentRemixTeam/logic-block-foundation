@@ -342,7 +342,9 @@ export default function Dashboard() {
 
     const start = parseISO(cycle.start_date);
     const end = parseISO(cycle.end_date);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
     const today = new Date();
+
 
     const totalDays = 90;
     const daysElapsed = Math.max(0, differenceInDays(today, start));
