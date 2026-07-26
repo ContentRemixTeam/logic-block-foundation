@@ -168,6 +168,47 @@ export function WizardTaskPreview({
         </div>
       </div>
 
+      {/* Energy pacing */}
+      <div className="rounded-lg border bg-muted/20 p-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <BatteryMedium className="h-4 w-4 text-primary" />
+          <span className="text-sm font-medium">How much energy do you have for this plan?</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {PLAN_PACE_OPTIONS.map(opt => (
+            <Button
+              key={opt.value}
+              type="button"
+              variant={pace === opt.value ? 'default' : 'outline'}
+              size="sm"
+              className="text-xs"
+              onClick={() => applyPace(opt.value)}
+            >
+              {opt.label}
+            </Button>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {pace
+            ? PLAN_PACE_OPTIONS.find(o => o.value === pace)?.helper
+            : 'Pick a pace and we\u2019ll shape the plan to match. Nothing is deleted \u2014 anything set aside is just waiting for a better day.'}
+        </p>
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          <span className="text-xs text-muted-foreground">In this plan:</span>
+          {(['low', 'medium', 'high'] as const).map(level =>
+            selectedBreakdown[level] > 0 ? (
+              <span key={level} className="inline-flex items-center gap-1">
+                <EnergyChip energy={level} />
+                <span className="text-xs text-muted-foreground">{selectedBreakdown[level]}</span>
+              </span>
+            ) : null,
+          )}
+          {selectedCount === 0 && (
+            <span className="text-xs text-muted-foreground">nothing selected yet</span>
+          )}
+        </div>
+      </div>
+
       {/* Selected count */}
       <div className="flex items-center justify-between px-3 py-2 bg-muted/50 rounded-lg">
         <span className="text-sm text-muted-foreground">
