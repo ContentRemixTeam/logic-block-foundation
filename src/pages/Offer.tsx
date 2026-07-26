@@ -269,7 +269,7 @@ export default function Offer() {
   }, []);
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-background text-foreground">
+    <main className="offer-brand min-h-screen overflow-x-hidden bg-background text-foreground">
       {/* BRAND BAR */}
       <header className="border-b border-border-subtle bg-background/90 backdrop-blur">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-3.5">
