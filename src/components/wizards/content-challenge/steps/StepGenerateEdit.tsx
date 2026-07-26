@@ -409,12 +409,14 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
 function ContentDayCard({
   day,
   isGenerating,
+  canGenerate = true,
   onGenerateCopy,
   onEdit,
   onFinalize,
 }: {
   day: ContentDayDraft;
   isGenerating: boolean;
+  canGenerate?: boolean;
   onGenerateCopy: () => void;
   onEdit: () => void;
   onFinalize: () => void;
