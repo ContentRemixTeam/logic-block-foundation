@@ -58,17 +58,23 @@ export default function FinancialTracker() {
     });
   }, [transactions, dateRange]);
 
+  // Safely coerce possibly-malformed amounts to a finite number
+  const toAmount = (v: unknown) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+
   // Calculate period-specific summary
   const periodSummary = useMemo(() => {
     if (filteredTransactions.length === 0) return null;
 
     const totalIncome = filteredTransactions
       .filter(tx => tx.type === 'income')
-      .reduce((sum, tx) => sum + Number(tx.amount), 0);
+      .reduce((sum, tx) => sum + toAmount(tx.amount), 0);
 
     const totalExpenses = filteredTransactions
       .filter(tx => tx.type === 'expense')
-      .reduce((sum, tx) => sum + Number(tx.amount), 0);
+      .reduce((sum, tx) => sum + toAmount(tx.amount), 0);
 
     const netProfit = totalIncome - totalExpenses;
     const profitMargin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : 0;
@@ -78,7 +84,7 @@ export default function FinancialTracker() {
     filteredTransactions
       .filter(tx => tx.type === 'income')
       .forEach(tx => {
-        incomeByCategory[tx.category] = (incomeByCategory[tx.category] || 0) + Number(tx.amount);
+        incomeByCategory[tx.category] = (incomeByCategory[tx.category] || 0) + toAmount(tx.amount);
       });
 
     // Expenses by category
@@ -86,7 +92,7 @@ export default function FinancialTracker() {
     filteredTransactions
       .filter(tx => tx.type === 'expense')
       .forEach(tx => {
-        expensesByCategory[tx.category] = (expensesByCategory[tx.category] || 0) + Number(tx.amount);
+        expensesByCategory[tx.category] = (expensesByCategory[tx.category] || 0) + toAmount(tx.amount);
       });
 
     return {
@@ -112,7 +118,7 @@ export default function FinancialTracker() {
         const txDate = new Date(tx.date);
         return tx.type === 'income' && isWithinInterval(txDate, { start: monthStart, end: monthEnd });
       })
-      .reduce((sum, tx) => sum + Number(tx.amount), 0);
+      .reduce((sum, tx) => sum + toAmount(tx.amount), 0);
   }, [transactions]);
 
   // Calculate cycle revenue (all income in the cycle period)
@@ -120,7 +126,7 @@ export default function FinancialTracker() {
     // For now, use total income from all loaded transactions as approximation
     return transactions
       .filter(tx => tx.type === 'income')
-      .reduce((sum, tx) => sum + Number(tx.amount), 0);
+      .reduce((sum, tx) => sum + toAmount(tx.amount), 0);
   }, [transactions]);
 
   const monthlyProgress = calculateMonthlyProgress(currentMonthRevenue);
@@ -134,10 +140,6 @@ export default function FinancialTracker() {
   const handleAddExpense = () => {
     setTransactionType('expense');
     setDrawerOpen(true);
-  };
-
-  const handleStartRecoveryWizard = () => {
-    navigate('/wizards/finance-recovery');
   };
 
   const suggestedMonthlyGoal = cycleGoal ? Math.round(cycleGoal / 3) : null;
@@ -175,7 +177,6 @@ export default function FinancialTracker() {
             monthlyProgress={monthlyProgress}
             cycleProgress={cycleProgress}
             onSetMonthlyGoal={() => setGoalModalOpen(true)}
-            onStartRecoveryWizard={handleStartRecoveryWizard}
           />
         </div>
 

@@ -74,7 +74,9 @@ function calculateTrend(data: (number | null)[]): 'up' | 'down' | 'flat' {
   
   const first = recent[0];
   const last = recent[recent.length - 1];
+  if (first === 0) return last > 0 ? 'up' : last < 0 ? 'down' : 'flat';
   const diff = ((last - first) / Math.abs(first)) * 100;
+  if (!Number.isFinite(diff)) return 'flat';
   
   if (diff > 5) return 'up';
   if (diff < -5) return 'down';
@@ -103,9 +105,13 @@ const MetricSummaryCard = ({
   const trend = calculateTrend(weeklyData);
   
   // Calculate progress to goal
-  const goalProgress = goal && start !== null && current !== null
-    ? Math.round(((current - start) / (goal - start)) * 100)
-    : null;
+  const goalProgress = (() => {
+    if (goal === null || start === null || current === null) return null;
+    const span = goal - start;
+    if (span === 0) return current >= goal ? 100 : 0;
+    const pct = Math.round(((current - start) / span) * 100);
+    return Number.isFinite(pct) ? pct : null;
+  })();
 
   return (
     <Card>

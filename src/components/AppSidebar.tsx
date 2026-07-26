@@ -326,8 +326,8 @@ export function AppSidebar() {
         <NavSection label="Capture" items={CAPTURE_NAV} />
         <NavSection label="Grow" items={GROW_NAV} />
 
-        {/* Faith-only: Asana private bridge */}
-        {user?.email?.toLowerCase() === 'faithhawks@gmail.com' && (
+        {/* Admin-only: Asana private bridge */}
+        {isAdmin && (
           <NavSection
             label="Private"
             items={[{ name: 'Asana Inbox', href: '/asana-inbox', icon: Inbox, questIcon: '📨' }]}

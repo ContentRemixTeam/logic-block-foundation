@@ -6,7 +6,6 @@ import { lovable } from '@/integrations/lovable/index';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
@@ -20,7 +19,6 @@ export default function Auth() {
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [emailError, setEmailError] = useState('');
@@ -354,19 +352,6 @@ export default function Auth() {
               </div>
             )}
             
-            {/* Remember Me checkbox - only show on login */}
-            {isLogin && !isForgotPassword && (
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="remember-me" 
-                  checked={rememberMe}
-                  onCheckedChange={(checked) => setRememberMe(checked === true)}
-                />
-                <Label htmlFor="remember-me" className="text-sm font-normal cursor-pointer">
-                  Remember me
-                </Label>
-              </div>
-            )}
             
             {isLogin && !isForgotPassword && (
               <Button
