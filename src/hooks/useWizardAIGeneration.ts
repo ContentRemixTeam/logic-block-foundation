@@ -69,6 +69,7 @@ export function useWizardAIGeneration({ wizardType, wizardData }: UseWizardAIGen
   const { user } = useAuth();
   const { data: brandProfile } = useBrandProfile();
   const { data: apiKey } = useAPIKey();
+  const { hasAPIKey, provider } = useHasAIKey();
   const saveToVault = useSaveToVault();
   const addToCalendar = useAddCopyToCalendar();
   
