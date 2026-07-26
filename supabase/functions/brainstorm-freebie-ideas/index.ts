@@ -80,31 +80,19 @@ PAID OFFER: ${paidOffer}${previousIdeasContext}
 
 Return the ideas as JSON.`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.8,
-        max_tokens: 2000,
-      }),
-    });
+    const ai = await callUserAI(
+      guard.supabase,
+      guard.userId,
+      [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      { temperature: 0.8, maxTokens: 2000, headers: corsHeaders }
+    );
+    if (!ai.ok) return ai.response;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI API error:', errorText);
-      throw new Error(`AI API error: ${response.status}`);
-    }
+    const content = ai.content;
 
-    const aiResponse = await response.json();
-    const content = aiResponse.choices?.[0]?.message?.content;
 
     if (!content) {
       throw new Error('No content in AI response');
