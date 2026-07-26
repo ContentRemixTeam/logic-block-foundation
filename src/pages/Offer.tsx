@@ -12,7 +12,6 @@ import {
   Download,
   Inbox,
   ListChecks,
-  Moon,
   Rocket,
   ShieldCheck,
   Smartphone,
