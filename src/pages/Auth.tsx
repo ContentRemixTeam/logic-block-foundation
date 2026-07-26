@@ -87,6 +87,37 @@ export default function Auth() {
     navigate(profile?.user_type === 'member' ? '/workshop' : fallback);
   }, [getStoredRedirect, getNextParam, navigate]);
 
+  // Surface OAuth/provider errors that come back in the URL (query or hash)
+  // instead of silently landing the user on a blank sign-in screen.
+  const [oauthError, setOauthError] = useState<string | null>(null);
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const code = query.get('error') || hash.get('error');
+    if (!code) return;
+
+    const description =
+      query.get('error_description') || hash.get('error_description') || '';
+    const readable =
+      description.replace(/\+/g, ' ') ||
+      (code === 'access_denied'
+        ? 'Sign-in was cancelled.'
+        : 'We could not complete sign-in with Google.');
+
+    setOauthError(`${readable} Please try again, or sign in with your email and password.`);
+    toast({
+      title: 'Sign-in did not complete',
+      description: readable,
+      variant: 'destructive',
+    });
+
+    // Clean the params so the message doesn't reappear on refresh.
+    const url = new URL(window.location.href);
+    ['error', 'error_code', 'error_description'].forEach((k) => url.searchParams.delete(k));
+    url.hash = '';
+    window.history.replaceState({}, '', url.toString());
+  }, [toast]);
+
   useEffect(() => {
     if (!user) {
       authNavigationHandledRef.current = false;
