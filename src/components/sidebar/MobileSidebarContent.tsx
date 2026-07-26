@@ -18,9 +18,7 @@ import {
   ClipboardList,
   Sparkles,
   HelpCircle,
-  Users,
   Lightbulb,
-  Sparkle,
   Gamepad2,
   Smartphone,
   DollarSign,
@@ -80,11 +78,6 @@ const MINDSET_NAV = [
     questIcon: '🧠',
     isActiveCheck: (path: string) => path === '/mindset' || path.includes('useful-thoughts') || path.includes('belief-builder') || path.includes('identity-anchors') || path.includes('self-coaching'),
   },
-];
-
-const COMMUNITY_NAV = [
-  { name: 'Community', href: 'https://portal.faithmariah.com/communities/groups/mastermind/home', icon: Users, questIcon: '🏆', isExternal: true },
-  { name: 'Mastermind', href: '/mastermind', icon: Sparkle, questIcon: '🎓', feature: 'coaching' as FeatureKey },
 ];
 
 const SETTINGS_NAV = [
@@ -324,7 +317,6 @@ export function MobileSidebarContent() {
         <NavSection label="Organize" items={ORGANIZE_NAV} />
         <NavSection label="Review" items={REVIEW_NAV} />
         <NavSection label="Mindset" items={MINDSET_NAV} />
-        <NavSection label="Community" items={COMMUNITY_NAV} />
         
         {/* Focus Mode */}
         {!arcadeLoading && arcadeSettings.arcade_enabled && (

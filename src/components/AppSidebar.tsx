@@ -16,7 +16,6 @@ import {
   ClipboardList,
   Sparkles,
   HelpCircle,
-  Users,
   Map,
   Scroll,
   Compass,
@@ -112,11 +111,6 @@ const ADVANCED_NAV = [
   { name: 'Habits', href: '/habits', icon: CheckSquare, questIcon: '🔥' },
   { name: 'Finances', href: '/finances', icon: DollarSign, questIcon: '💰', settingsKey: 'show_income_tracker' },
   { name: 'AI Copywriting', href: '/ai-copywriting', icon: Sparkle, questIcon: '✨', isActiveCheck: (path: string) => path.startsWith('/ai-copywriting'), feature: 'ai_writing' as FeatureKey },
-];
-
-const COMMUNITY_NAV = [
-  { name: 'Community', href: 'https://portal.faithmariah.com/communities/groups/mastermind/home', icon: Users, questIcon: '🏆', isExternal: true },
-  { name: 'Mastermind', href: '/mastermind', icon: Sparkle, questIcon: '🎓', feature: 'coaching' as FeatureKey },
 ];
 
 const SETTINGS_NAV = [
@@ -344,8 +338,6 @@ export function AppSidebar() {
         {(userSettings as Record<string, unknown>)?.show_advanced_nav && (
           <NavSection label="More" items={ADVANCED_NAV} />
         )}
-        
-        <NavSection label="Community" items={COMMUNITY_NAV} />
         
         {/* Focus Mode - Only visible when arcade is enabled */}
         {!arcadeLoading && arcadeSettings.arcade_enabled && isFeatureEnabled('focus_pets') && (
