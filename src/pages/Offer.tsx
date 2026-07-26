@@ -332,10 +332,6 @@ export default function Offer() {
               Not another app that assumes a full battery — one built for the
               days you actually have.
             </p>
-            <p className="mx-auto mt-5 max-w-xl rounded-xl border border-border-subtle bg-card px-4 py-3 text-sm leading-relaxed text-muted-foreground">
-              You already tried this. Your free retreat access includes 3 days
-              inside the app. This is what happens after those 3 days end.
-            </p>
 
             <div className="mt-8 flex flex-col items-center gap-2.5">
               <CtaButton />
