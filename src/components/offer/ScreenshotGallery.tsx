@@ -1,8 +1,9 @@
-import anchors from "@/assets/offer/anchors.jpg.asset.json";
-import lowBatteryDay from "@/assets/offer/low-battery-day.jpg.asset.json";
-import weeklyPlan from "@/assets/offer/weekly-plan.jpg.asset.json";
-import wizards from "@/assets/offer/wizards.jpg.asset.json";
-import openLoops from "@/assets/offer/open-loops.jpg.asset.json";
+import anchors from "@/assets/offer/anchors.jpg";
+import lowBatteryDay from "@/assets/offer/low-battery-day.jpg";
+import weeklyPlan from "@/assets/offer/weekly-plan.jpg";
+import wizards from "@/assets/offer/wizards.jpg";
+import openLoops from "@/assets/offer/open-loops.jpg";
+
 
 type Shot = {
   src: string;
