@@ -26,6 +26,7 @@ import { StepScriptGenerator } from '@/components/wizards/money-momentum/StepScr
 import { StepWhatsStoppingYou } from '@/components/wizards/money-momentum/StepWhatsStoppingYou';
 import { StepSprintSchedule } from '@/components/wizards/money-momentum/StepSprintSchedule';
 import { StepCommit } from '@/components/wizards/money-momentum/StepCommit';
+import { inferEnergyCost } from '@/lib/wizardEnergy';
 
 export default function MoneyMomentumWizardPage() {
   const navigate = useNavigate();

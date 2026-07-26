@@ -15,6 +15,7 @@ import { HabitDefineNew } from '@/components/wizards/habits/HabitDefineNew';
 import { HabitFrequencyTiming } from '@/components/wizards/habits/HabitFrequencyTiming';
 import { HabitScheduling } from '@/components/wizards/habits/HabitScheduling';
 import { HabitReviewComplete } from '@/components/wizards/habits/HabitReviewComplete';
+import { inferEnergyCost } from '@/lib/wizardEnergy';
 
 const HABIT_WIZARD_STEPS = [
   { number: 1, title: 'Life Areas' },
