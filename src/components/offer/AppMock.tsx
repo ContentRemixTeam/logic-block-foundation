@@ -6,7 +6,7 @@ import { BatteryLow, BatteryMedium, Check, Moon, Target } from "lucide-react";
  * not as generic stock art.
  */
 
-function WindowChrome({ children }: { children: React.ReactNode }) {
+export function WindowChrome({ children }: { children: React.ReactNode }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border-subtle bg-card shadow-lg">
       <div className="flex items-center gap-2 border-b border-border-subtle bg-surface-sunken px-4 py-2.5">
