@@ -646,3 +646,19 @@ export function useAICopywritingSetupStatus() {
     apiKeys: apiKeys || [],
   };
 }
+
+// Lightweight hook for gating AI "Generate" buttons behind having a usable key.
+// Does NOT fetch the brand profile, so it is cheap to use inside wizards.
+export function useHasAIKey() {
+  const { data: apiKeys, isLoading } = useAPIKeys();
+
+  const usableKey = (apiKeys || []).find(k => k.key_status === 'valid') || null;
+
+  return {
+    isLoading,
+    hasAPIKey: !!usableKey,
+    provider: (usableKey?.provider === 'anthropic' ? 'anthropic' : 'openai') as
+      | 'openai'
+      | 'anthropic',
+  };
+}
