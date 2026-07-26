@@ -400,7 +400,7 @@ export default function Offer() {
         <div className="mx-auto w-full max-w-5xl px-5 py-14 sm:py-20">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-              12-Month Access
+              Exclusive — Lizzy&rsquo;s Summer Party Offer
             </p>
             <h1 className="mt-4 font-serif text-4xl leading-[1.1] tracking-tight sm:text-5xl md:text-6xl">
               <BatteryMedium
