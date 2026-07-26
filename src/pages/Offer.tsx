@@ -154,11 +154,8 @@ export default function Offer() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-background text-foreground">
       {/* HERO */}
-      <section className="relative border-b border-border-subtle">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-accent/50 blur-3xl"
-        />
+      <section className="relative border-b border-border-subtle bg-surface">
+
         <div className="relative mx-auto w-full max-w-3xl px-5 py-16 text-center sm:py-24">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
             The Low Battery Business Planner
