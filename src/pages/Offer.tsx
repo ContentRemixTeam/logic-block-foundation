@@ -698,7 +698,7 @@ export default function Offer() {
       {/* STICKY MOBILE CTA — portalled so an ancestor transform can't trap it */}
       {createPortal(
         <div
-          className={`fixed inset-x-0 bottom-0 z-50 border-t border-border-subtle bg-background/95 backdrop-blur transition-transform duration-300 sm:hidden ${
+          className={`offer-brand fixed inset-x-0 bottom-0 z-50 border-t border-border-subtle bg-background/95 backdrop-blur transition-transform duration-300 sm:hidden ${
             showStickyCta ? "translate-y-0" : "translate-y-full"
           }`}
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
