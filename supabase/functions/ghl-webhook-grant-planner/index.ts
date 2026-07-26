@@ -88,19 +88,28 @@ Deno.serve((req) =>
     }
 
     // Mirror into member_access, which is what gates the app at runtime.
-    const { error: accessError } = await supabase.from('member_access').upsert(
-      {
-        email,
-        access_level: offer === 'lifetime' ? 'lifetime' : 'annual',
-        access_expires_at: endsAt ? new Date(`${endsAt}T23:59:59Z`).toISOString() : null,
-        status: 'active',
-        source: 'ghl',
-        ghl_contact_id: ghlContactId || null,
-        revoked_at: null,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'email' },
-    );
+    // Link to an existing account when one already exists for this email.
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .ilike('email', email)
+      .maybeSingle();
+
+    const accessRow: Record<string, unknown> = {
+      email,
+      access_level: offer === 'lifetime' ? 'lifetime' : 'annual',
+      access_expires_at: endsAt ? new Date(`${endsAt}T23:59:59Z`).toISOString() : null,
+      status: 'active',
+      source: 'ghl',
+      ghl_contact_id: ghlContactId || null,
+      revoked_at: null,
+      updated_at: new Date().toISOString(),
+    };
+    if (profile?.id) accessRow.user_id = profile.id;
+
+    const { error: accessError } = await supabase
+      .from('member_access')
+      .upsert(accessRow, { onConflict: 'email' });
 
     if (accessError) {
       console.error(`[${FN}] member_access error:`, accessError.message);
