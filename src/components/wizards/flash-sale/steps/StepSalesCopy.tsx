@@ -34,6 +34,7 @@ export function StepSalesCopy({ data, setData }: StepProps) {
   };
 
   const generateCopy = async () => {
+    if (!hasAPIKey) return;
     setIsGenerating(true);
     try {
       const { data: result, error } = await supabase.functions.invoke('generate-flash-sale-copy', {
