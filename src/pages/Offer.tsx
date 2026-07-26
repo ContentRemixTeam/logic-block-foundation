@@ -9,16 +9,20 @@ import {
   BatteryWarning,
   Brain,
   CheckCircle2,
-  CloudOff,
   Download,
-  HeartHandshake,
+  Inbox,
   ListChecks,
   Moon,
+  Rocket,
   ShieldCheck,
   Smartphone,
   Sparkles,
   Target,
+  Timer,
+  Trophy,
   Wand2,
+  X,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,11 +31,16 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { DashboardMock, TasksMock } from "@/components/offer/AppMock";
 import { FeatureWalkthrough } from "@/components/offer/FeatureWalkthrough";
-import { ScreenshotGallery } from "@/components/offer/ScreenshotGallery";
 
 import logoMark from "/brand/logo-mark.svg";
+import dailyPlanShot from "@/assets/offer/anchors.jpg";
+import moneyMovesShot from "@/assets/offer/money-moves.jpg";
+import weeklyPlanShot from "@/assets/offer/weekly-plan.jpg";
+import focusModeShot from "@/assets/offer/focus-mode.jpg";
+import lowBatteryShot from "@/assets/offer/low-battery-day.jpg";
+import openLoopsShot from "@/assets/offer/open-loops.jpg";
+import wizardsShot from "@/assets/offer/wizards.jpg";
 
 /**
  * PUBLIC SALES PAGE — $27 / 12 months
@@ -65,100 +74,177 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+function Shot({
+  src,
+  alt,
+  caption,
+  className = "",
+}: {
+  src: string;
+  alt: string;
+  caption?: string;
+  className?: string;
+}) {
+  return (
+    <figure
+      className={`overflow-hidden rounded-2xl border border-border-subtle bg-surface shadow-sm ${className}`}
+    >
+      <img src={src} alt={alt} loading="lazy" className="w-full" />
+      {caption ? (
+        <figcaption className="border-t border-border-subtle px-5 py-3.5 text-sm leading-relaxed text-muted-foreground">
+          {caption}
+        </figcaption>
+      ) : null}
+    </figure>
+  );
+}
+
+const heroBullets = [
+  "choose your battery: Full, Half, Low, or Empty",
+  "protect the one business move that matters most",
+  "turn your weekly focus into three realistic actions",
+  "move non-essential work aside without deleting it",
+  "keep your 90-day goal visible when the week gets messy",
+];
+
+const moneyMovesBullets = [
+  "the problem your offer needs to solve",
+  "three small actions to move it forward",
+  "notes and proof links",
+  "a public commitment",
+  "a place to log sales, yeses, booked calls, and other results",
+];
+
+const weeklyBullets = [
+  "one outcome that matters",
+  "three commitments",
+  "your realistic capacity",
+  "what you will do if life happens",
+];
+
 const batteryLevels = [
   {
     icon: BatteryFull,
-    label: "Full",
-    body: "Ready for deep work and high-energy tasks.",
+    label: "Full battery",
+    body: "Plan deep work, high-energy tasks, and bigger moves.",
   },
   {
     icon: BatteryMedium,
-    label: "Half",
-    body: "Steady pace, focusing on medium-energy items.",
+    label: "Half battery",
+    body: "Keep moving with a steady, manageable workload.",
   },
   {
     icon: BatteryLow,
-    label: "Low",
-    body: "Bare minimum plan. Essential tasks only.",
+    label: "Low battery",
+    body: "See the bare minimum that still counts as progress.",
   },
   {
     icon: BatteryWarning,
-    label: "Empty",
-    body: "Rest day. Move non-essential work away.",
+    label: "Empty battery",
+    body: "Protect your energy and move non-essential work out of the way.",
   },
 ];
 
-const batteryFeatures = [
+const realityFeatures = [
   {
-    icon: BatteryMedium,
-    title: "Daily battery check-in",
-    body: "Full, Half, Low or Empty. Thirty seconds, once a day. No streaks to break, no guilt if you skip it.",
+    icon: Sparkles,
+    title: "Daily Plan",
+    body: "Start with the day you are actually having. Choose your brave move, low-energy task, waiting-on item, and one thing you are allowed to let go of today.",
   },
   {
     icon: ListChecks,
     title: "Bare Minimum Plan",
-    body: "One to three tiny things that count as a win. On hard days that is the entire list — and finishing it still gets a celebration.",
+    body: "Choose one to three small things that count as a win. On a hard day, that can be the entire list. Finishing it still counts.",
   },
   {
-    icon: BatteryLow,
-    title: "Energy cost on every task",
-    body: "Tag work low, medium or high so you can match the task to the battery you actually have today.",
-  },
-  {
-    icon: Moon,
-    title: "Low Battery Day mode",
-    body: "One tap gently moves non-essential work out of the way. Nothing is lost. Nothing turns red.",
-  },
-  {
-    icon: HeartHandshake,
-    title: "Overdue never yells",
-    body: "Late items stay warm amber instead of alarm red — and Fresh Start clears a backlog in one click when you have been away.",
-  },
-  {
-    icon: Sparkles,
-    title: "Celebrations built in",
-    body: "Gentle, reduced-motion-friendly moments when you close out a day, a plan or a milestone.",
-  },
-];
-
-const systemFeatures = [
-  {
-    icon: Target,
-    title: "90-Day Command Centre",
-    body: "Your entire quarter at a glance. See what's coming without feeling overwhelmed.",
+    icon: Zap,
+    title: "Energy Cost on Every Task",
+    body: "Mark work as low, medium, or high energy so you can match the task to the capacity you have today.",
   },
   {
     icon: Brain,
     title: "Brain Dump Capture",
-    body: "Get it out of your head and onto the page. Sort it later, when you have the energy.",
+    body: "Get the thoughts out of your head before they become another problem. Capture tasks, ideas, content, projects, questions, and wins. Leave it messy now. Sort it later, when you have the energy.",
+  },
+  {
+    icon: Inbox,
+    title: "Open Loops",
+    body: "Put loose threads somewhere calm and sort them into Do, Decide, Defer, or Delete.",
+  },
+  {
+    icon: Trophy,
+    title: "Evidence Bank",
+    body: "Track wins, learning, proof, and pride so progress does not disappear just because the next thing is already demanding your attention.",
   },
   {
     icon: Wand2,
     title: "Planning Wizards",
-    body: "Step-by-step guidance for daily and weekly planning, so you never start from a blank page.",
+    body: "Plan a 90-day cycle, launch, content batch, or week without starting from a blank page.",
+  },
+  {
+    icon: Timer,
+    title: "Focus Mode",
+    body: "Choose your Top 3, set time estimates, start a timer, and focus on the next task instead of holding the entire business in your head. Complete tasks to hatch your planner pet.",
+  },
+];
+
+const quarterBullets = [
+  "one main focus",
+  "smaller weekly commitments",
+  "daily next steps",
+  "realistic capacity adjustments",
+  "visible progress",
+  "a way back in after disruption",
+];
+
+const quarterFeatures = [
+  {
+    icon: Target,
+    title: "90-Day Command Centre",
+    body: "See the whole quarter without carrying the whole quarter in your head.",
   },
   {
     icon: Download,
     title: "Export to PDF",
-    body: "Need it on paper? Export your plan to PDF anytime and take it with you.",
+    body: "Take your plan with you on paper whenever you want.",
   },
   {
     icon: Smartphone,
     title: "Installs Like an App",
-    body: "Add it to your home screen. It feels and acts like a native app on your phone.",
+    body: "Add it to your phone's home screen and use it like an app on your phone, tablet, or desktop.",
   },
-  {
-    icon: CloudOff,
-    title: "Saves as You Type",
-    body: "Never lose your work. Everything saves instantly, across all your devices.",
-  },
+];
+
+const forYou = [
+  "you already have a business, offer, audience, skill, or idea in motion",
+  "your capacity changes more than your current plan allows for",
+  "one hard week tends to become a full restart",
+  "you want to make business progress without pretending you can do everything",
+  "you need help deciding what matters now",
+  "you want a plan that supports your ambition instead of constantly punishing your capacity",
+];
+
+const notForYou = [
+  "you want a rigid productivity system built around constant output",
+  "you want a planner to make every business decision for you",
+  "you are looking for a motivation challenge or perfect streak",
+  "you do not want to choose what matters most",
+  "you want a system that assumes every week will look the same",
 ];
 
 const included = [
   "Guided 90-day planning",
-  "Weekly planning and daily system",
-  "Daily planning wizards",
-  "Support guides & planner tools",
+  "Daily and weekly planning",
+  "Battery-based capacity planning",
+  "Low Battery Day mode",
+  "Money Moves sprints",
+  "Brain Dump Capture",
+  "Open Loops organization",
+  "Planning Wizards",
+  "Focus Mode",
+  "Evidence Bank",
+  "Support guides and planner tools",
+  "12 months of access",
 ];
 
 const testimonials = [
@@ -180,24 +266,24 @@ const testimonials = [
 
 const faqs = [
   {
-    q: "What if it's just not for me?",
-    a: "Try it for 7 days. If it's not helping, email support and it's refunded. No form, no hoop.",
-  },
-  {
     q: "Is this a subscription?",
-    a: "No. It's a one-time payment of $27 for 12 months of access. Nothing renews without you choosing it.",
+    a: "No. It is a one-time payment of $27 for 12 months of access.",
   },
   {
     q: "Does it work on my phone?",
-    a: "Yes — it works beautifully on phone, tablet and desktop, and you can add it to your home screen in two taps.",
+    a: "Yes. You can use it on your phone, tablet, or desktop, and add it to your home screen like an app.",
   },
   {
     q: "What if I fall behind?",
-    a: "That is the entire point of the app. Low Battery Day mode, the Bare Minimum Plan and Fresh Start exist because you will have weeks where nothing goes to plan. The planner is built to catch those weeks, not scold you for them.",
+    a: "The planner is built for that. Low Battery Day, the Weekly Tradeoff, and Fresh Start help you adjust without deleting your progress or starting over.",
   },
   {
     q: "Do I need to be sick or diagnosed to use it?",
-    a: "No. It was built for entrepreneurs with chronic illness, but anyone whose energy is inconsistent — parents, carers, burnt-out founders — runs their business better in it.",
+    a: "No. The planner is for anyone whose energy, attention, responsibilities, or life circumstances are unpredictable.",
+  },
+  {
+    q: "What if I cannot use it every day?",
+    a: "You do not need a perfect streak. You need a planning system you can return to.",
   },
 ];
 
@@ -206,7 +292,7 @@ const jsonLd = {
   "@type": "Product",
   name: "The Low Battery Business Planner — 12 Month Access",
   description:
-    "A calm 90-day planning system for entrepreneurs with limited energy. 12 months of access for a one-time $27.",
+    "A 90-day business planning system for entrepreneurs whose capacity changes. 12 months of access for a one-time $27.",
   brand: { "@type": "Brand", name: "The Low Battery Business Planner" },
   offers: {
     "@type": "Offer",
@@ -237,7 +323,7 @@ export default function Offer() {
     const prevDesc = desc?.getAttribute("content") ?? "";
     desc?.setAttribute(
       "content",
-      "A calm 90-day planner for entrepreneurs with limited energy. 12 months of access for a one-time $27.",
+      "Build a 90-day business plan that still works when your capacity changes. 12 months of access for a one-time $27.",
     );
     const script = document.createElement("script");
     script.type = "application/ld+json";
@@ -322,20 +408,28 @@ export default function Offer() {
                 className="mr-3 inline-block h-8 w-8 shrink-0 align-baseline text-primary sm:h-10 sm:w-10"
                 aria-hidden
               />
-              Your 25% Still Counts.
+              Your 25% Still Counts
             </h1>
+            <p className="mx-auto mt-5 max-w-xl font-serif text-xl leading-snug sm:text-2xl">
+              Build a 90-day business plan that still works when your capacity
+              changes.
+            </p>
             <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground">
-              Most planners help you decide what to do. This one helps you
-              decide what still matters when you can&apos;t do it all.
+              Most planners help you decide what to do.
             </p>
-            <p className="mx-auto mt-3 max-w-xl text-lg leading-relaxed text-muted-foreground">
-              Built for the entrepreneur whose energy doesn&apos;t run on a
-              schedule: chronic illness, a newborn, a day job, a brain that
-              checks out at 2pm.
+            <p className="mx-auto mt-2 max-w-xl text-lg leading-relaxed text-muted-foreground">
+              This one helps you decide what still matters when you cannot do it
+              all.
             </p>
-            <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground">
-              Your free retreat includes 3 days inside this exact planner. When
-              those 3 days are up, you can keep it for a full year for $27.
+            <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground">
+              The Low Battery Business Planner helps ambitious entrepreneurs
+              choose the next money move, plan around their actual capacity, and
+              keep the business moving when energy, attention, health, or life
+              does not follow a predictable schedule.
+            </p>
+            <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-muted-foreground">
+              Your free retreat access includes 3 days inside the planner. When
+              those 3 days are up, keep using it for 12 months for $27.
             </p>
 
             <div className="mt-8 flex flex-col items-center gap-2.5">
@@ -347,8 +441,185 @@ export default function Offer() {
             </div>
           </div>
 
-          <div className="mx-auto mt-12 max-w-2xl">
-            <DashboardMock />
+          <div className="mx-auto mt-12 max-w-3xl">
+            <Shot
+              src={dailyPlanShot}
+              alt="Today's Anchors panel inside the Daily Plan, with brave move, low-energy task and waiting-on fields"
+            />
+          </div>
+
+          <div className="mx-auto mt-10 max-w-2xl">
+            <p className="text-base font-semibold">Inside the planner, you can:</p>
+            <ul className="mt-4 space-y-2.5">
+              {heroBullets.map((item) => (
+                <li key={item} className="flex items-start gap-3">
+                  <CheckCircle2
+                    className="mt-1 h-4 w-4 shrink-0 text-primary"
+                    aria-hidden
+                  />
+                  <span className="leading-relaxed text-muted-foreground">
+                    {item}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-7 font-serif text-xl leading-snug">
+              A hard week should cost you a hard week &mdash; not the entire
+              quarter.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* MONEY MOVES */}
+      <section className="border-b border-border-subtle">
+        <div className="mx-auto w-full max-w-5xl px-5 py-16 sm:py-20">
+          <div className="max-w-2xl">
+            <SectionLabel>
+              This is not just a planner for organizing tasks
+            </SectionLabel>
+            <p className="font-serif text-2xl leading-snug">
+              It helps you keep the business moving.
+            </p>
+            <h2 className="mt-8 font-serif text-3xl leading-snug sm:text-4xl">
+              Choose your next money move
+            </h2>
+            <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+              The Money Moves system turns a vague business goal into one
+              realistic focus for the week.
+            </p>
+          </div>
+
+          <div className="mt-8 grid items-start gap-8 lg:grid-cols-2">
+            <div>
+              <p className="text-base font-semibold">You choose:</p>
+              <ul className="mt-4 space-y-2.5">
+                {moneyMovesBullets.map((item) => (
+                  <li key={item} className="flex items-start gap-3">
+                    <CheckCircle2
+                      className="mt-1 h-4 w-4 shrink-0 text-primary"
+                      aria-hidden
+                    />
+                    <span className="leading-relaxed text-muted-foreground">
+                      {item}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-7 font-serif text-xl leading-snug">
+                Small. Honest. Doable this week.
+              </p>
+            </div>
+            <Shot
+              src={moneyMovesShot}
+              alt="Money Moves screen showing this week's move and three sprint actions"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* WEEKLY TRADEOFF */}
+      <section className="border-b border-border-subtle bg-surface-sunken">
+        <div className="mx-auto w-full max-w-5xl px-5 py-16 sm:py-20">
+          <div className="max-w-2xl">
+            <SectionLabel>The weekly tradeoff</SectionLabel>
+            <h2 className="font-serif text-3xl leading-snug sm:text-4xl">
+              Plan the week you can actually live
+            </h2>
+            <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+              The Weekly Tradeoff helps you decide:
+            </p>
+            <ul className="mt-4 space-y-2.5">
+              {weeklyBullets.map((item) => (
+                <li key={item} className="flex items-start gap-3">
+                  <CheckCircle2
+                    className="mt-1 h-4 w-4 shrink-0 text-primary"
+                    aria-hidden
+                  />
+                  <span className="leading-relaxed text-muted-foreground">
+                    {item}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
+              If your energy crashes, your child gets sick, your day job runs
+              late, or you fall behind, you already have an adjusted version of
+              the plan.
+            </p>
+            <p className="mt-5 font-serif text-xl leading-snug">
+              You are not failing the plan. You are using it.
+            </p>
+          </div>
+
+          <div className="mt-10">
+            <Shot
+              src={weeklyPlanShot}
+              alt="Weekly Tradeoff panel with one outcome, three commitments, realistic capacity and a life-happens plan"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* BATTERY SYSTEM */}
+      <section className="border-b border-border-subtle">
+        <div className="mx-auto w-full max-w-5xl px-5 py-16 sm:py-20">
+          <div className="max-w-2xl">
+            <SectionLabel>The battery system</SectionLabel>
+            <h2 className="font-serif text-3xl leading-snug sm:text-4xl">
+              Your plan should change when your capacity changes
+            </h2>
+            <div className="mt-5 space-y-3 text-lg leading-relaxed text-muted-foreground">
+              <p>Business advice often assumes you feel fine.</p>
+              <p>This planner does not.</p>
+              <p>
+                You choose the battery you woke up with, and the system helps you
+                plan accordingly.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {batteryLevels.map(({ icon: Icon, label, body }) => (
+              <div
+                key={label}
+                className="rounded-2xl border border-border-subtle bg-card p-5 shadow-sm"
+              >
+                <Icon className="h-5 w-5 text-primary" aria-hidden />
+                <h3 className="mt-3 text-base font-semibold">{label}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                  {body}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* LOW BATTERY DAY */}
+      <section className="border-b border-border-subtle bg-surface-sunken">
+        <div className="mx-auto w-full max-w-5xl px-5 py-16 sm:py-20">
+          <div className="grid items-center gap-10 lg:grid-cols-2">
+            <div>
+              <SectionLabel>Low Battery Day</SectionLabel>
+              <h2 className="font-serif text-3xl leading-snug sm:text-4xl">
+                When the day goes sideways, your plan does not have to
+              </h2>
+              <div className="mt-5 space-y-3 text-lg leading-relaxed text-muted-foreground">
+                <p>
+                  Low Battery Day moves non-essential tasks aside with one tap.
+                </p>
+                <p>Nothing is deleted. Nothing is lost.</p>
+                <p>Nothing turns into a wall of red overdue tasks.</p>
+              </div>
+              <p className="mt-6 font-serif text-xl leading-snug">
+                The plan gets smaller. The goal stays intact.
+              </p>
+            </div>
+            <Shot
+              src={lowBatteryShot}
+              alt="Low Battery Day prompt offering to park the rest of the day's non-essential tasks"
+            />
           </div>
         </div>
       </section>
@@ -360,16 +631,21 @@ export default function Offer() {
           <div className="space-y-4 text-lg leading-relaxed text-muted-foreground">
             <p>
               I didn&rsquo;t build this because the workbook wasn&rsquo;t good
-              enough. The workbook works. I built this because a plan on paper
-              doesn&rsquo;t know what kind of day you&rsquo;re having, and mine
-              never has.
+              enough. The workbook works.
             </p>
             <p>
-              I built $900K+ online while living with ADHD and chronic illness,
-              on energy I couldn&rsquo;t predict from one Tuesday to the next.
-              The retreat you just claimed gives you the plan. This is the part
-              that knows when you&rsquo;re running on empty and adjusts without
-              making you feel like you failed.
+              I built this because a plan on paper does not know what kind of day
+              you&rsquo;re having &mdash; and mine never has.
+            </p>
+            <p>
+              I built a $900K+ online business while living with ADHD and chronic
+              illness, on energy I could not predict from one Tuesday to the
+              next.
+            </p>
+            <p>The retreat you just claimed gives you the plan.</p>
+            <p>
+              This is the part that helps the plan keep working when you are
+              running on empty.
             </p>
           </div>
           <p className="mt-6 font-serif text-xl text-foreground">&mdash; Faith</p>
@@ -384,91 +660,79 @@ export default function Offer() {
             Most planners are built for your best day.
           </h2>
           <div className="mt-6 space-y-4 text-lg leading-relaxed text-muted-foreground">
+            <p>Then you have a low day. Then three.</p>
             <p>
-              Then you have a low day. Then three. You fall behind your own
-              system, the page fills with red, and you quietly stop opening it.
+              You fall behind your own system, the page fills with red, and you
+              quietly stop opening it.
             </p>
             <p>
-              The plan didn&rsquo;t fail. The tool just never made room for a bad
-              week — and bad weeks are not an exception for you, they are part of
-              the schedule.
+              The plan did not fail. The tool just never made room for a hard
+              week.
+            </p>
+            <p>
+              And hard weeks are not an exception for you. They are part of the
+              schedule.
             </p>
             <p className="font-medium text-foreground">
-              So this one plans for them from the start.
+              So this planner plans for them from the start.
             </p>
           </div>
         </div>
       </section>
 
-      {/* TWO VERSIONS OF NEXT QUARTER */}
+      {/* TWO VERSIONS */}
       <section className="border-b border-border-subtle">
         <div className="mx-auto w-full max-w-5xl px-5 py-16 sm:py-20">
           <h2 className="max-w-2xl font-serif text-3xl leading-snug sm:text-4xl">
-            Two versions of next quarter
+            Two versions of your next quarter
           </h2>
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             <div className="rounded-2xl border border-border-subtle bg-surface-sunken p-6 sm:p-7">
               <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 The old way
               </h3>
-              <p className="mt-4 leading-relaxed text-muted-foreground">
-                Next quarter can look exactly like this one. A plan built on a
-                good day, a hard week that knocks it sideways, and a fresh
-                notebook in October because this one&rsquo;s page count got too
-                honest to keep opening.
-              </p>
+              <div className="mt-4 space-y-3 leading-relaxed text-muted-foreground">
+                <p>You build a plan on a good day.</p>
+                <p>A hard week knocks it sideways.</p>
+                <p>
+                  You fall behind, avoid opening the planner, and eventually
+                  start over with a fresh notebook because this one got too
+                  honest to keep looking at.
+                </p>
+              </div>
             </div>
             <div className="rounded-2xl border-2 border-primary/25 bg-card p-6 shadow-sm sm:p-7">
               <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
                 The new way
               </h3>
-              <p className="mt-4 leading-relaxed">
-                Or next quarter can look like this instead: a low battery day
-                that costs you an afternoon, not the whole plan. Week four
-                arriving and you&rsquo;re still in it, because the tool already
-                expected week four to be hard. The same 90 days, still running —
-                on the days you had, not the days you were supposed to have.
-              </p>
+              <div className="mt-4 space-y-3 leading-relaxed">
+                <p>
+                  A low-battery day costs you an afternoon, not the entire plan.
+                </p>
+                <p>
+                  Week four arrives and you are still in it because the planner
+                  expected week four to be hard.
+                </p>
+                <p>You keep the goal. You adjust the route.</p>
+                <p>You keep going from the capacity you actually have.</p>
+              </div>
             </div>
           </div>
           <p className="mt-8 max-w-2xl font-serif text-xl leading-snug">
-            That&rsquo;s the only difference this changes. Not your energy. What
-            your plan does with it.
+            That is the difference. Not your energy. What your plan does with it.
           </p>
         </div>
       </section>
 
-      {/* BATTERY SYSTEM */}
+      {/* ORGANIZED AROUND REALITY */}
       <section className="border-b border-border-subtle bg-surface-sunken">
         <div className="mx-auto w-full max-w-5xl px-5 py-16 sm:py-20">
-          <div className="max-w-2xl">
-            <SectionLabel>The battery system</SectionLabel>
-            <h2 className="font-serif text-3xl leading-snug sm:text-4xl">
-              A planner that asks how you are before it asks what you&rsquo;ll do.
-            </h2>
-            <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-              Full, Half, Low or Empty. Your plan adjusts to whichever one you
-              woke up with.
-            </p>
-          </div>
+          <h2 className="max-w-2xl font-serif text-3xl leading-snug sm:text-4xl">
+            Your business, organized around reality
+          </h2>
 
-          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {batteryLevels.map(({ icon: Icon, label, body }) => (
-              <div
-                key={label}
-                className="rounded-2xl border border-border-subtle bg-card p-5"
-              >
-                <Icon className="h-5 w-5 text-primary" aria-hidden />
-                <h3 className="mt-3 text-base font-semibold">{label}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                  {body}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {batteryFeatures.map(({ icon: Icon, title, body }) => (
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {realityFeatures.map(({ icon: Icon, title, body }) => (
               <div
                 key={title}
                 className="rounded-2xl border border-border-subtle bg-card p-6 shadow-sm"
@@ -482,11 +746,24 @@ export default function Offer() {
             ))}
           </div>
 
-          <div className="mx-auto mt-10 max-w-xl">
-            <TasksMock />
-            <p className="mt-3 text-center text-xs text-muted-foreground">
-              Every task carries an energy cost, so you can plan the day you have.
-            </p>
+          <div className="mt-10 grid gap-6 lg:grid-cols-2">
+            <Shot
+              src={focusModeShot}
+              alt="Focus Mode with Top 3 tasks, timer settings and the planner pet"
+              caption="Focus Mode. Choose your Top 3, start a timer, and hatch your planner pet."
+            />
+            <div className="grid gap-6">
+              <Shot
+                src={openLoopsShot}
+                alt="Open Loops page grouping items into Do, Decide, Defer and Delete"
+                caption="Open Loops. Every loose thread sorted into do, decide, defer or delete."
+              />
+              <Shot
+                src={wizardsShot}
+                alt="Planning wizards library with the 90-day cycle planner and other guided workflows"
+                caption="Planning Wizards. Never start from a blank page."
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -499,8 +776,8 @@ export default function Offer() {
             See it working before you buy it.
           </h2>
           <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-            Six screens, in the order you&rsquo;d actually meet them. Tap
-            through at your own pace.
+            Six screens, in the order you&rsquo;d actually meet them. Tap through
+            at your own pace.
           </p>
           <div className="mt-10">
             <FeatureWalkthrough />
@@ -508,33 +785,30 @@ export default function Offer() {
         </div>
       </section>
 
-      {/* REAL SCREENS */}
-      <section className="border-b border-border-subtle bg-surface-sunken">
-        <div className="mx-auto w-full max-w-5xl px-5 py-16 sm:py-20">
-          <SectionLabel>Real screens</SectionLabel>
-          <h2 className="max-w-2xl font-serif text-3xl leading-snug sm:text-4xl">
-            This is the actual planner. No mockups.
-          </h2>
-          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-            Straight from inside the app you get access to today.
-          </p>
-          <div className="mt-10">
-            <ScreenshotGallery />
-          </div>
-        </div>
-      </section>
-
-
       {/* 90 DAY SYSTEM */}
       <section className="border-b border-border-subtle bg-surface-sunken">
         <div className="mx-auto w-full max-w-5xl px-5 py-16 sm:py-20">
           <SectionLabel>The 90-day system</SectionLabel>
           <h2 className="max-w-2xl font-serif text-3xl leading-snug sm:text-4xl">
-            One focus, ninety days, and a plan that keeps working on the weeks
-            you cannot.
+            One focus. Ninety days. A plan that keeps working.
           </h2>
+          <p className="mt-6 text-base font-semibold">Your quarter becomes:</p>
+          <ul className="mt-4 grid max-w-2xl gap-2.5 sm:grid-cols-2">
+            {quarterBullets.map((item) => (
+              <li key={item} className="flex items-start gap-3">
+                <CheckCircle2
+                  className="mt-1 h-4 w-4 shrink-0 text-primary"
+                  aria-hidden
+                />
+                <span className="leading-relaxed text-muted-foreground">
+                  {item}
+                </span>
+              </li>
+            ))}
+          </ul>
+
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {systemFeatures.map(({ icon: Icon, title, body }) => (
+            {quarterFeatures.map(({ icon: Icon, title, body }) => (
               <div
                 key={title}
                 className="rounded-2xl border border-border-subtle bg-card p-6 shadow-sm"
@@ -546,6 +820,48 @@ export default function Offer() {
                 </p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FIT */}
+      <section className="border-b border-border-subtle">
+        <div className="mx-auto w-full max-w-5xl px-5 py-16 sm:py-20">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border-2 border-primary/25 bg-card p-6 shadow-sm sm:p-7">
+              <h2 className="font-serif text-2xl leading-snug">
+                This is for you if&hellip;
+              </h2>
+              <ul className="mt-5 space-y-3">
+                {forYou.map((item) => (
+                  <li key={item} className="flex items-start gap-3">
+                    <CheckCircle2
+                      className="mt-1 h-4 w-4 shrink-0 text-primary"
+                      aria-hidden
+                    />
+                    <span className="text-sm leading-relaxed">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-2xl border border-border-subtle bg-surface-sunken p-6 sm:p-7">
+              <h2 className="font-serif text-2xl leading-snug">
+                This is probably not for you if&hellip;
+              </h2>
+              <ul className="mt-5 space-y-3">
+                {notForYou.map((item) => (
+                  <li key={item} className="flex items-start gap-3">
+                    <X
+                      className="mt-1 h-4 w-4 shrink-0 text-muted-foreground"
+                      aria-hidden
+                    />
+                    <span className="text-sm leading-relaxed text-muted-foreground">
+                      {item}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </section>
@@ -594,17 +910,17 @@ export default function Offer() {
           >
             <SectionLabel>12-Month Access</SectionLabel>
             <h2 className="font-serif text-3xl leading-snug sm:text-4xl">
-              90-Day Low Battery Business Planner
+              The 90-Day Low Battery Business Planner
             </h2>
             <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-              A special price, just for claiming Plan Like a Boss through
-              Lizzy&rsquo;s Summer Party. A calm planning system built for the
-              days your energy doesn&rsquo;t show up on schedule. Your 25% still
-              counts.
+              A business planning system for ambitious entrepreneurs whose
+              energy, attention, responsibilities, or life circumstances do not
+              run on a predictable schedule.
             </p>
+            <p className="mt-3 font-serif text-xl">Your 25% still counts.</p>
 
-            <p className="mt-8 text-sm font-semibold">What&rsquo;s included:</p>
-            <ul className="mt-3 space-y-2.5">
+            <p className="mt-8 text-sm font-semibold">What&rsquo;s included</p>
+            <ul className="mt-3 grid gap-2.5 sm:grid-cols-2">
               {included.map((item) => (
                 <li key={item} className="flex items-start gap-3">
                   <CheckCircle2
@@ -617,11 +933,11 @@ export default function Offer() {
             </ul>
 
             <p className="mt-7 text-base font-medium">
-              12 months of access. One-time payment of $27.
+              One-time payment of $27.
             </p>
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Does not include Becoming Boss Mastermind access, live coaching, or
-              community.
+              This does not include Becoming Boss Mastermind access, live
+              coaching, or community access.
             </p>
 
             <div className="mt-8 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-t border-border-subtle pt-7">
@@ -629,18 +945,18 @@ export default function Offer() {
                 $27
               </span>
               <span className="text-sm text-muted-foreground">
-                one-time &mdash; about $2.25 a month
+                One-time payment &middot; about $2.25 per month over 12 months
               </span>
             </div>
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              This price is available exclusively to Lizzy&rsquo;s Summer Party
-              bundle claimants.
+              This special price is available exclusively to Lizzy&rsquo;s
+              Summer Party bundle claimants.
             </p>
 
             <div className="mt-8 flex flex-col items-start gap-2.5">
               <CtaButton />
               <p className="text-sm text-muted-foreground">
-                Instant access &middot; works on phone, tablet and desktop
+                Instant access &middot; works on phone, tablet, and desktop
               </p>
             </div>
           </div>
@@ -654,11 +970,14 @@ export default function Offer() {
           <h2 className="mt-4 font-serif text-3xl leading-snug sm:text-4xl">
             The 7-day guarantee
           </h2>
-          <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
-            If it&rsquo;s not a fit, that&rsquo;s a fair trade for $27. Use it
-            for 7 days. If it&rsquo;s not doing what a planner should do for
-            you, email support and I&rsquo;ll refund it. No form, no hoop.
-          </p>
+          <div className="mt-5 space-y-3 text-lg leading-relaxed text-muted-foreground">
+            <p>Use the planner for 7 days.</p>
+            <p>
+              If it is not doing what a planner should do for you, email support
+              and I&rsquo;ll refund your purchase.
+            </p>
+            <p>No form. No hoops.</p>
+          </div>
         </div>
       </section>
 
@@ -687,14 +1006,15 @@ export default function Offer() {
       {/* FINAL CTA */}
       <section>
         <div className="mx-auto w-full max-w-2xl px-5 py-20 text-center">
-          <h2 className="font-serif text-3xl leading-snug sm:text-4xl">
+          <Rocket className="mx-auto h-7 w-7 text-primary" aria-hidden />
+          <h2 className="mt-4 font-serif text-3xl leading-snug sm:text-4xl">
             You do not need more discipline. You need a plan that fits your
             battery.
           </h2>
           <div className="mt-8 flex flex-col items-center gap-2.5">
             <CtaButton />
             <p className="text-sm text-muted-foreground">
-              $27 one-time &middot; 12 months access &middot; your 25% still
+              $27 one-time &middot; 12 months of access &middot; your 25% still
               counts
             </p>
           </div>
