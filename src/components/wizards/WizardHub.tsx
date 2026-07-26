@@ -238,6 +238,26 @@ export default function WizardHub() {
               );
             })}
 
+          {/* Money Moves — standalone tool */}
+          <Card className="flex flex-col">
+            <CardHeader>
+              <div className="p-2 rounded-lg bg-primary/10 text-primary w-fit">
+                <DollarSign className="h-8 w-8" />
+              </div>
+              <CardTitle className="mt-3">Money Moves</CardTitle>
+              <CardDescription>
+                Answer eight quick questions and get your next honest money move, plus three
+                small actions you can actually take this week.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col justify-end gap-3">
+              <Button onClick={() => navigate('/wizards/money-moves')} className="w-full">
+                Start
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </CardContent>
+          </Card>
+
           {templates.filter(t => IMPLEMENTED_WIZARDS.includes(t.template_name)).length === 0 && (
             <Card className="col-span-full">
               <CardContent className="py-12 text-center text-muted-foreground">
