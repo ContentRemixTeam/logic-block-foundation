@@ -36,10 +36,8 @@ app.post('/', async (c) => {
       return c.json({ error: 'Missing required fields' }, 400);
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
+
+
 
     const previousIdeasContext = previousIdeas.length > 0
       ? `\n\nAVOID these ideas that were already generated: ${previousIdeas.join(', ')}`
