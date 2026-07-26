@@ -132,7 +132,7 @@ export function SocialPostIdeation({ platform, onComplete, onSkip }: SocialPostI
                 variant="outline"
                 size="sm"
                 onClick={generateTopics}
-                disabled={isGenerating}
+                disabled={isGenerating || keyLoading || !hasAPIKey}
               >
                 {isGenerating ? (
                   <>
@@ -152,6 +152,10 @@ export function SocialPostIdeation({ platform, onComplete, onSkip }: SocialPostI
                 )}
               </Button>
             </div>
+
+            {!keyLoading && !hasAPIKey && (
+              <MissingAIKeyNotice className="justify-start" />
+            )}
 
             {topics.length > 0 ? (
               <div className="grid gap-3">
