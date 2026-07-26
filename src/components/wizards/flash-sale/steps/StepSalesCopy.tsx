@@ -59,6 +59,7 @@ export function StepSalesCopy({ data, setData }: StepProps) {
       });
 
       if (error) throw error;
+      if (result?.error) throw new Error(result.error);
 
       if (result) {
         setData({
@@ -72,7 +73,7 @@ export function StepSalesCopy({ data, setData }: StepProps) {
       }
     } catch (error) {
       console.error('Error generating copy:', error);
-      toast.error('Failed to generate copy. Try again or write manually.');
+      await handleAIGenerationError(error, 'Failed to generate copy. Try again or write manually.');
     } finally {
       setIsGenerating(false);
     }
