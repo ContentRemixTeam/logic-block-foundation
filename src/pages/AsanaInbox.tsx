@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,8 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { ExternalLink, RefreshCw, Inbox } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-
-const ALLOWED_EMAIL = 'faithhawks@gmail.com';
 
 interface AsanaTaskRow {
   task_id: string;
@@ -29,10 +27,23 @@ export default function AsanaInbox() {
   const [syncing, setSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<{ inserted: number; updated: number; total: number } | null>(null);
 
-  const isAllowed = useMemo(
-    () => user?.email?.toLowerCase() === ALLOWED_EMAIL,
-    [user?.email],
-  );
+  const [isAllowed, setIsAllowed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const checkAdmin = async () => {
+      if (!user) {
+        if (!cancelled) setIsAllowed(false);
+        return;
+      }
+      const { data, error } = await supabase.rpc('is_admin', { check_user_id: user.id });
+      if (!cancelled) setIsAllowed(!error && data === true);
+    };
+    checkAdmin();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   const load = async () => {
     setLoading(true);
@@ -55,7 +66,7 @@ export default function AsanaInbox() {
     if (isAllowed) load();
   }, [isAllowed]);
 
-  if (authLoading) return null;
+  if (authLoading || isAllowed === null) return null;
   if (!isAllowed) return <Navigate to="/" replace />;
 
   const handleSync = async () => {
