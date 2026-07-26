@@ -34,8 +34,10 @@ export function BrainstormBot({
   onSelectIdea,
 }: BrainstormBotProps) {
   const [isGenerating, setIsGenerating] = useState(false);
+  const { hasAPIKey, isLoading: keyLoading } = useHasAIKey();
 
   const handleGenerate = async () => {
+    if (!hasAPIKey) return;
     if (!context.idealCustomer.trim() || !context.mainProblem.trim() || !context.paidOffer.trim()) {
       toast.error('Please fill in all fields to generate ideas');
       return;
@@ -53,6 +55,7 @@ export function BrainstormBot({
       });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       if (data?.ideas && Array.isArray(data.ideas)) {
         onIdeasGenerated(data.ideas);
@@ -62,7 +65,7 @@ export function BrainstormBot({
       }
     } catch (error) {
       console.error('Brainstorm error:', error);
-      toast.error('Failed to generate ideas. Please try again.');
+      await handleAIGenerationError(error, 'Failed to generate ideas. Please try again.');
     } finally {
       setIsGenerating(false);
     }
