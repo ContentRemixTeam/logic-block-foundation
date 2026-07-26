@@ -58,10 +58,10 @@ export function useTrialStatus(): TrialStatus {
         .single();
 
       if (error || !profile) {
-        // Profile might not exist yet for new users
+        // Fail closed: if we can't confirm membership, don't grant access.
         setStatus({
-          hasAccess: true,
-          reason: 'trial',
+          hasAccess: false,
+          reason: 'no_profile',
           loading: false,
         });
         return;
@@ -136,10 +136,10 @@ export function useTrialStatus(): TrialStatus {
       });
     } catch (error) {
       console.error('Error checking trial status:', error);
-      // Default to allowing access on error to not block users
+      // Fail closed: never grant access when membership can't be confirmed.
       setStatus({
-        hasAccess: true,
-        reason: 'trial',
+        hasAccess: false,
+        reason: 'no_profile',
         loading: false,
       });
     }
