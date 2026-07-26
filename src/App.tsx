@@ -130,6 +130,7 @@ const MastermindHub = lazyWithRetry(() => import('./pages/MastermindHub'));
 const MastermindRosterImport = lazyWithRetry(() => import('./pages/MastermindRosterImport'));
 const WorkshopPlanner = lazyWithRetry(() => import('./pages/WorkshopPlanner'));
 const TrialSignup = lazyWithRetry(() => import('./pages/TrialSignup'));
+const Offer = lazyWithRetry(() => import('./pages/Offer'));
 const Admin = lazyWithRetry(() => import('./pages/Admin'));
 const CoachingLog = lazyWithRetry(() => import('./pages/CoachingLog'));
 const ContentVault = lazyWithRetry(() => import('./pages/ContentVault'));
@@ -371,6 +372,7 @@ const App = () => (
                       <Route path="/install/success" element={<PageSuspense><InstallSuccess /></PageSuspense>} />
                       <Route path="/workshop-planner" element={<PageSuspense><WorkshopPlanner /></PageSuspense>} />
                       <Route path="/workshop-planner/create" element={<PageSuspense><WorkshopPlanner /></PageSuspense>} />
+                      <Route path="/offer" element={<PageSuspense><Offer /></PageSuspense>} />
                       <Route path="/trial" element={<PageSuspense><TrialSignup /></PageSuspense>} />
                       <Route path="/join" element={<PageSuspense><MemberSignup /></PageSuspense>} />
                       <Route path="/quick-add" element={<PageSuspense><QuickAddApp /></PageSuspense>} />
