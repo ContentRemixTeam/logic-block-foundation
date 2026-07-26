@@ -2781,8 +2781,17 @@ export type Database = {
           email: string
           ends_at: string | null
           first_name: string | null
+          ghl_contact_id: string | null
           id: string
           last_name: string | null
+          planner_ends_at: string | null
+          planner_order_id: string | null
+          planner_price_id: string | null
+          planner_product_id: string | null
+          planner_purchased_at: string | null
+          planner_starts_at: string | null
+          planner_status: string | null
+          planner_tier: string | null
           starts_at: string | null
           status: string
           tier: string
@@ -2793,8 +2802,17 @@ export type Database = {
           email: string
           ends_at?: string | null
           first_name?: string | null
+          ghl_contact_id?: string | null
           id?: string
           last_name?: string | null
+          planner_ends_at?: string | null
+          planner_order_id?: string | null
+          planner_price_id?: string | null
+          planner_product_id?: string | null
+          planner_purchased_at?: string | null
+          planner_starts_at?: string | null
+          planner_status?: string | null
+          planner_tier?: string | null
           starts_at?: string | null
           status?: string
           tier?: string
@@ -2805,8 +2823,17 @@ export type Database = {
           email?: string
           ends_at?: string | null
           first_name?: string | null
+          ghl_contact_id?: string | null
           id?: string
           last_name?: string | null
+          planner_ends_at?: string | null
+          planner_order_id?: string | null
+          planner_price_id?: string | null
+          planner_product_id?: string | null
+          planner_purchased_at?: string | null
+          planner_starts_at?: string | null
+          planner_status?: string | null
+          planner_tier?: string | null
           starts_at?: string | null
           status?: string
           tier?: string
