@@ -246,19 +246,20 @@ export default function Auth() {
       const nextParam = getNextParam();
       if (nextParam) {
         try {
-          sessionStorage.setItem('post_auth_next', nextParam);
+          sessionStorage.setItem('auth_redirect', nextParam);
         } catch {
           /* storage unavailable — fall back to default landing */
         }
       }
 
       const result = await lovable.auth.signInWithOAuth('google', {
-        redirect_uri: window.location.origin,
+        redirect_uri: `${window.location.origin}/auth`,
       });
 
       if (result.error) throw result.error;
       if (result.redirected) return;
-      // Session already set by the helper — let the auth listener route the user.
+      await navigateAfterAuth();
+
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : '';
       let errorMessage = 'Failed to sign in with Google. Please try again.';
