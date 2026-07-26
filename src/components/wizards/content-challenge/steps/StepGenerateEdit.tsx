@@ -306,6 +306,7 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
                     key={day.dayNumber}
                     day={day}
                     isGenerating={isGeneratingCopy === day.dayNumber}
+                    canGenerate={!keyLoading && hasAPIKey}
                     onGenerateCopy={() => handleGenerateCopy(day.dayNumber)}
                     onEdit={() => handleEditCopy(day.dayNumber)}
                     onFinalize={() => handleFinalize(day.dayNumber)}
@@ -323,6 +324,7 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
                     key={day.dayNumber}
                     day={day}
                     isGenerating={isGeneratingCopy === day.dayNumber}
+                    canGenerate={!keyLoading && hasAPIKey}
                     onGenerateCopy={() => handleGenerateCopy(day.dayNumber)}
                     onEdit={() => handleEditCopy(day.dayNumber)}
                     onFinalize={() => handleFinalize(day.dayNumber)}
@@ -340,6 +342,7 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
                     key={day.dayNumber}
                     day={day}
                     isGenerating={isGeneratingCopy === day.dayNumber}
+                    canGenerate={!keyLoading && hasAPIKey}
                     onGenerateCopy={() => handleGenerateCopy(day.dayNumber)}
                     onEdit={() => handleEditCopy(day.dayNumber)}
                     onFinalize={() => handleFinalize(day.dayNumber)}
@@ -357,6 +360,7 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
                     key={day.dayNumber}
                     day={day}
                     isGenerating={isGeneratingCopy === day.dayNumber}
+                    canGenerate={!keyLoading && hasAPIKey}
                     onGenerateCopy={() => handleGenerateCopy(day.dayNumber)}
                     onEdit={() => handleEditCopy(day.dayNumber)}
                     onFinalize={() => handleFinalize(day.dayNumber)}
