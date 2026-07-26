@@ -14,22 +14,39 @@ export function WorkshopTestimonialForm({ engineData }: WorkshopTestimonialFormP
   const [rating, setRating] = useState(5);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
     if (!name.trim() || !testimonial.trim()) return;
+    if (!email.trim()) {
+      setError('Please add your email so we know who to thank.');
+      return;
+    }
     setSubmitting(true);
+    setError(null);
     try {
-      await supabase.from('workshop_testimonials' as any).insert({
-        name: name.trim().slice(0, 100),
-        email: email.trim().slice(0, 255) || null,
-        business_name: businessName.trim().slice(0, 100) || null,
-        testimonial: testimonial.trim().slice(0, 2000),
-        rating,
-        engine_data: engineData as any,
+      const { data, error: fnError } = await supabase.functions.invoke('submit-workshop-testimonial', {
+        body: {
+          name: name.trim().slice(0, 200),
+          email: email.trim().slice(0, 255),
+          business_name: businessName.trim().slice(0, 200) || null,
+          testimonial: testimonial.trim().slice(0, 5000),
+          rating,
+          engine_data: engineData,
+        },
       });
+
+      if (fnError || !data?.success) {
+        setError(
+          (data as { error?: string } | null)?.error ||
+            "We couldn't send your testimonial. Please try again in a moment.",
+        );
+        return;
+      }
+
       setSubmitted(true);
     } catch {
-      // silent fail
+      setError("We couldn't send your testimonial. Please check your connection and try again.");
     } finally {
       setSubmitting(false);
     }
@@ -92,7 +109,7 @@ export function WorkshopTestimonialForm({ engineData }: WorkshopTestimonialFormP
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="Email (optional — we may feature you!)"
+        placeholder="Your email * (we may feature you!)"
         maxLength={255}
         className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
       />
@@ -106,9 +123,15 @@ export function WorkshopTestimonialForm({ engineData }: WorkshopTestimonialFormP
         className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
       />
 
+      {error && (
+        <p className="text-sm text-destructive text-center" role="alert">
+          {error}
+        </p>
+      )}
+
       <button
         onClick={handleSubmit}
-        disabled={!name.trim() || !testimonial.trim() || submitting}
+        disabled={!name.trim() || !testimonial.trim() || !email.trim() || submitting}
         className="w-full px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
       >
         {submitting ? 'Sending...' : '💛 Submit Testimonial'}

@@ -81,12 +81,27 @@ serve(async (req: Request) => {
     // mastermind entitlement for their own email — not create a brand new one.
     console.log(`[add-mastermind-entitlement] Caller: ${callerEmail}, target: ${email}, admin: ${isAdmin}`);
 
+    // A self-claim may only activate a row that is still pre-provisioned.
+    // Cancelled/expired memberships must be restored by an admin or by the
+    // payment-driven webhook (ghl-webhook-add-member).
+    const CLAIMABLE_STATUSES = ['pending', 'pre_provisioned', 'provisioned', 'invited', 'inactive'];
+    const isClaimable = (status?: string | null) =>
+      !status || CLAIMABLE_STATUSES.includes(status.toLowerCase());
+    const notClaimableResponse = () =>
+      new Response(
+        JSON.stringify({
+          error:
+            'This membership is no longer active. Please renew your membership or contact support to have it restored.',
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+
     if (entitlementId) {
       // Verify ownership of the entitlement when not admin
       if (!isAdmin) {
         const { data: ent } = await supabase
           .from('entitlements')
-          .select('id, email')
+          .select('id, email, status')
           .eq('id', entitlementId)
           .maybeSingle();
         if (!ent || ent.email?.toLowerCase() !== callerEmail) {
@@ -94,6 +109,9 @@ serve(async (req: Request) => {
             JSON.stringify({ error: 'Forbidden' }),
             { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
+        }
+        if (ent.status?.toLowerCase() !== 'active' && !isClaimable(ent.status)) {
+          return notClaimableResponse();
         }
       }
 
@@ -123,9 +141,13 @@ serve(async (req: Request) => {
 
     const { data: existing } = await supabase
       .from('entitlements')
-      .select('id')
+      .select('id, status')
       .ilike('email', email)
       .maybeSingle();
+
+    if (existing && !isAdmin && existing.status?.toLowerCase() !== 'active' && !isClaimable(existing.status)) {
+      return notClaimableResponse();
+    }
 
     if (existing) {
       await supabase

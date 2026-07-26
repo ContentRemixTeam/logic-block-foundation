@@ -119,7 +119,7 @@ Deno.serve((req) =>
       );
     }
 
-    console.log(`[${FN}] planner ${offer} access granted for`, email);
+    console.log(`[${FN}] planner ${offer} access granted`);
     return json({
       success: true,
       action: existing ? 'updated' : 'created',

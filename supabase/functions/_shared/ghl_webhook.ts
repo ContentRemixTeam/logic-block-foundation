@@ -88,10 +88,10 @@ export function safeLog(fn: string, contact: ParsedContact) {
   console.log(
     `[${fn}] request`,
     JSON.stringify({
-      email: contact.email,
+      has_email: Boolean(contact.email),
       has_first_name: Boolean(contact.firstName),
       has_last_name: Boolean(contact.lastName),
-      ghl_contact_id: contact.ghlContactId || null,
+      has_ghl_contact_id: Boolean(contact.ghlContactId),
     }),
   );
 }
