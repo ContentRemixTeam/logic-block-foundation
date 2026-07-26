@@ -7,7 +7,13 @@ interface ServerSyncConfig<T> {
   delay?: number;
   maxRetries?: number;
   retryDelay?: number;
-  onSuccess?: () => void;
+  /**
+   * Called ONLY when the payload that was just confirmed saved is still the
+   * newest data we have. If the user edited while the save was in flight we
+   * skip this (so local backups are never cleared for un-saved edits) and run
+   * a follow-up save instead.
+   */
+  onSuccess?: (savedData: T) => void;
   onError?: (error: Error) => void;
 }
 
@@ -27,6 +33,8 @@ interface ServerSyncReturn<T> {
  * 
  * Features:
  * - Configurable debounce delay (default: 2000ms)
+ * - Flushes any pending save on unmount (navigating away never drops edits)
+ * - Coalesces edits made while a save is in flight (no lost "last keystroke")
  * - Automatic retry on failure (default: 3 attempts)
  * - Rate limit detection (429 errors)
  * - Online/offline detection
@@ -48,7 +56,10 @@ export function useServerSync<T>({
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isSavingRef = useRef(false);
+  // Set when new data arrives while a save is already in flight.
+  const resaveQueuedRef = useRef(false);
   const rateLimitedUntilRef = useRef<number>(0);
+
 
   // Online/offline detection
   useEffect(() => {
@@ -76,7 +87,12 @@ export function useServerSync<T>({
   }, [status]);
 
   const performSave = useCallback(async (data: T) => {
-    if (isSavingRef.current) return;
+    // A save is already running — remember that newer data exists so we can
+    // save it as soon as the in-flight request finishes.
+    if (isSavingRef.current) {
+      resaveQueuedRef.current = true;
+      return;
+    }
 
     if (!navigator.onLine) {
       setStatus('offline');
@@ -84,22 +100,57 @@ export function useServerSync<T>({
     }
 
     isSavingRef.current = true;
+    resaveQueuedRef.current = false;
     setStatus('saving');
 
+    // Snapshot exactly what we are sending so we can compare afterwards.
+    const payload = data;
+    let payloadSignature = '';
     try {
-      await saveFn(data);
-      
+      payloadSignature = JSON.stringify(payload);
+    } catch {
+      /* non-serializable payloads fall back to reference comparison */
+    }
+
+    try {
+      await saveFn(payload);
+
       setRetryCount(0);
       isSavingRef.current = false;
-      setStatus('saved');
       setLastSynced(new Date());
-      
-      onSuccess?.();
+
+      // Did the data change while this save was in flight?
+      const latest = dataRef.current;
+      let isStale = resaveQueuedRef.current || (latest !== null && latest !== payload);
+      if (isStale && payloadSignature && latest !== null) {
+        try {
+          isStale = JSON.stringify(latest) !== payloadSignature;
+        } catch {
+          /* keep isStale as-is */
+        }
+      }
+
+      if (isStale && latest !== null) {
+        // Newer edits exist: do NOT report success (so callers don't clear the
+        // local backup for data that isn't on the server yet). Save again.
+        resaveQueuedRef.current = false;
+        setStatus('pending');
+        void performSave(latest);
+        return;
+      }
+
+      resaveQueuedRef.current = false;
+      setStatus('saved');
+
+      // Only now is the confirmed payload the newest data — safe for callers
+      // to clear/replace the local backup for exactly this payload.
+      onSuccess?.(payload);
 
       // Reset to idle after showing "saved" status
       setTimeout(() => {
         setStatus((current) => current === 'saved' ? 'idle' : current);
       }, 3000);
+
 
     } catch (error: any) {
       console.error('[useServerSync] Save failed:', error);
@@ -202,25 +253,48 @@ export function useServerSync<T>({
     setStatus('idle');
   }, []);
 
-  // Cleanup on unmount — flush any pending debounced save so navigating
-  // away never drops the last ~2 seconds of edits.
+  // Always call through the latest performSave (saveFn changes each render).
+  const performSaveRef = useRef(performSave);
+  useEffect(() => {
+    performSaveRef.current = performSave;
+  }, [performSave]);
+
+  // Cleanup on unmount — FLUSH any pending debounced save so navigating away
+  // never drops the last couple of seconds of edits.
   useEffect(() => {
     return () => {
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
       }
+
+      const hadPendingDebounce = saveTimeoutRef.current !== null;
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = null;
-        // Fire the save now (fire-and-forget). If offline, performSave
-        // will short-circuit and the data stays in dataRef for retry.
-        if (dataRef.current !== null) {
-          try { void performSave(dataRef.current); } catch { /* noop */ }
-        }
       }
+
+      const pending = dataRef.current;
+      if (pending === null) return;
+      if (!hadPendingDebounce && !isSavingRef.current && !resaveQueuedRef.current) return;
+
+      // Fire-and-forget flush. If a save is still in flight, wait for it to
+      // finish and then send the newest data (the component is gone, so the
+      // in-hook follow-up would never run).
+      void (async () => {
+        try {
+          for (let i = 0; i < 40 && isSavingRef.current; i++) {
+            await new Promise((resolve) => setTimeout(resolve, 250));
+          }
+          await performSaveRef.current(dataRef.current as T);
+        } catch {
+          /* local backups remain as the safety net */
+        }
+      })();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
 
   return {

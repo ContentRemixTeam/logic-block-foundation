@@ -50,7 +50,15 @@ function lazyWithRetry<T extends ComponentType<unknown>>(
 ) {
   return lazy(async () => {
     try {
-      return await componentImport();
+      const mod = await componentImport();
+      // Import succeeded — clear the recovery flag so stale-chunk auto-recovery
+      // can run again later in this same browser session if needed.
+      try {
+        sessionStorage.removeItem('chunk_reload_attempted');
+      } catch {
+        /* storage may be unavailable in private/in-app browsers */
+      }
+      return mod;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : '';
       // Check if it's a chunk loading error
@@ -61,11 +69,22 @@ function lazyWithRetry<T extends ComponentType<unknown>>(
         errorMessage.includes('dynamically imported module');
       
       if (isChunkError) {
-        // Clear service worker and caches, then reload
-        const hasReloaded = sessionStorage.getItem('chunk_reload_attempted');
+        // Single recovery path for a stale/removed chunk: purge caches once,
+        // then reload. Guarded so we never get into a reload loop.
+        let hasReloaded = false;
+        try {
+          hasReloaded = sessionStorage.getItem('chunk_reload_attempted') === 'true';
+        } catch {
+          /* ignore */
+        }
+
         if (!hasReloaded) {
-          sessionStorage.setItem('chunk_reload_attempted', 'true');
-          
+          try {
+            sessionStorage.setItem('chunk_reload_attempted', 'true');
+          } catch {
+            /* ignore */
+          }
+
           // Clear service worker caches
           if ('caches' in window) {
             try {
@@ -78,9 +97,6 @@ function lazyWithRetry<T extends ComponentType<unknown>>(
           
           // Force reload with cache bypass
           window.location.reload();
-        } else {
-          // Already attempted reload, clear the flag for next time
-          sessionStorage.removeItem('chunk_reload_attempted');
         }
       }
       throw error;

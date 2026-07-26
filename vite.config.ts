@@ -108,8 +108,10 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MB
         cleanupOutdatedCaches: true,
-        clientsClaim: true,
-        skipWaiting: true,
+        // NOTE: skipWaiting / clientsClaim are intentionally OFF.
+        // The single update model is "prompt": the new service worker waits
+        // until the user accepts in PWAUpdatePrompt, which flushes pending
+        // writes first and then calls updateServiceWorker(true).
         navigateFallbackDenylist: [/^\/~oauth/, /^\/~flock/],
         // Cache app shell first
         runtimeCaching: [
