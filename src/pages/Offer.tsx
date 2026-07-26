@@ -29,6 +29,8 @@ import {
 } from "@/components/ui/accordion";
 import { DashboardMock, TasksMock } from "@/components/offer/AppMock";
 import { FeatureWalkthrough } from "@/components/offer/FeatureWalkthrough";
+import { ScreenshotGallery } from "@/components/offer/ScreenshotGallery";
+
 import logoMark from "/brand/logo-mark.svg";
 
 /**
