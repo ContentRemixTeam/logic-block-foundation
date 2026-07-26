@@ -14,22 +14,39 @@ export function WorkshopTestimonialForm({ engineData }: WorkshopTestimonialFormP
   const [rating, setRating] = useState(5);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
     if (!name.trim() || !testimonial.trim()) return;
+    if (!email.trim()) {
+      setError('Please add your email so we know who to thank.');
+      return;
+    }
     setSubmitting(true);
+    setError(null);
     try {
-      await supabase.from('workshop_testimonials' as any).insert({
-        name: name.trim().slice(0, 100),
-        email: email.trim().slice(0, 255) || null,
-        business_name: businessName.trim().slice(0, 100) || null,
-        testimonial: testimonial.trim().slice(0, 2000),
-        rating,
-        engine_data: engineData as any,
+      const { data, error: fnError } = await supabase.functions.invoke('submit-workshop-testimonial', {
+        body: {
+          name: name.trim().slice(0, 200),
+          email: email.trim().slice(0, 255),
+          business_name: businessName.trim().slice(0, 200) || null,
+          testimonial: testimonial.trim().slice(0, 5000),
+          rating,
+          engine_data: engineData,
+        },
       });
+
+      if (fnError || !data?.success) {
+        setError(
+          (data as { error?: string } | null)?.error ||
+            "We couldn't send your testimonial. Please try again in a moment.",
+        );
+        return;
+      }
+
       setSubmitted(true);
     } catch {
-      // silent fail
+      setError("We couldn't send your testimonial. Please check your connection and try again.");
     } finally {
       setSubmitting(false);
     }
