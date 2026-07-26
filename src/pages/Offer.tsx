@@ -1007,9 +1007,11 @@ export default function Offer() {
         <div className="mx-auto w-full max-w-2xl px-5 py-20 text-center">
           <Rocket className="mx-auto h-7 w-7 text-primary" aria-hidden />
           <h2 className="mt-4 font-serif text-3xl leading-snug sm:text-4xl">
-            You do not need more discipline. You need a plan that fits your
-            battery.
+            You do not need more discipline.
           </h2>
+          <p className="mx-auto mt-3 max-w-xl font-serif text-2xl leading-snug sm:text-3xl">
+            You need a plan that fits your battery.
+          </p>
           <div className="mt-8 flex flex-col items-center gap-2.5">
             <CtaButton />
             <p className="text-sm text-muted-foreground">
