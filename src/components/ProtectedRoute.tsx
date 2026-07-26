@@ -37,7 +37,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   if (!access.hasAccess) {
-    return <AccessPaywall status={access.status as 'revoked' | 'expired' | 'none'} />;
+    return <AccessPaywall status={access.status as 'revoked' | 'expired' | 'none' | 'error'} onRetry={access.refresh} />;
   }
 
   return (
