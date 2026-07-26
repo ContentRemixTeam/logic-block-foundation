@@ -58,6 +58,12 @@ export default function FinancialTracker() {
     });
   }, [transactions, dateRange]);
 
+  // Safely coerce possibly-malformed amounts to a finite number
+  const toAmount = (v: unknown) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+
   // Calculate period-specific summary
   const periodSummary = useMemo(() => {
     if (filteredTransactions.length === 0) return null;

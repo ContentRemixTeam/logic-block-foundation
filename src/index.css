@@ -633,6 +633,8 @@ html.theme-transitioning * {
   .top-bar {
     @apply sticky top-0 z-40 flex items-center justify-between h-14 px-4 
            bg-surface/95 backdrop-blur-sm border-b;
+    padding-top: env(safe-area-inset-top);
+    height: calc(3.5rem + env(safe-area-inset-top));
   }
 
   /* Page Header */
