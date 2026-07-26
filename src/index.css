@@ -1394,3 +1394,61 @@ button:active:not(:disabled), [role="button"]:active:not(:disabled) {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ==========================================================================
+   Faith Mariah brand palette — scoped to the public sales page (/offer)
+   Black + pink editorial system. Does not affect the app shell.
+   ========================================================================== */
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap");
+
+.offer-brand {
+  --background: 0 0% 100%;
+  --surface: 0 0% 100%;
+  --surface-sunken: 36 23% 96%;        /* #F7F5F2 off-white */
+  --surface-raised: 0 0% 100%;
+  --foreground: 0 0% 7%;               /* #111111 */
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 7%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 7%;
+
+  --primary: 335 82% 43%;              /* #C8145E pink */
+  --primary-foreground: 0 0% 100%;
+  --primary-glow: 335 83% 35%;         /* #A50F4D pink hover */
+
+  --secondary: 36 23% 96%;
+  --secondary-foreground: 0 0% 7%;
+  --accent: 340 100% 97%;              /* #FFF0F5 pink tint */
+  --accent-foreground: 335 82% 43%;
+
+  --muted: 36 23% 96%;
+  --muted-foreground: 0 0% 33%;        /* #555555 body text */
+
+  --border: 20 12% 87%;                /* #E2DDDA */
+  --border-subtle: 20 12% 87%;
+  --input: 20 12% 87%;
+  --ring: 335 82% 43%;
+
+  --font-serif: 'Bebas Neue', 'Oswald', Impact, sans-serif;
+
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+
+/* Display type: Bebas is condensed + uppercase by design */
+.offer-brand .font-serif {
+  font-family: 'Bebas Neue', 'Oswald', Impact, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.015em;
+  line-height: 0.95;
+  font-weight: 400;
+}
+
+/* Eyebrow labels are gold in the brand system, never headlines or buttons */
+.offer-brand .text-primary.uppercase.tracking-\[0\.18em\] {
+  color: hsl(43 89% 38%);
+}
+
+.offer-brand a[href]:hover > span,
+.offer-brand .bg-primary:hover {
+  background-color: hsl(var(--primary-glow));
+}
