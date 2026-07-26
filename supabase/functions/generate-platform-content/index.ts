@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { guardAiRequest } from "../_shared/ai_guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +10,10 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Require an authenticated user + per-user rate limit before touching the AI gateway
+  const guard = await guardAiRequest(req, "generate-platform-content", corsHeaders);
+  if (!guard.ok) return guard.response;
 
   try {
     const { platform, pillars, idealCustomer, problemsSolved, promotionContext } = await req.json();
