@@ -339,8 +339,6 @@ export function AppSidebar() {
           <NavSection label="More" items={ADVANCED_NAV} />
         )}
         
-        <NavSection label="Community" items={COMMUNITY_NAV} />
-        
         {/* Focus Mode - Only visible when arcade is enabled */}
         {!arcadeLoading && arcadeSettings.arcade_enabled && isFeatureEnabled('focus_pets') && (
           <SidebarGroup className="py-1 px-2">
