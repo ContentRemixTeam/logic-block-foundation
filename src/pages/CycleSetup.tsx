@@ -225,6 +225,10 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
   
   // Double-click protection ref
   const saveInProgressRef = useRef(false);
+  // Holds the cycle id of a run that created the parent row but failed part way
+  // through its child inserts, so a retry reuses (and cleans) it instead of
+  // creating a duplicate cycle.
+  const partialCycleIdRef = useRef<string | null>(null);
   
   // Cloud save status indicator
   const [cloudSaveStatus, setCloudSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -1518,9 +1522,49 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
       };
 
       // Retry logic for cycle creation (up to 2 attempts)
-      let cycle = null;
+      let cycle: any = null;
       let cycleError = null;
       const maxAttempts = 2;
+
+      // If a previous attempt created the cycle but failed on child records,
+      // reuse that cycle and clear its child rows so we don't duplicate them.
+      if (partialCycleIdRef.current) {
+        const { data: existingPartial } = await supabase
+          .from('cycles_90_day')
+          .select('*')
+          .eq('cycle_id', partialCycleIdRef.current)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (existingPartial) {
+          await supabase
+            .from('cycles_90_day')
+            .update(cycleInsertData as any)
+            .eq('cycle_id', existingPartial.cycle_id)
+            .eq('user_id', user.id);
+
+          const childTables = [
+            'cycle_strategy',
+            'cycle_offers',
+            'cycle_limited_offers',
+            'cycle_revenue_plan',
+            'cycle_month_plans',
+            'projects',
+            'habits',
+          ] as const;
+          for (const table of childTables) {
+            await supabase
+              .from(table)
+              .delete()
+              .eq('cycle_id', existingPartial.cycle_id)
+              .eq('user_id', user.id);
+          }
+          cycle = existingPartial;
+          console.log('♻️ Reusing partially created cycle for retry:', existingPartial.cycle_id);
+        } else {
+          partialCycleIdRef.current = null;
+        }
+      }
 
       for (let attempt = 1; attempt <= maxAttempts && !cycle; attempt++) {
         console.log(`🔄 Cycle creation attempt ${attempt}/${maxAttempts}`);
@@ -1550,6 +1594,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
       }
 
       const cycleId = cycle.cycle_id;
+      partialCycleIdRef.current = cycleId;
       console.log('✅ Cycle created with ID:', cycleId);
 
       // VERIFICATION: Confirm the cycle was actually saved
@@ -2327,6 +2372,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
         return; // do NOT clear the draft, do NOT navigate away
       }
 
+      partialCycleIdRef.current = null;
       clearDraft();
       localStorage.removeItem('last_cycle_setup_visit');
       console.log('✅ Draft cleared after all child records saved');
