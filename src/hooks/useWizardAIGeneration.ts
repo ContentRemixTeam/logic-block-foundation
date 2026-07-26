@@ -474,16 +474,20 @@ export function useWizardAIGeneration({ wizardType, wizardData }: UseWizardAIGen
       return result;
       
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Generation failed';
-      
-      // If we have partial results, notify user
-      if (savedState.draft && recoveryKey) {
+      const rawMessage = error instanceof Error ? error.message : 'Generation failed';
+      const isMissingKey = rawMessage === NO_API_KEY_CODE;
+      const errorMessage = isMissingKey ? NO_API_KEY_MESSAGE : rawMessage;
+
+      if (isMissingKey) {
+        toastMissingAIKey();
+      } else if (savedState.draft && recoveryKey) {
+        // If we have partial results, notify user
         toast.error(
           'Generation interrupted. Your progress has been saved. Click "Generate" again to resume.',
           { duration: 10000 }
         );
       }
-      
+
       setState(prev => ({ ...prev, isGenerating: false, error: errorMessage }));
       throw error;
     }
