@@ -7,7 +7,13 @@ interface ServerSyncConfig<T> {
   delay?: number;
   maxRetries?: number;
   retryDelay?: number;
-  onSuccess?: () => void;
+  /**
+   * Called ONLY when the payload that was just confirmed saved is still the
+   * newest data we have. If the user edited while the save was in flight we
+   * skip this (so local backups are never cleared for un-saved edits) and run
+   * a follow-up save instead.
+   */
+  onSuccess?: (savedData: T) => void;
   onError?: (error: Error) => void;
 }
 
@@ -27,6 +33,8 @@ interface ServerSyncReturn<T> {
  * 
  * Features:
  * - Configurable debounce delay (default: 2000ms)
+ * - Flushes any pending save on unmount (navigating away never drops edits)
+ * - Coalesces edits made while a save is in flight (no lost "last keystroke")
  * - Automatic retry on failure (default: 3 attempts)
  * - Rate limit detection (429 errors)
  * - Online/offline detection
@@ -48,7 +56,10 @@ export function useServerSync<T>({
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isSavingRef = useRef(false);
+  // Set when new data arrives while a save is already in flight.
+  const resaveQueuedRef = useRef(false);
   const rateLimitedUntilRef = useRef<number>(0);
+
 
   // Online/offline detection
   useEffect(() => {
