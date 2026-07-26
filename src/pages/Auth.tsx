@@ -149,7 +149,7 @@ export default function Auth() {
 
     try {
       if (isForgotPassword) {
-        const redirectUrl = `${window.location.origin}/auth`;
+        const redirectUrl = `${window.location.origin}/reset-password`;
         const { error } = await supabase.auth.resetPasswordForEmail(
           email.trim().toLowerCase(),
           { redirectTo: redirectUrl }
