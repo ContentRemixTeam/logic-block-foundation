@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthLogo } from '@/components/auth/AuthLogo';
+import { InAppBrowserNotice } from '@/components/auth/InAppBrowserNotice';
 import { Loader2, HelpCircle } from 'lucide-react';
 
 export default function Auth() {
@@ -284,7 +285,9 @@ export default function Auth() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <AuthLogo />
-        
+
+        <InAppBrowserNotice />
+
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">
