@@ -21,6 +21,12 @@ verify_jwt = false
 [functions.ghl-webhook-remove-member]
 verify_jwt = false
 
+[functions.ghl-webhook-grant-planner]
+verify_jwt = false
+
+[functions.ghl-webhook-revoke-planner]
+verify_jwt = false
+
 [functions.verify-member-email]
 verify_jwt = false
 
