@@ -157,13 +157,17 @@ export default function Offer() {
       <section className="relative border-b border-border-subtle bg-surface">
 
         <div className="relative mx-auto w-full max-w-3xl px-5 py-16 text-center sm:py-24">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+          <p className="text-base font-semibold uppercase tracking-[0.18em] text-primary sm:text-lg">
             The Low Battery Business Planner
           </p>
-          <h1 className="mt-5 font-serif text-4xl leading-tight tracking-tight sm:text-5xl md:text-6xl">
+          <h1 className="mt-5 flex items-center justify-center gap-3 font-serif text-4xl leading-tight tracking-tight sm:text-5xl md:text-6xl">
+            <BatteryMedium className="h-8 w-8 shrink-0 text-primary sm:h-10 sm:w-10" aria-hidden />
             Your 25% still counts.
           </h1>
-          <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground">
+          <p className="mx-auto mt-3 max-w-xl text-base font-medium text-foreground sm:text-lg">
+            Even on a low-energy day, your small steps still move the business forward.
+          </p>
+          <p className="mx-auto mt-4 max-w-xl text-lg leading-relaxed text-muted-foreground">
             A calm 90-day planning system for entrepreneurs whose energy does not
             run on a schedule. Not another app that assumes a full battery — one
             built for the days you actually have.
