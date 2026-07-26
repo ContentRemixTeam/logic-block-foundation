@@ -75,9 +75,8 @@ Deno.serve((req) =>
 
     const noChange = alreadyRevoked && (!access || access.status === 'revoked');
     console.log(
-      `[${FN}] planner access ${noChange ? 'already revoked' : 'revoked'} for`,
-      email,
-      reason ? `(reason: ${reason})` : '',
+      `[${FN}] planner access ${noChange ? 'already revoked' : 'revoked'}`,
+      reason ? '(reason provided)' : '',
     );
 
     return json({
