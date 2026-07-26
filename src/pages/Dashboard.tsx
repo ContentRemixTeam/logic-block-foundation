@@ -342,7 +342,9 @@ export default function Dashboard() {
 
     const start = parseISO(cycle.start_date);
     const end = parseISO(cycle.end_date);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
     const today = new Date();
+
 
     const totalDays = 90;
     const daysElapsed = Math.max(0, differenceInDays(today, start));
@@ -403,14 +405,16 @@ export default function Dashboard() {
     };
   }, [diagnosticData, cycle]);
 
-  // Calculate launch display data
+  // Calculate launch display data (guarded against missing/invalid dates)
   const launchDisplay = useMemo(() => {
-    if (!nextLaunch) return null;
-    
-    const launchState = getLaunchState(nextLaunch.daysUntilOpen, nextLaunch.isLive, nextLaunch.phase);
+    if (!nextLaunch?.cart_opens || !nextLaunch?.cart_closes) return null;
+
     const cartOpens = parseISO(nextLaunch.cart_opens);
     const cartCloses = parseISO(nextLaunch.cart_closes);
-    
+    if (isNaN(cartOpens.getTime()) || isNaN(cartCloses.getTime())) return null;
+
+    const launchState = getLaunchState(nextLaunch.daysUntilOpen, nextLaunch.isLive, nextLaunch.phase);
+
     return {
       ...nextLaunch,
       launchState,
@@ -418,6 +422,7 @@ export default function Dashboard() {
       cartClosesFormatted: format(cartCloses, 'MMM d'),
     };
   }, [nextLaunch]);
+
 
   // Initialize slider values when dialog opens
   const handleDialogOpen = (open: boolean) => {
