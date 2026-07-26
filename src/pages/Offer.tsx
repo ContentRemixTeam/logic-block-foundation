@@ -415,6 +415,17 @@ export default function Offer() {
               Build a 90-day business plan that still works when your capacity
               changes.
             </p>
+            <p className="mx-auto mt-5 inline-flex flex-wrap items-center justify-center gap-2 rounded-full border border-border-subtle bg-background px-4 py-2 text-sm font-semibold text-foreground">
+              <Monitor className="h-4 w-4 text-primary" aria-hidden />
+              <Smartphone className="h-4 w-4 text-primary" aria-hidden />
+              <span>
+                Web app for desktop, phone, or tablet
+              </span>
+              <span className="hidden h-1 w-1 rounded-full bg-muted-foreground/40 sm:inline-block" />
+              <span className="hidden text-muted-foreground sm:inline">
+                not a PDF or paper planner
+              </span>
+            </p>
             <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground">
               Most planners help you decide what to do.
             </p>
@@ -429,7 +440,7 @@ export default function Offer() {
               does not follow a predictable schedule.
             </p>
             <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-muted-foreground">
-              Your free retreat access includes 3 days inside the planner. When
+              Your free retreat access includes 3 days inside the app. When
               those 3 days are up, keep using it for 12 months for $27.
             </p>
 
@@ -438,6 +449,9 @@ export default function Offer() {
               <p className="text-sm text-muted-foreground">
                 $27 one-time &middot; 12 months of access &middot; not a
                 subscription
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Nothing to print or download. Open it in your browser and use it anywhere.
               </p>
             </div>
           </div>
