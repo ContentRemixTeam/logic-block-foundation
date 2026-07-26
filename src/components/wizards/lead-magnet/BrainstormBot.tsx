@@ -151,6 +151,8 @@ export function BrainstormBot({
           )}
         </Button>
 
+        {!keyLoading && !hasAPIKey && <MissingAIKeyNotice />}
+
         {/* Generated Ideas */}
         {ideas.length > 0 && (
           <div className="space-y-3 pt-4 border-t">
