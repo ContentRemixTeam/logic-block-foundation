@@ -12,6 +12,7 @@ import {
   Download,
   Inbox,
   ListChecks,
+  Monitor,
   Rocket,
   ShieldCheck,
   Smartphone,
