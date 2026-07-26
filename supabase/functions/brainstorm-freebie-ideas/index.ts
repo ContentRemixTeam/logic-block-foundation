@@ -3,6 +3,7 @@
 
 import { Hono } from 'https://deno.land/x/hono@v3.12.11/mod.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { guardAiRequest } from '../_shared/ai_guard.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,6 +24,10 @@ app.options('*', (c) => {
 });
 
 app.post('/', async (c) => {
+  // Require an authenticated user + per-user rate limit before touching the AI gateway
+  const guard = await guardAiRequest(c.req.raw, 'brainstorm-freebie-ideas', corsHeaders);
+  if (!guard.ok) return guard.response;
+
   try {
     const body = await c.req.json() as BrainstormRequest;
     const { idealCustomer, mainProblem, paidOffer, previousIdeas = [] } = body;
