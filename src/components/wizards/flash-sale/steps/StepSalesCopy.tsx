@@ -20,6 +20,7 @@ interface StepProps {
 export function StepSalesCopy({ data, setData }: StepProps) {
   const [newBullet, setNewBullet] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const { hasAPIKey, isLoading: keyLoading } = useHasAIKey();
 
   const addBullet = () => {
     if (newBullet.trim() && data.bullets.length < 5) {
