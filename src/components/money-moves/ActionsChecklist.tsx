@@ -87,28 +87,6 @@ export function ActionsChecklist() {
                   onChange={e => patch(idx, { proof_url: e.target.value })}
                   className="text-sm"
                 />
-                {a.completed && (
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
-                    <Button size="sm" variant="outline" onClick={() => copyPost(idx)}>
-                      <Copy className="mr-1.5 h-3.5 w-3.5" />
-                      Copy community post
-                    </Button>
-                    <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-                      <Checkbox
-                        checked={a.community_post_shared}
-                        onCheckedChange={(v) => {
-                          const wasShared = a.community_post_shared;
-                          patch(idx, { community_post_shared: !!v });
-                          if (!wasShared && v) {
-                            celebrate?.('You posted it. That makes it real.');
-                          }
-                        }}
-                      />
-                      <CheckCircle2 className="h-4 w-4" />
-                      Posted in community
-                    </label>
-                  </div>
-                )}
               </div>
             </div>
           </div>
