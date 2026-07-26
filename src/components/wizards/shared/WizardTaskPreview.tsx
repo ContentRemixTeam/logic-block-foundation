@@ -321,6 +321,8 @@ export function WizardTaskPreview({
                               onCheckedChange={() => toggleTask(task.id)}
                             />
                             <span className="text-sm flex-1">{task.task_text}</span>
+                            <EnergyChip energy={resolveEnergyCost(task)} />
+
                             
                             {/* Date picker */}
                             <div className="flex items-center gap-1">
