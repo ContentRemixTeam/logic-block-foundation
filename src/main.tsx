@@ -3,6 +3,9 @@ import App from "./App.tsx";
 import "./index.css";
 import { ErrorBoundary } from "./components/system/ErrorBoundary";
 import { initStorageDurability } from "./lib/storageDurability";
+import { initErrorTracking } from "./lib/errorTracking";
+
+initErrorTracking();
 
 const APP_CACHE_RELEASE = "legacy-prompt-layout-2026-06-22-v1";
 
