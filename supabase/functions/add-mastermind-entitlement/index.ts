@@ -141,9 +141,13 @@ serve(async (req: Request) => {
 
     const { data: existing } = await supabase
       .from('entitlements')
-      .select('id')
+      .select('id, status')
       .ilike('email', email)
       .maybeSingle();
+
+    if (existing && !isAdmin && existing.status?.toLowerCase() !== 'active' && !isClaimable(existing.status)) {
+      return notClaimableResponse();
+    }
 
     if (existing) {
       await supabase
