@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { guardAiRequest } from "../_shared/ai_guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,6 +18,10 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Auth is REQUIRED — never call the AI gateway for anonymous callers
+  const guard = await guardAiRequest(req, "generate-topic-ideas", corsHeaders);
+  if (!guard.ok) return guard.response;
+
   try {
     const { platform } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -26,36 +30,23 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    // Get auth header to fetch user context
-    const authHeader = req.headers.get("authorization");
     let userContext = "";
-    
-    if (authHeader) {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      
-      const token = authHeader.replace("Bearer ", "");
-      const { data: { user } } = await supabase.auth.getUser(token);
-      
-      if (user) {
-        // Fetch brand profile for context
-        const { data: brandProfile } = await supabase
-          .from("brand_profiles")
-          .select("business_name, industry, target_customer, what_you_sell, content_philosophies")
-          .eq("user_id", user.id)
-          .single();
-        
-        if (brandProfile) {
-          userContext = `
+
+    // Fetch brand profile for context (user already verified above)
+    const { data: brandProfile } = await guard.supabase
+      .from("brand_profiles")
+      .select("business_name, industry, target_customer, what_you_sell, content_philosophies")
+      .eq("user_id", guard.userId)
+      .maybeSingle();
+
+    if (brandProfile) {
+      userContext = `
 Business: ${brandProfile.business_name || "Online business"}
 Industry: ${brandProfile.industry || "Coaching/Consulting"}
 Target Customer: ${brandProfile.target_customer || "Entrepreneurs and business owners"}
 What They Sell: ${brandProfile.what_you_sell || "Digital products and services"}
 Content Philosophy: ${(brandProfile.content_philosophies || []).slice(0, 2).join(", ") || "Value-first content"}
 `;
-        }
-      }
     }
 
     const platformContext = PLATFORM_CONTEXT[platform] || PLATFORM_CONTEXT.social_post;
