@@ -42,19 +42,13 @@ export function ActionsChecklist() {
     }
   };
 
-  const copyPost = (idx: number) => {
-    const text = postActionDone(tracker, idx);
-    navigator.clipboard.writeText(text);
-    patch(idx, { community_post_copied: true });
-    toast.success('Copied. Go put this where the group can cheer you on.');
-  };
-
   return (
     <Card className="editorial-card p-6 space-y-5">
       <div>
-        <h3 className="font-display text-2xl text-foreground">Your 3 sprint actions</h3>
+        <h3 className="font-display text-2xl text-foreground">Your 3 next actions</h3>
         <p className="text-sm text-muted-foreground">Small. Honest. Doable this week.</p>
       </div>
+
 
       <div className="space-y-4">
         {tracker.actions.map((a, idx) => (
