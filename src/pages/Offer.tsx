@@ -366,6 +366,23 @@ export default function Offer() {
         </div>
       </section>
 
+      {/* WALKTHROUGH */}
+      <section className="border-b border-border-subtle bg-surface-sunken">
+        <div className="mx-auto w-full max-w-5xl px-5 py-16 sm:py-20">
+          <SectionLabel>Take the tour</SectionLabel>
+          <h2 className="max-w-2xl font-serif text-3xl leading-snug sm:text-4xl">
+            See it working before you buy it.
+          </h2>
+          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+            Six screens, in the order you&rsquo;d actually meet them. Tap
+            through at your own pace.
+          </p>
+          <div className="mt-10">
+            <FeatureWalkthrough />
+          </div>
+        </div>
+      </section>
+
       {/* 90 DAY SYSTEM */}
       <section className="border-b border-border-subtle">
         <div className="mx-auto grid w-full max-w-5xl gap-10 px-5 py-16 sm:py-20 lg:grid-cols-2 lg:items-center">
