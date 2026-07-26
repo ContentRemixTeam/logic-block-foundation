@@ -16,10 +16,19 @@ import {
   Square, 
   ListTodo, 
   AlertTriangle,
+  BatteryMedium,
   Calendar as CalendarIcon,
   RotateCcw
 } from 'lucide-react';
 import { WizardTask, TaskDateOverride, getTaskDate, isTaskSelected } from '@/types/wizardTask';
+import { EnergyChip } from '@/components/battery/EnergyChip';
+import {
+  PLAN_PACE_OPTIONS,
+  excludedIdsForPace,
+  energyBreakdown,
+  resolveEnergyCost,
+  type PlanPace,
+} from '@/lib/wizardEnergy';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 
