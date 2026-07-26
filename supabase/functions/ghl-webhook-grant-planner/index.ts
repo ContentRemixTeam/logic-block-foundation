@@ -62,7 +62,7 @@ Deno.serve((req) =>
       email,
       first_name: firstName || null,
       last_name: lastName || null,
-      ghl_contact_id: ghlContactId || existing?.['id'] ? ghlContactId || null : null,
+      ghl_contact_id: ghlContactId || null,
       tier: existing?.tier ?? 'planner',
       status: existing?.status ?? 'active',
       planner_tier: offer,
