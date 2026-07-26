@@ -173,7 +173,7 @@ export default function StepPillarsDiscovery({ data, setData }: StepPillarsDisco
 
           <Button
             onClick={handleGeneratePillars}
-            disabled={isGenerating || !data.idealCustomer.trim()}
+            disabled={isGenerating || !data.idealCustomer.trim() || keyLoading || !hasAPIKey}
             className="w-full"
           >
             {isGenerating ? (
@@ -188,6 +188,8 @@ export default function StepPillarsDiscovery({ data, setData }: StepPillarsDisco
               </>
             )}
           </Button>
+
+          {!keyLoading && !hasAPIKey && <MissingAIKeyNotice />}
         </CardContent>
       </Card>
 
