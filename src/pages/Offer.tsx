@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardMock, TasksMock } from "@/components/offer/AppMock";
+import { FeatureWalkthrough } from "@/components/offer/FeatureWalkthrough";
 import logoMark from "/brand/logo-mark.svg";
 
 /**
