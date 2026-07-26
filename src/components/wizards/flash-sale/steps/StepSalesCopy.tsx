@@ -112,7 +112,7 @@ export function StepSalesCopy({ data, setData }: StepProps) {
             </div>
             <Button 
               onClick={generateCopy} 
-              disabled={isGenerating || !data.productName}
+              disabled={isGenerating || !data.productName || keyLoading || !hasAPIKey}
               className="gap-2"
             >
               {isGenerating ? (
@@ -127,6 +127,7 @@ export function StepSalesCopy({ data, setData }: StepProps) {
                 </>
               )}
             </Button>
+            {!keyLoading && !hasAPIKey && <MissingAIKeyNotice />}
             {!data.productName && (
               <p className="text-xs text-muted-foreground">
                 Add your product name in Step 1 first
