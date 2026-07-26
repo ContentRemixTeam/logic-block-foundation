@@ -317,7 +317,6 @@ export function MobileSidebarContent() {
         <NavSection label="Organize" items={ORGANIZE_NAV} />
         <NavSection label="Review" items={REVIEW_NAV} />
         <NavSection label="Mindset" items={MINDSET_NAV} />
-        <NavSection label="Community" items={COMMUNITY_NAV} />
         
         {/* Focus Mode */}
         {!arcadeLoading && arcadeSettings.arcade_enabled && (
