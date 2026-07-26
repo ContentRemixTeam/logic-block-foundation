@@ -356,6 +356,7 @@ const App = () => (
                       <Route path="/wizards/content-challenge" element={<ProtectedRoute><PageSuspense><ContentChallengeWizardPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/sprint-dashboard" element={<ProtectedRoute><PageSuspense><SprintDashboardPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/money-moves-sprint" element={<ProtectedRoute><PageSuspense><MoneyMovesSprintPage /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/wizards/money-moves" element={<ProtectedRoute><PageSuspense><MoneyMovesSprintPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/asana-inbox" element={<ProtectedRoute><PageSuspense><AsanaInbox /></PageSuspense></ProtectedRoute>} />
                       <Route path="/settings/planner" element={<ProtectedRoute><PageSuspense><PlannerSettings /></PageSuspense></ProtectedRoute>} />
                       <Route path="/settings/daily-page" element={<ProtectedRoute><PageSuspense><DailyPageSettings /></PageSuspense></ProtectedRoute>} />
