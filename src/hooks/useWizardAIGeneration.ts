@@ -128,10 +128,10 @@ export function useWizardAIGeneration({ wizardType, wizardData }: UseWizardAIGen
     }
   }, [user]);
 
-  // Check if AI generation is available
-  const isAvailable = Boolean(user && apiKey?.key_status === 'valid' && brandProfile);
+  // Check if AI generation is available (any provider key counts, not just OpenAI)
+  const isAvailable = Boolean(user && hasAPIKey && brandProfile);
   const missingRequirements = {
-    apiKey: !apiKey || apiKey.key_status !== 'valid',
+    apiKey: !hasAPIKey,
     brandProfile: !brandProfile,
     user: !user,
   };
