@@ -322,15 +322,20 @@ export default function Offer() {
                 className="mr-3 inline-block h-8 w-8 shrink-0 align-baseline text-primary sm:h-10 sm:w-10"
                 aria-hidden
               />
-              Your 25% still counts.
+              Your 25% Still Counts.
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground">
-              A calm 90-day planning system for entrepreneurs whose energy does
-              not run on a schedule.
+              Most planners help you decide what to do. This one helps you
+              decide what still matters when you can&apos;t do it all.
             </p>
             <p className="mx-auto mt-3 max-w-xl text-lg leading-relaxed text-muted-foreground">
-              Not another app that assumes a full battery — one built for the
-              days you actually have.
+              Built for the entrepreneur whose energy doesn&apos;t run on a
+              schedule: chronic illness, a newborn, a day job, a brain that
+              checks out at 2pm.
+            </p>
+            <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground">
+              Your free retreat includes 3 days inside this exact planner. When
+              those 3 days are up, you can keep it for a full year for $27.
             </p>
 
             <div className="mt-8 flex flex-col items-center gap-2.5">
