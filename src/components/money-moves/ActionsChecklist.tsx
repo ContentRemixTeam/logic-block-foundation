@@ -2,11 +2,11 @@ import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Copy, CheckCircle2 } from 'lucide-react';
+
+
 import { toast } from 'sonner';
 import { useMoneyMovesTracker, type TrackerAction } from '@/hooks/useMoneyMovesTracker';
-import { postActionDone } from '@/lib/moneyMovesPosts';
+
 const celebrate = (msg: string) => toast.success(msg, { duration: 4000 });
 
 export function ActionsChecklist() {
