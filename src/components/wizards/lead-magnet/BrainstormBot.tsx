@@ -8,6 +8,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Sparkles, Loader2, RefreshCw, ArrowRight, Brain } from 'lucide-react';
 import { BrainstormIdea } from '@/types/leadMagnet';
+import { useHasAIKey } from '@/hooks/useAICopywriting';
+import { MissingAIKeyNotice } from '@/components/ai-copywriting/MissingAIKeyNotice';
+import { handleAIGenerationError } from '@/lib/aiKeyErrors';
 
 interface BrainstormContext {
   idealCustomer: string;
@@ -31,8 +34,10 @@ export function BrainstormBot({
   onSelectIdea,
 }: BrainstormBotProps) {
   const [isGenerating, setIsGenerating] = useState(false);
+  const { hasAPIKey, isLoading: keyLoading } = useHasAIKey();
 
   const handleGenerate = async () => {
+    if (!hasAPIKey) return;
     if (!context.idealCustomer.trim() || !context.mainProblem.trim() || !context.paidOffer.trim()) {
       toast.error('Please fill in all fields to generate ideas');
       return;
@@ -50,6 +55,7 @@ export function BrainstormBot({
       });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       if (data?.ideas && Array.isArray(data.ideas)) {
         onIdeasGenerated(data.ideas);
@@ -59,13 +65,15 @@ export function BrainstormBot({
       }
     } catch (error) {
       console.error('Brainstorm error:', error);
-      toast.error('Failed to generate ideas. Please try again.');
+      await handleAIGenerationError(error, 'Failed to generate ideas. Please try again.');
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const canGenerate = 
+  const canGenerate =
+    hasAPIKey &&
+    !keyLoading &&
     context.idealCustomer.trim().length > 10 &&
     context.mainProblem.trim().length > 10 &&
     context.paidOffer.trim().length > 5;
@@ -142,6 +150,8 @@ export function BrainstormBot({
             </>
           )}
         </Button>
+
+        {!keyLoading && !hasAPIKey && <MissingAIKeyNotice />}
 
         {/* Generated Ideas */}
         {ideas.length > 0 && (

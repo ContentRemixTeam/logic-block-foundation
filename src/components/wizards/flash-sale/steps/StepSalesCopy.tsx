@@ -8,6 +8,9 @@ import { FlashSaleWizardData } from '@/types/flashSale';
 import { Sparkles, X, Plus, Wand2, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useHasAIKey } from '@/hooks/useAICopywriting';
+import { MissingAIKeyNotice } from '@/components/ai-copywriting/MissingAIKeyNotice';
+import { handleAIGenerationError } from '@/lib/aiKeyErrors';
 
 interface StepProps {
   data: FlashSaleWizardData;
@@ -17,6 +20,7 @@ interface StepProps {
 export function StepSalesCopy({ data, setData }: StepProps) {
   const [newBullet, setNewBullet] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const { hasAPIKey, isLoading: keyLoading } = useHasAIKey();
 
   const addBullet = () => {
     if (newBullet.trim() && data.bullets.length < 5) {
@@ -30,6 +34,7 @@ export function StepSalesCopy({ data, setData }: StepProps) {
   };
 
   const generateCopy = async () => {
+    if (!hasAPIKey) return;
     setIsGenerating(true);
     try {
       const { data: result, error } = await supabase.functions.invoke('generate-flash-sale-copy', {
@@ -54,6 +59,7 @@ export function StepSalesCopy({ data, setData }: StepProps) {
       });
 
       if (error) throw error;
+      if (result?.error) throw new Error(result.error);
 
       if (result) {
         setData({
@@ -67,7 +73,7 @@ export function StepSalesCopy({ data, setData }: StepProps) {
       }
     } catch (error) {
       console.error('Error generating copy:', error);
-      toast.error('Failed to generate copy. Try again or write manually.');
+      await handleAIGenerationError(error, 'Failed to generate copy. Try again or write manually.');
     } finally {
       setIsGenerating(false);
     }
@@ -106,7 +112,7 @@ export function StepSalesCopy({ data, setData }: StepProps) {
             </div>
             <Button 
               onClick={generateCopy} 
-              disabled={isGenerating || !data.productName}
+              disabled={isGenerating || !data.productName || keyLoading || !hasAPIKey}
               className="gap-2"
             >
               {isGenerating ? (
@@ -121,6 +127,7 @@ export function StepSalesCopy({ data, setData }: StepProps) {
                 </>
               )}
             </Button>
+            {!keyLoading && !hasAPIKey && <MissingAIKeyNotice />}
             {!data.productName && (
               <p className="text-xs text-muted-foreground">
                 Add your product name in Step 1 first

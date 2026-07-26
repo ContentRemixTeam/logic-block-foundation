@@ -4,10 +4,11 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useBrandProfile, useAPIKey } from '@/hooks/useAICopywriting';
+import { useBrandProfile, useAPIKey, useHasAIKey } from '@/hooks/useAICopywriting';
 import { useSaveToVault } from '@/hooks/useSaveToVault';
 import { useAddCopyToCalendar } from '@/hooks/useAddCopyToCalendar';
-import { OpenAIService } from '@/lib/openai-service';
+import { callUserAIProxy } from '@/lib/aiProxyClient';
+import { NO_API_KEY_CODE, NO_API_KEY_MESSAGE, toastMissingAIKey } from '@/lib/aiKeyErrors';
 import { checkAIDetection } from '@/lib/ai-detection-checker';
 import { toast } from 'sonner';
 import {
@@ -69,6 +70,7 @@ export function useWizardAIGeneration({ wizardType, wizardData }: UseWizardAIGen
   const { user } = useAuth();
   const { data: brandProfile } = useBrandProfile();
   const { data: apiKey } = useAPIKey();
+  const { hasAPIKey, provider } = useHasAIKey();
   const saveToVault = useSaveToVault();
   const addToCalendar = useAddCopyToCalendar();
   
@@ -127,10 +129,10 @@ export function useWizardAIGeneration({ wizardType, wizardData }: UseWizardAIGen
     }
   }, [user]);
 
-  // Check if AI generation is available
-  const isAvailable = Boolean(user && apiKey?.key_status === 'valid' && brandProfile);
+  // Check if AI generation is available (any provider key counts, not just OpenAI)
+  const isAvailable = Boolean(user && hasAPIKey && brandProfile);
   const missingRequirements = {
-    apiKey: !apiKey || apiKey.key_status !== 'valid',
+    apiKey: !hasAPIKey,
     brandProfile: !brandProfile,
     user: !user,
   };
@@ -181,42 +183,20 @@ export function useWizardAIGeneration({ wizardType, wizardData }: UseWizardAIGen
     };
   }, [wizardType, wizardData, brandProfile]);
 
-  // Call OpenAI API directly
+  // Call the user's AI provider through the SERVER proxy.
+  // The key is decrypted inside the edge function and never reaches the browser.
   const callOpenAI = async (params: CallOpenAIParams): Promise<CallOpenAIResult> => {
     if (!user) throw new Error('Not authenticated');
-    
-    const userApiKey = await OpenAIService.getUserAPIKey(user.id);
-    if (!userApiKey) {
-      throw new Error('No API key configured. Please add your OpenAI API key in AI Copywriting settings.');
-    }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${userApiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: params.systemPrompt },
-          { role: 'user', content: params.userPrompt },
-        ],
-        temperature: params.temperature,
-        max_tokens: 4000,
-      }),
+    return callUserAIProxy({
+      provider,
+      temperature: params.temperature,
+      maxTokens: 4000,
+      messages: [
+        { role: 'system', content: params.systemPrompt },
+        { role: 'user', content: params.userPrompt },
+      ],
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'OpenAI API call failed');
-    }
-
-    const data = await response.json();
-    return {
-      content: data.choices[0]?.message?.content || '',
-      tokens: data.usage?.total_tokens || 0,
-    };
   };
 
   // Parse email sequence from generated text
@@ -495,16 +475,20 @@ export function useWizardAIGeneration({ wizardType, wizardData }: UseWizardAIGen
       return result;
       
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Generation failed';
-      
-      // If we have partial results, notify user
-      if (savedState.draft && recoveryKey) {
+      const rawMessage = error instanceof Error ? error.message : 'Generation failed';
+      const isMissingKey = rawMessage === NO_API_KEY_CODE;
+      const errorMessage = isMissingKey ? NO_API_KEY_MESSAGE : rawMessage;
+
+      if (isMissingKey) {
+        toastMissingAIKey();
+      } else if (savedState.draft && recoveryKey) {
+        // If we have partial results, notify user
         toast.error(
           'Generation interrupted. Your progress has been saved. Click "Generate" again to resume.',
           { duration: 10000 }
         );
       }
-      
+
       setState(prev => ({ ...prev, isGenerating: false, error: errorMessage }));
       throw error;
     }

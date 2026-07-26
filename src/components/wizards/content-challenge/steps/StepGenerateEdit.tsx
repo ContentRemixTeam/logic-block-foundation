@@ -13,6 +13,9 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { ContentChallengeWizardData, ContentDayDraft, AVAILABLE_PLATFORMS } from '@/types/contentChallenge';
 import { toast } from 'sonner';
+import { useHasAIKey } from '@/hooks/useAICopywriting';
+import { MissingAIKeyNotice } from '@/components/ai-copywriting/MissingAIKeyNotice';
+import { handleAIGenerationError } from '@/lib/aiKeyErrors';
 
 interface StepGenerateEditProps {
   data: ContentChallengeWizardData;
@@ -37,6 +40,7 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
   const [isGeneratingCopy, setIsGeneratingCopy] = useState<number | null>(null);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [editingCopy, setEditingCopy] = useState('');
+  const { hasAPIKey, isLoading: keyLoading } = useHasAIKey();
 
   const currentPlatform = data.platformOrder?.[data.currentPlatformIndex] || data.selectedPlatforms?.[0];
   const currentPlatformInfo = AVAILABLE_PLATFORMS.find(p => p.id === currentPlatform);
@@ -44,7 +48,7 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
   const Icon = currentPlatform ? PLATFORM_ICONS[currentPlatform] || FileText : FileText;
 
   const handleGenerateIdeas = async () => {
-    if (!currentPlatform) return;
+    if (!currentPlatform || !hasAPIKey) return;
 
     setIsGeneratingIdeas(true);
     try {
@@ -60,6 +64,7 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
       });
 
       if (error) throw error;
+      if (result?.error) throw new Error(result.error);
 
       if (result?.ideas) {
         const ideas: ContentDayDraft[] = result.ideas.map((idea: any, index: number) => ({
@@ -84,14 +89,14 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
       }
     } catch (error) {
       console.error('Error generating ideas:', error);
-      toast.error('Failed to generate content ideas');
+      await handleAIGenerationError(error, 'Failed to generate content ideas');
     } finally {
       setIsGeneratingIdeas(false);
     }
   };
 
   const handleGenerateCopy = async (dayNumber: number) => {
-    if (!currentPlatform) return;
+    if (!currentPlatform || !hasAPIKey) return;
 
     const dayContent = currentContent.find(c => c.dayNumber === dayNumber);
     if (!dayContent) return;
@@ -111,6 +116,7 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
       });
 
       if (error) throw error;
+      if (result?.error) throw new Error(result.error);
 
       if (result?.copy) {
         const updatedContent = currentContent.map(c =>
@@ -129,7 +135,7 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
       }
     } catch (error) {
       console.error('Error generating copy:', error);
-      toast.error('Failed to generate copy');
+      await handleAIGenerationError(error, 'Failed to generate copy');
     } finally {
       setIsGeneratingCopy(null);
     }
@@ -260,7 +266,7 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
             <p className="text-sm text-muted-foreground mb-6">
               We'll create content ideas based on your pillars and ideal customer
             </p>
-            <Button onClick={handleGenerateIdeas} disabled={isGeneratingIdeas} size="lg">
+            <Button onClick={handleGenerateIdeas} disabled={isGeneratingIdeas || keyLoading || !hasAPIKey} size="lg">
               {isGeneratingIdeas ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -273,9 +279,16 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
                 </>
               )}
             </Button>
+            {!keyLoading && !hasAPIKey && (
+              <div className="mt-4 max-w-md mx-auto text-left">
+                <MissingAIKeyNotice />
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
+
+      {currentContent.length > 0 && !keyLoading && !hasAPIKey && <MissingAIKeyNotice />}
 
       {/* Content List */}
       {currentContent.length > 0 && (
@@ -295,6 +308,7 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
                     key={day.dayNumber}
                     day={day}
                     isGenerating={isGeneratingCopy === day.dayNumber}
+                    canGenerate={!keyLoading && hasAPIKey}
                     onGenerateCopy={() => handleGenerateCopy(day.dayNumber)}
                     onEdit={() => handleEditCopy(day.dayNumber)}
                     onFinalize={() => handleFinalize(day.dayNumber)}
@@ -312,6 +326,7 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
                     key={day.dayNumber}
                     day={day}
                     isGenerating={isGeneratingCopy === day.dayNumber}
+                    canGenerate={!keyLoading && hasAPIKey}
                     onGenerateCopy={() => handleGenerateCopy(day.dayNumber)}
                     onEdit={() => handleEditCopy(day.dayNumber)}
                     onFinalize={() => handleFinalize(day.dayNumber)}
@@ -329,6 +344,7 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
                     key={day.dayNumber}
                     day={day}
                     isGenerating={isGeneratingCopy === day.dayNumber}
+                    canGenerate={!keyLoading && hasAPIKey}
                     onGenerateCopy={() => handleGenerateCopy(day.dayNumber)}
                     onEdit={() => handleEditCopy(day.dayNumber)}
                     onFinalize={() => handleFinalize(day.dayNumber)}
@@ -346,6 +362,7 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
                     key={day.dayNumber}
                     day={day}
                     isGenerating={isGeneratingCopy === day.dayNumber}
+                    canGenerate={!keyLoading && hasAPIKey}
                     onGenerateCopy={() => handleGenerateCopy(day.dayNumber)}
                     onEdit={() => handleEditCopy(day.dayNumber)}
                     onFinalize={() => handleFinalize(day.dayNumber)}
@@ -394,12 +411,14 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
 function ContentDayCard({
   day,
   isGenerating,
+  canGenerate = true,
   onGenerateCopy,
   onEdit,
   onFinalize,
 }: {
   day: ContentDayDraft;
   isGenerating: boolean;
+  canGenerate?: boolean;
   onGenerateCopy: () => void;
   onEdit: () => void;
   onFinalize: () => void;
@@ -441,7 +460,7 @@ function ContentDayCard({
           </div>
           <div className="flex flex-col gap-2">
             {day.status === 'idea' && (
-              <Button size="sm" onClick={onGenerateCopy} disabled={isGenerating}>
+              <Button size="sm" onClick={onGenerateCopy} disabled={isGenerating || !canGenerate}>
                 {isGenerating ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (

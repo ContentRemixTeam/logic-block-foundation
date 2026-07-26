@@ -11,6 +11,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useContentPillars } from '@/hooks/useContentPillars';
 import { ContentChallengeWizardData, ContentPillar, PILLAR_COLORS } from '@/types/contentChallenge';
 import { toast } from 'sonner';
+import { useHasAIKey } from '@/hooks/useAICopywriting';
+import { MissingAIKeyNotice } from '@/components/ai-copywriting/MissingAIKeyNotice';
+import { handleAIGenerationError } from '@/lib/aiKeyErrors';
 
 interface StepPillarsDiscoveryProps {
   data: ContentChallengeWizardData;
@@ -31,8 +34,10 @@ export default function StepPillarsDiscovery({ data, setData }: StepPillarsDisco
   const [suggestedPillars, setSuggestedPillars] = useState<SuggestedPillar[]>([]);
   const [showAddNew, setShowAddNew] = useState(false);
   const [newPillar, setNewPillar] = useState({ name: '', description: '', color: PILLAR_COLORS[0], emoji: '' });
+  const { hasAPIKey, isLoading: keyLoading } = useHasAIKey();
 
   const handleGeneratePillars = async () => {
+    if (!hasAPIKey) return;
     if (!data.idealCustomer.trim()) {
       toast.error('Please describe your ideal customer first');
       return;
@@ -50,6 +55,7 @@ export default function StepPillarsDiscovery({ data, setData }: StepPillarsDisco
       });
 
       if (error) throw error;
+      if (result?.error) throw new Error(result.error);
 
       if (result?.pillars) {
         setSuggestedPillars(result.pillars);
@@ -57,7 +63,7 @@ export default function StepPillarsDiscovery({ data, setData }: StepPillarsDisco
       }
     } catch (error) {
       console.error('Error generating pillars:', error);
-      toast.error('Failed to generate pillar suggestions');
+      await handleAIGenerationError(error, 'Failed to generate pillar suggestions');
     } finally {
       setIsGenerating(false);
     }
@@ -167,7 +173,7 @@ export default function StepPillarsDiscovery({ data, setData }: StepPillarsDisco
 
           <Button
             onClick={handleGeneratePillars}
-            disabled={isGenerating || !data.idealCustomer.trim()}
+            disabled={isGenerating || !data.idealCustomer.trim() || keyLoading || !hasAPIKey}
             className="w-full"
           >
             {isGenerating ? (
@@ -182,6 +188,8 @@ export default function StepPillarsDiscovery({ data, setData }: StepPillarsDisco
               </>
             )}
           </Button>
+
+          {!keyLoading && !hasAPIKey && <MissingAIKeyNotice />}
         </CardContent>
       </Card>
 

@@ -18,6 +18,9 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useHasAIKey } from '@/hooks/useAICopywriting';
+import { MissingAIKeyNotice } from '@/components/ai-copywriting/MissingAIKeyNotice';
+import { handleAIGenerationError } from '@/lib/aiKeyErrors';
 
 interface TopicIdea {
   topic: string;
@@ -56,8 +59,10 @@ export function SocialPostIdeation({ platform, onComplete, onSkip }: SocialPostI
   const [userThoughts, setUserThoughts] = useState('');
   const [activeTab, setActiveTab] = useState<'braindump' | 'prompts'>('braindump');
   const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
+  const { hasAPIKey, isLoading: keyLoading } = useHasAIKey();
 
   const generateTopics = async () => {
+    if (!hasAPIKey) return;
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-topic-ideas', {
@@ -65,11 +70,12 @@ export function SocialPostIdeation({ platform, onComplete, onSkip }: SocialPostI
       });
 
       if (error) throw error;
-      
+      if (data?.error) throw new Error(data.error);
+
       setTopics(data.topics || []);
     } catch (error) {
       console.error('Failed to generate topics:', error);
-      toast.error('Failed to generate topics. Please try again.');
+      await handleAIGenerationError(error, 'Failed to generate topics. Please try again.', (error as { data?: unknown })?.data);
     } finally {
       setIsGenerating(false);
     }
@@ -126,7 +132,7 @@ export function SocialPostIdeation({ platform, onComplete, onSkip }: SocialPostI
                 variant="outline"
                 size="sm"
                 onClick={generateTopics}
-                disabled={isGenerating}
+                disabled={isGenerating || keyLoading || !hasAPIKey}
               >
                 {isGenerating ? (
                   <>
@@ -146,6 +152,10 @@ export function SocialPostIdeation({ platform, onComplete, onSkip }: SocialPostI
                 )}
               </Button>
             </div>
+
+            {!keyLoading && !hasAPIKey && (
+              <MissingAIKeyNotice className="justify-start" />
+            )}
 
             {topics.length > 0 ? (
               <div className="grid gap-3">
