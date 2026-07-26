@@ -87,7 +87,12 @@ export function useServerSync<T>({
   }, [status]);
 
   const performSave = useCallback(async (data: T) => {
-    if (isSavingRef.current) return;
+    // A save is already running — remember that newer data exists so we can
+    // save it as soon as the in-flight request finishes.
+    if (isSavingRef.current) {
+      resaveQueuedRef.current = true;
+      return;
+    }
 
     if (!navigator.onLine) {
       setStatus('offline');
@@ -95,22 +100,57 @@ export function useServerSync<T>({
     }
 
     isSavingRef.current = true;
+    resaveQueuedRef.current = false;
     setStatus('saving');
 
+    // Snapshot exactly what we are sending so we can compare afterwards.
+    const payload = data;
+    let payloadSignature = '';
     try {
-      await saveFn(data);
-      
+      payloadSignature = JSON.stringify(payload);
+    } catch {
+      /* non-serializable payloads fall back to reference comparison */
+    }
+
+    try {
+      await saveFn(payload);
+
       setRetryCount(0);
       isSavingRef.current = false;
-      setStatus('saved');
       setLastSynced(new Date());
-      
-      onSuccess?.();
+
+      // Did the data change while this save was in flight?
+      const latest = dataRef.current;
+      let isStale = resaveQueuedRef.current || (latest !== null && latest !== payload);
+      if (isStale && payloadSignature && latest !== null) {
+        try {
+          isStale = JSON.stringify(latest) !== payloadSignature;
+        } catch {
+          /* keep isStale as-is */
+        }
+      }
+
+      if (isStale && latest !== null) {
+        // Newer edits exist: do NOT report success (so callers don't clear the
+        // local backup for data that isn't on the server yet). Save again.
+        resaveQueuedRef.current = false;
+        setStatus('pending');
+        void performSave(latest);
+        return;
+      }
+
+      resaveQueuedRef.current = false;
+      setStatus('saved');
+
+      // Only now is the confirmed payload the newest data — safe for callers
+      // to clear/replace the local backup for exactly this payload.
+      onSuccess?.(payload);
 
       // Reset to idle after showing "saved" status
       setTimeout(() => {
         setStatus((current) => current === 'saved' ? 'idle' : current);
       }, 3000);
+
 
     } catch (error: any) {
       console.error('[useServerSync] Save failed:', error);
