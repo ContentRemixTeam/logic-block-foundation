@@ -79,6 +79,19 @@ export function WizardTaskPreview({
   const selectedCount = tasks.filter(t => isTaskSelected(t.id, excludedTasks)).length;
   const totalCount = tasks.length;
 
+  // Energy pacing
+  const [pace, setPace] = useState<PlanPace | null>(null);
+  const selectedBreakdown = useMemo(
+    () => energyBreakdown(tasks.filter(t => isTaskSelected(t.id, excludedTasks))),
+    [tasks, excludedTasks],
+  );
+
+  const applyPace = (next: PlanPace) => {
+    setPace(next);
+    onExcludedTasksChange(excludedIdsForPace(tasks, next));
+  };
+
+
   const toggleTask = (taskId: string) => {
     if (excludedTasks.includes(taskId)) {
       onExcludedTasksChange(excludedTasks.filter(id => id !== taskId));
