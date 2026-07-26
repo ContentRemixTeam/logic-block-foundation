@@ -118,6 +118,7 @@ export default function MoneyMomentumWizardPage() {
           task_text: `💰 ${action.action}`,
           notes: `${action.details}\n\nWhy: ${action.why}`,
           category: 'Revenue Sprint',
+          energy_cost: inferEnergyCost(action.action),
           scheduled_date: data.sprintStartDate,
           source: 'money_momentum_wizard',
           is_recurring: true,

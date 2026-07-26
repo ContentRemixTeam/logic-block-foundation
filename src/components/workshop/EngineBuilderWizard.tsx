@@ -150,6 +150,7 @@ export function EngineBuilderWizard() {
                 scheduled_date: effectiveDate,
                 priority: t.priority,
                 estimated_minutes: t.estimated_minutes,
+                energy_cost: t.energy_cost ?? inferEnergyCost(t.task_text, t.estimated_minutes),
                 project_id: projectId || null,
                 status: 'pending' as const,
                 content_type: t.phase === 'schedule' ? 'social' : null,

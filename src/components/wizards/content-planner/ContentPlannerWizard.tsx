@@ -259,6 +259,7 @@ export function ContentPlannerWizard() {
             const { error: createTaskError } = await supabase.from('tasks').insert({
               user_id: user.id,
               task_text: `Create: ${item.title}`,
+              energy_cost: 'high',
               scheduled_date: item.date || null,
               content_item_id: contentItem.id,
               content_type: mappedType,
@@ -279,6 +280,7 @@ export function ContentPlannerWizard() {
               const { error: publishTaskError } = await supabase.from('tasks').insert({
                 user_id: user.id,
                 task_text: `Publish: ${item.title}`,
+                energy_cost: 'low',
                 scheduled_date: item.date,
                 content_item_id: contentItem.id,
                 content_type: mappedType,

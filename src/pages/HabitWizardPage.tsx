@@ -176,6 +176,7 @@ export default function HabitWizardPage() {
             is_recurring: true,
             recurrence_pattern: habit.type === 'daily' ? 'daily' : 'weekly',
             scheduled_date: new Date().toISOString().split('T')[0],
+            energy_cost: inferEnergyCost(habit.name, habit.estimatedMinutes ?? null),
             source: 'habit_wizard',
           });
         }
