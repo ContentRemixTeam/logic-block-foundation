@@ -266,7 +266,7 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
             <p className="text-sm text-muted-foreground mb-6">
               We'll create content ideas based on your pillars and ideal customer
             </p>
-            <Button onClick={handleGenerateIdeas} disabled={isGeneratingIdeas} size="lg">
+            <Button onClick={handleGenerateIdeas} disabled={isGeneratingIdeas || keyLoading || !hasAPIKey} size="lg">
               {isGeneratingIdeas ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -279,6 +279,11 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
                 </>
               )}
             </Button>
+            {!keyLoading && !hasAPIKey && (
+              <div className="mt-4 max-w-md mx-auto text-left">
+                <MissingAIKeyNotice />
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
