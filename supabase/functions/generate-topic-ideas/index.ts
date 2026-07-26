@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { guardAiRequest } from "../_shared/ai_guard.ts";
+import { callUserAI } from "../_shared/byok.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
