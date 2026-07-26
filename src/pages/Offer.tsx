@@ -105,6 +105,7 @@ const heroBullets = [
   "turn your weekly focus into three realistic actions",
   "move non-essential work aside without deleting it",
   "keep your 90-day goal visible when the week gets messy",
+  "use it on desktop, phone, or tablet — no printing, no PDFs",
 ];
 
 const moneyMovesBullets = [
