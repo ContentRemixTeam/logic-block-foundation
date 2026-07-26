@@ -1,54 +1,75 @@
-## Audit: /offer sales page
+## Design audit — `/offer` (Low Battery Business Planner sales page)
 
-Reviewed live at 1280px and 375px. Structurally sound, no overflow, copy is strong. But it reads like a well-typeset **essay**, not a SaaS sales page. Below is the honest critique, then what I'd change.
+Reviewed the rendered page at 1280px and 375px. Copy and typesetting are good. As a *SaaS sales page* it under-performs, because it reads like a well-set essay rather than a product page.
 
 ### What's working
-- Message hierarchy and copy voice are genuinely good — the problem section earns the offer.
-- One consistent card style, one shadow level, clean serif/sans pairing.
-- Section rhythm is predictable and readable; no layout bugs at either width.
-- FAQ placed after the offer (correct — it handles objections at the decision point).
+- Strong message hierarchy — the problem section genuinely earns the offer.
+- One card style, one shadow level, clean serif/sans pairing.
+- FAQ correctly placed *after* the offer, handling objections at the decision point.
+- No horizontal overflow at either width; mobile is structurally clean.
 
 ### What's not working (ranked by conversion impact)
 
-**1. Zero product visuals. This is the single biggest problem.**
-Every SaaS page that converts cold traffic shows the product within the first screen. Right now a stranger reads ~120 words of prose before any evidence the app exists. Features are described ("Low Battery Day mode", "Bare Minimum Plan") but never *shown*, so they read as claims. Needs: a hero device shot of the dashboard, and 2–3 real UI crops beside the battery-system and 90-day sections.
+**1. Zero product visuals — the biggest problem.** Every SaaS page that converts cold traffic shows the product above the fold. A stranger currently reads ~120 words before any evidence the app exists. "Low Battery Day mode" and "Bare Minimum Plan" are *described*, never *shown*, so they read as claims.
 
-**2. The hero is a wall of centred text with four stacked messages.**
-Eyebrow → headline → bold context line → muted paragraph. Two subheads doing the same job. On mobile the battery icon detaches and floats to the left of a wrapped two-line headline, which looks broken rather than deliberate. Cut to: eyebrow, headline, ONE sub-line, CTA, product image.
+**2. The brand palette isn't rendering.** Confirmed in the browser: the page inherits `data-theme="bw"`, so `--primary` computes to `0 0% 9%` — near-black. Your rose (`347 70% 70%`) and gold never appear. The CTA is a generic black pill. That single bug is why the page looks like a template.
 
-**3. No brand frame.** No logo bar, no nav. Cold traffic lands with no signal of who this is or that it's a real product. A minimal top bar with the wordmark (and a quiet "Sign in") raises legitimacy cheaply.
+**3. Hero is four stacked messages, all centred.** Eyebrow → headline → bold context line → muted paragraph — two subheads doing one job. On mobile the battery icon detaches and floats left of a wrapped two-line headline, which reads as broken rather than deliberate.
 
-**4. The palette isn't showing.** Rose and gold are defined in the design system, but the rendered page is cream + near-black. The CTA is a generic black pill. Nothing on the page is *the brand colour*, so it looks like a template, not a product.
+**4. No brand frame.** No logo bar. Cold traffic lands with no signal of who this is or that it's a real product.
 
-**5. Trust and risk reversal are missing.**
-- No guarantee. At $27 cold, a 14/30-day refund line typically moves conversion more than any copy edit.
-- Testimonials are unattributed revenue claims ("$7K/month") about the Mastermind, not the planner. Cold traffic reads big income numbers with no photo/context as *less* credible, and it's a compliance risk. Needs faces, roles, and at least one quote about using the tool.
-- No payment/security reassurance near the button.
+**5. No risk reversal, weak proof.** No guarantee. Testimonials are unattributed income claims about the Mastermind, not the planner — for cold traffic, big revenue numbers with no face or context read as *less* credible, and carry compliance risk.
 
-**6. No price anchoring.** "$27" appears with nothing to compare it against. The "four 90-day cycles for one quiet weekend" line is poetic but not an anchor. Show a struck-through or stated value, or a per-month breakdown ($2.25/month).
+**6. No price anchoring.** "$27" sits alone with nothing to compare against.
 
-**7. Flat visual crescendo.** Every section is `py-16`, same label→h2→body pattern, alternating two backgrounds. Nothing escalates toward the offer. The offer card should be visibly the loudest moment on the page; currently it's the same weight as the FAQ.
+**7. Flat crescendo.** Every section is `py-16` with the same label→h2→body pattern. The offer card carries the same visual weight as the FAQ; it should be the loudest moment on the page.
 
-**8. Jittery left edge.** Container widths vary 2xl / 4xl / 5xl / 3xl section to section, so the text column shifts horizontally as you scroll. Pick one content width and one wide width.
+**8. Jittery left edge.** Container widths swing 2xl / 4xl / 5xl / 3xl between sections, so the text column shifts sideways as you scroll.
 
-**9. Mobile has no persistent CTA.** The page is ~7 screens on a phone; after the hero the buy button disappears until the offer section. A sticky bottom bar (price + button) is standard and materially lifts mobile conversion.
+**9. No persistent mobile CTA.** ~7 screens on a phone with the buy button only in two places.
 
-**10. Weak sections.** "Also included" is a bare icon-text list — the least designed block on the page. And there's no "what happens after you pay" step block, which cold buyers want before entering a card.
+**10. Weakest block:** "Also included" is a bare icon-text list. And there's no "what happens after you pay" reassurance before the card form.
 
-### Proposed changes (design/presentation only, `src/pages/Offer.tsx`)
+---
 
-1. **Add product imagery** — capture real dashboard / daily / 90-day cycle screenshots from the running app, frame them in a subtle device mock, place one in the hero and two inline beside feature sections.
-2. **Rebuild the hero** — slim brand bar with wordmark; eyebrow, headline with inline battery icon (icon locked to the first line so it can't detach on mobile), one sub-line, CTA + microcopy, product shot below. Move the Full/Half/Low/Empty chips out of the hero into the battery-system section where they have context.
-3. **Brand the CTA** — primary button uses the rose accent with gold hover/focus detail; single consistent CTA component everywhere.
-4. **Trust layer** — guarantee line under every CTA, a refund/guarantee badge in the offer card, secure-payment microcopy, and testimonials reworked with avatars + role and one product-specific quote (I'll need a real quote or I'll leave a clearly-marked placeholder rather than invent one).
-5. **Offer card as the visual peak** — price anchor ($27 one-time vs. $2.25/mo), stronger border/shadow/scale than any other card, checklist, guarantee, CTA.
-6. **Rhythm and grid** — one content width (max-w-2xl) and one wide width (max-w-5xl); vary section padding so the offer gets more air; upgrade "Also included" into a proper card grid.
-7. **Sticky mobile CTA bar** — appears after the hero scrolls out, hides at the offer section, respects safe-area inset.
-8. **Add an "After you buy" 3-step strip** before the FAQ.
-9. **SEO/meta** — real head tags plus JSON-LD Product/Offer, single H1 retained.
+## Implementation plan
 
-### Technical notes
-Screenshots captured via Playwright against localhost, cropped, stored in `src/assets/` and imported as ES6 assets. No backend or business-logic changes. All colours through existing semantic tokens — no hardcoded hex. Verify at 375px and 1280px after, typecheck must pass.
+### A. Add your required copy (verbatim, no rewrites)
+New **"What's included"** block placed directly above the offer card, and the offer card rebuilt to carry the pricing copy:
 
-### Open question
-The testimonials: I can keep the existing three, but they're Mastermind income claims. If you have even one line from someone who used the *app*, that will outperform all three with cold traffic.
+- Section H2: `12-Month Access — 90-Day Low Battery Business Planner`
+- Intro: `A special price, just for claiming Plan Like a Boss through Lizzy's Summer Party. A calm planning system built for the days your energy doesn't show up on schedule. Your 25% still counts.`
+- Checklist "What's included:" — Guided 90-day planning / Weekly planning and daily system / Daily planning wizards / Support guides / Planner tools
+- `12 months of access. One-time payment of $27.`
+- Exclusion line, styled quiet and honest (muted, smaller, own row — not hidden, not shouted): `Does not include Becoming Boss Mastermind access, live coaching, or community.`
+- Large `$27` price display
+- Caption under it: `This price is available exclusively to Lizzy's Summer Party bundle claimants.`
+
+The existing generic bullets ("Every feature on this page…", "New features added during your year") get replaced by your list so there's one authoritative inclusions block, not two competing ones.
+
+### B. Fix the palette bug
+`/offer` clears the inherited `bw` theme on mount and restores it on unmount, so the public page renders in the real brand palette — rose primary CTA, gold accent detail. Presentation-only, no effect on the signed-in app.
+
+### C. Rebuild the hero
+Slim brand bar (logo mark + wordmark, quiet "Sign in" link). Then: eyebrow → headline with the battery icon locked inline to the first line so it can't detach on mobile → **one** sub-line → CTA + microcopy → product visual. The Full/Half/Low/Empty chips move out of the hero into the battery-system section, where they have context.
+
+### D. Product visuals
+I attempted real screenshots of the live app with the injected session and hit the membership paywall ("We can't find active access for this email"), so I can't capture authenticated screens without writing access records to your database — which I won't do unprompted. Instead I'll build faithful in-page UI reproductions (real components, brand tokens, browser/phone chrome) of the dashboard battery check-in, Bare Minimum list, and 90-day cycle bar. They mirror the actual interface rather than inventing features. If you'd rather use genuine screenshots, send me a few and I'll swap them in — or say the word and I'll grant your account access so I can capture them directly.
+
+### E. Trust, rhythm, structure
+- Consistent branded CTA component everywhere; one primary action per view.
+- Testimonials get initials avatars and an accurate attribution line ("Becoming Boss Mastermind member") so the income claims have context.
+- Price anchor near the price: "$27 once — about $2.25 a month."
+- Offer card becomes the visual peak: stronger border, deeper shadow, more surrounding air than any other section.
+- Grid discipline: one content width (`max-w-2xl`) and one wide width (`max-w-5xl`), nothing else.
+- "Also included" upgraded from a bare list into a proper card grid.
+- Sticky mobile CTA bar (price + button) appearing after the hero, hidden over the offer section, respecting safe-area inset.
+- "After you buy" 3-step reassurance strip before the FAQ.
+- Real head tags plus Product/Offer JSON-LD; single H1 retained.
+
+### Two things I'd flag
+1. **Guarantee.** The page has no risk reversal, which at $27 usually matters more than any copy edit — but I won't invent a refund policy. Tell me the terms and I'll add it; otherwise I'll ship without one.
+2. **Audience conflict.** You asked to optimise for cold traffic, but the new copy scopes the price to "Lizzy's Summer Party bundle claimants." I'll build it exactly as written, but be aware that line caps the page's usefulness for cold ads. If you later want a cold version, it's a one-line swap.
+
+### Technical
+Changes confined to `src/pages/Offer.tsx` plus small presentational subcomponents. All colours via semantic tokens, no hardcoded hex. Verified at 375px and 1280px with screenshots; typecheck must pass.
