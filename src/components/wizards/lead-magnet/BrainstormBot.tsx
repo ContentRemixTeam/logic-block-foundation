@@ -71,7 +71,9 @@ export function BrainstormBot({
     }
   };
 
-  const canGenerate = 
+  const canGenerate =
+    hasAPIKey &&
+    !keyLoading &&
     context.idealCustomer.trim().length > 10 &&
     context.mainProblem.trim().length > 10 &&
     context.paidOffer.trim().length > 5;
