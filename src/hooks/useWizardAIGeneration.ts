@@ -8,6 +8,7 @@ import { useBrandProfile, useAPIKey, useHasAIKey } from '@/hooks/useAICopywritin
 import { useSaveToVault } from '@/hooks/useSaveToVault';
 import { useAddCopyToCalendar } from '@/hooks/useAddCopyToCalendar';
 import { callUserAIProxy } from '@/lib/aiProxyClient';
+import { NO_API_KEY_CODE, NO_API_KEY_MESSAGE, toastMissingAIKey } from '@/lib/aiKeyErrors';
 import { checkAIDetection } from '@/lib/ai-detection-checker';
 import { toast } from 'sonner';
 import {
