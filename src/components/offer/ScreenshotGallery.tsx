@@ -14,32 +14,32 @@ type Shot = {
 
 const shots: Shot[] = [
   {
-    src: lowBatteryDay.url,
+    src: lowBatteryDay,
     alt: "Low Battery Day prompt asking if the rest of the day should be parked",
     caption:
       "Low Battery Day. One tap parks everything except your bare minimum. Nothing is deleted.",
   },
   {
-    src: anchors.url,
+    src: anchors,
     alt: "Today's Anchors panel with brave move, low-energy task and waiting-on fields",
     caption:
       "Today's Anchors. One brave move, one low-energy task, one thing you're letting go of.",
   },
   {
-    src: weeklyPlan.url,
+    src: weeklyPlan,
     alt: "Weekly planner showing the one outcome, three commitments and a life-happens plan",
     caption:
       "The weekly tradeoff. One outcome, three commitments, and a plan for when life happens.",
     wide: true,
   },
   {
-    src: openLoops.url,
+    src: openLoops,
     alt: "Open Loops page grouping items into Do, Decide, Defer and Delete",
     caption:
       "Open Loops. Every loose thread in one calm place, sorted into do, decide, defer or delete.",
   },
   {
-    src: wizards.url,
+    src: wizards,
     alt: "Smart Wizards library with 90-day cycle planner and other guided workflows",
     caption:
       "Guided wizards. Plan a 90-day cycle, a launch, or a content batch without a blank page.",
