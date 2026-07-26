@@ -16,7 +16,6 @@ import {
   ClipboardList,
   Sparkles,
   HelpCircle,
-  Users,
   Map,
   Scroll,
   Compass,
