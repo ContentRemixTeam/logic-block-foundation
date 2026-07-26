@@ -6,7 +6,7 @@ export interface AccessState {
   loading: boolean;
   hasAccess: boolean;
   accessLevel: 'lifetime' | 'annual' | null;
-  status: 'active' | 'revoked' | 'expired' | 'none' | null;
+  status: 'active' | 'revoked' | 'expired' | 'none' | 'error' | null;
   expiresAt: string | null;
   daysUntilExpiry: number | null;
   refresh: () => Promise<void>;
@@ -21,23 +21,30 @@ export function useAccessCheck(): AccessState {
     access_expires_at: string | null;
   } | null>(null);
   const [noRow, setNoRow] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
-    if (!user?.email) {
+    if (!user?.id) {
       setLoading(false);
       return;
     }
     setLoading(true);
+    setLoadError(false);
     const { data, error } = await supabase
       .from('member_access')
       .select('access_level, status, access_expires_at')
-      .ilike('email', user.email)
+      .eq('user_id', user.id)
       .maybeSingle();
-    if (error) console.warn('access check error:', error.message);
+    if (error) {
+      console.warn('access check error:', error.message);
+      setLoadError(true);
+      setLoading(false);
+      return;
+    }
     setRow((data as any) ?? null);
     setNoRow(!data);
     setLoading(false);
-  }, [user?.email]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!authLoading) load();
@@ -61,6 +68,18 @@ export function useAccessCheck(): AccessState {
       hasAccess: false,
       accessLevel: null,
       status: null,
+      expiresAt: null,
+      daysUntilExpiry: null,
+      refresh: load,
+    };
+  }
+
+  if (loadError) {
+    return {
+      loading: false,
+      hasAccess: false,
+      accessLevel: null,
+      status: 'error',
       expiresAt: null,
       daysUntilExpiry: null,
       refresh: load,
