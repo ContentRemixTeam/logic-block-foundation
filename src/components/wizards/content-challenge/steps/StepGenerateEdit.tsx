@@ -89,14 +89,14 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
       }
     } catch (error) {
       console.error('Error generating ideas:', error);
-      toast.error('Failed to generate content ideas');
+      await handleAIGenerationError(error, 'Failed to generate content ideas');
     } finally {
       setIsGeneratingIdeas(false);
     }
   };
 
   const handleGenerateCopy = async (dayNumber: number) => {
-    if (!currentPlatform) return;
+    if (!currentPlatform || !hasAPIKey) return;
 
     const dayContent = currentContent.find(c => c.dayNumber === dayNumber);
     if (!dayContent) return;
@@ -116,6 +116,7 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
       });
 
       if (error) throw error;
+      if (result?.error) throw new Error(result.error);
 
       if (result?.copy) {
         const updatedContent = currentContent.map(c =>
@@ -134,7 +135,7 @@ export default function StepGenerateEdit({ data, setData }: StepGenerateEditProp
       }
     } catch (error) {
       console.error('Error generating copy:', error);
-      toast.error('Failed to generate copy');
+      await handleAIGenerationError(error, 'Failed to generate copy');
     } finally {
       setIsGeneratingCopy(null);
     }
