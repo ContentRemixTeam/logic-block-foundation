@@ -80,11 +80,6 @@ const MINDSET_NAV = [
   },
 ];
 
-const COMMUNITY_NAV = [
-  { name: 'Community', href: 'https://portal.faithmariah.com/communities/groups/mastermind/home', icon: Users, questIcon: '🏆', isExternal: true },
-  { name: 'Mastermind', href: '/mastermind', icon: Sparkle, questIcon: '🎓', feature: 'coaching' as FeatureKey },
-];
-
 const SETTINGS_NAV = [
   { name: 'Settings', href: '/settings', icon: Settings, questIcon: '⚙️' },
   { name: 'Trash', href: '/trash', icon: Trash2, questIcon: '🗑️' },
