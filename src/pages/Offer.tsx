@@ -868,7 +868,7 @@ export default function Offer() {
       {/* TESTIMONIALS */}
       <section className="border-b border-border-subtle">
         <div className="mx-auto w-full max-w-5xl px-5 py-16 sm:py-20">
-          <SectionLabel>From people running the system</SectionLabel>
+          <SectionLabel>What Faith&rsquo;s students are saying</SectionLabel>
           <div className="mt-8 grid gap-4 md:grid-cols-3">
             {testimonials.map(({ quote, name }) => (
               <figure
