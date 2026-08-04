@@ -1,75 +1,60 @@
-## Design audit — `/offer` (Low Battery Business Planner sales page)
+# Live Coaching Queue — call-ready MVP
 
-Reviewed the rendered page at 1280px and 375px. Copy and typesetting are good. As a *SaaS sales page* it under-performs, because it reads like a well-set essay rather than a product page.
+Note: the prompt file on your Mac (`/Users/faithhawks/Documents/...`) isn't reachable from here, so this plan is built from the scope you pasted. If the file has extra requirements, paste its text and I'll fold them in.
 
-### What's working
-- Strong message hierarchy — the problem section genuinely earns the offer.
-- One card style, one shadow level, clean serif/sans pairing.
-- FAQ correctly placed *after* the offer, handling objections at the decision point.
-- No horizontal overflow at either width; mobile is structurally clean.
+Scope is deliberately narrow: a working public queue, a coach cockpit, takeaway saving, and safe planner task assignment. Nothing from phase two (transcripts, emails, AI summaries, community analysis, reports) is included.
 
-### What's not working (ranked by conversion impact)
+## What gets built
 
-**1. Zero product visuals — the biggest problem.** Every SaaS page that converts cold traffic shows the product above the fold. A stranger currently reads ~120 words before any evidence the app exists. "Low Battery Day mode" and "Bare Minimum Plan" are *described*, never *shown*, so they read as claims.
+### 1. Public queue page at `/coaching`
+- Open to anyone with the link, no login wall on the page itself.
+- If the queue is closed: a calm "the queue isn't open right now" state.
+- Join flow: pick your name from a dropdown of **active Mastermind members only** (names only, sourced server-side).
+- After joining, a member can set their own status:
+  - **Ready**
+  - **Temporarily unavailable** (keeps their original place; shown as "stepping away")
+  - **Quick question** (a short-answer slot that does **not** cost them their spot for full coaching)
+- Public list shows **ordered first names + last initial and status only**. No questions, goals, links, notes, or history are ever exposed publicly.
+- Live updates so readiness changes appear without a refresh.
 
-**2. The brand palette isn't rendering.** Confirmed in the browser: the page inherits `data-theme="bw"`, so `--primary` computes to `0 0% 9%` — near-black. Your rose (`347 70% 70%`) and gold never appear. The CTA is a generic black pill. That single bug is why the page looks like a template.
+### 2. Coach dashboard (private, coach-only)
+- Open/close the queue.
+- See the full ordered list with each member's status and whether they're a quick question.
+- Manual reorder (move up / move down) plus a simple priority flag.
+- Click a member to open the **Coaching Cockpit**.
 
-**3. Hero is four stacked messages, all centred.** Eyebrow → headline → bold context line → muted paragraph — two subheads doing one job. On mobile the battery icon detaches and floats left of a wrapped two-line headline, which reads as broken rather than deliberate.
+### 3. Coaching Cockpit
+- Member identity header, with a **"wrong person? change member"** control so a mis-selection can be corrected before saving.
+- Planner-link indicator: shows whether this member is confidently matched to a planner account.
+- **Private coach notes** (never member-visible).
+- **Takeaway box** (member-visible summary of the session).
+- **Assign tasks**: 1–5 tasks with text + a date. Created through a coach-authorized backend function, deduped so the same task isn't created twice.
+  - If no confident planner match, task assignment is **disabled** with an explanation — coaching itself still works and saves.
+- **Mark coached**: saves the session, records it in the member's live-coaching history, and advances the queue.
 
-**4. No brand frame.** No logo bar. Cold traffic lands with no signal of who this is or that it's a real product.
+### 4. Public debrief form
+- A simple post-call form where a member records what they took away and optionally 1–3 next steps with dates.
+- Next steps go through the same deduped task creation path when a planner account is linked.
 
-**5. No risk reversal, weak proof.** No guarantee. Testimonials are unattributed income claims about the Mastermind, not the planner — for cold traffic, big revenue numbers with no face or context read as *less* credible, and carry compliance risk.
+## Technical notes
 
-**6. No price anchoring.** "$27" sits alone with nothing to compare against.
+- **New tables** (all in `public`, RLS on, explicit grants):
+  - `coaching_sessions_live` — one row per call: title, `is_open`, opened/closed timestamps, owner (coach).
+  - `coaching_queue_entries` — session ref, member ref (`user_id` nullable + display name + email), `status` (`waiting` / `ready` / `away` / `coached`), `entry_type` (`full` / `quick_question`), `sort_order`, `priority`, join token.
+  - `live_coaching_records` — the coached history: session ref, member ref, private notes, member takeaway, coached_at. Kept **separate** from the existing self-coaching `coaching_entries` table so the self-coaching log isn't polluted.
+- **Public read** is served by a read-only edge function returning only ordered names + statuses; no anon SELECT grant on the underlying tables that would leak questions or emails.
+- **Join / status changes** go through an edge function with a per-entry token, so a public visitor can only mutate their own row.
+- **Coach actions** (open/close, reorder, cockpit save, task assignment) run in an edge function that verifies the caller is an admin/coach via the existing `is_admin` check, then inserts tasks with the member's `user_id` server-side — never a client-supplied owner.
+- **Member roster** comes from the existing entitlements/`member_access` data, so nonmembers never appear and the planner stays a standalone product for them. The coach entry point is hidden behind the existing Mastermind gating.
+- **Live updates** via a realtime subscription on the queue table, scoped so subscribers only receive non-sensitive columns.
+- Task creation reuses the existing tasks schema and marks rows with a source so coach tasks and debrief tasks can be deduped.
 
-**7. Flat crescendo.** Every section is `py-16` with the same label→h2→body pattern. The offer card carries the same visual weight as the FAQ; it should be the loudest moment on the page.
+## Verification before you go live
+I'll run these four checks and report results:
+1. A member can join and appears in the public order.
+2. A readiness change updates the public list without a refresh.
+3. Opening a member from the coach list loads the correct cockpit.
+4. A test task lands in the correct planner account.
 
-**8. Jittery left edge.** Container widths swing 2xl / 4xl / 5xl / 3xl between sections, so the text column shifts sideways as you scroll.
-
-**9. No persistent mobile CTA.** ~7 screens on a phone with the buy button only in two places.
-
-**10. Weakest block:** "Also included" is a bare icon-text list. And there's no "what happens after you pay" reassurance before the card form.
-
----
-
-## Implementation plan
-
-### A. Add your required copy (verbatim, no rewrites)
-New **"What's included"** block placed directly above the offer card, and the offer card rebuilt to carry the pricing copy:
-
-- Section H2: `12-Month Access — 90-Day Low Battery Business Planner`
-- Intro: `A special price, just for claiming Plan Like a Boss through Lizzy's Summer Party. A calm planning system built for the days your energy doesn't show up on schedule. Your 25% still counts.`
-- Checklist "What's included:" — Guided 90-day planning / Weekly planning and daily system / Daily planning wizards / Support guides / Planner tools
-- `12 months of access. One-time payment of $27.`
-- Exclusion line, styled quiet and honest (muted, smaller, own row — not hidden, not shouted): `Does not include Becoming Boss Mastermind access, live coaching, or community.`
-- Large `$27` price display
-- Caption under it: `This price is available exclusively to Lizzy's Summer Party bundle claimants.`
-
-The existing generic bullets ("Every feature on this page…", "New features added during your year") get replaced by your list so there's one authoritative inclusions block, not two competing ones.
-
-### B. Fix the palette bug
-`/offer` clears the inherited `bw` theme on mount and restores it on unmount, so the public page renders in the real brand palette — rose primary CTA, gold accent detail. Presentation-only, no effect on the signed-in app.
-
-### C. Rebuild the hero
-Slim brand bar (logo mark + wordmark, quiet "Sign in" link). Then: eyebrow → headline with the battery icon locked inline to the first line so it can't detach on mobile → **one** sub-line → CTA + microcopy → product visual. The Full/Half/Low/Empty chips move out of the hero into the battery-system section, where they have context.
-
-### D. Product visuals
-I attempted real screenshots of the live app with the injected session and hit the membership paywall ("We can't find active access for this email"), so I can't capture authenticated screens without writing access records to your database — which I won't do unprompted. Instead I'll build faithful in-page UI reproductions (real components, brand tokens, browser/phone chrome) of the dashboard battery check-in, Bare Minimum list, and 90-day cycle bar. They mirror the actual interface rather than inventing features. If you'd rather use genuine screenshots, send me a few and I'll swap them in — or say the word and I'll grant your account access so I can capture them directly.
-
-### E. Trust, rhythm, structure
-- Consistent branded CTA component everywhere; one primary action per view.
-- Testimonials get initials avatars and an accurate attribution line ("Becoming Boss Mastermind member") so the income claims have context.
-- Price anchor near the price: "$27 once — about $2.25 a month."
-- Offer card becomes the visual peak: stronger border, deeper shadow, more surrounding air than any other section.
-- Grid discipline: one content width (`max-w-2xl`) and one wide width (`max-w-5xl`), nothing else.
-- "Also included" upgraded from a bare list into a proper card grid.
-- Sticky mobile CTA bar (price + button) appearing after the hero, hidden over the offer section, respecting safe-area inset.
-- "After you buy" 3-step reassurance strip before the FAQ.
-- Real head tags plus Product/Offer JSON-LD; single H1 retained.
-
-### Two things I'd flag
-1. **Guarantee.** The page has no risk reversal, which at $27 usually matters more than any copy edit — but I won't invent a refund policy. Tell me the terms and I'll add it; otherwise I'll ship without one.
-2. **Audience conflict.** You asked to optimise for cold traffic, but the new copy scopes the price to "Lizzy's Summer Party bundle claimants." I'll build it exactly as written, but be aware that line caps the page's usefulness for cold ads. If you later want a cold version, it's a one-line swap.
-
-### Technical
-Changes confined to `src/pages/Offer.tsx` plus small presentational subcomponents. All colours via semantic tokens, no hardcoded hex. Verified at 375px and 1280px with screenshots; typecheck must pass.
+## Explicitly deferred
+Transcript processing, Zoom identity/timestamps, community comment analysis, AI summaries, automated emails, weekly progress reports, advanced member intelligence, automated task/debrief reconciliation.
