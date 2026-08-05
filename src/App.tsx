@@ -398,7 +398,9 @@ const App = () => (
                       <Route path="/join" element={<PageSuspense><MemberSignup /></PageSuspense>} />
                       <Route path="/quick-add" element={<PageSuspense><QuickAddApp /></PageSuspense>} />
                       <Route path="/install-quick-add" element={<PageSuspense><InstallQuickAdd /></PageSuspense>} />
+                      <Route path="/workshop/low-battery-plan" element={<PageSuspense><LowBatteryPlanPage /></PageSuspense>} />
                       <Route path="/workshop/engine-builder" element={<PageSuspense><EngineBuilderPage /></PageSuspense>} />
+
                       <Route path="/workshop" element={<PageSuspense><WorkshopWelcomePage /></PageSuspense>} />
                       <Route path="/engine" element={<PageSuspense><WorkshopRegisterPage /></PageSuspense>} />
                       
