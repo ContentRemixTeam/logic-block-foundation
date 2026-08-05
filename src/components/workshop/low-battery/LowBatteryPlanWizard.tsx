@@ -306,8 +306,9 @@ export function LowBatteryPlanWizard() {
 
             {!isResults && (
               <Button
-                className="min-h-[44px]"
+                className="min-h-[44px] shrink-0 px-3"
                 onClick={() => goTo(step === LOW_BATTERY_TOTAL_STEPS ? RESULTS_STEP : step + 1)}
+
               >
                 {step === LOW_BATTERY_TOTAL_STEPS ? 'See my plan' : 'Next'}
                 <ArrowRight className="ml-2 h-4 w-4" />
