@@ -18,6 +18,8 @@ import {
 import { ArrowLeft, ArrowRight, BatteryLow, Check, FileText, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
+
 import {
   LOW_BATTERY_STORAGE_KEY,
   LOW_BATTERY_TEMPLATE_NAME,
