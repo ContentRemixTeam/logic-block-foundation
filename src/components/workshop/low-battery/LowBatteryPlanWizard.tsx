@@ -125,18 +125,21 @@ export function LowBatteryPlanWizard() {
         .eq('template_name', LOW_BATTERY_TEMPLATE_NAME)
         .maybeSingle();
 
-      const payload = {
-        answers: data as unknown as Record<string, unknown>,
-        completed_at: new Date().toISOString(),
-      };
+      const answers = JSON.parse(JSON.stringify(data)) as Json;
+      const completedAt = new Date().toISOString();
 
       const { error } = existing
-        ? await supabase.from('wizard_completions').update(payload).eq('id', existing.id)
+        ? await supabase
+            .from('wizard_completions')
+            .update({ answers, completed_at: completedAt })
+            .eq('id', existing.id)
         : await supabase.from('wizard_completions').insert({
             user_id: user.id,
             template_name: LOW_BATTERY_TEMPLATE_NAME,
-            ...payload,
+            answers,
+            completed_at: completedAt,
           });
+
 
       if (error) throw error;
       setSaveState('saved');
