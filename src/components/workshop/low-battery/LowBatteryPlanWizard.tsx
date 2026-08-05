@@ -258,32 +258,38 @@ export function LowBatteryPlanWizard() {
 
       {/* Persistent bottom navigation */}
       <nav className="no-print fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl items-center gap-2 px-4 py-3">
+        <div className="mx-auto flex max-w-3xl items-center gap-1 overflow-x-auto px-3 py-3 sm:gap-2 sm:px-4">
           <Button
             variant="outline"
-            className="min-h-[44px]"
+            className="min-h-[44px] shrink-0 px-3"
             onClick={() => goTo(Math.max(1, step - 1))}
             disabled={step === 1}
           >
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Back</span>
           </Button>
 
           <Button
             variant="ghost"
-            className="min-h-[44px]"
+            className="min-h-[44px] shrink-0 px-3"
             onClick={() => goTo(RESULTS_STEP)}
             disabled={isResults}
           >
-            <FileText className="mr-2 h-4 w-4" /> Plan preview
+            <FileText className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Plan preview</span>
           </Button>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="ghost" className="min-h-[44px] text-muted-foreground">
+                <Button
+                  variant="ghost"
+                  className="min-h-[44px] shrink-0 px-3 text-sm text-muted-foreground"
+                >
                   Start over
                 </Button>
               </AlertDialogTrigger>
+
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Clear this plan and start over?</AlertDialogTitle>
