@@ -191,6 +191,8 @@ const MonthlyThemePage = lazyWithRetry(() => import('./pages/MonthlyThemePage'))
 const EffectsDemo = lazyWithRetry(() => import('./pages/EffectsDemo'));
 const PlannerMockups = lazyWithRetry(() => import('./pages/PlannerMockups'));
 const EngineBuilderPage = lazyWithRetry(() => import('./pages/EngineBuilderPage'));
+const LowBatteryPlanPage = lazyWithRetry(() => import('./pages/LowBatteryPlanPage'));
+
 const WorkshopWelcomePage = lazyWithRetry(() => import('./pages/WorkshopWelcomePage'));
 const WorkshopRegisterPage = lazyWithRetry(() => import('./pages/WorkshopRegisterPage'));
 const MoneyMovesSprintPage = lazyWithRetry(() => import('./pages/MoneyMovesSprintPage'));
