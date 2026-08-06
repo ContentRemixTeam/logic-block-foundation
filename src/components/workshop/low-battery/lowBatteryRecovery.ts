@@ -23,14 +23,15 @@ export function hasAnsweredFields(data: LowBatteryPlanData | null | undefined): 
 export function coercePlan(raw: unknown): LowBatteryPlanData | null {
   if (!raw || typeof raw !== 'object') return null;
   const parsed = raw as Partial<LowBatteryPlanData>;
-  const merged = {} as LowBatteryPlanData;
-  (Object.keys(emptyLowBatteryPlan) as (keyof LowBatteryPlanData)[]).forEach((key) => {
-    merged[key] = {
-      ...emptyLowBatteryPlan[key],
-      ...((parsed[key] ?? {}) as object),
-    } as LowBatteryPlanData[typeof key];
-  });
-  return merged;
+  return {
+    step1: { ...emptyLowBatteryPlan.step1, ...(parsed.step1 ?? {}) },
+    step2: { ...emptyLowBatteryPlan.step2, ...(parsed.step2 ?? {}) },
+    step3: { ...emptyLowBatteryPlan.step3, ...(parsed.step3 ?? {}) },
+    step4: { ...emptyLowBatteryPlan.step4, ...(parsed.step4 ?? {}) },
+    step5: { ...emptyLowBatteryPlan.step5, ...(parsed.step5 ?? {}) },
+    step6: { ...emptyLowBatteryPlan.step6, ...(parsed.step6 ?? {}) },
+    step7: { ...emptyLowBatteryPlan.step7, ...(parsed.step7 ?? {}) },
+  };
 }
 
 export function readSubmissionRef(): SubmissionRef | null {
