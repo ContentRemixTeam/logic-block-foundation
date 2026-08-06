@@ -87,9 +87,6 @@ export function Step2({ data, update, presenter }: StepProps) {
   const method = resolveChoice(s.salesMethod, s.salesMethodOther);
   return (
     <div className="space-y-6">
-      <TeachingNote presenter={presenter}>
-        Visibility without an offer becomes another avoidance project.
-      </TeachingNote>
       <HelperText presenter={presenter}>
         Choose the existing offer closest to money or with the most proof. Do not invent a new offer
         today.
