@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BatteryLow, ChevronLeft, ChevronRight, Clipboard, ExternalLink, Eye, EyeOff, Headphones, Loader2, Mail, Play, Printer, RotateCcw, Save, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { BatteryLow, Brain, CalendarDays, CheckSquare, ChevronLeft, ChevronRight, Clipboard, ExternalLink, Eye, EyeOff, FolderKanban, Headphones, LayoutDashboard, Lightbulb, Loader2, LockKeyhole, Mail, Package, Play, Printer, RotateCcw, Save, Settings, Sparkles, Target, Trophy, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
@@ -83,6 +84,42 @@ function ResultPlan({ data }: { data: PlanData }) {
   </article>;
 }
 
+const WORKSHOP_NAV = [
+  { label: 'Home', items: [{ name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }, { name: 'This Week', href: '/weekly-plan', icon: CalendarDays }] },
+  { label: 'Build', items: [{ name: 'Tasks', href: '/tasks', icon: CheckSquare }, { name: 'Projects', href: '/projects', icon: FolderKanban }, { name: 'Offers', href: '/offers', icon: Package }, { name: 'Wizards', href: '/wizards', icon: Sparkles }] },
+  { label: 'Capture', items: [{ name: 'Brain Dump', href: '/brain-dump', icon: Brain }, { name: 'Ideas', href: '/ideas', icon: Lightbulb }, { name: 'Wins', href: '/wins', icon: Trophy }] },
+];
+
+function WorkshopAppSidebar({ loggedIn }: { loggedIn: boolean }) {
+  const rememberWorkshop = () => sessionStorage.setItem('auth_redirect', '/workshop/low-battery-plan');
+  return <aside className="no-print hidden min-h-screen w-60 shrink-0 border-r bg-sidebar text-sidebar-foreground md:flex md:flex-col">
+    <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-4">
+      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10"><Target className="h-5 w-5 text-primary" /></div>
+      <div><p className="text-sm font-semibold">Boss Planner</p><p className="text-[10px] text-muted-foreground">Low-Battery Workshop</p></div>
+    </div>
+    <div className="border-b border-sidebar-border p-3">
+      <div className="flex items-center gap-3 rounded-md bg-primary/10 px-3 py-2 text-primary">
+        <BatteryLow className="h-4 w-4" /><span className="text-[13px] font-semibold">Low-Battery Plan</span>
+      </div>
+    </div>
+    <nav className="flex-1 overflow-y-auto px-2 py-3" aria-label="Planner preview">
+      {WORKSHOP_NAV.map(section => <div key={section.label} className="mb-3">
+        <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{section.label}</p>
+        <div className="space-y-0.5">{section.items.map(({ name, href, icon: Icon }) => loggedIn
+          ? <Link key={name} to={href} className="flex h-9 items-center gap-3 rounded-md px-3 text-[13px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"><Icon className="h-4 w-4" />{name}</Link>
+          : <button key={name} type="button" disabled className="flex h-9 w-full cursor-not-allowed items-center gap-3 rounded-md px-3 text-left text-[13px] text-muted-foreground/55" title="Log in to use this planner section"><Icon className="h-4 w-4" /><span>{name}</span><LockKeyhole className="ml-auto h-3 w-3" /></button>
+        )}</div>
+      </div>)}
+    </nav>
+    <div className="border-t border-sidebar-border p-3">
+      {loggedIn ? <Link to="/settings" className="flex h-9 items-center gap-3 rounded-md px-3 text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground"><Settings className="h-4 w-4" />Settings</Link> : <>
+        <p className="px-2 text-xs leading-5 text-muted-foreground">The rest of your planner is ready when you log in.</p>
+        <Link to="/auth" onClick={rememberWorkshop} className="mt-3 flex min-h-10 items-center justify-center border-2 border-foreground bg-foreground px-3 text-xs font-bold uppercase tracking-wider text-background transition-colors hover:border-primary hover:bg-primary">Log in to your planner</Link>
+      </>}
+    </div>
+  </aside>;
+}
+
 export default function LowBatteryPlanPage() {
   const [welcome, setWelcome] = useState(true);
   const [firstName, setFirstName] = useState('');
@@ -162,35 +199,42 @@ export default function LowBatteryPlanPage() {
     }
   };
 
-  return <div className={`low-battery min-h-screen bg-background text-foreground ${presenter ? 'presenter-mode' : ''}`}>
+  return <div className={`low-battery flex min-h-screen bg-background text-foreground ${presenter ? 'presenter-mode' : ''}`}>
     <style>{`@media print{body *{visibility:hidden}.print-plan,.print-plan *{visibility:visible}.print-plan{position:absolute;left:0;top:0;width:100%;border:0!important;box-shadow:none!important}.no-print{display:none!important}}.presenter-mode .teaching-note{font-size:1.35rem;line-height:1.55}.presenter-mode .helper{display:none}`}</style>
-    <header className="no-print sticky top-0 z-20 border-b bg-background/95 backdrop-blur"><div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-3"><div className="flex items-center gap-2"><BatteryLow className="h-6 w-6 text-primary" /><div><h1 className="font-bold leading-tight">The Low-Battery Business Plan</h1><p className="hidden text-xs text-muted-foreground sm:block">A 90-day plan that still works on a bad week.</p></div></div><div className="flex items-center gap-2"><span className="hidden text-xs text-muted-foreground sm:inline">{saveState}</span><button type="button" onClick={() => setPresenter(v => !v)} className="flex min-h-11 items-center gap-2 rounded-lg border px-3 text-sm">{presenter ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}<span className="hidden sm:inline">Presenter</span></button></div></div></header>
-    <main className="mx-auto max-w-4xl px-4 py-6 md:py-10">{welcome ? <section className="mx-auto max-w-3xl rounded-2xl border bg-card p-6 shadow-sm md:p-10">
-      <p className="text-xs font-bold uppercase tracking-[.2em] text-primary">Welcome</p>
-      <h2 className="mt-2 text-3xl font-bold md:text-4xl">You're in the right place.</h2>
-      <p className="mt-4 text-lg leading-8 text-muted-foreground">You're about to build a 90-day business plan that can still run on a bad week.</p>
-      <form onSubmit={enterWorkshop} className="mt-7 rounded-xl border bg-background p-4 md:p-5">
+    <WorkshopAppSidebar loggedIn={Boolean(userId)} />
+    <div className="min-w-0 flex-1">
+    <header className="no-print sticky top-0 z-20 border-b bg-background/95 backdrop-blur"><div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3"><div className="flex items-center gap-2"><BatteryLow className="h-6 w-6 text-primary" /><div><h1 className="font-bold leading-tight">The Low-Battery Business Plan</h1><p className="hidden text-xs text-muted-foreground sm:block">A 90-day plan that still works on a bad week.</p></div></div><div className="flex items-center gap-2"><span className="hidden text-xs text-muted-foreground sm:inline">{saveState}</span>{!userId && <Link to="/auth" onClick={() => sessionStorage.setItem('auth_redirect', '/workshop/low-battery-plan')} className="hidden min-h-10 items-center border-2 border-foreground px-3 text-xs font-bold uppercase tracking-wider sm:flex">Log in</Link>}<button type="button" onClick={() => setPresenter(v => !v)} className="flex min-h-11 items-center gap-2 rounded-lg border px-3 text-sm">{presenter ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}<span className="hidden sm:inline">Presenter</span></button></div></div></header>
+    <main className="mx-auto max-w-5xl px-4 py-6 md:py-10">{welcome ? <section className="mx-auto max-w-4xl border-2 border-foreground bg-card">
+      <div className="border-b-2 border-foreground bg-foreground px-6 py-7 text-background md:px-9"><p className="text-xs font-bold uppercase tracking-[.2em] text-primary">Workshop home · Introduction</p><h2 className="mt-2 font-['Bebas_Neue'] text-4xl leading-none md:text-6xl">Welcome to your <span className="text-primary">Low-Battery Planner.</span></h2><p className="mt-4 max-w-2xl text-base leading-7 text-background/70">Keep this page open while Faith introduces the planner. Your answers will stay on this device as you work.</p></div>
+      <div className="grid md:grid-cols-[1.25fr_.75fr]">
+      <div className="border-b-2 border-foreground p-6 md:border-b-0 md:border-r-2 md:p-9">
+      <p className="text-xs font-bold uppercase tracking-[.2em] text-primary">Workshop check-in</p>
+      <h3 className="mt-2 text-2xl font-bold">Put your name on your plan.</h3>
+      <p className="mt-3 leading-7 text-muted-foreground">Faith will guide you through this during the introduction. This lets us save a private workshop backup and send your follow-up resources after the call.</p>
+      <form onSubmit={enterWorkshop} className="mt-6 border-2 border-foreground bg-background p-4 md:p-5">
         <div className="grid gap-4 sm:grid-cols-2"><TextField label="First name" value={firstName} onChange={setFirstName} placeholder="Your first name" /><TextField label="Email" value={email} onChange={setEmail} placeholder="you@example.com" /></div>
         <p className="mt-3 text-xs leading-5 text-muted-foreground">By continuing, you agree to receive workshop follow-up emails from Faith, including useful resources and podcast recommendations. Unsubscribe anytime.</p>
-        <button type="submit" disabled={registering} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 font-bold text-primary-foreground disabled:opacity-60 sm:w-auto">{registering ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}{registering ? 'Saving…' : 'Enter the workshop'}<ChevronRight className="h-4 w-4" /></button>
+        <button type="submit" disabled={registering} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 border-2 border-primary bg-primary px-6 font-bold text-primary-foreground transition-colors hover:border-foreground hover:bg-foreground disabled:opacity-60 sm:w-auto">{registering ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}{registering ? 'Saving…' : 'Save my info and continue'}<ChevronRight className="h-4 w-4" /></button>
       </form>
-      <p className="mt-7 leading-7 text-foreground">While you're here, these are three ways to keep getting useful business support and find people to grow with.</p>
-      <div className="mt-7 grid gap-3 md:grid-cols-3">
+      <p className="mt-4 text-sm text-muted-foreground">Already started? Use the same email on this device. Your answers are still here.</p>
+      </div>
+      <div className="bg-muted/40 p-6 md:p-9">
+      <p className="text-xs font-bold uppercase tracking-[.2em] text-primary">Keep Faith in your feed</p>
+      <p className="mt-3 text-sm leading-6 text-muted-foreground">These are workshop resources Faith will point out during the introduction.</p>
+      <div className="mt-5 divide-y border-2 border-foreground bg-background">
         {[
           { title: 'Listen to the podcast', text: 'Practical business coaching for weeks when your energy and attention are not predictable.', href: 'https://home.faithmariah.com/podcast', icon: Headphones },
           { title: 'Subscribe on YouTube', text: 'Watch coaching, strategy, and the conversations behind the plan.', href: 'https://www.youtube.com/@FaithMariah?sub_confirmation=1', icon: Play },
           { title: 'Find collaborators', text: 'Meet business owners, find collaborations, and stop trying to grow alone in my Facebook group.', href: 'https://www.facebook.com/groups/faithmariah', icon: Users },
-        ].map(({ title, text, href, icon: Icon }) => <a key={title} href={href} target="_blank" rel="noopener noreferrer" className="group rounded-xl border bg-background p-4 transition-colors hover:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40">
-          <div className="flex items-center justify-between gap-3"><Icon className="h-5 w-5 text-primary" aria-hidden="true" /><ExternalLink className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" aria-hidden="true" /></div>
-          <h3 className="mt-4 font-bold">{title}</h3>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">{text}</p>
+        ].map(({ title, text, href, icon: Icon }) => <a key={title} href={href} target="_blank" rel="noopener noreferrer" className="group flex gap-3 p-4 transition-colors hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary/40">
+          <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" /><div className="min-w-0"><div className="flex items-center justify-between gap-2"><h4 className="font-bold">{title}</h4><ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" aria-hidden="true" /></div><p className="mt-1 text-xs leading-5 text-muted-foreground">{text}</p></div>
         </a>)}
       </div>
-      <p className="mt-5 text-sm text-muted-foreground">Already started? Enter the same email on this device. Your saved answers are still here.</p>
+      </div></div>
     </section> : preview ? <><ResultPlan data={data} /><div className="no-print mt-5 flex flex-wrap gap-2"><button onClick={() => setPreview(false)} className="min-h-11 rounded-xl border px-4 font-semibold">Edit plan</button><button onClick={() => window.print()} className="flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 font-semibold text-primary-foreground"><Printer className="h-4 w-4" />Print / Save PDF</button><button onClick={copyPlan} className="flex min-h-11 items-center gap-2 rounded-xl border px-4 font-semibold"><Clipboard className="h-4 w-4" />Copy</button>{userId && <button onClick={savePlanner} className="flex min-h-11 items-center gap-2 rounded-xl border px-4 font-semibold"><Save className="h-4 w-4" />Save to Planner</button>}<button onClick={reset} className="ml-auto flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm text-muted-foreground"><RotateCcw className="h-4 w-4" />Start over</button></div></> : <>
       <div className="mb-6"><div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted-foreground"><span>Step {step} of 7</span><button onClick={() => setPreview(true)} className="normal-case tracking-normal text-primary">Plan preview</button></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} /></div></div>
       <section className="rounded-2xl border bg-card p-5 shadow-sm md:p-8"><p className="text-xs font-bold uppercase tracking-[.2em] text-primary">Build it with Faith</p><h2 className="mt-2 text-2xl font-bold md:text-3xl">{stepMeta[step - 1][0]}</h2><blockquote className="teaching-note mt-4 rounded-xl border-l-4 border-primary bg-primary/10 p-4 font-semibold">“{stepMeta[step - 1][1]}”</blockquote><div className="mt-7">{renderStep()}</div></section>
       <div className="no-print mt-5 flex items-center justify-between"><button disabled={step === 1} onClick={() => setStep(s => Math.max(1, s - 1))} className="flex min-h-12 items-center gap-2 rounded-xl border px-5 font-semibold disabled:opacity-30"><ChevronLeft className="h-4 w-4" />Back</button><button onClick={() => step === 7 ? setPreview(true) : setStep(s => Math.min(7, s + 1))} className="flex min-h-12 items-center gap-2 rounded-xl bg-primary px-6 font-semibold text-primary-foreground">{step === 7 ? 'See my plan' : 'Next'}<ChevronRight className="h-4 w-4" /></button></div>
-    </>}</main>
+    </>}</main></div>
   </div>;
 }
