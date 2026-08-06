@@ -31,6 +31,18 @@ import {
 import { Step1, Step2, Step3, Step4, Step5, Step6, Step7, SectionKey } from './LowBatterySteps';
 import { LowBatteryPlanResult, buildPlanText } from './LowBatteryPlanResult';
 import { LowBatteryWelcome } from './LowBatteryWelcome';
+import {
+  SubmissionRef,
+  checkpointSubmission,
+  coercePlan,
+  hasAnsweredFields,
+  loadMyLatestSubmission,
+  loadSubmissionAnswers,
+  readSubmissionRef,
+  registerSubmission,
+  saveSubmissionAnswers,
+  writeSubmissionRef,
+} from './lowBatteryRecovery';
 
 
 const RESULTS_STEP = LOW_BATTERY_TOTAL_STEPS + 1;
