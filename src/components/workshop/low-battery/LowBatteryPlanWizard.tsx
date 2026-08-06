@@ -290,10 +290,15 @@ export function LowBatteryPlanWizard() {
     saveState === 'saving'
       ? 'Saving...'
       : saveState === 'saved'
-        ? 'Saved to planner'
-        : saveState === 'local'
-          ? 'Saved on this device'
-          : 'Nothing to save yet';
+        ? 'Saved to your planner'
+        : saveState === 'online'
+          ? crossBrowser
+            ? 'Saved on this device and to your account — available in any browser'
+            : 'Saved on this device and backed up online'
+          : saveState === 'local'
+            ? 'Saved on this device'
+            : 'Nothing to save yet';
+
 
   return (
     <div className="min-h-screen bg-background">
