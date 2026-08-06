@@ -47,9 +47,6 @@ export function Step1({ data, update, presenter }: StepProps) {
   const s = data.step1;
   return (
     <div className="space-y-6">
-      <TeachingNote presenter={presenter}>
-        If one bad week can knock out your whole quarter, you’re not the problem. The plan requires a version of you who feels fine all the time.
-      </TeachingNote>
       <HelperText presenter={presenter}>
         A full-battery dependency is a part of the plan that requires unusually reliable energy,
         focus, memory, confidence, or uninterrupted time.
