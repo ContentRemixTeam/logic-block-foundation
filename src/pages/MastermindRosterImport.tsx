@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -31,6 +32,7 @@ export default function MastermindRosterImport() {
   const [existingEmails, setExistingEmails] = useState<Set<string>>(new Set());
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [pastedCsv, setPastedCsv] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Check admin status on mount
@@ -53,11 +55,7 @@ export default function MastermindRosterImport() {
     checkAdmin();
   }, [user]);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const text = await file.text();
+  const parseRoster = async (text: string) => {
     const lines = text.split('\n').filter(line => line.trim());
     
     if (lines.length === 0) {
@@ -111,6 +109,12 @@ export default function MastermindRosterImport() {
     }
 
     toast.success(`Parsed ${rows.length} rows from CSV`);
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await parseRoster(await file.text());
   };
 
   const parseCSVLine = (line: string): string[] => {
@@ -286,6 +290,19 @@ export default function MastermindRosterImport() {
               >
                 <Upload className="h-4 w-4 mr-2" />
                 Select File
+              </Button>
+            </div>
+            <div className="mt-6 space-y-3 border-t pt-6">
+              <p className="text-sm font-medium">Or paste a CSV roster</p>
+              <Textarea
+                value={pastedCsv}
+                onChange={(event) => setPastedCsv(event.target.value)}
+                placeholder={'email,first_name,last_name\nmember@example.com,First,Last'}
+                rows={6}
+                aria-label="Paste CSV roster"
+              />
+              <Button variant="outline" disabled={!pastedCsv.trim()} onClick={() => parseRoster(pastedCsv)}>
+                Load Pasted Roster
               </Button>
             </div>
           </CardContent>
