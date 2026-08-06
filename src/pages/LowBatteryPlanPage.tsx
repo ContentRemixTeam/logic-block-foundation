@@ -28,6 +28,7 @@ const EMPTY: PlanData = {
 const STORAGE_KEY = 'low-battery-business-plan-v1';
 const VISITOR_KEY = 'low-battery-workshop-visitor-v1';
 type WorkshopVisitor = { id: string; token: string; first_name: string; email: string };
+type WorkshopRecovery = WorkshopVisitor & { answers?: Partial<PlanData>; current_step?: number; completed_at?: string | null; updated_at?: string };
 const BREAK_OPTIONS = ['Content', 'Email / nurture', 'Selling', 'Client delivery', 'Planning', 'All of it'];
 const SALES_OPTIONS = ['Live workshop / webinar', 'Short email promotion', 'Weekly direct invitations', 'Sales / consult calls', 'Evergreen sequence', 'Personal follow-up', 'Other'];
 const VISIBILITY_OPTIONS = ['Searchable long-form content', 'Short-form video', 'Collaborations, bundles, or referrals', 'Speaking and live workshops', 'Paid ads', 'Direct outreach', 'Other'];
@@ -137,8 +138,55 @@ export default function LowBatteryPlanPage() {
   const [saveState, setSaveState] = useState('Saved on this device');
   const [userId, setUserId] = useState<string | null>(null);
 
-  useEffect(() => { supabase.auth.getUser().then(({ data: auth }) => setUserId(auth.user?.id || null)); }, []);
-  useEffect(() => { setSaveState('Saving…'); const t = window.setTimeout(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); setSaveState('Saved on this device'); }, 250); return () => clearTimeout(t); }, [data]);
+  useEffect(() => {
+    const recover = async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      const nextUserId = auth.user?.id || null;
+      setUserId(nextUserId);
+      let recovered: WorkshopRecovery | null = null;
+
+      if (visitor) {
+        const { data: result } = await (supabase.rpc as any)('load_low_battery_workshop_answers', {
+          p_submission_id: visitor.id,
+          p_submission_token: visitor.token,
+        });
+        if (result && typeof result === 'object' && !Array.isArray(result)) recovered = { ...visitor, ...(result as object) } as WorkshopRecovery;
+      } else if (nextUserId) {
+        const { data: result } = await (supabase.rpc as any)('load_my_latest_low_battery_workshop');
+        if (result && typeof result === 'object' && !Array.isArray(result)) recovered = result as unknown as WorkshopRecovery;
+      }
+
+      const localHasAnswers = Object.values(data).some(value => Array.isArray(value) ? value.length > 0 : Boolean(value));
+      const recoveredHasAnswers = recovered?.answers && Object.values(recovered.answers).some(value => Array.isArray(value) ? value.length > 0 : Boolean(value));
+      if (!localHasAnswers && recoveredHasAnswers) {
+        setData({ ...EMPTY, ...recovered!.answers });
+        setStep(Math.max(1, Math.min(7, Number(recovered!.current_step) || 1)));
+        setPreview(Boolean(recovered!.completed_at));
+        toast.success('Your workshop plan was restored from its online backup.');
+      }
+      if (!visitor && recovered?.id && recovered?.token) {
+        const restoredVisitor = { id: recovered.id, token: recovered.token, first_name: recovered.first_name, email: recovered.email };
+        localStorage.setItem(VISITOR_KEY, JSON.stringify(restoredVisitor));
+        setVisitor(restoredVisitor);
+      }
+      if (nextUserId && recovered) setSaveState('Backed up online · available in other browsers');
+    };
+
+    recover();
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => setUserId(session?.user?.id || null));
+    return () => listener.subscription.unsubscribe();
+    // The current device copy wins when both copies contain work.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      setSaveState(userId ? 'Saved on this device · backing up…' : 'Saved on this device');
+    } catch {
+      setSaveState('Save this page as a PDF before closing');
+      toast.error('This browser blocked device storage. Keep this tab open and use Print / Save PDF when finished.');
+    }
+  }, [data, userId]);
   useEffect(() => { if (visitor) { setFirstName(visitor.first_name); setEmail(visitor.email); } }, [visitor]);
   useEffect(() => {
     if (!visitor) return;
@@ -150,10 +198,11 @@ export default function LowBatteryPlanPage() {
         p_current_step: step,
         p_completed: preview,
       });
-      if (error || !saved) toast.error('Your device copy is safe, but the workshop answer backup did not save.');
+      if (error || !saved) setSaveState('Saved on this device · online backup waiting');
+      else setSaveState(userId ? 'Backed up online · available in other browsers' : 'Backed up online');
     }, 900);
     return () => window.clearTimeout(timer);
-  }, [data, preview, step, visitor]);
+  }, [data, preview, step, userId, visitor]);
   const update = (patch: Partial<PlanData>) => setData(d => ({ ...d, ...patch }));
   const progress = useMemo(() => Math.round((step / 7) * 100), [step]);
 
@@ -164,8 +213,12 @@ export default function LowBatteryPlanPage() {
     const payload = { user_id: userId, template_name: 'low-battery-business-plan', answers: data, completed_at: new Date().toISOString() };
     const { data: existing } = await supabase.from('wizard_completions').select('id').eq('user_id', userId).eq('template_name', payload.template_name).maybeSingle();
     const result = existing ? await supabase.from('wizard_completions').update(payload).eq('id', existing.id) : await supabase.from('wizard_completions').insert(payload);
-    if (result.error) { setSaveState('Saved on this device'); toast.error('Could not save to the Planner. Your device copy is safe.'); }
-    else { setSaveState('Saved to planner'); toast.success('Low-Battery plan saved to your Planner.'); }
+    if (result.error) { setSaveState('Saved on this device'); toast.error('Could not save to the Planner. Your device copy and workshop backup are safe.'); }
+    else {
+      if (visitor) await (supabase.rpc as any)('checkpoint_low_battery_workshop_answers', { p_submission_id: visitor.id, p_submission_token: visitor.token, p_reason: 'saved-to-planner' });
+      setSaveState('Saved to planner · available in other browsers');
+      toast.success('Low-Battery plan saved to your Planner.');
+    }
   };
   const copyPlan = async () => { const text = (document.getElementById('low-battery-plan-result')?.innerText || ''); await navigator.clipboard.writeText(text); toast.success('Plan copied.'); };
   const enterWorkshop = async (event: React.FormEvent) => {
@@ -234,7 +287,7 @@ export default function LowBatteryPlanPage() {
     </section> : preview ? <><ResultPlan data={data} /><div className="no-print mt-5 flex flex-wrap gap-2"><button onClick={() => setPreview(false)} className="min-h-11 rounded-xl border px-4 font-semibold">Edit plan</button><button onClick={() => window.print()} className="flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 font-semibold text-primary-foreground"><Printer className="h-4 w-4" />Print / Save PDF</button><button onClick={copyPlan} className="flex min-h-11 items-center gap-2 rounded-xl border px-4 font-semibold"><Clipboard className="h-4 w-4" />Copy</button>{userId && <button onClick={savePlanner} className="flex min-h-11 items-center gap-2 rounded-xl border px-4 font-semibold"><Save className="h-4 w-4" />Save to Planner</button>}<button onClick={reset} className="ml-auto flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm text-muted-foreground"><RotateCcw className="h-4 w-4" />Start over</button></div></> : <>
       <div className="mb-6"><div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted-foreground"><span>Step {step} of 7</span><button onClick={() => setPreview(true)} className="normal-case tracking-normal text-primary">Plan preview</button></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} /></div></div>
       <section className="rounded-2xl border bg-card p-5 shadow-sm md:p-8"><p className="text-xs font-bold uppercase tracking-[.2em] text-primary">Build it with Faith</p><h2 className="mt-2 text-2xl font-bold md:text-3xl">{stepMeta[step - 1][0]}</h2><blockquote className="teaching-note mt-4 rounded-xl border-l-4 border-primary bg-primary/10 p-4 font-semibold">“{stepMeta[step - 1][1]}”</blockquote><div className="mt-7">{renderStep()}</div></section>
-      <div className="no-print mt-5 flex items-center justify-between"><button disabled={step === 1} onClick={() => setStep(s => Math.max(1, s - 1))} className="flex min-h-12 items-center gap-2 rounded-xl border px-5 font-semibold disabled:opacity-30"><ChevronLeft className="h-4 w-4" />Back</button><button onClick={() => step === 7 ? setPreview(true) : setStep(s => Math.min(7, s + 1))} className="flex min-h-12 items-center gap-2 rounded-xl bg-primary px-6 font-semibold text-primary-foreground">{step === 7 ? 'See my plan' : 'Next'}<ChevronRight className="h-4 w-4" /></button></div>
+      <div className="no-print mt-5 flex items-center justify-between"><button disabled={step === 1} onClick={() => setStep(s => Math.max(1, s - 1))} className="flex min-h-12 items-center gap-2 rounded-xl border px-5 font-semibold disabled:opacity-30"><ChevronLeft className="h-4 w-4" />Back</button><button onClick={async () => { if (visitor) { await supabase.rpc('save_low_battery_workshop_answers', { p_submission_id: visitor.id, p_submission_token: visitor.token, p_answers: JSON.parse(JSON.stringify(data)) as Json, p_current_step: step, p_completed: step === 7 }); await (supabase.rpc as any)('checkpoint_low_battery_workshop_answers', { p_submission_id: visitor.id, p_submission_token: visitor.token, p_reason: step === 7 ? 'completed-workshop' : `finished-step-${step}` }); } step === 7 ? setPreview(true) : setStep(s => Math.min(7, s + 1)); }} className="flex min-h-12 items-center gap-2 rounded-xl bg-primary px-6 font-semibold text-primary-foreground">{step === 7 ? 'See my plan' : 'Next'}<ChevronRight className="h-4 w-4" /></button></div>
     </>}</main></div>
   </div>;
 }
