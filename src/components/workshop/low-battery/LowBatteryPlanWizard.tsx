@@ -30,6 +30,8 @@ import {
 } from './lowBatteryPlanTypes';
 import { Step1, Step2, Step3, Step4, Step5, Step6, Step7, SectionKey } from './LowBatterySteps';
 import { LowBatteryPlanResult, buildPlanText } from './LowBatteryPlanResult';
+import { LowBatteryWelcome } from './LowBatteryWelcome';
+
 
 const RESULTS_STEP = LOW_BATTERY_TOTAL_STEPS + 1;
 
