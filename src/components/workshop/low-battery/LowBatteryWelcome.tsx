@@ -1,14 +1,15 @@
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { Facebook, Headphones, Youtube, ArrowRight } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 interface ResourceCardProps {
   href: string;
   title: string;
   description: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
 }
+
 
 function ResourceCard({ href, title, description, icon }: ResourceCardProps) {
   return (
