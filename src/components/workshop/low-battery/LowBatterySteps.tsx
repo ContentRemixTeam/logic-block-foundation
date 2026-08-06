@@ -18,7 +18,6 @@ import {
   HelperText,
   MultiSelectList,
   ReflectionBanner,
-  TeachingNote,
   TextAreaField,
   TextField,
 } from './LowBatteryPieces';
@@ -48,9 +47,6 @@ export function Step1({ data, update, presenter }: StepProps) {
   const s = data.step1;
   return (
     <div className="space-y-6">
-      <TeachingNote presenter={presenter}>
-        If one bad week can knock out your whole quarter, you’re not the problem. The plan requires a version of you who feels fine all the time.
-      </TeachingNote>
       <HelperText presenter={presenter}>
         A full-battery dependency is a part of the plan that requires unusually reliable energy,
         focus, memory, confidence, or uninterrupted time.
@@ -91,9 +87,6 @@ export function Step2({ data, update, presenter }: StepProps) {
   const method = resolveChoice(s.salesMethod, s.salesMethodOther);
   return (
     <div className="space-y-6">
-      <TeachingNote presenter={presenter}>
-        Visibility without an offer becomes another avoidance project.
-      </TeachingNote>
       <HelperText presenter={presenter}>
         Choose the existing offer closest to money or with the most proof. Do not invent a new offer
         today.
@@ -152,10 +145,6 @@ export function Step3({ data, update, presenter }: StepProps) {
   const s = data.step3;
   return (
     <div className="space-y-6">
-      <TeachingNote presenter={presenter}>
-        Choose the channel you can repeat, not the one a real business owner is supposed to use.
-      </TeachingNote>
-
       <ChoiceList
         name="channel"
         label="ONE way people find me"
@@ -193,8 +182,6 @@ export function Step4({ data, update, presenter }: StepProps) {
   const ones = buildThreeOnes(data);
   return (
     <div className="space-y-6">
-      <TeachingNote presenter={presenter}>Attention is not the same as trust.</TeachingNote>
-
       <ChoiceList
         name="nurture"
         label="Each week, I will stay connected through..."
@@ -269,10 +256,6 @@ export function Step5({ data, update, presenter }: StepProps) {
   const s = data.step5;
   return (
     <div className="space-y-6">
-      <TeachingNote presenter={presenter}>
-        A good idea is not automatically this week&apos;s assignment.
-      </TeachingNote>
-
       <MultiSelectList
         label="Cross off the productive-looking avoidance work"
         options={AVOIDANCE_OPTIONS}
@@ -389,10 +372,6 @@ export function Step6({ data, update, presenter }: StepProps) {
   const s = data.step6;
   return (
     <div className="space-y-6">
-      <TeachingNote presenter={presenter}>
-        The low-battery plan is the minimum version that keeps the money path alive.
-      </TeachingNote>
-
       <FloorPair
         title="A. Get found"
         regularId="find-regular"
@@ -461,8 +440,6 @@ export function Step7({ data, update, presenter }: StepProps) {
   const s = data.step7;
   return (
     <div className="space-y-6">
-      <TeachingNote presenter={presenter}>The simple move feels hard for a reason.</TeachingNote>
-
       <div className="rounded-lg border border-border bg-muted/50 px-4 py-3">
         <p className="text-sm text-foreground">
           Physical limits are real. This exercise addresses the meaning, fear, and decisions
