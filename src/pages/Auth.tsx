@@ -28,6 +28,13 @@ export default function Auth() {
 
   useEffect(() => {
     if (!user) return;
+
+    const storedRedirect = sessionStorage.getItem('auth_redirect');
+    if (storedRedirect) {
+      sessionStorage.removeItem('auth_redirect');
+      navigate(storedRedirect);
+      return;
+    }
     
     // Check if user is a mastermind member and redirect accordingly
     const checkAndRedirect = async () => {

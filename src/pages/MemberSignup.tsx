@@ -25,16 +25,18 @@ export default function MemberSignup() {
     setLoading(true);
 
     try {
+      const normalizedEmail = email.trim().toLowerCase();
       // Sign up the user
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email,
+        email: normalizedEmail,
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/dashboard`,
           data: {
             first_name: firstName,
             last_name: lastName,
-            user_type: 'member',
+            // Paid membership is granted only by the server-side entitlement ledger.
+            user_type: 'guest',
           },
         },
       });
@@ -62,7 +64,7 @@ export default function MemberSignup() {
       // Add to mastermind entitlements via edge function
       const { error: entitlementError } = await supabase.functions.invoke('add-mastermind-entitlement', {
         body: {
-          email,
+          email: normalizedEmail,
           firstName,
           lastName,
         },
