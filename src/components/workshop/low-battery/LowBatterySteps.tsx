@@ -372,10 +372,6 @@ export function Step6({ data, update, presenter }: StepProps) {
   const s = data.step6;
   return (
     <div className="space-y-6">
-      <TeachingNote presenter={presenter}>
-        The low-battery plan is the minimum version that keeps the money path alive.
-      </TeachingNote>
-
       <FloorPair
         title="A. Get found"
         regularId="find-regular"
