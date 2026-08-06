@@ -4434,6 +4434,44 @@ export type Database = {
           },
         ]
       }
+      low_battery_workshop_answer_versions: {
+        Row: {
+          answers: Json
+          created_at: string
+          current_step: number
+          id: string
+          reason: string
+          submission_id: string
+          user_id: string | null
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          current_step?: number
+          id?: string
+          reason?: string
+          submission_id: string
+          user_id?: string | null
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          current_step?: number
+          id?: string
+          reason?: string
+          submission_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "low_battery_workshop_answer_versions_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "low_battery_workshop_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       low_battery_workshop_submissions: {
         Row: {
           answers: Json
@@ -4446,6 +4484,7 @@ export type Database = {
           id: string
           submission_token: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           answers?: Json
@@ -4458,6 +4497,7 @@ export type Database = {
           id?: string
           submission_token?: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           answers?: Json
@@ -4470,6 +4510,7 @@ export type Database = {
           id?: string
           submission_token?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -8543,6 +8584,14 @@ export type Database = {
         Args: { user_email: string }
         Returns: boolean
       }
+      checkpoint_low_battery_workshop_answers: {
+        Args: {
+          p_reason?: string
+          p_submission_id: string
+          p_submission_token: string
+        }
+        Returns: boolean
+      }
       cleanup_rate_limits: { Args: never; Returns: undefined }
       complete_monthly_challenge_if_ready: {
         Args: { p_user_challenge_id: string }
@@ -8620,6 +8669,11 @@ export type Database = {
         }[]
       }
       is_admin: { Args: { check_user_id: string }; Returns: boolean }
+      load_low_battery_workshop_answers: {
+        Args: { p_submission_id: string; p_submission_token: string }
+        Returns: Json
+      }
+      load_my_latest_low_battery_workshop: { Args: never; Returns: Json }
       register_low_battery_workshop: {
         Args: { p_email: string; p_first_name: string }
         Returns: Json
