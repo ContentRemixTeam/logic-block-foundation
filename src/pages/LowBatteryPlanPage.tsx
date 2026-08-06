@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BatteryLow, ChevronLeft, ChevronRight, Clipboard, Eye, EyeOff, Printer, RotateCcw, Save } from 'lucide-react';
+import { BatteryLow, ChevronLeft, ChevronRight, Clipboard, ExternalLink, Eye, EyeOff, Headphones, Play, Printer, RotateCcw, Save, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -81,6 +81,7 @@ function ResultPlan({ data }: { data: PlanData }) {
 }
 
 export default function LowBatteryPlanPage() {
+  const [welcome, setWelcome] = useState(true);
   const [step, setStep] = useState(1);
   const [preview, setPreview] = useState(false);
   const [presenter, setPresenter] = useState(false);
@@ -127,7 +128,25 @@ export default function LowBatteryPlanPage() {
   return <div className={`low-battery min-h-screen bg-background text-foreground ${presenter ? 'presenter-mode' : ''}`}>
     <style>{`@media print{body *{visibility:hidden}.print-plan,.print-plan *{visibility:visible}.print-plan{position:absolute;left:0;top:0;width:100%;border:0!important;box-shadow:none!important}.no-print{display:none!important}}.presenter-mode .teaching-note{font-size:1.35rem;line-height:1.55}.presenter-mode .helper{display:none}`}</style>
     <header className="no-print sticky top-0 z-20 border-b bg-background/95 backdrop-blur"><div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-3"><div className="flex items-center gap-2"><BatteryLow className="h-6 w-6 text-primary" /><div><h1 className="font-bold leading-tight">The Low-Battery Business Plan</h1><p className="hidden text-xs text-muted-foreground sm:block">A 90-day plan that still works on a bad week.</p></div></div><div className="flex items-center gap-2"><span className="hidden text-xs text-muted-foreground sm:inline">{saveState}</span><button type="button" onClick={() => setPresenter(v => !v)} className="flex min-h-11 items-center gap-2 rounded-lg border px-3 text-sm">{presenter ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}<span className="hidden sm:inline">Presenter</span></button></div></div></header>
-    <main className="mx-auto max-w-4xl px-4 py-6 md:py-10">{preview ? <><ResultPlan data={data} /><div className="no-print mt-5 flex flex-wrap gap-2"><button onClick={() => setPreview(false)} className="min-h-11 rounded-xl border px-4 font-semibold">Edit plan</button><button onClick={() => window.print()} className="flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 font-semibold text-primary-foreground"><Printer className="h-4 w-4" />Print / Save PDF</button><button onClick={copyPlan} className="flex min-h-11 items-center gap-2 rounded-xl border px-4 font-semibold"><Clipboard className="h-4 w-4" />Copy</button>{userId && <button onClick={savePlanner} className="flex min-h-11 items-center gap-2 rounded-xl border px-4 font-semibold"><Save className="h-4 w-4" />Save to Planner</button>}<button onClick={reset} className="ml-auto flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm text-muted-foreground"><RotateCcw className="h-4 w-4" />Start over</button></div></> : <>
+    <main className="mx-auto max-w-4xl px-4 py-6 md:py-10">{welcome ? <section className="mx-auto max-w-3xl rounded-2xl border bg-card p-6 shadow-sm md:p-10">
+      <p className="text-xs font-bold uppercase tracking-[.2em] text-primary">Welcome</p>
+      <h2 className="mt-2 text-3xl font-bold md:text-4xl">You're in the right place.</h2>
+      <p className="mt-4 text-lg leading-8 text-muted-foreground">You're about to build a 90-day business plan that can still run on a bad week.</p>
+      <p className="mt-3 leading-7 text-foreground">Before we start, here are three ways to keep getting useful business support and find people to grow with.</p>
+      <div className="mt-7 grid gap-3 md:grid-cols-3">
+        {[
+          { title: 'Listen to the podcast', text: 'Practical business coaching for weeks when your energy and attention are not predictable.', href: 'https://home.faithmariah.com/podcast', icon: Headphones },
+          { title: 'Subscribe on YouTube', text: 'Watch coaching, strategy, and the conversations behind the plan.', href: 'https://www.youtube.com/@FaithMariah?sub_confirmation=1', icon: Play },
+          { title: 'Find collaborators', text: 'Meet business owners, find collaborations, and stop trying to grow alone in my Facebook group.', href: 'https://www.facebook.com/groups/faithmariah', icon: Users },
+        ].map(({ title, text, href, icon: Icon }) => <a key={title} href={href} target="_blank" rel="noopener noreferrer" className="group rounded-xl border bg-background p-4 transition-colors hover:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40">
+          <div className="flex items-center justify-between gap-3"><Icon className="h-5 w-5 text-primary" aria-hidden="true" /><ExternalLink className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" aria-hidden="true" /></div>
+          <h3 className="mt-4 font-bold">{title}</h3>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">{text}</p>
+        </a>)}
+      </div>
+      <button type="button" onClick={() => { setWelcome(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="mt-8 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 font-bold text-primary-foreground sm:w-auto">Start my plan<ChevronRight className="h-4 w-4" /></button>
+      <p className="mt-3 text-sm text-muted-foreground">Already started? Your saved answers are still here.</p>
+    </section> : preview ? <><ResultPlan data={data} /><div className="no-print mt-5 flex flex-wrap gap-2"><button onClick={() => setPreview(false)} className="min-h-11 rounded-xl border px-4 font-semibold">Edit plan</button><button onClick={() => window.print()} className="flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 font-semibold text-primary-foreground"><Printer className="h-4 w-4" />Print / Save PDF</button><button onClick={copyPlan} className="flex min-h-11 items-center gap-2 rounded-xl border px-4 font-semibold"><Clipboard className="h-4 w-4" />Copy</button>{userId && <button onClick={savePlanner} className="flex min-h-11 items-center gap-2 rounded-xl border px-4 font-semibold"><Save className="h-4 w-4" />Save to Planner</button>}<button onClick={reset} className="ml-auto flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm text-muted-foreground"><RotateCcw className="h-4 w-4" />Start over</button></div></> : <>
       <div className="mb-6"><div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted-foreground"><span>Step {step} of 7</span><button onClick={() => setPreview(true)} className="normal-case tracking-normal text-primary">Plan preview</button></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} /></div></div>
       <section className="rounded-2xl border bg-card p-5 shadow-sm md:p-8"><p className="text-xs font-bold uppercase tracking-[.2em] text-primary">Build it with Faith</p><h2 className="mt-2 text-2xl font-bold md:text-3xl">{stepMeta[step - 1][0]}</h2><blockquote className="teaching-note mt-4 rounded-xl border-l-4 border-primary bg-primary/10 p-4 font-semibold">“{stepMeta[step - 1][1]}”</blockquote><div className="mt-7">{renderStep()}</div></section>
       <div className="no-print mt-5 flex items-center justify-between"><button disabled={step === 1} onClick={() => setStep(s => Math.max(1, s - 1))} className="flex min-h-12 items-center gap-2 rounded-xl border px-5 font-semibold disabled:opacity-30"><ChevronLeft className="h-4 w-4" />Back</button><button onClick={() => step === 7 ? setPreview(true) : setStep(s => Math.min(7, s + 1))} className="flex min-h-12 items-center gap-2 rounded-xl bg-primary px-6 font-semibold text-primary-foreground">{step === 7 ? 'See my plan' : 'Next'}<ChevronRight className="h-4 w-4" /></button></div>
