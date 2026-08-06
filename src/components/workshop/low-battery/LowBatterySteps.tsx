@@ -182,8 +182,6 @@ export function Step4({ data, update, presenter }: StepProps) {
   const ones = buildThreeOnes(data);
   return (
     <div className="space-y-6">
-      <TeachingNote presenter={presenter}>Attention is not the same as trust.</TeachingNote>
-
       <ChoiceList
         name="nurture"
         label="Each week, I will stay connected through..."
