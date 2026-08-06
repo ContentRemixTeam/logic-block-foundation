@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BatteryLow, ChevronLeft, ChevronRight, Clipboard, ExternalLink, Eye, EyeOff, Headphones, Play, Printer, RotateCcw, Save, Users } from 'lucide-react';
+import { BatteryLow, ChevronLeft, ChevronRight, Clipboard, ExternalLink, Eye, EyeOff, Headphones, Loader2, Mail, Play, Printer, RotateCcw, Save, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 
 type PlanData = {
@@ -24,6 +25,8 @@ const EMPTY: PlanData = {
 };
 
 const STORAGE_KEY = 'low-battery-business-plan-v1';
+const VISITOR_KEY = 'low-battery-workshop-visitor-v1';
+type WorkshopVisitor = { id: string; token: string; first_name: string; email: string };
 const BREAK_OPTIONS = ['Content', 'Email / nurture', 'Selling', 'Client delivery', 'Planning', 'All of it'];
 const SALES_OPTIONS = ['Live workshop / webinar', 'Short email promotion', 'Weekly direct invitations', 'Sales / consult calls', 'Evergreen sequence', 'Personal follow-up', 'Other'];
 const VISIBILITY_OPTIONS = ['Searchable long-form content', 'Short-form video', 'Collaborations, bundles, or referrals', 'Speaking and live workshops', 'Paid ads', 'Direct outreach', 'Other'];
@@ -82,6 +85,12 @@ function ResultPlan({ data }: { data: PlanData }) {
 
 export default function LowBatteryPlanPage() {
   const [welcome, setWelcome] = useState(true);
+  const [firstName, setFirstName] = useState('');
+  const [email, setEmail] = useState('');
+  const [registering, setRegistering] = useState(false);
+  const [visitor, setVisitor] = useState<WorkshopVisitor | null>(() => {
+    try { return JSON.parse(localStorage.getItem(VISITOR_KEY) || 'null'); } catch { return null; }
+  });
   const [step, setStep] = useState(1);
   const [preview, setPreview] = useState(false);
   const [presenter, setPresenter] = useState(false);
@@ -93,6 +102,21 @@ export default function LowBatteryPlanPage() {
 
   useEffect(() => { supabase.auth.getUser().then(({ data: auth }) => setUserId(auth.user?.id || null)); }, []);
   useEffect(() => { setSaveState('Saving…'); const t = window.setTimeout(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); setSaveState('Saved on this device'); }, 250); return () => clearTimeout(t); }, [data]);
+  useEffect(() => { if (visitor) { setFirstName(visitor.first_name); setEmail(visitor.email); } }, [visitor]);
+  useEffect(() => {
+    if (!visitor) return;
+    const timer = window.setTimeout(async () => {
+      const { data: saved, error } = await supabase.rpc('save_low_battery_workshop_answers', {
+        p_submission_id: visitor.id,
+        p_submission_token: visitor.token,
+        p_answers: JSON.parse(JSON.stringify(data)) as Json,
+        p_current_step: step,
+        p_completed: preview,
+      });
+      if (error || !saved) toast.error('Your device copy is safe, but the workshop answer backup did not save.');
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [data, preview, step, visitor]);
   const update = (patch: Partial<PlanData>) => setData(d => ({ ...d, ...patch }));
   const progress = useMemo(() => Math.round((step / 7) * 100), [step]);
 
@@ -107,6 +131,19 @@ export default function LowBatteryPlanPage() {
     else { setSaveState('Saved to planner'); toast.success('Low-Battery plan saved to your Planner.'); }
   };
   const copyPlan = async () => { const text = (document.getElementById('low-battery-plan-result')?.innerText || ''); await navigator.clipboard.writeText(text); toast.success('Plan copied.'); };
+  const enterWorkshop = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const cleanName = firstName.trim(); const cleanEmail = email.trim().toLowerCase();
+    if (!cleanName || !/^\S+@\S+\.\S+$/.test(cleanEmail)) return toast.error('Enter your name and a valid email address.');
+    if (visitor && visitor.first_name === cleanName && visitor.email === cleanEmail) { setWelcome(false); return; }
+    setRegistering(true);
+    const { data: result, error } = await supabase.rpc('register_low_battery_workshop', { p_first_name: cleanName, p_email: cleanEmail });
+    setRegistering(false);
+    if (error || !result || typeof result !== 'object' || Array.isArray(result)) return toast.error('We could not save your registration. Please try again.');
+    const record = result as Record<string, Json | undefined>;
+    const nextVisitor = { id: String(record.id), token: String(record.token), first_name: String(record.first_name), email: String(record.email) };
+    localStorage.setItem(VISITOR_KEY, JSON.stringify(nextVisitor)); setVisitor(nextVisitor); setWelcome(false);
+  };
 
   const renderStep = () => {
     switch (step) {
@@ -132,7 +169,12 @@ export default function LowBatteryPlanPage() {
       <p className="text-xs font-bold uppercase tracking-[.2em] text-primary">Welcome</p>
       <h2 className="mt-2 text-3xl font-bold md:text-4xl">You're in the right place.</h2>
       <p className="mt-4 text-lg leading-8 text-muted-foreground">You're about to build a 90-day business plan that can still run on a bad week.</p>
-      <p className="mt-3 leading-7 text-foreground">Before we start, here are three ways to keep getting useful business support and find people to grow with.</p>
+      <form onSubmit={enterWorkshop} className="mt-7 rounded-xl border bg-background p-4 md:p-5">
+        <div className="grid gap-4 sm:grid-cols-2"><TextField label="First name" value={firstName} onChange={setFirstName} placeholder="Your first name" /><TextField label="Email" value={email} onChange={setEmail} placeholder="you@example.com" /></div>
+        <p className="mt-3 text-xs leading-5 text-muted-foreground">By continuing, you agree to receive workshop follow-up emails from Faith, including useful resources and podcast recommendations. Unsubscribe anytime.</p>
+        <button type="submit" disabled={registering} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 font-bold text-primary-foreground disabled:opacity-60 sm:w-auto">{registering ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}{registering ? 'Saving…' : 'Enter the workshop'}<ChevronRight className="h-4 w-4" /></button>
+      </form>
+      <p className="mt-7 leading-7 text-foreground">While you're here, these are three ways to keep getting useful business support and find people to grow with.</p>
       <div className="mt-7 grid gap-3 md:grid-cols-3">
         {[
           { title: 'Listen to the podcast', text: 'Practical business coaching for weeks when your energy and attention are not predictable.', href: 'https://home.faithmariah.com/podcast', icon: Headphones },
@@ -144,8 +186,7 @@ export default function LowBatteryPlanPage() {
           <p className="mt-2 text-sm leading-6 text-muted-foreground">{text}</p>
         </a>)}
       </div>
-      <button type="button" onClick={() => { setWelcome(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="mt-8 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 font-bold text-primary-foreground sm:w-auto">Start my plan<ChevronRight className="h-4 w-4" /></button>
-      <p className="mt-3 text-sm text-muted-foreground">Already started? Your saved answers are still here.</p>
+      <p className="mt-5 text-sm text-muted-foreground">Already started? Enter the same email on this device. Your saved answers are still here.</p>
     </section> : preview ? <><ResultPlan data={data} /><div className="no-print mt-5 flex flex-wrap gap-2"><button onClick={() => setPreview(false)} className="min-h-11 rounded-xl border px-4 font-semibold">Edit plan</button><button onClick={() => window.print()} className="flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 font-semibold text-primary-foreground"><Printer className="h-4 w-4" />Print / Save PDF</button><button onClick={copyPlan} className="flex min-h-11 items-center gap-2 rounded-xl border px-4 font-semibold"><Clipboard className="h-4 w-4" />Copy</button>{userId && <button onClick={savePlanner} className="flex min-h-11 items-center gap-2 rounded-xl border px-4 font-semibold"><Save className="h-4 w-4" />Save to Planner</button>}<button onClick={reset} className="ml-auto flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm text-muted-foreground"><RotateCcw className="h-4 w-4" />Start over</button></div></> : <>
       <div className="mb-6"><div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted-foreground"><span>Step {step} of 7</span><button onClick={() => setPreview(true)} className="normal-case tracking-normal text-primary">Plan preview</button></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} /></div></div>
       <section className="rounded-2xl border bg-card p-5 shadow-sm md:p-8"><p className="text-xs font-bold uppercase tracking-[.2em] text-primary">Build it with Faith</p><h2 className="mt-2 text-2xl font-bold md:text-3xl">{stepMeta[step - 1][0]}</h2><blockquote className="teaching-note mt-4 rounded-xl border-l-4 border-primary bg-primary/10 p-4 font-semibold">“{stepMeta[step - 1][1]}”</blockquote><div className="mt-7">{renderStep()}</div></section>
