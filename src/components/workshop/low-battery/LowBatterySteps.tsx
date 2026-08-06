@@ -145,10 +145,6 @@ export function Step3({ data, update, presenter }: StepProps) {
   const s = data.step3;
   return (
     <div className="space-y-6">
-      <TeachingNote presenter={presenter}>
-        Choose the channel you can repeat, not the one a real business owner is supposed to use.
-      </TeachingNote>
-
       <ChoiceList
         name="channel"
         label="ONE way people find me"
