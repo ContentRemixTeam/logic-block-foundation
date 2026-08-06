@@ -93,7 +93,6 @@ export function LowBatteryWelcome({ onStart, hasSavedAnswers }: LowBatteryWelcom
           <Button
             onClick={onStart}
             className="min-h-[48px] w-full text-base font-semibold sm:w-auto"
-            aria-label="Start my 90-day Low-Battery Business Plan"
           >
             Start my plan
             <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
