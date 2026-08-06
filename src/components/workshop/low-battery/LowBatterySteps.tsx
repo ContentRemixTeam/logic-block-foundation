@@ -440,8 +440,6 @@ export function Step7({ data, update, presenter }: StepProps) {
   const s = data.step7;
   return (
     <div className="space-y-6">
-      <TeachingNote presenter={presenter}>The simple move feels hard for a reason.</TeachingNote>
-
       <div className="rounded-lg border border-border bg-muted/50 px-4 py-3">
         <p className="text-sm text-foreground">
           Physical limits are real. This exercise addresses the meaning, fear, and decisions
