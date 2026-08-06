@@ -18,7 +18,6 @@ import {
   HelperText,
   MultiSelectList,
   ReflectionBanner,
-  TeachingNote,
   TextAreaField,
   TextField,
 } from './LowBatteryPieces';
