@@ -194,134 +194,142 @@ export function LowBatteryPlanWizard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Persistent presenter navigation */}
-      <header className="no-print sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-3 px-4 py-3">
-          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-            <BatteryLow className="h-4 w-4 text-primary" aria-hidden="true" />
-            {isResults ? 'Your plan' : `Step ${step} of ${LOW_BATTERY_TOTAL_STEPS}`}
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <Label htmlFor="presenter-mode" className="text-sm text-muted-foreground">
-              Presenter mode
-            </Label>
-            <Switch id="presenter-mode" checked={presenter} onCheckedChange={setPresenter} />
-          </div>
-        </div>
-        <Progress value={progress} className="h-1 rounded-none" />
-      </header>
+      {!started ? (
+        <LowBatteryWelcome
+          onStart={() => setStarted(true)}
+          hasSavedAnswers={saveState !== 'idle'}
+        />
+      ) : (
+        <>
+          {/* Persistent presenter navigation */}
+          <header className="no-print sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
+            <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-3 px-4 py-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <BatteryLow className="h-4 w-4 text-primary" aria-hidden="true" />
+                {isResults ? 'Your plan' : `Step ${step} of ${LOW_BATTERY_TOTAL_STEPS}`}
+              </div>
+              <div className="ml-auto flex items-center gap-2">
+                <Label htmlFor="presenter-mode" className="text-sm text-muted-foreground">
+                  Presenter mode
+                </Label>
+                <Switch id="presenter-mode" checked={presenter} onCheckedChange={setPresenter} />
+              </div>
+            </div>
+            <Progress value={progress} className="h-1 rounded-none" />
+          </header>
 
-      <main className="mx-auto max-w-3xl px-4 pb-40 pt-6">
-        {step === 1 && !presenter && (
-          <div className="mb-8 space-y-2">
-            <h1 className="text-3xl font-bold text-foreground">The Low-Battery Business Plan</h1>
-            <p className="text-lg text-muted-foreground">
-              Build a 90-day plan simple enough that you can still run it on a bad week.
-            </p>
-            <p className="text-base font-medium text-foreground">
-              You do not need a smaller ambition. You need a plan with fewer full-battery
-              dependencies.
-            </p>
-          </div>
-        )}
-
-        {!isResults && (
-          <h2 className="mb-4 text-xl font-semibold text-foreground">
-            Step {step}: {STEP_TITLES[step - 1]}
-          </h2>
-        )}
-
-        {stepBody}
-
-        {isResults && (
-          <div className="no-print mt-6 space-y-3 rounded-lg border border-border bg-muted/40 p-4">
-            <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Check className="h-4 w-4 text-primary" aria-hidden="true" /> {saveLabel}
-            </p>
-            {user ? (
-              <Button
-                className="min-h-[44px] w-full sm:w-auto"
-                onClick={handleSaveToPlanner}
-                disabled={savingToPlanner}
-              >
-                {savingToPlanner ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Check className="mr-2 h-4 w-4" />
-                )}
-                Save to Planner
-              </Button>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Your plan is saved in this browser. Print or copy it to keep a permanent copy.
-              </p>
+          <main className="mx-auto max-w-3xl px-4 pb-40 pt-6">
+            {step === 1 && !presenter && (
+              <div className="mb-8 space-y-2">
+                <h1 className="text-3xl font-bold text-foreground">The Low-Battery Business Plan</h1>
+                <p className="text-lg text-muted-foreground">
+                  Build a 90-day plan simple enough that you can still run it on a bad week.
+                </p>
+                <p className="text-base font-medium text-foreground">
+                  You do not need a smaller ambition. You need a plan with fewer full-battery
+                  dependencies.
+                </p>
+              </div>
             )}
-          </div>
-        )}
-      </main>
-
-      {/* Persistent bottom navigation */}
-      <nav className="no-print fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl items-center gap-1 overflow-x-auto px-3 py-3 sm:gap-2 sm:px-4">
-          <Button
-            variant="outline"
-            className="min-h-[44px] shrink-0 px-3"
-            onClick={() => goTo(Math.max(1, step - 1))}
-            disabled={step === 1}
-          >
-            <ArrowLeft className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Back</span>
-          </Button>
-
-          <Button
-            variant="ghost"
-            className="min-h-[44px] shrink-0 px-3"
-            onClick={() => goTo(RESULTS_STEP)}
-            disabled={isResults}
-          >
-            <FileText className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Plan preview</span>
-          </Button>
-
-          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="min-h-[44px] shrink-0 px-3 text-sm text-muted-foreground"
-                >
-                  Start over
-                </Button>
-              </AlertDialogTrigger>
-
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Clear this plan and start over?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This erases the answers saved in this browser. It cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Keep my answers</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleStartOver}>Start over</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
 
             {!isResults && (
-              <Button
-                className="min-h-[44px] shrink-0 px-3"
-                onClick={() => goTo(step === LOW_BATTERY_TOTAL_STEPS ? RESULTS_STEP : step + 1)}
-
-              >
-                {step === LOW_BATTERY_TOTAL_STEPS ? 'See my plan' : 'Next'}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              <h2 className="mb-4 text-xl font-semibold text-foreground">
+                Step {step}: {STEP_TITLES[step - 1]}
+              </h2>
             )}
-          </div>
-        </div>
-        <p className="pb-2 text-center text-xs text-muted-foreground">{saveLabel}</p>
-      </nav>
+
+            {stepBody}
+
+            {isResults && (
+              <div className="no-print mt-6 space-y-3 rounded-lg border border-border bg-muted/40 p-4">
+                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-primary" aria-hidden="true" /> {saveLabel}
+                </p>
+                {user ? (
+                  <Button
+                    className="min-h-[44px] w-full sm:w-auto"
+                    onClick={handleSaveToPlanner}
+                    disabled={savingToPlanner}
+                  >
+                    {savingToPlanner ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="mr-2 h-4 w-4" />
+                    )}
+                    Save to Planner
+                  </Button>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Your plan is saved in this browser. Print or copy it to keep a permanent copy.
+                  </p>
+                )}
+              </div>
+            )}
+          </main>
+
+          {/* Persistent bottom navigation */}
+          <nav className="no-print fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur">
+            <div className="mx-auto flex max-w-3xl items-center gap-1 overflow-x-auto px-3 py-3 sm:gap-2 sm:px-4">
+              <Button
+                variant="outline"
+                className="min-h-[44px] shrink-0 px-3"
+                onClick={() => goTo(Math.max(1, step - 1))}
+                disabled={step === 1}
+              >
+                <ArrowLeft className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Back</span>
+              </Button>
+
+              <Button
+                variant="ghost"
+                className="min-h-[44px] shrink-0 px-3"
+                onClick={() => goTo(RESULTS_STEP)}
+                disabled={isResults}
+              >
+                <FileText className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Plan preview</span>
+              </Button>
+
+              <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="min-h-[44px] shrink-0 px-3 text-sm text-muted-foreground"
+                    >
+                      Start over
+                    </Button>
+                  </AlertDialogTrigger>
+
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Clear this plan and start over?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This erases the answers saved in this browser. It cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Keep my answers</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleStartOver}>Start over</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                {!isResults && (
+                  <Button
+                    className="min-h-[44px] shrink-0 px-3"
+                    onClick={() => goTo(step === LOW_BATTERY_TOTAL_STEPS ? RESULTS_STEP : step + 1)}
+                  >
+                    {step === LOW_BATTERY_TOTAL_STEPS ? 'See my plan' : 'Next'}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+            <p className="pb-2 text-center text-xs text-muted-foreground">{saveLabel}</p>
+          </nav>
+        </>
+      )}
     </div>
   );
 }
