@@ -256,10 +256,6 @@ export function Step5({ data, update, presenter }: StepProps) {
   const s = data.step5;
   return (
     <div className="space-y-6">
-      <TeachingNote presenter={presenter}>
-        A good idea is not automatically this week&apos;s assignment.
-      </TeachingNote>
-
       <MultiSelectList
         label="Cross off the productive-looking avoidance work"
         options={AVOIDANCE_OPTIONS}
