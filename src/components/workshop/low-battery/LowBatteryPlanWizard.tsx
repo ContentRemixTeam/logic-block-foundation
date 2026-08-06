@@ -63,7 +63,9 @@ export function LowBatteryPlanWizard() {
   const [presenter, setPresenter] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [savingToPlanner, setSavingToPlanner] = useState(false);
+  const [started, setStarted] = useState(false);
   const restored = useRef(false);
+
 
   useEffect(() => {
     const stored = loadFromStorage();
