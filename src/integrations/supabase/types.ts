@@ -8085,6 +8085,45 @@ export type Database = {
           },
         ]
       }
+      low_battery_workshop_submissions: {
+        Row: {
+          answers: Json
+          completed_at: string | null
+          consented_at: string
+          created_at: string
+          current_step: number
+          email: string
+          first_name: string
+          id: string
+          submission_token: string
+          updated_at: string
+        }
+        Insert: {
+          answers?: Json
+          completed_at?: string | null
+          consented_at?: string
+          created_at?: string
+          current_step?: number
+          email: string
+          first_name: string
+          id?: string
+          submission_token?: string
+          updated_at?: string
+        }
+        Update: {
+          answers?: Json
+          completed_at?: string | null
+          consented_at?: string
+          created_at?: string
+          current_step?: number
+          email?: string
+          first_name?: string
+          id?: string
+          submission_token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       wizard_completions: {
         Row: {
           answers: Json
@@ -8326,6 +8365,20 @@ export type Database = {
         }[]
       }
       is_admin: { Args: { check_user_id: string }; Returns: boolean }
+      register_low_battery_workshop: {
+        Args: { p_email: string; p_first_name: string }
+        Returns: Json
+      }
+      save_low_battery_workshop_answers: {
+        Args: {
+          p_answers: Json
+          p_completed?: boolean
+          p_current_step: number
+          p_submission_id: string
+          p_submission_token: string
+        }
+        Returns: boolean
+      }
       toggle_habit: {
         Args: { p_date: string; p_habit_id: string; p_user_id: string }
         Returns: boolean
