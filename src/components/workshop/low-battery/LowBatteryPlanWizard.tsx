@@ -31,26 +31,29 @@ import {
 import { Step1, Step2, Step3, Step4, Step5, Step6, Step7, SectionKey } from './LowBatterySteps';
 import { LowBatteryPlanResult, buildPlanText } from './LowBatteryPlanResult';
 import { LowBatteryWelcome } from './LowBatteryWelcome';
+import {
+  SubmissionRef,
+  checkpointSubmission,
+  coercePlan,
+  hasAnsweredFields,
+  loadMyLatestSubmission,
+  loadSubmissionAnswers,
+  readSubmissionRef,
+  registerSubmission,
+  saveSubmissionAnswers,
+  writeSubmissionRef,
+} from './lowBatteryRecovery';
 
 
 const RESULTS_STEP = LOW_BATTERY_TOTAL_STEPS + 1;
 
-type SaveState = 'idle' | 'local' | 'saving' | 'saved';
+type SaveState = 'idle' | 'local' | 'saving' | 'online' | 'saved';
 
 function loadFromStorage(): LowBatteryPlanData | null {
   try {
     const raw = localStorage.getItem(LOW_BATTERY_STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<LowBatteryPlanData>;
-    return {
-      step1: { ...emptyLowBatteryPlan.step1, ...(parsed.step1 ?? {}) },
-      step2: { ...emptyLowBatteryPlan.step2, ...(parsed.step2 ?? {}) },
-      step3: { ...emptyLowBatteryPlan.step3, ...(parsed.step3 ?? {}) },
-      step4: { ...emptyLowBatteryPlan.step4, ...(parsed.step4 ?? {}) },
-      step5: { ...emptyLowBatteryPlan.step5, ...(parsed.step5 ?? {}) },
-      step6: { ...emptyLowBatteryPlan.step6, ...(parsed.step6 ?? {}) },
-      step7: { ...emptyLowBatteryPlan.step7, ...(parsed.step7 ?? {}) },
-    };
+    return coercePlan(JSON.parse(raw));
   } catch {
     return null;
   }
@@ -64,27 +67,110 @@ export function LowBatteryPlanWizard() {
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [savingToPlanner, setSavingToPlanner] = useState(false);
   const [started, setStarted] = useState(false);
+  const [submission, setSubmission] = useState<SubmissionRef | null>(null);
+  const [crossBrowser, setCrossBrowser] = useState(false);
   const restored = useRef(false);
+  const dataRef = useRef<LowBatteryPlanData>(emptyLowBatteryPlan);
+  const stepRef = useRef(1);
+  const linkAttempted = useRef(false);
 
+  dataRef.current = data;
+  stepRef.current = step;
 
+  // 1. Device restore first — the local copy is always authoritative when it has answers.
   useEffect(() => {
     const stored = loadFromStorage();
     if (stored) {
       setData(stored);
-      setSaveState('local');
+      dataRef.current = stored;
+      if (hasAnsweredFields(stored)) setSaveState('local');
     }
     restored.current = true;
+
+    // 2. Token-protected online recovery for this device's known submission.
+    const ref = readSubmissionRef();
+    if (!ref) return;
+    setSubmission(ref);
+    if (hasAnsweredFields(stored)) return;
+
+    let cancelled = false;
+    void loadSubmissionAnswers(ref).then((remote) => {
+      if (cancelled || !remote?.answers || !hasAnsweredFields(remote.answers)) return;
+      if (hasAnsweredFields(dataRef.current)) return;
+      setData(remote.answers);
+      setStep(Math.min(Math.max(remote.currentStep, 1), LOW_BATTERY_TOTAL_STEPS));
+      setSaveState('online');
+      toast.success('We found your saved answers and brought them back.');
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
+  // 3. Signed-in cross-browser recovery + associating saves with the account.
+  useEffect(() => {
+    if (!user || linkAttempted.current) return;
+    linkAttempted.current = true;
+    let cancelled = false;
+
+    void (async () => {
+      const latest = await loadMyLatestSubmission();
+      if (cancelled) return;
+
+      if (latest) {
+        setSubmission(latest.ref);
+        writeSubmissionRef(latest.ref);
+        setCrossBrowser(true);
+        if (!hasAnsweredFields(dataRef.current) && hasAnsweredFields(latest.answers)) {
+          setData(latest.answers as LowBatteryPlanData);
+          setStep(Math.min(Math.max(latest.currentStep, 1), LOW_BATTERY_TOTAL_STEPS));
+          setSaveState('online');
+          toast.success('Welcome back — your plan is here, saved to your account.');
+        }
+        return;
+      }
+
+      if (!user.email) return;
+      const metadata = (user.user_metadata ?? {}) as Record<string, unknown>;
+      const firstName =
+        (typeof metadata.first_name === 'string' && metadata.first_name.trim()) ||
+        (typeof metadata.full_name === 'string' && metadata.full_name.trim().split(' ')[0]) ||
+        user.email.split('@')[0];
+      const created = await registerSubmission(firstName, user.email);
+      if (cancelled || !created) return;
+      setSubmission(created);
+      writeSubmissionRef(created);
+      setCrossBrowser(true);
+      void saveSubmissionAnswers(created, dataRef.current, stepRef.current);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  // 4. Every answer goes to this device immediately.
   useEffect(() => {
     if (!restored.current) return;
     try {
       localStorage.setItem(LOW_BATTERY_STORAGE_KEY, JSON.stringify(data));
-      setSaveState((prev) => (prev === 'saving' ? prev : 'local'));
+      setSaveState((prev) => (prev === 'saving' || prev === 'saved' ? prev : 'local'));
     } catch {
       // Storage unavailable (private browsing); the plan stays in memory.
     }
   }, [data]);
+
+  // 5. Debounced online backup whenever a submission exists (anonymous or signed in).
+  useEffect(() => {
+    if (!restored.current || !submission) return;
+    if (!hasAnsweredFields(data)) return;
+    const timer = window.setTimeout(() => {
+      void saveSubmissionAnswers(submission, data, stepRef.current).then((ok) => {
+        if (ok) setSaveState((prev) => (prev === 'saved' ? prev : 'online'));
+      });
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [data, submission]);
 
   const update = useCallback(
     <K extends SectionKey>(section: K, patch: Partial<LowBatteryPlanData[K]>) => {
@@ -93,10 +179,19 @@ export function LowBatteryPlanWizard() {
     []
   );
 
-  const goTo = useCallback((next: number) => {
-    setStep(next);
-    window.scrollTo({ top: 0, behavior: 'auto' });
-  }, []);
+  const goTo = useCallback(
+    (next: number) => {
+      // Checkpoint the step we are leaving so a version is always recoverable.
+      if (submission && next > step && hasAnsweredFields(dataRef.current)) {
+        void saveSubmissionAnswers(submission, dataRef.current, step).then((ok) => {
+          if (ok) void checkpointSubmission(submission, `step-${step}-complete`);
+        });
+      }
+      setStep(next);
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    },
+    [step, submission]
+  );
 
   const handleCopy = useCallback(async () => {
     try {
@@ -148,6 +243,13 @@ export function LowBatteryPlanWizard() {
 
 
       if (error) throw error;
+
+      // Final online checkpoint alongside the planner copy.
+      if (submission) {
+        const ok = await saveSubmissionAnswers(submission, data, RESULTS_STEP, true);
+        if (ok) await checkpointSubmission(submission, 'final-save');
+      }
+
       setSaveState('saved');
       toast.success('Saved to your planner');
     } catch {
@@ -156,7 +258,8 @@ export function LowBatteryPlanWizard() {
     } finally {
       setSavingToPlanner(false);
     }
-  }, [data, savingToPlanner, user]);
+  }, [data, savingToPlanner, submission, user]);
+
 
   const stepBody = useMemo(() => {
     const props = { data, update, presenter };
@@ -187,10 +290,15 @@ export function LowBatteryPlanWizard() {
     saveState === 'saving'
       ? 'Saving...'
       : saveState === 'saved'
-        ? 'Saved to planner'
-        : saveState === 'local'
-          ? 'Saved on this device'
-          : 'Nothing to save yet';
+        ? 'Saved to your planner'
+        : saveState === 'online'
+          ? crossBrowser
+            ? 'Saved on this device and to your account — available in any browser'
+            : 'Saved on this device and backed up online'
+          : saveState === 'local'
+            ? 'Saved on this device'
+            : 'Nothing to save yet';
+
 
   return (
     <div className="min-h-screen bg-background">
