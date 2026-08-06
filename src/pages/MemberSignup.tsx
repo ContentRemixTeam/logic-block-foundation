@@ -62,7 +62,7 @@ export default function MemberSignup() {
       // Add to mastermind entitlements via edge function
       const { error: entitlementError } = await supabase.functions.invoke('add-mastermind-entitlement', {
         body: {
-          email,
+          email: normalizedEmail,
           firstName,
           lastName,
         },
