@@ -15,12 +15,14 @@ import {
   CheckCircle2,
   CircleDot,
   ClipboardCheck,
+  Clock,
   ExternalLink,
   GraduationCap,
   HelpCircle,
   ListChecks,
   MessageCircle,
   Pin,
+  PlayCircle,
   RotateCcw,
   Search,
   ShieldCheck,
@@ -56,6 +58,18 @@ interface MastermindResource {
   icon: ComponentType<{ className?: string }>;
   url: string;
   isExternal: boolean;
+}
+
+interface TestVideo {
+  id: string;
+  title: string;
+  duration: string;
+  stage: string;
+  videoId: string;
+  url: string;
+  summary: string;
+  transcriptPreview: string;
+  keywords: string[];
 }
 
 const ROADMAP_STAGES: RoadmapStage[] = [
@@ -229,11 +243,149 @@ const MASTERMIND_RESOURCES: MastermindResource[] = [
   },
 ];
 
+const VIDEO_SEARCH_TERMS = ['sales page', 'email list', 'low capacity', 'AI', 'implementation', 'confidence'];
+
+const YOUTUBE_TEST_VIDEOS: TestVideo[] = [
+  {
+    id: 'low-capacity-business-plan',
+    title: 'How to Plan Your Business in a Low-Capacity Season (Without Burning Out)',
+    duration: '18:11',
+    stage: 'Leverage',
+    videoId: 'TFake8oGWXQ',
+    url: 'https://www.youtube.com/watch?v=TFake8oGWXQ',
+    summary: 'Use this to test search around planning, capacity, burnout prevention, and making the next business move smaller.',
+    transcriptPreview: 'Searchable test phrases: low capacity season, business planning, burnout, weekly plan, simple next step, energy, capacity, reduce overwhelm.',
+    keywords: ['low capacity', 'burnout', 'planning', 'weekly plan', 'capacity', 'simplify'],
+  },
+  {
+    id: 'annual-goals',
+    title: 'Your Annual Goals Are Setting You Up to Fail - Do This Instead',
+    duration: '6:10',
+    stage: 'Offer',
+    videoId: 'Wfp68hGGDic',
+    url: 'https://www.youtube.com/watch?v=Wfp68hGGDic',
+    summary: 'A planning reset for members who need a shorter goal cycle and a clearer 90-day result.',
+    transcriptPreview: 'Searchable test phrases: annual goals, quarterly planning, 90-day goal, goal setting, focus, reset, result, business plan.',
+    keywords: ['annual goals', '90-day plan', 'quarterly planning', 'focus', 'goals'],
+  },
+  {
+    id: 'business-unstuck',
+    title: 'How to get unstuck in business (coaching call replay)',
+    duration: '1:16:45',
+    stage: 'Offer',
+    videoId: 'p7fwlN9aGnk',
+    url: 'https://www.youtube.com/watch?v=p7fwlN9aGnk',
+    summary: 'A coaching replay for diagnosing the stuck point before piling on more tactics.',
+    transcriptPreview: 'Searchable test phrases: stuck in business, coaching replay, bottleneck, decision, offer clarity, visibility, action, next step.',
+    keywords: ['stuck', 'coaching', 'bottleneck', 'offer clarity', 'decision'],
+  },
+  {
+    id: 'bundle-email-list',
+    title: 'How I Grew My Email List 10,000 Subscribers WITHOUT Running Ads (Bundle Strategy)',
+    duration: '18:39',
+    stage: 'Find',
+    videoId: '3u19cOVnsAg',
+    url: 'https://www.youtube.com/watch?v=3u19cOVnsAg',
+    summary: 'A discovery and list-growth training for members who need more qualified people entering their world.',
+    transcriptPreview: 'Searchable test phrases: email list, list growth, bundle strategy, no ads, subscribers, lead generation, collaboration, audience growth.',
+    keywords: ['email list', 'bundle', 'no ads', 'lead generation', 'subscribers', 'audience growth'],
+  },
+  {
+    id: 'offers-visibility-confidence',
+    title: 'Online Business Coaching Replay: Offers, Visibility, and Confidence Blocks',
+    duration: '1:07:01',
+    stage: 'Sell',
+    videoId: 'Bj4vRCmKH7Q',
+    url: 'https://www.youtube.com/watch?v=Bj4vRCmKH7Q',
+    summary: 'A replay for members whose sales problem is tangled with offer clarity, visibility, or confidence.',
+    transcriptPreview: 'Searchable test phrases: offers, visibility, confidence blocks, online business coaching, selling, self trust, audience, marketing.',
+    keywords: ['offers', 'visibility', 'confidence', 'sales', 'marketing', 'coaching'],
+  },
+  {
+    id: 'free-sales-page',
+    title: 'How to Make a Sales Page for Free (Step-by-Step Canva Tutorial)',
+    duration: '19:49',
+    stage: 'Sell',
+    videoId: 'V5LWEgl70rw',
+    url: 'https://www.youtube.com/watch?v=V5LWEgl70rw',
+    summary: 'A practical sales page tutorial for turning an offer into a clear buying page without extra software spend.',
+    transcriptPreview: 'Searchable test phrases: sales page, Canva tutorial, free sales page, offer copy, landing page, buy button, conversion.',
+    keywords: ['sales page', 'Canva', 'landing page', 'offer copy', 'conversion'],
+  },
+  {
+    id: 'business-without-hustle',
+    title: 'Online Business Success Without the Hustle: How We Broke the Rules and Still Made Money',
+    duration: '1:15:44',
+    stage: 'Leverage',
+    videoId: 'eVJJU2H3pl8',
+    url: 'https://www.youtube.com/watch?v=eVJJU2H3pl8',
+    summary: 'A low-burnout business conversation for members who need permission to simplify what actually works.',
+    transcriptPreview: 'Searchable test phrases: online business success, without hustle, broke the rules, made money, sustainability, low pressure, capacity.',
+    keywords: ['without hustle', 'made money', 'sustainable business', 'capacity', 'simplify'],
+  },
+  {
+    id: 'motivation-business',
+    title: "How to Stay Motivated in Business (When You'd Rather Set It on Fire)",
+    duration: '9:28',
+    stage: 'Nurture',
+    videoId: 'KOuM_gqn7JU',
+    url: 'https://www.youtube.com/watch?v=KOuM_gqn7JU',
+    summary: 'A mindset and follow-through video for the messy middle of business implementation.',
+    transcriptPreview: 'Searchable test phrases: motivation, stay motivated, business mindset, frustration, follow through, messy middle, keep going.',
+    keywords: ['motivation', 'mindset', 'follow through', 'messy middle', 'frustration'],
+  },
+  {
+    id: 'business-organization-tana',
+    title: 'Stop Losing Ideas! My Simple System for 6-Figure Business Organization (Tana Tutorial)',
+    duration: '20:28',
+    stage: 'Leverage',
+    videoId: 'nIICwqvCfrE',
+    url: 'https://www.youtube.com/watch?v=nIICwqvCfrE',
+    summary: 'A systems video for keeping ideas, tasks, and business context from scattering across tools.',
+    transcriptPreview: 'Searchable test phrases: business organization, Tana tutorial, stop losing ideas, simple system, task capture, ideas, operations.',
+    keywords: ['business organization', 'Tana', 'ideas', 'task capture', 'operations', 'systems'],
+  },
+  {
+    id: 'implementation-gap',
+    title: 'Implementation Gap',
+    duration: '10:08',
+    stage: 'Deliver',
+    videoId: 'mzRA_eU9vtE',
+    url: 'https://www.youtube.com/watch?v=mzRA_eU9vtE',
+    summary: 'A short implementation-focused training for identifying why knowing is not becoming doing.',
+    transcriptPreview: 'Searchable test phrases: implementation gap, taking action, execution, knowing versus doing, follow through, momentum, support.',
+    keywords: ['implementation', 'execution', 'taking action', 'follow through', 'momentum'],
+  },
+  {
+    id: 'ai-brand-strategy',
+    title: 'How to Create a Complete Brand Strategy for FREE Using AI | Save $10K+ on Brand Development',
+    duration: '17:16',
+    stage: 'Leverage',
+    videoId: 'LYhwpxReUes',
+    url: 'https://www.youtube.com/watch?v=LYhwpxReUes',
+    summary: 'A public AI training that lets us test search for AI implementation, brand strategy, and leverage topics.',
+    transcriptPreview: 'Searchable test phrases: AI, brand strategy, free brand development, prompts, positioning, messaging, leverage, save money.',
+    keywords: ['AI', 'brand strategy', 'prompts', 'positioning', 'messaging', 'leverage'],
+  },
+  {
+    id: 'email-list-fast',
+    title: 'How to Grow Your Email List FAST (without ads or social media)',
+    duration: '22:13',
+    stage: 'Find',
+    videoId: '47o7iO6O9ag',
+    url: 'https://www.youtube.com/watch?v=47o7iO6O9ag',
+    summary: 'A list-growth training for finding subscribers without depending on paid ads or constant social posting.',
+    transcriptPreview: 'Searchable test phrases: grow your email list fast, without ads, without social media, subscribers, list building, leads, audience.',
+    keywords: ['email list', 'without ads', 'without social media', 'list building', 'leads'],
+  },
+];
+
 const STORAGE_KEY = 'mastermind-pinned-resources';
 
 export default function MastermindHub() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [videoSearchQuery, setVideoSearchQuery] = useState('');
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [selectedStageId, setSelectedStageId] = useState<StageId>('offer');
 
@@ -281,6 +433,21 @@ export default function MastermindHub() {
   const unpinnedResources = useMemo(() => {
     return filteredResources.filter((r) => !pinnedIds.includes(r.id));
   }, [filteredResources, pinnedIds]);
+
+  const filteredVideos = useMemo(() => {
+    if (!videoSearchQuery.trim()) return YOUTUBE_TEST_VIDEOS;
+    const query = videoSearchQuery.toLowerCase();
+    return YOUTUBE_TEST_VIDEOS.filter((video) =>
+      [
+        video.title,
+        video.duration,
+        video.stage,
+        video.summary,
+        video.transcriptPreview,
+        video.keywords.join(' '),
+      ].some((value) => value.toLowerCase().includes(query))
+    );
+  }, [videoSearchQuery]);
 
   const handleOpen = (resource: MastermindResource) => {
     if (resource.isExternal) {
@@ -335,8 +502,9 @@ export default function MastermindHub() {
           </div>
 
           <Tabs defaultValue="path" className="space-y-4">
-            <TabsList className="grid w-full max-w-lg grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2 sm:max-w-2xl sm:grid-cols-4">
               <TabsTrigger value="path">Success Path</TabsTrigger>
+              <TabsTrigger value="videos">Video Search</TabsTrigger>
               <TabsTrigger value="support">Get Support</TabsTrigger>
               <TabsTrigger value="resources">Resources</TabsTrigger>
             </TabsList>
@@ -463,6 +631,108 @@ export default function MastermindHub() {
               </div>
             </TabsContent>
 
+            <TabsContent value="videos" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Video className="h-5 w-5 text-primary" />
+                    YouTube search test
+                  </CardTitle>
+                  <CardDescription>
+                    Public Faith Mariah YouTube videos are indexed here so you can test the search flow before paying for private video hosting.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <StatusPill title="Searches" value="Titles, summaries, topics, transcript previews" />
+                    <StatusPill title="Future source" value="Bunny or GHL transcript text" />
+                    <StatusPill title="Access logic" value="Core, 30-day replay, and vault tags can use the same index" />
+                  </div>
+                  <div className="relative max-w-xl">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={videoSearchQuery}
+                      onChange={(e) => setVideoSearchQuery(e.target.value)}
+                      placeholder="Search sales page, email list, low capacity, AI..."
+                      className="pl-10"
+                    />
+                    {videoSearchQuery && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
+                        onClick={() => setVideoSearchQuery('')}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {VIDEO_SEARCH_TERMS.map((term) => (
+                      <Button
+                        key={term}
+                        type="button"
+                        variant={videoSearchQuery === term ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setVideoSearchQuery(term)}
+                      >
+                        {term}
+                      </Button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {filteredVideos.map((video) => (
+                  <Card key={video.id} className="overflow-hidden transition-all duration-200 hover:shadow-md">
+                    <a href={video.url} target="_blank" rel="noopener noreferrer" className="block bg-muted">
+                      <img
+                        src={`https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`}
+                        alt={`${video.title} thumbnail`}
+                        className="aspect-video w-full object-cover"
+                        loading="lazy"
+                      />
+                    </a>
+                    <CardHeader className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <Badge variant="secondary">{video.stage}</Badge>
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="h-3.5 w-3.5" />
+                          {video.duration}
+                        </span>
+                      </div>
+                      <CardTitle className="text-base leading-snug">{video.title}</CardTitle>
+                      <CardDescription>{video.summary}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="rounded-md bg-muted/50 p-3 text-sm text-muted-foreground">
+                        {video.transcriptPreview}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {video.keywords.slice(0, 4).map((keyword) => (
+                          <Badge key={keyword} variant="outline" className="text-[11px]">
+                            {keyword}
+                          </Badge>
+                        ))}
+                      </div>
+                      <Button className="w-full" onClick={() => window.open(video.url, '_blank', 'noopener,noreferrer')}>
+                        <PlayCircle className="mr-2 h-4 w-4" />
+                        Watch on YouTube
+                        <ExternalLink className="ml-2 h-3.5 w-3.5" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {filteredVideos.length === 0 && (
+                <div className="py-12 text-center">
+                  <p className="text-muted-foreground">No videos found matching "{videoSearchQuery}"</p>
+                </div>
+              )}
+            </TabsContent>
+
             <TabsContent value="support" className="grid gap-4 lg:grid-cols-3">
               <SupportCard
                 icon={Bot}
@@ -577,6 +847,20 @@ function StatusCard({ icon: Icon, title, description }: StatusCardProps) {
         <CardDescription>{description}</CardDescription>
       </CardHeader>
     </Card>
+  );
+}
+
+interface StatusPillProps {
+  title: string;
+  value: string;
+}
+
+function StatusPill({ title, value }: StatusPillProps) {
+  return (
+    <div className="rounded-lg border bg-background p-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
+      <p className="mt-1 text-sm font-medium leading-snug">{value}</p>
+    </div>
   );
 }
 
