@@ -2274,6 +2274,30 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_battery_checkins: {
+        Row: {
+          created_at: string
+          date: string
+          level: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          level: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          level?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_checkins: {
         Row: {
           checkin_date: string
@@ -2394,6 +2418,7 @@ export type Database = {
         Row: {
           active_launch_id: string | null
           alignment_score: number | null
+          archived_at: string | null
           brain_dump: string | null
           brave_move_task_id: string | null
           created_at: string | null
@@ -2403,9 +2428,11 @@ export type Database = {
           date: string
           day_id: string
           deep_mode_notes: Json | null
+          deferred_task_ids: Json
           end_of_day_reflection: string | null
           feeling: string | null
           goal_rewrite: string | null
+          low_battery_mode: boolean
           low_energy_task_id: string | null
           made_offer: boolean | null
           not_today: string | null
@@ -2424,6 +2451,7 @@ export type Database = {
         Insert: {
           active_launch_id?: string | null
           alignment_score?: number | null
+          archived_at?: string | null
           brain_dump?: string | null
           brave_move_task_id?: string | null
           created_at?: string | null
@@ -2433,9 +2461,11 @@ export type Database = {
           date: string
           day_id?: string
           deep_mode_notes?: Json | null
+          deferred_task_ids?: Json
           end_of_day_reflection?: string | null
           feeling?: string | null
           goal_rewrite?: string | null
+          low_battery_mode?: boolean
           low_energy_task_id?: string | null
           made_offer?: boolean | null
           not_today?: string | null
@@ -2454,6 +2484,7 @@ export type Database = {
         Update: {
           active_launch_id?: string | null
           alignment_score?: number | null
+          archived_at?: string | null
           brain_dump?: string | null
           brave_move_task_id?: string | null
           created_at?: string | null
@@ -2463,9 +2494,11 @@ export type Database = {
           date?: string
           day_id?: string
           deep_mode_notes?: Json | null
+          deferred_task_ids?: Json
           end_of_day_reflection?: string | null
           feeling?: string | null
           goal_rewrite?: string | null
+          low_battery_mode?: boolean
           low_energy_task_id?: string | null
           made_offer?: boolean | null
           not_today?: string | null
@@ -2748,8 +2781,17 @@ export type Database = {
           email: string
           ends_at: string | null
           first_name: string | null
+          ghl_contact_id: string | null
           id: string
           last_name: string | null
+          planner_ends_at: string | null
+          planner_order_id: string | null
+          planner_price_id: string | null
+          planner_product_id: string | null
+          planner_purchased_at: string | null
+          planner_starts_at: string | null
+          planner_status: string | null
+          planner_tier: string | null
           starts_at: string | null
           status: string
           tier: string
@@ -2760,8 +2802,17 @@ export type Database = {
           email: string
           ends_at?: string | null
           first_name?: string | null
+          ghl_contact_id?: string | null
           id?: string
           last_name?: string | null
+          planner_ends_at?: string | null
+          planner_order_id?: string | null
+          planner_price_id?: string | null
+          planner_product_id?: string | null
+          planner_purchased_at?: string | null
+          planner_starts_at?: string | null
+          planner_status?: string | null
+          planner_tier?: string | null
           starts_at?: string | null
           status?: string
           tier?: string
@@ -2772,8 +2823,17 @@ export type Database = {
           email?: string
           ends_at?: string | null
           first_name?: string | null
+          ghl_contact_id?: string | null
           id?: string
           last_name?: string | null
+          planner_ends_at?: string | null
+          planner_order_id?: string | null
+          planner_price_id?: string | null
+          planner_product_id?: string | null
+          planner_purchased_at?: string | null
+          planner_starts_at?: string | null
+          planner_status?: string | null
+          planner_tier?: string | null
           starts_at?: string | null
           status?: string
           tier?: string
@@ -3664,6 +3724,48 @@ export type Database = {
         }
         Relationships: []
       }
+      integration_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          last_used_at: string | null
+          name: string
+          request_count_1m: number
+          revoked_at: string | null
+          token_hash: string
+          token_prefix: string
+          updated_at: string
+          user_id: string
+          window_start_1m: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          name: string
+          request_count_1m?: number
+          revoked_at?: string | null
+          token_hash: string
+          token_prefix: string
+          updated_at?: string
+          user_id: string
+          window_start_1m?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          request_count_1m?: number
+          revoked_at?: string | null
+          token_hash?: string
+          token_prefix?: string
+          updated_at?: string
+          user_id?: string
+          window_start_1m?: string
+        }
+        Relationships: []
+      }
       issue_reports: {
         Row: {
           browser_info: string | null
@@ -4331,6 +4433,167 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      low_battery_planner_login_events: {
+        Row: {
+          created_at: string
+          dedupe_key: string
+          event_type: string
+          evidence: Json
+          exported_at: string | null
+          id: string
+          member_email: string
+          occurred_at: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dedupe_key: string
+          event_type?: string
+          evidence?: Json
+          exported_at?: string | null
+          id?: string
+          member_email: string
+          occurred_at: string
+          source?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dedupe_key?: string
+          event_type?: string
+          evidence?: Json
+          exported_at?: string | null
+          id?: string
+          member_email?: string
+          occurred_at?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      low_battery_workshop_answer_versions: {
+        Row: {
+          answers: Json
+          created_at: string
+          current_step: number
+          id: string
+          reason: string
+          submission_id: string
+          user_id: string | null
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          current_step?: number
+          id?: string
+          reason?: string
+          submission_id: string
+          user_id?: string | null
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          current_step?: number
+          id?: string
+          reason?: string
+          submission_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "low_battery_workshop_answer_versions_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "low_battery_workshop_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      low_battery_workshop_submissions: {
+        Row: {
+          answers: Json
+          completed_at: string | null
+          consented_at: string
+          created_at: string
+          current_step: number
+          email: string
+          first_name: string
+          id: string
+          submission_token: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          answers?: Json
+          completed_at?: string | null
+          consented_at?: string
+          created_at?: string
+          current_step?: number
+          email: string
+          first_name: string
+          id?: string
+          submission_token?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          answers?: Json
+          completed_at?: string | null
+          consented_at?: string
+          created_at?: string
+          current_step?: number
+          email?: string
+          first_name?: string
+          id?: string
+          submission_token?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      member_access: {
+        Row: {
+          access_expires_at: string | null
+          access_level: string
+          created_at: string
+          email: string
+          ghl_contact_id: string | null
+          id: string
+          revoked_at: string | null
+          source: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          access_expires_at?: string | null
+          access_level: string
+          created_at?: string
+          email: string
+          ghl_contact_id?: string | null
+          id?: string
+          revoked_at?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          access_expires_at?: string | null
+          access_level?: string
+          created_at?: string
+          email?: string
+          ghl_contact_id?: string | null
+          id?: string
+          revoked_at?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       messaging_frameworks: {
         Row: {
@@ -5322,6 +5585,96 @@ export type Database = {
           total_generations?: number | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      provision_events: {
+        Row: {
+          action: string
+          created_at: string
+          email: string
+          id: string
+          payload: Json
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          email: string
+          id?: string
+          payload?: Json
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          email?: string
+          id?: string
+          payload?: Json
+        }
+        Relationships: []
+      }
+      quarter_debriefs: {
+        Row: {
+          business_sections: Json
+          carry_forward: Json
+          completed_at: string | null
+          created_at: string
+          cycle_score: number | null
+          id: string
+          leave_behind: Json
+          lessons_learned: Json
+          next_quarter_focus: string | null
+          quarter_end_date: string | null
+          quarter_key: string
+          quarter_label: string
+          quarter_start_date: string | null
+          support_needed: string | null
+          updated_at: string
+          user_id: string
+          wants_next_quarter_plan: boolean | null
+          what_did_not_work: Json
+          what_worked: Json
+        }
+        Insert: {
+          business_sections?: Json
+          carry_forward?: Json
+          completed_at?: string | null
+          created_at?: string
+          cycle_score?: number | null
+          id?: string
+          leave_behind?: Json
+          lessons_learned?: Json
+          next_quarter_focus?: string | null
+          quarter_end_date?: string | null
+          quarter_key: string
+          quarter_label: string
+          quarter_start_date?: string | null
+          support_needed?: string | null
+          updated_at?: string
+          user_id: string
+          wants_next_quarter_plan?: boolean | null
+          what_did_not_work?: Json
+          what_worked?: Json
+        }
+        Update: {
+          business_sections?: Json
+          carry_forward?: Json
+          completed_at?: string | null
+          created_at?: string
+          cycle_score?: number | null
+          id?: string
+          leave_behind?: Json
+          lessons_learned?: Json
+          next_quarter_focus?: string | null
+          quarter_end_date?: string | null
+          quarter_key?: string
+          quarter_label?: string
+          quarter_start_date?: string | null
+          support_needed?: string | null
+          updated_at?: string
+          user_id?: string
+          wants_next_quarter_plan?: boolean | null
+          what_did_not_work?: Json
+          what_worked?: Json
         }
         Relationships: []
       }
@@ -6395,6 +6748,7 @@ export type Database = {
       tasks: {
         Row: {
           actual_minutes: number | null
+          archived_at: string | null
           category: string | null
           checklist_progress: Json | null
           completed_at: string | null
@@ -6414,6 +6768,7 @@ export type Database = {
           deleted_at: string | null
           done_enough_definition: string | null
           due_date: string | null
+          energy_cost: string | null
           energy_level: string | null
           estimated_minutes: number | null
           external_id: string | null
@@ -6422,6 +6777,7 @@ export type Database = {
           external_updated_at: string | null
           external_url: string | null
           goal_id: string | null
+          is_bare_minimum: boolean
           is_completed: boolean | null
           is_maintenance: boolean
           is_recurring_parent: boolean | null
@@ -6475,6 +6831,7 @@ export type Database = {
         }
         Insert: {
           actual_minutes?: number | null
+          archived_at?: string | null
           category?: string | null
           checklist_progress?: Json | null
           completed_at?: string | null
@@ -6494,6 +6851,7 @@ export type Database = {
           deleted_at?: string | null
           done_enough_definition?: string | null
           due_date?: string | null
+          energy_cost?: string | null
           energy_level?: string | null
           estimated_minutes?: number | null
           external_id?: string | null
@@ -6502,6 +6860,7 @@ export type Database = {
           external_updated_at?: string | null
           external_url?: string | null
           goal_id?: string | null
+          is_bare_minimum?: boolean
           is_completed?: boolean | null
           is_maintenance?: boolean
           is_recurring_parent?: boolean | null
@@ -6555,6 +6914,7 @@ export type Database = {
         }
         Update: {
           actual_minutes?: number | null
+          archived_at?: string | null
           category?: string | null
           checklist_progress?: Json | null
           completed_at?: string | null
@@ -6574,6 +6934,7 @@ export type Database = {
           deleted_at?: string | null
           done_enough_definition?: string | null
           due_date?: string | null
+          energy_cost?: string | null
           energy_level?: string | null
           estimated_minutes?: number | null
           external_id?: string | null
@@ -6582,6 +6943,7 @@ export type Database = {
           external_updated_at?: string | null
           external_url?: string | null
           goal_id?: string | null
+          is_bare_minimum?: boolean
           is_completed?: boolean | null
           is_maintenance?: boolean
           is_recurring_parent?: boolean | null
@@ -7261,6 +7623,7 @@ export type Database = {
           created_at: string
           default_planning_level: string | null
           email: string | null
+          first_name: string | null
           id: string
           last_activity_date: string | null
           membership_status: string | null
@@ -7277,6 +7640,7 @@ export type Database = {
           created_at?: string
           default_planning_level?: string | null
           email?: string | null
+          first_name?: string | null
           id: string
           last_activity_date?: string | null
           membership_status?: string | null
@@ -7293,6 +7657,7 @@ export type Database = {
           created_at?: string
           default_planning_level?: string | null
           email?: string | null
+          first_name?: string | null
           id?: string
           last_activity_date?: string | null
           membership_status?: string | null
@@ -7314,6 +7679,8 @@ export type Database = {
           arcade_reduce_motion: boolean | null
           arcade_sounds_off: boolean | null
           auto_create_content_tasks: boolean | null
+          bare_minimum_template: Json
+          battery_checkin_prompt_enabled: boolean
           calendar_date_mode: string | null
           celebrations_enabled: boolean
           created_at: string | null
@@ -7325,6 +7692,7 @@ export type Database = {
           dashboard_widgets: Json | null
           delight_intensity: string
           dismissed_launch_debriefs: Json | null
+          feature_toggles: Json
           habit_categories_enabled: boolean | null
           has_completed_setup: boolean | null
           has_seen_tour: boolean | null
@@ -7369,6 +7737,8 @@ export type Database = {
           arcade_reduce_motion?: boolean | null
           arcade_sounds_off?: boolean | null
           auto_create_content_tasks?: boolean | null
+          bare_minimum_template?: Json
+          battery_checkin_prompt_enabled?: boolean
           calendar_date_mode?: string | null
           celebrations_enabled?: boolean
           created_at?: string | null
@@ -7380,6 +7750,7 @@ export type Database = {
           dashboard_widgets?: Json | null
           delight_intensity?: string
           dismissed_launch_debriefs?: Json | null
+          feature_toggles?: Json
           habit_categories_enabled?: boolean | null
           has_completed_setup?: boolean | null
           has_seen_tour?: boolean | null
@@ -7424,6 +7795,8 @@ export type Database = {
           arcade_reduce_motion?: boolean | null
           arcade_sounds_off?: boolean | null
           auto_create_content_tasks?: boolean | null
+          bare_minimum_template?: Json
+          battery_checkin_prompt_enabled?: boolean
           calendar_date_mode?: string | null
           celebrations_enabled?: boolean
           created_at?: string | null
@@ -7435,6 +7808,7 @@ export type Database = {
           dashboard_widgets?: Json | null
           delight_intensity?: string
           dismissed_launch_debriefs?: Json | null
+          feature_toggles?: Json
           habit_categories_enabled?: boolean | null
           has_completed_setup?: boolean | null
           has_seen_tour?: boolean | null
@@ -8085,45 +8459,6 @@ export type Database = {
           },
         ]
       }
-      low_battery_workshop_submissions: {
-        Row: {
-          answers: Json
-          completed_at: string | null
-          consented_at: string
-          created_at: string
-          current_step: number
-          email: string
-          first_name: string
-          id: string
-          submission_token: string
-          updated_at: string
-        }
-        Insert: {
-          answers?: Json
-          completed_at?: string | null
-          consented_at?: string
-          created_at?: string
-          current_step?: number
-          email: string
-          first_name: string
-          id?: string
-          submission_token?: string
-          updated_at?: string
-        }
-        Update: {
-          answers?: Json
-          completed_at?: string | null
-          consented_at?: string
-          created_at?: string
-          current_step?: number
-          email?: string
-          first_name?: string
-          id?: string
-          submission_token?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       wizard_completions: {
         Row: {
           answers: Json
@@ -8281,12 +8616,19 @@ export type Database = {
       }
     }
     Functions: {
-      log_low_battery_planner_login: { Args: never; Returns: string }
       auto_archive_old_notes: { Args: never; Returns: number }
       backfill_admin_user_id: { Args: never; Returns: undefined }
       check_feature_flag: { Args: { p_key: string }; Returns: boolean }
       check_mastermind_entitlement: {
         Args: { user_email: string }
+        Returns: boolean
+      }
+      checkpoint_low_battery_workshop_answers: {
+        Args: {
+          p_reason?: string
+          p_submission_id: string
+          p_submission_token: string
+        }
         Returns: boolean
       }
       cleanup_rate_limits: { Args: never; Returns: undefined }
@@ -8366,6 +8708,12 @@ export type Database = {
         }[]
       }
       is_admin: { Args: { check_user_id: string }; Returns: boolean }
+      load_low_battery_workshop_answers: {
+        Args: { p_submission_id: string; p_submission_token: string }
+        Returns: Json
+      }
+      load_my_latest_low_battery_workshop: { Args: never; Returns: Json }
+      log_low_battery_planner_login: { Args: never; Returns: string }
       register_low_battery_workshop: {
         Args: { p_email: string; p_first_name: string }
         Returns: Json
