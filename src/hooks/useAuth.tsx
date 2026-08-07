@@ -91,6 +91,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Fire-and-forget analytics: never block or fail the login.
+        if (event === 'SIGNED_IN' && session?.user) {
+          setTimeout(() => {
+            supabase
+              .rpc('log_low_battery_planner_login')
+              .then(({ error }) => {
+                if (error) {
+                  console.error('[analytics] planner login log failed:', error.message);
+                }
+              });
+          }, 0);
+        }
+
       }
     );
 
