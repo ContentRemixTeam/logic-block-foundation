@@ -7,6 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MastermindGate } from '@/components/membership/MastermindGate';
+import { SuccessPathPlanCard } from '@/components/mastermind/SuccessPathPlanCard';
+import { useMastermindSuccessPath } from '@/hooks/useMastermindSuccessPath';
+import { MASTERMIND_SUCCESS_STAGES, type MastermindStageId } from '@/lib/mastermindSuccessPath';
 import {
   Archive,
   ArrowRight,
@@ -40,19 +43,6 @@ const MastermindVideoSearch = SHOW_VIDEO_SEARCH
   ? lazy(() => import('@/components/mastermind/MastermindVideoSearch'))
   : null;
 
-type StageId = 'offer' | 'find' | 'nurture' | 'sell' | 'deliver' | 'leverage';
-
-interface RoadmapStage {
-  id: StageId;
-  label: string;
-  memberQuestion: string;
-  useWhen: string;
-  milestone: string;
-  definitionOfDone: string[];
-  resources: string[];
-  supportPrompt: string;
-}
-
 interface MastermindResource {
   id: string;
   title: string;
@@ -62,93 +52,6 @@ interface MastermindResource {
   url: string;
   isExternal: boolean;
 }
-
-const ROADMAP_STAGES: RoadmapStage[] = [
-  {
-    id: 'offer',
-    label: 'Offer',
-    memberQuestion: 'What are you selling?',
-    useWhen: 'Use this when the offer, buyer, price, promise, or demand evidence is still fuzzy.',
-    milestone: 'Choose one money focus and create a minimum viable offer test.',
-    definitionOfDone: [
-      'Offer statement is clear enough to say out loud',
-      'Buyer, problem, price, and delivery model are decided',
-      'Real people have been invited to validate or buy'
-    ],
-    resources: ['Create Results Foundation', 'Offer Stage Intro', 'Minimum Viable Offer Test'],
-    supportPrompt: 'What part of this offer is still private theory instead of market evidence?'
-  },
-  {
-    id: 'find',
-    label: 'Find',
-    memberQuestion: 'How will the right people find you?',
-    useWhen: 'Use this when the offer is clear but too few qualified people are discovering you.',
-    milestone: 'Pick one discovery path and repeat it long enough to create evidence.',
-    definitionOfDone: [
-      'One discovery channel is chosen',
-      'There is a simple bridge into email or another owned audience',
-      'Four weeks of discovery evidence have been reviewed'
-    ],
-    resources: ['Find Stage Intro', 'Simple Discovery Plan', 'Email Bridge Lesson'],
-    supportPrompt: 'Where are qualified people already close enough to notice your work this quarter?'
-  },
-  {
-    id: 'nurture',
-    label: 'Nurture',
-    memberQuestion: 'How will you warm them up?',
-    useWhen: 'Use this when people find you, but they are not joining, engaging, understanding the offer, or getting ready to buy.',
-    milestone: 'Create a simple welcome and email rhythm that builds readiness.',
-    definitionOfDone: [
-      'Discovery connects to a clear next step',
-      'A welcome or nurture path exists',
-      'Audience behavior is being watched for replies, clicks, questions, or sales signals'
-    ],
-    resources: ['Nurture Stage Intro', 'Simple Email System', 'Content With a Job'],
-    supportPrompt: 'What does your audience need to believe, understand, or trust before the offer makes sense?'
-  },
-  {
-    id: 'sell',
-    label: 'Sell',
-    memberQuestion: 'How will you make the offer?',
-    useWhen: 'Use this when the offer and warm audience exist, but invitations, follow-up, or conversion are weak.',
-    milestone: 'Run one complete sales cycle with follow-up and a real debrief.',
-    definitionOfDone: [
-      'Sales goal and simple sales math are visible',
-      'Offer invitations and follow-up are scheduled',
-      'The campaign has been evaluated before changing direction'
-    ],
-    resources: ['Sell Stage Intro', 'Make More Offers', 'Sales Debrief'],
-    supportPrompt: 'Where is the sales process incomplete: invitation, follow-up, volume, belief, or conversion?'
-  },
-  {
-    id: 'deliver',
-    label: 'Deliver',
-    memberQuestion: 'How will customers get results?',
-    useWhen: 'Use this when sales are happening but onboarding, follow-through, proof, retention, or referrals need support.',
-    milestone: 'Map the customer success path and improve the first meaningful win.',
-    definitionOfDone: [
-      'Customer first win is defined',
-      'Onboarding and check-ins support that first win',
-      'Proof, feedback, or retention evidence is being collected'
-    ],
-    resources: ['Customer Results Course', 'First-Win Onboarding', 'Proof and Retention'],
-    supportPrompt: 'Where does a customer most need support between buying and getting the promised result?'
-  },
-  {
-    id: 'leverage',
-    label: 'Leverage',
-    memberQuestion: 'How will this get easier to run?',
-    useWhen: 'Use this when the revenue engine works but capacity, complexity, consistency, or owner-dependence blocks growth.',
-    milestone: 'Simplify and document one proven workflow before automating or delegating it.',
-    definitionOfDone: [
-      'One operating constraint is named',
-      'A working process has been simplified and documented',
-      'Automation, AI, delegation, or removal was chosen for the right reason'
-    ],
-    resources: ['Leverage Stage Intro', 'Simplify What Works', 'AI or Delegation Decision'],
-    supportPrompt: 'What is already proven enough to simplify, automate, delegate, or remove?'
-  }
-];
 
 const MASTERMIND_RESOURCES: MastermindResource[] = [
   {
@@ -238,9 +141,11 @@ const STORAGE_KEY = 'mastermind-pinned-resources';
 
 export default function MastermindHub() {
   const navigate = useNavigate();
+  const { data: successPathData, isLoading: successPathLoading } = useMastermindSuccessPath();
   const [searchQuery, setSearchQuery] = useState('');
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
-  const [selectedStageId, setSelectedStageId] = useState<StageId>('offer');
+  const [selectedStageId, setSelectedStageId] = useState<MastermindStageId>('offer');
+  const [hasManuallySelectedStage, setHasManuallySelectedStage] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -252,6 +157,13 @@ export default function MastermindHub() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    const suggestedStageId = successPathData?.successPath?.stageId;
+    if (suggestedStageId && !hasManuallySelectedStage) {
+      setSelectedStageId(suggestedStageId);
+    }
+  }, [successPathData?.successPath?.stageId, hasManuallySelectedStage]);
 
   const savePinned = (ids: string[]) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
@@ -266,7 +178,7 @@ export default function MastermindHub() {
     }
   };
 
-  const selectedStage = ROADMAP_STAGES.find((stage) => stage.id === selectedStageId) ?? ROADMAP_STAGES[0];
+  const selectedStage = MASTERMIND_SUCCESS_STAGES.find((stage) => stage.id === selectedStageId) ?? MASTERMIND_SUCCESS_STAGES[0];
 
   const filteredResources = useMemo(() => {
     if (!searchQuery.trim()) return MASTERMIND_RESOURCES;
@@ -353,6 +265,19 @@ export default function MastermindHub() {
             </TabsList>
 
             <TabsContent value="path" className="space-y-4">
+              <SuccessPathPlanCard
+                cycle={successPathData?.cycle}
+                successPath={successPathData?.successPath}
+                isLoading={successPathLoading}
+                onBuildPlan={() => navigate('/cycle-setup')}
+                onUsePath={(stageId) => {
+                  setSelectedStageId(stageId);
+                  setHasManuallySelectedStage(true);
+                }}
+                onSubmitAskFaith={() => window.open('https://airtable.com/appP01GhbZAtwT4nN/shrIRdOHFXijc8462', '_blank', 'noopener,noreferrer')}
+                onEnableAi={() => navigate('/ai-copywriting/settings')}
+              />
+
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -365,11 +290,14 @@ export default function MastermindHub() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {ROADMAP_STAGES.map((stage) => (
+                    {MASTERMIND_SUCCESS_STAGES.map((stage) => (
                       <button
                         key={stage.id}
                         type="button"
-                        onClick={() => setSelectedStageId(stage.id)}
+                        onClick={() => {
+                          setSelectedStageId(stage.id);
+                          setHasManuallySelectedStage(true);
+                        }}
                         className={cn(
                           'rounded-lg border bg-card p-4 text-left transition hover:border-primary/50 hover:bg-muted/40',
                           selectedStageId === stage.id && 'border-primary bg-primary/5 shadow-sm'
@@ -423,14 +351,17 @@ export default function MastermindHub() {
                       <h3 className="mb-2 text-sm font-semibold">Active learning path</h3>
                       <div className="grid gap-2">
                         {selectedStage.resources.map((resource, index) => (
-                          <div key={resource} className="flex items-center gap-3 rounded-md border p-3">
+                          <div key={resource.title} className="flex items-center gap-3 rounded-md border p-3">
                             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                               {index + 1}
                             </div>
                             <div>
-                              <p className="text-sm font-medium">{resource}</p>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="text-sm font-medium">{resource.title}</p>
+                                <Badge variant="outline" className="text-[11px]">{resource.access}</Badge>
+                              </div>
                               <p className="text-xs text-muted-foreground">
-                                Required only when it supports the current milestone.
+                                {resource.useWhen}
                               </p>
                             </div>
                           </div>
