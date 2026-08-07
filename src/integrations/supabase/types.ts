@@ -8281,6 +8281,7 @@ export type Database = {
       }
     }
     Functions: {
+      log_low_battery_planner_login: { Args: never; Returns: string }
       auto_archive_old_notes: { Args: never; Returns: number }
       backfill_admin_user_id: { Args: never; Returns: undefined }
       check_feature_flag: { Args: { p_key: string }; Returns: boolean }

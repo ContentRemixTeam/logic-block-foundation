@@ -38,6 +38,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: session?.user?.email,
           timestamp: new Date().toISOString()
         });
+
+        // Record one evidence event per real authentication. Supabase may emit
+        // SIGNED_IN more than once for a session, so the database deduplicates
+        // against the user's authoritative last_sign_in_at timestamp.
+        if (event === 'SIGNED_IN' && session?.user) {
+          void supabase.rpc('log_low_battery_planner_login').then(({ error }) => {
+            if (error) {
+              // Evidence collection must never prevent a member from logging in.
+              console.error('Failed to record Low Battery Planner login:', error);
+            }
+          });
+        }
         
         // Clear React Query cache when user changes (prevents cross-user data leakage)
         if (prevUserId !== null && newUserId !== prevUserId) {
