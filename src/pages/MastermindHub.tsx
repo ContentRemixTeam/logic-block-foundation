@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MastermindGate } from '@/components/membership/MastermindGate';
+import { type MastermindVideo, VIDEO_SEARCH_TERMS, YOUTUBE_TEST_VIDEOS } from '@/data/mastermindVideoLibrary';
 import {
   Archive,
   ArrowRight,
@@ -58,18 +59,6 @@ interface MastermindResource {
   icon: ComponentType<{ className?: string }>;
   url: string;
   isExternal: boolean;
-}
-
-interface TestVideo {
-  id: string;
-  title: string;
-  duration: string;
-  stage: string;
-  videoId: string;
-  url: string;
-  summary: string;
-  transcriptPreview: string;
-  keywords: string[];
 }
 
 const ROADMAP_STAGES: RoadmapStage[] = [
@@ -243,144 +232,41 @@ const MASTERMIND_RESOURCES: MastermindResource[] = [
   },
 ];
 
-const VIDEO_SEARCH_TERMS = ['sales page', 'email list', 'low capacity', 'AI', 'implementation', 'confidence'];
-
-const YOUTUBE_TEST_VIDEOS: TestVideo[] = [
-  {
-    id: 'low-capacity-business-plan',
-    title: 'How to Plan Your Business in a Low-Capacity Season (Without Burning Out)',
-    duration: '18:11',
-    stage: 'Leverage',
-    videoId: 'TFake8oGWXQ',
-    url: 'https://www.youtube.com/watch?v=TFake8oGWXQ',
-    summary: 'Use this to test search around planning, capacity, burnout prevention, and making the next business move smaller.',
-    transcriptPreview: 'Searchable test phrases: low capacity season, business planning, burnout, weekly plan, simple next step, energy, capacity, reduce overwhelm.',
-    keywords: ['low capacity', 'burnout', 'planning', 'weekly plan', 'capacity', 'simplify'],
-  },
-  {
-    id: 'annual-goals',
-    title: 'Your Annual Goals Are Setting You Up to Fail - Do This Instead',
-    duration: '6:10',
-    stage: 'Offer',
-    videoId: 'Wfp68hGGDic',
-    url: 'https://www.youtube.com/watch?v=Wfp68hGGDic',
-    summary: 'A planning reset for members who need a shorter goal cycle and a clearer 90-day result.',
-    transcriptPreview: 'Searchable test phrases: annual goals, quarterly planning, 90-day goal, goal setting, focus, reset, result, business plan.',
-    keywords: ['annual goals', '90-day plan', 'quarterly planning', 'focus', 'goals'],
-  },
-  {
-    id: 'business-unstuck',
-    title: 'How to get unstuck in business (coaching call replay)',
-    duration: '1:16:45',
-    stage: 'Offer',
-    videoId: 'p7fwlN9aGnk',
-    url: 'https://www.youtube.com/watch?v=p7fwlN9aGnk',
-    summary: 'A coaching replay for diagnosing the stuck point before piling on more tactics.',
-    transcriptPreview: 'Searchable test phrases: stuck in business, coaching replay, bottleneck, decision, offer clarity, visibility, action, next step.',
-    keywords: ['stuck', 'coaching', 'bottleneck', 'offer clarity', 'decision'],
-  },
-  {
-    id: 'bundle-email-list',
-    title: 'How I Grew My Email List 10,000 Subscribers WITHOUT Running Ads (Bundle Strategy)',
-    duration: '18:39',
-    stage: 'Find',
-    videoId: '3u19cOVnsAg',
-    url: 'https://www.youtube.com/watch?v=3u19cOVnsAg',
-    summary: 'A discovery and list-growth training for members who need more qualified people entering their world.',
-    transcriptPreview: 'Searchable test phrases: email list, list growth, bundle strategy, no ads, subscribers, lead generation, collaboration, audience growth.',
-    keywords: ['email list', 'bundle', 'no ads', 'lead generation', 'subscribers', 'audience growth'],
-  },
-  {
-    id: 'offers-visibility-confidence',
-    title: 'Online Business Coaching Replay: Offers, Visibility, and Confidence Blocks',
-    duration: '1:07:01',
-    stage: 'Sell',
-    videoId: 'Bj4vRCmKH7Q',
-    url: 'https://www.youtube.com/watch?v=Bj4vRCmKH7Q',
-    summary: 'A replay for members whose sales problem is tangled with offer clarity, visibility, or confidence.',
-    transcriptPreview: 'Searchable test phrases: offers, visibility, confidence blocks, online business coaching, selling, self trust, audience, marketing.',
-    keywords: ['offers', 'visibility', 'confidence', 'sales', 'marketing', 'coaching'],
-  },
-  {
-    id: 'free-sales-page',
-    title: 'How to Make a Sales Page for Free (Step-by-Step Canva Tutorial)',
-    duration: '19:49',
-    stage: 'Sell',
-    videoId: 'V5LWEgl70rw',
-    url: 'https://www.youtube.com/watch?v=V5LWEgl70rw',
-    summary: 'A practical sales page tutorial for turning an offer into a clear buying page without extra software spend.',
-    transcriptPreview: 'Searchable test phrases: sales page, Canva tutorial, free sales page, offer copy, landing page, buy button, conversion.',
-    keywords: ['sales page', 'Canva', 'landing page', 'offer copy', 'conversion'],
-  },
-  {
-    id: 'business-without-hustle',
-    title: 'Online Business Success Without the Hustle: How We Broke the Rules and Still Made Money',
-    duration: '1:15:44',
-    stage: 'Leverage',
-    videoId: 'eVJJU2H3pl8',
-    url: 'https://www.youtube.com/watch?v=eVJJU2H3pl8',
-    summary: 'A low-burnout business conversation for members who need permission to simplify what actually works.',
-    transcriptPreview: 'Searchable test phrases: online business success, without hustle, broke the rules, made money, sustainability, low pressure, capacity.',
-    keywords: ['without hustle', 'made money', 'sustainable business', 'capacity', 'simplify'],
-  },
-  {
-    id: 'motivation-business',
-    title: "How to Stay Motivated in Business (When You'd Rather Set It on Fire)",
-    duration: '9:28',
-    stage: 'Nurture',
-    videoId: 'KOuM_gqn7JU',
-    url: 'https://www.youtube.com/watch?v=KOuM_gqn7JU',
-    summary: 'A mindset and follow-through video for the messy middle of business implementation.',
-    transcriptPreview: 'Searchable test phrases: motivation, stay motivated, business mindset, frustration, follow through, messy middle, keep going.',
-    keywords: ['motivation', 'mindset', 'follow through', 'messy middle', 'frustration'],
-  },
-  {
-    id: 'business-organization-tana',
-    title: 'Stop Losing Ideas! My Simple System for 6-Figure Business Organization (Tana Tutorial)',
-    duration: '20:28',
-    stage: 'Leverage',
-    videoId: 'nIICwqvCfrE',
-    url: 'https://www.youtube.com/watch?v=nIICwqvCfrE',
-    summary: 'A systems video for keeping ideas, tasks, and business context from scattering across tools.',
-    transcriptPreview: 'Searchable test phrases: business organization, Tana tutorial, stop losing ideas, simple system, task capture, ideas, operations.',
-    keywords: ['business organization', 'Tana', 'ideas', 'task capture', 'operations', 'systems'],
-  },
-  {
-    id: 'implementation-gap',
-    title: 'Implementation Gap',
-    duration: '10:08',
-    stage: 'Deliver',
-    videoId: 'mzRA_eU9vtE',
-    url: 'https://www.youtube.com/watch?v=mzRA_eU9vtE',
-    summary: 'A short implementation-focused training for identifying why knowing is not becoming doing.',
-    transcriptPreview: 'Searchable test phrases: implementation gap, taking action, execution, knowing versus doing, follow through, momentum, support.',
-    keywords: ['implementation', 'execution', 'taking action', 'follow through', 'momentum'],
-  },
-  {
-    id: 'ai-brand-strategy',
-    title: 'How to Create a Complete Brand Strategy for FREE Using AI | Save $10K+ on Brand Development',
-    duration: '17:16',
-    stage: 'Leverage',
-    videoId: 'LYhwpxReUes',
-    url: 'https://www.youtube.com/watch?v=LYhwpxReUes',
-    summary: 'A public AI training that lets us test search for AI implementation, brand strategy, and leverage topics.',
-    transcriptPreview: 'Searchable test phrases: AI, brand strategy, free brand development, prompts, positioning, messaging, leverage, save money.',
-    keywords: ['AI', 'brand strategy', 'prompts', 'positioning', 'messaging', 'leverage'],
-  },
-  {
-    id: 'email-list-fast',
-    title: 'How to Grow Your Email List FAST (without ads or social media)',
-    duration: '22:13',
-    stage: 'Find',
-    videoId: '47o7iO6O9ag',
-    url: 'https://www.youtube.com/watch?v=47o7iO6O9ag',
-    summary: 'A list-growth training for finding subscribers without depending on paid ads or constant social posting.',
-    transcriptPreview: 'Searchable test phrases: grow your email list fast, without ads, without social media, subscribers, list building, leads, audience.',
-    keywords: ['email list', 'without ads', 'without social media', 'list building', 'leads'],
-  },
-];
-
 const STORAGE_KEY = 'mastermind-pinned-resources';
+const TOTAL_TRANSCRIPT_WORDS = YOUTUBE_TEST_VIDEOS.reduce((sum, video) => sum + video.transcriptWordCount, 0);
+
+function getVideoSearchValues(video: MastermindVideo) {
+  return [
+    video.title,
+    video.duration,
+    video.stage,
+    video.summary,
+    video.transcriptPreview,
+    video.transcript,
+    video.keywords.join(' '),
+  ];
+}
+
+function getTranscriptSnippet(video: MastermindVideo, rawQuery: string) {
+  const transcript = video.transcript || video.transcriptPreview;
+  const query = rawQuery.trim().toLowerCase();
+
+  if (!query || !transcript) {
+    return video.transcriptPreview;
+  }
+
+  const matchIndex = transcript.toLowerCase().indexOf(query);
+  if (matchIndex === -1) {
+    return video.transcriptPreview;
+  }
+
+  const start = Math.max(0, matchIndex - 120);
+  const end = Math.min(transcript.length, matchIndex + query.length + 220);
+  const prefix = start > 0 ? '...' : '';
+  const suffix = end < transcript.length ? '...' : '';
+
+  return `${prefix}${transcript.slice(start, end).trim()}${suffix}`;
+}
 
 export default function MastermindHub() {
   const navigate = useNavigate();
@@ -438,14 +324,7 @@ export default function MastermindHub() {
     if (!videoSearchQuery.trim()) return YOUTUBE_TEST_VIDEOS;
     const query = videoSearchQuery.toLowerCase();
     return YOUTUBE_TEST_VIDEOS.filter((video) =>
-      [
-        video.title,
-        video.duration,
-        video.stage,
-        video.summary,
-        video.transcriptPreview,
-        video.keywords.join(' '),
-      ].some((value) => value.toLowerCase().includes(query))
+      getVideoSearchValues(video).some((value) => value.toLowerCase().includes(query))
     );
   }, [videoSearchQuery]);
 
@@ -639,13 +518,13 @@ export default function MastermindHub() {
                     YouTube search test
                   </CardTitle>
                   <CardDescription>
-                    Public Faith Mariah YouTube videos are indexed here so you can test the search flow before paying for private video hosting.
+                    Public Faith Mariah YouTube videos are indexed with pulled auto-captions so you can test transcript search before paying for private video hosting.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid gap-3 md:grid-cols-3">
-                    <StatusPill title="Searches" value="Titles, summaries, topics, transcript previews" />
-                    <StatusPill title="Future source" value="Bunny or GHL transcript text" />
+                    <StatusPill title="Searches" value="Titles, summaries, topics, full pulled captions" />
+                    <StatusPill title="Transcript source" value={`${TOTAL_TRANSCRIPT_WORDS.toLocaleString()} words from YouTube auto-captions`} />
                     <StatusPill title="Access logic" value="Core, 30-day replay, and vault tags can use the same index" />
                   </div>
                   <div className="relative max-w-xl">
@@ -707,9 +586,18 @@ export default function MastermindHub() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="rounded-md bg-muted/50 p-3 text-sm text-muted-foreground">
-                        {video.transcriptPreview}
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <p className="text-xs font-semibold uppercase tracking-wide">Transcript snippet</p>
+                          <span className="text-[11px]">
+                            {video.transcriptWordCount.toLocaleString()} words
+                          </span>
+                        </div>
+                        <p>{getTranscriptSnippet(video, videoSearchQuery)}</p>
                       </div>
                       <div className="flex flex-wrap gap-1.5">
+                        <Badge variant="outline" className="text-[11px]">
+                          {video.transcriptSource}
+                        </Badge>
                         {video.keywords.slice(0, 4).map((keyword) => (
                           <Badge key={keyword} variant="outline" className="text-[11px]">
                             {keyword}
