@@ -4434,6 +4434,45 @@ export type Database = {
           },
         ]
       }
+      low_battery_planner_login_events: {
+        Row: {
+          created_at: string
+          dedupe_key: string
+          event_type: string
+          evidence: Json
+          exported_at: string | null
+          id: string
+          member_email: string
+          occurred_at: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dedupe_key: string
+          event_type?: string
+          evidence?: Json
+          exported_at?: string | null
+          id?: string
+          member_email: string
+          occurred_at: string
+          source?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dedupe_key?: string
+          event_type?: string
+          evidence?: Json
+          exported_at?: string | null
+          id?: string
+          member_email?: string
+          occurred_at?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       low_battery_workshop_answer_versions: {
         Row: {
           answers: Json
@@ -8674,6 +8713,7 @@ export type Database = {
         Returns: Json
       }
       load_my_latest_low_battery_workshop: { Args: never; Returns: Json }
+      log_low_battery_planner_login: { Args: never; Returns: string }
       register_low_battery_workshop: {
         Args: { p_email: string; p_first_name: string }
         Returns: Json
