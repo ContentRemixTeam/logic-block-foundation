@@ -17,6 +17,7 @@ import {
 import { useMastermindSuccessPath } from '@/hooks/useMastermindSuccessPath';
 import { MASTERMIND_SUCCESS_STAGES, type MastermindStageId } from '@/lib/mastermindSuccessPath';
 import { searchMastermindPortalResources } from '@/lib/mastermindPortalSearch';
+import { getStorageItem, setStorageItem } from '@/lib/storage';
 import {
   ArrowRight,
   Bot,
@@ -57,7 +58,7 @@ export default function MastermindHub() {
   const [resourceFilter, setResourceFilter] = useState<ResourceFilterId>('all');
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = getStorageItem(STORAGE_KEY);
     if (stored) {
       try {
         setPinnedIds(JSON.parse(stored));
@@ -75,7 +76,7 @@ export default function MastermindHub() {
   }, [successPathData?.successPath?.stageId, hasManuallySelectedStage]);
 
   const savePinned = (ids: string[]) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+    setStorageItem(STORAGE_KEY, JSON.stringify(ids));
     setPinnedIds(ids);
   };
 
@@ -129,7 +130,7 @@ export default function MastermindHub() {
     return filteredResources.filter((r) => !pinnedIds.includes(r.id));
   }, [filteredResources, pinnedIds]);
 
-  const handleOpen = (resource: MastermindResource) => {
+  const handleOpen = (resource: MastermindPortalResource) => {
     if (resource.isExternal) {
       window.open(resource.url, '_blank', 'noopener,noreferrer');
     } else {
@@ -285,9 +286,9 @@ export default function MastermindHub() {
                             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                               {index + 1}
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
-                                <p className="text-sm font-medium">{resource.title}</p>
+                                <p className="break-words text-sm font-medium">{resource.title}</p>
                                 <Badge variant="outline" className="text-[11px]">{resource.access}</Badge>
                               </div>
                               <p className="text-xs text-muted-foreground">
@@ -580,18 +581,18 @@ function ResourceCard({ resource, isPinned, canPin = true, onTogglePin, onOpen }
     )}>
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             <div className={cn(
-              'rounded-lg p-2.5',
+              'shrink-0 rounded-lg p-2.5',
               isPinned ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
             )}>
               <Icon className="h-5 w-5" />
             </div>
-            <div>
-              <CardTitle className="flex items-center gap-1.5 text-base">
-                {resource.title}
+            <div className="min-w-0">
+              <CardTitle className="flex min-w-0 items-center gap-1.5 text-base">
+                <span className="break-words leading-snug">{resource.title}</span>
                 {resource.isExternal && (
-                  <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                  <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
                 )}
               </CardTitle>
               <div className="mt-2 flex flex-wrap gap-1.5">
@@ -609,7 +610,7 @@ function ResourceCard({ resource, isPinned, canPin = true, onTogglePin, onOpen }
             size="icon"
             className={cn(
               'h-8 w-8 shrink-0',
-              isPinned ? 'text-primary' : 'text-muted-foreground opacity-0 group-hover:opacity-100',
+              isPinned ? 'text-primary' : 'text-muted-foreground opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100',
               !canPin && !isPinned && 'cursor-not-allowed'
             )}
             onClick={(e) => {
@@ -654,14 +655,14 @@ function ResourceCard({ resource, isPinned, canPin = true, onTogglePin, onOpen }
             <p className="mt-1 break-words text-xs leading-snug">{resource.portalPath}</p>
           </div>
           <p className="text-xs leading-snug text-muted-foreground">{resource.sourceStatus}</p>
-        <Button
-          onClick={onOpen}
-          className="w-full"
-          variant={isPinned ? 'default' : 'secondary'}
-        >
-          {resource.primaryAction}
-          {resource.isExternal && <ExternalLink className="ml-2 h-3.5 w-3.5" />}
-        </Button>
+          <Button
+            onClick={onOpen}
+            className="w-full"
+            variant={isPinned ? 'default' : 'secondary'}
+          >
+            {resource.primaryAction}
+            {resource.isExternal && <ExternalLink className="ml-2 h-3.5 w-3.5" />}
+          </Button>
         </div>
       </CardContent>
     </Card>
