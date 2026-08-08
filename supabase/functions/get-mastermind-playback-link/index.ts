@@ -8,6 +8,10 @@ const corsHeaders = {
 
 const MONTHLY_MEMBER_ACCESS_SCOPES = ["core_curriculum", "current_replay_30_day"];
 const MAX_RESOURCE_ID_CHARS = 220;
+const BLOCKED_DIRECT_SOURCE_HOSTS = [
+  "dropbox.com",
+  "dl.dropboxusercontent.com",
+];
 
 interface PlaybackRequest {
   resourceId?: string;
@@ -50,6 +54,15 @@ function isAllowedMonthlyResource(resource: PortalResource) {
   if (resource.access_scope !== "current_replay_30_day") return true;
   if (!resource.available_until) return false;
   return resource.available_until >= new Date().toISOString().slice(0, 10);
+}
+
+function canUseDirectSourceUrl(sourceUrl: string) {
+  try {
+    const hostname = new URL(sourceUrl).hostname.toLowerCase();
+    return !BLOCKED_DIRECT_SOURCE_HOSTS.some((blockedHost) => hostname === blockedHost || hostname.endsWith(`.${blockedHost}`));
+  } catch {
+    return false;
+  }
 }
 
 async function dropboxTemporaryLink(dropboxPath: string) {
@@ -107,7 +120,7 @@ async function resolvePlayback(evidence: PlaybackEvidence) {
     };
   }
 
-  if (evidence.source_url) {
+  if (evidence.source_url && canUseDirectSourceUrl(evidence.source_url)) {
     return {
       provider: "direct",
       playbackUrl: evidence.source_url,

@@ -48,6 +48,10 @@ function idsFor(query: string, options = {}) {
 }
 
 function matchingPortalResource(recommendation: MastermindResourceRecommendation) {
+  if (recommendation.resourceId) {
+    return MASTERMIND_PORTAL_RESOURCES.find((resource) => resource.id === recommendation.resourceId);
+  }
+
   const recommendationTitle = normalize(recommendation.title);
   return MASTERMIND_PORTAL_RESOURCES.find((resource) => {
     const resourceTitle = normalize(resource.title);
@@ -180,6 +184,7 @@ for (const stage of MASTERMIND_SUCCESS_STAGES) {
   assert.ok(stage.supportPrompt.trim(), stage.label + ' is missing an Ask Faith prompt');
 
   for (const recommendation of stage.resources) {
+    assert.ok(recommendation.resourceId?.trim(), stage.label + ' recommendation ' + recommendation.title + ' is missing a resourceId');
     assert.ok(recommendation.portalPath?.trim(), stage.label + ' recommendation ' + recommendation.title + ' is missing a portal path');
     assert.notEqual(recommendation.access, 'Access review', stage.label + ' recommendation ' + recommendation.title + ' should be usable without manual access review');
     const portalResource = matchingPortalResource(recommendation);
@@ -189,6 +194,10 @@ for (const stage of MASTERMIND_SUCCESS_STAGES) {
       recommendation.access,
       expectedAccess,
       stage.label + ' recommendation ' + recommendation.title + ' says ' + recommendation.access + ', but portal resource is ' + expectedAccess
+    );
+    assert.ok(
+      isDefaultMastermindPortalResource(portalResource),
+      stage.label + ' recommendation ' + recommendation.title + ' must map to a default-visible resource'
     );
   }
 }
@@ -249,8 +258,12 @@ try {
   assert.ok(mastermindHubSource.includes("label: 'Indexed now'"), 'Resource filter should use clear member-facing indexed language');
   assert.ok(mastermindHubSource.includes('Choose the smallest useful next resource'), 'Resource map should explain member value, not audit mechanics');
   assert.ok(mastermindHubSource.includes('Bonus and vault items stay out of this finder'), 'Resource map should state restricted resources stay access-gated');
+  assert.ok(mastermindHubSource.includes('const handleUsePath'), 'Success Path Use This Path action should route to the Resources tab');
+  assert.ok(mastermindHubSource.includes("setResourceFilter('path')"), 'Use This Path should pre-filter resources to the selected path');
+  assert.ok(mastermindHubSource.includes('handleOpenRecommendedResource'), 'Success Path resource recommendations should open mapped resources directly');
   assert.ok(mastermindHubSource.includes('aria-label="Clear resource search"'), 'Clear search icon button needs an accessible label');
   assert.ok(mastermindHubSource.includes('aria-label={isPinned ? `Unpin ${resource.title}`'), 'Pin icon button needs resource-specific accessible labels');
+  assert.ok(successPathPlanCardSource.includes('Open Resource'), 'Success Path recommendations should include a direct resource action');
   for (const hiddenAuditLabel of ['Transcript-ready', 'Dropbox rows', 'Content Repurpose DB audit', "label: 'Vault'", 'Mapped resources']) {
     assert.ok(!mastermindHubSource.includes(hiddenAuditLabel), 'Member UI should not expose audit label: ' + hiddenAuditLabel);
   }

@@ -14,7 +14,11 @@ import {
   type MastermindPortalResource,
 } from '@/data/mastermindPortalResources';
 import { useMastermindSuccessPath } from '@/hooks/useMastermindSuccessPath';
-import { MASTERMIND_SUCCESS_STAGES, type MastermindStageId } from '@/lib/mastermindSuccessPath';
+import {
+  MASTERMIND_SUCCESS_STAGES,
+  type MastermindResourceRecommendation,
+  type MastermindStageId,
+} from '@/lib/mastermindSuccessPath';
 import { isDefaultMastermindPortalResource, searchMastermindPortalResources } from '@/lib/mastermindPortalSearch';
 import { getStorageItem, setStorageItem } from '@/lib/storage';
 import {
@@ -55,6 +59,7 @@ export default function MastermindHub() {
   const [selectedStageId, setSelectedStageId] = useState<MastermindStageId>('offer');
   const [hasManuallySelectedStage, setHasManuallySelectedStage] = useState(false);
   const [resourceFilter, setResourceFilter] = useState<ResourceFilterId>('all');
+  const [activeTab, setActiveTab] = useState('path');
 
   useEffect(() => {
     const stored = getStorageItem(STORAGE_KEY);
@@ -149,6 +154,20 @@ export default function MastermindHub() {
     }
   };
 
+  const handleUsePath = (stageId: MastermindStageId) => {
+    setSelectedStageId(stageId);
+    setHasManuallySelectedStage(true);
+    setResourceFilter('path');
+    setSearchQuery('');
+    setActiveTab('resources');
+  };
+
+  const handleOpenRecommendedResource = (recommendation: MastermindResourceRecommendation) => {
+    const resource = MASTERMIND_PORTAL_RESOURCES.find((item) => item.id === recommendation.resourceId);
+    if (!resource || !isDefaultMastermindPortalResource(resource)) return;
+    handleOpen(resource);
+  };
+
   return (
     <Layout>
       <MastermindGate>
@@ -193,7 +212,7 @@ export default function MastermindHub() {
             />
           </div>
 
-          <Tabs defaultValue="path" className="space-y-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList
               className={cn(
                 'grid w-full',
@@ -212,10 +231,8 @@ export default function MastermindHub() {
                 successPath={successPathData?.successPath}
                 isLoading={successPathLoading}
                 onBuildPlan={() => navigate('/cycle-setup')}
-                onUsePath={(stageId) => {
-                  setSelectedStageId(stageId);
-                  setHasManuallySelectedStage(true);
-                }}
+                onUsePath={handleUsePath}
+                onOpenResource={handleOpenRecommendedResource}
                 onSubmitAskFaith={() => window.open('https://airtable.com/appP01GhbZAtwT4nN/shrIRdOHFXijc8462', '_blank', 'noopener,noreferrer')}
                 onEnableAi={() => navigate('/ai-copywriting/settings')}
               />

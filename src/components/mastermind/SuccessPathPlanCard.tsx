@@ -16,6 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import {
   getMastermindStage,
   type MastermindPlanCycle,
+  type MastermindResourceRecommendation,
   type MastermindStageId,
   type MastermindSuccessPathOutput,
 } from '@/lib/mastermindSuccessPath';
@@ -26,6 +27,7 @@ interface SuccessPathPlanCardProps {
   isLoading: boolean;
   onBuildPlan: () => void;
   onUsePath: (stageId: MastermindStageId) => void;
+  onOpenResource: (resource: MastermindResourceRecommendation) => void;
   onSubmitAskFaith: () => void;
   onEnableAi: () => void;
 }
@@ -36,6 +38,7 @@ export function SuccessPathPlanCard({
   isLoading,
   onBuildPlan,
   onUsePath,
+  onOpenResource,
   onSubmitAskFaith,
   onEnableAi,
 }: SuccessPathPlanCardProps) {
@@ -177,6 +180,16 @@ export function SuccessPathPlanCard({
                         {resource.portalPath}
                       </p>
                     )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 w-full"
+                      onClick={() => onOpenResource(resource)}
+                    >
+                      Open Resource
+                      <ArrowRight className="ml-2 h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 ))}
               </div>

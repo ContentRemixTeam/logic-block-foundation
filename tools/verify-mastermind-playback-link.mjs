@@ -55,6 +55,9 @@ assert(edgeFunction.includes("isAllowedMonthlyResource(portalResource)"), "Playb
 assert(edgeFunction.includes("available_until >= new Date().toISOString().slice(0, 10)"), "Playback function must enforce current replay availability");
 assert(edgeFunction.includes("DROPBOX_ACCESS_TOKEN"), "Playback function must keep Dropbox access token server-side");
 assert(edgeFunction.includes("https://api.dropboxapi.com/2/files/get_temporary_link"), "Playback function must use Dropbox temporary links for Dropbox paths");
+assert(edgeFunction.includes("BLOCKED_DIRECT_SOURCE_HOSTS"), "Playback function must define blocked direct-source hosts");
+assert(edgeFunction.includes("canUseDirectSourceUrl(evidence.source_url)"), "Playback function must reject unsafe direct source URL fallbacks");
+assert(edgeFunction.includes("\"dropbox.com\""), "Playback function must block old Dropbox shared URLs as direct playback links");
 assert(edgeFunction.includes("playbackUrl"), "Playback function must return the normalized playbackUrl field");
 assert(edgeFunction.includes("urlType"), "Playback function must return a playback URL type");
 assert(edgeFunction.includes("resourceId: portalResource.portal_resource_id"), "Playback function must return resourceId per API contract");

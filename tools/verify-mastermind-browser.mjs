@@ -574,6 +574,14 @@ async function runChecks(client, checks, label) {
     await assertText(client, 'Submit to Ask Faith');
     await assertText(client, 'Enable Faith AI');
     await assertNoHorizontalOverflow(client, `${label} Success Path`);
+
+    await clickText(client, 'Use This Path');
+    await waitFor(client, 'document.body.innerText.includes("Resource finder")', `${label} Use This Path resources`);
+    await assertText(client, 'Sales & Marketing');
+    await assertText(client, 'Sell path');
+    await assertNoText(client, 'Replay Vault');
+    await assertNoText(client, 'Money Moves Sprint');
+    await assertNoHorizontalOverflow(client, `${label} Use This Path resources`);
   }
 
   if (checks.includes('noCyclePrompt')) {
