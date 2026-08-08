@@ -109,6 +109,8 @@ assert(
 );
 
 const sourceBlock = tableBlock(migration, "mastermind_portal_source_evidence");
+assert(sourceBlock.includes("source_fingerprint TEXT NOT NULL"), "Source evidence missing idempotent source_fingerprint");
+assert(sourceBlock.includes("UNIQUE (resource_id, source_fingerprint)"), "Source evidence missing idempotent unique key");
 assert(sourceBlock.includes("dropbox_path TEXT"), "Source evidence missing dropbox_path");
 assert(sourceBlock.includes("ghl_video_url TEXT"), "Source evidence missing ghl_video_url");
 assert(sourceBlock.includes("bunny_video_id TEXT"), "Source evidence missing bunny_video_id");

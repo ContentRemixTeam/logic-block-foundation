@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS public.mastermind_portal_source_evidence (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   resource_id UUID NOT NULL REFERENCES public.mastermind_portal_resources(id) ON DELETE CASCADE,
   source_system TEXT NOT NULL,
+  source_fingerprint TEXT NOT NULL,
   source_ref TEXT,
   source_url TEXT,
   dropbox_path TEXT,
@@ -81,7 +82,8 @@ CREATE TABLE IF NOT EXISTS public.mastermind_portal_source_evidence (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT mastermind_portal_source_evidence_review_status_chk CHECK (
     review_status IN ('needs_review', 'approved', 'rejected', 'blocked')
-  )
+  ),
+  CONSTRAINT mastermind_portal_source_evidence_unique_idx UNIQUE (resource_id, source_fingerprint)
 );
 
 CREATE TABLE IF NOT EXISTS public.mastermind_portal_transcript_segments (
