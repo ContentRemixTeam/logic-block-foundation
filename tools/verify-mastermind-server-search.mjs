@@ -116,6 +116,8 @@ assert(sourceBlock.includes("ghl_video_url TEXT"), "Source evidence missing ghl_
 assert(sourceBlock.includes("bunny_video_id TEXT"), "Source evidence missing bunny_video_id");
 assert(sourceBlock.includes("youtube_video_id TEXT"), "Source evidence missing youtube_video_id");
 assert(sourceBlock.includes("transcript_path TEXT"), "Source evidence missing transcript_path");
+assert(sourceBlock.includes("match_confidence TEXT"), "Source evidence match_confidence must store review labels");
+assert(sourceBlock.includes("match_score NUMERIC"), "Source evidence missing numeric match_score");
 
 const segmentsBlock = tableBlock(migration, "mastermind_portal_transcript_segments");
 assert(segmentsBlock.includes("transcript_text TEXT NOT NULL"), "Transcript segments missing private text");
