@@ -8,6 +8,8 @@ const MIGRATION = path.join(
 );
 const FUNCTION = path.join(ROOT, "supabase/functions/search-mastermind-resources/index.ts");
 const CONFIG = path.join(ROOT, "supabase/config.toml");
+const LIVE_QA = path.join(ROOT, "tools/qa-mastermind-live-gates.mjs");
+const PACKAGE_JSON = path.join(ROOT, "package.json");
 const SRC_DIR = path.join(ROOT, "src");
 
 const failures = [];
@@ -60,10 +62,14 @@ function extractArrayLiteral(ts, constantName) {
 if (!existsSync(MIGRATION)) fail("Missing private search migration");
 if (!existsSync(FUNCTION)) fail("Missing search-mastermind-resources Edge Function");
 if (!existsSync(CONFIG)) fail("Missing Supabase config");
+if (!existsSync(LIVE_QA)) fail("Missing live Mastermind Edge Function QA harness");
+if (!existsSync(PACKAGE_JSON)) fail("Missing package.json");
 
 const migration = existsSync(MIGRATION) ? read(MIGRATION) : "";
 const edgeFunction = existsSync(FUNCTION) ? read(FUNCTION) : "";
 const config = existsSync(CONFIG) ? read(CONFIG) : "";
+const liveQa = existsSync(LIVE_QA) ? read(LIVE_QA) : "";
+const packageJson = existsSync(PACKAGE_JSON) ? read(PACKAGE_JSON) : "";
 
 const requiredTables = [
   "mastermind_portal_resources",
@@ -178,6 +184,17 @@ for (const publicField of ["sourceUrl", "dropboxPath", "ghlVideoUrl", "bunnyVide
 assert(
   /\[functions\.search-mastermind-resources\]\s+verify_jwt = false/s.test(config),
   "Supabase config missing search-mastermind-resources function entry",
+);
+
+assert(liveQa.includes("search-mastermind-resources"), "Live QA harness must exercise search-mastermind-resources");
+assert(liveQa.includes("MASTERMIND_MONTHLY_JWT"), "Live QA harness must require a monthly test token");
+assert(liveQa.includes("weekly planning july 6"), "Live QA harness must test old replay leakage");
+assert(liveQa.includes("assertNoSearchLeaks"), "Live QA harness must check search source leaks");
+assert(liveQa.includes("MONTHLY_ALLOWED_ACCESS"), "Live QA harness must enforce monthly-safe access");
+assert(
+  packageJson.includes('"qa:mastermind-live-gates"') &&
+    packageJson.includes('"qa:mastermind-live-gates:dry-run"'),
+  "package.json must expose live QA harness scripts",
 );
 
 const srcFiles = existsSync(SRC_DIR) ? findFiles(SRC_DIR, (file) => /\.(ts|tsx|js|jsx)$/.test(file)) : [];

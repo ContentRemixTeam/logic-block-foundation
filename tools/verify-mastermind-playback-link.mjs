@@ -4,6 +4,8 @@ import path from "node:path";
 const ROOT = process.cwd();
 const FUNCTION = path.join(ROOT, "supabase/functions/get-mastermind-playback-link/index.ts");
 const CONFIG = path.join(ROOT, "supabase/config.toml");
+const LIVE_QA = path.join(ROOT, "tools/qa-mastermind-live-gates.mjs");
+const PACKAGE_JSON = path.join(ROOT, "package.json");
 const SRC_DIR = path.join(ROOT, "src");
 
 const failures = [];
@@ -41,9 +43,13 @@ function extractArrayLiteral(ts, constantName) {
 
 if (!existsSync(FUNCTION)) fail("Missing get-mastermind-playback-link Edge Function");
 if (!existsSync(CONFIG)) fail("Missing Supabase config");
+if (!existsSync(LIVE_QA)) fail("Missing live Mastermind Edge Function QA harness");
+if (!existsSync(PACKAGE_JSON)) fail("Missing package.json");
 
 const edgeFunction = existsSync(FUNCTION) ? read(FUNCTION) : "";
 const config = existsSync(CONFIG) ? read(CONFIG) : "";
+const liveQa = existsSync(LIVE_QA) ? read(LIVE_QA) : "";
+const packageJson = existsSync(PACKAGE_JSON) ? read(PACKAGE_JSON) : "";
 
 assert(edgeFunction.includes("auth.getUser(token)"), "Playback function must authenticate the bearer token");
 assert(edgeFunction.includes("check_mastermind_entitlement"), "Playback function must check Mastermind entitlement");
@@ -85,6 +91,16 @@ for (const publicField of ["sourceUrl", "dropboxPath", "ghlVideoUrl", "bunnyVide
 assert(
   /\[functions\.get-mastermind-playback-link\]\s+verify_jwt = false/s.test(config),
   "Supabase config missing get-mastermind-playback-link function entry",
+);
+
+assert(liveQa.includes("get-mastermind-playback-link"), "Live QA harness must exercise get-mastermind-playback-link");
+assert(liveQa.includes("MASTERMIND_PLAYBACK_RESOURCE_ID"), "Live QA harness must accept a playback resource id");
+assert(liveQa.includes("assertNoPlaybackRawFields"), "Live QA harness must check playback raw-source fields");
+assert(liveQa.includes("assertPlaybackPayload"), "Live QA harness must validate playback response shape");
+assert(
+  packageJson.includes('"qa:mastermind-live-gates"') &&
+    packageJson.includes('"qa:mastermind-live-gates:dry-run"'),
+  "package.json must expose live QA harness scripts",
 );
 
 const srcFiles = existsSync(SRC_DIR) ? findFiles(SRC_DIR, (file) => /\.(ts|tsx|js|jsx)$/.test(file)) : [];
