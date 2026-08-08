@@ -230,7 +230,7 @@ const KEYWORD_RULES: KeywordRule[] = [
   },
   {
     stageId: 'leverage',
-    keywords: ['leverage', 'system', 'automate', 'automation', 'delegate', 'simplify', 'capacity', 'burnout', 'overwhelm', 'time', 'manual', 'operations', 'workflow', 'ai'],
+    keywords: ['leverage', 'system', 'automate', 'automation', 'delegate', 'simplify', 'capacity', 'burnout', 'overwhelm', 'manual', 'operations', 'workflow'],
   },
 ];
 
@@ -241,12 +241,18 @@ export function getMastermindStage(stageId: MastermindStageId) {
 export function inferMastermindSuccessPath(cycle: MastermindPlanCycle | null): MastermindSuccessPathOutput | null {
   if (!cycle) return null;
 
-  const directText = `${cycle.biggest_bottleneck ?? ''} ${cycle.focus_area ?? ''}`.trim().toLowerCase();
+  const normalizedGoal = cycle.goal?.trim().toLowerCase();
+  const isPlaceholderCycle = ['my 90-day goal', 'my 90 day goal', 'n'].includes(normalizedGoal)
+    && !cycle.biggest_bottleneck
+    && !cycle.audience_target
+    && !cycle.signature_message;
+  if (isPlaceholderCycle) return null;
+
+  const directText = (cycle.biggest_bottleneck ?? '').trim().toLowerCase();
   const fullText = [
     cycle.goal,
     cycle.why,
     cycle.biggest_bottleneck,
-    cycle.focus_area,
     cycle.audience_target,
     cycle.audience_frustration,
     cycle.signature_message,
@@ -280,10 +286,10 @@ export function inferMastermindSuccessPath(cycle: MastermindPlanCycle | null): M
   }
 
   return {
-    stageId: 'sell',
+    stageId: 'offer',
     confidence: 'low',
-    reason: 'There is not enough bottleneck detail yet, so start with the sales path because making the offer creates the fastest evidence.',
-    evidenceLabel: 'Default money-path check',
+    reason: 'There is not enough evidence to recommend a path yet. Start by checking whether the offer is clear before adding downstream tactics.',
+    evidenceLabel: 'Needs a quick path check',
   };
 }
 

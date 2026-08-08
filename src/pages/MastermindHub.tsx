@@ -26,17 +26,12 @@ import {
   Bot,
   Calendar,
   CheckCircle2,
-  CircleDot,
   ClipboardCheck,
   ExternalLink,
-  ListChecks,
   Pin,
-  RotateCcw,
   Search,
-  ShieldCheck,
   Sparkles,
   Star,
-  Target,
   Users,
   X
 } from 'lucide-react';
@@ -154,14 +149,6 @@ export default function MastermindHub() {
     }
   };
 
-  const handleUsePath = (stageId: MastermindStageId) => {
-    setSelectedStageId(stageId);
-    setHasManuallySelectedStage(true);
-    setResourceFilter('path');
-    setSearchQuery('');
-    setActiveTab('resources');
-  };
-
   const handleOpenRecommendedResource = (recommendation: MastermindResourceRecommendation) => {
     const resource = MASTERMIND_PORTAL_RESOURCES.find((item) => item.id === recommendation.resourceId);
     if (!resource || !isDefaultMastermindPortalResource(resource)) return;
@@ -176,40 +163,16 @@ export default function MastermindHub() {
             <div className="space-y-2">
               <Badge variant="secondary" className="w-fit">Becoming Boss Mastermind</Badge>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight">My Success Path</h1>
+                <h1 className="text-3xl font-bold tracking-tight">My Success Plan</h1>
                 <p className="text-muted-foreground">
-                  One quarter. One result. One clear bottleneck to solve.
+                  One goal. One focus. The next three moves that matter.
                 </p>
               </div>
             </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button className="w-full sm:w-auto" onClick={() => navigate('/cycle-setup')}>
-                <Target className="mr-2 h-4 w-4" />
-                Build 90-Day Plan
-              </Button>
-              <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate('/weekly-review')}>
-                <ClipboardCheck className="mr-2 h-4 w-4" />
-                Review Progress
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid gap-4 lg:grid-cols-3">
-            <StatusCard
-              icon={ListChecks}
-              title="The result method"
-              description="Plan, execute long enough to get evidence, evaluate without beating yourself up, then adjust."
-            />
-            <StatusCard
-              icon={ShieldCheck}
-              title="Access stays clean"
-              description="Core curriculum is available to active members. Monthly members use current replays for 30 days; vault access stays separate."
-            />
-            <StatusCard
-              icon={Bot}
-              title="Faith AI is optional"
-              description="AI supports the next move, coaching prep, and messy action. Members bring their own OpenAI or Claude key."
-            />
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate('/weekly-review')}>
+              <ClipboardCheck className="mr-2 h-4 w-4" />
+              Weekly Check-In
+            </Button>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -229,26 +192,25 @@ export default function MastermindHub() {
               <SuccessPathPlanCard
                 cycle={successPathData?.cycle}
                 successPath={successPathData?.successPath}
+                selectedStageId={selectedStageId}
                 isLoading={successPathLoading}
                 onBuildPlan={() => navigate('/cycle-setup')}
-                onUsePath={handleUsePath}
                 onOpenResource={handleOpenRecommendedResource}
-                onSubmitAskFaith={() => window.open('https://airtable.com/appP01GhbZAtwT4nN/shrIRdOHFXijc8462', '_blank', 'noopener,noreferrer')}
-                onEnableAi={() => navigate('/ai-copywriting/settings')}
+                onAddToPlan={() => {
+                  const cycleId = successPathData?.cycle?.cycle_id;
+                  navigate(cycleId ? `/cycle-setup?edit=${cycleId}` : '/cycle-setup');
+                }}
               />
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CircleDot className="h-5 w-5 text-primary" />
-                    Find the first broken link
-                  </CardTitle>
+                  <CardTitle>Does this focus feel right?</CardTitle>
                   <CardDescription>
-                    Pick the first area that blocks the 90-day result. Downstream tactics do not fix an upstream gap.
+                    The recommendation comes from your 90-day plan. Change it if another area is the real constraint — this is not a six-step course you have to complete in order.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     {MASTERMIND_SUCCESS_STAGES.map((stage) => (
                       <button
                         key={stage.id}
@@ -258,20 +220,15 @@ export default function MastermindHub() {
                           setHasManuallySelectedStage(true);
                         }}
                         className={cn(
-                          'rounded-lg border bg-card p-4 text-left transition hover:border-primary/50 hover:bg-muted/40',
+                          'flex items-center justify-between gap-3 rounded-lg border bg-card p-3 text-left transition hover:border-primary/50 hover:bg-muted/40',
                           selectedStageId === stage.id && 'border-primary bg-primary/5 shadow-sm'
                         )}
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="space-y-1">
-                            <p className="text-sm font-semibold text-muted-foreground">
-                              {stage.label}
-                            </p>
-                            <h3 className="font-semibold leading-snug">{stage.memberQuestion}</h3>
-                          </div>
-                          {selectedStageId === stage.id && <CheckCircle2 className="h-5 w-5 text-primary" />}
+                        <div>
+                          <p className="text-sm font-semibold">{stage.label}</p>
+                          <p className="text-xs text-muted-foreground">{stage.memberQuestion}</p>
                         </div>
-                        <p className="mt-3 text-sm text-muted-foreground">{stage.useWhen}</p>
+                        {selectedStageId === stage.id && <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />}
                       </button>
                     ))}
                   </div>
@@ -281,56 +238,38 @@ export default function MastermindHub() {
               <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
                 <Card>
                   <CardHeader>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <Badge variant="outline" className="mb-2">{selectedStage.label} Path</Badge>
-                        <CardTitle>{selectedStage.memberQuestion}</CardTitle>
-                        <CardDescription>{selectedStage.milestone}</CardDescription>
-                      </div>
-                      <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate('/cycle-setup')}>
-                        Add to Plan
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </div>
+                    <Badge variant="outline" className="mb-2 w-fit">{selectedStage.label} support</Badge>
+                    <CardTitle>Learn only when the next move needs help.</CardTitle>
+                    <CardDescription>
+                      Start with one resource. The plan is the work — the curriculum supports it.
+                    </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-5">
-                    <div>
-                      <h3 className="mb-2 text-sm font-semibold">Definition of done</h3>
-                      <div className="grid gap-2">
-                        {selectedStage.definitionOfDone.map((item) => (
-                          <div key={item} className="flex items-start gap-2 rounded-md bg-muted/50 p-3 text-sm">
-                            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                            <span>{item}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="mb-2 text-sm font-semibold">Active learning path</h3>
-                      <div className="grid gap-2">
-                        {selectedStage.resources.map((resource, index) => (
-                          <div key={resource.title} className="flex items-center gap-3 rounded-md border p-3">
+                  <CardContent>
+                    <div className="grid gap-3">
+                      {selectedStage.resources.map((resource, index) => (
+                        <div key={resource.title} className="rounded-lg border p-4">
+                          <div className="flex items-start gap-3">
                             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                               {index + 1}
                             </div>
-                            <div className="min-w-0">
-                              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                                <p className="min-w-0 break-words text-sm font-medium leading-snug">{resource.title}</p>
-                                <Badge variant="outline" className="shrink-0 text-[11px]">{resource.access}</Badge>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="font-medium leading-snug">{resource.title}</p>
+                                <Badge variant="outline" className="text-[11px]">{resource.access}</Badge>
                               </div>
-                              <p className="text-xs text-muted-foreground">
-                                {resource.useWhen}
-                              </p>
-                              {resource.portalPath && (
-                                <p className="mt-1 break-words text-[11px] font-medium text-muted-foreground">
-                                  {resource.portalPath}
-                                </p>
-                              )}
+                              <p className="mt-1 text-sm text-muted-foreground">{resource.useWhen}</p>
+                              <Button
+                                variant="link"
+                                className="mt-2 h-auto p-0"
+                                onClick={() => handleOpenRecommendedResource(resource)}
+                              >
+                                Open resource
+                                <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                              </Button>
                             </div>
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
@@ -339,29 +278,19 @@ export default function MastermindHub() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
                       <Sparkles className="h-4 w-4 text-primary" />
-                      Coaching prep
+                      Get unstuck
                     </CardTitle>
                     <CardDescription>
-                      Bring the real bottleneck, evidence, and decision to coaching.
+                      Bring the real thing you tried and what happened. That gives Faith enough evidence to coach the next decision.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="rounded-lg bg-muted/50 p-4">
-                      <p className="text-sm font-medium">Ask this next:</p>
-                      <p className="mt-2 text-sm text-muted-foreground">{selectedStage.supportPrompt}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Bring this question</p>
+                      <p className="mt-2 text-sm">{selectedStage.supportPrompt}</p>
                     </div>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-2">
-                        <RotateCcw className="h-4 w-4 text-muted-foreground" />
-                        <span>Re-route only after real evidence, not one quiet week.</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <ListChecks className="h-4 w-4 text-muted-foreground" />
-                        <span>Keep the active path to three resources when possible.</span>
-                      </div>
-                    </div>
-                    <Button variant="secondary" className="w-full" onClick={() => window.open('https://airtable.com/appP01GhbZAtwT4nN/shrIRdOHFXijc8462', '_blank', 'noopener,noreferrer')}>
-                      Submit to Ask Faith
+                    <Button className="w-full" onClick={() => window.open('https://airtable.com/appP01GhbZAtwT4nN/shrIRdOHFXijc8462', '_blank', 'noopener,noreferrer')}>
+                      Ask Faith
                       <ExternalLink className="ml-2 h-4 w-4" />
                     </Button>
                   </CardContent>

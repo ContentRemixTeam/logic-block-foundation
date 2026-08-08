@@ -258,12 +258,15 @@ try {
   assert.ok(mastermindHubSource.includes("label: 'Indexed now'"), 'Resource filter should use clear member-facing indexed language');
   assert.ok(mastermindHubSource.includes('Choose the smallest useful next resource'), 'Resource map should explain member value, not audit mechanics');
   assert.ok(mastermindHubSource.includes('Bonus and vault items stay out of this finder'), 'Resource map should state restricted resources stay access-gated');
-  assert.ok(mastermindHubSource.includes('const handleUsePath'), 'Success Path Use This Path action should route to the Resources tab');
-  assert.ok(mastermindHubSource.includes("setResourceFilter('path')"), 'Use This Path should pre-filter resources to the selected path');
-  assert.ok(mastermindHubSource.includes('handleOpenRecommendedResource'), 'Success Path resource recommendations should open mapped resources directly');
+  assert.ok(mastermindHubSource.includes('selectedStageId={selectedStageId}'), 'Changing focus should update the main Success Plan card');
+  assert.ok(mastermindHubSource.includes('Does this focus feel right?'), 'Members should be able to correct a recommendation without self-diagnosing from scratch');
+  assert.ok(mastermindHubSource.includes('handleOpenRecommendedResource'), 'Success Plan resources should open mapped resources directly');
   assert.ok(mastermindHubSource.includes('aria-label="Clear resource search"'), 'Clear search icon button needs an accessible label');
   assert.ok(mastermindHubSource.includes('aria-label={isPinned ? `Unpin ${resource.title}`'), 'Pin icon button needs resource-specific accessible labels');
-  assert.ok(successPathPlanCardSource.includes('Open Resource'), 'Success Path recommendations should include a direct resource action');
+  assert.ok(successPathPlanCardSource.includes('Your next three moves'), 'The Success Plan should turn the recommendation into three concrete moves');
+  assert.ok(successPathPlanCardSource.includes('Add These Moves to My Plan'), 'The Success Plan needs a direct plan action');
+  assert.ok(successPathPlanCardSource.includes('Open My Starting Resource'), 'The Success Plan should include a direct supporting-resource action');
+  assert.ok(!mastermindHubSource.includes('Find the first broken link'), 'The member UI should not lead with internal diagnostic language');
   for (const hiddenAuditLabel of ['Transcript-ready', 'Dropbox rows', 'Content Repurpose DB audit', "label: 'Vault'", 'Mapped resources']) {
     assert.ok(!mastermindHubSource.includes(hiddenAuditLabel), 'Member UI should not expose audit label: ' + hiddenAuditLabel);
   }
@@ -286,15 +289,11 @@ try {
   }
 
   const requiredSuccessPathLayoutGuards = [
-    'className="min-w-0 space-y-2"',
-    'className="grid gap-2 sm:flex sm:flex-wrap sm:justify-end"',
-    'className="w-full sm:w-auto"',
-    'className="min-w-0 break-words leading-snug"',
-    'className="mt-2 break-words font-medium leading-snug"',
-    'className="flex flex-wrap items-center justify-between gap-3"',
-    'lg:grid-cols-[1.2fr_0.8fr]',
-    'lg:grid-cols-[1fr_360px]',
-    'className="min-w-0 break-words text-sm font-medium leading-snug"',
+    'className="max-w-3xl"',
+    'className="mt-3 grid gap-3 md:grid-cols-3"',
+    'className="flex gap-3 rounded-xl border bg-background p-4"',
+    'className="flex flex-col gap-2 sm:flex-row"',
+    'className="border-t bg-background/60 px-6 py-4 md:px-8"',
   ];
   for (const guard of requiredSuccessPathLayoutGuards) {
     assert.ok(successPathPlanCardSource.includes(guard), 'SuccessPathPlanCard is missing responsive layout guard: ' + guard);
