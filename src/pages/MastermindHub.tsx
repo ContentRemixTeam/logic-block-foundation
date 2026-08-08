@@ -9,7 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MastermindGate } from '@/components/membership/MastermindGate';
 import { SuccessPathPlanCard } from '@/components/mastermind/SuccessPathPlanCard';
 import {
-  MASTERMIND_PORTAL_AUDIT,
   MASTERMIND_PORTAL_RESOURCES,
   type MastermindPortalAccess,
   type MastermindPortalResource,
@@ -46,7 +45,7 @@ const MastermindVideoSearch = SHOW_VIDEO_SEARCH
 
 const STORAGE_KEY = 'mastermind-pinned-resources';
 
-type ResourceFilterId = 'all' | 'path' | 'core' | 'current_replay' | 'vault' | 'transcripts';
+type ResourceFilterId = 'all' | 'path' | 'core' | 'current_replay' | 'vault' | 'indexed';
 
 export default function MastermindHub() {
   const navigate = useNavigate();
@@ -96,7 +95,7 @@ export default function MastermindHub() {
       { id: 'core' as const, label: 'Core' },
       { id: 'current_replay' as const, label: '30-day' },
       { id: 'vault' as const, label: 'Vault' },
-      { id: 'transcripts' as const, label: 'Transcript-ready' },
+      { id: 'indexed' as const, label: 'Indexed now' },
     ]
   ), [selectedStage.label]);
 
@@ -110,9 +109,19 @@ export default function MastermindHub() {
     return {
       stageId: resourceFilter === 'path' ? selectedStageId : undefined,
       access: accessByFilter[resourceFilter],
-      transcriptReadyOnly: resourceFilter === 'transcripts',
+      transcriptReadyOnly: resourceFilter === 'indexed',
     };
   }, [resourceFilter, selectedStageId]);
+
+  const indexedResourceCount = useMemo(() => {
+    return MASTERMIND_PORTAL_RESOURCES.filter((resource) =>
+      resource.transcriptStatus === 'transcript_ready' || resource.transcriptStatus === 'description_indexed'
+    ).length;
+  }, []);
+
+  const accessRailCount = useMemo(() => {
+    return new Set(MASTERMIND_PORTAL_RESOURCES.map((resource) => resource.access)).size;
+  }, []);
 
   const filteredResources = useMemo(() => {
     return searchMastermindPortalResources(
@@ -153,11 +162,11 @@ export default function MastermindHub() {
               </div>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Button onClick={() => navigate('/cycle-setup')}>
+              <Button className="w-full sm:w-auto" onClick={() => navigate('/cycle-setup')}>
                 <Target className="mr-2 h-4 w-4" />
                 Build 90-Day Plan
               </Button>
-              <Button variant="outline" onClick={() => navigate('/weekly-review')}>
+              <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate('/weekly-review')}>
                 <ClipboardCheck className="mr-2 h-4 w-4" />
                 Review Progress
               </Button>
@@ -236,7 +245,7 @@ export default function MastermindHub() {
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="space-y-1">
-                            <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                            <p className="text-sm font-semibold text-muted-foreground">
                               {stage.label}
                             </p>
                             <h3 className="font-semibold leading-snug">{stage.memberQuestion}</h3>
@@ -259,7 +268,7 @@ export default function MastermindHub() {
                         <CardTitle>{selectedStage.memberQuestion}</CardTitle>
                         <CardDescription>{selectedStage.milestone}</CardDescription>
                       </div>
-                      <Button variant="outline" onClick={() => navigate('/cycle-setup')}>
+                      <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate('/cycle-setup')}>
                         Add to Plan
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
@@ -389,7 +398,7 @@ export default function MastermindHub() {
                       <Badge variant="secondary" className="mb-2 w-fit">Portal map</Badge>
                       <CardTitle>Core paths, current replays, and vault access stay separated.</CardTitle>
                       <CardDescription>
-                        Built from the portal export, Membership.io inventory, local transcripts, and Content Repurpose DB audit.
+                        Choose the smallest useful next resource without wandering through the replay archive.
                       </CardDescription>
                     </div>
                     <Badge variant="outline" className="w-fit">
@@ -398,10 +407,10 @@ export default function MastermindHub() {
                   </div>
                 </CardHeader>
                 <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <AuditMetric title="Portal lessons" value={MASTERMIND_PORTAL_AUDIT.portalLessons.toLocaleString()} />
-                  <AuditMetric title="Video lessons" value={MASTERMIND_PORTAL_AUDIT.portalLessonsWithVideoUrls.toLocaleString()} />
-                  <AuditMetric title="Transcript matches" value={MASTERMIND_PORTAL_AUDIT.localTranscriptMatches.toLocaleString()} />
-                  <AuditMetric title="Dropbox rows" value={MASTERMIND_PORTAL_AUDIT.crdbDropboxRows.toLocaleString()} />
+                  <AuditMetric title="Success paths" value={MASTERMIND_SUCCESS_STAGES.length.toLocaleString()} />
+                  <AuditMetric title="Mapped resources" value={MASTERMIND_PORTAL_RESOURCES.length.toLocaleString()} />
+                  <AuditMetric title="Indexed now" value={indexedResourceCount.toLocaleString()} />
+                  <AuditMetric title="Access labels" value={accessRailCount.toLocaleString()} />
                 </CardContent>
               </Card>
 
@@ -443,6 +452,7 @@ export default function MastermindHub() {
                         type="button"
                         variant={resourceFilter === filter.id ? 'default' : 'outline'}
                         size="sm"
+                        className="min-h-9 whitespace-normal text-left leading-tight"
                         onClick={() => setResourceFilter(filter.id)}
                       >
                         {filter.label}
@@ -532,7 +542,7 @@ interface AuditMetricProps {
 function AuditMetric({ title, value }: AuditMetricProps) {
   return (
     <div className="rounded-lg border bg-background p-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
+      <p className="text-xs font-semibold text-muted-foreground">{title}</p>
       <p className="mt-1 text-lg font-semibold leading-none">{value}</p>
     </div>
   );
@@ -629,7 +639,7 @@ function ResourceCard({ resource, isPinned, canPin = true, onTogglePin, onOpen }
         </CardDescription>
 
         <div className="rounded-md bg-muted/45 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Best for</p>
+          <p className="text-xs font-semibold text-muted-foreground">Best for</p>
           <p className="mt-1 text-sm leading-snug">{resource.memberJob}</p>
         </div>
 
@@ -651,7 +661,7 @@ function ResourceCard({ resource, isPinned, canPin = true, onTogglePin, onOpen }
 
         <div className="mt-auto space-y-3">
           <div className="rounded-md border bg-background p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Portal path</p>
+            <p className="text-xs font-semibold text-muted-foreground">Portal path</p>
             <p className="mt-1 break-words text-xs leading-snug">{resource.portalPath}</p>
           </div>
           <p className="text-xs leading-snug text-muted-foreground">{resource.sourceStatus}</p>

@@ -63,7 +63,7 @@ export function SuccessPathPlanCard({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={onBuildPlan}>
+          <Button className="w-full sm:w-auto" onClick={onBuildPlan}>
             Build 90-Day Plan
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
@@ -90,12 +90,12 @@ export function SuccessPathPlanCard({
               <CardDescription>{stage.memberQuestion}</CardDescription>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => onUsePath(stage.id)}>
+          <div className="grid gap-2 sm:flex sm:flex-wrap sm:justify-end">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => onUsePath(stage.id)}>
               Use This Path
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-            <Button variant="secondary" onClick={onEnableAi}>
+            <Button variant="secondary" className="w-full sm:w-auto" onClick={onEnableAi}>
               <Bot className="mr-2 h-4 w-4" />
               Enable Faith AI
             </Button>
@@ -105,7 +105,7 @@ export function SuccessPathPlanCard({
       <CardContent className="space-y-5">
         <div className="grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="rounded-lg border bg-background p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">90-day result</p>
+            <p className="text-xs font-semibold text-muted-foreground">90-day result</p>
             <p className="mt-2 font-medium leading-snug">{cycle.goal}</p>
             <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="h-4 w-4" />
@@ -115,7 +115,7 @@ export function SuccessPathPlanCard({
 
           <div className="rounded-lg border bg-background p-4">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Why this path</p>
+              <p className="text-xs font-semibold text-muted-foreground">Why this path</p>
               <Badge variant="outline" className="capitalize">{successPath.confidence} confidence</Badge>
             </div>
             <p className="mt-2 text-sm font-medium">{successPath.evidenceLabel}</p>

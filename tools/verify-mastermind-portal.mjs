@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { build } from 'esbuild';
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import assert from 'node:assert/strict';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -9,6 +10,7 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 const tempDir = mkdtempSync(path.join(tmpdir(), 'mastermind-portal-verify-'));
 const entryPath = path.join(tempDir, 'entry.ts');
 const outputPath = path.join(tempDir, 'entry.mjs');
+const mastermindHubSourcePath = path.join(projectRoot, 'src/pages/MastermindHub.tsx');
 
 const entry = String.raw`
 import assert from 'node:assert/strict';
@@ -193,6 +195,14 @@ try {
   });
 
   await import(pathToFileURL(outputPath).href);
+
+  const mastermindHubSource = readFileSync(mastermindHubSourcePath, 'utf8');
+  assert.ok(mastermindHubSource.includes("label: 'Indexed now'"), 'Resource filter should use clear member-facing indexed language');
+  assert.ok(mastermindHubSource.includes('Choose the smallest useful next resource'), 'Resource map should explain member value, not audit mechanics');
+  for (const hiddenAuditLabel of ['Transcript-ready', 'Dropbox rows', 'Content Repurpose DB audit']) {
+    assert.ok(!mastermindHubSource.includes(hiddenAuditLabel), 'Member UI should not expose audit label: ' + hiddenAuditLabel);
+  }
+  assert.ok(mastermindHubSource.includes('w-full sm:w-auto'), 'Primary Mastermind actions should stack cleanly on mobile');
 } finally {
   rmSync(tempDir, { recursive: true, force: true });
 }
