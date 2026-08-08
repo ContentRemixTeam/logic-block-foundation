@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -10,9 +10,30 @@ import { fileURLToPath } from 'node:url';
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const chromePath = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const repeatCount = Number.parseInt(process.env.MASTERMIND_BROWSER_QA_REPEAT || '2', 10);
+const artifactDir = process.env.MASTERMIND_BROWSER_QA_ARTIFACT_DIR
+  ? path.resolve(process.env.MASTERMIND_BROWSER_QA_ARTIFACT_DIR)
+  : null;
 const supabaseProjectRef = 'wdxelomsouudmidakxiz';
 const mockUserId = '00000000-0000-4000-8000-000000000001';
 const mockEmail = 'mastermind-browser-qa@example.com';
+
+const browserProfiles = {
+  androidChrome: {
+    label: 'Android Chrome profile',
+    userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
+    platform: 'Linux armv8l',
+  },
+  desktopFirefox: {
+    label: 'Desktop Firefox profile',
+    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:128.0) Gecko/20100101 Firefox/128.0',
+    platform: 'MacIntel',
+  },
+  iosSafari: {
+    label: 'iOS Safari profile',
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
+    platform: 'iPhone',
+  },
+};
 
 const savedCycle = {
   cycle_id: 'browser-qa-cycle',
@@ -42,20 +63,30 @@ const scenarios = [
     checks: ['savedCyclePath'],
   },
   {
-    name: 'saved-cycle-mobile-resources',
+    name: 'saved-cycle-ios-safari-mobile-resources',
     viewport: { width: 390, height: 844, mobile: true, deviceScaleFactor: 2 },
+    browserProfile: browserProfiles.iosSafari,
     cycle: savedCycle,
     checks: ['savedCyclePath', 'resourceFinder'],
   },
   {
-    name: 'no-cycle-desktop',
-    viewport: { width: 1280, height: 900, mobile: false, deviceScaleFactor: 1 },
+    name: 'saved-cycle-android-chrome-narrow-resources',
+    viewport: { width: 360, height: 740, mobile: true, deviceScaleFactor: 3 },
+    browserProfile: browserProfiles.androidChrome,
+    cycle: savedCycle,
+    checks: ['savedCyclePath', 'resourceFinder'],
+  },
+  {
+    name: 'no-cycle-desktop-firefox-profile',
+    viewport: { width: 1366, height: 900, mobile: false, deviceScaleFactor: 1 },
+    browserProfile: browserProfiles.desktopFirefox,
     cycle: null,
     checks: ['noCyclePrompt'],
   },
   {
-    name: 'no-cycle-mobile',
+    name: 'no-cycle-ios-safari-mobile',
     viewport: { width: 390, height: 844, mobile: true, deviceScaleFactor: 2 },
+    browserProfile: browserProfiles.iosSafari,
     cycle: null,
     checks: ['noCyclePrompt'],
   },
@@ -299,6 +330,14 @@ function buildMockScript(cycle) {
     user
   };
   const cycle = ${JSON.stringify(cycle)};
+  const inactiveMonthlyTheme = {
+    active: false,
+    template: null,
+    challenge: null,
+    dismissal: { popup_dismissed: true, hello_bar_dismissed: true },
+    theme_unlocked: false,
+    progress: null
+  };
   const json = (body, status = 200) => Promise.resolve(new Response(JSON.stringify(body), {
     status,
     headers: { 'content-type': 'application/json' }
@@ -347,6 +386,12 @@ function buildMockScript(cycle) {
     if (url.includes('/functions/v1/get-projects')) {
       return json({ data: [] });
     }
+    if (url.includes('/functions/v1/get-current-cycle-or-create')) {
+      return json({ data: { cycle } });
+    }
+    if (url.includes('/functions/v1/get-monthly-theme')) {
+      return json(inactiveMonthlyTheme);
+    }
     if (url.includes('/rest/v1/user_profiles')) {
       return empty();
     }
@@ -376,6 +421,18 @@ function buildMockScript(cycle) {
     }
     if (url.includes('/functions/v1/save-user-settings')) {
       return json({ success: true });
+    }
+    if (url.includes('/rest/v1/launches')) {
+      return json([]);
+    }
+    if (url.includes('/rest/v1/projects')) {
+      return json([]);
+    }
+    if (url.includes('/rest/v1/tasks')) {
+      return json([]);
+    }
+    if (url.includes('/rest/v1/cycle_revenue_plan')) {
+      return json(null);
     }
     if (url.includes('/rest/v1/cycles_90_day')) {
       return json(cycle);
@@ -491,12 +548,25 @@ async function assertNoHorizontalOverflow(client, label) {
   assert.ok(overflow <= 1, `${label} has horizontal overflow of ${overflow}px`);
 }
 
+async function saveScreenshot(client, scenario, passNumber) {
+  if (!artifactDir) return;
+
+  mkdirSync(artifactDir, { recursive: true });
+  const screenshot = await client.send('Page.captureScreenshot', {
+    captureBeyondViewport: true,
+    format: 'png',
+  });
+  const fileName = `${String(passNumber).padStart(2, '0')}-${scenario.name}.png`;
+  writeFileSync(path.join(artifactDir, fileName), Buffer.from(screenshot.data, 'base64'));
+}
+
 async function runChecks(client, checks, label) {
   await waitFor(client, 'document.body && document.body.innerText.includes("My Success Path")', `${label} Mastermind shell`);
   await assertNoText(client, 'Video Search');
   await assertNoHorizontalOverflow(client, `${label} initial view`);
 
   if (checks.includes('savedCyclePath')) {
+    await waitFor(client, 'document.body.innerText.includes("Based on your 90-day plan")', `${label} saved-cycle path`);
     await assertText(client, 'Based on your 90-day plan');
     await assertText(client, 'Suggested path: Sell');
     await assertText(client, 'Next money move');
@@ -520,10 +590,35 @@ async function runChecks(client, checks, label) {
     await assertText(client, 'Visible resources');
     await assertText(client, 'Indexed now');
     await assertText(client, 'Access labels');
+    await assertText(client, 'Sell path');
     await assertText(client, 'Bonus and vault items stay out of this finder');
     await assertNoText(client, 'Replay Vault');
     await assertNoText(client, 'Money Moves Sprint');
     await assertNoHorizontalOverflow(client, `${label} Resource Finder default`);
+
+    await clickText(client, 'Sell path');
+    await waitFor(client, 'document.body.innerText.includes("Sales & Marketing")', `${label} Sell path filter`);
+    await assertNoText(client, 'Grow Your Email List');
+    await assertNoText(client, 'Replay Vault');
+    await assertNoText(client, 'Money Moves Sprint');
+    await assertNoHorizontalOverflow(client, `${label} Sell path filter`);
+
+    await clickText(client, '30-day');
+    await waitFor(client, 'document.body.innerText.includes("Current Call Replays")', `${label} 30-day filter`);
+    await assertNoText(client, 'Sales & Marketing');
+    await assertNoText(client, 'Replay Vault');
+    await assertNoText(client, 'Money Moves Sprint');
+    await assertNoHorizontalOverflow(client, `${label} 30-day filter`);
+
+    await clickText(client, 'Indexed now');
+    await waitFor(client, 'document.body.innerText.includes("Success Plan")', `${label} indexed filter`);
+    await assertNoText(client, 'Products & Offers');
+    await assertNoText(client, 'Replay Vault');
+    await assertNoText(client, 'Money Moves Sprint');
+    await assertNoHorizontalOverflow(client, `${label} indexed filter`);
+
+    await clickText(client, 'All');
+    await waitFor(client, 'document.body.innerText.includes("Sales & Marketing")', `${label} All filter reset`);
 
     await setSearch(client, 'sales page');
     await waitFor(client, 'document.body.innerText.includes("Sales & Marketing")', `${label} sales page search`);
@@ -585,6 +680,12 @@ async function runScenario(baseUrl, debugPort, scenario, passNumber) {
     await client.send('Log.enable');
     await client.send('Network.enable');
     await client.send('Page.enable');
+    if (scenario.browserProfile?.userAgent) {
+      await client.send('Network.setUserAgentOverride', {
+        userAgent: scenario.browserProfile.userAgent,
+        platform: scenario.browserProfile.platform,
+      });
+    }
     await client.send('Emulation.setDeviceMetricsOverride', {
       width: scenario.viewport.width,
       height: scenario.viewport.height,
@@ -600,6 +701,7 @@ async function runScenario(baseUrl, debugPort, scenario, passNumber) {
     await client.send('Page.navigate', { url });
     await waitFor(client, 'document.readyState === "complete"', `${scenario.name} document complete`);
     await runChecks(client, scenario.checks, `${scenario.name} pass ${passNumber}`);
+    await saveScreenshot(client, scenario, passNumber);
 
     assert.deepEqual(exceptions, [], `${scenario.name} pass ${passNumber} runtime exceptions`);
     assert.deepEqual(httpErrors, [], `${scenario.name} pass ${passNumber} HTTP errors`);
@@ -612,6 +714,7 @@ async function runScenario(baseUrl, debugPort, scenario, passNumber) {
 
 async function main() {
   assert.ok(existsSync(path.join(projectRoot, 'dist')), 'dist does not exist; run `npm run build` first');
+  assert.ok(Number.isInteger(repeatCount) && repeatCount > 0, 'MASTERMIND_BROWSER_QA_REPEAT must be a positive integer');
 
   const previewPort = await getFreePort();
   const debugPort = await getFreePort();
@@ -644,6 +747,9 @@ async function main() {
   }
 
   console.log(`mastermind browser verifier passed (${scenarios.length} scenarios x ${repeatCount} passes)`);
+  if (artifactDir) {
+    console.log(`screenshots written to ${artifactDir}`);
+  }
 }
 
 await main();
