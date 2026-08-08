@@ -114,7 +114,6 @@ const ADVANCED_NAV = [
 
 const COMMUNITY_NAV = [
   { name: 'Community', href: 'https://portal.faithmariah.com/communities/groups/mastermind/home', icon: Users, questIcon: '🏆', isExternal: true },
-  { name: 'Mastermind', href: '/mastermind', icon: Sparkle, questIcon: '🎓' },
 ];
 
 const SETTINGS_NAV = [

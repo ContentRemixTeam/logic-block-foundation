@@ -113,6 +113,7 @@ const InstallSuccess = lazyWithRetry(() => import('./pages/InstallSuccess'));
 const Projects = lazyWithRetry(() => import('./pages/Projects'));
 const ProjectDetail = lazyWithRetry(() => import('./pages/ProjectDetail'));
 const MastermindHub = lazyWithRetry(() => import('./pages/MastermindHub'));
+const MastermindGate = lazyWithRetry(() => import('./components/mastermind/MastermindGate').then(m => ({ default: m.MastermindGate })));
 const MastermindRosterImport = lazyWithRetry(() => import('./pages/MastermindRosterImport'));
 const WorkshopPlanner = lazyWithRetry(() => import('./pages/WorkshopPlanner'));
 const TrialSignup = lazyWithRetry(() => import('./pages/TrialSignup'));
@@ -268,7 +269,7 @@ const App = () => (
                       <Route path="/belief-builder" element={<ProtectedRoute><PageSuspense><BeliefBuilder /></PageSuspense></ProtectedRoute>} />
                       <Route path="/identity-anchors" element={<ProtectedRoute><PageSuspense><IdentityAnchors /></PageSuspense></ProtectedRoute>} />
                       <Route path="/self-coaching" element={<ProtectedRoute><PageSuspense><SelfCoaching /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/mastermind" element={<ProtectedRoute><PageSuspense><MastermindHub /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/mastermind" element={<ProtectedRoute><MastermindGate><PageSuspense><MastermindHub /></PageSuspense></MastermindGate></ProtectedRoute>} />
                       <Route path="/admin/mastermind-roster" element={<ProtectedRoute><PageSuspense><MastermindRosterImport /></PageSuspense></ProtectedRoute>} />
                       <Route path="/support" element={<ProtectedRoute><PageSuspense><Support /></PageSuspense></ProtectedRoute>} />
                       <Route path="/help/browser-storage" element={<ProtectedRoute><PageSuspense><BrowserStorageHelp /></PageSuspense></ProtectedRoute>} />
