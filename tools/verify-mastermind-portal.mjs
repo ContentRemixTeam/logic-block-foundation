@@ -12,6 +12,7 @@ const entryPath = path.join(tempDir, 'entry.ts');
 const outputPath = path.join(tempDir, 'entry.mjs');
 const mastermindHubSourcePath = path.join(projectRoot, 'src/pages/MastermindHub.tsx');
 const mastermindResourcesSourcePath = path.join(projectRoot, 'src/data/mastermindPortalResources.ts');
+const successPathPlanCardSourcePath = path.join(projectRoot, 'src/components/mastermind/SuccessPathPlanCard.tsx');
 
 const entry = String.raw`
 import assert from 'node:assert/strict';
@@ -244,6 +245,7 @@ try {
 
   const mastermindHubSource = readFileSync(mastermindHubSourcePath, 'utf8');
   const mastermindResourcesSource = readFileSync(mastermindResourcesSourcePath, 'utf8');
+  const successPathPlanCardSource = readFileSync(successPathPlanCardSourcePath, 'utf8');
   assert.ok(mastermindHubSource.includes("label: 'Indexed now'"), 'Resource filter should use clear member-facing indexed language');
   assert.ok(mastermindHubSource.includes('Choose the smallest useful next resource'), 'Resource map should explain member value, not audit mechanics');
   assert.ok(mastermindHubSource.includes('Bonus and vault items stay out of this finder'), 'Resource map should state restricted resources stay access-gated');
@@ -256,6 +258,43 @@ try {
     assert.ok(!mastermindResourcesSource.includes(hiddenSourceLabel), 'Frontend resource data should not include private source/audit label: ' + hiddenSourceLabel);
   }
   assert.ok(mastermindHubSource.includes('w-full sm:w-auto'), 'Primary Mastermind actions should stack cleanly on mobile');
+
+  const requiredMastermindHubLayoutGuards = [
+    "SHOW_VIDEO_SEARCH ? 'grid-cols-2 sm:max-w-2xl sm:grid-cols-4' : 'grid-cols-3 sm:max-w-lg'",
+    'className="pl-10 pr-10"',
+    'className="min-h-9 whitespace-normal text-left leading-tight"',
+    'className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"',
+    'className="break-words text-muted-foreground">No resources found matching',
+    'className="min-w-0 flex-1 break-words leading-snug"',
+    'sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100',
+  ];
+  for (const guard of requiredMastermindHubLayoutGuards) {
+    assert.ok(mastermindHubSource.includes(guard), 'MastermindHub is missing responsive/accessibility guard: ' + guard);
+  }
+
+  const requiredSuccessPathLayoutGuards = [
+    'className="min-w-0 space-y-2"',
+    'className="grid gap-2 sm:flex sm:flex-wrap sm:justify-end"',
+    'className="w-full sm:w-auto"',
+    'className="min-w-0 break-words leading-snug"',
+    'className="mt-2 break-words font-medium leading-snug"',
+    'className="flex flex-wrap items-center justify-between gap-3"',
+    'lg:grid-cols-[1.2fr_0.8fr]',
+    'lg:grid-cols-[1fr_360px]',
+    'className="min-w-0 break-words text-sm font-medium leading-snug"',
+  ];
+  for (const guard of requiredSuccessPathLayoutGuards) {
+    assert.ok(successPathPlanCardSource.includes(guard), 'SuccessPathPlanCard is missing responsive layout guard: ' + guard);
+  }
+
+  for (const [sourceName, source] of [
+    ['MastermindHub', mastermindHubSource],
+    ['SuccessPathPlanCard', successPathPlanCardSource],
+  ]) {
+    for (const riskyClass of ['whitespace-nowrap', 'text-nowrap', 'w-[', 'min-w-[']) {
+      assert.ok(!source.includes(riskyClass), sourceName + ' should not use layout class that risks mobile overflow: ' + riskyClass);
+    }
+  }
 } finally {
   rmSync(tempDir, { recursive: true, force: true });
 }

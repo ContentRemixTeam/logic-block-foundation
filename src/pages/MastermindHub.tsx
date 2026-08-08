@@ -298,9 +298,9 @@ export default function MastermindHub() {
                               {index + 1}
                             </div>
                             <div className="min-w-0">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <p className="break-words text-sm font-medium">{resource.title}</p>
-                                <Badge variant="outline" className="text-[11px]">{resource.access}</Badge>
+                              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                <p className="min-w-0 break-words text-sm font-medium leading-snug">{resource.title}</p>
+                                <Badge variant="outline" className="shrink-0 text-[11px]">{resource.access}</Badge>
                               </div>
                               <p className="text-xs text-muted-foreground">
                                 {resource.useWhen}
@@ -433,7 +433,7 @@ export default function MastermindHub() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search offer, sales page, email list, AI, replay..."
-                      className="pl-10"
+                      className="pl-10 pr-10"
                     />
                     {searchQuery && (
                       <Button
@@ -505,7 +505,7 @@ export default function MastermindHub() {
 
                 {filteredResources.length === 0 && (
                   <div className="py-12 text-center">
-                    <p className="text-muted-foreground">No resources found matching "{searchQuery}"</p>
+                    <p className="break-words text-muted-foreground">No resources found matching "{searchQuery}"</p>
                   </div>
                 )}
               </div>
@@ -603,7 +603,7 @@ function ResourceCard({ resource, isPinned, canPin = true, onTogglePin, onOpen }
             </div>
             <div className="min-w-0">
               <CardTitle className="flex min-w-0 items-center gap-1.5 text-base">
-                <span className="break-words leading-snug">{resource.title}</span>
+                <span className="min-w-0 flex-1 break-words leading-snug">{resource.title}</span>
                 {resource.isExternal && (
                   <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
                 )}
