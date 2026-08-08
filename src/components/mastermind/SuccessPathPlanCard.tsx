@@ -16,6 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import {
   getMastermindStage,
   type MastermindPlanCycle,
+  type MastermindResourceRecommendation,
   type MastermindStageId,
   type MastermindSuccessPathOutput,
 } from '@/lib/mastermindSuccessPath';
@@ -26,6 +27,7 @@ interface SuccessPathPlanCardProps {
   isLoading: boolean;
   onBuildPlan: () => void;
   onUsePath: (stageId: MastermindStageId) => void;
+  onOpenResource: (resource: MastermindResourceRecommendation) => void;
   onSubmitAskFaith: () => void;
   onEnableAi: () => void;
 }
@@ -36,6 +38,7 @@ export function SuccessPathPlanCard({
   isLoading,
   onBuildPlan,
   onUsePath,
+  onOpenResource,
   onSubmitAskFaith,
   onEnableAi,
 }: SuccessPathPlanCardProps) {
@@ -63,7 +66,7 @@ export function SuccessPathPlanCard({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={onBuildPlan}>
+          <Button className="w-full sm:w-auto" onClick={onBuildPlan}>
             Build 90-Day Plan
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
@@ -78,24 +81,24 @@ export function SuccessPathPlanCard({
     <Card className="border-primary/30 bg-primary/5">
       <CardHeader>
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div className="space-y-2">
+          <div className="min-w-0 space-y-2">
             <Badge variant="secondary" className="w-fit">
               Based on your 90-day plan
             </Badge>
             <div>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                Suggested path: {stage.label}
+              <CardTitle className="flex items-start gap-2">
+                <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                <span className="min-w-0 break-words leading-snug">Suggested path: {stage.label}</span>
               </CardTitle>
               <CardDescription>{stage.memberQuestion}</CardDescription>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => onUsePath(stage.id)}>
+          <div className="grid gap-2 sm:flex sm:flex-wrap sm:justify-end">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => onUsePath(stage.id)}>
               Use This Path
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-            <Button variant="secondary" onClick={onEnableAi}>
+            <Button variant="secondary" className="w-full sm:w-auto" onClick={onEnableAi}>
               <Bot className="mr-2 h-4 w-4" />
               Enable Faith AI
             </Button>
@@ -105,21 +108,21 @@ export function SuccessPathPlanCard({
       <CardContent className="space-y-5">
         <div className="grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="rounded-lg border bg-background p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">90-day result</p>
-            <p className="mt-2 font-medium leading-snug">{cycle.goal}</p>
+            <p className="text-xs font-semibold text-muted-foreground">90-day result</p>
+            <p className="mt-2 break-words font-medium leading-snug">{cycle.goal}</p>
             <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="h-4 w-4" />
-              <span>{formatCycleRange(cycle.start_date, cycle.end_date)}</span>
+              <Calendar className="h-4 w-4 shrink-0" />
+              <span className="break-words">{formatCycleRange(cycle.start_date, cycle.end_date)}</span>
             </div>
           </div>
 
           <div className="rounded-lg border bg-background p-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Why this path</p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs font-semibold text-muted-foreground">Why this path</p>
               <Badge variant="outline" className="capitalize">{successPath.confidence} confidence</Badge>
             </div>
-            <p className="mt-2 text-sm font-medium">{successPath.evidenceLabel}</p>
-            <p className="mt-2 text-sm text-muted-foreground">{successPath.reason}</p>
+            <p className="mt-2 break-words text-sm font-medium">{successPath.evidenceLabel}</p>
+            <p className="mt-2 break-words text-sm text-muted-foreground">{successPath.reason}</p>
           </div>
         </div>
 
@@ -141,7 +144,7 @@ export function SuccessPathPlanCard({
                     <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                       {index + 1}
                     </div>
-                    <span>{item}</span>
+                    <span className="min-w-0 break-words">{item}</span>
                   </div>
                 ))}
               </div>
@@ -167,11 +170,26 @@ export function SuccessPathPlanCard({
               <div className="mt-3 space-y-2">
                 {stage.resources.slice(0, 3).map((resource) => (
                   <div key={resource.title} className="rounded-md bg-muted/50 p-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium leading-snug">{resource.title}</p>
+                    <div className="flex min-w-0 items-start justify-between gap-2">
+                      <p className="min-w-0 break-words text-sm font-medium leading-snug">{resource.title}</p>
                       <Badge variant="outline" className="shrink-0 text-[11px]">{resource.access}</Badge>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">{resource.useWhen}</p>
+                    {resource.portalPath && (
+                      <p className="mt-2 break-words text-[11px] font-medium text-muted-foreground">
+                        {resource.portalPath}
+                      </p>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 w-full"
+                      onClick={() => onOpenResource(resource)}
+                    >
+                      Open Resource
+                      <ArrowRight className="ml-2 h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 ))}
               </div>

@@ -32,18 +32,18 @@ export function TourWelcome() {
   if (isLoading || hasSeenTour || localStorageSeen || isActive || isPublicRoute) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 animate-in fade-in-0 duration-300">
-      <Card className="w-full max-w-md mx-4 shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-        <CardHeader className="text-center pb-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-x-hidden bg-black/60 p-4 animate-in fade-in-0 duration-300">
+      <Card className="w-full max-w-[calc(100vw-2rem)] overflow-hidden shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 sm:max-w-md">
+        <CardHeader className="px-5 text-center pb-4 sm:px-6">
           <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
             <Sparkles className="h-8 w-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Welcome to Your 90-Day Planner!</CardTitle>
-          <CardDescription className="text-base mt-2">
+          <CardTitle className="break-words text-balance text-xl leading-snug sm:text-2xl">Welcome to Your 90-Day Planner!</CardTitle>
+          <CardDescription className="mt-2 text-pretty text-sm leading-6 sm:text-base">
             You're about to transform the next 90 days into focused, intentional progress toward your biggest goals.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 px-5 sm:px-6">
           <div className="bg-muted/50 rounded-lg p-4 space-y-3">
             <h4 className="font-medium text-sm">The 90-Day Philosophy:</h4>
             <p className="text-sm text-muted-foreground leading-relaxed">
@@ -55,23 +55,23 @@ export function TourWelcome() {
           <div className="space-y-3">
             <Button
               onClick={handleStartTour}
-              className="w-full h-12 text-base"
+              className="min-h-12 w-full whitespace-normal text-sm leading-5 sm:text-base"
               size="lg"
             >
-              <Rocket className="h-5 w-5 mr-2" />
-              Take the Quick Tour (2 min)
+              <Rocket className="mr-2 h-5 w-5 shrink-0" />
+              <span className="min-w-0">Take the Quick Tour (2 min)</span>
             </Button>
             <Button
               variant="ghost"
               onClick={handleSkipTour}
-              className="w-full text-muted-foreground"
+              className="w-full whitespace-normal text-muted-foreground"
             >
-              <X className="h-4 w-4 mr-2" />
-              I'll explore on my own
+              <X className="mr-2 h-4 w-4 shrink-0" />
+              <span className="min-w-0">I'll explore on my own</span>
             </Button>
           </div>
 
-          <p className="text-xs text-center text-muted-foreground">
+          <p className="text-center text-xs leading-5 text-muted-foreground">
             You can restart the tour anytime from Support → Quick Start
           </p>
         </CardContent>

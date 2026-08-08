@@ -17,9 +17,14 @@ export function StorageDurabilityNotice() {
       if (!detail?.warnings?.length) return;
       shown.current = true;
 
-      const message = detail.warnings.join(' ');
+      const hasPrivateModeWarning = detail.warnings.some(w =>
+        /private|incognito|unavailable/i.test(w)
+      );
+      const message = hasPrivateModeWarning
+        ? 'This browser may not save local planner data reliably. Tap "Fix it" for the plain-English guide.'
+        : 'This browser may clear local planner cache if storage gets tight. Tap "Fix it" for the plain-English guide.';
       toast.warning('Heads up about your browser', {
-        description: `${message} Not sure what this means? Tap "Fix it" for a plain-English guide.`,
+        description: message,
         duration: 15000,
         action: {
           label: 'Fix it',
