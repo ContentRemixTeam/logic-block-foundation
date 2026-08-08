@@ -95,6 +95,9 @@ assert(
 
 assert(liveQa.includes("get-mastermind-playback-link"), "Live QA harness must exercise get-mastermind-playback-link");
 assert(liveQa.includes("MASTERMIND_PLAYBACK_RESOURCE_ID"), "Live QA harness must accept a playback resource id");
+assert(liveQa.includes("appendSearchResourceIds"), "Live QA harness must collect playback candidates from search results");
+assert(liveQa.includes("monthly_playback_link_autodiscovery"), "Live QA harness must auto-discover a playback resource when no id is supplied");
+assert(liveQa.includes("non_member_playback_returns_403"), "Live QA harness must check non-member playback denial when possible");
 assert(liveQa.includes("assertNoPlaybackRawFields"), "Live QA harness must check playback raw-source fields");
 assert(liveQa.includes("assertPlaybackPayload"), "Live QA harness must validate playback response shape");
 assert(

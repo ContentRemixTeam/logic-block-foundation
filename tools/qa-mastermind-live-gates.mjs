@@ -38,6 +38,7 @@ const PLAYBACK_RAW_SOURCE_FIELDS = [
 
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run");
+let verifiedPlaybackResourceId = "";
 
 function env(name) {
   return process.env[name]?.trim() ?? "";
@@ -151,6 +152,45 @@ function assertPlaybackPayload(payload) {
   assertNoPlaybackRawFields(payload);
 }
 
+function appendSearchResourceIds(payload, candidateIds) {
+  if (!payload || !Array.isArray(payload.results)) return;
+  for (const result of payload.results) {
+    if (typeof result.resourceId !== "string" || result.resourceId.trim() === "") continue;
+    const resourceId = result.resourceId.trim();
+    if (!candidateIds.includes(resourceId)) candidateIds.push(resourceId);
+  }
+}
+
+async function assertFirstWorkingPlayback(candidateIds, token) {
+  assert(candidateIds.length > 0, "No monthly-safe resource IDs were available for playback auto-discovery");
+
+  const attempts = [];
+  for (const resourceId of candidateIds) {
+    const result = await postJson(PLAYBACK_FUNCTION, { resourceId }, token);
+    attempts.push(`${resourceId}:${result.status}`);
+    assertNoPlaybackRawFields(result.payload);
+
+    if (result.status === 200) {
+      assertPlaybackPayload(result.payload);
+      verifiedPlaybackResourceId = resourceId;
+      return {
+        status: result.status,
+        detail: `${result.payload.provider}:${result.payload.urlType}; resourceId=${resourceId}; attempts=${attempts.length}`,
+      };
+    }
+
+    if (result.status !== 409) {
+      throw new Error(
+        `Playback candidate ${resourceId} returned unexpected HTTP ${result.status}: ${jsonString(result.payload)}`,
+      );
+    }
+  }
+
+  throw new Error(
+    `No playback candidate returned a usable link. Tried ${attempts.join(", ")}. Confirm portal_playback_source import or provide MASTERMIND_PLAYBACK_RESOURCE_ID.`,
+  );
+}
+
 function artifactSummary(results) {
   return {
     generatedAt: new Date().toISOString(),
@@ -158,6 +198,7 @@ function artifactSummary(results) {
     monthlyTokenPresent: Boolean(env("MASTERMIND_MONTHLY_JWT")),
     nonMemberTokenPresent: Boolean(env("MASTERMIND_NONMEMBER_JWT")),
     playbackResourceIdPresent: Boolean(env("MASTERMIND_PLAYBACK_RESOURCE_ID")),
+    verifiedPlaybackResourceId: verifiedPlaybackResourceId || null,
     results: results.map((result) => ({
       name: result.name,
       functionName: result.functionName,
@@ -210,7 +251,7 @@ Required for real live QA:
 
 Optional:
   MASTERMIND_NONMEMBER_JWT        verifies signed-in non-member/expired access returns 403
-  MASTERMIND_PLAYBACK_RESOURCE_ID verifies get-mastermind-playback-link for an allowed monthly resource
+  MASTERMIND_PLAYBACK_RESOURCE_ID optional; otherwise playback QA auto-discovers candidates from monthly search results
   MASTERMIND_LIVE_QA_ARTIFACT     writes a redacted JSON result receipt
 
 Dry run:
@@ -220,7 +261,7 @@ Real run:
   SUPABASE_URL="https://<project>.supabase.co" \\
   MASTERMIND_MONTHLY_JWT="<token>" \\
   MASTERMIND_NONMEMBER_JWT="<token>" \\
-  MASTERMIND_PLAYBACK_RESOURCE_ID="<portal_resource_id>" \\
+  MASTERMIND_PLAYBACK_RESOURCE_ID="<optional portal_resource_id>" \\
   npm run qa:mastermind-live-gates
 `);
 }
@@ -253,6 +294,7 @@ async function main() {
   }
 
   const results = [];
+  const playbackCandidateIds = [];
 
   await runCase(results, "signed_out_search_returns_401", SEARCH_FUNCTION, async () => {
     const result = await postJson(SEARCH_FUNCTION, { query: "sales page", path: "sell", limit: 3 });
@@ -309,6 +351,7 @@ async function main() {
       const result = await postJson(SEARCH_FUNCTION, testCase.body, config.MASTERMIND_MONTHLY_JWT);
       assertStatus(result, 200);
       assertMonthlySearchResults(result.payload, testCase.name);
+      appendSearchResourceIds(result.payload, playbackCandidateIds);
       return { status: result.status, detail: `${result.payload.results.length} monthly-safe results` };
     });
   }
@@ -337,7 +380,25 @@ async function main() {
       );
       assertStatus(result, 200);
       assertPlaybackPayload(result.payload);
+      verifiedPlaybackResourceId = config.MASTERMIND_PLAYBACK_RESOURCE_ID;
       return { status: result.status, detail: `${result.payload.provider}:${result.payload.urlType}` };
+    });
+  } else {
+    await runCase(results, "monthly_playback_link_autodiscovery", PLAYBACK_FUNCTION, async () => {
+      return assertFirstWorkingPlayback(playbackCandidateIds, config.MASTERMIND_MONTHLY_JWT);
+    });
+  }
+
+  if (config.MASTERMIND_NONMEMBER_JWT && verifiedPlaybackResourceId) {
+    await runCase(results, "non_member_playback_returns_403", PLAYBACK_FUNCTION, async () => {
+      const result = await postJson(
+        PLAYBACK_FUNCTION,
+        { resourceId: verifiedPlaybackResourceId },
+        config.MASTERMIND_NONMEMBER_JWT,
+      );
+      assertStatus(result, 403);
+      assertNoPlaybackRawFields(result.payload);
+      return { status: result.status };
     });
   }
 

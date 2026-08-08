@@ -189,6 +189,7 @@ assert(
 assert(liveQa.includes("search-mastermind-resources"), "Live QA harness must exercise search-mastermind-resources");
 assert(liveQa.includes("MASTERMIND_MONTHLY_JWT"), "Live QA harness must require a monthly test token");
 assert(liveQa.includes("weekly planning july 6"), "Live QA harness must test old replay leakage");
+assert(liveQa.includes("appendSearchResourceIds"), "Live QA harness must reuse monthly-safe search resource ids for playback QA");
 assert(liveQa.includes("assertNoSearchLeaks"), "Live QA harness must check search source leaks");
 assert(liveQa.includes("MONTHLY_ALLOWED_ACCESS"), "Live QA harness must enforce monthly-safe access");
 assert(
