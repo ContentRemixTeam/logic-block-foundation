@@ -15,7 +15,7 @@ import {
 } from '@/data/mastermindPortalResources';
 import { useMastermindSuccessPath } from '@/hooks/useMastermindSuccessPath';
 import { MASTERMIND_SUCCESS_STAGES, type MastermindStageId } from '@/lib/mastermindSuccessPath';
-import { searchMastermindPortalResources } from '@/lib/mastermindPortalSearch';
+import { isDefaultMastermindPortalResource, searchMastermindPortalResources } from '@/lib/mastermindPortalSearch';
 import { getStorageItem, setStorageItem } from '@/lib/storage';
 import {
   ArrowRight,
@@ -45,7 +45,7 @@ const MastermindVideoSearch = SHOW_VIDEO_SEARCH
 
 const STORAGE_KEY = 'mastermind-pinned-resources';
 
-type ResourceFilterId = 'all' | 'path' | 'core' | 'current_replay' | 'vault' | 'indexed';
+type ResourceFilterId = 'all' | 'path' | 'core' | 'current_replay' | 'indexed';
 
 export default function MastermindHub() {
   const navigate = useNavigate();
@@ -94,7 +94,6 @@ export default function MastermindHub() {
       { id: 'path' as const, label: `${selectedStage.label} path` },
       { id: 'core' as const, label: 'Core' },
       { id: 'current_replay' as const, label: '30-day' },
-      { id: 'vault' as const, label: 'Vault' },
       { id: 'indexed' as const, label: 'Indexed now' },
     ]
   ), [selectedStage.label]);
@@ -103,7 +102,6 @@ export default function MastermindHub() {
     const accessByFilter: Partial<Record<ResourceFilterId, MastermindPortalAccess>> = {
       core: 'core',
       current_replay: 'current_replay',
-      vault: 'vault',
     };
 
     return {
@@ -113,15 +111,19 @@ export default function MastermindHub() {
     };
   }, [resourceFilter, selectedStageId]);
 
-  const indexedResourceCount = useMemo(() => {
-    return MASTERMIND_PORTAL_RESOURCES.filter((resource) =>
-      resource.transcriptStatus === 'transcript_ready' || resource.transcriptStatus === 'description_indexed'
-    ).length;
+  const visibleResources = useMemo(() => {
+    return MASTERMIND_PORTAL_RESOURCES.filter(isDefaultMastermindPortalResource);
   }, []);
 
+  const indexedResourceCount = useMemo(() => {
+    return visibleResources.filter((resource) =>
+      resource.transcriptStatus === 'transcript_ready' || resource.transcriptStatus === 'description_indexed'
+    ).length;
+  }, [visibleResources]);
+
   const accessRailCount = useMemo(() => {
-    return new Set(MASTERMIND_PORTAL_RESOURCES.map((resource) => resource.access)).size;
-  }, []);
+    return new Set(visibleResources.map((resource) => resource.access)).size;
+  }, [visibleResources]);
 
   const filteredResources = useMemo(() => {
     return searchMastermindPortalResources(
@@ -132,8 +134,8 @@ export default function MastermindHub() {
   }, [searchQuery, resourceSearchOptions]);
 
   const pinnedResources = useMemo(() => {
-    return MASTERMIND_PORTAL_RESOURCES.filter((r) => pinnedIds.includes(r.id));
-  }, [pinnedIds]);
+    return visibleResources.filter((r) => pinnedIds.includes(r.id));
+  }, [pinnedIds, visibleResources]);
 
   const unpinnedResources = useMemo(() => {
     return filteredResources.filter((r) => !pinnedIds.includes(r.id));
@@ -398,7 +400,7 @@ export default function MastermindHub() {
                       <Badge variant="secondary" className="mb-2 w-fit">Portal map</Badge>
                       <CardTitle>Core paths, current replays, and vault access stay separated.</CardTitle>
                       <CardDescription>
-                        Choose the smallest useful next resource without wandering through the replay archive.
+                        Choose the smallest useful next resource. Bonus and vault items stay out of this finder until access is verified.
                       </CardDescription>
                     </div>
                     <Badge variant="outline" className="w-fit">
@@ -408,7 +410,7 @@ export default function MastermindHub() {
                 </CardHeader>
                 <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <AuditMetric title="Success paths" value={MASTERMIND_SUCCESS_STAGES.length.toLocaleString()} />
-                  <AuditMetric title="Mapped resources" value={MASTERMIND_PORTAL_RESOURCES.length.toLocaleString()} />
+                  <AuditMetric title="Visible resources" value={visibleResources.length.toLocaleString()} />
                   <AuditMetric title="Indexed now" value={indexedResourceCount.toLocaleString()} />
                   <AuditMetric title="Access labels" value={accessRailCount.toLocaleString()} />
                 </CardContent>

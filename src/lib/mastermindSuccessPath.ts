@@ -67,7 +67,7 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
     resources: [
       { title: 'Mastermind Success Plan Module One', access: 'Core', useWhen: 'Clarify the one result and how the program is meant to support it.', portalPath: 'Start Here -> Mastermind Success Plan' },
       { title: 'Products & Offers', access: 'Core', useWhen: 'Clarify the buyer, problem, promise, price, and product shape before adding more tactics.', portalPath: 'Learning -> BUSINESS STRATEGY: PRODUCTS & OFFERS' },
-      { title: 'Money Moves Sprint', access: 'Access review', useWhen: 'Use this when the offer needs to become a real invitation instead of more private thinking, after confirming the member has access.', portalPath: 'Learning -> Money Moves Sprint VIP -> Money Moves Replays' },
+      { title: 'Messy Action Sprints', access: 'Core', useWhen: 'Use this when the offer needs to become a real invitation instead of more private thinking.', portalPath: 'Learning -> Messy Action Sprints' },
     ],
     supportPrompt: 'What part of this offer is still private theory instead of market evidence?',
     nextMoneyMove: 'Turn the offer into one clear invitation and put it in front of real people before you polish another backend piece.',
@@ -138,7 +138,7 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
     ],
     resources: [
       { title: 'Sales & Marketing', access: 'Core', useWhen: 'Use this when the sales process needs clearer invitations, assets, follow-up, or conversion support.', portalPath: 'Learning -> BUSINESS STRATEGY: SALES & MARKETING' },
-      { title: 'Money Moves Sprint', access: 'Access review', useWhen: 'Use this when the fastest path is sending the offer and collecting evidence this week, after confirming the member has access.', portalPath: 'Learning -> Money Moves Sprint VIP -> Money Moves Replays' },
+      { title: 'Messy Action Sprints', access: 'Core', useWhen: 'Use this when the fastest path is sending the offer and collecting evidence this week.', portalPath: 'Learning -> Messy Action Sprints' },
       { title: 'Current Call Replays', access: '30-day replays', useWhen: 'Use recent sales coaching before changing the offer or rewriting every asset.', portalPath: 'Learning -> CALL REPLAYS -> current 30-day window' },
     ],
     supportPrompt: 'Where is the sales process incomplete: invitation, follow-up, volume, belief, or conversion?',

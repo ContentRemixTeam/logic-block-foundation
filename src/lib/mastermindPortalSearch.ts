@@ -9,12 +9,22 @@ export interface MastermindPortalSearchOptions {
   stageId?: MastermindStageId;
   access?: MastermindPortalAccess;
   transcriptReadyOnly?: boolean;
+  includeRestrictedAccess?: boolean;
 }
 
 const TRANSCRIPT_READY_STATUSES: MastermindTranscriptStatus[] = [
   'transcript_ready',
   'description_indexed',
 ];
+
+const DEFAULT_VISIBLE_ACCESSES = new Set<MastermindPortalAccess>([
+  'core',
+  'current_replay',
+]);
+
+export function isDefaultMastermindPortalResource(resource: MastermindPortalResource) {
+  return DEFAULT_VISIBLE_ACCESSES.has(resource.access);
+}
 
 function normalizeSearchText(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -59,6 +69,7 @@ export function searchMastermindPortalResources(
 
   return resources
     .filter((resource) => {
+      if (!options.includeRestrictedAccess && !options.access && !isDefaultMastermindPortalResource(resource)) return false;
       if (options.stageId && !resource.stages.includes(options.stageId)) return false;
       if (options.access && resource.access !== options.access) return false;
       if (options.transcriptReadyOnly && !TRANSCRIPT_READY_STATUSES.includes(resource.transcriptStatus)) return false;

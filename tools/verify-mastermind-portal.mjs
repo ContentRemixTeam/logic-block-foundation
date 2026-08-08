@@ -19,7 +19,7 @@ import {
   MASTERMIND_PORTAL_RESOURCES,
   type MastermindPortalAccess,
 } from '@/data/mastermindPortalResources';
-import { searchMastermindPortalResources } from '@/lib/mastermindPortalSearch';
+import { isDefaultMastermindPortalResource, searchMastermindPortalResources } from '@/lib/mastermindPortalSearch';
 import {
   inferMastermindSuccessPath,
   MASTERMIND_SUCCESS_STAGES,
@@ -101,6 +101,11 @@ for (const resource of MASTERMIND_PORTAL_RESOURCES) {
     resource.isExternal ? resource.url.startsWith('https://') : resource.url.startsWith('/'),
     'unexpected URL shape for ' + resource.id + ': ' + resource.url
   );
+  if (resource.access === 'vault' || resource.access === 'access_review') {
+    assert.equal(resource.isExternal, false, 'restricted resource must not expose an external URL in the client bundle: ' + resource.id);
+    assert.equal(resource.url, '/mastermind', 'restricted resource should route to local access-safe placeholder: ' + resource.id);
+    assert.ok(resource.primaryAction.toLowerCase().includes('access'), 'restricted resource action should make access review clear: ' + resource.id);
+  }
 }
 
 assert.deepEqual(idsFor('sales page').slice(0, 1), ['sales-marketing'], 'sales page should route to Sales & Marketing first');
@@ -108,17 +113,33 @@ assert.ok(idsFor('email list').includes('grow-email-list'), 'email list should f
 assert.ok(idsFor('AI').includes('faith-ai'), 'AI should find Faith AI');
 assert.deepEqual(idsFor('nope impossible query'), [], 'nonsense search should return no results');
 
+const defaultIds = idsFor('');
+assert.ok(defaultIds.includes('success-plan'), 'default finder should include core Success Plan');
+assert.ok(defaultIds.includes('current-replays'), 'default finder should include current 30-day replays');
+assert.ok(!defaultIds.includes('replay-vault'), 'default finder must not expose Replay Vault without explicit access');
+assert.ok(!defaultIds.includes('money-moves-sprint'), 'default finder must not expose access-review sprint without explicit access');
+assert.equal(
+  MASTERMIND_PORTAL_RESOURCES.filter(isDefaultMastermindPortalResource).length,
+  defaultIds.length,
+  'default finder should match the core/current visible resource set'
+);
+
 const coreIds = idsFor('', { access: 'core' });
 assert.ok(coreIds.includes('success-plan'), 'core filter should include Success Plan');
 assert.ok(!coreIds.includes('replay-vault'), 'core filter must not include Replay Vault');
 assert.ok(!coreIds.includes('money-moves-sprint'), 'core filter must not include access-review sprint');
 assert.deepEqual(idsFor('', { access: 'current_replay' }), ['current-replays'], '30-day filter should only return current replays');
 assert.deepEqual(idsFor('', { access: 'vault' }), ['replay-vault'], 'vault filter should only return replay vault');
+assert.deepEqual(idsFor('', { access: 'access_review' }), ['money-moves-sprint'], 'access-review filter should only return Money Moves Sprint');
+assert.ok(idsFor('', { includeRestrictedAccess: true }).includes('replay-vault'), 'internal unrestricted finder should still see vault resources');
+assert.ok(idsFor('', { includeRestrictedAccess: true }).includes('money-moves-sprint'), 'internal unrestricted finder should still see access-review resources');
 
 const sellPathIds = idsFor('', { stageId: 'sell' });
 assert.ok(sellPathIds.includes('sales-marketing'), 'sell path should include Sales & Marketing');
 assert.ok(sellPathIds.includes('current-replays'), 'sell path should include Current Call Replays');
 assert.ok(!sellPathIds.includes('grow-email-list'), 'sell path should not include unrelated list-growth resources');
+assert.ok(!sellPathIds.includes('money-moves-sprint'), 'sell path default must not include access-review sprint');
+assert.ok(!sellPathIds.includes('replay-vault'), 'sell path default must not include Replay Vault');
 
 const transcriptReadyIds = idsFor('', { transcriptReadyOnly: true });
 assert.ok(transcriptReadyIds.includes('success-plan'), 'transcript-ready filter should include Success Plan');
@@ -135,6 +156,7 @@ for (const stage of MASTERMIND_SUCCESS_STAGES) {
 
   for (const recommendation of stage.resources) {
     assert.ok(recommendation.portalPath?.trim(), stage.label + ' recommendation ' + recommendation.title + ' is missing a portal path');
+    assert.notEqual(recommendation.access, 'Access review', stage.label + ' recommendation ' + recommendation.title + ' should be usable without manual access review');
     const portalResource = matchingPortalResource(recommendation);
     assert.ok(portalResource, stage.label + ' recommendation ' + recommendation.title + ' does not map to a portal resource');
     const expectedAccess = accessLabelByPortalAccess[portalResource.access];
@@ -199,7 +221,8 @@ try {
   const mastermindHubSource = readFileSync(mastermindHubSourcePath, 'utf8');
   assert.ok(mastermindHubSource.includes("label: 'Indexed now'"), 'Resource filter should use clear member-facing indexed language');
   assert.ok(mastermindHubSource.includes('Choose the smallest useful next resource'), 'Resource map should explain member value, not audit mechanics');
-  for (const hiddenAuditLabel of ['Transcript-ready', 'Dropbox rows', 'Content Repurpose DB audit']) {
+  assert.ok(mastermindHubSource.includes('Bonus and vault items stay out of this finder'), 'Resource map should state restricted resources stay access-gated');
+  for (const hiddenAuditLabel of ['Transcript-ready', 'Dropbox rows', 'Content Repurpose DB audit', "label: 'Vault'", 'Mapped resources']) {
     assert.ok(!mastermindHubSource.includes(hiddenAuditLabel), 'Member UI should not expose audit label: ' + hiddenAuditLabel);
   }
   assert.ok(mastermindHubSource.includes('w-full sm:w-auto'), 'Primary Mastermind actions should stack cleanly on mobile');
