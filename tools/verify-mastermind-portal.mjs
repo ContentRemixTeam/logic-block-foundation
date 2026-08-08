@@ -1,0 +1,198 @@
+#!/usr/bin/env node
+import { build } from 'esbuild';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const tempDir = mkdtempSync(path.join(tmpdir(), 'mastermind-portal-verify-'));
+const entryPath = path.join(tempDir, 'entry.ts');
+const outputPath = path.join(tempDir, 'entry.mjs');
+
+const entry = String.raw`
+import assert from 'node:assert/strict';
+import {
+  MASTERMIND_PORTAL_AUDIT,
+  MASTERMIND_PORTAL_RESOURCES,
+  type MastermindPortalAccess,
+} from '@/data/mastermindPortalResources';
+import { searchMastermindPortalResources } from '@/lib/mastermindPortalSearch';
+import {
+  inferMastermindSuccessPath,
+  MASTERMIND_SUCCESS_STAGES,
+  type MastermindPlanCycle,
+  type MastermindResourceRecommendation,
+  type MastermindStageId,
+} from '@/lib/mastermindSuccessPath';
+
+const stageIds: MastermindStageId[] = ['offer', 'find', 'nurture', 'sell', 'deliver', 'leverage'];
+const stageIdSet = new Set(stageIds);
+const accessLabelByPortalAccess: Record<MastermindPortalAccess, MastermindResourceRecommendation['access'] | 'Eligible members'> = {
+  core: 'Core',
+  current_replay: '30-day replays',
+  vault: 'Vault',
+  eligible: 'Eligible members',
+  access_review: 'Access review',
+};
+
+function normalize(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function idsFor(query: string, options = {}) {
+  return searchMastermindPortalResources(MASTERMIND_PORTAL_RESOURCES, query, options).map((resource) => resource.id);
+}
+
+function matchingPortalResource(recommendation: MastermindResourceRecommendation) {
+  const recommendationTitle = normalize(recommendation.title);
+  return MASTERMIND_PORTAL_RESOURCES.find((resource) => {
+    const resourceTitle = normalize(resource.title);
+    return recommendationTitle === resourceTitle ||
+      recommendationTitle.includes(resourceTitle) ||
+      resourceTitle.includes(recommendationTitle);
+  });
+}
+
+function cycle(overrides: Partial<MastermindPlanCycle>): MastermindPlanCycle {
+  return {
+    cycle_id: 'verify-cycle',
+    goal: 'Create the next revenue result with a clear plan',
+    start_date: '2026-08-01',
+    end_date: '2026-10-29',
+    focus_area: null,
+    biggest_bottleneck: null,
+    discover_score: null,
+    nurture_score: null,
+    convert_score: null,
+    audience_target: 'course creators',
+    audience_frustration: 'too many tactics',
+    signature_message: 'simple money path',
+    why: 'cash-first clarity',
+    low_energy_version: null,
+    medium_energy_version: null,
+    high_energy_version: null,
+    updated_at: '2026-08-08T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+assert.equal(MASTERMIND_PORTAL_AUDIT.portalLessons, 543, 'portal lesson audit count changed unexpectedly');
+assert.equal(MASTERMIND_PORTAL_AUDIT.portalLessonsWithVideoUrls, 157, 'video URL audit count changed unexpectedly');
+assert.equal(MASTERMIND_PORTAL_AUDIT.localTranscriptMatches, 197, 'local transcript count changed unexpectedly');
+assert.ok(MASTERMIND_PORTAL_RESOURCES.length >= 14, 'expected a full portal resource map');
+
+const resourceIds = new Set<string>();
+for (const resource of MASTERMIND_PORTAL_RESOURCES) {
+  assert.ok(!resourceIds.has(resource.id), 'duplicate portal resource id: ' + resource.id);
+  resourceIds.add(resource.id);
+
+  assert.ok(resource.title.trim(), 'missing title for ' + resource.id);
+  assert.ok(resource.description.trim(), 'missing description for ' + resource.id);
+  assert.ok(resource.memberJob.trim(), 'missing member job for ' + resource.id);
+  assert.ok(resource.portalPath.trim(), 'missing portal path for ' + resource.id);
+  assert.ok(resource.sourceStatus.trim(), 'missing source status for ' + resource.id);
+  assert.ok(resource.primaryAction.trim(), 'missing primary action for ' + resource.id);
+  assert.ok(resource.stages.length > 0, 'missing stage mapping for ' + resource.id);
+  assert.ok(resource.stages.every((stageId) => stageIdSet.has(stageId)), 'invalid stage mapping for ' + resource.id);
+  assert.ok(
+    resource.isExternal ? resource.url.startsWith('https://') : resource.url.startsWith('/'),
+    'unexpected URL shape for ' + resource.id + ': ' + resource.url
+  );
+}
+
+assert.deepEqual(idsFor('sales page').slice(0, 1), ['sales-marketing'], 'sales page should route to Sales & Marketing first');
+assert.ok(idsFor('email list').includes('grow-email-list'), 'email list should find Grow Your Email List');
+assert.ok(idsFor('AI').includes('faith-ai'), 'AI should find Faith AI');
+assert.deepEqual(idsFor('nope impossible query'), [], 'nonsense search should return no results');
+
+const coreIds = idsFor('', { access: 'core' });
+assert.ok(coreIds.includes('success-plan'), 'core filter should include Success Plan');
+assert.ok(!coreIds.includes('replay-vault'), 'core filter must not include Replay Vault');
+assert.ok(!coreIds.includes('money-moves-sprint'), 'core filter must not include access-review sprint');
+assert.deepEqual(idsFor('', { access: 'current_replay' }), ['current-replays'], '30-day filter should only return current replays');
+assert.deepEqual(idsFor('', { access: 'vault' }), ['replay-vault'], 'vault filter should only return replay vault');
+
+const sellPathIds = idsFor('', { stageId: 'sell' });
+assert.ok(sellPathIds.includes('sales-marketing'), 'sell path should include Sales & Marketing');
+assert.ok(sellPathIds.includes('current-replays'), 'sell path should include Current Call Replays');
+assert.ok(!sellPathIds.includes('grow-email-list'), 'sell path should not include unrelated list-growth resources');
+
+const transcriptReadyIds = idsFor('', { transcriptReadyOnly: true });
+assert.ok(transcriptReadyIds.includes('success-plan'), 'transcript-ready filter should include Success Plan');
+assert.ok(transcriptReadyIds.includes('faith-ai'), 'transcript-ready filter should include description-indexed Faith AI');
+assert.ok(!transcriptReadyIds.includes('products-offers'), 'transcript-ready filter should hide metadata-only resources');
+assert.ok(!transcriptReadyIds.includes('replay-vault'), 'transcript-ready filter should hide server-side-required vault search');
+
+for (const stage of MASTERMIND_SUCCESS_STAGES) {
+  assert.ok(stageIdSet.has(stage.id), 'unknown stage id: ' + stage.id);
+  assert.equal(stage.resources.length, 3, stage.label + ' should recommend exactly three starting resources');
+  assert.equal(stage.messyActionSprint.length, 3, stage.label + ' should have exactly three messy action sprint steps');
+  assert.ok(stage.nextMoneyMove.trim(), stage.label + ' is missing a next money move');
+  assert.ok(stage.supportPrompt.trim(), stage.label + ' is missing an Ask Faith prompt');
+
+  for (const recommendation of stage.resources) {
+    assert.ok(recommendation.portalPath?.trim(), stage.label + ' recommendation ' + recommendation.title + ' is missing a portal path');
+    const portalResource = matchingPortalResource(recommendation);
+    assert.ok(portalResource, stage.label + ' recommendation ' + recommendation.title + ' does not map to a portal resource');
+    const expectedAccess = accessLabelByPortalAccess[portalResource.access];
+    assert.equal(
+      recommendation.access,
+      expectedAccess,
+      stage.label + ' recommendation ' + recommendation.title + ' says ' + recommendation.access + ', but portal resource is ' + expectedAccess
+    );
+  }
+}
+
+assert.equal(inferMastermindSuccessPath(cycle({ biggest_bottleneck: 'My sales page and follow up are weak' }))?.stageId, 'sell');
+assert.equal(inferMastermindSuccessPath(cycle({ biggest_bottleneck: 'I need to grow my email list' }))?.stageId, 'find');
+assert.equal(inferMastermindSuccessPath(cycle({ biggest_bottleneck: 'Client onboarding and retention are messy' }))?.stageId, 'deliver');
+assert.equal(inferMastermindSuccessPath(cycle({ audience_target: null, signature_message: null }))?.stageId, 'offer');
+assert.equal(
+  inferMastermindSuccessPath(cycle({ discover_score: 3, nurture_score: 8, convert_score: 9 }))?.stageId,
+  'find',
+  'lowest diagnostic should drive the suggested path when no stronger signal exists'
+);
+
+console.log('mastermind portal verifier passed');
+`;
+
+writeFileSync(entryPath, entry);
+
+try {
+  await build({
+    absWorkingDir: projectRoot,
+    bundle: true,
+    entryPoints: [entryPath],
+    format: 'esm',
+    logLevel: 'silent',
+    outfile: outputPath,
+    platform: 'node',
+    target: 'node20',
+    plugins: [
+      {
+        name: 'app-alias',
+        setup(builder) {
+          builder.onResolve({ filter: /^@\// }, (args) => {
+            const resolved = path.join(projectRoot, 'src', args.path.slice(2));
+            const candidates = [
+              resolved,
+              resolved + '.ts',
+              resolved + '.tsx',
+              path.join(resolved, 'index.ts'),
+              path.join(resolved, 'index.tsx'),
+            ];
+
+            return {
+              path: candidates.find((candidate) => existsSync(candidate)) ?? resolved,
+            };
+          });
+        },
+      },
+    ],
+  });
+
+  await import(pathToFileURL(outputPath).href);
+} finally {
+  rmSync(tempDir, { recursive: true, force: true });
+}
