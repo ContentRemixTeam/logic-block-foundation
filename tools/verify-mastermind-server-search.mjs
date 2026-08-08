@@ -156,6 +156,7 @@ assert(edgeFunction.includes("search_mastermind_portal_resources"), "Edge Functi
 assert(edgeFunction.includes("cleanSnippet(row.snippet)"), "Edge Function must sanitize snippets");
 assert(edgeFunction.includes("sha256Hex(query.toLowerCase())"), "Edge Function must hash query text before logging");
 assert(edgeFunction.includes("query_hash: queryHash"), "Edge Function must log only query_hash");
+assert(edgeFunction.includes("resourceId: row.portal_resource_id"), "Edge Function must return resourceId per API contract");
 assert(!edgeFunction.includes("raw_query"), "Edge Function must not log raw_query");
 
 const monthlyScopes = extractArrayLiteral(edgeFunction, "MONTHLY_MEMBER_ACCESS_SCOPES");

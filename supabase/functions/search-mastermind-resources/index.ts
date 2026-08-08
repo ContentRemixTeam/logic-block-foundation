@@ -156,7 +156,7 @@ serve(async (req: Request) => {
 
     const rows = (data ?? []) as SearchRow[];
     const results = rows.map((row) => ({
-      id: row.portal_resource_id,
+      resourceId: row.portal_resource_id,
       title: row.title,
       productTitle: row.product_title,
       categoryTitle: row.category_title,
