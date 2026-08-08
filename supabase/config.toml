@@ -84,5 +84,8 @@ verify_jwt = false
 [functions.search-mastermind-resources]
 verify_jwt = false
 
+[functions.get-mastermind-playback-link]
+verify_jwt = false
+
 [functions.sync-asana-tasks]
 verify_jwt = false

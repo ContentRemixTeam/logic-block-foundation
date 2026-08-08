@@ -23,9 +23,13 @@ const forbiddenGroups = [
     label: 'private Supabase transcript-search internals',
     patterns: [
       'search-mastermind-resources',
+      'get-mastermind-playback-link',
       'search_mastermind_portal_resources',
+      'portal_playback_source',
       'mastermind_portal_transcript_segments',
       'mastermind_portal_source_evidence',
+      'DROPBOX_ACCESS_TOKEN',
+      'playbackUrl',
       'transcript_text',
       'transcript_source',
       'dropbox_path',

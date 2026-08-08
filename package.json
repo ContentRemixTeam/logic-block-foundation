@@ -12,6 +12,7 @@
     "verify:mastermind-portal": "node tools/verify-mastermind-portal.mjs",
     "verify:mastermind-bundle": "node tools/verify-mastermind-bundle.mjs",
     "verify:mastermind-server-search": "node tools/verify-mastermind-server-search.mjs",
+    "verify:mastermind-playback-link": "node tools/verify-mastermind-playback-link.mjs",
     "verify:mastermind-browser": "node tools/verify-mastermind-browser.mjs"
   },
   "dependencies": {
