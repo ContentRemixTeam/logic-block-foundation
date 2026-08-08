@@ -12,6 +12,7 @@ export interface MastermindRoadmapStage {
   id: MastermindStageId;
   label: string;
   memberQuestion: string;
+  doThis: string;
   useWhen: string;
   milestone: string;
   definitionOfDone: string[];
@@ -58,6 +59,7 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
     id: 'offer',
     label: 'Offer',
     memberQuestion: 'What are you selling?',
+    doThis: 'Write your offer in one sentence and invite 5 real people to react.',
     useWhen: 'Use this when the offer, buyer, price, promise, or demand evidence is still fuzzy.',
     milestone: 'Choose one money focus and create a minimum viable offer test.',
     definitionOfDone: [
@@ -82,6 +84,7 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
     id: 'find',
     label: 'Find',
     memberQuestion: 'How will the right people find you?',
+    doThis: 'Pick ONE channel and publish one piece to the right people this week.',
     useWhen: 'Use this when the offer is clear but too few qualified people are discovering you.',
     milestone: 'Pick one discovery path and repeat it long enough to create evidence.',
     definitionOfDone: [
@@ -106,6 +109,7 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
     id: 'nurture',
     label: 'Nurture',
     memberQuestion: 'How will you warm them up?',
+    doThis: 'Send one warm email that moves your audience closer to the offer.',
     useWhen: 'Use this when people find you, but they are not joining, engaging, understanding the offer, or getting ready to buy.',
     milestone: 'Create a simple welcome and email rhythm that builds readiness.',
     definitionOfDone: [
@@ -130,6 +134,7 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
     id: 'sell',
     label: 'Sell',
     memberQuestion: 'How will you make the offer?',
+    doThis: 'Send the offer to your 10 warmest people and schedule follow-up.',
     useWhen: 'Use this when the offer and warm audience exist, but invitations, follow-up, or conversion are weak.',
     milestone: 'Run one complete sales cycle with follow-up and a real debrief.',
     definitionOfDone: [
@@ -154,6 +159,7 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
     id: 'deliver',
     label: 'Deliver',
     memberQuestion: 'How will customers get results?',
+    doThis: 'Map the customer first win and improve one onboarding step.',
     useWhen: 'Use this when sales are happening but onboarding, follow-through, proof, retention, or referrals need support.',
     milestone: 'Map the customer success path and improve the first meaningful win.',
     definitionOfDone: [
@@ -178,6 +184,7 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
     id: 'leverage',
     label: 'Leverage',
     memberQuestion: 'How will this get easier to run?',
+    doThis: 'Simplify one repeated task so the business runs without you.',
     useWhen: 'Use this when the revenue engine works but capacity, complexity, consistency, or owner-dependence blocks growth.',
     milestone: 'Simplify and document one proven workflow before automating or delegating it.',
     definitionOfDone: [
