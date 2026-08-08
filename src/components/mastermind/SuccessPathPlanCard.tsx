@@ -172,6 +172,11 @@ export function SuccessPathPlanCard({
                       <Badge variant="outline" className="shrink-0 text-[11px]">{resource.access}</Badge>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">{resource.useWhen}</p>
+                    {resource.portalPath && (
+                      <p className="mt-2 break-words text-[11px] font-medium text-muted-foreground">
+                        {resource.portalPath}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>

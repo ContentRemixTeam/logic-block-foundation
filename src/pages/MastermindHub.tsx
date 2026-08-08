@@ -8,10 +8,16 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MastermindGate } from '@/components/membership/MastermindGate';
 import { SuccessPathPlanCard } from '@/components/mastermind/SuccessPathPlanCard';
+import {
+  MASTERMIND_PORTAL_AUDIT,
+  MASTERMIND_PORTAL_RESOURCES,
+  type MastermindPortalAccess,
+  type MastermindPortalResource,
+} from '@/data/mastermindPortalResources';
 import { useMastermindSuccessPath } from '@/hooks/useMastermindSuccessPath';
 import { MASTERMIND_SUCCESS_STAGES, type MastermindStageId } from '@/lib/mastermindSuccessPath';
+import { searchMastermindPortalResources } from '@/lib/mastermindPortalSearch';
 import {
-  Archive,
   ArrowRight,
   Bot,
   Calendar,
@@ -19,10 +25,7 @@ import {
   CircleDot,
   ClipboardCheck,
   ExternalLink,
-  GraduationCap,
-  HelpCircle,
   ListChecks,
-  MessageCircle,
   Pin,
   RotateCcw,
   Search,
@@ -30,10 +33,7 @@ import {
   Sparkles,
   Star,
   Target,
-  Ticket,
-  Trophy,
   Users,
-  Video,
   X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -43,101 +43,9 @@ const MastermindVideoSearch = SHOW_VIDEO_SEARCH
   ? lazy(() => import('@/components/mastermind/MastermindVideoSearch'))
   : null;
 
-interface MastermindResource {
-  id: string;
-  title: string;
-  description: string;
-  access: string;
-  icon: ComponentType<{ className?: string }>;
-  url: string;
-  isExternal: boolean;
-}
-
-const MASTERMIND_RESOURCES: MastermindResource[] = [
-  {
-    id: 'start-here',
-    title: 'Start Here',
-    description: 'Set up the planner and learn the weekly planning loop.',
-    access: 'Core',
-    icon: Trophy,
-    url: '/onboarding',
-    isExternal: false,
-  },
-  {
-    id: 'ask-faith',
-    title: 'Ask Faith',
-    description: 'Submit a coaching question with the context Faith needs to help.',
-    access: 'Core',
-    icon: HelpCircle,
-    url: 'https://airtable.com/appP01GhbZAtwT4nN/shrIRdOHFXijc8462',
-    isExternal: true,
-  },
-  {
-    id: 'coworking-room',
-    title: 'Coworking Room',
-    description: 'Join focused implementation time with other members.',
-    access: 'Core',
-    icon: Users,
-    url: 'https://gobrunch.com/events/389643/589970',
-    isExternal: true,
-  },
-  {
-    id: 'recent-replays',
-    title: 'Recent Call Replays',
-    description: 'Catch current call recordings while they are in the active replay window.',
-    access: '30-day replays',
-    icon: Video,
-    url: 'https://portal.faithmariah.com/communities/groups/mastermind/learning?productId=8cd48d79-e6dd-4e11-9e4c-5d643703bad1',
-    isExternal: true,
-  },
-  {
-    id: 'replay-vault',
-    title: 'Replay Vault',
-    description: 'Use the full archive only when your membership level includes vault access.',
-    access: 'Vault',
-    icon: Archive,
-    url: 'https://hub-3pwl3413w2.membership.io/',
-    isExternal: true,
-  },
-  {
-    id: 'events',
-    title: 'Events',
-    description: 'View upcoming mastermind calls, coworking, and live sessions.',
-    access: 'Core',
-    icon: Calendar,
-    url: 'https://portal.faithmariah.com/communities/groups/mastermind/events',
-    isExternal: true,
-  },
-  {
-    id: 'apply-events',
-    title: 'Apply for Upcoming Events',
-    description: 'Apply to attend eligible live events and experiences.',
-    access: 'Eligible members',
-    icon: Ticket,
-    url: 'https://www.faithmariahevents.com/',
-    isExternal: true,
-  },
-  {
-    id: 'community',
-    title: 'Community',
-    description: 'Connect with members, share wins, and get support.',
-    access: 'Core',
-    icon: MessageCircle,
-    url: 'https://portal.faithmariah.com/communities/groups/mastermind/home',
-    isExternal: true,
-  },
-  {
-    id: 'learning',
-    title: 'Learning',
-    description: 'Open the core curriculum and current assigned trainings.',
-    access: 'Core',
-    icon: GraduationCap,
-    url: 'https://portal.faithmariah.com/communities/groups/mastermind/learning',
-    isExternal: true,
-  },
-];
-
 const STORAGE_KEY = 'mastermind-pinned-resources';
+
+type ResourceFilterId = 'all' | 'path' | 'core' | 'current_replay' | 'vault' | 'transcripts';
 
 export default function MastermindHub() {
   const navigate = useNavigate();
@@ -146,6 +54,7 @@ export default function MastermindHub() {
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [selectedStageId, setSelectedStageId] = useState<MastermindStageId>('offer');
   const [hasManuallySelectedStage, setHasManuallySelectedStage] = useState(false);
+  const [resourceFilter, setResourceFilter] = useState<ResourceFilterId>('all');
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -179,20 +88,41 @@ export default function MastermindHub() {
   };
 
   const selectedStage = MASTERMIND_SUCCESS_STAGES.find((stage) => stage.id === selectedStageId) ?? MASTERMIND_SUCCESS_STAGES[0];
+  const resourceFilters = useMemo(() => (
+    [
+      { id: 'all' as const, label: 'All' },
+      { id: 'path' as const, label: `${selectedStage.label} path` },
+      { id: 'core' as const, label: 'Core' },
+      { id: 'current_replay' as const, label: '30-day' },
+      { id: 'vault' as const, label: 'Vault' },
+      { id: 'transcripts' as const, label: 'Transcript-ready' },
+    ]
+  ), [selectedStage.label]);
+
+  const resourceSearchOptions = useMemo(() => {
+    const accessByFilter: Partial<Record<ResourceFilterId, MastermindPortalAccess>> = {
+      core: 'core',
+      current_replay: 'current_replay',
+      vault: 'vault',
+    };
+
+    return {
+      stageId: resourceFilter === 'path' ? selectedStageId : undefined,
+      access: accessByFilter[resourceFilter],
+      transcriptReadyOnly: resourceFilter === 'transcripts',
+    };
+  }, [resourceFilter, selectedStageId]);
 
   const filteredResources = useMemo(() => {
-    if (!searchQuery.trim()) return MASTERMIND_RESOURCES;
-    const query = searchQuery.toLowerCase();
-    return MASTERMIND_RESOURCES.filter(
-      (r) =>
-        r.title.toLowerCase().includes(query) ||
-        r.description.toLowerCase().includes(query) ||
-        r.access.toLowerCase().includes(query)
+    return searchMastermindPortalResources(
+      MASTERMIND_PORTAL_RESOURCES,
+      searchQuery,
+      resourceSearchOptions
     );
-  }, [searchQuery]);
+  }, [searchQuery, resourceSearchOptions]);
 
   const pinnedResources = useMemo(() => {
-    return MASTERMIND_RESOURCES.filter((r) => pinnedIds.includes(r.id));
+    return MASTERMIND_PORTAL_RESOURCES.filter((r) => pinnedIds.includes(r.id));
   }, [pinnedIds]);
 
   const unpinnedResources = useMemo(() => {
@@ -363,6 +293,11 @@ export default function MastermindHub() {
                               <p className="text-xs text-muted-foreground">
                                 {resource.useWhen}
                               </p>
+                              {resource.portalPath && (
+                                <p className="mt-1 break-words text-[11px] font-medium text-muted-foreground">
+                                  {resource.portalPath}
+                                </p>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -446,27 +381,77 @@ export default function MastermindHub() {
             </TabsContent>
 
             <TabsContent value="resources" className="space-y-4">
-              <div className="relative max-w-md">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search resources or access level..."
-                  className="pl-10"
-                />
-                {searchQuery && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
-                    onClick={() => setSearchQuery('')}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
+              <Card className="border-primary/20">
+                <CardHeader>
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                      <Badge variant="secondary" className="mb-2 w-fit">Portal map</Badge>
+                      <CardTitle>Core paths, current replays, and vault access stay separated.</CardTitle>
+                      <CardDescription>
+                        Built from the portal export, Membership.io inventory, local transcripts, and Content Repurpose DB audit.
+                      </CardDescription>
+                    </div>
+                    <Badge variant="outline" className="w-fit">
+                      {filteredResources.length} matching resources
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <AuditMetric title="Portal lessons" value={MASTERMIND_PORTAL_AUDIT.portalLessons.toLocaleString()} />
+                  <AuditMetric title="Video lessons" value={MASTERMIND_PORTAL_AUDIT.portalLessonsWithVideoUrls.toLocaleString()} />
+                  <AuditMetric title="Transcript matches" value={MASTERMIND_PORTAL_AUDIT.localTranscriptMatches.toLocaleString()} />
+                  <AuditMetric title="Dropbox rows" value={MASTERMIND_PORTAL_AUDIT.crdbDropboxRows.toLocaleString()} />
+                </CardContent>
+              </Card>
 
-              {pinnedResources.length > 0 && !searchQuery && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Search className="h-4 w-4 text-primary" />
+                    Resource finder
+                  </CardTitle>
+                  <CardDescription>
+                    Monthly access is core curriculum plus current 30-day replays. Vault records stay marked separately.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="relative max-w-xl">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search offer, sales page, email list, AI, replay..."
+                      className="pl-10"
+                    />
+                    {searchQuery && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
+                        onClick={() => setSearchQuery('')}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {resourceFilters.map((filter) => (
+                      <Button
+                        key={filter.id}
+                        type="button"
+                        variant={resourceFilter === filter.id ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setResourceFilter(filter.id)}
+                      >
+                        {filter.label}
+                      </Button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {pinnedResources.length > 0 && !searchQuery && resourceFilter === 'all' && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Pin className="h-4 w-4 text-primary" />
@@ -488,11 +473,11 @@ export default function MastermindHub() {
               )}
 
               <div className="space-y-3">
-                {!searchQuery && pinnedResources.length > 0 && (
+                {!searchQuery && resourceFilter === 'all' && pinnedResources.length > 0 && (
                   <h2 className="text-sm font-semibold">All Resources</h2>
                 )}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {(searchQuery ? filteredResources : unpinnedResources).map((resource) => (
+                  {(searchQuery || resourceFilter !== 'all' ? filteredResources : unpinnedResources).map((resource) => (
                     <ResourceCard
                       key={resource.id}
                       resource={resource}
@@ -538,6 +523,20 @@ function StatusCard({ icon: Icon, title, description }: StatusCardProps) {
   );
 }
 
+interface AuditMetricProps {
+  title: string;
+  value: string;
+}
+
+function AuditMetric({ title, value }: AuditMetricProps) {
+  return (
+    <div className="rounded-lg border bg-background p-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
+      <p className="mt-1 text-lg font-semibold leading-none">{value}</p>
+    </div>
+  );
+}
+
 interface SupportCardProps extends StatusCardProps {
   buttonLabel: string;
   onClick: () => void;
@@ -564,7 +563,7 @@ function SupportCard({ icon: Icon, title, description, buttonLabel, onClick }: S
 }
 
 interface ResourceCardProps {
-  resource: MastermindResource;
+  resource: MastermindPortalResource;
   isPinned: boolean;
   canPin?: boolean;
   onTogglePin: () => void;
@@ -576,7 +575,7 @@ function ResourceCard({ resource, isPinned, canPin = true, onTogglePin, onOpen }
 
   return (
     <Card className={cn(
-      'group transition-all duration-200 hover:shadow-md',
+      'group flex h-full flex-col transition-all duration-200 hover:shadow-md',
       isPinned && 'bg-primary/5 ring-2 ring-primary/20'
     )}>
       <CardHeader className="pb-2">
@@ -595,7 +594,14 @@ function ResourceCard({ resource, isPinned, canPin = true, onTogglePin, onOpen }
                   <ExternalLink className="h-3 w-3 text-muted-foreground" />
                 )}
               </CardTitle>
-              <Badge variant="outline" className="mt-1 text-[11px]">{resource.access}</Badge>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <Badge variant={getAccessBadgeVariant(resource.access)} className="text-[11px]">
+                  {resource.accessLabel}
+                </Badge>
+                <Badge variant="outline" className="text-[11px]">
+                  {formatResourceType(resource.type)}
+                </Badge>
+              </div>
             </div>
           </div>
           <Button
@@ -616,19 +622,67 @@ function ResourceCard({ resource, isPinned, canPin = true, onTogglePin, onOpen }
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3 pt-0">
-        <CardDescription className="min-h-10 text-sm">
+      <CardContent className="flex flex-1 flex-col space-y-4 pt-0">
+        <CardDescription className="text-sm">
           {resource.description}
         </CardDescription>
+
+        <div className="rounded-md bg-muted/45 p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Best for</p>
+          <p className="mt-1 text-sm leading-snug">{resource.memberJob}</p>
+        </div>
+
+        <div className="flex flex-wrap gap-1.5">
+          <Badge variant={getTranscriptBadgeVariant(resource.transcriptStatus)} className="text-[11px]">
+            {resource.transcriptLabel}
+          </Badge>
+          {resource.stages.slice(0, 3).map((stageId) => (
+            <Badge key={stageId} variant="outline" className="text-[11px] capitalize">
+              {stageId}
+            </Badge>
+          ))}
+          {resource.stages.length > 3 && (
+            <Badge variant="outline" className="text-[11px]">
+              +{resource.stages.length - 3}
+            </Badge>
+          )}
+        </div>
+
+        <div className="mt-auto space-y-3">
+          <div className="rounded-md border bg-background p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Portal path</p>
+            <p className="mt-1 break-words text-xs leading-snug">{resource.portalPath}</p>
+          </div>
+          <p className="text-xs leading-snug text-muted-foreground">{resource.sourceStatus}</p>
         <Button
           onClick={onOpen}
           className="w-full"
           variant={isPinned ? 'default' : 'secondary'}
         >
-          Open
+          {resource.primaryAction}
           {resource.isExternal && <ExternalLink className="ml-2 h-3.5 w-3.5" />}
         </Button>
+        </div>
       </CardContent>
     </Card>
   );
+}
+
+function getAccessBadgeVariant(access: MastermindPortalAccess) {
+  if (access === 'core') return 'secondary';
+  if (access === 'current_replay') return 'pink';
+  if (access === 'vault') return 'warning';
+  if (access === 'access_review') return 'outline';
+  return 'outline';
+}
+
+function getTranscriptBadgeVariant(status: MastermindPortalResource['transcriptStatus']) {
+  if (status === 'transcript_ready') return 'success';
+  if (status === 'description_indexed') return 'pink';
+  if (status === 'server_side_required') return 'warning';
+  return 'outline';
+}
+
+function formatResourceType(type: MastermindPortalResource['type']) {
+  return type.replace('_', ' ');
 }
