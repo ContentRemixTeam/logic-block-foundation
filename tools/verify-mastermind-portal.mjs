@@ -264,7 +264,7 @@ try {
   assert.ok(mastermindHubSource.includes('aria-label="Clear resource search"'), 'Clear search icon button needs an accessible label');
   assert.ok(mastermindHubSource.includes('aria-label={isPinned ? `Unpin ${resource.title}`'), 'Pin icon button needs resource-specific accessible labels');
   assert.ok(successPathPlanCardSource.includes('Your next three moves'), 'The Success Plan should turn the recommendation into three concrete moves');
-  assert.ok(successPathPlanCardSource.includes('Add These Moves to My Plan'), 'The Success Plan needs a direct plan action');
+  assert.ok(successPathPlanCardSource.includes('Update My 90-Day Plan'), 'The Success Plan needs an honest direct plan-editing action');
   assert.ok(successPathPlanCardSource.includes('Open My Starting Resource'), 'The Success Plan should include a direct supporting-resource action');
   assert.ok(!mastermindHubSource.includes('Find the first broken link'), 'The member UI should not lead with internal diagnostic language');
   for (const hiddenAuditLabel of ['Transcript-ready', 'Dropbox rows', 'Content Repurpose DB audit', "label: 'Vault'", 'Mapped resources']) {

@@ -114,7 +114,7 @@ export function SuccessPathPlanCard({
 
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button onClick={onAddToPlan}>
-              Add These Moves to My Plan
+              Update My 90-Day Plan
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
             {firstResource && (
