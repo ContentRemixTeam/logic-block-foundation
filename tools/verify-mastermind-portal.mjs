@@ -11,11 +11,11 @@ const tempDir = mkdtempSync(path.join(tmpdir(), 'mastermind-portal-verify-'));
 const entryPath = path.join(tempDir, 'entry.ts');
 const outputPath = path.join(tempDir, 'entry.mjs');
 const mastermindHubSourcePath = path.join(projectRoot, 'src/pages/MastermindHub.tsx');
+const mastermindResourcesSourcePath = path.join(projectRoot, 'src/data/mastermindPortalResources.ts');
 
 const entry = String.raw`
 import assert from 'node:assert/strict';
 import {
-  MASTERMIND_PORTAL_AUDIT,
   MASTERMIND_PORTAL_RESOURCES,
   type MastermindPortalAccess,
 } from '@/data/mastermindPortalResources';
@@ -79,12 +79,23 @@ function cycle(overrides: Partial<MastermindPlanCycle>): MastermindPlanCycle {
   };
 }
 
-assert.equal(MASTERMIND_PORTAL_AUDIT.portalLessons, 543, 'portal lesson audit count changed unexpectedly');
-assert.equal(MASTERMIND_PORTAL_AUDIT.portalLessonsWithVideoUrls, 157, 'video URL audit count changed unexpectedly');
-assert.equal(MASTERMIND_PORTAL_AUDIT.localTranscriptMatches, 197, 'local transcript count changed unexpectedly');
 assert.ok(MASTERMIND_PORTAL_RESOURCES.length >= 14, 'expected a full portal resource map');
 
 const resourceIds = new Set<string>();
+const forbiddenMemberFacingResourceCopy = [
+  'local audit',
+  'transcripts matched',
+  'transcript backfill',
+  'video urls',
+  'source records',
+  'content repurpose',
+  'dropbox',
+  'ghl',
+  'bunny',
+  'full transcripts',
+  'client bundle',
+  'server-side search',
+];
 for (const resource of MASTERMIND_PORTAL_RESOURCES) {
   assert.ok(!resourceIds.has(resource.id), 'duplicate portal resource id: ' + resource.id);
   resourceIds.add(resource.id);
@@ -97,6 +108,19 @@ for (const resource of MASTERMIND_PORTAL_RESOURCES) {
   assert.ok(resource.primaryAction.trim(), 'missing primary action for ' + resource.id);
   assert.ok(resource.stages.length > 0, 'missing stage mapping for ' + resource.id);
   assert.ok(resource.stages.every((stageId) => stageIdSet.has(stageId)), 'invalid stage mapping for ' + resource.id);
+  const memberFacingResourceCopy = normalize([
+    resource.description,
+    resource.memberJob,
+    resource.transcriptLabel,
+    resource.sourceStatus,
+    resource.primaryAction,
+  ].join(' '));
+  for (const forbidden of forbiddenMemberFacingResourceCopy) {
+    assert.ok(
+      !memberFacingResourceCopy.includes(forbidden),
+      'member-facing resource copy exposes internal/audit wording "' + forbidden + '" for ' + resource.id
+    );
+  }
   assert.ok(
     resource.isExternal ? resource.url.startsWith('https://') : resource.url.startsWith('/'),
     'unexpected URL shape for ' + resource.id + ': ' + resource.url
@@ -219,11 +243,17 @@ try {
   await import(pathToFileURL(outputPath).href);
 
   const mastermindHubSource = readFileSync(mastermindHubSourcePath, 'utf8');
+  const mastermindResourcesSource = readFileSync(mastermindResourcesSourcePath, 'utf8');
   assert.ok(mastermindHubSource.includes("label: 'Indexed now'"), 'Resource filter should use clear member-facing indexed language');
   assert.ok(mastermindHubSource.includes('Choose the smallest useful next resource'), 'Resource map should explain member value, not audit mechanics');
   assert.ok(mastermindHubSource.includes('Bonus and vault items stay out of this finder'), 'Resource map should state restricted resources stay access-gated');
+  assert.ok(mastermindHubSource.includes('aria-label="Clear resource search"'), 'Clear search icon button needs an accessible label');
+  assert.ok(mastermindHubSource.includes('aria-label={isPinned ? `Unpin ${resource.title}`'), 'Pin icon button needs resource-specific accessible labels');
   for (const hiddenAuditLabel of ['Transcript-ready', 'Dropbox rows', 'Content Repurpose DB audit', "label: 'Vault'", 'Mapped resources']) {
     assert.ok(!mastermindHubSource.includes(hiddenAuditLabel), 'Member UI should not expose audit label: ' + hiddenAuditLabel);
+  }
+  for (const hiddenSourceLabel of ['MASTERMIND_PORTAL_AUDIT', 'crdbDropboxRows', 'coachingRowsWithDropboxPaths', 'Content Repurpose', 'Dropbox', 'dropbox.com', 'bunny_video_id']) {
+    assert.ok(!mastermindResourcesSource.includes(hiddenSourceLabel), 'Frontend resource data should not include private source/audit label: ' + hiddenSourceLabel);
   }
   assert.ok(mastermindHubSource.includes('w-full sm:w-auto'), 'Primary Mastermind actions should stack cleanly on mobile');
 } finally {

@@ -441,6 +441,7 @@ export default function MastermindHub() {
                         size="icon"
                         className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
                         onClick={() => setSearchQuery('')}
+                        aria-label="Clear resource search"
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -630,6 +631,7 @@ function ResourceCard({ resource, isPinned, canPin = true, onTogglePin, onOpen }
               if (canPin || isPinned) onTogglePin();
             }}
             title={isPinned ? 'Unpin' : canPin ? 'Pin to top' : 'Max 3 pins allowed'}
+            aria-label={isPinned ? `Unpin ${resource.title}` : canPin ? `Pin ${resource.title}` : 'Maximum pinned resources reached'}
           >
             <Star className={cn('h-4 w-4', isPinned && 'fill-current')} />
           </Button>
