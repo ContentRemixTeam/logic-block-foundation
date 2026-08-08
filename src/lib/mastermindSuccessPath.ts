@@ -8,6 +8,12 @@ export interface MastermindResourceRecommendation {
   portalPath?: string;
 }
 
+export interface MastermindMilestone {
+  id: string;
+  label: string;
+  output: string;
+}
+
 export interface MastermindRoadmapStage {
   id: MastermindStageId;
   label: string;
@@ -15,6 +21,7 @@ export interface MastermindRoadmapStage {
   doThis: string;
   useWhen: string;
   milestone: string;
+  milestones: MastermindMilestone[];
   definitionOfDone: string[];
   resources: MastermindResourceRecommendation[];
   supportPrompt: string;
@@ -54,6 +61,45 @@ interface KeywordRule {
   keywords: string[];
 }
 
+export const MASTERMIND_STAGE_MILESTONES: Record<MastermindStageId, MastermindMilestone[]> = {
+  offer: [
+    { id: 'offer-focus', label: 'Choose the money-making focus', output: 'One active revenue stream for this quarter.' },
+    { id: 'offer-buyer', label: 'Choose the buyer and problem', output: 'One buyer doorway, paid problem, and piece of demand evidence.' },
+    { id: 'offer-mvp', label: 'Build the minimum viable offer', output: 'A clear promise, scope, delivery format, price, and boundary.' },
+    { id: 'offer-validate', label: 'Validate by making offers', output: 'A dated validation test with invitations and real response evidence.' },
+  ],
+  find: [
+    { id: 'find-path', label: 'Choose one discovery path', output: 'One channel or outreach route with a four-week test.' },
+    { id: 'find-create', label: 'Create discovery content or outreach', output: 'Four focused pieces or outreach attempts with one next step.' },
+    { id: 'find-bridge', label: 'Build the bridge to your email list', output: 'One live opt-in or invitation connected to the offer.' },
+    { id: 'find-evaluate', label: 'Repeat and evaluate discovery', output: 'Enough reach and opt-in evidence to choose the next test.' },
+  ],
+  nurture: [
+    { id: 'nurture-map', label: 'Map the nurture ecosystem', output: 'A simple path from discovery to email to invitation.' },
+    { id: 'nurture-content', label: 'Create content with a job', output: 'Four nurture ideas tied to a belief, proof, conversation, or invitation.' },
+    { id: 'nurture-email', label: 'Create a simple email system', output: 'A live welcome email or sequence and sustainable send rhythm.' },
+    { id: 'nurture-evaluate', label: 'Learn from audience behavior', output: 'Replies, clicks, questions, and buying signals translated into one next test.' },
+  ],
+  sell: [
+    { id: 'sell-math', label: 'Set the sales target and math', output: 'A revenue target, sales needed, and invitation target.' },
+    { id: 'sell-process', label: 'Choose one sales process', output: 'One capacity-fit route for making and following up on offers.' },
+    { id: 'sell-run', label: 'Run the complete sales cycle', output: 'The full invitation, follow-up, and close sequence completed.' },
+    { id: 'sell-evaluate', label: 'Evaluate and repeat', output: 'A neutral debrief and one keep, change, or test-next decision.' },
+  ],
+  deliver: [
+    { id: 'deliver-result', label: 'Map the customer result', output: 'A customer success path and definition of successful completion.' },
+    { id: 'deliver-first-win', label: 'Onboard to the first win', output: 'A clear first-win action and one improved onboarding step.' },
+    { id: 'deliver-follow-through', label: 'Support follow-through', output: 'A progress measure, check-in rhythm, and stuck-customer response.' },
+    { id: 'deliver-proof', label: 'Turn delivery into proof and improvement', output: 'A feedback and testimonial loop with one chosen improvement.' },
+  ],
+  leverage: [
+    { id: 'leverage-constraint', label: 'Find the real operational constraint', output: 'One named constraint and one workflow chosen for improvement.' },
+    { id: 'leverage-simplify', label: 'Simplify and document what works', output: 'One reduced workflow with a minimum standard, owner, and review rhythm.' },
+    { id: 'leverage-choice', label: 'Choose the right leverage', output: 'A remove, simplify, automate, AI, delegate, or hire decision with a reason.' },
+    { id: 'leverage-evaluate', label: 'Lead through evidence and capacity', output: 'A small operating scorecard and proof of less founder dependence.' },
+  ],
+};
+
 export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
   {
     id: 'offer',
@@ -62,6 +108,7 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
     doThis: 'Write your offer in one sentence and invite 5 real people to react.',
     useWhen: 'Use this when the offer, buyer, price, promise, or demand evidence is still fuzzy.',
     milestone: 'Choose one money focus and create a minimum viable offer test.',
+    milestones: MASTERMIND_STAGE_MILESTONES.offer,
     definitionOfDone: [
       'Offer statement is clear enough to say out loud',
       'Buyer, problem, price, and delivery model are decided',
@@ -87,6 +134,7 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
     doThis: 'Pick ONE channel and publish one piece to the right people this week.',
     useWhen: 'Use this when the offer is clear but too few qualified people are discovering you.',
     milestone: 'Pick one discovery path and repeat it long enough to create evidence.',
+    milestones: MASTERMIND_STAGE_MILESTONES.find,
     definitionOfDone: [
       'One discovery channel is chosen',
       'There is a simple bridge into email or another owned audience',
@@ -112,6 +160,7 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
     doThis: 'Send one warm email that moves your audience closer to the offer.',
     useWhen: 'Use this when people find you, but they are not joining, engaging, understanding the offer, or getting ready to buy.',
     milestone: 'Create a simple welcome and email rhythm that builds readiness.',
+    milestones: MASTERMIND_STAGE_MILESTONES.nurture,
     definitionOfDone: [
       'Discovery connects to a clear next step',
       'A welcome or nurture path exists',
@@ -137,6 +186,7 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
     doThis: 'Send the offer to your 10 warmest people and schedule follow-up.',
     useWhen: 'Use this when the offer and warm audience exist, but invitations, follow-up, or conversion are weak.',
     milestone: 'Run one complete sales cycle with follow-up and a real debrief.',
+    milestones: MASTERMIND_STAGE_MILESTONES.sell,
     definitionOfDone: [
       'Sales goal and simple sales math are visible',
       'Offer invitations and follow-up are scheduled',
@@ -162,6 +212,7 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
     doThis: 'Map the customer first win and improve one onboarding step.',
     useWhen: 'Use this when sales are happening but onboarding, follow-through, proof, retention, or referrals need support.',
     milestone: 'Map the customer success path and improve the first meaningful win.',
+    milestones: MASTERMIND_STAGE_MILESTONES.deliver,
     definitionOfDone: [
       'Customer first win is defined',
       'Onboarding and check-ins support that first win',
@@ -187,6 +238,7 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
     doThis: 'Simplify one repeated task so the business runs without you.',
     useWhen: 'Use this when the revenue engine works but capacity, complexity, consistency, or owner-dependence blocks growth.',
     milestone: 'Simplify and document one proven workflow before automating or delegating it.',
+    milestones: MASTERMIND_STAGE_MILESTONES.leverage,
     definitionOfDone: [
       'One operating constraint is named',
       'A working process has been simplified and documented',

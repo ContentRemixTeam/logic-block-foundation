@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, useMemo, useEffect, type ComponentType } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,6 @@ import { useMastermindSuccessPath } from '@/hooks/useMastermindSuccessPath';
 import {
   MASTERMIND_SUCCESS_STAGES,
   type MastermindResourceRecommendation,
-  type MastermindStageId,
 } from '@/lib/mastermindSuccessPath';
 import { isDefaultMastermindPortalResource, searchMastermindPortalResources } from '@/lib/mastermindPortalSearch';
 import { getStorageItem, setStorageItem } from '@/lib/storage';
@@ -48,13 +47,20 @@ type ResourceFilterId = 'all' | 'path' | 'core' | 'current_replay' | 'indexed';
 
 export default function MastermindHub() {
   const navigate = useNavigate();
-  const { data: successPathData, isLoading: successPathLoading } = useMastermindSuccessPath();
+  const { cycleId } = useParams<{ cycleId?: string }>();
+  const {
+    data: successPathData,
+    isLoading: successPathLoading,
+    isSaving: successPathSaving,
+    error: successPathError,
+    confirmStage,
+    selectMilestone,
+  } = useMastermindSuccessPath(cycleId);
   const [searchQuery, setSearchQuery] = useState('');
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
-  const [selectedStageId, setSelectedStageId] = useState<MastermindStageId>('offer');
-  const [hasManuallySelectedStage, setHasManuallySelectedStage] = useState(false);
   const [resourceFilter, setResourceFilter] = useState<ResourceFilterId>('all');
   const [activeTab, setActiveTab] = useState('path');
+  const [showMilestones, setShowMilestones] = useState(false);
 
   useEffect(() => {
     const stored = getStorageItem(STORAGE_KEY);
@@ -67,12 +73,6 @@ export default function MastermindHub() {
     }
   }, []);
 
-  useEffect(() => {
-    const suggestedStageId = successPathData?.successPath?.stageId;
-    if (suggestedStageId && !hasManuallySelectedStage) {
-      setSelectedStageId(suggestedStageId);
-    }
-  }, [successPathData?.successPath?.stageId, hasManuallySelectedStage]);
 
   const savePinned = (ids: string[]) => {
     setStorageItem(STORAGE_KEY, JSON.stringify(ids));
@@ -87,7 +87,34 @@ export default function MastermindHub() {
     }
   };
 
+  const selectedStageId = successPathData?.selectedStageId ?? 'offer';
   const selectedStage = MASTERMIND_SUCCESS_STAGES.find((stage) => stage.id === selectedStageId) ?? MASTERMIND_SUCCESS_STAGES[0];
+  const currentMilestoneId = successPathData?.snapshot?.current_milestone_id ?? selectedStage.milestones[0].id;
+  const currentMilestone = selectedStage.milestones.find((milestone) => milestone.id === currentMilestoneId)
+    ?? selectedStage.milestones[0];
+
+  const handleStageSelect = async (stageId: typeof selectedStageId) => {
+    if (!successPathData?.cycle) {
+      navigate('/cycle-setup');
+      return;
+    }
+
+    try {
+      await confirmStage(stageId);
+    } catch {
+      // The hook keeps the member on the current saved focus and exposes the error inline.
+    }
+  };
+
+  const handleMilestoneSelect = async (milestoneId: string) => {
+    try {
+      await selectMilestone(milestoneId);
+      setShowMilestones(false);
+    } catch {
+      // The hook preserves the previous saved milestone and exposes the error inline.
+    }
+  };
+
   const resourceFilters = useMemo(() => (
     [
       { id: 'all' as const, label: 'All' },
@@ -202,11 +229,63 @@ export default function MastermindHub() {
                 }}
               />
 
+              {successPathData?.hasConfirmedStage && (
+                <p className="text-sm text-muted-foreground">
+                  <CheckCircle2 className="mr-1 inline h-4 w-4 text-primary" />
+                  {selectedStage.label} is saved as the focus for this 90-day cycle.
+                </p>
+              )}
+
+              {successPathError && (
+                <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                  Your previous focus is still safe. We could not save this change: {successPathError}
+                </p>
+              )}
+
+              <Card>
+                <CardHeader>
+                  <Badge variant="outline" className="w-fit">Current milestone</Badge>
+                  <CardTitle>{currentMilestone.label}</CardTitle>
+                  <CardDescription>{currentMilestone.output}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button variant="outline" onClick={() => setShowMilestones((open) => !open)}>
+                    {showMilestones ? 'Keep this milestone' : 'Choose a different milestone'}
+                  </Button>
+
+                  {showMilestones && (
+                    <div className="grid gap-2">
+                      {selectedStage.milestones.map((milestone, index) => (
+                        <button
+                          key={milestone.id}
+                          type="button"
+                          disabled={successPathSaving}
+                          onClick={() => void handleMilestoneSelect(milestone.id)}
+                          className={cn(
+                            'flex items-start gap-3 rounded-lg border p-3 text-left transition hover:border-primary/50 hover:bg-muted/40',
+                            milestone.id === currentMilestone.id && 'border-primary bg-primary/5',
+                            successPathSaving && 'cursor-wait opacity-70'
+                          )}
+                        >
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                            {index + 1}
+                          </span>
+                          <span>
+                            <span className="block text-sm font-semibold">{milestone.label}</span>
+                            <span className="block text-xs text-muted-foreground">{milestone.output}</span>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle>Does this focus feel right?</CardTitle>
                   <CardDescription>
-                    The recommendation comes from your 90-day plan. Change it if another area is the real constraint — this is not a six-step course you have to complete in order.
+                    Choose the area that is the real constraint. Your choice is saved to this 90-day cycle and stays here when you return.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -215,13 +294,12 @@ export default function MastermindHub() {
                       <button
                         key={stage.id}
                         type="button"
-                        onClick={() => {
-                          setSelectedStageId(stage.id);
-                          setHasManuallySelectedStage(true);
-                        }}
+                        disabled={successPathSaving}
+                        onClick={() => void handleStageSelect(stage.id)}
                         className={cn(
                           'flex items-center justify-between gap-3 rounded-lg border bg-card p-3 text-left transition hover:border-primary/50 hover:bg-muted/40',
-                          selectedStageId === stage.id && 'border-primary bg-primary/5 shadow-sm'
+                          selectedStageId === stage.id && 'border-primary bg-primary/5 shadow-sm',
+                          successPathSaving && 'cursor-wait opacity-70'
                         )}
                       >
                         <div>
