@@ -81,5 +81,8 @@ verify_jwt = false
 [functions.mastermind-ai-coach]
 verify_jwt = false
 
+[functions.search-mastermind-resources]
+verify_jwt = false
+
 [functions.sync-asana-tasks]
 verify_jwt = false

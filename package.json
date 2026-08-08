@@ -9,7 +9,8 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "verify:mastermind-portal": "node tools/verify-mastermind-portal.mjs"
+    "verify:mastermind-portal": "node tools/verify-mastermind-portal.mjs",
+    "verify:mastermind-server-search": "node tools/verify-mastermind-server-search.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
