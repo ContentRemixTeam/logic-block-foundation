@@ -9,6 +9,7 @@ const MIGRATION = path.join(
 const FUNCTION = path.join(ROOT, "supabase/functions/search-mastermind-resources/index.ts");
 const CONFIG = path.join(ROOT, "supabase/config.toml");
 const LIVE_QA = path.join(ROOT, "tools/qa-mastermind-live-gates.mjs");
+const LIVE_QA_MOCK = path.join(ROOT, "tools/qa-mastermind-live-gates-mock.mjs");
 const PACKAGE_JSON = path.join(ROOT, "package.json");
 const SRC_DIR = path.join(ROOT, "src");
 
@@ -63,12 +64,14 @@ if (!existsSync(MIGRATION)) fail("Missing private search migration");
 if (!existsSync(FUNCTION)) fail("Missing search-mastermind-resources Edge Function");
 if (!existsSync(CONFIG)) fail("Missing Supabase config");
 if (!existsSync(LIVE_QA)) fail("Missing live Mastermind Edge Function QA harness");
+if (!existsSync(LIVE_QA_MOCK)) fail("Missing mock live Mastermind Edge Function QA harness");
 if (!existsSync(PACKAGE_JSON)) fail("Missing package.json");
 
 const migration = existsSync(MIGRATION) ? read(MIGRATION) : "";
 const edgeFunction = existsSync(FUNCTION) ? read(FUNCTION) : "";
 const config = existsSync(CONFIG) ? read(CONFIG) : "";
 const liveQa = existsSync(LIVE_QA) ? read(LIVE_QA) : "";
+const liveQaMock = existsSync(LIVE_QA_MOCK) ? read(LIVE_QA_MOCK) : "";
 const packageJson = existsSync(PACKAGE_JSON) ? read(PACKAGE_JSON) : "";
 
 const requiredTables = [
@@ -192,9 +195,12 @@ assert(liveQa.includes("weekly planning july 6"), "Live QA harness must test old
 assert(liveQa.includes("appendSearchResourceIds"), "Live QA harness must reuse monthly-safe search resource ids for playback QA");
 assert(liveQa.includes("assertNoSearchLeaks"), "Live QA harness must check search source leaks");
 assert(liveQa.includes("MONTHLY_ALLOWED_ACCESS"), "Live QA harness must enforce monthly-safe access");
+assert(liveQaMock.includes("monthly_sales_page_search"), "Mock live QA harness must verify monthly sales-page search");
+assert(liveQaMock.includes("monthly_old_replay_query_does_not_leak"), "Mock live QA harness must verify old replay no-leak behavior");
 assert(
   packageJson.includes('"qa:mastermind-live-gates"') &&
-    packageJson.includes('"qa:mastermind-live-gates:dry-run"'),
+    packageJson.includes('"qa:mastermind-live-gates:dry-run"') &&
+    packageJson.includes('"qa:mastermind-live-gates:mock"'),
   "package.json must expose live QA harness scripts",
 );
 

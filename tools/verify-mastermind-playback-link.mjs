@@ -5,6 +5,7 @@ const ROOT = process.cwd();
 const FUNCTION = path.join(ROOT, "supabase/functions/get-mastermind-playback-link/index.ts");
 const CONFIG = path.join(ROOT, "supabase/config.toml");
 const LIVE_QA = path.join(ROOT, "tools/qa-mastermind-live-gates.mjs");
+const LIVE_QA_MOCK = path.join(ROOT, "tools/qa-mastermind-live-gates-mock.mjs");
 const PACKAGE_JSON = path.join(ROOT, "package.json");
 const SRC_DIR = path.join(ROOT, "src");
 
@@ -44,11 +45,13 @@ function extractArrayLiteral(ts, constantName) {
 if (!existsSync(FUNCTION)) fail("Missing get-mastermind-playback-link Edge Function");
 if (!existsSync(CONFIG)) fail("Missing Supabase config");
 if (!existsSync(LIVE_QA)) fail("Missing live Mastermind Edge Function QA harness");
+if (!existsSync(LIVE_QA_MOCK)) fail("Missing mock live Mastermind Edge Function QA harness");
 if (!existsSync(PACKAGE_JSON)) fail("Missing package.json");
 
 const edgeFunction = existsSync(FUNCTION) ? read(FUNCTION) : "";
 const config = existsSync(CONFIG) ? read(CONFIG) : "";
 const liveQa = existsSync(LIVE_QA) ? read(LIVE_QA) : "";
+const liveQaMock = existsSync(LIVE_QA_MOCK) ? read(LIVE_QA_MOCK) : "";
 const packageJson = existsSync(PACKAGE_JSON) ? read(PACKAGE_JSON) : "";
 
 assert(edgeFunction.includes("auth.getUser(token)"), "Playback function must authenticate the bearer token");
@@ -100,9 +103,13 @@ assert(liveQa.includes("monthly_playback_link_autodiscovery"), "Live QA harness 
 assert(liveQa.includes("non_member_playback_returns_403"), "Live QA harness must check non-member playback denial when possible");
 assert(liveQa.includes("assertNoPlaybackRawFields"), "Live QA harness must check playback raw-source fields");
 assert(liveQa.includes("assertPlaybackPayload"), "Live QA harness must validate playback response shape");
+assert(liveQaMock.includes("monthly_playback_link_autodiscovery"), "Mock live QA harness must verify playback autodiscovery");
+assert(liveQaMock.includes("non_member_playback_returns_403"), "Mock live QA harness must verify non-member playback denial");
+assert(liveQaMock.includes("attempts=2"), "Mock live QA harness must exercise playback retry after source-review response");
 assert(
   packageJson.includes('"qa:mastermind-live-gates"') &&
-    packageJson.includes('"qa:mastermind-live-gates:dry-run"'),
+    packageJson.includes('"qa:mastermind-live-gates:dry-run"') &&
+    packageJson.includes('"qa:mastermind-live-gates:mock"'),
   "package.json must expose live QA harness scripts",
 );
 
