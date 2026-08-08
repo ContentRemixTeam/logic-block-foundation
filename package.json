@@ -8,7 +8,15 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "verify:mastermind-portal": "node tools/verify-mastermind-portal.mjs",
+    "verify:mastermind-bundle": "node tools/verify-mastermind-bundle.mjs",
+    "verify:mastermind-server-search": "node tools/verify-mastermind-server-search.mjs",
+    "verify:mastermind-playback-link": "node tools/verify-mastermind-playback-link.mjs",
+    "verify:mastermind-browser": "node tools/verify-mastermind-browser.mjs",
+    "qa:mastermind-live-gates": "node tools/qa-mastermind-live-gates.mjs",
+    "qa:mastermind-live-gates:dry-run": "node tools/qa-mastermind-live-gates.mjs --dry-run",
+    "qa:mastermind-live-gates:mock": "node tools/qa-mastermind-live-gates-mock.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

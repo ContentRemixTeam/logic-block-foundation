@@ -79,12 +79,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         <div className="flex-1 flex flex-col min-w-0">
           {/* Create Your 90-Day Plan Hello Bar */}
           {hasNoPlan && !dismissedPlanBanner && (
-            <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-4 py-2.5 flex items-center justify-center gap-3 relative">
+            <div className="relative flex flex-wrap items-center justify-center gap-x-3 gap-y-2 bg-gradient-to-r from-primary to-primary/80 px-4 py-2.5 pr-10 text-center text-primary-foreground sm:text-left">
               <Sparkles className="h-4 w-4 flex-shrink-0" />
-              <span className="text-sm font-medium">Ready to transform your next 90 days?</span>
+              <span className="text-sm font-medium leading-snug">Ready to transform your next 90 days?</span>
               <Link 
                 to="/cycle-setup" 
-                className="inline-flex items-center gap-1.5 bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground px-3 py-1 rounded-full text-sm font-semibold transition-colors"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary-foreground/20 px-3 py-1 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-foreground/30"
               >
                 Create Your 90-Day Plan
                 <ArrowRight className="h-3.5 w-3.5" />

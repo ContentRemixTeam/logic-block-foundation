@@ -8,10 +8,20 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MastermindGate } from '@/components/membership/MastermindGate';
 import { SuccessPathPlanCard } from '@/components/mastermind/SuccessPathPlanCard';
-import { useMastermindSuccessPath } from '@/hooks/useMastermindSuccessPath';
-import { MASTERMIND_SUCCESS_STAGES, type MastermindStageId } from '@/lib/mastermindSuccessPath';
 import {
-  Archive,
+  MASTERMIND_PORTAL_RESOURCES,
+  type MastermindPortalAccess,
+  type MastermindPortalResource,
+} from '@/data/mastermindPortalResources';
+import { useMastermindSuccessPath } from '@/hooks/useMastermindSuccessPath';
+import {
+  MASTERMIND_SUCCESS_STAGES,
+  type MastermindResourceRecommendation,
+  type MastermindStageId,
+} from '@/lib/mastermindSuccessPath';
+import { isDefaultMastermindPortalResource, searchMastermindPortalResources } from '@/lib/mastermindPortalSearch';
+import { getStorageItem, setStorageItem } from '@/lib/storage';
+import {
   ArrowRight,
   Bot,
   Calendar,
@@ -19,10 +29,7 @@ import {
   CircleDot,
   ClipboardCheck,
   ExternalLink,
-  GraduationCap,
-  HelpCircle,
   ListChecks,
-  MessageCircle,
   Pin,
   RotateCcw,
   Search,
@@ -30,10 +37,7 @@ import {
   Sparkles,
   Star,
   Target,
-  Ticket,
-  Trophy,
   Users,
-  Video,
   X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -43,101 +47,9 @@ const MastermindVideoSearch = SHOW_VIDEO_SEARCH
   ? lazy(() => import('@/components/mastermind/MastermindVideoSearch'))
   : null;
 
-interface MastermindResource {
-  id: string;
-  title: string;
-  description: string;
-  access: string;
-  icon: ComponentType<{ className?: string }>;
-  url: string;
-  isExternal: boolean;
-}
-
-const MASTERMIND_RESOURCES: MastermindResource[] = [
-  {
-    id: 'start-here',
-    title: 'Start Here',
-    description: 'Set up the planner and learn the weekly planning loop.',
-    access: 'Core',
-    icon: Trophy,
-    url: '/onboarding',
-    isExternal: false,
-  },
-  {
-    id: 'ask-faith',
-    title: 'Ask Faith',
-    description: 'Submit a coaching question with the context Faith needs to help.',
-    access: 'Core',
-    icon: HelpCircle,
-    url: 'https://airtable.com/appP01GhbZAtwT4nN/shrIRdOHFXijc8462',
-    isExternal: true,
-  },
-  {
-    id: 'coworking-room',
-    title: 'Coworking Room',
-    description: 'Join focused implementation time with other members.',
-    access: 'Core',
-    icon: Users,
-    url: 'https://gobrunch.com/events/389643/589970',
-    isExternal: true,
-  },
-  {
-    id: 'recent-replays',
-    title: 'Recent Call Replays',
-    description: 'Catch current call recordings while they are in the active replay window.',
-    access: '30-day replays',
-    icon: Video,
-    url: 'https://portal.faithmariah.com/communities/groups/mastermind/learning?productId=8cd48d79-e6dd-4e11-9e4c-5d643703bad1',
-    isExternal: true,
-  },
-  {
-    id: 'replay-vault',
-    title: 'Replay Vault',
-    description: 'Use the full archive only when your membership level includes vault access.',
-    access: 'Vault',
-    icon: Archive,
-    url: 'https://hub-3pwl3413w2.membership.io/',
-    isExternal: true,
-  },
-  {
-    id: 'events',
-    title: 'Events',
-    description: 'View upcoming mastermind calls, coworking, and live sessions.',
-    access: 'Core',
-    icon: Calendar,
-    url: 'https://portal.faithmariah.com/communities/groups/mastermind/events',
-    isExternal: true,
-  },
-  {
-    id: 'apply-events',
-    title: 'Apply for Upcoming Events',
-    description: 'Apply to attend eligible live events and experiences.',
-    access: 'Eligible members',
-    icon: Ticket,
-    url: 'https://www.faithmariahevents.com/',
-    isExternal: true,
-  },
-  {
-    id: 'community',
-    title: 'Community',
-    description: 'Connect with members, share wins, and get support.',
-    access: 'Core',
-    icon: MessageCircle,
-    url: 'https://portal.faithmariah.com/communities/groups/mastermind/home',
-    isExternal: true,
-  },
-  {
-    id: 'learning',
-    title: 'Learning',
-    description: 'Open the core curriculum and current assigned trainings.',
-    access: 'Core',
-    icon: GraduationCap,
-    url: 'https://portal.faithmariah.com/communities/groups/mastermind/learning',
-    isExternal: true,
-  },
-];
-
 const STORAGE_KEY = 'mastermind-pinned-resources';
+
+type ResourceFilterId = 'all' | 'path' | 'core' | 'current_replay' | 'indexed';
 
 export default function MastermindHub() {
   const navigate = useNavigate();
@@ -146,9 +58,11 @@ export default function MastermindHub() {
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [selectedStageId, setSelectedStageId] = useState<MastermindStageId>('offer');
   const [hasManuallySelectedStage, setHasManuallySelectedStage] = useState(false);
+  const [resourceFilter, setResourceFilter] = useState<ResourceFilterId>('all');
+  const [activeTab, setActiveTab] = useState('path');
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = getStorageItem(STORAGE_KEY);
     if (stored) {
       try {
         setPinnedIds(JSON.parse(stored));
@@ -166,7 +80,7 @@ export default function MastermindHub() {
   }, [successPathData?.successPath?.stageId, hasManuallySelectedStage]);
 
   const savePinned = (ids: string[]) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+    setStorageItem(STORAGE_KEY, JSON.stringify(ids));
     setPinnedIds(ids);
   };
 
@@ -179,32 +93,79 @@ export default function MastermindHub() {
   };
 
   const selectedStage = MASTERMIND_SUCCESS_STAGES.find((stage) => stage.id === selectedStageId) ?? MASTERMIND_SUCCESS_STAGES[0];
+  const resourceFilters = useMemo(() => (
+    [
+      { id: 'all' as const, label: 'All' },
+      { id: 'path' as const, label: `${selectedStage.label} path` },
+      { id: 'core' as const, label: 'Core' },
+      { id: 'current_replay' as const, label: '30-day' },
+      { id: 'indexed' as const, label: 'Indexed now' },
+    ]
+  ), [selectedStage.label]);
+
+  const resourceSearchOptions = useMemo(() => {
+    const accessByFilter: Partial<Record<ResourceFilterId, MastermindPortalAccess>> = {
+      core: 'core',
+      current_replay: 'current_replay',
+    };
+
+    return {
+      stageId: resourceFilter === 'path' ? selectedStageId : undefined,
+      access: accessByFilter[resourceFilter],
+      transcriptReadyOnly: resourceFilter === 'indexed',
+    };
+  }, [resourceFilter, selectedStageId]);
+
+  const visibleResources = useMemo(() => {
+    return MASTERMIND_PORTAL_RESOURCES.filter(isDefaultMastermindPortalResource);
+  }, []);
+
+  const indexedResourceCount = useMemo(() => {
+    return visibleResources.filter((resource) =>
+      resource.transcriptStatus === 'transcript_ready' || resource.transcriptStatus === 'description_indexed'
+    ).length;
+  }, [visibleResources]);
+
+  const accessRailCount = useMemo(() => {
+    return new Set(visibleResources.map((resource) => resource.access)).size;
+  }, [visibleResources]);
 
   const filteredResources = useMemo(() => {
-    if (!searchQuery.trim()) return MASTERMIND_RESOURCES;
-    const query = searchQuery.toLowerCase();
-    return MASTERMIND_RESOURCES.filter(
-      (r) =>
-        r.title.toLowerCase().includes(query) ||
-        r.description.toLowerCase().includes(query) ||
-        r.access.toLowerCase().includes(query)
+    return searchMastermindPortalResources(
+      MASTERMIND_PORTAL_RESOURCES,
+      searchQuery,
+      resourceSearchOptions
     );
-  }, [searchQuery]);
+  }, [searchQuery, resourceSearchOptions]);
 
   const pinnedResources = useMemo(() => {
-    return MASTERMIND_RESOURCES.filter((r) => pinnedIds.includes(r.id));
-  }, [pinnedIds]);
+    return visibleResources.filter((r) => pinnedIds.includes(r.id));
+  }, [pinnedIds, visibleResources]);
 
   const unpinnedResources = useMemo(() => {
     return filteredResources.filter((r) => !pinnedIds.includes(r.id));
   }, [filteredResources, pinnedIds]);
 
-  const handleOpen = (resource: MastermindResource) => {
+  const handleOpen = (resource: MastermindPortalResource) => {
     if (resource.isExternal) {
       window.open(resource.url, '_blank', 'noopener,noreferrer');
     } else {
       navigate(resource.url);
     }
+  };
+
+  const handleUsePath = (stageId: MastermindStageId) => {
+    setSelectedStageId(stageId);
+    setHasManuallySelectedStage(true);
+    setResourceFilter('path');
+    setSearchQuery('');
+    setActiveTab('resources');
+  };
+
+  const handleOpenRecommendedResource = (recommendation: MastermindResourceRecommendation) => {
+    const resource = MASTERMIND_PORTAL_RESOURCES.find((item) => item.id === recommendation.resourceId);
+    if (!resource || !isDefaultMastermindPortalResource(resource)) return;
+    handleOpen(resource);
   };
 
   return (
@@ -222,11 +183,11 @@ export default function MastermindHub() {
               </div>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Button onClick={() => navigate('/cycle-setup')}>
+              <Button className="w-full sm:w-auto" onClick={() => navigate('/cycle-setup')}>
                 <Target className="mr-2 h-4 w-4" />
                 Build 90-Day Plan
               </Button>
-              <Button variant="outline" onClick={() => navigate('/weekly-review')}>
+              <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate('/weekly-review')}>
                 <ClipboardCheck className="mr-2 h-4 w-4" />
                 Review Progress
               </Button>
@@ -251,7 +212,7 @@ export default function MastermindHub() {
             />
           </div>
 
-          <Tabs defaultValue="path" className="space-y-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList
               className={cn(
                 'grid w-full',
@@ -270,10 +231,8 @@ export default function MastermindHub() {
                 successPath={successPathData?.successPath}
                 isLoading={successPathLoading}
                 onBuildPlan={() => navigate('/cycle-setup')}
-                onUsePath={(stageId) => {
-                  setSelectedStageId(stageId);
-                  setHasManuallySelectedStage(true);
-                }}
+                onUsePath={handleUsePath}
+                onOpenResource={handleOpenRecommendedResource}
                 onSubmitAskFaith={() => window.open('https://airtable.com/appP01GhbZAtwT4nN/shrIRdOHFXijc8462', '_blank', 'noopener,noreferrer')}
                 onEnableAi={() => navigate('/ai-copywriting/settings')}
               />
@@ -305,7 +264,7 @@ export default function MastermindHub() {
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="space-y-1">
-                            <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                            <p className="text-sm font-semibold text-muted-foreground">
                               {stage.label}
                             </p>
                             <h3 className="font-semibold leading-snug">{stage.memberQuestion}</h3>
@@ -328,7 +287,7 @@ export default function MastermindHub() {
                         <CardTitle>{selectedStage.memberQuestion}</CardTitle>
                         <CardDescription>{selectedStage.milestone}</CardDescription>
                       </div>
-                      <Button variant="outline" onClick={() => navigate('/cycle-setup')}>
+                      <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate('/cycle-setup')}>
                         Add to Plan
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
@@ -355,14 +314,19 @@ export default function MastermindHub() {
                             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                               {index + 1}
                             </div>
-                            <div>
-                              <div className="flex flex-wrap items-center gap-2">
-                                <p className="text-sm font-medium">{resource.title}</p>
-                                <Badge variant="outline" className="text-[11px]">{resource.access}</Badge>
+                            <div className="min-w-0">
+                              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                <p className="min-w-0 break-words text-sm font-medium leading-snug">{resource.title}</p>
+                                <Badge variant="outline" className="shrink-0 text-[11px]">{resource.access}</Badge>
                               </div>
                               <p className="text-xs text-muted-foreground">
                                 {resource.useWhen}
                               </p>
+                              {resource.portalPath && (
+                                <p className="mt-1 break-words text-[11px] font-medium text-muted-foreground">
+                                  {resource.portalPath}
+                                </p>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -446,27 +410,79 @@ export default function MastermindHub() {
             </TabsContent>
 
             <TabsContent value="resources" className="space-y-4">
-              <div className="relative max-w-md">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search resources or access level..."
-                  className="pl-10"
-                />
-                {searchQuery && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
-                    onClick={() => setSearchQuery('')}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
+              <Card className="border-primary/20">
+                <CardHeader>
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                      <Badge variant="secondary" className="mb-2 w-fit">Portal map</Badge>
+                      <CardTitle>Core paths, current replays, and vault access stay separated.</CardTitle>
+                      <CardDescription>
+                        Choose the smallest useful next resource. Bonus and vault items stay out of this finder until access is verified.
+                      </CardDescription>
+                    </div>
+                    <Badge variant="outline" className="w-fit">
+                      {filteredResources.length} matching resources
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <AuditMetric title="Success paths" value={MASTERMIND_SUCCESS_STAGES.length.toLocaleString()} />
+                  <AuditMetric title="Visible resources" value={visibleResources.length.toLocaleString()} />
+                  <AuditMetric title="Indexed now" value={indexedResourceCount.toLocaleString()} />
+                  <AuditMetric title="Access labels" value={accessRailCount.toLocaleString()} />
+                </CardContent>
+              </Card>
 
-              {pinnedResources.length > 0 && !searchQuery && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Search className="h-4 w-4 text-primary" />
+                    Resource finder
+                  </CardTitle>
+                  <CardDescription>
+                    Monthly access is core curriculum plus current 30-day replays. Vault records stay marked separately.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="relative max-w-xl">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search offer, sales page, email list, AI, replay..."
+                      className="pl-10 pr-10"
+                    />
+                    {searchQuery && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
+                        onClick={() => setSearchQuery('')}
+                        aria-label="Clear resource search"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {resourceFilters.map((filter) => (
+                      <Button
+                        key={filter.id}
+                        type="button"
+                        variant={resourceFilter === filter.id ? 'default' : 'outline'}
+                        size="sm"
+                        className="min-h-9 whitespace-normal text-left leading-tight"
+                        onClick={() => setResourceFilter(filter.id)}
+                      >
+                        {filter.label}
+                      </Button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {pinnedResources.length > 0 && !searchQuery && resourceFilter === 'all' && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Pin className="h-4 w-4 text-primary" />
@@ -488,11 +504,11 @@ export default function MastermindHub() {
               )}
 
               <div className="space-y-3">
-                {!searchQuery && pinnedResources.length > 0 && (
+                {!searchQuery && resourceFilter === 'all' && pinnedResources.length > 0 && (
                   <h2 className="text-sm font-semibold">All Resources</h2>
                 )}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {(searchQuery ? filteredResources : unpinnedResources).map((resource) => (
+                  {(searchQuery || resourceFilter !== 'all' ? filteredResources : unpinnedResources).map((resource) => (
                     <ResourceCard
                       key={resource.id}
                       resource={resource}
@@ -506,7 +522,7 @@ export default function MastermindHub() {
 
                 {filteredResources.length === 0 && (
                   <div className="py-12 text-center">
-                    <p className="text-muted-foreground">No resources found matching "{searchQuery}"</p>
+                    <p className="break-words text-muted-foreground">No resources found matching "{searchQuery}"</p>
                   </div>
                 )}
               </div>
@@ -538,6 +554,20 @@ function StatusCard({ icon: Icon, title, description }: StatusCardProps) {
   );
 }
 
+interface AuditMetricProps {
+  title: string;
+  value: string;
+}
+
+function AuditMetric({ title, value }: AuditMetricProps) {
+  return (
+    <div className="rounded-lg border bg-background p-3">
+      <p className="text-xs font-semibold text-muted-foreground">{title}</p>
+      <p className="mt-1 text-lg font-semibold leading-none">{value}</p>
+    </div>
+  );
+}
+
 interface SupportCardProps extends StatusCardProps {
   buttonLabel: string;
   onClick: () => void;
@@ -564,7 +594,7 @@ function SupportCard({ icon: Icon, title, description, buttonLabel, onClick }: S
 }
 
 interface ResourceCardProps {
-  resource: MastermindResource;
+  resource: MastermindPortalResource;
   isPinned: boolean;
   canPin?: boolean;
   onTogglePin: () => void;
@@ -576,26 +606,33 @@ function ResourceCard({ resource, isPinned, canPin = true, onTogglePin, onOpen }
 
   return (
     <Card className={cn(
-      'group transition-all duration-200 hover:shadow-md',
+      'group flex h-full flex-col transition-all duration-200 hover:shadow-md',
       isPinned && 'bg-primary/5 ring-2 ring-primary/20'
     )}>
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             <div className={cn(
-              'rounded-lg p-2.5',
+              'shrink-0 rounded-lg p-2.5',
               isPinned ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
             )}>
               <Icon className="h-5 w-5" />
             </div>
-            <div>
-              <CardTitle className="flex items-center gap-1.5 text-base">
-                {resource.title}
+            <div className="min-w-0">
+              <CardTitle className="flex min-w-0 items-center gap-1.5 text-base">
+                <span className="min-w-0 flex-1 break-words leading-snug">{resource.title}</span>
                 {resource.isExternal && (
-                  <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                  <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
                 )}
               </CardTitle>
-              <Badge variant="outline" className="mt-1 text-[11px]">{resource.access}</Badge>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <Badge variant={getAccessBadgeVariant(resource.access)} className="text-[11px]">
+                  {resource.accessLabel}
+                </Badge>
+                <Badge variant="outline" className="text-[11px]">
+                  {formatResourceType(resource.type)}
+                </Badge>
+              </div>
             </div>
           </div>
           <Button
@@ -603,7 +640,7 @@ function ResourceCard({ resource, isPinned, canPin = true, onTogglePin, onOpen }
             size="icon"
             className={cn(
               'h-8 w-8 shrink-0',
-              isPinned ? 'text-primary' : 'text-muted-foreground opacity-0 group-hover:opacity-100',
+              isPinned ? 'text-primary' : 'text-muted-foreground opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100',
               !canPin && !isPinned && 'cursor-not-allowed'
             )}
             onClick={(e) => {
@@ -611,24 +648,73 @@ function ResourceCard({ resource, isPinned, canPin = true, onTogglePin, onOpen }
               if (canPin || isPinned) onTogglePin();
             }}
             title={isPinned ? 'Unpin' : canPin ? 'Pin to top' : 'Max 3 pins allowed'}
+            aria-label={isPinned ? `Unpin ${resource.title}` : canPin ? `Pin ${resource.title}` : 'Maximum pinned resources reached'}
           >
             <Star className={cn('h-4 w-4', isPinned && 'fill-current')} />
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3 pt-0">
-        <CardDescription className="min-h-10 text-sm">
+      <CardContent className="flex flex-1 flex-col space-y-4 pt-0">
+        <CardDescription className="text-sm">
           {resource.description}
         </CardDescription>
-        <Button
-          onClick={onOpen}
-          className="w-full"
-          variant={isPinned ? 'default' : 'secondary'}
-        >
-          Open
-          {resource.isExternal && <ExternalLink className="ml-2 h-3.5 w-3.5" />}
-        </Button>
+
+        <div className="rounded-md bg-muted/45 p-3">
+          <p className="text-xs font-semibold text-muted-foreground">Best for</p>
+          <p className="mt-1 text-sm leading-snug">{resource.memberJob}</p>
+        </div>
+
+        <div className="flex flex-wrap gap-1.5">
+          <Badge variant={getTranscriptBadgeVariant(resource.transcriptStatus)} className="text-[11px]">
+            {resource.transcriptLabel}
+          </Badge>
+          {resource.stages.slice(0, 3).map((stageId) => (
+            <Badge key={stageId} variant="outline" className="text-[11px] capitalize">
+              {stageId}
+            </Badge>
+          ))}
+          {resource.stages.length > 3 && (
+            <Badge variant="outline" className="text-[11px]">
+              +{resource.stages.length - 3}
+            </Badge>
+          )}
+        </div>
+
+        <div className="mt-auto space-y-3">
+          <div className="rounded-md border bg-background p-3">
+            <p className="text-xs font-semibold text-muted-foreground">Portal path</p>
+            <p className="mt-1 break-words text-xs leading-snug">{resource.portalPath}</p>
+          </div>
+          <p className="text-xs leading-snug text-muted-foreground">{resource.sourceStatus}</p>
+          <Button
+            onClick={onOpen}
+            className="w-full"
+            variant={isPinned ? 'default' : 'secondary'}
+          >
+            {resource.primaryAction}
+            {resource.isExternal && <ExternalLink className="ml-2 h-3.5 w-3.5" />}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
+}
+
+function getAccessBadgeVariant(access: MastermindPortalAccess) {
+  if (access === 'core') return 'secondary';
+  if (access === 'current_replay') return 'pink';
+  if (access === 'vault') return 'warning';
+  if (access === 'access_review') return 'outline';
+  return 'outline';
+}
+
+function getTranscriptBadgeVariant(status: MastermindPortalResource['transcriptStatus']) {
+  if (status === 'transcript_ready') return 'success';
+  if (status === 'description_indexed') return 'pink';
+  if (status === 'server_side_required') return 'warning';
+  return 'outline';
+}
+
+function formatResourceType(type: MastermindPortalResource['type']) {
+  return type.replace('_', ' ');
 }

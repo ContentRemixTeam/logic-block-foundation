@@ -1,9 +1,11 @@
 export type MastermindStageId = 'offer' | 'find' | 'nurture' | 'sell' | 'deliver' | 'leverage';
 
 export interface MastermindResourceRecommendation {
+  resourceId: string;
   title: string;
-  access: 'Core' | '30-day replays' | 'Vault';
+  access: 'Core' | '30-day replays' | 'Vault' | 'Access review';
   useWhen: string;
+  portalPath?: string;
 }
 
 export interface MastermindRoadmapStage {
@@ -64,9 +66,9 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
       'Real people have been invited to validate or buy',
     ],
     resources: [
-      { title: 'Create Results Foundation', access: 'Core', useWhen: 'Clarify the buyer, problem, promise, and result before adding more tactics.' },
-      { title: 'Offer Stage Intro', access: 'Core', useWhen: 'Use this when the plan still feels abstract because the offer is not concrete enough.' },
-      { title: 'Minimum Viable Offer Test', access: 'Core', useWhen: 'Use this to get market evidence before rebuilding the whole business.' },
+      { resourceId: 'success-plan', title: 'Mastermind Success Plan Module One', access: 'Core', useWhen: 'Clarify the one result and how the program is meant to support it.', portalPath: 'Start Here -> Mastermind Success Plan' },
+      { resourceId: 'products-offers', title: 'Products & Offers', access: 'Core', useWhen: 'Clarify the buyer, problem, promise, price, and product shape before adding more tactics.', portalPath: 'Learning -> BUSINESS STRATEGY: PRODUCTS & OFFERS' },
+      { resourceId: 'messy-action-sprints', title: 'Messy Action Sprints', access: 'Core', useWhen: 'Use this when the offer needs to become a real invitation instead of more private thinking.', portalPath: 'Learning -> Messy Action Sprints' },
     ],
     supportPrompt: 'What part of this offer is still private theory instead of market evidence?',
     nextMoneyMove: 'Turn the offer into one clear invitation and put it in front of real people before you polish another backend piece.',
@@ -88,9 +90,9 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
       'Four weeks of discovery evidence have been reviewed',
     ],
     resources: [
-      { title: 'Find Stage Intro', access: 'Core', useWhen: 'Use this to choose one discovery lane instead of spreading attention everywhere.' },
-      { title: 'Simple Discovery Plan', access: 'Core', useWhen: 'Use this when you need a repeatable visibility action for the quarter.' },
-      { title: 'Email Bridge Lesson', access: 'Core', useWhen: 'Use this when people are seeing you but not entering an owned follow-up path.' },
+      { resourceId: 'grow-email-list', title: 'Grow Your Email List', access: 'Core', useWhen: 'Use this when people need a clear bridge from visibility into an owned audience.', portalPath: 'Learning -> BUSINESS STRATEGY: GROW YOUR EMAIL LIST' },
+      { resourceId: 'content-creation', title: 'Content Creation', access: 'Core', useWhen: 'Use this to choose a repeatable discovery lane instead of spreading attention everywhere.', portalPath: 'Learning -> BUSINESS STRATEGY: CONTENT CREATION' },
+      { resourceId: 'current-replays', title: 'Current Call Replays', access: '30-day replays', useWhen: 'Use a recent coaching example when the member needs to see what simple discovery action looks like now.', portalPath: 'Learning -> CALL REPLAYS -> current 30-day window' },
     ],
     supportPrompt: 'Where are qualified people already close enough to notice your work this quarter?',
     nextMoneyMove: 'Choose one discovery channel and publish or pitch one specific piece that helps the right person recognize themselves.',
@@ -112,9 +114,9 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
       'Audience behavior is being watched for replies, clicks, questions, or sales signals',
     ],
     resources: [
-      { title: 'Nurture Stage Intro', access: 'Core', useWhen: 'Use this when people know you exist but are not yet ready to buy.' },
-      { title: 'Simple Email System', access: 'Core', useWhen: 'Use this to build a repeatable warm-up rhythm without overcomplicating it.' },
-      { title: 'Content With a Job', access: 'Core', useWhen: 'Use this to make nurture content move belief, trust, or readiness.' },
+      { resourceId: 'grow-email-list', title: 'Grow Your Email List', access: 'Core', useWhen: 'Use this to connect discovery to a warmer owned-audience path.', portalPath: 'Learning -> BUSINESS STRATEGY: GROW YOUR EMAIL LIST' },
+      { resourceId: 'content-creation', title: 'Content Creation', access: 'Core', useWhen: 'Use this to make nurture content move belief, trust, or readiness.', portalPath: 'Learning -> BUSINESS STRATEGY: CONTENT CREATION' },
+      { resourceId: 'ask-faith', title: 'Ask Faith', access: 'Core', useWhen: 'Use this when the missing belief or readiness gap is unclear and needs coaching.', portalPath: 'Learning -> Ask Faith' },
     ],
     supportPrompt: 'What does your audience need to believe, understand, or trust before the offer makes sense?',
     nextMoneyMove: 'Send one nurture asset that moves people closer to the offer instead of creating more general content.',
@@ -136,9 +138,9 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
       'The campaign has been evaluated before changing direction',
     ],
     resources: [
-      { title: 'Sell Stage Intro', access: 'Core', useWhen: 'Use this when you need to make the sales process visible and complete.' },
-      { title: 'Make More Offers', access: 'Core', useWhen: 'Use this when the problem is too few clear invitations.' },
-      { title: 'Sales Debrief', access: 'Core', useWhen: 'Use this after a sales push so the next move is based on evidence.' },
+      { resourceId: 'sales-marketing', title: 'Sales & Marketing', access: 'Core', useWhen: 'Use this when the sales process needs clearer invitations, assets, follow-up, or conversion support.', portalPath: 'Learning -> BUSINESS STRATEGY: SALES & MARKETING' },
+      { resourceId: 'messy-action-sprints', title: 'Messy Action Sprints', access: 'Core', useWhen: 'Use this when the fastest path is sending the offer and collecting evidence this week.', portalPath: 'Learning -> Messy Action Sprints' },
+      { resourceId: 'current-replays', title: 'Current Call Replays', access: '30-day replays', useWhen: 'Use recent sales coaching before changing the offer or rewriting every asset.', portalPath: 'Learning -> CALL REPLAYS -> current 30-day window' },
     ],
     supportPrompt: 'Where is the sales process incomplete: invitation, follow-up, volume, belief, or conversion?',
     nextMoneyMove: 'Make the offer to the warmest people and schedule the follow-up before deciding the offer is broken.',
@@ -160,9 +162,9 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
       'Proof, feedback, or retention evidence is being collected',
     ],
     resources: [
-      { title: 'Customer Results Course', access: 'Core', useWhen: 'Use this when the customer path needs to create clearer wins.' },
-      { title: 'First-Win Onboarding', access: 'Core', useWhen: 'Use this to improve the first important moment after someone buys.' },
-      { title: 'Proof and Retention', access: 'Core', useWhen: 'Use this when you need feedback, proof, referrals, or renewal signals.' },
+      { resourceId: 'organization-systems', title: 'Organization & Systems', access: 'Core', useWhen: 'Use this when delivery needs a clearer process, check-in, or first-win workflow.', portalPath: 'Learning -> BUSINESS STRATEGY: ORGANIZATION & SYSTEMS' },
+      { resourceId: 'ask-faith', title: 'Ask Faith', access: 'Core', useWhen: 'Use this when customer results, retention, or delivery quality needs coaching.', portalPath: 'Learning -> Ask Faith' },
+      { resourceId: 'current-replays', title: 'Current Call Replays', access: '30-day replays', useWhen: 'Use recent coaching examples for onboarding, delivery, or proof problems.', portalPath: 'Learning -> CALL REPLAYS -> current 30-day window' },
     ],
     supportPrompt: 'Where does a customer most need support between buying and getting the promised result?',
     nextMoneyMove: 'Improve the first customer win so delivery creates proof, retention, referrals, and cleaner future sales.',
@@ -184,9 +186,9 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
       'Automation, AI, delegation, or removal was chosen for the right reason',
     ],
     resources: [
-      { title: 'Leverage Stage Intro', access: 'Core', useWhen: 'Use this when the business works but feels too heavy to keep running.' },
-      { title: 'Simplify What Works', access: 'Core', useWhen: 'Use this before automating or delegating a messy process.' },
-      { title: 'AI or Delegation Decision', access: 'Core', useWhen: 'Use this to decide whether a task needs AI, a person, a system, or removal.' },
+      { resourceId: 'faith-ai', title: 'Faith AI', access: 'Core', useWhen: 'Use this when the member needs optional BYO-key support for sorting, planning, or breaking down action.', portalPath: 'Planner -> AI Settings + Learning -> Faith AI' },
+      { resourceId: 'organization-systems', title: 'Organization & Systems', access: 'Core', useWhen: 'Use this before automating or delegating a messy process.', portalPath: 'Learning -> BUSINESS STRATEGY: ORGANIZATION & SYSTEMS' },
+      { resourceId: 'ninety-day-planning', title: '90-Day Planning', access: 'Core', useWhen: 'Use this to reduce the quarter back to one result, one constraint, and one next move.', portalPath: 'Planner -> Build 90-Day Plan' },
     ],
     supportPrompt: 'What is already proven enough to simplify, automate, delegate, or remove?',
     nextMoneyMove: 'Simplify one proven money workflow so the business stops depending on your best-energy version to keep moving.',
