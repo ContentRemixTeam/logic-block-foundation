@@ -9,6 +9,7 @@ RETURNS timestamptz LANGUAGE sql IMMUTABLE PARALLEL SAFE SET search_path=pg_cata
   SELECT CASE WHEN p_inclusive_date IS NULL THEN NULL::timestamptz
     ELSE (p_inclusive_date + 1)::timestamp AT TIME ZONE 'America/New_York' END
 $$;
+REVOKE ALL ON FUNCTION public.replay_vault_exclusive_end(date) FROM PUBLIC, anon, authenticated, service_role;
 
 CREATE OR REPLACE VIEW public.replay_published_resource_projection WITH(security_invoker=false) AS
 SELECT r.id,r.portal_resource_id,r.title,r.product_title,r.category_title,r.portal_path,r.resource_type,

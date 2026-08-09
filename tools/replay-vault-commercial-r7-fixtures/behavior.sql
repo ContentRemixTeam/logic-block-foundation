@@ -145,7 +145,18 @@ DO $$ DECLARE j jsonb; old_expiry timestamptz; BEGIN
       IF SQLERRM='purchase contribution mutable' THEN RAISE; END IF; END;
 END $$;
 
-DO $$ DECLARE sig text:='public.apply_replay_vault_commercial_event_r7(text,text,text,text,text,text,text,text,text,text,text,text,bigint,timestamptz,timestamptz)'; BEGIN
+DO $$ DECLARE
+  sig text:='public.apply_replay_vault_commercial_event_r7(text,text,text,text,text,text,text,text,text,text,text,text,bigint,timestamptz,timestamptz)';
+  fn record;
+  allowed_service_names text[]:=ARRAY[
+    'activate_replay_transcript_version','replay_import_content_package','replay_mark_resource_ready','replay_approve_resource','replay_publish_resource','replay_revoke_resource',
+    'replay_vault_access_decision','search_replay_vault_resources','resolve_replay_vault_playback','record_replay_vault_playback_event','get_mastermind_portal_access_scopes',
+    'replay_questions_create_candidate','replay_questions_promote_candidate','replay_questions_privacy_approve','replay_questions_editorial_approve','replay_questions_seek_approve','replay_questions_make_answer_ready','replay_questions_publish','replay_questions_revoke',
+    'replay_vault_get_interaction','replay_vault_set_bookmark','replay_vault_delete_bookmark_by_id','replay_vault_begin_session','replay_vault_record_media_event','replay_vault_create_note',
+    'replay_vault_browse_member','replay_vault_categories_member','replay_vault_transcript_member','replay_vault_questions_member','replay_vault_saved_member',
+    'apply_replay_vault_commercial_event_r7','reconcile_replay_vault_unmapped_event_r7'
+  ];
+BEGIN
   IF NOT has_function_privilege('service_role',sig,'EXECUTE')
     OR has_function_privilege('authenticated',sig,'EXECUTE') OR has_function_privilege('anon',sig,'EXECUTE') THEN
     RAISE EXCEPTION 'R7 RPC ACL mismatch'; END IF;
@@ -160,6 +171,23 @@ DO $$ DECLARE sig text:='public.apply_replay_vault_commercial_event_r7(text,text
     WHERE n.nspname='public' AND (p.proname LIKE 'replay_%' OR p.proname='activate_replay_transcript_version')
       AND l.lanname IN ('sql','plpgsql') AND NOT EXISTS(SELECT 1 FROM unnest(coalesce(p.proconfig,'{}'::text[])) cfg WHERE cfg LIKE 'search_path=%')) THEN
     RAISE EXCEPTION 'final replay function lacks fixed search_path: %',(SELECT string_agg(p.proname,',') FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_language l ON l.oid=p.prolang WHERE n.nspname='public' AND (p.proname LIKE 'replay_%' OR p.proname='activate_replay_transcript_version') AND l.lanname IN ('sql','plpgsql') AND NOT EXISTS(SELECT 1 FROM unnest(coalesce(p.proconfig,'{}'::text[])) cfg WHERE cfg LIKE 'search_path=%'));END IF;
+  -- Exhaustive final-stack catalog ACL: every present Replay Vault function is
+  -- denied to PUBLIC/client roles; service_role may invoke only named Edge RPCs.
+  FOR fn IN
+    SELECT p.oid,p.proname,p.oid::regprocedure::text AS identity
+    FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_language l ON l.oid=p.prolang
+    WHERE n.nspname='public' AND l.lanname IN ('sql','plpgsql')
+      AND (p.proname LIKE '%replay%' OR p.proname='get_mastermind_portal_access_scopes')
+  LOOP
+    IF has_function_privilege('public',fn.oid,'EXECUTE')
+      OR has_function_privilege('anon',fn.oid,'EXECUTE')
+      OR has_function_privilege('authenticated',fn.oid,'EXECUTE') THEN
+      RAISE EXCEPTION 'final replay function client/PUBLIC execute leak %',fn.identity;
+    END IF;
+    IF has_function_privilege('service_role',fn.oid,'EXECUTE') AND NOT (fn.proname=ANY(allowed_service_names)) THEN
+      RAISE EXCEPTION 'unexpected direct service_role helper execute %',fn.identity;
+    END IF;
+  END LOOP;
   IF has_function_privilege('service_role','public.apply_replay_vault_webhook_event(text,text,text,text,text,text,text,text,timestamptz,timestamptz)','EXECUTE') THEN
     RAISE EXCEPTION 'unsafe old webhook RPC remains executable'; END IF;
   IF pg_get_viewdef('public.replay_published_resource_projection'::regclass,true)~*'current_date' THEN

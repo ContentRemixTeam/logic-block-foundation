@@ -42,8 +42,10 @@ check("signature rejection precedes parsing/RPC and delivery replay binds exact 
   assert.ok(commercial.indexOf("const args=await mapVerifiedCommercialWebhook")<commercial.indexOf("deps.rpc(args)"));
   has(commercialTests,"signature failure prevents injected RPC call");
   has(commercialTests,"unauthenticated malformed/conflicting bodies verify before parse or mapping and never call RPC");
-  has(commercialSql,"v_semantic_equal:=v_delivery.payload_sha256=p_payload_sha256");
-  for(const field of ["v_delivery.event_type=p_event_type","v_delivery.order_id IS NOT DISTINCT FROM v_order_id","v_delivery.transaction_id IS NOT DISTINCT FROM v_transaction_id","v_delivery.normalized_email=v_email","v_delivery.product_id=p_product_id","v_delivery.price_id=p_price_id","v_delivery.effective_at=p_effective_at"]) has(commercialSql,field);
+  const executableCommercialSql=commercialSql.replace(/\/\*[\s\S]*?\*\//g,"").replace(/^\s*--.*$/gm,"");
+  has(executableCommercialSql,"v_semantic_equal:=v_delivery.payload_sha256=p_payload_sha256");
+  lacks(executableCommercialSql,"v_semantic_equal:=true");
+  for(const field of ["v_delivery.event_type=p_event_type","v_delivery.order_id IS NOT DISTINCT FROM v_order_id","v_delivery.transaction_id IS NOT DISTINCT FROM v_transaction_id","v_delivery.normalized_email=v_email","v_delivery.product_id=p_product_id","v_delivery.price_id=p_price_id","v_delivery.effective_at=p_effective_at"]) has(executableCommercialSql,field);
   lacks(commercialSql,"v_delivery.signature_sha256=p_signature_sha256");
   has(commercialSql,"replay_vault_commercial_delivery_attempts");has(commercialSql,"event_id_payload_conflict");
 });
@@ -56,6 +58,7 @@ check("direct access is revoked, R7 is service-role-only, and functions use fixe
   has(sql,"FROM PUBLIC, anon, authenticated, service_role");
   const creates=[...sql.matchAll(/CREATE OR REPLACE FUNCTION\s+public\.([a-z0-9_]+)\s*\(([^)]*)\)/gi)].map(m=>m[1]);
   for(const name of new Set(creates)) has(sql,`REVOKE ALL ON FUNCTION public.${name}`);
+  has(commercialSql,"REVOKE ALL ON FUNCTION public.replay_vault_exclusive_end(date) FROM PUBLIC, anon, authenticated, service_role");
   has(commercialSql,"REVOKE ALL ON FUNCTION public.apply_replay_vault_webhook_event");
   has(commercialSql,"GRANT EXECUTE ON FUNCTION public.apply_replay_vault_commercial_event_r7");
   has(commercialSql,"SECURITY DEFINER SET search_path=pg_catalog,public");
