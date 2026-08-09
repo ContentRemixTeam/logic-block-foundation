@@ -108,9 +108,9 @@ SELECT public.record_replay_vault_playback_event(
 SELECT public.record_replay_vault_playback_event(
   '11111111-1111-4111-8111-111111111111','10000000-0000-4000-8000-000000000001',
   'allowed','dropbox',NULL,:'question_id'::uuid);
-SELECT public.apply_replay_vault_webhook_event(
-  'acl-probe','event-1600','order-1600','member@example.com','grant','unmapped','unmapped',
-  repeat('f',64),clock_timestamp(),NULL) AS webhook_receipt \gset
+SELECT public.apply_replay_vault_commercial_event_r7(
+  'acl-probe','event-1800','order-1800','transaction-1800',NULL,NULL,'member@example.com','grant','unmapped','unmapped',
+  repeat('f',64),repeat('e',64),clock_timestamp(),NULL) AS webhook_receipt \gset
 SELECT public.get_mastermind_portal_access_scopes('member@example.com') AS scope_receipt \gset
 RESET ROLE;
 SELECT set_config('fixture.moment_id', :'moment_id', false);
@@ -177,7 +177,7 @@ DO $$DECLARE sig text; runtime_role text;BEGIN
     'public.search_replay_vault_resources(uuid,text,text,text,integer,boolean,boolean,timestamptz)',
     'public.resolve_replay_vault_playback(uuid,text,text,uuid,uuid,boolean,timestamptz)',
     'public.record_replay_vault_playback_event(uuid,uuid,text,text,uuid,uuid)',
-    'public.apply_replay_vault_webhook_event(text,text,text,text,text,text,text,text,timestamptz,timestamptz)',
+    'public.apply_replay_vault_commercial_event_r7(text,text,text,text,text,text,text,text,text,text,text,text,timestamptz,timestamptz)',
     'public.get_mastermind_portal_access_scopes(text)',
     'public.replay_questions_create_candidate(uuid,integer,bigint,bigint,bigint,text,text)',
     'public.replay_questions_promote_candidate(uuid,text,text,text)',
@@ -205,6 +205,7 @@ END$$;
 DO $$DECLARE n text; runtime_role text;BEGIN
   FOREACH n IN ARRAY ARRAY[
     'replay_vault_entitlements','replay_vault_webhook_events','replay_vault_playback_events',
+    'replay_vault_commercial_deliveries','replay_vault_purchase_contributions','replay_vault_purchase_lifecycle_evidence','replay_vault_commercial_quarantine','replay_vault_commercial_resolutions',
     'replay_question_candidates','replay_answers','replay_editorial_review_events','replay_question_publication_controls',
     'replay_vault_bookmarks','replay_vault_watch_state','replay_vault_playback_sessions',
     'replay_vault_media_events','replay_vault_note_backlinks'
@@ -227,7 +228,7 @@ DO $$DECLARE sig text;BEGIN FOREACH sig IN ARRAY ARRAY[
  'public.search_replay_vault_resources(uuid,text,text,text,integer,boolean,boolean,timestamptz)',
  'public.resolve_replay_vault_playback(uuid,text,text,uuid,uuid,boolean,timestamptz)',
  'public.record_replay_vault_playback_event(uuid,uuid,text,text,uuid,uuid)',
- 'public.apply_replay_vault_webhook_event(text,text,text,text,text,text,text,text,timestamptz,timestamptz)',
+ 'public.apply_replay_vault_commercial_event_r7(text,text,text,text,text,text,text,text,text,text,text,text,timestamptz,timestamptz)',
  'public.get_mastermind_portal_access_scopes(text)'] LOOP
  IF NOT has_function_privilege('service_role',sig,'EXECUTE') OR has_function_privilege('authenticated',sig,'EXECUTE') THEN RAISE EXCEPTION 'inherited Edge RPC ACL regression %',sig;END IF;
  END LOOP;END$$;

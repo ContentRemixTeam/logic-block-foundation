@@ -380,23 +380,13 @@ DROP TRIGGER IF EXISTS replay_editorial_events_append_only ON public.replay_edit
 CREATE TRIGGER replay_editorial_events_append_only BEFORE UPDATE OR DELETE ON public.replay_editorial_review_events
 FOR EACH ROW EXECUTE FUNCTION public.replay_forbid_immutable_mutation();
 
--- One calendar-date conversion authority. A paid-through/current-replay date is
--- inclusive in America/New_York and expires at the next local midnight. Views
--- expose this boundary, but only capability RPCs compare it with p_as_of.
-CREATE OR REPLACE FUNCTION public.replay_vault_exclusive_end(p_inclusive_date date)
-RETURNS timestamptz LANGUAGE sql IMMUTABLE PARALLEL SAFE SET search_path=pg_catalog AS $$
-  SELECT CASE WHEN p_inclusive_date IS NULL THEN NULL::timestamptz
-    ELSE (p_inclusive_date + 1)::timestamp AT TIME ZONE 'America/New_York' END
-$$;
-
 CREATE OR REPLACE VIEW public.replay_published_resource_projection
 WITH (security_invoker=false) AS
 SELECT r.id, r.portal_resource_id, r.title, r.product_title, r.category_title, r.portal_path,
        r.resource_type, r.approved_access_scope, r.stages, r.success_paths,
        tv.id AS transcript_version_id, tv.normalized_sha256 AS transcript_sha256,
        ma.id AS playback_attempt_id, ma.dropbox_file_id, ma.dropbox_content_hash,
-       ma.size_bytes, ma.duration_ms,
-       public.replay_vault_exclusive_end(r.available_until) AS availability_expires_at
+       ma.size_bytes, ma.duration_ms
 FROM public.mastermind_portal_resources r
 JOIN public.replay_transcript_versions tv ON tv.id=r.active_transcript_version_id
 JOIN public.replay_media_migration_attempts ma ON ma.id=r.active_playback_attempt_id
@@ -410,7 +400,8 @@ WHERE r.publication_state='published' AND r.published_at IS NOT NULL AND r.revok
     SELECT 1 FROM public.replay_pairing_candidates pc
     WHERE pc.resource_id=r.id AND pc.transcript_version_id=tv.id AND pc.media_asset_id=ma.source_asset_id
       AND pc.decision IN ('auto_approved','editor_approved')
-  );
+  )
+  AND (r.approved_access_scope <> 'current_replay_30_day' OR r.available_until >= CURRENT_DATE);
 
 CREATE OR REPLACE VIEW public.replay_published_answers_projection
 WITH (security_invoker=false) AS
@@ -515,7 +506,7 @@ CREATE OR REPLACE FUNCTION public.replay_approve_resource(rid uuid,actor text,rv
 CREATE OR REPLACE FUNCTION public.replay_publish_resource(rid uuid,actor text)RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$DECLARE a public.replay_publication_authority%ROWTYPE;BEGIN PERFORM public.replay_assert_actor(actor);a:=public.replay_assert_release_evidence(rid);IF a.state<>'APPROVED'THEN RAISE EXCEPTION 'expected APPROVED';END IF;IF NOT(SELECT publication_enabled FROM public.replay_publication_controls WHERE singleton)THEN RAISE EXCEPTION 'publication feature disabled';END IF;UPDATE public.replay_publication_authority SET state='PUBLISHED',published_by=actor,published_at=now(),updated_at=now()WHERE resource_id=rid;END$$;
 CREATE OR REPLACE FUNCTION public.replay_revoke_resource(rid uuid,actor text,reason text)RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$BEGIN PERFORM public.replay_assert_actor(actor);IF coalesce(btrim(reason),'')=''THEN RAISE EXCEPTION 'reason required';END IF;IF NOT EXISTS(SELECT 1 FROM public.replay_publication_authority WHERE resource_id=rid AND state='PUBLISHED'FOR UPDATE)THEN RAISE EXCEPTION 'expected PUBLISHED';END IF;UPDATE public.replay_publication_authority SET state='REVOKED',revoked_by=actor,revoked_at=now(),revocation_reason=reason,updated_at=now()WHERE resource_id=rid;END$$;
 
-CREATE OR REPLACE VIEW public.replay_published_resource_projection WITH(security_invoker=false)AS SELECT r.id,r.portal_resource_id,r.title,r.product_title,r.category_title,r.portal_path,r.resource_type,r.approved_access_scope,r.stages,r.success_paths,a.transcript_version_id,a.transcript_content_sha256 transcript_sha256,a.playback_attempt_id,m.dropbox_file_id,m.dropbox_content_hash,m.size_bytes,m.duration_ms,public.replay_vault_exclusive_end(r.available_until) availability_expires_at FROM public.replay_publication_authority a JOIN public.mastermind_portal_resources r ON r.id=a.resource_id JOIN public.replay_transcript_versions v ON v.id=a.transcript_version_id JOIN public.replay_media_migration_attempts m ON m.id=a.playback_attempt_id WHERE a.state='PUBLISHED'AND a.published_at IS NOT NULL AND a.revoked_at IS NULL AND v.resource_id=a.resource_id AND v.is_active AND v.normalized_sha256=a.transcript_content_sha256 AND m.source_asset_id=a.media_source_asset_id AND m.verification_evidence_sha256=a.media_evidence_sha256;
+CREATE OR REPLACE VIEW public.replay_published_resource_projection WITH(security_invoker=false)AS SELECT r.id,r.portal_resource_id,r.title,r.product_title,r.category_title,r.portal_path,r.resource_type,r.approved_access_scope,r.stages,r.success_paths,a.transcript_version_id,a.transcript_content_sha256 transcript_sha256,a.playback_attempt_id,m.dropbox_file_id,m.dropbox_content_hash,m.size_bytes,m.duration_ms FROM public.replay_publication_authority a JOIN public.mastermind_portal_resources r ON r.id=a.resource_id JOIN public.replay_transcript_versions v ON v.id=a.transcript_version_id JOIN public.replay_media_migration_attempts m ON m.id=a.playback_attempt_id WHERE a.state='PUBLISHED'AND a.published_at IS NOT NULL AND a.revoked_at IS NULL AND v.resource_id=a.resource_id AND v.is_active AND v.normalized_sha256=a.transcript_content_sha256 AND m.source_asset_id=a.media_source_asset_id AND m.verification_evidence_sha256=a.media_evidence_sha256 AND(r.approved_access_scope IS NULL OR r.approved_access_scope<>'current_replay_30_day'OR r.available_until>=CURRENT_DATE);
 CREATE OR REPLACE VIEW public.replay_published_answers_projection WITH(security_invoker=false)AS SELECT a.id,a.question_cluster_id,a.resource_id,a.member_question,a.safe_answer_summary,a.safe_excerpt,a.answerer_attribution,a.situation_context_safe,a.question_start_ms,a.answer_start_ms,a.answer_end_ms,a.visibility_scope,a.is_best_answer,a.related_answer_rank FROM public.replay_answers a JOIN public.replay_question_candidates q ON q.id=a.question_candidate_id JOIN public.replay_published_resource_projection r ON r.id=a.resource_id AND r.transcript_version_id=a.transcript_version_id AND r.playback_attempt_id=a.playback_attempt_id WHERE a.publication_state='PUBLISHED'AND a.published_at IS NOT NULL AND a.revoked_at IS NULL AND q.state='approved'AND q.origin='human_curated'AND q.source_privacy_flag='clear'AND coalesce(q.raw_excerpt_private,'')!~*'PRIVATE_SENTINEL'AND q.proposed_question_private!~*'PRIVATE_SENTINEL'AND a.member_question!~*'PRIVATE_SENTINEL'AND a.safe_answer_summary!~*'PRIVATE_SENTINEL'AND coalesce(a.safe_excerpt,'')!~*'PRIVATE_SENTINEL';
 DROP FUNCTION public.activate_replay_transcript_version(uuid,text);
 DO $$DECLARE n text;BEGIN FOREACH n IN ARRAY ARRAY['replay_ingestion_runs','replay_source_assets','replay_transcript_versions','replay_transcript_segments','replay_pairing_candidates','replay_media_migration_attempts','replay_question_clusters','replay_question_candidates','replay_answers','replay_editorial_review_events','replay_publication_controls','replay_publication_authority']LOOP EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY',n);EXECUTE format('REVOKE ALL ON TABLE public.%I FROM PUBLIC,anon,authenticated,service_role',n);END LOOP;END$$;
