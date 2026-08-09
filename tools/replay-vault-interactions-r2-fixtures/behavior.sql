@@ -98,6 +98,13 @@ SELECT count(*) AS search_count FROM public.search_replay_vault_resources(
   '11111111-1111-4111-8111-111111111111','member@example.com','Current',NULL,12,true,false,clock_timestamp()) \gset
 SELECT count(*) AS playback_count FROM public.resolve_replay_vault_playback(
   '11111111-1111-4111-8111-111111111111','member@example.com','replay-r2',:'question_id'::uuid,NULL,false,clock_timestamp()) \gset
+SELECT count(*) AS full_playback_count FROM public.resolve_replay_vault_playback(
+  '11111111-1111-4111-8111-111111111111','member@example.com','replay-r2',NULL,NULL,false,clock_timestamp()) \gset
+SELECT count(*) AS dual_playback_count FROM public.resolve_replay_vault_playback(
+  '11111111-1111-4111-8111-111111111111','member@example.com','replay-r2',:'question_id'::uuid,:'moment_id'::uuid,false,clock_timestamp()) \gset
+SELECT public.record_replay_vault_playback_event(
+  '11111111-1111-4111-8111-111111111111','10000000-0000-4000-8000-000000000001',
+  'allowed','dropbox',NULL,NULL);
 SELECT public.record_replay_vault_playback_event(
   '11111111-1111-4111-8111-111111111111','10000000-0000-4000-8000-000000000001',
   'allowed','dropbox',NULL,:'question_id'::uuid);
@@ -117,6 +124,8 @@ SELECT set_config('fixture.note_receipt', :'note_receipt', false);
 SELECT set_config('fixture.note_replay', :'note_replay', false);
 SELECT set_config('fixture.access_receipt', :'access_receipt', false);
 SELECT set_config('fixture.playback_count', :'playback_count', false);
+SELECT set_config('fixture.full_playback_count', :'full_playback_count', false);
+SELECT set_config('fixture.dual_playback_count', :'dual_playback_count', false);
 SELECT set_config('fixture.webhook_receipt', :'webhook_receipt', false);
 SELECT set_config('fixture.scope_receipt', :'scope_receipt', false);
 
@@ -133,6 +142,11 @@ BEGIN
     OR NOT (current_setting('fixture.note_replay')::jsonb->>'replayed')::boolean THEN RAISE EXCEPTION 'note idempotency failed'; END IF;
   IF NOT (current_setting('fixture.access_receipt')::jsonb->>'allowed')::boolean
     OR current_setting('fixture.playback_count')::integer<>1 THEN RAISE EXCEPTION 'inherited access/playback invocation failed'; END IF;
+  IF current_setting('fixture.full_playback_count')::integer<>1
+    OR current_setting('fixture.dual_playback_count')::integer<>0 THEN RAISE EXCEPTION 'resource-only or dual-target playback contract failed'; END IF;
+  IF (SELECT count(*) FROM public.replay_vault_playback_events
+      WHERE resource_id='10000000-0000-4000-8000-000000000001' AND moment_id IS NULL AND question_id IS NULL)<>1
+    THEN RAISE EXCEPTION 'full replay audit row missing'; END IF;
   IF current_setting('fixture.webhook_receipt')::jsonb->>'status'<>'rejected_unmapped' THEN RAISE EXCEPTION 'webhook invocation failed'; END IF;
   IF current_setting('fixture.scope_receipt') IS NULL THEN RAISE EXCEPTION 'scope invocation failed'; END IF;
   IF (SELECT count(*) FROM public.replay_published_answers_projection WHERE id=current_setting('fixture.question_id')::uuid)<>1

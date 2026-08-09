@@ -146,6 +146,7 @@ export function makeAuthReturnTo(location) {
 }
 
 export function validatePlaybackResponse(data, target) {
+  if (target?.momentId && target?.questionId) return null;
   if (!data || typeof data !== 'object' || !isStableVaultId(data.resourceId) || data.resourceId !== target.resourceId || typeof data.playbackUrl !== 'string' || !data.playbackUrl) return null;
   if (target.momentId && (data.momentId !== target.momentId || !Number.isFinite(data.startSeconds))) return null;
   if (target.questionId && data.questionId !== target.questionId) return null;

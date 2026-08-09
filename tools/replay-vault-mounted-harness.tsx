@@ -67,6 +67,10 @@ const nativePlayback = (url = 'file:///Users/faithhawks/Developer/Mastermind%20S
   resourceId, title: 'Answer replay', provider: 'dropbox', playbackUrl: url, expiresAt: null, accessScope: 'replay_vault',
   momentId, questionId: momentId === momentOne ? questionOne : questionTwo, startSeconds, endSeconds: startSeconds + 28,
 }, error: null });
+const fullReplayPlayback = { data: {
+  resourceId, title: 'Recent canonical call', provider: 'dropbox', playbackUrl: 'file:///Users/faithhawks/Developer/Mastermind%20Scaling/worktrees/replay-vault-ux-r3/public/sounds/timer-complete.mp3?source=protected-full.mp4', expiresAt: null, accessScope: 'replay_vault',
+  momentId: null, questionId: null, startSeconds: 0, endSeconds: 1200,
+}, error: null };
 
 async function malformedAccessIsUnavailable() {
   __vaultMock.reset();
@@ -284,6 +288,13 @@ async function parityDirectoriesAndReceiptsMount() {
   await click(byText('questions'));await tick();assert(document.body.textContent?.includes('How do I protect capacity?'),'standalone authorized Questions directory must mount');
   __vaultMock.enqueue('vault-member-library',{data:{items:[{bookmarkId:'66666666-6666-4666-8666-666666666666',resourceId,title:'Recent canonical call',category:'Office hours',targetKind:'replay',targetId:'10000000-0000-4000-8000-000000000001',startSeconds:0,savedAt:'2026-08-09T00:00:00Z',label:'Full replay'}]},error:null});
   await click(byText('saved'));await tick();assert(document.body.textContent?.includes('Remove everywhere'),'central Saved page must mount video/moment filter and removal control');
+  __vaultMock.enqueue('get-mastermind-playback-link',fullReplayPlayback);
+  __vaultMock.enqueue('vault-member-library',{data:{items:[]},error:null});
+  __vaultMock.enqueue('vault-member-library',{data:{items:[]},error:null});
+  await click(byText('Open saved video'));await tick();await tick();
+  const fullBody=__vaultMock.lastBody('get-mastermind-playback-link');
+  assert(fullBody.resourceId===resourceId&&fullBody.momentId===null&&fullBody.questionId===null&&!('startSeconds'in fullBody),'Saved full video must reopen through resource-only authoritative playback');
+  assert(document.body.textContent?.includes('Playing from the start'),`Saved full video must reopen at the canonical start: ${(document.body.textContent ?? '').slice(-500)}`);
   __vaultMock.enqueue('vault-member-interactions',{data:{data:{deleted:true,bookmarkId:'66666666-6666-4666-8666-666666666666'}},error:null});
   await click(byText('Remove everywhere'));assert(document.body.textContent?.includes('Removed everywhere from Saved.'),'remove-everywhere UI must be receipt-gated');
   const buttons=[...document.querySelectorAll<HTMLButtonElement>('button')].filter(b=>['browse','questions','saved'].includes(b.textContent?.trim()||''));

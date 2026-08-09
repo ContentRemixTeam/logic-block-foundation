@@ -57,7 +57,7 @@ serve(async (req: Request) => {
     const resourceId = typeof body.resourceId === "string" ? body.resourceId.trim() : "";
     const questionId = typeof body.questionId === "string" ? body.questionId.trim() : "";
     const momentId = typeof body.momentId === "string" ? body.momentId.trim() : "";
-    if (!resourceId || resourceId.length > MAX_RESOURCE_ID || (Boolean(questionId) === Boolean(momentId)) ||
+    if (!resourceId || resourceId.length > MAX_RESOURCE_ID || (Boolean(questionId) && Boolean(momentId)) ||
         (questionId && !UUID.test(questionId)) || (momentId && !UUID.test(momentId))) return inaccessible(req);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");

@@ -18,12 +18,15 @@ const searchEndpoint = readFileSync(path.join(root, "supabase/functions/search-m
 const playbackEndpoint = readFileSync(path.join(root, "supabase/functions/get-mastermind-playback-link/index.ts"), "utf8");
 const accessEndpoint = readFileSync(path.join(root, "supabase/functions/get-mastermind-portal-access/index.ts"), "utf8");
 const importer = readFileSync(path.join(root, "tools/build-membershipio-replay-vault-import.py"), "utf8");
+const parityMigration = readFileSync(path.join(root, "supabase/migrations/20260809170000_replay_vault_member_parity_r4.sql"), "utf8");
 
 assert.match(searchEndpoint, /import \{ mapSearchRow \} from "\.\.\/_shared\/replayVaultProducer\.mjs"/);
 assert.match(searchEndpoint, /\.map\(mapSearchRow\)/);
 assert.match(playbackEndpoint, /import \{ mapPlaybackResponse \} from "\.\.\/_shared\/replayVaultProducer\.mjs"/);
 assert.match(playbackEndpoint, /const MAX_RESOURCE_ID = 220/);
-assert.match(playbackEndpoint, /Boolean\(questionId\) === Boolean\(momentId\)/, 'playback endpoint exactly-one-target guard drifted');
+assert.match(playbackEndpoint, /Boolean\(questionId\) && Boolean\(momentId\)/, 'playback endpoint zero-or-one-target guard drifted');
+assert.match(parityMigration, /IF p_question_id IS NOT NULL AND p_moment_id IS NOT NULL THEN RETURN;/, 'SQL dual-target playback guard drifted');
+assert.match(parityMigration, /v_start:=0; v_end:=v_duration;/, 'SQL resource-only playback start contract drifted');
 assert.match(playbackEndpoint, /secureJson\(req, mapPlaybackResponse\(/);
 assert.match(importer, /portal_resource_id = f"membershipio:\{file_hash\}"/);
 for (const field of ["allowed", "memberEntitled", "memberTier", "memberScopes", "previewCapabilities", "previewActive", "launchState"]) {
@@ -127,6 +130,11 @@ for (const [name, mutate] of [
   assert.equal(validatePlaybackResponse(value, momentTarget), null, `UX accepted negative moment playback producer control: ${name}`);
 }
 
+const fullPlayback = mapPlaybackResponse({ ...playbackRow, authoritative_start_seconds: 0, authoritative_end_seconds: 3600, moment_id: null, question_id: null }, "https://dropbox.example/temporary", "2026-08-09T20:00:00.000Z");
+const fullTarget = { resourceId: canonicalResourceId, momentId: null, questionId: null };
+assert.equal(validatePlaybackResponse(fullPlayback, fullTarget)?.startSeconds, 0, "resource-only playback must open at authoritative start");
+assert.equal(validatePlaybackResponse({ ...mappedPlayback, questionId }, { resourceId: canonicalResourceId, momentId, questionId }), null, "client accepted a dual-target playback response");
+
 const questionPlayback = mapPlaybackResponse({ ...playbackRow, authoritative_start_seconds: 240, authoritative_end_seconds: 285, moment_id: null, question_id: questionId }, "https://dropbox.example/temporary", "2026-08-09T20:00:00.000Z");
 const questionTarget = { resourceId: canonicalResourceId, momentId: null, questionId };
 assert.equal(validatePlaybackResponse(questionPlayback, questionTarget)?.startSeconds, 240, "question mapper target/cue drifted");
@@ -142,4 +150,4 @@ for (const [name, mutate] of [
 const maxBoundPlayback = mapPlaybackResponse({ ...playbackRow, portal_resource_id: maxBoundResourceId }, "https://dropbox.example/temporary", null);
 assert.ok(validatePlaybackResponse(maxBoundPlayback, { ...momentTarget, resourceId: maxBoundResourceId }), "UX rejected safe producer ID at the server's 220-character bound");
 
-console.log("Replay Vault producer contract passed: exact access producer states, canonical/importer and 220-character IDs, search/playback mapper targets and cues, URL encoding, and schema/identity/target/cue drift controls are bound to the current UX.");
+console.log("Replay Vault producer contract passed: exact access producer states, canonical/importer and 220-character IDs, search/playback mapper resource-only and cue targets, URL encoding, and schema/identity/target/cue drift controls are bound to the current UX.");

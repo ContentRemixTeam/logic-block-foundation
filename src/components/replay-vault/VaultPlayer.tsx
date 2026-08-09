@@ -13,7 +13,7 @@ export function VaultPlayer({ playback, target, videoRef, announcement, sourceGe
   const youtubeUrl = isYouTube ? `${playback.playbackUrl}${playback.playbackUrl.includes('?') ? '&' : '?'}start=${Math.max(0, Math.floor(target.startSeconds ?? 0))}` : null;
   return (
     <Card id="vault-player" className="min-w-0 scroll-mt-4 overflow-hidden" data-motion-safe tabIndex={-1}>
-      <CardHeader><CardTitle className="break-words">{playback.title}</CardTitle><CardDescription>{target.startSeconds === null ? 'Playing from the start' : `Playing answer at ${formatCompactTime(target.startSeconds)}`}</CardDescription></CardHeader>
+      <CardHeader><CardTitle className="break-words">{playback.title}</CardTitle><CardDescription>{!target.momentId && !target.questionId ? 'Playing from the start' : `Playing answer at ${formatCompactTime(target.startSeconds)}`}</CardDescription></CardHeader>
       <CardContent className="space-y-3">
         {isYouTube ? (
           <>
@@ -25,7 +25,9 @@ export function VaultPlayer({ playback, target, videoRef, announcement, sourceGe
             <source src={playback.playbackUrl} />Your browser does not support protected video playback.
           </video>
         )}
-        <VaultInteractionBar playback={playback} target={target} videoRef={videoRef} sourceGeneration={sourceGeneration} />
+        {target.momentId || target.questionId
+          ? <VaultInteractionBar playback={playback} target={target} videoRef={videoRef} sourceGeneration={sourceGeneration} />
+          : <p className="rounded-md border p-3 text-sm text-muted-foreground">Full-replay saving is available from Browse and Saved. Answer notes, sharing, and watch progress start when you open an exact transcript moment or approved question.</p>}
         <VaultCallQuestions resourceId={playback.resourceId} title={playback.title} onOpen={onOpen} />
         <VaultTranscript resourceId={playback.resourceId} title={playback.title} videoRef={videoRef} onOpen={onOpen} />
         <p className="sr-only" role="status" aria-live="polite">{announcement}</p>

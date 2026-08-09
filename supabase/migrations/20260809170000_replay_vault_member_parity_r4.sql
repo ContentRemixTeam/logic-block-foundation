@@ -12,6 +12,17 @@ ALTER TABLE public.replay_vault_watch_state ADD CONSTRAINT replay_vault_watch_st
 ALTER TABLE public.replay_vault_playback_sessions ADD CONSTRAINT replay_vault_playback_sessions_target_kind_r4 CHECK(target_kind IN('moment','question'));
 ALTER TABLE public.replay_vault_note_backlinks ADD CONSTRAINT replay_vault_note_backlinks_target_kind_r4 CHECK(target_kind IN('moment','question'));
 
+-- A full-replay playback audit has neither a moment nor a question. Dual
+-- targets remain impossible.
+DO $$ DECLARE c record; BEGIN
+  FOR c IN SELECT conname FROM pg_constraint
+    WHERE contype='c' AND conrelid='public.replay_vault_playback_events'::regclass
+      AND pg_get_constraintdef(oid) LIKE '%moment_id%question_id%'
+  LOOP EXECUTE format('ALTER TABLE public.replay_vault_playback_events DROP CONSTRAINT %I',c.conname); END LOOP;
+END $$;
+ALTER TABLE public.replay_vault_playback_events ADD CONSTRAINT replay_vault_playback_events_target_r4
+  CHECK(NOT(moment_id IS NOT NULL AND question_id IS NOT NULL));
+
 CREATE OR REPLACE FUNCTION public.replay_vault_member_email(p_user_id uuid)
 RETURNS text LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,public AS $$
  SELECT lower(trim(email)) FROM auth.users WHERE id=p_user_id
@@ -45,6 +56,44 @@ DECLARE b public.replay_vault_target_binding; canonical_email text; BEGIN
    AND (p_target_kind='replay' OR (p_target_kind='moment' AND s.id IS NOT NULL) OR (p_target_kind='question' AND q.id IS NOT NULL));
  IF b.resource_id IS NULL THEN RAISE EXCEPTION 'inaccessible' USING ERRCODE='42501'; END IF; RETURN b;
 END $$;
+
+-- Resource-only playback supports full-video browse and Saved reopening. The
+-- resolver still accepts at most one durable cue target and always performs
+-- the canonical server-side access decision at call time.
+CREATE OR REPLACE FUNCTION public.resolve_replay_vault_playback(
+  p_user_id uuid, p_email text, p_resource_id text,
+  p_question_id uuid DEFAULT NULL, p_moment_id uuid DEFAULT NULL,
+  p_preview boolean DEFAULT false, p_as_of timestamptz DEFAULT clock_timestamp()
+) RETURNS TABLE(resource_uuid uuid,portal_resource_id text,title text,dropbox_locator text,access_scope text,
+  authoritative_start_seconds integer,authoritative_end_seconds integer,moment_id uuid,question_id uuid)
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+DECLARE
+  v_resource_id uuid; v_transcript_version_id uuid; v_title text; v_locator text; v_scope text;
+  v_duration integer; v_start integer; v_end integer;
+BEGIN
+  IF p_question_id IS NOT NULL AND p_moment_id IS NOT NULL THEN RETURN; END IF;
+  SELECT r.id,r.transcript_version_id,r.title,'id:'||r.dropbox_file_id,r.approved_access_scope,(r.duration_ms/1000)::integer
+    INTO v_resource_id,v_transcript_version_id,v_title,v_locator,v_scope,v_duration
+    FROM public.replay_published_resource_projection r
+   WHERE r.portal_resource_id=p_resource_id AND nullif(trim(r.dropbox_file_id),'') IS NOT NULL
+     AND (public.replay_vault_access_decision(p_user_id,p_email,r.portal_resource_id,'playback',p_preview,p_as_of)->>'allowed')::boolean;
+  IF v_resource_id IS NULL OR v_locator IS NULL OR v_duration IS NULL OR v_duration<=0 THEN RETURN; END IF;
+  IF p_moment_id IS NOT NULL THEN
+    SELECT (s.starts_at_ms/1000)::integer,(s.ends_at_ms/1000)::integer INTO v_start,v_end
+      FROM public.replay_transcript_segments s
+      WHERE s.id=p_moment_id AND s.transcript_version_id=v_transcript_version_id;
+    IF NOT FOUND OR v_start IS NULL OR v_end IS NULL THEN RETURN; END IF;
+  ELSIF p_question_id IS NOT NULL THEN
+    SELECT (a.answer_start_ms/1000)::integer,(a.answer_end_ms/1000)::integer INTO v_start,v_end
+      FROM public.replay_published_answers_projection a
+      WHERE a.id=p_question_id AND a.resource_id=v_resource_id;
+    IF NOT FOUND OR v_start IS NULL OR v_end IS NULL THEN RETURN; END IF;
+  ELSE
+    v_start:=0; v_end:=v_duration;
+  END IF;
+  RETURN QUERY SELECT v_resource_id,p_resource_id,v_title,v_locator,v_scope,v_start,v_end,p_moment_id,p_question_id;
+END;
+$$;
 
 CREATE OR REPLACE FUNCTION public.replay_vault_browse_member(p_user_id uuid,p_category text DEFAULT NULL,p_offset integer DEFAULT 0,p_limit integer DEFAULT 20)
 RETURNS TABLE(portal_resource_id text,title text,category text,duration_seconds numeric,published_at timestamptz,question_count bigint)
