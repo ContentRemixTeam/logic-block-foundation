@@ -1,4 +1,4 @@
--- Questions Answered R1: private, human-reviewed, function-only workflow.
+-- Questions Answered R2: private, human-reviewed, function-only workflow.
 -- Additive only. Publication remains disabled and no member/client role receives access.
 
 ALTER TABLE public.replay_question_candidates
@@ -23,6 +23,7 @@ ALTER TABLE public.replay_answers
   ADD COLUMN IF NOT EXISTS revocation_reason text;
 
 ALTER TABLE public.replay_answers DROP CONSTRAINT IF EXISTS replay_answers_check1;
+ALTER TABLE public.replay_answers DROP CONSTRAINT IF EXISTS replay_answers_r1_publication_lifecycle_chk;
 DO $$
 DECLARE c record;
 BEGIN
@@ -37,13 +38,15 @@ ALTER TABLE public.replay_answers ADD CONSTRAINT replay_answers_r1_publication_l
   (publication_state IN ('DRAFT','READY','APPROVED') AND published_at IS NULL AND revoked_at IS NULL)
   OR (publication_state='PUBLISHED' AND published_at IS NOT NULL AND revoked_at IS NULL
       AND privacy_approval='approved' AND editorial_approval='approved' AND seek_approval='approved'
-      AND privacy_reviewer IS NOT NULL AND editorial_reviewer IS NOT NULL AND seek_reviewer IS NOT NULL)
+      AND privacy_reviewer IS NOT NULL AND editorial_reviewer IS NOT NULL AND seek_reviewer IS NOT NULL
+      AND privacy_reviewer<>editorial_reviewer AND privacy_reviewer<>seek_reviewer AND editorial_reviewer<>seek_reviewer)
   OR (publication_state='REVOKED' AND published_at IS NOT NULL AND revoked_at IS NOT NULL
       AND privacy_approval='approved' AND editorial_approval='approved' AND seek_approval='approved'
-      AND privacy_reviewer IS NOT NULL AND editorial_reviewer IS NOT NULL AND seek_reviewer IS NOT NULL)
+      AND privacy_reviewer IS NOT NULL AND editorial_reviewer IS NOT NULL AND seek_reviewer IS NOT NULL
+      AND privacy_reviewer<>editorial_reviewer AND privacy_reviewer<>seek_reviewer AND editorial_reviewer<>seek_reviewer)
 );
 
-CREATE TABLE public.replay_question_publication_controls (
+CREATE TABLE IF NOT EXISTS public.replay_question_publication_controls (
   singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton),
   publication_enabled boolean NOT NULL DEFAULT false,
   changed_at timestamptz NOT NULL DEFAULT now(),
@@ -75,6 +78,14 @@ BEGIN
   IF v = '' OR length(v) > 1000 THEN RAISE EXCEPTION 'question workflow denied'; END IF;
   RETURN v;
 END
+$$;
+
+-- Centralized gate for every text field serialized by the member-safe projection.
+-- Any future situation_context_safe writer must pass its value here too.
+CREATE OR REPLACE FUNCTION public.replay_questions_member_safe(VARIADIC p_values text[])
+RETURNS boolean LANGUAGE sql IMMUTABLE SET search_path = pg_catalog AS $$
+  SELECT coalesce(bool_and(coalesce(v,'') !~* '(PRIVATE_SENTINEL|[[:alnum:]._%+-]+@[[:alnum:].-]+\.[A-Za-z]{2,})'),true)
+  FROM unnest(p_values) AS value(v)
 $$;
 
 CREATE OR REPLACE FUNCTION public.replay_questions_excerpt(
@@ -144,7 +155,7 @@ BEGIN
     OR public.replay_transcript_content_hash(v.id)<>q.transcript_snapshot_sha256
     OR m.status<>'verified' OR NOT m.full_decode_ok OR NOT m.range_request_ok OR NOT m.sample_seek_ok
     OR m.verification_evidence_sha256<>q.media_snapshot_sha256
-    OR q.question_start_ms<0 OR q.question_start_ms>q.answer_start_ms OR q.answer_start_ms>q.answer_end_ms
+    OR q.question_start_ms<0 OR q.question_start_ms>=q.answer_start_ms OR q.answer_start_ms>=q.answer_end_ms
     OR q.answer_end_ms>v.last_ms OR q.answer_end_ms>m.duration_ms
     OR NOT EXISTS (SELECT 1 FROM public.replay_transcript_segments s
       WHERE s.transcript_version_id=q.transcript_version_id AND s.segment_index=q.question_segment_index
@@ -197,7 +208,7 @@ BEGIN
     OR v.normalized_sha256<>a.transcript_content_sha256 OR m.status<>'verified'
     OR m.verification_evidence_sha256<>a.media_evidence_sha256
     OR NOT m.full_decode_ok OR NOT m.range_request_ok OR NOT m.sample_seek_ok
-    OR p_question_start_ms<0 OR p_question_start_ms>p_answer_start_ms OR p_answer_start_ms>p_answer_end_ms
+    OR p_question_start_ms<0 OR p_question_start_ms>=p_answer_start_ms OR p_answer_start_ms>=p_answer_end_ms
     OR p_answer_end_ms>v.last_ms OR p_answer_end_ms>m.duration_ms
     OR NOT EXISTS (SELECT 1 FROM public.replay_transcript_segments s WHERE s.transcript_version_id=v.id
       AND s.segment_index=p_question_segment_index AND p_question_start_ms>=s.starts_at_ms AND p_question_start_ms<s.ends_at_ms)
@@ -292,7 +303,9 @@ BEGIN
   actor:=public.replay_questions_actor(p_actor); PERFORM public.replay_questions_required(p_reason); PERFORM public.replay_questions_required(p_checklist);
   q:=public.replay_questions_assert_binding(p_candidate_id,'seek_verification');
   SELECT * INTO m FROM public.replay_media_migration_attempts WHERE id=q.playback_attempt_id;
-  IF NOT m.sample_seek_ok OR q.answer_start_ms>m.duration_ms OR q.answer_end_ms>m.duration_ms THEN RAISE EXCEPTION 'question workflow denied'; END IF;
+  IF NOT m.sample_seek_ok OR q.answer_start_ms>m.duration_ms OR q.answer_end_ms>m.duration_ms
+    OR actor=q.privacy_reviewer OR actor=q.editorial_reviewer
+  THEN RAISE EXCEPTION 'question workflow denied'; END IF;
   UPDATE public.replay_question_candidates SET state='approved',seek_reviewer=actor,
     seek_reviewed_at=now(),seek_checklist_version=p_checklist WHERE id=q.id;
   PERFORM public.replay_questions_event('question_candidate',q.id,'seek_verification','approved',q.content_sha256,
@@ -304,14 +317,15 @@ CREATE OR REPLACE FUNCTION public.replay_questions_make_answer_ready(
   p_candidate_id uuid,p_member_question text,p_safe_answer_summary text,p_safe_excerpt text,
   p_answerer_attribution text,p_visibility_scope text,p_actor text,p_reason text,p_checklist text
 ) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $$
-DECLARE q public.replay_question_candidates%ROWTYPE; cid uuid; aid uuid; actor text; safe_all text;
+DECLARE q public.replay_question_candidates%ROWTYPE; cid uuid; aid uuid; actor text;
 BEGIN
   actor:=public.replay_questions_actor(p_actor); PERFORM public.replay_questions_required(p_reason); PERFORM public.replay_questions_required(p_checklist);
   q:=public.replay_questions_assert_binding(p_candidate_id,'approved');
   IF q.origin<>'human_curated' OR q.privacy_reviewer IS NULL OR q.editorial_reviewer IS NULL OR q.seek_reviewer IS NULL
-    OR q.privacy_reviewer=q.editorial_reviewer THEN RAISE EXCEPTION 'question workflow denied'; END IF;
-  safe_all:=concat_ws(' ',p_member_question,p_safe_answer_summary,p_safe_excerpt,p_answerer_attribution);
-  IF safe_all ~* '(PRIVATE_SENTINEL|[[:alnum:]._%+-]+@[[:alnum:].-]+\.[A-Za-z]{2,})' THEN RAISE EXCEPTION 'question workflow denied'; END IF;
+    OR q.privacy_reviewer=q.editorial_reviewer OR q.privacy_reviewer=q.seek_reviewer OR q.editorial_reviewer=q.seek_reviewer
+    OR NOT public.replay_questions_member_safe(
+      p_member_question,p_safe_answer_summary,p_safe_excerpt,p_answerer_attribution,p_visibility_scope,NULL::text)
+  THEN RAISE EXCEPTION 'question workflow denied'; END IF;
   INSERT INTO public.replay_question_clusters(normalized_question_member_safe,editorial_status)
     VALUES(public.replay_questions_required(p_member_question),'approved') RETURNING id INTO cid;
   INSERT INTO public.replay_answers(
@@ -348,7 +362,10 @@ BEGIN
     OR a.media_snapshot_sha256<>q.media_snapshot_sha256 OR a.question_start_ms<>q.question_start_ms
     OR a.answer_start_ms<>q.answer_start_ms OR a.answer_end_ms<>q.answer_end_ms
     OR a.privacy_approval<>'approved' OR a.editorial_approval<>'approved' OR a.seek_approval<>'approved'
-    OR a.privacy_reviewer=a.editorial_reviewer
+    OR a.privacy_reviewer<>q.privacy_reviewer OR a.editorial_reviewer<>q.editorial_reviewer OR a.seek_reviewer<>q.seek_reviewer
+    OR a.privacy_reviewer=a.editorial_reviewer OR a.privacy_reviewer=a.seek_reviewer OR a.editorial_reviewer=a.seek_reviewer
+    OR NOT public.replay_questions_member_safe(
+      a.member_question,a.safe_answer_summary,a.safe_excerpt,a.answerer_attribution,a.situation_context_safe,a.visibility_scope)
   THEN RAISE EXCEPTION 'question workflow denied'; END IF;
   RETURN a;
 END
@@ -401,11 +418,11 @@ WHERE a.publication_state='PUBLISHED' AND a.published_at IS NOT NULL AND a.revok
   AND q.transcript_snapshot_sha256=r.transcript_sha256
   AND a.privacy_approval='approved' AND a.editorial_approval='approved' AND a.seek_approval='approved'
   AND a.privacy_reviewer IS NOT NULL AND a.editorial_reviewer IS NOT NULL AND a.seek_reviewer IS NOT NULL
-  AND a.privacy_reviewer<>a.editorial_reviewer
+  AND a.privacy_reviewer<>a.editorial_reviewer AND a.privacy_reviewer<>a.seek_reviewer AND a.editorial_reviewer<>a.seek_reviewer
   AND coalesce(q.raw_excerpt_private,'')!~*'PRIVATE_SENTINEL'
   AND q.proposed_question_private!~*'PRIVATE_SENTINEL'
-  AND a.member_question!~*'PRIVATE_SENTINEL' AND a.safe_answer_summary!~*'PRIVATE_SENTINEL'
-  AND coalesce(a.safe_excerpt,'')!~*'PRIVATE_SENTINEL';
+  AND public.replay_questions_member_safe(
+    a.member_question,a.safe_answer_summary,a.safe_excerpt,a.answerer_attribution,a.situation_context_safe,a.visibility_scope);
 
 DO $$
 DECLARE f regprocedure;

@@ -3,7 +3,7 @@ import {mkdtempSync,rmSync,writeFileSync,existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,dirname,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {spawnSync} from 'node:child_process';
+import {spawn,spawnSync} from 'node:child_process';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const migrations=[
@@ -48,11 +48,29 @@ try{
   started=true;
   run(join(bin,'createdb'),['questions_r1_test']);
   run(join(bin,'psql'),['-X','-v','ON_ERROR_STOP=1','-d','questions_r1_test','-f',prelude]);
-  for(const migration of migrations) run(join(bin,'psql'),['-X','-v','ON_ERROR_STOP=1','-d','questions_r1_test','-f',migration]);
+  run(join(bin,'psql'),['-X','-v','ON_ERROR_STOP=1','-d','questions_r1_test','-f',migrations[0]]);
+  // Reapply the exact Questions migration in the same PG16 database.
+  run(join(bin,'psql'),['-X','-v','ON_ERROR_STOP=1','-d','questions_r1_test','-f',migrations[1]]);
+  run(join(bin,'psql'),['-X','-v','ON_ERROR_STOP=1','-d','questions_r1_test','-f',migrations[1]]);
   const out=run(join(bin,'psql'),['-X','-v','ON_ERROR_STOP=1','-d','questions_r1_test','-f',fixture]);
-  const marker='replay_vault_questions_answered_r1_pg16_ok';
+  const marker='replay_vault_questions_answered_r2_pg16_ok';
   if(!out.includes(marker)) throw new Error(`success marker missing\n${out}`);
-  console.log('PostgreSQL 16 Questions Answered R1 adversarial fixture: PASS');
+  const concurrentSql=`SET ROLE service_role; SELECT public.replay_questions_create_candidate('20000000-0000-0000-0000-000000000001',0,2000,11000,29000,'extractor-concurrency-r2','Concurrent question?');`;
+  const concurrent=()=>new Promise(resolve=>{
+    const child=spawn(join(bin,'psql'),['-X','-v','ON_ERROR_STOP=1','-d','questions_r1_test','-c',concurrentSql],{env});
+    let stdout=''; let stderr='';
+    child.stdout.on('data',value=>stdout+=value); child.stderr.on('data',value=>stderr+=value);
+    child.on('close',status=>resolve({status,stdout,stderr}));
+  });
+  const results=await Promise.all([concurrent(),concurrent()]);
+  if(results.filter(result=>result.status===0).length!==1 || results.filter(result=>result.status!==0).length!==1)
+    throw new Error(`concurrent duplicate creation did not fail closed: ${JSON.stringify(results)}`);
+  const count=run(join(bin,'psql'),['-X','-At','-v','ON_ERROR_STOP=1','-d','questions_r1_test','-c',
+    "SELECT count(*) FROM public.replay_question_candidates WHERE extractor_version='extractor-concurrency-r2'"]).trim();
+  if(count!=='1') throw new Error(`concurrent duplicate durable count was ${count}`);
+  console.log('PostgreSQL 16 Questions Answered R2 adversarial fixture: PASS');
+  console.log('Exact Questions migration apply-twice: PASS');
+  console.log('Concurrent duplicate candidate: one success, one denial, one durable row: PASS');
   console.log(out.split('\n').filter(line=>line.includes(marker)).join('\n'));
 } finally {
   if(started) spawnSync(join(bin,'pg_ctl'),['-D',data,'-m','fast','-w','stop'],{env,encoding:'utf8'});

@@ -118,8 +118,8 @@ def extract(version_doc: dict[str,Any], segments_doc: Any, request: dict[str,Any
     ans=int(request["answer_start_ms"]); end=int(request["answer_end_ms"])
     duration=int(request["media_duration_ms"]); last=int(version["last_ms"])
     question_cue=next((r for r in segments if int(r["segment_index"])==qidx),None)
-    if not question_cue or not (0<=qs<=ans<=end<=last and end<=duration) or not (int(question_cue["starts_at_ms"])<=qs<int(question_cue["ends_at_ms"])):
-        raise PrivateArtifactError("timestamps are outside bound transcript/media")
+    if not question_cue or not (0<=qs<ans<end<=last and end<=duration) or not (int(question_cue["starts_at_ms"])<=qs<int(question_cue["ends_at_ms"])):
+        raise PrivateArtifactError("timestamps must have strict positive durations inside bound transcript/media")
     excerpt=bounded_excerpt(segments,qs,end)
     candidate={
         "candidate_id":hashlib.sha256(f"{transcript_id}:{qidx}:{_required(request.get('extractor_version'),'extractor')}".encode()).hexdigest()[:32],
@@ -152,7 +152,10 @@ def transition(candidate: dict[str,Any], target: str, actor: str, reason: str, c
     if target=="seek_verification":
         if actor==candidate.get("privacy_reviewer"): raise PrivateArtifactError("privacy and editorial reviewers must differ")
         after["editorial_reviewer"]=actor
-    if target=="approved": after["seek_reviewer"]=actor
+    if target=="approved":
+        if actor in {candidate.get("privacy_reviewer"),candidate.get("editorial_reviewer")}:
+            raise PrivateArtifactError("privacy, editorial, and seek reviewers must differ")
+        after["seek_reviewer"]=actor
     after["state"]=target
     event={"schema_version":1,"private":True,"subject_id":candidate["candidate_id"],"before_state":before,"after_state":target,
            "actor":actor,"reason":reason,"review_checklist_version":checklist,

@@ -59,6 +59,28 @@ class QuestionsPrivateCliTests(unittest.TestCase):
         import hashlib
         self.assertEqual(value["raw_excerpt_sha256"],hashlib.sha256(value["raw_excerpt_private"].encode()).hexdigest())
 
+    def test_strict_positive_cue_ranges_and_boundaries(self) -> None:
+        baseline=dict(self.request)
+        cases=[
+            ("zero",{"question_start_ms":1000,"answer_start_ms":1000,"answer_end_ms":1000}),
+            ("empty-question",{"question_start_ms":1000,"answer_start_ms":1000,"answer_end_ms":2000}),
+            ("empty-answer",{"question_start_ms":1000,"answer_start_ms":2000,"answer_end_ms":2000}),
+            ("reversed",{"question_start_ms":3000,"answer_start_ms":2000,"answer_end_ms":1000}),
+            ("exact-segment-boundary",{"question_segment_index":0,"question_start_ms":10000,"answer_start_ms":11000,"answer_end_ms":12000}),
+        ]
+        for name,changes in cases:
+            with self.subTest(name=name):
+                self.request={**baseline,**changes}
+                version=self.private_json(f"{name}-version.json",self.version)
+                segments=self.private_json(f"{name}-segments.json",self.segments)
+                request=self.private_json(f"{name}-request.json",self.request)
+                result=self.run_cli("extract-private","--transcript-version",str(version),"--segments",str(segments),
+                    "--request",str(request),"--output",str(self.dir/f"{name}-out.json"))
+                self.assertNotEqual(result.returncode,0)
+                self.assertIn("strict positive durations",result.stderr)
+        self.request={**baseline,"question_segment_index":2,"question_start_ms":30000,"answer_start_ms":40000,"answer_end_ms":60000}
+        self.assertTrue(self.extract_cli().exists())
+
     def test_full_private_review_path_and_separation(self) -> None:
         current=self.extract_cli()
         steps=[("privacy_review","curator"),("editorial_review","privacy"),("seek_verification","editor"),("approved","seek")]
@@ -83,6 +105,19 @@ class QuestionsPrivateCliTests(unittest.TestCase):
         denied=self.run_cli("transition-private","--candidate",str(privacy),"--target-state","seek_verification","--actor","reviewer",
             "--reason","editorial","--checklist-version","v1","--output",str(self.dir/"no.json"),"--event-output",str(self.dir/"no-event.json"))
         self.assertNotEqual(denied.returncode,0); self.assertIn("reviewers must differ",denied.stderr)
+
+    def test_seek_reviewer_is_distinct_from_both_prior_reviewers(self) -> None:
+        current=self.extract_cli()
+        for index,(target,actor) in enumerate((("privacy_review","curator"),("editorial_review","privacy"),("seek_verification","editor"))):
+            output=self.dir/f"distinct-{index}.json"; event=self.dir/f"distinct-event-{index}.json"
+            result=self.run_cli("transition-private","--candidate",str(current),"--target-state",target,"--actor",actor,
+                "--reason","review","--checklist-version","v1","--output",str(output),"--event-output",str(event))
+            self.assertEqual(result.returncode,0,result.stderr); current=output
+        for actor in ("privacy","editor"):
+            denied=self.run_cli("transition-private","--candidate",str(current),"--target-state","approved","--actor",actor,
+                "--reason","seek","--checklist-version","v1","--output",str(self.dir/f"no-{actor}.json"),
+                "--event-output",str(self.dir/f"no-{actor}-event.json"))
+            self.assertNotEqual(denied.returncode,0); self.assertIn("reviewers must differ",denied.stderr)
 
     def test_invalid_transition_and_tamper_denied(self) -> None:
         output=self.extract_cli(); value=json.loads(output.read_text()); value["proposed_question_private"]="tampered"
@@ -111,7 +146,12 @@ class QuestionsPrivateCliTests(unittest.TestCase):
         self.assertNotIn("GRANT SELECT ON public.replay_published_answers_projection TO authenticated",sql)
         self.assertIn("SET search_path = pg_catalog, public",sql)
         self.assertIn("origin<>'human_curated'",sql)
-        self.assertIn("privacy_reviewer=a.editorial_reviewer",sql)
+        self.assertIn("a.privacy_reviewer=a.editorial_reviewer",sql)
+        self.assertIn("a.privacy_reviewer=a.seek_reviewer",sql)
+        self.assertIn("a.editorial_reviewer=a.seek_reviewer",sql)
+        self.assertIn("replay_questions_member_safe",sql)
+        self.assertIn("CREATE TABLE IF NOT EXISTS public.replay_question_publication_controls",sql)
+        self.assertIn("DROP CONSTRAINT IF EXISTS replay_answers_r1_publication_lifecycle_chk",sql)
         self.assertIn("replay_questions_excerpt",sql)
         self.assertIn("REVOKE ALL ON TABLE public.replay_question_publication_controls",sql)
 
