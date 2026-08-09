@@ -6,9 +6,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const read=(p)=>fs.readFileSync(path.join(root,p),"utf8");
-const sql=read("supabase/migrations/20260809120000_replay_vault_access_hardening.sql");
+const sql=read("supabase/migrations/20260809140000_replay_vault_access_hardening.sql");
 const search=read("supabase/functions/search-mastermind-resources/index.ts");
 const playback=read("supabase/functions/get-mastermind-playback-link/index.ts");
+const producer=read("supabase/functions/_shared/replayVaultProducer.mjs");
 const webhook=read("supabase/functions/ghl-webhook-grant-planner/index.ts");
 let checks=0;
 function check(name,fn){fn();checks++;console.log(`PASS ${name}`);} function has(s,v){assert.ok(s.includes(v),`missing ${v}`);} function lacks(s,v){assert.ok(!s.includes(v),`forbidden ${v}`);}
@@ -17,12 +18,12 @@ check("canonical ingestion publication model is the only model",()=>{
   for(const v of ["publication_status","transcript_pairing_status","playback_status","withdrawn_at"]) lacks(sql.replace(/^--.*$/gm,""),v);
 });
 check("search returns durable bounded moments without access counts",()=>{
-  has(sql,"moment_id uuid");has(sql,"PARTITION BY m.portal_resource_id");has(sql,"b.replay_rank <= 3");has(search,"momentId:row.moment_id");has(search,"endsAtSeconds");
+  has(sql,"moment_id uuid");has(sql,"PARTITION BY m.portal_resource_id");has(sql,"b.replay_rank <= 3");has(search,"mapSearchRow");has(producer,"momentId: String(row.moment_id");has(producer,"endSeconds: finiteSeconds(row.ends_at_seconds)");
   lacks(search,"resultCount");lacks(search,"accessScopeCounts");
 });
 check("playback binds exactly one server ID and returns authoritative bounds",()=>{
   has(playback,"Boolean(questionId) === Boolean(momentId)");has(sql,"(p_question_id IS NULL) = (p_moment_id IS NULL)");
-  has(sql,"s.id=p_moment_id AND s.resource_id=v_resource_id");has(playback,"startSeconds:");has(playback,"endSeconds:");
+  has(sql,"FROM public.replay_published_resource_projection r");has(sql,"s.id=p_moment_id AND s.transcript_version_id=v_transcript_version_id");has(sql,"a.id=p_question_id AND a.resource_id=v_resource_id");has(playback,"mapPlaybackResponse");has(producer,"startSeconds: finiteSeconds(row.authoritative_start_seconds)");has(producer,"endSeconds: finiteSeconds(row.authoritative_end_seconds)");
 });
 check("only Dropbox temporary links leave the edge",()=>{
   has(playback,"get_temporary_link");lacks(playback,"dropboxPath:");lacks(playback,"sourceUrl:");

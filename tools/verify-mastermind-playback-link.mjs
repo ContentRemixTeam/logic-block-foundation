@@ -1,6 +1,6 @@
 import { readFileSync,existsSync,readdirSync } from "node:fs";import path from "node:path";
 const R=process.cwd(),read=f=>readFileSync(path.join(R,f),"utf8"),fail=[];const ok=(v,m)=>{if(!v)fail.push(m)};
-const edgePath="supabase/functions/get-mastermind-playback-link/index.ts",sqlPath="supabase/migrations/20260809120000_replay_vault_access_hardening.sql";
+const edgePath="supabase/functions/get-mastermind-playback-link/index.ts",sqlPath="supabase/migrations/20260809140000_replay_vault_access_hardening.sql";
 for(const f of [edgePath,sqlPath,"supabase/config.toml","tools/qa-mastermind-live-gates.mjs","tools/qa-mastermind-live-gates-mock.mjs"])ok(existsSync(path.join(R,f)),`missing ${f}`);
 const e=read(edgePath),s=read(sqlPath),config=read("supabase/config.toml");
 ok(e.includes("auth.getUser(token)"),"bearer auth missing");ok(e.includes("resolve_replay_vault_playback"),"authoritative resolver missing");ok(e.includes("Boolean(questionId) === Boolean(momentId)"),"exactly-one server ID gate missing");ok(e.includes("p_question_id: questionId || null")&&e.includes("p_moment_id: momentId || null"),"server IDs not passed to resolver");

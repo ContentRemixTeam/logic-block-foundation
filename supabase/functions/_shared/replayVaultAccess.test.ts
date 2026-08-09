@@ -1,4 +1,5 @@
 import { inaccessible, isAllowedOrigin, readBoundedJson } from "./replayVaultAccess.ts";
+import { mapSearchRow } from "./replayVaultProducer.mjs";
 import { sha256Hex, verifiedPayloadHash } from "./replayVaultWebhook.ts";
 function assert(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message); }
 async function sign(secret: string, timestamp: string, raw: string): Promise<string> {
@@ -15,10 +16,39 @@ Deno.test("origin allowlist and inaccessible envelope are fail closed",async()=>
   assert(response.status===404,"inaccessible status differs");
   assert(await response.text()==='{"error":"Inaccessible"}',"inaccessible envelope differs");
 });
-Deno.test("bounded JSON rejects oversized bodies",async()=>{
-  let rejected=false;
-  try { await readBoundedJson(new Request("https://edge.test",{method:"POST",body:"x".repeat(16_385)})); } catch { rejected=true; }
-  assert(rejected,"oversized body accepted");
+Deno.test("bounded JSON cancels an undeclared streamed body as soon as actual bytes exceed 16 KiB",async()=>{
+  let pulls=0,cancelled=false;
+  const stream=new ReadableStream<Uint8Array>({
+    pull(controller) { pulls++; controller.enqueue(new Uint8Array(4096).fill(120)); if (pulls===20) controller.close(); },
+    cancel() { cancelled=true; },
+  });
+  const req=new Request("https://edge.test",{method:"POST",body:stream});
+  assert(req.headers.get("Content-Length")===null,"stream unexpectedly declared a length");
+  let message="";
+  try { await readBoundedJson(req); } catch (error) { message=error instanceof Error?error.message:""; }
+  assert(message==="request_too_large","streamed oversized body was not rejected by byte limit");
+  assert(cancelled,"oversized stream reader was not cancelled");
+  assert(pulls<20,"reader consumed the complete oversized stream");
+});
+Deno.test("search endpoint mapper sanitizes and caps every free-text response field",()=>{
+  const mapped=mapSearchRow({
+    portal_resource_id:"replay-1",moment_id:"11111111-1111-4111-8111-111111111111",question_id:null,
+    title:"https://private.example/title\u0000",product_title:"/Users/faithhawks/product/private.txt",
+    category_title:"C:\\Secrets\\category.txt",resource_type:"dropbox_path:/vault/private.mp4",
+    snippet:"pricing file:///private/tmp/raw.txt revex-membership-production/source\u0007 "+"s".repeat(400),
+    starts_at_seconds:10,ends_at_seconds:20,reason:"matched https://private.example/reason",
+    duration_seconds:3600,
+  });
+  const serialized=JSON.stringify(mapped);
+  for (const sentinel of ["private.example","/Users/","C:\\\\Secrets","dropbox_path","/vault/private","file://","revex-membership-production","\\u0000","\\u0007"])
+    assert(!serialized.includes(sentinel),`mapper leaked sentinel ${sentinel}`);
+  assert(mapped.title.length<=160,"title cap failed");
+  assert(mapped.productTitle.length<=120,"product cap failed");
+  assert(mapped.category.length<=120,"category cap failed");
+  assert(mapped.sourceType.length<=64,"sourceType cap failed");
+  assert(mapped.snippet.length<=320,"snippet cap failed");
+  assert(mapped.reason.length<=120,"reason cap failed");
+  assert(mapped.startSeconds===10&&mapped.endSeconds===20,"UX timing names changed");
 });
 Deno.test("invalid signature cannot produce a persistent payload hash",async()=>{
   const secret="test-secret",timestamp="1786286400",raw='{"eventId":"immutable-event"}';

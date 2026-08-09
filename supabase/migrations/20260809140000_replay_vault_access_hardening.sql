@@ -274,8 +274,8 @@ CREATE OR REPLACE FUNCTION public.search_replay_vault_resources(
   p_preview boolean DEFAULT false, p_as_of timestamptz DEFAULT clock_timestamp()
 ) RETURNS TABLE(
   portal_resource_id text, moment_id uuid, question_id uuid, title text, product_title text,
-  category_title text, portal_path text, resource_type text, snippet text,
-  starts_at_seconds integer, ends_at_seconds integer, reason text
+  category_title text, resource_type text, snippet text,
+  starts_at_seconds integer, ends_at_seconds integer, reason text, duration_seconds integer
 ) LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
   WITH input AS (
     SELECT websearch_to_tsquery('english',trim(p_query)) q,
@@ -283,20 +283,22 @@ CREATE OR REPLACE FUNCTION public.search_replay_vault_resources(
     WHERE length(trim(coalesce(p_query,''))) BETWEEN 2 AND 200
   ), matches AS (
     SELECT r.portal_resource_id,s.id moment_id,NULL::uuid question_id,r.title,r.product_title,r.category_title,
-      r.portal_path,r.resource_type,
-      left(regexp_replace(ts_headline('english',s.transcript_text,i.q,'MaxWords=48, MinWords=12, MaxFragments=1'),'<[^>]+>','','g'),320) snippet,
-      s.starts_at_seconds,s.ends_at_seconds,'matches transcript'::text reason,
+      r.resource_type,
+      left(regexp_replace(ts_headline('english',s.transcript_text_private,i.q,'MaxWords=48, MinWords=12, MaxFragments=1'),'<[^>]+>','','g'),320) snippet,
+      (s.starts_at_ms/1000)::integer starts_at_seconds,(s.ends_at_ms/1000)::integer ends_at_seconds,
+      'matches transcript'::text reason,(r.duration_ms/1000)::integer duration_seconds,
       ts_rank_cd(s.search_vector,i.q) rank
-    FROM public.mastermind_portal_resources r
-    JOIN public.mastermind_portal_transcript_segments s ON s.resource_id=r.id CROSS JOIN input i
+    FROM public.replay_published_resource_projection r
+    JOIN public.replay_transcript_segments s ON s.transcript_version_id=r.transcript_version_id
+    CROSS JOIN input i
     WHERE (p_stage IS NULL OR p_stage=ANY(r.stages)) AND i.q @@ s.search_vector
       AND (public.replay_vault_access_decision(p_user_id,p_email,r.portal_resource_id,'search',p_preview,p_as_of)->>'allowed')::boolean
   ), bounded AS (
     SELECT m.*,row_number() OVER (PARTITION BY m.portal_resource_id ORDER BY m.rank DESC,m.starts_at_seconds,m.moment_id) replay_rank
     FROM matches m
   )
-  SELECT b.portal_resource_id,b.moment_id,b.question_id,b.title,b.product_title,b.category_title,b.portal_path,
-    b.resource_type,b.snippet,b.starts_at_seconds,b.ends_at_seconds,b.reason
+  SELECT b.portal_resource_id,b.moment_id,b.question_id,b.title,b.product_title,b.category_title,
+    b.resource_type,b.snippet,b.starts_at_seconds,b.ends_at_seconds,b.reason,b.duration_seconds
   FROM bounded b WHERE b.replay_rank <= 3
   ORDER BY b.rank DESC,b.portal_resource_id,b.starts_at_seconds,b.moment_id
   LIMIT (SELECT capped_limit FROM input);
@@ -306,41 +308,33 @@ CREATE OR REPLACE FUNCTION public.resolve_replay_vault_playback(
   p_user_id uuid, p_email text, p_resource_id text,
   p_question_id uuid DEFAULT NULL, p_moment_id uuid DEFAULT NULL,
   p_preview boolean DEFAULT false, p_as_of timestamptz DEFAULT clock_timestamp()
-) RETURNS TABLE(resource_uuid uuid,portal_resource_id text,title text,dropbox_path text,
+) RETURNS TABLE(resource_uuid uuid,portal_resource_id text,title text,dropbox_locator text,access_scope text,
   authoritative_start_seconds integer,authoritative_end_seconds integer,moment_id uuid,question_id uuid)
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
 DECLARE
-  v_resource_id uuid; v_start integer; v_end integer; v_path text;
+  v_resource_id uuid; v_transcript_version_id uuid; v_title text; v_locator text; v_scope text;
+  v_start integer; v_end integer;
 BEGIN
   IF (p_question_id IS NULL) = (p_moment_id IS NULL) THEN RETURN; END IF;
-  SELECT id INTO v_resource_id FROM public.mastermind_portal_resources r
-   WHERE r.portal_resource_id=p_resource_id
+  SELECT r.id,r.transcript_version_id,r.title,'id:'||r.dropbox_file_id,r.approved_access_scope
+    INTO v_resource_id,v_transcript_version_id,v_title,v_locator,v_scope
+    FROM public.replay_published_resource_projection r
+   WHERE r.portal_resource_id=p_resource_id AND nullif(trim(r.dropbox_file_id),'') IS NOT NULL
      AND (public.replay_vault_access_decision(p_user_id,p_email,r.portal_resource_id,'playback',p_preview,p_as_of)->>'allowed')::boolean;
-  IF v_resource_id IS NULL THEN RETURN; END IF;
+  IF v_resource_id IS NULL OR v_locator IS NULL THEN RETURN; END IF;
 
   IF p_moment_id IS NOT NULL THEN
-    SELECT s.starts_at_seconds,s.ends_at_seconds INTO v_start,v_end
-      FROM public.mastermind_portal_transcript_segments s
-      WHERE s.id=p_moment_id AND s.resource_id=v_resource_id;
-    IF NOT FOUND OR v_start IS NULL OR v_end IS NULL THEN RETURN; END IF;
+    SELECT (s.starts_at_ms/1000)::integer,(s.ends_at_ms/1000)::integer INTO v_start,v_end
+      FROM public.replay_transcript_segments s
+      WHERE s.id=p_moment_id AND s.transcript_version_id=v_transcript_version_id;
   ELSE
-    -- replay_answers is introduced by deterministic ingestion. Dynamic SQL keeps this migration independently applicable.
-    IF to_regclass('public.replay_answers') IS NULL THEN RETURN; END IF;
-    EXECUTE 'SELECT (answer_start_ms/1000)::integer,(answer_end_ms/1000)::integer FROM public.replay_answers
-      WHERE id=$1 AND resource_id=$2 AND published_at IS NOT NULL AND revoked_at IS NULL
-        AND privacy_approval=''approved'' AND editorial_approval=''approved'' AND seek_approval=''approved'''
-      INTO v_start,v_end USING p_question_id,v_resource_id;
-    IF NOT FOUND OR v_start IS NULL OR v_end IS NULL THEN RETURN; END IF;
+    SELECT (a.answer_start_ms/1000)::integer,(a.answer_end_ms/1000)::integer INTO v_start,v_end
+      FROM public.replay_published_answers_projection a
+      WHERE a.id=p_question_id AND a.resource_id=v_resource_id;
   END IF;
+  IF NOT FOUND OR v_start IS NULL OR v_end IS NULL THEN RETURN; END IF;
 
-  SELECT e.dropbox_path INTO v_path FROM public.mastermind_portal_source_evidence e
-   WHERE e.resource_id=v_resource_id AND e.source_system='portal_playback_source'
-     AND e.review_status='approved' AND e.dropbox_path IS NOT NULL
-     AND e.source_url IS NULL AND e.ghl_video_url IS NULL AND e.bunny_video_id IS NULL AND e.youtube_video_id IS NULL
-   ORDER BY e.created_at DESC LIMIT 1;
-  IF v_path IS NULL THEN RETURN; END IF;
-  RETURN QUERY SELECT v_resource_id,p_resource_id,r.title,v_path,v_start,v_end,p_moment_id,p_question_id
-    FROM public.mastermind_portal_resources r WHERE r.id=v_resource_id;
+  RETURN QUERY SELECT v_resource_id,p_resource_id,v_title,v_locator,v_scope,v_start,v_end,p_moment_id,p_question_id;
 END;
 $$;
 

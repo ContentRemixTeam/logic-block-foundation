@@ -1,13 +1,14 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { bearerHeader, inaccessible, isAllowedOrigin, readBoundedJson, responseHeaders, safeLogId, secureJson } from "../_shared/replayVaultAccess.ts";
+import { mapPlaybackResponse } from "../_shared/replayVaultProducer.mjs";
 
 const MAX_RESOURCE_ID = 220;
 const DROPBOX_TEMPORARY_LINK_TTL_SECONDS = 4 * 60 * 60;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 interface PlaybackRequest { resourceId?: string; questionId?: string; momentId?: string; preview?: boolean }
 interface PlaybackRow {
-  resource_uuid: string; portal_resource_id: string; title: string; dropbox_path: string;
+  resource_uuid: string; portal_resource_id: string; title: string; dropbox_locator: string; access_scope: string;
   authoritative_start_seconds: number; authoritative_end_seconds: number;
   moment_id: string | null; question_id: string | null;
 }
@@ -31,13 +32,13 @@ async function dropboxToken(): Promise<string | null> {
   return cachedToken.value;
 }
 
-async function temporaryLink(path: string): Promise<string | null> {
+async function temporaryLink(locator: string): Promise<string | null> {
   const token = await dropboxToken();
   if (!token) return null;
   const response = await fetch("https://api.dropboxapi.com/2/files/get_temporary_link", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ path }),
+    body: JSON.stringify({ path: locator }),
   });
   if (!response.ok) return null;
   const body = await response.json().catch(() => null) as { link?: string } | null;
@@ -76,7 +77,7 @@ serve(async (req: Request) => {
     if (error) throw error;
     const row = ((data ?? []) as PlaybackRow[])[0];
     if (!row) return inaccessible(req);
-    const playbackUrl = await temporaryLink(row.dropbox_path);
+    const playbackUrl = await temporaryLink(row.dropbox_locator);
     if (!playbackUrl) throw new Error("dropbox_unavailable");
 
     const { error: eventError } = await service.rpc("record_replay_vault_playback_event", {
@@ -84,12 +85,11 @@ serve(async (req: Request) => {
       p_moment_id: row.moment_id, p_question_id: row.question_id,
     });
     if (eventError) console.warn("[replay-vault-playback-audit]", requestId, "audit_write_failed");
-    return secureJson(req, {
-      resourceId: row.portal_resource_id, title: row.title, provider: "dropbox", playbackUrl,
-      expiresAt: new Date(Date.now() + DROPBOX_TEMPORARY_LINK_TTL_SECONDS * 1000).toISOString(),
-      startSeconds: row.authoritative_start_seconds, endSeconds: row.authoritative_end_seconds,
-      momentId: row.moment_id, questionId: row.question_id,
-    });
+    return secureJson(req, mapPlaybackResponse(
+      row,
+      playbackUrl,
+      new Date(Date.now() + DROPBOX_TEMPORARY_LINK_TTL_SECONDS * 1000).toISOString(),
+    ));
   } catch (error) {
     console.error("[replay-vault-playback]", requestId, error instanceof Error ? error.message : "internal_error");
     return secureJson(req, { error: "Playback unavailable" }, 500);

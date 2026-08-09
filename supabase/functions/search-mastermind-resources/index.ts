@@ -1,16 +1,15 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { bearerHeader, inaccessible, isAllowedOrigin, readBoundedJson, responseHeaders, safeLogId, secureJson } from "../_shared/replayVaultAccess.ts";
+import { mapSearchRow } from "../_shared/replayVaultProducer.mjs";
 
 const VALID_PATHS = new Set(["offer","find","nurture","sell","deliver","leverage"]);
-const SOURCE_LEAK = /(https?:\/\/\S+|dropbox\S*|storage\.googleapis\.com\S*|revex-membership-production\S*)/gi;
 interface SearchRequest { query?: string; path?: string; limit?: number; preview?: boolean; filters?: { includeMetadataFallback?: boolean } }
 interface SearchRow {
   portal_resource_id: string; moment_id: string; question_id: string | null; title: string; product_title: string;
-  category_title: string | null; portal_path: string; resource_type: string; snippet: string | null;
-  starts_at_seconds: number; ends_at_seconds: number; reason: string;
+  category_title: string | null; resource_type: string; snippet: string | null;
+  starts_at_seconds: number; ends_at_seconds: number; reason: string; duration_seconds: number | null;
 }
-function clean(value: string | null): string { return (value ?? "").replace(SOURCE_LEAK,"[private source]").slice(0,320); }
 
 serve(async (req: Request) => {
   if (!isAllowedOrigin(req)) return inaccessible(req);
@@ -44,13 +43,7 @@ serve(async (req: Request) => {
       p_include_metadata_fallback:body.filters?.includeMetadataFallback===true,p_preview:preview,
     });
     if (error) throw error;
-    const results=((data??[]) as SearchRow[]).map((row)=>({
-      resourceId:row.portal_resource_id,momentId:row.moment_id,questionId:row.question_id,title:row.title,
-      productTitle:row.product_title,categoryTitle:row.category_title,portalPath:row.portal_path,
-      resourceType:row.resource_type,snippet:clean(row.snippet),startsAtSeconds:row.starts_at_seconds,
-      endsAtSeconds:row.ends_at_seconds,reason:row.reason,
-    }));
-    return secureJson(req,{ results });
+    return secureJson(req,{ results:((data??[]) as SearchRow[]).map(mapSearchRow) });
   } catch (error) {
     console.error("[replay-vault-search]",requestId,error instanceof Error ? error.message : "internal_error");
     return secureJson(req,{ error:"Search unavailable" },500);

@@ -36,24 +36,57 @@ export function responseHeaders(req: Request): Record<string, string> {
 }
 
 export function secureJson(req: Request, body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: responseHeaders(req),
-  });
+  return new Response(JSON.stringify(body), { status, headers: responseHeaders(req) });
 }
 
 export function inaccessible(req: Request): Response {
   return secureJson(req, { error: "Inaccessible" }, 404);
 }
 
-export async function readBoundedJson<T>(req: Request): Promise<T> {
-  const declaredLength = Number(req.headers.get("Content-Length") ?? "0");
-  if (Number.isFinite(declaredLength) && declaredLength > MAX_JSON_BODY_BYTES) {
+export async function readBoundedText(req: Request): Promise<string> {
+  const declaredHeader = req.headers.get("Content-Length");
+  const declaredLength = declaredHeader === null ? null : Number(declaredHeader);
+  if (declaredLength !== null && Number.isFinite(declaredLength) && declaredLength > MAX_JSON_BODY_BYTES) {
+    await req.body?.cancel("request_too_large").catch(() => undefined);
     throw new Error("request_too_large");
   }
-  const raw = await req.text();
-  if (new TextEncoder().encode(raw).byteLength > MAX_JSON_BODY_BYTES) {
-    throw new Error("request_too_large");
+  if (!req.body) return "";
+
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let byteLength = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      byteLength += value.byteLength;
+      if (byteLength > MAX_JSON_BODY_BYTES) {
+        await reader.cancel("request_too_large").catch(() => undefined);
+        throw new Error("request_too_large");
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(byteLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+}
+
+export async function readBoundedJson<T>(req: Request): Promise<T> {
+  let raw: string;
+  try {
+    raw = await readBoundedText(req);
+  } catch (error) {
+    if (error instanceof Error && error.message === "request_too_large") throw error;
+    throw new Error("invalid_json");
   }
   try {
     return JSON.parse(raw || "{}") as T;

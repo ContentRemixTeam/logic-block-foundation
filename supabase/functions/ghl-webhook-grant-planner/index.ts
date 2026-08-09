@@ -1,9 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { safeLogId, secureJson } from "../_shared/replayVaultAccess.ts";
+import { readBoundedText, safeLogId, secureJson } from "../_shared/replayVaultAccess.ts";
 import { verifiedPayloadHash } from "../_shared/replayVaultWebhook.ts";
 
 type JsonObject = Record<string, unknown>;
-const MAX_SIGNATURE_AGE_SECONDS=300, MAX_BODY_BYTES=16_384;
+const MAX_SIGNATURE_AGE_SECONDS=300;
 const EVENT_TYPES=new Set(["grant","renewal","cancel_at_period_end","expiration","refund","chargeback","immediate_revocation"]);
 function text(value:unknown):string { return typeof value === "string" ? value.trim() : ""; }
 function nested(body:JsonObject,key:string):JsonObject { const v=body[key]; return v&&typeof v==="object"&&!Array.isArray(v)?v as JsonObject:{}; }
@@ -17,8 +17,11 @@ Deno.serve(async (req:Request)=>{
   try {
     const secret=Deno.env.get("GHL_WEBHOOK_SECRET"),supabaseUrl=Deno.env.get("SUPABASE_URL"),serviceKey=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!secret||!supabaseUrl||!serviceKey) throw new Error("not_configured");
-    const raw=await req.text();
-    if (new TextEncoder().encode(raw).byteLength>MAX_BODY_BYTES) return secureJson(req,{ error:"Invalid request" },400);
+    let raw:string;
+    try { raw=await readBoundedText(req); } catch (error) {
+      if (error instanceof Error && error.message==="request_too_large") return secureJson(req,{ error:"Invalid request" },400);
+      throw error;
+    }
     let body:JsonObject; try { body=JSON.parse(raw||"{}") as JsonObject; } catch { return secureJson(req,{ error:"Invalid request" },400); }
     const data=nested(body,"data"),order=nested(body,"order"),contact=nested(body,"contact");
     const provider=text(body.provider||"ghl").toLowerCase();
@@ -34,7 +37,6 @@ Deno.serve(async (req:Request)=>{
       return secureJson(req,{ error:"Invalid request" },400);
     const timestampSeconds=Number(timestamp);
     const payloadHash=await verifiedPayloadHash(secret,timestamp,raw,suppliedSignature,Date.now()/1000,MAX_SIGNATURE_AGE_SECONDS);
-    // Invalid attempts never enter the immutable event ledger, so they cannot poison a later valid event ID.
     if (!payloadHash) return secureJson(req,{ error:"Unauthorized" },401);
 
     const service=createClient(supabaseUrl,serviceKey);
