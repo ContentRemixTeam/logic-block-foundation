@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import os
 import stat
@@ -100,7 +101,17 @@ def main() -> int:
 
     package_dir = args.package_dir.expanduser().resolve()
     manifest_path = package_dir / "vault_private_media_manifest.json"
+    input_manifest_sha256 = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
     rows: list[dict[str, Any]] = json.loads(manifest_path.read_text(encoding="utf-8"))
+    # Legacy title/largest-file approvals are invalid without an exact stable bridge plus
+    # duration and transcript-coverage corroboration. Enrichment fails those closed.
+    for row in rows:
+        if row.get("dropbox_match_status") == "approved":
+            pairing = row.get("pairing_evidence") if isinstance(row.get("pairing_evidence"), dict) else {}
+            if not (pairing.get("stable_bridge_exact") and pairing.get("candidate_count") == 1
+                    and pairing.get("duration_pass") and pairing.get("coverage_pass")):
+                row["dropbox_match_status"] = "needs_review"
+                row["dropbox_match_reason"] = "legacy_approval_revoked_missing_stable_duration_coverage"
     target_rows = rows[: args.limit] if args.limit > 0 else rows
     token = authenticate()
     status_counts: Counter[str] = Counter()
@@ -126,6 +137,19 @@ def main() -> int:
                     row["source_size_bytes"] = max(safe_int(safe_detail.get("size")), media_size)
                     row["source_status"] = safe_detail.get("status")
                     row["has_transcription"] = bool(safe_detail.get("has_transcription"))
+                    source_metadata = {
+                        "file_hash": file_hash,
+                        "duration_seconds": row["duration_seconds"],
+                        "source_size_bytes": row["source_size_bytes"],
+                        "source_status": row["source_status"],
+                        "has_transcription": row["has_transcription"],
+                    }
+                    row["source_metadata_sha256"] = hashlib.sha256(
+                        json.dumps(source_metadata, sort_keys=True, separators=(",", ":")).encode()
+                    ).hexdigest()
+                    row["source_url_fingerprint"] = hashlib.sha256(
+                        str(row.get("membershipio_source_url") or "").encode()
+                    ).hexdigest()
                 processed += 1
                 if processed % 100 == 0:
                     print(f"enriched {processed}/{len(target_rows)}", flush=True)
@@ -141,6 +165,7 @@ def main() -> int:
         "portal_resource_id", "file_hash", "source_id", "title", "collection_name",
         "duration_seconds", "source_size_bytes", "dropbox_match_status",
         "dropbox_match_score", "dropbox_match_reason", "membershipio_source_url",
+        "source_metadata_sha256", "source_url_fingerprint",
     ]
     with queue_path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore")
@@ -160,8 +185,12 @@ def main() -> int:
             "missing_size": sum(safe_int(row.get("source_size_bytes")) == 0 for row in group),
         }
 
+    output_manifest_sha256 = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
     summary = {
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "input_manifest_sha256": input_manifest_sha256,
+        "output_manifest_sha256": output_manifest_sha256,
+        "enricher_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "detail_status_counts": dict(status_counts),
         "all": aggregate(rows),
         "approved_dropbox": aggregate([row for row in rows if row.get("dropbox_match_status") == "approved"]),

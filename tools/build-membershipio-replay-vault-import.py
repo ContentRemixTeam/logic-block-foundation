@@ -6,7 +6,7 @@ This script does not write to Supabase and does not download video files. It:
 - deduplicates lessons by Membership.io file hash;
 - downloads caption VTT text and emits one exact cue per search segment;
 - conservatively matches existing local Dropbox media;
-- approves only deterministic Dropbox playback matches;
+- emits Dropbox candidates only; approval requires stable-ID, duration, coverage, and content receipts;
 - records Searchie HLS sources as blocked migration evidence, never approved playback;
 - writes CSV/JSON/SQL artifacts to a private output directory outside Git.
 
@@ -36,6 +36,8 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
+
+from replay_vault_foundation import timestamp_to_ms, transcript_digest
 
 HUB_ID = 13921
 HUB_HASH = "62R4w3ejNl"
@@ -177,12 +179,8 @@ def extract_date(value: str) -> str:
         return ""
 
 
-def to_seconds(value: str) -> int:
-    parts = value.replace(",", ".").split(":")
-    seconds = float(parts[-1])
-    minutes = int(parts[-2]) if len(parts) >= 2 else 0
-    hours = int(parts[-3]) if len(parts) >= 3 else 0
-    return max(0, int(hours * 3600 + minutes * 60 + seconds))
+def to_milliseconds(value: str) -> int:
+    return timestamp_to_ms(value)
 
 
 def strip_vtt_markup(value: str) -> str:
@@ -200,8 +198,8 @@ def parse_vtt(vtt: str) -> list[dict[str, Any]]:
         if not match:
             index += 1
             continue
-        start = to_seconds(match.group("start"))
-        end = to_seconds(match.group("end"))
+        start = to_milliseconds(match.group("start"))
+        end = to_milliseconds(match.group("end"))
         index += 1
         text_lines: list[str] = []
         while index < len(lines) and lines[index].strip():
@@ -215,8 +213,8 @@ def parse_vtt(vtt: str) -> list[dict[str, Any]]:
                 speaker = speaker_match.group(1).strip()
             segments.append({
                 "segment_index": len(segments),
-                "starts_at_seconds": start,
-                "ends_at_seconds": max(start, end),
+                "starts_at_ms": start,
+                "ends_at_ms": max(start, end),
                 "speaker": speaker,
                 "transcript_text": text,
             })
@@ -268,29 +266,26 @@ def select_local_match(
     source_id_index: dict[str, list[LocalMedia]],
 ) -> tuple[LocalMedia | None, str, float, str]:
     normalized = normalize_title(title)
-    title_date = extract_date(title) or (created_at[:10] if re.match(r"^20\d{2}-\d{2}-\d{2}", created_at or "") else "")
+    title_date = extract_date(title)
     source_digits = re.sub(r"\D", "", source_id or "")
     if 9 <= len(source_digits) <= 12:
         source_matches = list(source_id_index.get(source_digits, []))
-        if source_matches:
-            videos = [row for row in source_matches if row.is_video]
-            candidates = videos or source_matches
-            candidates.sort(key=lambda row: (row.is_video, row.size), reverse=True)
-            return candidates[0], "approved", 1.0, "exact_source_id"
+        if len(source_matches) > 1:
+            return source_matches[0], "quarantined", 1.0, "duplicate_exact_source_id"
+        if len(source_matches) == 1:
+            return source_matches[0], "needs_review", 1.0, "stable_id_missing_duration_coverage_evidence"
 
     if not normalized:
         return None, "none", 0.0, "empty_normalized_title"
 
     exact = list(exact_index.get(normalized, []))
-    if title_date:
-        dated_exact = [row for row in exact if row.event_date == title_date]
-        if dated_exact:
-            exact = dated_exact
-    if exact:
-        videos = [row for row in exact if row.is_video]
-        candidates = videos or exact
-        candidates.sort(key=lambda row: (row.is_video, row.size), reverse=True)
-        return candidates[0], "approved", 1.0, "normalized_title_exact"
+    if len(exact) > 1:
+        return exact[0], "quarantined", 1.0, "duplicate_exact_normalized_title"
+    if len(exact) == 1:
+        exact_row = exact[0]
+        if title_date and exact_row.event_date and exact_row.event_date != title_date:
+            return exact_row, "quarantined", 1.0, "exact_title_event_date_conflict"
+        return exact_row, "needs_review", 1.0, "title_only_never_auto_approves"
 
     candidate_map: dict[str, LocalMedia] = {}
     for token in {part for part in normalized.split() if len(part) >= 4}:
@@ -318,7 +313,7 @@ def select_local_match(
     top_score, top_row = scored[0]
     runner_up = scored[1][0] if len(scored) > 1 else 0.0
     if top_score >= 0.975 and top_score - runner_up >= 0.035 and (not title_date or top_row.event_date == title_date):
-        return top_row, "approved", top_score, "high_unique_title_similarity"
+        return top_row, "needs_review", top_score, "title_similarity_never_auto_approves"
     return top_row, "needs_review", top_score, "ambiguous_title_similarity"
 
 
@@ -336,9 +331,9 @@ def write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, Any]]) -> 
 def build_sql(output_dir: Path) -> str:
     resources = sql_literal(output_dir / "vault_resources.csv")
     evidence = sql_literal(output_dir / "vault_source_evidence.csv")
-    segments = sql_literal(output_dir / "vault_transcript_segments.csv")
     return f"""-- Generated private Replay Vault import. Run only after 20260808120000_mastermind_portal_private_search.sql.
--- Idempotent upserts; no deletes or truncates.
+-- Metadata/evidence upserts only; VTT caption rows remain private evidence and are never imported as canonical/searchable transcript.
+-- Canonical transcript versions must be built from the CRDB crosswalk and activated with activate_replay_transcript_version().
 BEGIN;
 
 CREATE TEMP TABLE tmp_vault_resources (
@@ -395,23 +390,8 @@ ON CONFLICT (resource_id, source_fingerprint) DO UPDATE SET
   match_confidence = excluded.match_confidence, match_score = excluded.match_score,
   review_status = excluded.review_status, notes = excluded.notes, updated_at = now();
 
-CREATE TEMP TABLE tmp_vault_segments (
-  portal_resource_id text, segment_index integer, starts_at_seconds integer,
-  ends_at_seconds integer, speaker text, transcript_text text
-);
-\\copy tmp_vault_segments FROM '{segments}' WITH (FORMAT csv, HEADER true, NULL '')
-
-INSERT INTO public.mastermind_portal_transcript_segments (
-  resource_id, segment_index, starts_at_seconds, ends_at_seconds, speaker, transcript_text
-)
-SELECT r.id, s.segment_index, s.starts_at_seconds, s.ends_at_seconds, s.speaker, s.transcript_text
-FROM tmp_vault_segments s
-JOIN public.mastermind_portal_resources r USING (portal_resource_id)
-ON CONFLICT (resource_id, segment_index) DO UPDATE SET
-  starts_at_seconds = excluded.starts_at_seconds,
-  ends_at_seconds = excluded.ends_at_seconds,
-  speaker = excluded.speaker,
-  transcript_text = excluded.transcript_text;
+-- vault_transcript_segments.csv is migration_caption_evidence only. It is intentionally not copied
+-- into legacy mastermind_portal_transcript_segments, preventing stale-tail upserts and accidental search authority.
 
 COMMIT;
 """
@@ -471,19 +451,19 @@ def main() -> int:
             local_token_index[token_part].append(local_row)
         for numeric_id in set(re.findall(r"(?<!\d)(\d{9,12})(?!\d)", str(local_row.local_path))):
             local_source_id_index[numeric_id].append(local_row)
-    def fetch_caption(item: dict[str, Any]) -> tuple[str, list[dict[str, Any]], str]:
+    def fetch_caption(item: dict[str, Any]) -> tuple[str, list[dict[str, Any]], str, str]:
         file_hash = str(item["hash"])
         if args.skip_captions:
-            return file_hash, [], "skipped"
+            return file_hash, [], "skipped", ""
         url = f"{API_BASE}/file/{file_hash}/embed/caption?type=vtt"
         try:
             body = request_text(token, url)
             segments = parse_vtt(body)
-            return file_hash, segments, "saved" if segments else "empty"
+            return file_hash, segments, "saved" if segments else "empty", hashlib.sha256(body.encode("utf-8")).hexdigest()
         except urllib.error.HTTPError as error:
-            return file_hash, [], f"http_{error.code}"
+            return file_hash, [], f"http_{error.code}", ""
         except Exception as error:  # noqa: BLE001 - record bounded failure class, not credential data
-            return file_hash, [], f"error_{type(error).__name__}"
+            return file_hash, [], f"error_{type(error).__name__}", ""
 
 
     resources: list[dict[str, Any]] = []
@@ -494,7 +474,7 @@ def main() -> int:
     segment_count = 0
     segment_path = output_dir / "vault_transcript_segments.csv"
     streaming_segment_fields = [
-        "portal_resource_id", "segment_index", "starts_at_seconds", "ends_at_seconds", "speaker", "transcript_text",
+        "portal_resource_id", "segment_index", "starts_at_ms", "ends_at_ms", "speaker", "transcript_text",
     ]
 
     with segment_path.open("w", newline="", encoding="utf-8") as segment_handle:
@@ -508,8 +488,8 @@ def main() -> int:
                 future_items = {executor.submit(fetch_caption, item): item for item in batch}
                 for future in as_completed(future_items):
                     item = future_items[future]
-                    file_hash, segments, status = future.result()
-                    transcript_source = "membershipio_vtt" if segments else ""
+                    file_hash, segments, status, caption_raw_sha256 = future.result()
+                    transcript_source = "migration_caption_evidence" if segments else ""
                     title = clean_text(item.get("title")) or f"Vault video {file_hash}"
                     placement_rows = placements[file_hash]
                     primary = placement_rows[0]
@@ -527,8 +507,8 @@ def main() -> int:
                     portal_resource_id = f"membershipio:{file_hash}"
                     replay_date = extract_date(title)
                     has_transcript = bool(segments)
-                    approved_dropbox = local_match is not None and match_status == "approved"
-                    ingestion_status = "ready_for_search" if has_transcript else "needs_transcript"
+                    approved_dropbox = False
+                    ingestion_status = "blocked_private_source" if has_transcript else "needs_transcript"
                     video_source_type = "dropbox_private" if approved_dropbox else "membershipio_migration_required"
                     category_titles = sorted({row["playlist_title"] for row in placement_rows if row["playlist_title"]})
                     summary = f"Vault replay in {', '.join(category_titles[:4])}."
@@ -553,7 +533,7 @@ def main() -> int:
                         "stages": "",
                         "search_summary": summary,
                         "ingestion_status": ingestion_status,
-                        "transcript_evidence": "yes" if has_transcript else "no",
+                        "transcript_evidence": "partial" if has_transcript else "no",
                         "video_source_type": video_source_type,
                     })
                     source_url = clean_text(item.get("source_url"))
@@ -562,6 +542,8 @@ def main() -> int:
                         "playlist_placements": placement_rows,
                         "collection_name": item.get("collection_name"),
                         "caption_status": status,
+                        "caption_raw_sha256": caption_raw_sha256,
+                        "caption_normalized_sha256": transcript_digest(segments) if segments else "",
                         "dropbox_match_status": match_status,
                         "dropbox_match_reason": match_reason,
                     }, ensure_ascii=False, separators=(",", ":"))
@@ -578,6 +560,20 @@ def main() -> int:
                         "review_status": "blocked",
                         "notes": inventory_notes,
                     })
+                    if segments:
+                        evidence.append({
+                            "portal_resource_id": portal_resource_id,
+                            "source_system": "membershipio_caption_evidence",
+                            "source_fingerprint": f"sha256:{caption_raw_sha256}",
+                            "source_ref": file_hash,
+                            "source_url": "",
+                            "dropbox_path": "",
+                            "transcript_source": "migration_caption_evidence",
+                            "match_confidence": "exact_caption_bytes",
+                            "match_score": "1.0",
+                            "review_status": "blocked",
+                            "notes": json.dumps({"authority": "migration_caption_evidence", "normalized_sha256": transcript_digest(segments)}, separators=(",", ":")),
+                        })
                     if local_match:
                         evidence.append({
                             "portal_resource_id": portal_resource_id,
@@ -589,7 +585,7 @@ def main() -> int:
                             "transcript_source": transcript_source,
                             "match_confidence": match_reason,
                             "match_score": f"{match_score:.3f}",
-                            "review_status": "approved" if match_status == "approved" else "needs_review",
+                            "review_status": "blocked" if match_status == "quarantined" else "needs_review",
                             "notes": f"Matched from local Dropbox inventory; {match_reason}",
                         })
                     for segment in segments:
@@ -610,6 +606,8 @@ def main() -> int:
                         "membershipio_embed_url": item.get("embed_url"),
                         "caption_status": status,
                         "caption_segments": len(segments),
+                        "caption_raw_sha256": caption_raw_sha256,
+                        "caption_normalized_sha256": transcript_digest(segments) if segments else "",
                         "dropbox_path": local_match.dropbox_path if local_match else "",
                         "dropbox_match_status": match_status,
                         "dropbox_match_score": round(match_score, 3),
@@ -631,7 +629,7 @@ def main() -> int:
         "dropbox_path", "transcript_source", "match_confidence", "match_score", "review_status", "notes",
     ]
     segment_fields = [
-        "portal_resource_id", "segment_index", "starts_at_seconds", "ends_at_seconds", "speaker", "transcript_text",
+        "portal_resource_id", "segment_index", "starts_at_ms", "ends_at_ms", "speaker", "transcript_text",
     ]
     write_csv(output_dir / "vault_resources.csv", resource_fields, resources)
     write_csv(output_dir / "vault_source_evidence.csv", evidence_fields, evidence)
@@ -668,7 +666,8 @@ def main() -> int:
         + "\n\n## Safety\n\n"
         + "- No Supabase writes were performed.\n"
         + "- Membership.io source URLs remain blocked migration evidence.\n"
-        + "- Only deterministic Dropbox matches are approved for member playback.\n"
+        + "- No local Dropbox match is auto-approved without stable-ID, duration, and transcript-coverage evidence.\n"
+        + "- Membership.io VTT captions remain migration_caption_evidence until canonical CRDB authority is linked.\n"
         + "- Private URLs and transcript text are stored outside Git.\n",
         encoding="utf-8",
     )

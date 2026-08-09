@@ -72,10 +72,16 @@ def main() -> int:
     assert all(not row["dropbox_path"] for row in inventory_rows), "inventory rows must not masquerade as Dropbox playback"
 
     approved_playback = [row for row in playback_rows if row["review_status"] == "approved"]
-    assert all(row["dropbox_path"].startswith("/") for row in approved_playback), "approved playback missing Dropbox path"
-    assert all(not row["source_url"] for row in approved_playback), "approved Dropbox playback must not expose a source URL"
-    assert all(row["match_score"] and float(row["match_score"]) >= 0.975 for row in approved_playback), "weak match approved"
-    assert all(".." not in row["dropbox_path"] for row in approved_playback), "unsafe Dropbox traversal path"
+    assert not approved_playback, (
+        "offline inventory cannot approve playback: exact stable-ID + duration + coverage + content-bound Dropbox receipt is required"
+    )
+    assert all(row["review_status"] in {"needs_review", "blocked"} for row in playback_rows), "invalid private playback candidate state"
+    assert all(".." not in row["dropbox_path"] for row in playback_rows), "unsafe Dropbox traversal path"
+    assert all(row["transcript_source"] in {"", "migration_caption_evidence"} for row in evidence), (
+        "VTT must remain migration_caption_evidence until CRDB authority is linked"
+    )
+    assert all(row["ingestion_status"] != "ready_for_search" for row in resources), "caption evidence cannot be search-ready"
+    assert all(row["transcript_evidence"] != "yes" for row in resources), "caption evidence cannot claim canonical transcript"
 
     for row in inventory_rows:
         url = row["source_url"]
@@ -86,8 +92,9 @@ def main() -> int:
     by_resource: defaultdict[str, list[dict[str, str]]] = defaultdict(list)
     for row in segments:
         by_resource[row["portal_resource_id"]].append(row)
-        start = int(row["starts_at_seconds"])
-        end = int(row["ends_at_seconds"])
+        assert "starts_at_ms" in row and "ends_at_ms" in row, "millisecond transcript cue columns required"
+        start = int(row["starts_at_ms"])
+        end = int(row["ends_at_ms"])
         assert start >= 0 and end >= start, "invalid transcript cue timestamps"
         assert row["transcript_text"].strip(), "empty transcript cue"
     for resource_id, rows in by_resource.items():
@@ -99,14 +106,19 @@ def main() -> int:
         line for line in lowered_sql.splitlines() if not line.lstrip().startswith("--")
     )
     assert "begin;" in executable_sql and "commit;" in executable_sql, "import SQL is not transactional"
-    assert "on conflict" in executable_sql, "import SQL is not idempotent"
+    assert "on conflict" in executable_sql, "metadata import SQL is not idempotent"
+    assert "insert into public.mastermind_portal_transcript_segments" not in executable_sql, (
+        "legacy segment index upsert risks stale tails and caption-evidence authority"
+    )
+    assert "insert into public.replay_transcript_segments" not in executable_sql, (
+        "Membership.io caption evidence cannot enter canonical transcript versions"
+    )
     assert "truncate" not in executable_sql and "delete from" not in executable_sql and "drop table public." not in executable_sql, (
         "destructive SQL detected"
     )
     for table in [
         "mastermind_portal_resources",
         "mastermind_portal_source_evidence",
-        "mastermind_portal_transcript_segments",
     ]:
         assert table in lowered_sql, f"import SQL missing {table}"
 
