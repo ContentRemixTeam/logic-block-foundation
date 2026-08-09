@@ -8,10 +8,13 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const read=(p)=>fs.readFileSync(path.join(root,p),"utf8");
 const sql=read("supabase/migrations/20260809140000_replay_vault_access_hardening.sql");
 const paritySql=read("supabase/migrations/20260809170000_replay_vault_member_parity_r4.sql");
+const commercialSql=read("supabase/migrations/20260809180000_replay_vault_commercial_evidence_r7.sql");
 const search=read("supabase/functions/search-mastermind-resources/index.ts");
 const playback=read("supabase/functions/get-mastermind-playback-link/index.ts");
 const producer=read("supabase/functions/_shared/replayVaultProducer.mjs");
 const webhook=read("supabase/functions/ghl-webhook-grant-planner/index.ts");
+const commercial=read("supabase/functions/_shared/replayVaultCommercialWebhook.ts");
+const commercialTests=read("supabase/functions/_shared/replayVaultCommercialWebhook.test.ts");
 let checks=0;
 function check(name,fn){fn();checks++;console.log(`PASS ${name}`);} function has(s,v){assert.ok(s.includes(v),`missing ${v}`);} function lacks(s,v){assert.ok(!s.includes(v),`forbidden ${v}`);}
 check("canonical ingestion publication model is the only model",()=>{
@@ -29,17 +32,24 @@ check("playback binds zero or one server cue ID and returns authoritative bounds
 check("only Dropbox temporary links leave the edge",()=>{
   has(playback,"get_temporary_link");lacks(playback,"dropboxPath:");lacks(playback,"sourceUrl:");
 });
-check("signature rejection precedes immutable RPC and duplicates bind payload hash",()=>{
-  assert.ok(webhook.indexOf("if (!payloadHash)")<webhook.indexOf("apply_replay_vault_webhook_event"));
-  has(sql,"v_event.payload_sha256 <> p_payload_sha256");has(sql,"event_id_payload_conflict");
+check("signature rejection precedes injected R7 RPC and deliveries bind payload hash",()=>{
+  has(webhook,"processCommercialWebhook");has(webhook,"verifiedPayloadHash");has(webhook,"apply_replay_vault_commercial_event_r7");
+  assert.ok(commercial.indexOf("const payloadHash=await verifyPayload")<commercial.indexOf("if (!payloadHash) throw new Error(\"invalid_signature\")"));
+  assert.ok(commercial.indexOf("const args=await mapVerifiedCommercialWebhook")<commercial.indexOf("deps.rpc(args)"));
+  has(commercialTests,"signature failure prevents injected RPC call");
+  has(commercialSql,"v_delivery.payload_sha256<>p_payload_sha256");has(commercialSql,"event_id_payload_conflict");
 });
 check("all requested transition types and fail-closed empty mapping exist",()=>{
-  for(const v of ["grant","renewal","cancel_at_period_end","expiration","refund","chargeback","immediate_revocation"]) {has(sql,v);has(webhook,v);}
+  for(const v of ["grant","renewal","cancel_at_period_end","expiration","refund","chargeback","immediate_revocation"]) {has(commercialSql,v);has(commercial,v);}
   lacks(sql,"INSERT INTO public.replay_vault_provider_product_mappings(");
+  lacks(commercialSql,"INSERT INTO public.replay_vault_provider_product_mappings(");
 });
-check("direct access is revoked and each function loses PUBLIC execute",()=>{
+check("direct access is revoked, R7 is service-role-only, and functions use fixed search paths",()=>{
   has(sql,"FROM PUBLIC, anon, authenticated, service_role");
   const creates=[...sql.matchAll(/CREATE OR REPLACE FUNCTION\s+public\.([a-z0-9_]+)\s*\(([^)]*)\)/gi)].map(m=>m[1]);
   for(const name of new Set(creates)) has(sql,`REVOKE ALL ON FUNCTION public.${name}`);
+  has(commercialSql,"REVOKE ALL ON FUNCTION public.apply_replay_vault_webhook_event");
+  has(commercialSql,"GRANT EXECUTE ON FUNCTION public.apply_replay_vault_commercial_event_r7");
+  has(commercialSql,"SECURITY DEFINER SET search_path=pg_catalog,public");
 });
 console.log(`Replay Vault supplemental source verifier passed: ${checks} checks`);
