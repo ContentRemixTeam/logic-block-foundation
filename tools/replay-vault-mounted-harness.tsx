@@ -13,6 +13,10 @@ const deferred = <T,>(): Deferred<T> => {
 };
 
 const tick = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+const waitFor = async (condition: () => boolean, label: string) => {
+  for (let attempt = 0; attempt < 20; attempt += 1) { if (condition()) return; await tick(); }
+  throw new Error(`Timed out waiting for ${label}`);
+};
 const assert = (condition: unknown, message: string) => {
   if (!condition) throw new Error(message);
 };
@@ -303,17 +307,28 @@ async function parityDirectoriesAndReceiptsMount() {
 
 async function fullTranscriptAndCallQuestionsMount() {
   __vaultMock.reset();__vaultMock.enqueue('get-mastermind-portal-access',allowed);
-  __vaultMock.enqueue('vault-member-library',{data:{items:[]},error:null});__vaultMock.enqueue('vault-member-library',{data:{categories:[]},error:null});
+  const transcriptPageOne=Array.from({length:100},(_,index)=>({cueId:index===0?momentOne:index===1?momentTwo:`00000000-0000-4000-8000-${String(index).padStart(12,'0')}`,cueIndex:index,startSeconds:index===0?42:index===1?90:100+index*5,endSeconds:index===0?70:index===1?99:104+index*5,text:index===0?'Complete authorized transcript cue.':index===1?'Second authorized cue.':`Authorized cue ${index}.`}));
+  __vaultMock.setHandler('vault-member-library',({body}: {body?: Record<string, unknown>})=>{
+    if(body?.action==='browse')return {data:{items:[]},error:null};
+    if(body?.action==='categories')return {data:{categories:[]},error:null};
+    if(body?.action==='call_questions')return {data:{items:[{questionId:questionOne,resourceId,title:'Answer replay',category:'Office hours',question:'What is capacity?',answerSummary:'Protect it.',answerer:'Faith',startSeconds:42,endSeconds:70}]},error:null};
+    if(body?.action==='transcript'&&body?.afterIndex===-1)return {data:{items:transcriptPageOne},error:null};
+    if(body?.action==='transcript'&&body?.afterIndex===99)return {data:{items:[{cueId:'00000000-0000-4000-8000-000000000100',cueIndex:100,startSeconds:500,endSeconds:504,text:'Authorized cue beyond first page.'}]},error:null};
+    throw new Error(`Unexpected library action ${JSON.stringify(body)}`);
+  });
   __vaultMock.enqueue('search-mastermind-resources',groups());__vaultMock.enqueue('get-mastermind-playback-link',nativePlayback());
-  __vaultMock.enqueue('vault-member-library',{data:{items:[{questionId:questionOne,resourceId,title:'Answer replay',category:'Office hours',question:'What is capacity?',answerSummary:'Protect it.',answerer:'Faith',startSeconds:42,endSeconds:70}]},error:null});
-  __vaultMock.enqueue('vault-member-library',{data:{items:[{cueId:momentOne,cueIndex:0,startSeconds:42,endSeconds:70,text:'Complete authorized transcript cue.'},{cueId:momentTwo,cueIndex:1,startSeconds:90,endSeconds:110,text:'Second authorized cue.'}]},error:null});
   await mount();await typeAndSubmit('capacity');await click(byText('Watch answer'));await tick();await tick();
+  await waitFor(()=>__vaultMock.count('vault-member-library')>=5&&Boolean(document.body.textContent?.includes('Authorized cue beyond first page.')),'terminal transcript page');
   assert(document.body.textContent?.includes('Questions answered in this call'),'call-level questions index must mount');
   assert(document.body.textContent?.includes('Complete authorized transcript cue.'),'full authorized transcript must mount');
+  assert(document.body.textContent?.includes('Authorized cue beyond first page.'),`full transcript must render records beyond the 100-cue server page cap; calls=${__vaultMock.count('vault-member-library')} last=${JSON.stringify(__vaultMock.lastBody('vault-member-library'))}`);
+  assert(__vaultMock.count('vault-member-library')===5&&__vaultMock.lastBody('vault-member-library').afterIndex===99,'transcript consumer must request the terminal page with a canonical cue cursor');
   const cue=[...document.querySelectorAll<HTMLButtonElement>('[data-vault-transcript] button')].find(b=>b.textContent?.includes('Second authorized cue'))!;
   __vaultMock.enqueue('get-mastermind-playback-link',nativePlayback(undefined,momentTwo,90));await click(cue);await tick();
   const body=__vaultMock.lastBody('get-mastermind-playback-link');assert(body.momentId===momentTwo&&body.questionId===null&&!('startSeconds'in body),'transcript seek must send only durable cue identity, never caller timestamp');
-  assert(cue.getAttribute('aria-current')==='true','activated transcript cue must expose aria-current');
+  const media=document.querySelector('video')!;await act(async()=>{media.currentTime=90;media.dispatchEvent(new window.Event('timeupdate'));});await tick();
+  const currentCues=[...document.querySelectorAll('[data-vault-transcript] [aria-current="true"]')];
+  assert(currentCues.length===1&&currentCues[0].textContent?.includes('Second authorized cue.'),`exactly one time-active transcript cue must expose aria-current; found=${currentCues.length}`);
 }
 
 async function run() {

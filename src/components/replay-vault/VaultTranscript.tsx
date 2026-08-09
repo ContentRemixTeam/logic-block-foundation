@@ -1,4 +1,4 @@
-import { RefObject, useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { activeCueIndex, normalizeTranscript } from './replayVaultLibraryCore.mjs';
@@ -9,15 +9,14 @@ type Cue = { cueId: string; cueIndex: number; startSeconds: number; endSeconds: 
 const PAGE_SIZE = 100;
 const MAX_PAGES = 200;
 
-export function VaultTranscript({ resourceId, title, videoRef, onOpen }: {
+export function VaultTranscript({ resourceId, title, currentTime, onOpen }: {
   resourceId: string;
   title: string;
-  videoRef: RefObject<HTMLVideoElement>;
+  currentTime: number;
   onOpen: (target: PlaybackTarget) => void;
 }) {
   const [state, setState] = useState<'loading' | 'ready' | 'empty' | 'error'>('loading');
   const [cues, setCues] = useState<Cue[]>([]);
-  const [time, setTime] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -60,19 +59,7 @@ export function VaultTranscript({ resourceId, title, videoRef, onOpen }: {
   }, [resourceId]);
 
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => {
-    const media = videoRef.current;
-    if (!media) return;
-    const update = () => setTime(media.currentTime);
-    media.addEventListener('timeupdate', update);
-    media.addEventListener('seeked', update);
-    return () => {
-      media.removeEventListener('timeupdate', update);
-      media.removeEventListener('seeked', update);
-    };
-  }, [resourceId, videoRef]);
-
-  const active = useMemo(() => activeCueIndex(cues, time), [cues, time]);
+  const active = useMemo(() => activeCueIndex(cues, currentTime), [cues, currentTime]);
 
   return (
     <section aria-labelledby="vault-transcript-heading" className="space-y-3 rounded-lg border p-3" data-vault-transcript>
@@ -94,8 +81,9 @@ export function VaultTranscript({ resourceId, title, videoRef, onOpen }: {
             <li key={cue.cueId}>
               <button
                 type="button"
-                aria-current={index === active || cue.cueId === selected ? 'true' : undefined}
-                className="min-h-11 w-full rounded-md border px-3 py-2 text-left text-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-[current=true]:border-primary aria-[current=true]:bg-primary/10"
+                aria-current={index === active ? 'true' : undefined}
+                data-selected={cue.cueId === selected ? 'true' : undefined}
+                className="min-h-11 w-full rounded-md border px-3 py-2 text-left text-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-[current=true]:border-primary aria-[current=true]:bg-primary/10 data-[selected=true]:border-primary"
                 aria-label={`Seek ${title} to ${formatSpokenTime(cue.startSeconds)}. ${cue.text}`}
                 onClick={() => {
                   setSelected(cue.cueId);

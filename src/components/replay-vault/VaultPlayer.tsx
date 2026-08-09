@@ -1,4 +1,4 @@
-import { RefObject } from 'react';
+import { RefObject, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RefreshCw } from 'lucide-react';
@@ -10,6 +10,8 @@ import { VaultCallQuestions } from './VaultCallQuestions';
 interface VaultPlayerProps { playback: PlaybackResult; target: PlaybackTarget; videoRef: RefObject<HTMLVideoElement>; announcement: string; sourceGeneration: number; recoveryBusy: boolean; recoveryFailed: boolean; onLoadedMetadata: () => void; onMediaError: () => void; onManualRefresh: () => void; onOpen: (target: PlaybackTarget) => void; }
 export function VaultPlayer({ playback, target, videoRef, announcement, sourceGeneration, recoveryBusy, recoveryFailed, onLoadedMetadata, onMediaError, onManualRefresh, onOpen }: VaultPlayerProps) {
   const isYouTube = playback.provider === 'youtube';
+  const [currentTime, setCurrentTime] = useState(0);
+  useEffect(() => { setCurrentTime(0); }, [sourceGeneration]);
   const youtubeUrl = isYouTube ? `${playback.playbackUrl}${playback.playbackUrl.includes('?') ? '&' : '?'}start=${Math.max(0, Math.floor(target.startSeconds ?? 0))}` : null;
   return (
     <Card id="vault-player" className="min-w-0 scroll-mt-4 overflow-hidden" data-motion-safe tabIndex={-1}>
@@ -21,7 +23,7 @@ export function VaultPlayer({ playback, target, videoRef, announcement, sourceGe
             <p className="rounded-md border p-3 text-sm text-muted-foreground">Automatic playback recovery is not available for YouTube. If this player stops, return to the answer and open it again.</p>
           </>
         ) : (
-          <video ref={videoRef} key={sourceGeneration} data-source-generation={sourceGeneration} controls playsInline preload="metadata" className="aspect-video w-full max-w-full rounded-lg bg-black" onLoadedMetadata={onLoadedMetadata} onError={onMediaError} aria-label={`Protected replay: ${playback.title}`}>
+          <video ref={videoRef} key={sourceGeneration} data-source-generation={sourceGeneration} controls playsInline preload="metadata" className="aspect-video w-full max-w-full rounded-lg bg-black" onLoadedMetadata={onLoadedMetadata} onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)} onSeeked={(event) => setCurrentTime(event.currentTarget.currentTime)} onError={onMediaError} aria-label={`Protected replay: ${playback.title}`}>
             <source src={playback.playbackUrl} />Your browser does not support protected video playback.
           </video>
         )}
@@ -29,7 +31,7 @@ export function VaultPlayer({ playback, target, videoRef, announcement, sourceGe
           ? <VaultInteractionBar playback={playback} target={target} videoRef={videoRef} sourceGeneration={sourceGeneration} />
           : <p className="rounded-md border p-3 text-sm text-muted-foreground">Full-replay saving is available from Browse and Saved. Answer notes, sharing, and watch progress start when you open an exact transcript moment or approved question.</p>}
         <VaultCallQuestions resourceId={playback.resourceId} title={playback.title} onOpen={onOpen} />
-        <VaultTranscript resourceId={playback.resourceId} title={playback.title} videoRef={videoRef} onOpen={onOpen} />
+        <VaultTranscript resourceId={playback.resourceId} title={playback.title} currentTime={currentTime} onOpen={onOpen} />
         <p className="sr-only" role="status" aria-live="polite">{announcement}</p>
         {!isYouTube && recoveryBusy && <p role="status" className="text-sm text-muted-foreground">Refreshing protected playback…</p>}
         {!isYouTube && recoveryFailed && (
