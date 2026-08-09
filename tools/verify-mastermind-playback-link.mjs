@@ -3,6 +3,7 @@ import path from "node:path";
 
 const ROOT = process.cwd();
 const FUNCTION = path.join(ROOT, "supabase/functions/get-mastermind-playback-link/index.ts");
+const ACCESS_MIGRATION = path.join(ROOT, "supabase/migrations/20260808220000_mastermind_portal_access_scopes.sql");
 const CONFIG = path.join(ROOT, "supabase/config.toml");
 const LIVE_QA = path.join(ROOT, "tools/qa-mastermind-live-gates.mjs");
 const LIVE_QA_MOCK = path.join(ROOT, "tools/qa-mastermind-live-gates-mock.mjs");
@@ -36,31 +37,27 @@ function findFiles(dir, matcher, acc = []) {
   return acc;
 }
 
-function extractArrayLiteral(ts, constantName) {
-  const match = ts.match(new RegExp(`const\\s+${constantName}\\s*=\\s*\\[([^\\]]+)\\]`));
-  if (!match) return [];
-  return [...match[1].matchAll(/"([^"]+)"/g)].map((item) => item[1]);
-}
-
 if (!existsSync(FUNCTION)) fail("Missing get-mastermind-playback-link Edge Function");
+if (!existsSync(ACCESS_MIGRATION)) fail("Missing shared Mastermind portal access-scope migration");
 if (!existsSync(CONFIG)) fail("Missing Supabase config");
 if (!existsSync(LIVE_QA)) fail("Missing live Mastermind Edge Function QA harness");
 if (!existsSync(LIVE_QA_MOCK)) fail("Missing mock live Mastermind Edge Function QA harness");
 if (!existsSync(PACKAGE_JSON)) fail("Missing package.json");
 
 const edgeFunction = existsSync(FUNCTION) ? read(FUNCTION) : "";
+const accessMigration = existsSync(ACCESS_MIGRATION) ? read(ACCESS_MIGRATION) : "";
 const config = existsSync(CONFIG) ? read(CONFIG) : "";
 const liveQa = existsSync(LIVE_QA) ? read(LIVE_QA) : "";
 const liveQaMock = existsSync(LIVE_QA_MOCK) ? read(LIVE_QA_MOCK) : "";
 const packageJson = existsSync(PACKAGE_JSON) ? read(PACKAGE_JSON) : "";
 
 assert(edgeFunction.includes("auth.getUser(token)"), "Playback function must authenticate the bearer token");
-assert(edgeFunction.includes("check_mastermind_entitlement"), "Playback function must check Mastermind entitlement");
+assert(edgeFunction.includes("get_mastermind_portal_access_scopes"), "Playback function must use the shared Mastermind access-scope decision");
 assert(edgeFunction.includes("mastermind_portal_resources"), "Playback function must load portal resources server-side");
 assert(edgeFunction.includes("mastermind_portal_source_evidence"), "Playback function must load private source evidence server-side");
 assert(edgeFunction.includes("source_system\", \"portal_playback_source\""), "Playback function must use portal playback source evidence only");
 assert(edgeFunction.includes("review_status\", \"approved\""), "Playback function must use approved playback evidence only");
-assert(edgeFunction.includes("isAllowedMonthlyResource(portalResource)"), "Playback function must enforce monthly access scopes");
+assert(edgeFunction.includes("isAllowedResource(portalResource, allowedAccessScopes)"), "Playback function must enforce member-specific access scopes");
 assert(edgeFunction.includes("available_until >= new Date().toISOString().slice(0, 10)"), "Playback function must enforce current replay availability");
 assert(edgeFunction.includes("DROPBOX_ACCESS_TOKEN"), "Playback function must keep Dropbox access token server-side");
 assert(edgeFunction.includes("https://api.dropboxapi.com/2/files/get_temporary_link"), "Playback function must use Dropbox temporary links for Dropbox paths");
@@ -71,16 +68,13 @@ assert(edgeFunction.includes("playbackUrl"), "Playback function must return the 
 assert(edgeFunction.includes("urlType"), "Playback function must return a playback URL type");
 assert(edgeFunction.includes("resourceId: portalResource.portal_resource_id"), "Playback function must return resourceId per API contract");
 
-const monthlyScopes = extractArrayLiteral(edgeFunction, "MONTHLY_MEMBER_ACCESS_SCOPES");
 assert(
-  monthlyScopes.length === 2 &&
-    monthlyScopes.includes("core_curriculum") &&
-    monthlyScopes.includes("current_replay_30_day"),
-  "Monthly playback access must be core curriculum plus current 30-day replays",
+  accessMigration.includes("ARRAY['core_curriculum', 'current_replay_30_day']"),
+  "Shared access decision must restrict monthly playback to core plus current 30-day replays",
 );
 assert(
-  monthlyScopes.every((scope) => ["core_curriculum", "current_replay_30_day"].includes(scope)),
-  "Monthly playback access includes a restricted scope",
+  accessMigration.includes("ARRAY['core_curriculum', 'current_replay_30_day', 'replay_vault', 'vault']"),
+  "Shared access decision must grant annual/lifetime playback full Vault scopes",
 );
 
 const responseObjects = [...edgeFunction.matchAll(/return json\(\{([\s\S]*?)\}\s*(?:,\s*\d+)?\);/g)].map((match) => match[1]);
@@ -116,9 +110,11 @@ assert(
 const srcFiles = existsSync(SRC_DIR) ? findFiles(SRC_DIR, (file) => /\.(ts|tsx|js|jsx)$/.test(file)) : [];
 for (const file of srcFiles) {
   const contents = read(file);
+  const relative = path.relative(ROOT, file);
+  const isHiddenVaultClient = relative === "src/pages/ReplayVault.tsx";
   assert(
-    !contents.includes("get-mastermind-playback-link"),
-    `Frontend is already wired to hidden playback link function: ${path.relative(ROOT, file)}`,
+    !contents.includes("get-mastermind-playback-link") || isHiddenVaultClient,
+    `Protected playback is wired outside the hidden Replay Vault client: ${relative}`,
   );
 }
 

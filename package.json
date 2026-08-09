@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "verify:mastermind-portal": "node tools/verify-mastermind-portal.mjs",
     "verify:mastermind-success-path": "node tools/verify-mastermind-success-path.mjs",
+    "verify:replay-vault": "node tools/verify-replay-vault.mjs",
     "verify:mastermind-bundle": "node tools/verify-mastermind-bundle.mjs",
     "verify:mastermind-server-search": "node tools/verify-mastermind-server-search.mjs",
     "verify:mastermind-playback-link": "node tools/verify-mastermind-playback-link.mjs",

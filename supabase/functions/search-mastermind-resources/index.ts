@@ -6,7 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MONTHLY_MEMBER_ACCESS_SCOPES = ["core_curriculum", "current_replay_30_day"];
 const VALID_PATH_FILTERS = new Set(["offer", "find", "nurture", "sell", "deliver", "leverage"]);
 const MAX_LIMIT = 25;
 const DEFAULT_LIMIT = 12;
@@ -124,8 +123,8 @@ serve(async (req: Request) => {
     }
 
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
-    const { data: hasMastermindAccess, error: entitlementError } = await serviceClient.rpc(
-      "check_mastermind_entitlement",
+    const { data: accessScopes, error: entitlementError } = await serviceClient.rpc(
+      "get_mastermind_portal_access_scopes",
       { user_email: userData.user.email },
     );
 
@@ -134,7 +133,11 @@ serve(async (req: Request) => {
       return json({ error: "Could not verify access" }, 500);
     }
 
-    if (!hasMastermindAccess) {
+    const allowedAccessScopes = Array.isArray(accessScopes)
+      ? accessScopes.filter((scope): scope is string => typeof scope === "string")
+      : [];
+
+    if (allowedAccessScopes.length === 0) {
       return json({ error: "Forbidden" }, 403);
     }
 
@@ -143,7 +146,7 @@ serve(async (req: Request) => {
 
     const { data, error } = await serviceClient.rpc("search_mastermind_portal_resources", {
       p_query: query,
-      p_allowed_access: MONTHLY_MEMBER_ACCESS_SCOPES,
+      p_allowed_access: allowedAccessScopes,
       p_stage: path,
       p_limit: limit,
       p_include_metadata_fallback: includeMetadataFallback,

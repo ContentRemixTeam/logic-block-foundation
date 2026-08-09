@@ -7,6 +7,7 @@ const MIGRATION = path.join(
   "supabase/migrations/20260808120000_mastermind_portal_private_search.sql",
 );
 const FUNCTION = path.join(ROOT, "supabase/functions/search-mastermind-resources/index.ts");
+const ACCESS_MIGRATION = path.join(ROOT, "supabase/migrations/20260808220000_mastermind_portal_access_scopes.sql");
 const CONFIG = path.join(ROOT, "supabase/config.toml");
 const LIVE_QA = path.join(ROOT, "tools/qa-mastermind-live-gates.mjs");
 const LIVE_QA_MOCK = path.join(ROOT, "tools/qa-mastermind-live-gates-mock.mjs");
@@ -54,14 +55,9 @@ function functionBlock(sql, functionName) {
   return sql.slice(start, nextFunction === -1 ? undefined : nextFunction);
 }
 
-function extractArrayLiteral(ts, constantName) {
-  const match = ts.match(new RegExp(`const\\s+${constantName}\\s*=\\s*\\[([^\\]]+)\\]`));
-  if (!match) return [];
-  return [...match[1].matchAll(/"([^"]+)"/g)].map((item) => item[1]);
-}
-
 if (!existsSync(MIGRATION)) fail("Missing private search migration");
 if (!existsSync(FUNCTION)) fail("Missing search-mastermind-resources Edge Function");
+if (!existsSync(ACCESS_MIGRATION)) fail("Missing shared Mastermind portal access-scope migration");
 if (!existsSync(CONFIG)) fail("Missing Supabase config");
 if (!existsSync(LIVE_QA)) fail("Missing live Mastermind Edge Function QA harness");
 if (!existsSync(LIVE_QA_MOCK)) fail("Missing mock live Mastermind Edge Function QA harness");
@@ -69,6 +65,7 @@ if (!existsSync(PACKAGE_JSON)) fail("Missing package.json");
 
 const migration = existsSync(MIGRATION) ? read(MIGRATION) : "";
 const edgeFunction = existsSync(FUNCTION) ? read(FUNCTION) : "";
+const accessMigration = existsSync(ACCESS_MIGRATION) ? read(ACCESS_MIGRATION) : "";
 const config = existsSync(CONFIG) ? read(CONFIG) : "";
 const liveQa = existsSync(LIVE_QA) ? read(LIVE_QA) : "";
 const liveQaMock = existsSync(LIVE_QA_MOCK) ? read(LIVE_QA_MOCK) : "";
@@ -160,7 +157,9 @@ for (const field of returnedSensitiveFields) {
 }
 
 assert(edgeFunction.includes("auth.getUser(token)"), "Edge Function must authenticate the bearer token");
-assert(edgeFunction.includes("check_mastermind_entitlement"), "Edge Function must check Mastermind entitlement");
+assert(edgeFunction.includes("get_mastermind_portal_access_scopes"), "Edge Function must use the shared Mastermind access-scope decision");
+assert(edgeFunction.includes("p_allowed_access: allowedAccessScopes"), "Edge Function must pass member-specific scopes to search");
+assert(!edgeFunction.includes("MONTHLY_MEMBER_ACCESS_SCOPES"), "Edge Function must not hard-code monthly scopes for annual members");
 assert(edgeFunction.includes("search_mastermind_portal_resources"), "Edge Function must call the private search RPC");
 assert(edgeFunction.includes("cleanSnippet(row.snippet)"), "Edge Function must sanitize snippets");
 assert(edgeFunction.includes("sha256Hex(query.toLowerCase())"), "Edge Function must hash query text before logging");
@@ -168,16 +167,13 @@ assert(edgeFunction.includes("query_hash: queryHash"), "Edge Function must log o
 assert(edgeFunction.includes("resourceId: row.portal_resource_id"), "Edge Function must return resourceId per API contract");
 assert(!edgeFunction.includes("raw_query"), "Edge Function must not log raw_query");
 
-const monthlyScopes = extractArrayLiteral(edgeFunction, "MONTHLY_MEMBER_ACCESS_SCOPES");
 assert(
-  monthlyScopes.length === 2 &&
-    monthlyScopes.includes("core_curriculum") &&
-    monthlyScopes.includes("current_replay_30_day"),
-  "Monthly member search access must be core curriculum plus current 30-day replays",
+  accessMigration.includes("ARRAY['core_curriculum', 'current_replay_30_day']"),
+  "Shared access decision must restrict monthly members to core plus current 30-day replays",
 );
 assert(
-  monthlyScopes.every((scope) => ["core_curriculum", "current_replay_30_day"].includes(scope)),
-  "Monthly member search access includes a restricted scope",
+  accessMigration.includes("ARRAY['core_curriculum', 'current_replay_30_day', 'replay_vault', 'vault']"),
+  "Shared access decision must grant annual/lifetime members full Vault scopes",
 );
 
 for (const publicField of ["sourceUrl", "dropboxPath", "ghlVideoUrl", "bunnyVideoId", "youtubeVideoId", "transcriptPath", "transcriptText"]) {
@@ -207,10 +203,12 @@ assert(
 const srcFiles = existsSync(SRC_DIR) ? findFiles(SRC_DIR, (file) => /\.(ts|tsx|js|jsx)$/.test(file)) : [];
 for (const file of srcFiles) {
   const contents = read(file);
+  const relative = path.relative(ROOT, file);
+  const isHiddenVaultClient = relative === "src/pages/ReplayVault.tsx";
   assert(
-    !contents.includes("search-mastermind-resources") &&
-      !contents.includes("search_mastermind_portal_resources"),
-    `Frontend is already wired to hidden server search: ${path.relative(ROOT, file)}`,
+    (!contents.includes("search-mastermind-resources") &&
+      !contents.includes("search_mastermind_portal_resources")) || isHiddenVaultClient,
+    `Server search is wired outside the hidden Replay Vault client: ${relative}`,
   );
 }
 

@@ -87,5 +87,11 @@ verify_jwt = false
 [functions.get-mastermind-playback-link]
 verify_jwt = false
 
+[functions.get-mastermind-portal-access]
+verify_jwt = false
+
+[functions.ghl-webhook-grant-planner]
+verify_jwt = false
+
 [functions.sync-asana-tasks]
 verify_jwt = false

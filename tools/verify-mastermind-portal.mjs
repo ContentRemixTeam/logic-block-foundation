@@ -273,7 +273,8 @@ try {
   for (const hiddenSourceLabel of ['MASTERMIND_PORTAL_AUDIT', 'crdbDropboxRows', 'coachingRowsWithDropboxPaths', 'Content Repurpose', 'Dropbox', 'dropbox.com', 'bunny_video_id']) {
     assert.ok(!mastermindResourcesSource.includes(hiddenSourceLabel), 'Frontend resource data should not include private source/audit label: ' + hiddenSourceLabel);
   }
-  assert.ok(mastermindHubSource.includes('w-full sm:w-auto'), 'Primary Mastermind actions should stack cleanly on mobile');
+  assert.ok(mastermindHubSource.includes('className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row"'), 'Primary Mastermind actions should stack cleanly on mobile');
+  assert.ok(mastermindHubSource.includes("navigate('/mastermind/replay-vault')"), 'Success Path should link directly to the protected Replay Vault');
 
   const requiredMastermindHubLayoutGuards = [
     "SHOW_VIDEO_SEARCH ? 'grid-cols-2 sm:max-w-2xl sm:grid-cols-4' : 'grid-cols-3 sm:max-w-lg'",

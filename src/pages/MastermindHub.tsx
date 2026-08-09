@@ -27,6 +27,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   ExternalLink,
+  Library,
   Pin,
   Search,
   Sparkles,
@@ -196,10 +197,16 @@ export default function MastermindHub() {
                 </p>
               </div>
             </div>
-            <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate('/weekly-review')}>
-              <ClipboardCheck className="mr-2 h-4 w-4" />
-              Weekly Check-In
-            </Button>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              <Button variant="outline" onClick={() => navigate('/mastermind/replay-vault')}>
+                <Library className="mr-2 h-4 w-4" />
+                Replay Vault
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/weekly-review')}>
+                <ClipboardCheck className="mr-2 h-4 w-4" />
+                Weekly Check-In
+              </Button>
+            </div>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">

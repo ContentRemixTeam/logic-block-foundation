@@ -6,7 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MONTHLY_MEMBER_ACCESS_SCOPES = ["core_curriculum", "current_replay_30_day"];
 const MAX_RESOURCE_ID_CHARS = 220;
 const BLOCKED_DIRECT_SOURCE_HOSTS = [
   "dropbox.com",
@@ -49,8 +48,8 @@ function normalizeResourceId(value: unknown) {
   return value.trim().slice(0, MAX_RESOURCE_ID_CHARS);
 }
 
-function isAllowedMonthlyResource(resource: PortalResource) {
-  if (!MONTHLY_MEMBER_ACCESS_SCOPES.includes(resource.access_scope)) return false;
+function isAllowedResource(resource: PortalResource, allowedAccessScopes: string[]) {
+  if (!allowedAccessScopes.includes(resource.access_scope)) return false;
   if (resource.access_scope !== "current_replay_30_day") return true;
   if (!resource.available_until) return false;
   return resource.available_until >= new Date().toISOString().slice(0, 10);
@@ -174,8 +173,8 @@ serve(async (req: Request) => {
     }
 
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
-    const { data: hasMastermindAccess, error: entitlementError } = await serviceClient.rpc(
-      "check_mastermind_entitlement",
+    const { data: accessScopes, error: entitlementError } = await serviceClient.rpc(
+      "get_mastermind_portal_access_scopes",
       { user_email: userData.user.email },
     );
 
@@ -184,7 +183,11 @@ serve(async (req: Request) => {
       return json({ error: "Could not verify access" }, 500);
     }
 
-    if (!hasMastermindAccess) {
+    const allowedAccessScopes = Array.isArray(accessScopes)
+      ? accessScopes.filter((scope): scope is string => typeof scope === "string")
+      : [];
+
+    if (allowedAccessScopes.length === 0) {
       return json({ error: "Forbidden" }, 403);
     }
 
@@ -206,7 +209,7 @@ serve(async (req: Request) => {
     }
 
     const portalResource = resource as PortalResource;
-    if (!isAllowedMonthlyResource(portalResource)) {
+    if (!isAllowedResource(portalResource, allowedAccessScopes)) {
       return json({ error: "Forbidden" }, 403);
     }
 
