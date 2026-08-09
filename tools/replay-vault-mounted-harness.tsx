@@ -212,8 +212,27 @@ async function semanticsAndReflow() {
   assert(document.querySelector('[data-motion-safe]'), 'route must expose reduced-motion-safe behavior');
 }
 
+async function interactionReceiptsAreMountedAndPartialOutcomesHonest() {
+  const moment='22222222-2222-4222-8222-222222222222', question='33333333-3333-4333-8333-333333333333', attempt='44444444-4444-4444-8444-444444444444', bookmark='55555555-5555-4555-8555-555555555555', note='66666666-6666-4666-8666-666666666666';
+  __vaultMock.reset();__vaultMock.enqueue('get-mastermind-portal-access',allowed);
+  __vaultMock.enqueue('search-mastermind-resources',{data:{groups:[{...groups().data.groups[0],moments:[{...groups().data.groups[0].moments[0],momentId:moment,questionId:question}]}],totalGroups:1},error:null});
+  __vaultMock.enqueue('get-mastermind-playback-link',{data:{...nativePlayback().data,momentId:moment,questionId:question,startSeconds:42},error:null});
+  __vaultMock.enqueue('vault-member-interactions',{data:{data:{target:{resourceId:'replay-1',targetKind:'question',targetId:question,playbackAttemptId:attempt},bookmark:null,watch:{watchedSeconds:12,durationSeconds:60,lastPositionSeconds:12,completed:false}}},error:null});
+  __vaultMock.enqueue('vault-member-interactions',{data:{data:{saved:true,changed:true,bookmarkId:bookmark,resourceId:'replay-1',targetKind:'question',targetId:question}},error:null});
+  __vaultMock.enqueue('vault-member-interactions',{data:{data:{replayed:false,noteId:note,openPath:`/notes?page=${note}`,resourceId:'replay-1',targetKind:'question',targetId:question}},error:null});
+  await mount();await typeAndSubmit('capacity');await click(byText('Watch answer'));await tick();await tick();
+  assert(document.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')==='20',`real-shaped RPC watch receipt must mount as semantic progress; body=${document.body.textContent}`);
+  assert(document.body.textContent?.includes('Resume at 0:12'),'explicit honest resume must render');
+  await click(byText('Save answer'));assert(document.body.textContent?.includes('Answer saved.'),'bookmark receipt must drive confirmed UI');
+  await click(byText('Add note'));assert(document.querySelector<HTMLAnchorElement>('a[href^="/notes?page="]')?.getAttribute('href')===`/notes?page=${note}`,'exact note readback action must mount');
+  Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{throw new Error('denied')}}});
+  await click(byText('Copy protected link'));assert(document.body.textContent?.includes('Copy unavailable'),'clipboard denial must be honest');
+  const prior=window.open;window.open=()=>null;await click(byText('Open community'));assert(document.body.textContent?.includes('Community was not opened'),'popup blocked outcome must be independent');window.open=prior;
+  assert(document.querySelectorAll('[role="status"]').length>=1,'status region required');
+}
+
 async function run() {
-  const tests = [malformedAccessIsUnavailable, accessRaceKeepsNewestIntent, deepLinkIsBoundedAndRetryExplicit, searchRaceKeepsNewestIntent, playbackRaceAndSameTargetSeek, nativeRecoveryHandlesSameAndNewUrlOnce, youtubeRecoveryIsHonest, semanticsAndReflow];
+  const tests = [malformedAccessIsUnavailable, accessRaceKeepsNewestIntent, deepLinkIsBoundedAndRetryExplicit, searchRaceKeepsNewestIntent, playbackRaceAndSameTargetSeek, nativeRecoveryHandlesSameAndNewUrlOnce, youtubeRecoveryIsHonest, semanticsAndReflow, interactionReceiptsAreMountedAndPartialOutcomesHonest];
   const passed: string[] = [];
   for (const test of tests) { await test(); passed.push(test.name); }
   document.body.innerHTML = `<pre id="test-report" data-status="pass">${passed.join('\n')}</pre>`;

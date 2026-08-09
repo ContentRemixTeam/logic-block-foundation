@@ -1,0 +1,31 @@
+declare const Deno: { env: { get(name: string): string | undefined } };
+const MAX_BODY_BYTES = 8192;
+const DEFAULT_ORIGINS = ["https://app.faithmariah.com", "https://planner.faithmariah.com"];
+export const GENERIC_ERROR = { error: "Replay Vault request could not be completed" } as const;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const SAFE_RESOURCE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
+const MEMBERSHIPIO_RESOURCE = /^membershipio:[0-9a-f]{64}$/;
+export type AuthUser = { id: string; email?: string | null };
+export type Dependencies = { authenticate(req: Request): Promise<AuthUser | null>; rpc(name: string, args: Record<string, unknown>): Promise<{ data: unknown; error?: { code?: string } | null }>; log(taxonomy: "auth_rejected"|"request_rejected"|"rpc_rejected"|"internal_error", meta: { requestId: string; action?: string; code?: string }): void };
+export function allowedOrigins(env = Deno.env.get("VAULT_ALLOWED_ORIGINS")): Set<string> { const values: string[] = (env ?? "").split(",").map((x: string)=>x.trim()).filter(Boolean); return new Set<string>(values.length ? values : DEFAULT_ORIGINS); }
+export function validResourceId(value: unknown): value is string { return typeof value === "string" && (SAFE_RESOURCE.test(value) || MEMBERSHIPIO_RESOURCE.test(value)); }
+function headers(origin: string | null, allowed: Set<string>) { const h: Record<string,string>={"Content-Type":"application/json","Cache-Control":"no-store","Vary":"Origin"};if(origin&&allowed.has(origin)){h["Access-Control-Allow-Origin"]=origin;h["Access-Control-Allow-Headers"]="authorization, x-client-info, apikey, content-type";h["Access-Control-Allow-Methods"]="POST, OPTIONS";}return h; }
+function reply(origin:string|null,allowed:Set<string>,body:unknown,status:number){return new Response(status===204?null:JSON.stringify(body),{status,headers:headers(origin,allowed)});}
+async function boundedJson(req:Request){const declared=Number(req.headers.get("content-length")??"0");if(!Number.isFinite(declared)||declared>MAX_BODY_BYTES)throw new Error("body_too_large");const reader=req.body?.getReader();if(!reader)return {};let size=0;const chunks:Uint8Array[]=[];while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>MAX_BODY_BYTES){await reader.cancel();throw new Error("body_too_large");}chunks.push(value);}const bytes=new Uint8Array(size);let at=0;for(const c of chunks){bytes.set(c,at);at+=c.byteLength;}return JSON.parse(new TextDecoder().decode(bytes)||"{}");}
+const uuid=(v:unknown)=>typeof v==="string"&&UUID.test(v)?v:null;
+const text=(v:unknown,max=128)=>typeof v==="string"&&v.length>0&&v.length<=max?v:null;
+const integer=(v:unknown)=>typeof v==="number"&&Number.isSafeInteger(v)&&v>=0?v:null;
+function statusFor(code?:string){if(code==="42501")return 403;if(code==="22023"||code==="23505")return 409;if(code==="P0001")return 429;return 503;}
+export function createInteractionsHandler(deps:Dependencies, originEnv?:string){const origins=allowedOrigins(originEnv);return async(req:Request)=>{const origin=req.headers.get("origin"),requestId=crypto.randomUUID();
+ if(!origin||!origins.has(origin)){deps.log("request_rejected",{requestId,code:"origin"});return reply(origin,origins,GENERIC_ERROR,403);}if(req.method==="OPTIONS")return reply(origin,origins,null,204);if(req.method!=="POST")return reply(origin,origins,GENERIC_ERROR,405);
+ try{const user=await deps.authenticate(req);if(!user||!user.email){deps.log("auth_rejected",{requestId});return reply(origin,origins,GENERIC_ERROR,401);}const body=await boundedJson(req);if(!body||typeof body!=="object"||Array.isArray(body)||"userId"in body||"user_id"in body||"scopes"in body||"accessScopes"in body){deps.log("request_rejected",{requestId,code:"shape"});return reply(origin,origins,GENERIC_ERROR,400);}
+ const b=body as Record<string,unknown>,action=text(b.action,32);let rpc="",args:Record<string,unknown>={p_user_id:user.id,p_email:user.email};const resource=validResourceId(b.resourceId)?b.resourceId:null,kind=b.targetKind==="moment"||b.targetKind==="question"?b.targetKind:null,target=uuid(b.targetId);
+ if(action==="get_interaction"&&resource&&kind&&target){rpc="replay_vault_get_interaction";args={...args,p_portal_resource_id:resource,p_target_kind:kind,p_target_id:target};}
+ else if(action==="set_bookmark"&&resource&&kind&&target&&typeof b.saved==="boolean"){rpc="replay_vault_set_bookmark";args={...args,p_portal_resource_id:resource,p_target_kind:kind,p_target_id:target,p_saved:b.saved};}
+ else if(action==="delete_bookmark"&&uuid(b.bookmarkId)){rpc="replay_vault_delete_bookmark_by_id";args={p_user_id:user.id,p_bookmark_id:b.bookmarkId};}
+ else if(action==="begin_session"&&resource&&kind&&target){rpc="replay_vault_begin_session";args={...args,p_portal_resource_id:resource,p_target_kind:kind,p_target_id:target};}
+ else if(action==="media_event"&&uuid(b.sessionId)&&uuid(b.eventId)&&integer(b.sequence)!==null&&["timeupdate","pause","seeked","ended"].includes(String(b.eventType))&&integer(b.positionMs)!==null&&(b.clientDurationMs===null||b.clientDurationMs===undefined||integer(b.clientDurationMs)!==null)){rpc="replay_vault_record_media_event";args={...args,p_session_id:b.sessionId,p_event_id:b.eventId,p_sequence:b.sequence,p_event_type:b.eventType,p_position_ms:b.positionMs,p_client_duration_ms:integer(b.clientDurationMs)};}
+ else if(action==="create_note"&&resource&&kind&&target&&uuid(b.requestId)&&integer(b.positionMs)!==null){rpc="replay_vault_create_note";args={...args,p_portal_resource_id:resource,p_target_kind:kind,p_target_id:target,p_position_ms:b.positionMs,p_client_request_id:b.requestId};}
+ else{deps.log("request_rejected",{requestId,action:action??undefined,code:"validation"});return reply(origin,origins,GENERIC_ERROR,400);}
+ const result=await deps.rpc(rpc,args);if(result.error){deps.log("rpc_rejected",{requestId,action:action!,code:result.error.code??"unknown"});return reply(origin,origins,GENERIC_ERROR,statusFor(result.error.code));}return reply(origin,origins,{data:result.data},200);
+ }catch(error){const code=error instanceof Error&&error.message==="body_too_large"?"body_too_large":"malformed";deps.log("request_rejected",{requestId,code});return reply(origin,origins,GENERIC_ERROR,code==="body_too_large"?413:400);}};}

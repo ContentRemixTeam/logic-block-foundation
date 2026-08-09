@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { RefreshCw } from 'lucide-react';
 import { formatCompactTime } from './replayVaultCore.mjs';
 import type { PlaybackResult, PlaybackTarget } from './types';
+import { VaultInteractionBar } from './VaultInteractionBar';
 interface VaultPlayerProps { playback: PlaybackResult; target: PlaybackTarget; videoRef: RefObject<HTMLVideoElement>; announcement: string; sourceGeneration: number; recoveryBusy: boolean; recoveryFailed: boolean; onLoadedMetadata: () => void; onMediaError: () => void; onManualRefresh: () => void; }
 export function VaultPlayer({ playback, target, videoRef, announcement, sourceGeneration, recoveryBusy, recoveryFailed, onLoadedMetadata, onMediaError, onManualRefresh }: VaultPlayerProps) {
   const isYouTube = playback.provider === 'youtube';
@@ -22,6 +23,7 @@ export function VaultPlayer({ playback, target, videoRef, announcement, sourceGe
             <source src={playback.playbackUrl} />Your browser does not support protected video playback.
           </video>
         )}
+        <VaultInteractionBar playback={playback} target={target} videoRef={videoRef} sourceGeneration={sourceGeneration} />
         <p className="sr-only" role="status" aria-live="polite">{announcement}</p>
         {!isYouTube && recoveryBusy && <p role="status" className="text-sm text-muted-foreground">Refreshing protected playback…</p>}
         {!isYouTube && recoveryFailed && (

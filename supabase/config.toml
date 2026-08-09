@@ -95,3 +95,6 @@ verify_jwt = false
 
 [functions.sync-asana-tasks]
 verify_jwt = false
+
+[functions.vault-member-interactions]
+verify_jwt = false

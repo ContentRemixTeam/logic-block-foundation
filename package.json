@@ -28,7 +28,10 @@
     "verify:replay-vault-access-pg": "node tools/verify-replay-vault-access-pg.mjs",
     "verify:replay-vault-access-security": "node tools/verify-replay-vault-access-security.mjs",
     "verify:replay-vault-access": "npm run verify:replay-vault-access-edge && npm run verify:replay-vault-access-pg && npm run verify:replay-vault-access-security && npm run verify:replay-vault-producer-contract",
-    "verify:replay-vault-producer-contract": "node tools/verify-replay-vault-producer-contract.mjs"
+    "verify:replay-vault-producer-contract": "node tools/verify-replay-vault-producer-contract.mjs",
+    "verify:replay-vault-interactions-edge": "deno test -A supabase/functions/_shared/vaultInteractionsR2.test.ts",
+    "verify:replay-vault-interactions-pg": "node tools/verify-replay-vault-interactions-r2-pg.mjs",
+    "verify:replay-vault-interactions": "npm run verify:replay-vault-interactions-edge && npm run verify:replay-vault-interactions-pg && node tools/verify-replay-vault-interactions-ui.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
