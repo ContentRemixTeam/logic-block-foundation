@@ -39,7 +39,7 @@ from typing import Any, Iterable
 
 from replay_vault_foundation import (
     FoundationError, atomic_write_private, canonical_json, parse_vtt_ms, private_atomic_open, sha256_bytes,
-    timestamp_to_ms, transcript_digest, transcript_quality, write_json,
+    stable_manifest_contract, timestamp_to_ms, transcript_digest, transcript_quality, write_json,
 )
 
 HUB_ID = 13921
@@ -635,7 +635,7 @@ def main() -> int:
         "schema_version": 2,
         "resources": resources,
         "evidence": evidence,
-        "private_manifest": private_manifest,
+        "private_manifest": [stable_manifest_contract(row) for row in private_manifest],
         "transcript_segment_count": segment_count,
     }
     summary = {

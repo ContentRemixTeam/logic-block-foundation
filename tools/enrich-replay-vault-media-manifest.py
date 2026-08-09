@@ -22,10 +22,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
-from replay_vault_foundation import atomic_write_private, canonical_json, read_bounded_bytes, sha256_bytes, write_json
+from replay_vault_foundation import atomic_write_private, canonical_json, read_bounded_bytes, sha256_bytes, stable_manifest_contract, write_json
 
 API_BASE = "https://app.membership.io"
 DEFAULT_PACKAGE = Path.home() / "Dropbox" / "Becoming Boss Mastermind Vault Migration" / "App Import"
+MAX_NETWORK_JSON_BYTES = 1024 * 1024
 
 
 def load_env() -> None:
@@ -37,6 +38,27 @@ def load_env() -> None:
             key, value = raw.strip().split("=", 1)
             os.environ.setdefault(key.removeprefix("export ").strip(), value.strip().strip("\"'"))
 
+
+
+def read_network_json(response: Any, *, limit: int = MAX_NETWORK_JSON_BYTES) -> Any:
+    """Byte-bound a network response before JSON materialization."""
+    chunks: list[bytes] = []
+    remaining = limit + 1
+    while remaining:
+        block = response.read(min(64 * 1024, remaining))
+        if not block:
+            break
+        if not isinstance(block, bytes):
+            raise RuntimeError("network response did not return bytes")
+        chunks.append(block)
+        remaining -= len(block)
+    raw = b"".join(chunks)
+    if len(raw) > limit:
+        raise RuntimeError(f"network JSON exceeds {limit} bytes")
+    try:
+        return json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise RuntimeError("invalid bounded network JSON") from error
 
 def authenticate() -> str:
     load_env()
@@ -50,7 +72,7 @@ def authenticate() -> str:
         headers={"Content-Type": "application/json", "Accept": "application/json"},
     )
     with urllib.request.urlopen(request, timeout=30) as response:
-        body = json.load(response)
+        body = read_network_json(response)
     token = body.get("accessToken") or body.get("token")
     if not token:
         raise RuntimeError("Authentication succeeded without a bearer token")
@@ -66,7 +88,7 @@ def fetch_detail(token: str, file_hash: str, retries: int = 5) -> tuple[str, dic
         )
         try:
             with urllib.request.urlopen(request, timeout=60) as response:
-                body = json.load(response)
+                body = read_network_json(response)
             detail = body.get("data", body) if isinstance(body, dict) else None
             return file_hash, detail if isinstance(detail, dict) else None, "saved"
         except urllib.error.HTTPError as error:
@@ -97,21 +119,7 @@ def safe_int(value: Any) -> int:
 
 
 def source_metadata_contract(row: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "portal_resource_id": str(row.get("portal_resource_id") or ""),
-        "file_hash": str(row.get("file_hash") or ""),
-        "source_id": str(row.get("source_id") or ""),
-        "title": str(row.get("title") or ""),
-        "collection_name": str(row.get("collection_name") or ""),
-        "duration_seconds": safe_float(row.get("duration_seconds") or row.get("duration")),
-        "source_size_bytes": safe_int(row.get("source_size_bytes")),
-        "source_status": str(row.get("source_status") or ""),
-        "has_transcription": bool(row.get("has_transcription")),
-        "source_url_fingerprint": sha256_bytes(str(row.get("membershipio_source_url") or "").encode()),
-        "created_at": str(row.get("created_at") or ""),
-        "updated_at": str(row.get("updated_at") or ""),
-        "placements": row.get("placements") if isinstance(row.get("placements"), list) else [],
-    }
+    return stable_manifest_contract(row)
 
 
 @contextlib.contextmanager

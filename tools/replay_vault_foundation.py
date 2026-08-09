@@ -9,6 +9,7 @@ from __future__ import annotations
 import csv
 import contextlib
 import hashlib
+import hmac
 import html
 import json
 import os
@@ -446,7 +447,8 @@ def _normalized_dropbox_path(value: Any) -> str:
     return normalized
 
 
-def _source_metadata_contract(item: Mapping[str, Any]) -> dict[str, Any]:
+def stable_manifest_contract(item: Mapping[str, Any]) -> dict[str, Any]:
+    """Project durable source facts, excluding timestamps and host-local paths."""
     return {
         "portal_resource_id": str(item.get("portal_resource_id") or ""),
         "file_hash": str(item.get("file_hash") or ""),
@@ -458,14 +460,25 @@ def _source_metadata_contract(item: Mapping[str, Any]) -> dict[str, Any]:
         "source_status": str(item.get("source_status") or ""),
         "has_transcription": bool(item.get("has_transcription")),
         "source_url_fingerprint": sha256_bytes(str(item.get("membershipio_source_url") or "").encode()),
-        "created_at": str(item.get("created_at") or ""),
-        "updated_at": str(item.get("updated_at") or ""),
         "placements": item.get("placements") if isinstance(item.get("placements"), list) else [],
     }
 
 
-def reconcile_dropbox_receipts(manifest_path: Path, receipts_path: Path, worker_path: Path) -> dict[str, Any]:
-    """Validate only the active migration worker's bounded nine-field receipt contract."""
+def reconcile_dropbox_receipts(
+    manifest_path: Path,
+    receipts_path: Path,
+    worker_path: Path,
+    *,
+    hmac_secret: bytes,
+    expected_bindings: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Verify authenticated producer evidence against trusted runtime bindings.
+
+    The secret/bindings are invocation inputs and are never persisted.  Accepted
+    evidence remains candidate-grade and is not publication approval.
+    """
+    if not isinstance(hmac_secret, bytes) or len(hmac_secret) < 32:
+        raise FoundationError("receipt HMAC secret must be at least 32 runtime bytes")
     manifest_sha = sha256_bytes(read_bounded_bytes(manifest_path))
     manifest_value = json.loads(read_bounded_bytes(manifest_path))
     manifest_records = manifest_value.get("records", []) if isinstance(manifest_value, dict) else manifest_value
@@ -482,8 +495,9 @@ def reconcile_dropbox_receipts(manifest_path: Path, receipts_path: Path, worker_
         expected[portal_id] = item
     worker_sha = sha256_bytes(read_bounded_bytes(worker_path))
     receipts = _load_records(receipts_path)
-    fields = {"portal_resource_id", "file_hash", "title", "dropbox_path", "dropbox_file_id",
-              "dropbox_content_hash", "size", "duration_seconds", "completed_at"}
+    evidence_fields = {"portal_resource_id", "file_hash", "title", "dropbox_path", "dropbox_file_id",
+                       "dropbox_content_hash", "size", "duration_seconds", "completed_at"}
+    fields = evidence_fields | {"receipt_hmac_sha256"}
     accepted: list[dict[str, Any]] = []
     rejected: list[dict[str, Any]] = []
     seen_receipts: set[str] = set()
@@ -496,8 +510,11 @@ def reconcile_dropbox_receipts(manifest_path: Path, receipts_path: Path, worker_
             reasons.append("duplicate_receipt_portal_resource_id")
         seen_receipts.add(portal_id)
         item = expected.get(portal_id)
+        binding = expected_bindings.get(portal_id)
         if item is None:
             reasons.append("unknown_portal_resource_id")
+        if not isinstance(binding, Mapping):
+            reasons.append("missing_trusted_expected_binding")
         if item is not None:
             if str(row.get("file_hash") or "") != str(item.get("file_hash") or ""):
                 reasons.append("file_hash_mismatch")
@@ -519,6 +536,23 @@ def reconcile_dropbox_receipts(manifest_path: Path, receipts_path: Path, worker_
             reasons.append("invalid_dropbox_file_id")
         if not DROPBOX_CONTENT_HASH_RE.fullmatch(str(row.get("dropbox_content_hash") or "")):
             reasons.append("invalid_dropbox_content_hash")
+        signed_evidence = {key: str(row.get(key) or "") for key in sorted(evidence_fields)}
+        supplied_mac = str(row.get("receipt_hmac_sha256") or "")
+        expected_mac = hmac.new(hmac_secret, canonical_json(signed_evidence), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(supplied_mac, expected_mac):
+            reasons.append("invalid_receipt_hmac")
+        if isinstance(binding, Mapping):
+            checks = {
+                "provider": (str(binding.get("provider") or ""), "dropbox"),
+                "file_hash": (str(binding.get("file_hash") or ""), str(row.get("file_hash") or "")),
+                "dropbox_path": (str(binding.get("dropbox_path") or ""), dropbox_path),
+                "dropbox_file_id": (str(binding.get("dropbox_file_id") or ""), str(row.get("dropbox_file_id") or "")),
+                "dropbox_content_hash": (str(binding.get("dropbox_content_hash") or ""), str(row.get("dropbox_content_hash") or "")),
+                "size": (str(binding.get("size") or ""), str(row.get("size") or "")),
+            }
+            for field, (trusted, observed) in checks.items():
+                if not trusted or trusted != observed:
+                    reasons.append(f"trusted_{field}_mismatch")
         try:
             size = int(row.get("size") or 0)
             if size <= 0:
@@ -546,8 +580,8 @@ def reconcile_dropbox_receipts(manifest_path: Path, receipts_path: Path, worker_
         if reasons:
             rejected.append(result)
         else:
-            receipt_sha = sha256_bytes(canonical_json({key: row[key] for key in sorted(fields)}))
-            source_metadata_sha = sha256_bytes(canonical_json(_source_metadata_contract(item or {})))
+            receipt_sha = sha256_bytes(canonical_json(signed_evidence))
+            source_metadata_sha = sha256_bytes(canonical_json(stable_manifest_contract(item or {})))
             accepted.append({
                 "playback_evidence_id": stable_id("dropbox-evidence", portal_id, row["dropbox_file_id"], row["dropbox_content_hash"]),
                 "provider": "dropbox", "portal_resource_id": portal_id, "file_hash": row["file_hash"],
@@ -560,11 +594,13 @@ def reconcile_dropbox_receipts(manifest_path: Path, receipts_path: Path, worker_
             })
     accepted.sort(key=lambda row: row["portal_resource_id"])
     rejected.sort(key=lambda row: row["portal_resource_id"])
-    semantic = {"schema_version": 2, "provider": "dropbox", "manifest_sha256": manifest_sha,
-                "worker_sha256": worker_sha, "accepted": accepted, "rejected": rejected,
+    stable_accepted = [{key: value for key, value in row.items()
+                        if key not in {"completed_at", "receipt_sha256", "manifest_sha256"}} for row in accepted]
+    semantic = {"schema_version": 3, "provider": "dropbox", "worker_sha256": worker_sha, "accepted": stable_accepted, "rejected": rejected,
                 "counts": {"accepted": len(accepted), "rejected": len(rejected)}}
-    return {**semantic, "semantic_sha256": sha256_bytes(canonical_json(semantic))}
-
+    return {**semantic,
+            "provenance": {"manifest_sha256": manifest_sha, "accepted_receipts": accepted},
+            "semantic_sha256": sha256_bytes(canonical_json(semantic))}
 
 def extract_question_candidates(transcript_version: Mapping[str, Any], segments: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     authority = str(transcript_version.get("authority") or "")
@@ -655,5 +691,5 @@ def write_json(path: Path, value: Any, *, overwrite: bool = True) -> None:
 __all__ = [
     "FoundationError", "RULE_VERSION", "NORMALIZER_VERSION", "canonical_json", "sha256_bytes", "sha256_file", "stable_id",
     "normalize_title", "timestamp_to_ms", "parse_vtt_ms", "transcript_digest", "transcript_quality", "deterministic_pair",
-    "build_crdb_crosswalk", "reconcile_dropbox_receipts", "extract_question_candidates", "review_question_candidate", "write_json", "atomic_write_private", "private_atomic_open", "read_bounded_bytes", "_load_records",
+    "build_crdb_crosswalk", "reconcile_dropbox_receipts", "stable_manifest_contract", "extract_question_candidates", "review_question_candidate", "write_json", "atomic_write_private", "private_atomic_open", "read_bounded_bytes", "_load_records",
 ]

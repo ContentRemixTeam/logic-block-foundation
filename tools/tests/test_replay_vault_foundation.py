@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import hmac
+import io
 import importlib.util
 import json
 import os
@@ -21,7 +23,7 @@ sys.path.insert(0, str(TOOLS))
 from replay_vault_foundation import (  # noqa: E402
     FoundationError, atomic_write_private, build_crdb_crosswalk, canonical_json,
     deterministic_pair, extract_question_candidates, parse_vtt_ms, reconcile_dropbox_receipts,
-    review_question_candidate, sha256_bytes, transcript_digest, transcript_quality, write_json,
+    review_question_candidate, sha256_bytes, stable_manifest_contract, transcript_digest, transcript_quality, write_json,
 )
 
 
@@ -129,8 +131,9 @@ class PairingAndCrosswalkTests(unittest.TestCase):
 
 
 class DropboxReceiptTests(unittest.TestCase):
+    secret = b"test-only-runtime-secret-32-bytes-minimum"
     fields = ["portal_resource_id", "file_hash", "title", "dropbox_path", "dropbox_file_id",
-              "dropbox_content_hash", "size", "duration_seconds", "completed_at"]
+              "dropbox_content_hash", "size", "duration_seconds", "completed_at", "receipt_hmac_sha256"]
 
     def fixture(self, root: Path):
         manifest = root / "manifest.json"
@@ -144,7 +147,17 @@ class DropboxReceiptTests(unittest.TestCase):
                "dropbox_path": "/Vault/Call.mp4", "dropbox_file_id": "id:abc_123",
                "dropbox_content_hash": digest(b"dropbox"), "size": 123, "duration_seconds": 5,
                "completed_at": "2026-08-09T12:00:00Z"}
+        row["receipt_hmac_sha256"] = hmac.new(self.secret, canonical_json({key: str(row[key]) for key in sorted(set(self.fields) - {"receipt_hmac_sha256"})}), hashlib.sha256).hexdigest()
         return manifest, worker, row
+
+    def bindings(self, row):
+        return {row["portal_resource_id"]: {"provider": "dropbox", "file_hash": row["file_hash"],
+                "dropbox_path": row["dropbox_path"], "dropbox_file_id": row["dropbox_file_id"],
+                "dropbox_content_hash": row["dropbox_content_hash"], "size": row["size"]}}
+
+    def reconcile(self, manifest, receipts, worker, row, secret=None):
+        return reconcile_dropbox_receipts(manifest, receipts, worker, hmac_secret=secret or self.secret,
+                                          expected_bindings=self.bindings(row))
 
     def test_accepts_only_real_active_worker_schema_and_exact_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -152,11 +165,11 @@ class DropboxReceiptTests(unittest.TestCase):
             manifest, worker, row = self.fixture(root)
             receipts = root / "receipts.csv"
             write_csv(receipts, self.fields, [row])
-            result = reconcile_dropbox_receipts(manifest, receipts, worker)
+            result = self.reconcile(manifest, receipts, worker, row)
             self.assertEqual(result["counts"], {"accepted": 1, "rejected": 0})
             accepted = result["accepted"][0]
             self.assertEqual(accepted["provider"], "dropbox")
-            self.assertRegex(accepted["receipt_sha256"], r"^[0-9a-f]{64}$")
+            self.assertRegex(result["provenance"]["accepted_receipts"][0]["receipt_sha256"], r"^[0-9a-f]{64}$")
 
     def test_rejects_foreign_fabricated_path_host_schema_and_duplicates(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -167,12 +180,40 @@ class DropboxReceiptTests(unittest.TestCase):
                        "dropbox_content_hash": "ARBITRARY", "size": 1, "duration_seconds": 999,
                        "source_url": "https://evil.test"}
             receipts.write_text(json.dumps([hostile, hostile]), encoding="utf-8")
-            result = reconcile_dropbox_receipts(manifest, receipts, worker)
+            result = self.reconcile(manifest, receipts, worker, row)
             self.assertEqual(result["counts"], {"accepted": 0, "rejected": 2})
             reasons = set().union(*(set(row["reasons"]) for row in result["rejected"]))
             self.assertTrue({"invalid_active_worker_receipt_schema", "invalid_dropbox_path",
                              "invalid_dropbox_file_id", "invalid_dropbox_content_hash",
                              "size_mismatch", "duration_mismatch", "duplicate_receipt_portal_resource_id"}.issubset(reasons))
+
+    def test_attacker_without_secret_cannot_forge_and_field_mutation_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); manifest, worker, row = self.fixture(root); receipts = root / "receipts.csv"
+            forged = dict(row)
+            forged["receipt_hmac_sha256"] = hmac.new(b"attacker-secret-is-not-the-real-one!!", canonical_json({key: str(forged[key]) for key in sorted(set(self.fields) - {"receipt_hmac_sha256"})}), hashlib.sha256).hexdigest()
+            write_csv(receipts, self.fields, [forged])
+            result = self.reconcile(manifest, receipts, worker, row)
+            self.assertIn("invalid_receipt_hmac", result["rejected"][0]["reasons"])
+            altered = dict(row); altered["dropbox_content_hash"] = digest(b"altered")
+            write_csv(receipts, self.fields, [altered])
+            result = self.reconcile(manifest, receipts, worker, row)
+            self.assertIn("invalid_receipt_hmac", result["rejected"][0]["reasons"])
+
+    def test_completed_at_is_provenance_not_semantic_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); manifest, worker, first = self.fixture(root)
+            hashes = []
+            base_manifest = json.loads(manifest.read_text())
+            for index, timestamp in enumerate(("2026-08-09T12:00:00Z", "2026-08-09T12:00:01Z")):
+                manifest.write_text(json.dumps([{**base_manifest[0], "created_at": timestamp, "updated_at": timestamp}]))
+                row = dict(first); row["completed_at"] = timestamp
+                evidence = {key: str(row[key]) for key in sorted(set(self.fields) - {"receipt_hmac_sha256"})}
+                row["receipt_hmac_sha256"] = hmac.new(self.secret, canonical_json(evidence), hashlib.sha256).hexdigest()
+                receipts = root / f"receipts-{index}.csv"; write_csv(receipts, self.fields, [row])
+                hashes.append(self.reconcile(manifest, receipts, worker, row)["semantic_sha256"])
+            self.assertEqual(hashes[0], hashes[1])
+
 
 
 class PrivateArtifactTests(unittest.TestCase):
@@ -222,12 +263,12 @@ class ImporterDeterminismTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.module = load_script("membership_importer", "build-membershipio-replay-vault-import.py")
 
-    def run_fixture(self, output: Path, delays: dict[str, float]) -> dict[str, bytes]:
+    def run_fixture(self, output: Path, delays: dict[str, float], timestamp: str = "") -> dict[str, bytes]:
         files = [
             {"hash": "b", "id": 2, "title": "Beta", "content_type": "media", "collection_name": "videos", "position": 2,
-             "source_id": "222222222", "length": 2, "source_url": "https://app.membership.io/file/b"},
+             "source_id": "222222222", "length": 2, "created_at": timestamp, "updated_at": timestamp, "source_url": "https://app.membership.io/file/b"},
             {"hash": "a", "id": 1, "title": "Alpha", "content_type": "media", "collection_name": "videos", "position": 1,
-             "source_id": "111111111", "length": 2, "source_url": "https://app.membership.io/file/a"},
+             "source_id": "111111111", "length": 2, "created_at": timestamp, "updated_at": timestamp, "source_url": "https://app.membership.io/file/a"},
         ]
         playlist = {"hash": "playlist", "id": 1, "title": "Calls"}
         def caption(_token, url):
@@ -244,6 +285,14 @@ class ImporterDeterminismTests(unittest.TestCase):
         names = ["vault_resources.csv", "vault_source_evidence.csv", "vault_transcript_segments.csv",
                  "vault_private_media_manifest.json", "vault_import_upsert.sql", "vault_import_summary.json", "vault_import_summary.md"]
         return {name: (output / name).read_bytes() for name in names}
+
+    def test_importer_timestamps_do_not_change_semantic_root(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            one = self.run_fixture(root / "one", {"a": 0, "b": 0}, "2026-08-09T12:00:00Z")
+            two = self.run_fixture(root / "two", {"a": 0, "b": 0}, "2026-08-09T12:00:01Z")
+            self.assertEqual(json.loads(one["vault_import_summary.json"])["semantic_content_sha256"],
+                             json.loads(two["vault_import_summary.json"])["semantic_content_sha256"])
 
     def test_concurrent_completion_order_is_byte_stable_and_private(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -277,7 +326,7 @@ class VerifierFixtureTests(unittest.TestCase):
                      "speaker": "Faith", "transcript_text": "Synthetic exact cue"}]
         manifest = [{"portal_resource_id": "membershipio:file-1"}]
         semantic = {"schema_version": 2, "resources": resources, "evidence": evidence,
-                    "private_manifest": manifest, "transcript_segment_count": 1}
+                    "private_manifest": [stable_manifest_contract(row) for row in manifest], "transcript_segment_count": 1}
         write_csv(root / "vault_resources.csv", list(resources[0]), resources)
         write_csv(root / "vault_source_evidence.csv", list(evidence[0]), evidence)
         write_csv(root / "vault_transcript_segments.csv", list(segments[0]), segments)
@@ -292,7 +341,9 @@ class VerifierFixtureTests(unittest.TestCase):
         command = [sys.executable]
         if optimized:
             command.append("-O")
-        command += [str(TOOLS / "verify-replay-vault-import.py"), "--package-dir", str(root), "--allow-smoke"]
+        expected = json.loads((root / "vault_import_summary.json").read_text())["semantic_content_sha256"]
+        command += [str(TOOLS / "verify-replay-vault-import.py"), "--package-dir", str(root), "--allow-smoke",
+                    "--expected-semantic-content-sha256", expected]
         return subprocess.run(command, capture_output=True, text=True)
 
     def test_safe_fixture_passes(self) -> None:
@@ -331,11 +382,44 @@ class VerifierFixtureTests(unittest.TestCase):
             (root / "vault_import_summary.md").symlink_to(target)
             self.assertIn("symlink", self.run_verify(root).stderr)
 
+    def test_rejects_foreign_missing_duplicate_manifest_even_after_self_rehash(self) -> None:
+        for ids in (["membershipio:foreign"], [], ["membershipio:file-1", "membershipio:file-1"]):
+            with self.subTest(ids=ids), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp); self.make_package(root)
+                trusted = json.loads((root / "vault_import_summary.json").read_text())["semantic_content_sha256"]
+                manifest = [{"portal_resource_id": rid} for rid in ids]; write_json(root / "vault_private_media_manifest.json", manifest)
+                resources = list(csv.DictReader((root / "vault_resources.csv").read_text().splitlines()))
+                evidence = list(csv.DictReader((root / "vault_source_evidence.csv").read_text().splitlines()))
+                semantic = {"schema_version": 2, "resources": resources, "evidence": evidence,
+                            "private_manifest": [stable_manifest_contract(row) for row in manifest], "transcript_segment_count": 1}
+                summary = json.loads((root / "vault_import_summary.json").read_text()); summary["semantic_content_sha256"] = sha256_bytes(canonical_json(semantic)); write_json(root / "vault_import_summary.json", summary)
+                command = [sys.executable, str(TOOLS / "verify-replay-vault-import.py"), "--package-dir", str(root), "--allow-smoke", "--expected-semantic-content-sha256", trusted]
+                self.assertNotEqual(subprocess.run(command, capture_output=True, text=True).returncode, 0)
+
+    def test_verifier_rejects_actual_oversized_csv_before_parsing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); self.make_package(root); path = root / "vault_resources.csv"
+            with path.open("r+b") as handle:
+                handle.seek(64 * 1024 * 1024); handle.write(b"x")
+            self.assertIn("byte bound", self.run_verify(root).stderr)
+
+
 
 class EnricherImmutabilityTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.module = load_script("manifest_enricher", "enrich-replay-vault-media-manifest.py")
+
+    def test_network_json_is_byte_bounded_before_materialization(self) -> None:
+        oversized = io.BytesIO(b"{" + b"x" * self.module.MAX_NETWORK_JSON_BYTES + b"}")
+        with self.assertRaisesRegex(RuntimeError, "exceeds"):
+            self.module.read_network_json(oversized)
+
+    def test_enricher_timestamps_do_not_change_source_semantic_hash(self) -> None:
+        row = {"portal_resource_id": "membershipio:a", "file_hash": "a", "created_at": "one", "updated_at": "one"}
+        first = sha256_bytes(canonical_json(self.module.source_metadata_contract(row)))
+        row.update(created_at="two", updated_at="two")
+        self.assertEqual(first, sha256_bytes(canonical_json(self.module.source_metadata_contract(row))))
 
     def test_content_addressed_output_cas_lock_and_no_active_overwrite(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
