@@ -256,11 +256,11 @@ async function interactionReceiptsAreMountedAndPartialOutcomesHonest() {
   __vaultMock.reset();__vaultMock.enqueue('get-mastermind-portal-access',allowed);
   __vaultMock.enqueue('search-mastermind-resources',groups());
   __vaultMock.enqueue('get-mastermind-playback-link',nativePlayback());
-  __vaultMock.enqueue('vault-member-interactions',{data:{data:{target:{resourceId,targetKind:'question',targetId:questionOne,playbackAttemptId:attempt},bookmark:null,watch:{watchedSeconds:12,durationSeconds:60,lastPositionSeconds:12,completed:false}}},error:null});
-  __vaultMock.enqueue('vault-member-interactions',{data:{data:{saved:true,changed:true,bookmarkId:bookmark,resourceId,targetKind:'question',targetId:questionOne}},error:null});
-  __vaultMock.enqueue('vault-member-interactions',{data:{data:{replayed:false,noteId:note,openPath:`/notes?page=${note}`,resourceId,targetKind:'question',targetId:questionOne}},error:null});
+  __vaultMock.enqueue('vault-member-interactions',{data:{data:{target:{resourceId,targetKind:'moment',targetId:momentOne,playbackAttemptId:attempt},bookmark:null,watch:{watchedSeconds:12,durationSeconds:60,lastPositionSeconds:12,completed:false}}},error:null});
+  __vaultMock.enqueue('vault-member-interactions',{data:{data:{saved:true,changed:true,bookmarkId:bookmark,resourceId,targetKind:'moment',targetId:momentOne}},error:null});
+  __vaultMock.enqueue('vault-member-interactions',{data:{data:{replayed:false,noteId:note,openPath:`/notes?page=${note}`,resourceId,targetKind:'moment',targetId:momentOne}},error:null});
   await mount();await typeAndSubmit('capacity');await click(byText('Watch answer'));await tick();await tick();
-  assert(document.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')==='20',`real-shaped RPC watch receipt must mount as semantic progress; body=${document.body.textContent}`);
+  assert(document.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')==='20',`real-shaped RPC watch receipt must mount as semantic progress; calls=${__vaultMock.count('vault-member-interactions')} last=${JSON.stringify(__vaultMock.lastBody('vault-member-interactions'))} body=${document.body.textContent}`);
   assert(document.body.textContent?.includes('Resume at 0:12'),'explicit honest resume must render');
   await click(byText('Save answer'));assert(document.body.textContent?.includes('Answer saved.'),'bookmark receipt must drive confirmed UI');
   await click(byText('Add note'));assert(document.querySelector<HTMLAnchorElement>('a[href^="/notes?page="]')?.getAttribute('href')===`/notes?page=${note}`,'exact note readback action must mount');
