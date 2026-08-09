@@ -1,46 +1,22 @@
 import { RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { applySeekTarget, formatSpokenTime } from './replayVaultCore.mjs';
-
-interface SeekCoordinatorOptions {
-  mediaRef: RefObject<HTMLVideoElement>;
-  targetSeconds: number | null;
-  targetKey: string | null;
-}
-
-export function useVaultSeekCoordinator({ mediaRef, targetSeconds, targetKey }: SeekCoordinatorOptions) {
+interface SeekCoordinatorOptions { mediaRef: RefObject<HTMLVideoElement>; targetSeconds: number | null; targetKey: string | null; activationNonce: number; }
+export function useVaultSeekCoordinator({ mediaRef, targetSeconds, targetKey, activationNonce }: SeekCoordinatorOptions) {
   const [metadataReady, setMetadataReady] = useState(false);
   const [announcement, setAnnouncement] = useState('');
-  const appliedKey = useRef<string | null>(null);
-
+  const appliedActivation = useRef<string | null>(null);
   const applyPendingTarget = useCallback(() => {
     const media = mediaRef.current;
-    if (!media || !metadataReady || targetSeconds === null || !targetKey || appliedKey.current === targetKey) return;
+    const activationKey = targetKey ? `${targetKey}:${activationNonce}` : null;
+    if (!media || !metadataReady || targetSeconds === null || !activationKey || appliedActivation.current === activationKey) return;
     try {
       const applied = applySeekTarget(media, targetSeconds);
-      appliedKey.current = targetKey;
+      appliedActivation.current = activationKey;
       setAnnouncement(`Jumped to ${formatSpokenTime(applied)}.`);
-    } catch {
-      setAnnouncement("Couldn't jump to that moment. Play from the nearest available point.");
-    }
-  }, [mediaRef, metadataReady, targetKey, targetSeconds]);
-
-  useEffect(() => {
-    appliedKey.current = null;
-    applyPendingTarget();
-  }, [applyPendingTarget, targetKey, targetSeconds]);
-
-  const onLoadedMetadata = useCallback(() => {
-    setMetadataReady(true);
-  }, []);
-
-  useEffect(() => {
-    applyPendingTarget();
-  }, [applyPendingTarget, metadataReady]);
-
-  const resetForSource = useCallback(() => {
-    setMetadataReady(false);
-    appliedKey.current = null;
-  }, []);
-
+    } catch { setAnnouncement("Couldn't jump to that moment. Play from the nearest available point."); }
+  }, [activationNonce, mediaRef, metadataReady, targetKey, targetSeconds]);
+  useEffect(() => { applyPendingTarget(); }, [applyPendingTarget]);
+  const onLoadedMetadata = useCallback(() => { setMetadataReady(true); }, []);
+  const resetForSource = useCallback(() => { setMetadataReady(false); appliedActivation.current = null; }, []);
   return { announcement, onLoadedMetadata, resetForSource };
 }

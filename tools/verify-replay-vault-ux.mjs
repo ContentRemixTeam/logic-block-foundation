@@ -1,86 +1,91 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { build } from 'esbuild';
 import { fileURLToPath } from 'node:url';
 import {
-  applySeekTarget,
   groupSearchResults,
   makeDetailHref,
   normalizeAccessResponse,
   parseDetailTarget,
-  shouldAutoRefresh,
 } from '../src/components/replay-vault/replayVaultCore.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8');
+const chrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+assert.ok(fs.existsSync(chrome), 'Mounted Replay Vault verifier requires Google Chrome on this macOS host');
 
-// Synthetic access matrix: an endpoint outage is a client transport state, never a denial decision.
-const outage = { status: 'unavailable' };
-const denied = normalizeAccessResponse({ decision: 'denied', reasonCode: 'expired', checkedAt: '2026-08-09T00:00:00Z' });
-const limited = normalizeAccessResponse({ decision: 'limited', capabilities: ['core', 'current_replay'] });
-const allowed = normalizeAccessResponse({ decision: 'allowed', capabilities: ['core', 'full_vault'] });
-assert.equal(outage.status, 'unavailable');
-assert.equal(denied.status, 'denied');
-assert.equal(limited.status, 'limited');
-assert.equal(allowed.status, 'allowed');
-assert.notEqual(outage.status, denied.status, 'service failure must not collapse into access denial');
+assert.equal(normalizeAccessResponse(null).status, 'unavailable');
+assert.equal(normalizeAccessResponse({}).status, 'unavailable');
+assert.equal(normalizeAccessResponse({ error: 'Could not verify access' }).status, 'unavailable');
+assert.equal(normalizeAccessResponse({ decision: 'denied', reasonCode: 'expired' }).status, 'denied');
 
-// Synthetic grouped response: one replay retains every approved moment.
-const sentinelGroups = groupSearchResults({ results: [
-  { resourceId: 'replay-1', title: 'Capacity coaching', categoryTitle: 'Ask Faith', momentId: 'moment-214', startsAtSeconds: 214, snippet: 'First answer' },
-  { resourceId: 'replay-1', title: 'Capacity coaching', categoryTitle: 'Ask Faith', momentId: 'moment-1630', startsAtSeconds: 1630, snippet: 'Second answer' },
-  { resourceId: 'replay-2', title: 'Pricing coaching', categoryTitle: 'Office hours', momentId: 'moment-90', startsAtSeconds: 90, snippet: 'Another replay' },
-] });
-assert.equal(sentinelGroups.length, 2);
-assert.equal(sentinelGroups[0].moments.length, 2);
-assert.deepEqual(sentinelGroups[0].moments.map((moment) => moment.startSeconds), [214, 1630]);
+const authoritative = groupSearchResults({ groups: [{
+  resourceId: 'replay-1', title: 'Capacity', category: 'Office hours', moments: [
+    { momentId: 'moment-1', questionId: 'question-1', startSeconds: 42, snippet: 'First' },
+    { momentId: 'moment-2', questionId: 'question-2', startSeconds: 90, snippet: 'Second' },
+  ],
+}] });
+assert.equal(authoritative[0]?.moments.length, 2, 'authoritative multi-moment server shape must survive intact');
+assert.equal(groupSearchResults({ groups: [{ resourceId: 'replay-1', moments: [{ startSeconds: 42 }] }] }).length, 0, 'moments without durable IDs must be rejected');
+const href = makeDetailHref({ resourceId: 'replay-1', questionId: 'question-1', momentId: 'moment-1' });
+assert.deepEqual(parseDetailTarget(new URL(href, 'https://app.example').search), { resourceId: 'replay-1', questionId: 'question-1', momentId: 'moment-1' });
 
-// Same loaded media element must apply a second target, not only loadedmetadata's first target.
-const media = { duration: 3600, currentTime: 0 };
-applySeekTarget(media, 214);
-assert.equal(media.currentTime, 214);
-applySeekTarget(media, 1630);
-assert.equal(media.currentTime, 1630);
-
-// Expired-link recovery is bounded to one automatic refresh.
-let attempts = 0;
-assert.equal(shouldAutoRefresh(attempts), true);
-attempts += 1;
-assert.equal(shouldAutoRefresh(attempts), false);
-
-// Protected detail state uses stable approved IDs and never serializes media/provider paths.
-const href = makeDetailHref({ resourceId: 'replay-1', questionId: 'question-7', momentId: 'moment-214' });
-assert.equal(href, '/mastermind/replay-vault?resource=replay-1&question=question-7&moment=moment-214');
-assert.deepEqual(parseDetailTarget('?resource=replay-1&question=question-7&moment=moment-214&t=214'), {
-  resourceId: 'replay-1', questionId: 'question-7', momentId: 'moment-214',
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'replay-vault-mounted-'));
+const aliases = (negative) => ({
+  name: 'replay-vault-test-aliases',
+  setup(buildApi) {
+    const exact = (value) => new RegExp(`^${value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
+    buildApi.onResolve({ filter: exact('@/integrations/supabase/client') }, () => ({ path: path.join(root, 'tools/replay-vault-supabase-mock.ts') }));
+    buildApi.onResolve({ filter: exact('@/components/Layout') }, () => ({ path: path.join(root, 'tools/replay-vault-layout-mock.tsx') }));
+    if (negative) buildApi.onResolve({ filter: exact('@/pages/ReplayVault') }, () => ({ path: path.join(root, 'tools/replay-vault-negative-stub.tsx') }));
+  },
 });
-for (const forbidden of ['playbackUrl', 'dropbox', '/provider/media', 'token=', 't=214']) {
-  assert.equal(href.includes(forbidden), false, `detail href leaked ${forbidden}`);
+
+async function runMounted(label, negative = false) {
+  const outfile = path.join(tmp, `${label}.js`);
+  await build({
+    entryPoints: [path.join(root, 'tools/replay-vault-mounted-harness.tsx')],
+    outfile,
+    bundle: true,
+    platform: 'browser',
+    format: 'iife',
+    jsx: 'automatic',
+    tsconfig: path.join(root, 'tsconfig.app.json'),
+    plugins: [aliases(negative)],
+    logLevel: 'silent',
+  });
+  const script = fs.readFileSync(outfile, 'utf8').replaceAll('</script', '<\\/script');
+  const cssPath = path.join(tmp, `${label}.css`);
+  const cssBuild = spawnSync('npx', ['tailwindcss', '-i', path.join(root, 'src/index.css'), '-o', cssPath, '--minify'], {
+    cwd: root, encoding: 'utf8', timeout: 30000,
+  });
+  assert.equal(cssBuild.status, 0, `could not compile mounted harness CSS: ${cssBuild.stderr}`);
+  const css = fs.readFileSync(cssPath, 'utf8');
+  assert.ok(css.includes('.min-w-0'), 'mounted harness must include compiled application CSS');
+  const html = path.join(tmp, `${label}.html`);
+  fs.writeFileSync(html, `<!doctype html><meta charset="utf-8"><style>html,body{margin:0}*{box-sizing:border-box}${css}</style><body><script>${script}</script></body>`);
+  const result = spawnSync(chrome, [
+    '--headless=new', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--allow-file-access-from-files',
+    '--run-all-compositor-stages-before-draw', '--virtual-time-budget=12000', '--dump-dom', `file://${html}`,
+  ], { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024, timeout: 30000 });
+  if (result.error) throw result.error;
+  const output = `${result.stdout}\n${result.stderr}`;
+  const passed = output.includes('id="test-report" data-status="pass"');
+  return { passed, output, status: result.status };
 }
 
-const page = read('src/pages/ReplayVault.tsx');
-const results = read('src/components/replay-vault/VaultSearchResults.tsx');
-const player = read('src/components/replay-vault/VaultPlayer.tsx');
-const seek = read('src/components/replay-vault/useVaultSeekCoordinator.ts');
-
-// Keyboard/focus/live-region behavior is implemented with native controls and explicit names.
-for (const required of [
-  'role="search"', 'label htmlFor="vault-search"', 'aria-describedby="vault-search-help"',
-  'aria-live="polite"', 'role="alert"', 'min-h-11', 'overflow-x-auto',
-]) assert.ok(page.includes(required), `page missing keyboard/mobile semantic: ${required}`);
-for (const required of ['aria-label={`Watch', 'min-h-11', '<Button', '<ProtectedReplayLink']) {
-  assert.ok(results.includes(required), `results missing keyboard/touch behavior: ${required}`);
+try {
+  const mounted = await runMounted('real');
+  if (!mounted.passed) {
+    console.error(mounted.output.match(/<pre id="test-report"[\s\S]*?<\/pre>/)?.[0] ?? mounted.output.slice(-4000));
+    process.exit(1);
+  }
+  const negative = await runMounted('negative-control', true);
+  assert.equal(negative.passed, false, 'false-green negative control: removing executable Replay Vault UI must fail mounted coverage');
+  console.log('Replay Vault mounted behavioral verifier passed: malformed access, authoritative grouped moments, access/search/playback races, bounded deep-link retry, repeated target seek, native same/new URL recovery, honest YouTube fallback, 320/360/390 reflow, focus/landmarks, keyboard semantics, and executable-UI negative control.');
+} finally {
+  fs.rmSync(tmp, { recursive: true, force: true });
 }
-assert.ok(player.includes('playsInline'), 'mobile player must use inline playback');
-assert.ok(player.includes('max-w-full'), 'player must be width bounded on 360/390px screens');
-assert.ok(seek.includes('targetKey'), 'seek coordinator must react to subsequent target changes');
-assert.ok(seek.includes('applyPendingTarget'), 'seek coordinator must apply pending target after metadata');
-
-// Honest placeholders cannot inject fake browse/question/saved records.
-assert.ok(page.includes('approved catalog API is available'));
-assert.ok(page.includes('reviewed Questions API is available'));
-assert.ok(page.includes('protected bookmarks are available'));
-assert.equal(page.includes('const fake'), false);
-
-console.log('Replay Vault UX behavioral verifier passed: access outage, grouped moments, second seek, one-retry expiry recovery, protected IDs, no provider path, keyboard semantics, and 360/390 width guards.');
