@@ -50,7 +50,7 @@ function cluster(label) {
 }
 const sig=i=>String(i%10).repeat(64);
 const call=({event,order="concurrent-order",transaction,parentOrder=null,parentTransaction=null,email="hundred@example.com",type="grant",effective="2026-08-09",expires="2027-08-09",hash="7".repeat(64),signature="8".repeat(64)})=>
-  `SELECT public.apply_replay_vault_commercial_event_r7('ghl','${event}',${order?`'${order}'`:'NULL'},${transaction?`'${transaction}'`:'NULL'},${parentOrder?`'${parentOrder}'`:'NULL'},${parentTransaction?`'${parentTransaction}'`:'NULL'},'${email}','${type}','vault','annual','${hash}','${signature}','${effective}',${expires?`'${expires}'`:'NULL'})::text`;
+  `SELECT public.apply_replay_vault_commercial_event_r7('ghl','${event}',${order?`'${order}'`:'NULL'},${transaction?`'${transaction}'`:'NULL'},${parentOrder?`'${parentOrder}'`:'NULL'},${parentTransaction?`'${parentTransaction}'`:'NULL'},'${email}','${type}','vault','annual','${hash}','${signature}',1786291200,'${effective}',${expires?`'${expires}'`:'NULL'})::text`;
 const fresh=cluster("fresh");
 try{
   fresh.start();for(const migration of migrations)fresh.psql(["-f",migration]);fresh.psql(["-f",migrations.at(-1)]);
@@ -67,8 +67,9 @@ try{
   const renewal=call({event:"ctrl-renew",order:"ctrl-order",transaction:"ctrl-charge-2",email:"control@example.com",type:"renewal",effective:"2027-01-01",expires:"2028-01-01"});
   const refund=call({event:"ctrl-refund",order:null,transaction:null,parentOrder:"ctrl-order",parentTransaction:"ctrl-charge-1",email:"control@example.com",type:"refund",effective:"2027-02-01",expires:null});
   await Promise.all([fresh.concurrent(renewal),fresh.concurrent(refund)]);
-  fresh.psql(["-Atqc",`DO $$BEGIN IF(SELECT status FROM public.replay_vault_entitlements WHERE normalized_email='control@example.com')<>'active'
-    OR(SELECT access_expires_at FROM public.replay_vault_entitlements WHERE normalized_email='control@example.com')::date<>'2028-01-01' THEN RAISE EXCEPTION 'renewal/refund concurrency aggregate';END IF;END$$;
+  fresh.psql(["-Atqc",`DO $$DECLARE j jsonb;BEGIN
+    j:=public.replay_vault_access_decision('99999999-9999-4999-8999-999999999999','control@example.com',NULL,'access',false,'2027-02-01');
+    IF j->>'memberTier'<>'annual' THEN RAISE EXCEPTION 'renewal/refund concurrency exact authority %',j;END IF;END$$;
     SELECT 'PASS replay_vault_r7_concurrent_renewal_refund';`]);
   fresh.psql(["-Atqc",call({event:"double-old",order:"double-order",transaction:"double-charge",email:"double@example.com",effective:"2026-01-01",expires:"2027-01-01"})]);
   await Promise.all([

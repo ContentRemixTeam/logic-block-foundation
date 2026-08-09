@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS public.replay_vault_commercial_deliveries (
   price_id text NOT NULL CHECK(trim(price_id)<>''),
   payload_sha256 text NOT NULL CHECK(payload_sha256~'^[0-9a-f]{64}$'),
   signature_sha256 text CHECK(signature_sha256 IS NULL OR signature_sha256~'^[0-9a-f]{64}$'),
+  signature_timestamp bigint CHECK(signature_timestamp IS NULL OR signature_timestamp>0),
   signature_verified boolean NOT NULL CHECK(signature_verified),
   effective_at timestamptz NOT NULL,
   requested_expires_at timestamptz,
@@ -65,6 +66,18 @@ CREATE TABLE IF NOT EXISTS public.replay_vault_commercial_deliveries (
   CHECK ((event_type IN ('grant','renewal') AND order_id IS NOT NULL AND trim(order_id)<>'' AND transaction_id IS NOT NULL AND trim(transaction_id)<>'' AND lifecycle_parent_transaction_id IS NULL)
     OR (event_type NOT IN ('grant','renewal') AND lifecycle_parent_order_id IS NOT NULL AND trim(lifecycle_parent_order_id)<>'' AND lifecycle_parent_transaction_id IS NOT NULL AND trim(lifecycle_parent_transaction_id)<>''))
 );
+
+CREATE TABLE IF NOT EXISTS public.replay_vault_commercial_delivery_attempts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  canonical_delivery_id uuid NOT NULL REFERENCES public.replay_vault_commercial_deliveries(id) ON DELETE RESTRICT,
+  provider text NOT NULL CHECK(provider=lower(trim(provider)) AND provider<>''),
+  provider_delivery_id text NOT NULL CHECK(trim(provider_delivery_id)<>''),
+  signature_timestamp bigint NOT NULL CHECK(signature_timestamp>0),
+  signature_sha256 text NOT NULL CHECK(signature_sha256~'^[0-9a-f]{64}$'),
+  verified_at timestamptz NOT NULL DEFAULT clock_timestamp()
+);
+CREATE INDEX IF NOT EXISTS replay_vault_delivery_attempts_canonical_idx
+  ON public.replay_vault_commercial_delivery_attempts(canonical_delivery_id,verified_at,id);
 
 CREATE TABLE IF NOT EXISTS public.replay_vault_purchase_contributions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -127,7 +140,8 @@ CREATE OR REPLACE FUNCTION public.replay_vault_r7_forbid_mutation() RETURNS trig
 LANGUAGE plpgsql SET search_path=pg_catalog AS $$ BEGIN RAISE EXCEPTION '% is append-only',TG_TABLE_NAME; END $$;
 DO $$ DECLARE n text; BEGIN
   FOREACH n IN ARRAY ARRAY['replay_vault_commercial_deliveries','replay_vault_purchase_contributions',
-    'replay_vault_purchase_lifecycle_evidence','replay_vault_commercial_quarantine','replay_vault_commercial_resolutions']
+    'replay_vault_commercial_delivery_attempts','replay_vault_purchase_lifecycle_evidence',
+    'replay_vault_commercial_quarantine','replay_vault_commercial_resolutions']
   LOOP
     EXECUTE format('DROP TRIGGER IF EXISTS %I ON public.%I',n||'_append_only_r7',n);
     EXECUTE format('CREATE TRIGGER %I BEFORE UPDATE OR DELETE ON public.%I FOR EACH ROW EXECUTE FUNCTION public.replay_vault_r7_forbid_mutation()',n||'_append_only_r7',n);
@@ -149,13 +163,13 @@ ON CONFLICT(provider,evidence_sha256) DO NOTHING;
 
 INSERT INTO public.replay_vault_commercial_deliveries(provider,provider_delivery_id,event_type,order_id,transaction_id,
   lifecycle_parent_order_id,lifecycle_parent_transaction_id,normalized_email,product_id,price_id,payload_sha256,
-  signature_sha256,signature_verified,effective_at,requested_expires_at,outcome,error_class,source_legacy_event_id,receipt)
+  signature_sha256,signature_timestamp,signature_verified,effective_at,requested_expires_at,outcome,error_class,source_legacy_event_id,receipt)
 SELECT w.provider,w.event_id,w.event_type,
   CASE WHEN w.event_type IN ('grant','renewal') THEN w.order_id END,
   CASE WHEN w.event_type IN ('grant','renewal') THEN 'legacy-event:'||w.event_id END,
   CASE WHEN w.event_type NOT IN ('grant','renewal') THEN w.order_id END,
   CASE WHEN w.event_type NOT IN ('grant','renewal') THEN 'legacy-missing-parent:'||w.event_id END,
-  w.normalized_email,w.product_id,w.price_id,w.payload_sha256,NULL,true,w.effective_at,w.requested_expires_at,
+  w.normalized_email,w.product_id,w.price_id,w.payload_sha256,NULL,NULL,true,w.effective_at,w.requested_expires_at,
   CASE WHEN w.status='rejected_unmapped' THEN 'rejected_unmapped'
        WHEN q.id IS NOT NULL OR w.event_type NOT IN ('grant','renewal') OR w.status<>'applied' THEN 'quarantined'
        ELSE 'legacy_backfill' END,
@@ -203,45 +217,38 @@ BEGIN
   RETURN NEW;
 END $$;
 
-CREATE OR REPLACE FUNCTION public.replay_vault_recompute_entitlement_r7(p_email text,p_transition_at timestamptz)
+CREATE OR REPLACE FUNCTION public.replay_vault_recompute_entitlement_r7(p_email text,p_as_of timestamptz)
 RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,public AS $$
-DECLARE e public.replay_vault_entitlements%ROWTYPE; c record; latest record; life boolean; tier text; expires timestamptz;
-  starts timestamptz; paid timestamptz; active_count bigint; transition_at timestamptz:=coalesce(p_transition_at,clock_timestamp());
+DECLARE e public.replay_vault_entitlements%ROWTYPE; winner public.replay_vault_purchase_contributions%ROWTYPE;
+  decision_at timestamptz:=coalesce(p_as_of,clock_timestamp());
 BEGIN
   PERFORM set_config('replay_vault.aggregate_recompute','on',true);
   SELECT * INTO e FROM public.replay_vault_entitlements WHERE normalized_email=p_email FOR UPDATE;
-  SELECT count(*),bool_or(x.entitlement_tier='lifetime'),min(x.contribution_starts_at),
-    max(x.contribution_expires_at),max(x.contribution_starts_at)
-    INTO active_count,life,starts,expires,paid
+  SELECT x.* INTO winner
   FROM public.replay_vault_purchase_contributions x
   WHERE x.normalized_email=p_email
-    AND (x.contribution_expires_at IS NULL OR x.contribution_expires_at>transition_at)
+    AND x.contribution_starts_at<=decision_at
+    AND (x.contribution_expires_at IS NULL OR decision_at<x.contribution_expires_at)
     AND NOT EXISTS(
-    SELECT 1 FROM public.replay_vault_purchase_lifecycle_evidence l
-    WHERE l.purchase_contribution_id=x.id AND l.lifecycle_type IN ('expiration','refund','chargeback','immediate_revocation'));
-  IF active_count>0 THEN
-    SELECT x.* INTO latest FROM public.replay_vault_purchase_contributions x
-    WHERE x.normalized_email=p_email
-      AND (x.contribution_expires_at IS NULL OR x.contribution_expires_at>transition_at)
-      AND NOT EXISTS(SELECT 1 FROM public.replay_vault_purchase_lifecycle_evidence l
-      WHERE l.purchase_contribution_id=x.id AND l.lifecycle_type IN ('expiration','refund','chargeback','immediate_revocation'))
-    ORDER BY x.contribution_starts_at DESC,x.created_at DESC,x.id DESC LIMIT 1;
-    SELECT CASE WHEN life THEN 'lifetime' WHEN EXISTS(SELECT 1 FROM public.replay_vault_purchase_contributions x
-      WHERE x.normalized_email=p_email AND x.entitlement_tier='annual'
-        AND (x.contribution_expires_at IS NULL OR x.contribution_expires_at>transition_at)
-        AND NOT EXISTS(SELECT 1 FROM public.replay_vault_purchase_lifecycle_evidence l WHERE l.purchase_contribution_id=x.id AND l.lifecycle_type IN ('expiration','refund','chargeback','immediate_revocation'))) THEN 'annual' ELSE 'monthly' END INTO tier;
-    IF life THEN expires:=NULL; END IF;
+      SELECT 1 FROM public.replay_vault_purchase_lifecycle_evidence l
+      WHERE l.purchase_contribution_id=x.id
+        AND l.lifecycle_type IN ('expiration','refund','chargeback','immediate_revocation')
+        AND l.effective_at<=decision_at)
+  ORDER BY CASE x.entitlement_tier WHEN 'lifetime' THEN 3 WHEN 'annual' THEN 2 ELSE 1 END DESC,
+    x.contribution_starts_at DESC,x.created_at DESC,x.id DESC LIMIT 1;
+  IF FOUND THEN
     INSERT INTO public.replay_vault_entitlements(normalized_email,tier,status,access_starts_at,access_expires_at,
       source_provider,source_order_id,last_paid_event_at,last_transition_at,revoked_at,commercial_evidence_state)
-    VALUES(p_email,tier,'active',starts,expires,latest.provider,latest.order_id,paid,transition_at,NULL,'validated')
+    VALUES(p_email,winner.entitlement_tier,'active',winner.contribution_starts_at,winner.contribution_expires_at,
+      winner.provider,winner.order_id,winner.purchase_effective_at,decision_at,NULL,'validated')
     ON CONFLICT(normalized_email) DO UPDATE SET tier=excluded.tier,status='active',access_starts_at=excluded.access_starts_at,
       access_expires_at=excluded.access_expires_at,source_provider=excluded.source_provider,source_order_id=excluded.source_order_id,
       last_paid_event_at=greatest(public.replay_vault_entitlements.last_paid_event_at,excluded.last_paid_event_at),
       last_transition_at=greatest(public.replay_vault_entitlements.last_transition_at,excluded.last_transition_at),
       revoked_at=NULL,commercial_evidence_state='validated',updated_at=clock_timestamp();
   ELSIF e.id IS NOT NULL THEN
-    UPDATE public.replay_vault_entitlements SET status='revoked',revoked_at=transition_at,
-      last_transition_at=greatest(last_transition_at,transition_at),commercial_evidence_state='validated',updated_at=clock_timestamp()
+    UPDATE public.replay_vault_entitlements SET status='revoked',revoked_at=decision_at,
+      last_transition_at=greatest(last_transition_at,decision_at),commercial_evidence_state='validated',updated_at=clock_timestamp()
     WHERE id=e.id;
   END IF;
   SELECT * INTO e FROM public.replay_vault_entitlements WHERE normalized_email=p_email;
@@ -252,7 +259,7 @@ END $$;
 CREATE OR REPLACE FUNCTION public.apply_replay_vault_commercial_event_r7(
   p_provider text,p_event_id text,p_order_id text,p_transaction_id text,p_parent_order_id text,
   p_parent_transaction_id text,p_email text,p_event_type text,p_product_id text,p_price_id text,
-  p_payload_sha256 text,p_signature_sha256 text,p_effective_at timestamptz,p_access_expires_at timestamptz DEFAULT NULL
+  p_payload_sha256 text,p_signature_sha256 text,p_signature_timestamp bigint,p_effective_at timestamptz,p_access_expires_at timestamptz DEFAULT NULL
 ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,public AS $$
 DECLARE
   v_provider text:=lower(trim(coalesce(p_provider,''))); v_email text:=lower(trim(coalesce(p_email,'')));
@@ -271,7 +278,8 @@ BEGIN
   IF v_provider='' OR v_event_id='' OR position('@' in v_email)<=1
     OR trim(coalesce(p_product_id,''))='' OR trim(coalesce(p_price_id,''))=''
     OR p_event_type NOT IN ('grant','renewal','cancel_at_period_end','expiration','refund','chargeback','immediate_revocation')
-    OR p_payload_sha256!~'^[0-9a-f]{64}$' OR p_signature_sha256!~'^[0-9a-f]{64}$' OR p_effective_at IS NULL
+    OR p_payload_sha256!~'^[0-9a-f]{64}$' OR p_signature_sha256!~'^[0-9a-f]{64}$' OR p_signature_timestamp IS NULL
+    OR p_signature_timestamp<=0 OR p_effective_at IS NULL
     OR (v_is_purchase AND (v_order_id IS NULL OR v_transaction_id IS NULL OR v_parent_transaction IS NOT NULL))
     OR (NOT v_is_purchase AND (v_parent_order IS NULL OR v_parent_transaction IS NULL))
     OR (p_access_expires_at IS NOT NULL AND p_access_expires_at<=p_effective_at) THEN
@@ -284,7 +292,18 @@ BEGIN
   SELECT * INTO v_delivery FROM public.replay_vault_commercial_deliveries d
     WHERE d.provider=v_provider AND d.provider_delivery_id=v_event_id;
   IF FOUND THEN
-    IF v_delivery.payload_sha256<>p_payload_sha256 OR v_delivery.signature_sha256<>p_signature_sha256 THEN
+    INSERT INTO public.replay_vault_commercial_delivery_attempts(canonical_delivery_id,provider,provider_delivery_id,
+      signature_timestamp,signature_sha256)
+    VALUES(v_delivery.id,v_provider,v_event_id,p_signature_timestamp,p_signature_sha256);
+    v_semantic_equal:=v_delivery.payload_sha256=p_payload_sha256 AND v_delivery.event_type=p_event_type
+      AND v_delivery.order_id IS NOT DISTINCT FROM v_order_id
+      AND v_delivery.transaction_id IS NOT DISTINCT FROM v_transaction_id
+      AND v_delivery.lifecycle_parent_order_id IS NOT DISTINCT FROM v_parent_order
+      AND v_delivery.lifecycle_parent_transaction_id IS NOT DISTINCT FROM v_parent_transaction
+      AND v_delivery.normalized_email=v_email AND v_delivery.product_id=p_product_id AND v_delivery.price_id=p_price_id
+      AND v_delivery.effective_at=p_effective_at
+      AND v_delivery.requested_expires_at IS NOT DISTINCT FROM p_access_expires_at;
+    IF NOT v_semantic_equal THEN
       RETURN jsonb_build_object('success',false,'replayed',false,'status','event_id_payload_conflict');
     END IF;
     RETURN v_delivery.receipt||jsonb_build_object('replayed',true);
@@ -296,11 +315,14 @@ BEGIN
   IF NOT FOUND THEN
     v_receipt:=jsonb_build_object('success',false,'replayed',false,'status','rejected_unmapped');
     INSERT INTO public.replay_vault_commercial_deliveries(provider,provider_delivery_id,event_type,order_id,transaction_id,
-      lifecycle_parent_order_id,lifecycle_parent_transaction_id,normalized_email,product_id,price_id,payload_sha256,signature_sha256,
+      lifecycle_parent_order_id,lifecycle_parent_transaction_id,normalized_email,product_id,price_id,payload_sha256,signature_sha256,signature_timestamp,
       signature_verified,effective_at,requested_expires_at,outcome,error_class,receipt)
     VALUES(v_provider,v_event_id,p_event_type,v_order_id,v_transaction_id,v_parent_order,v_parent_transaction,v_email,
-      p_product_id,p_price_id,p_payload_sha256,p_signature_sha256,true,p_effective_at,p_access_expires_at,
-      'rejected_unmapped','unmapped_product',v_receipt);
+      p_product_id,p_price_id,p_payload_sha256,p_signature_sha256,p_signature_timestamp,true,p_effective_at,p_access_expires_at,
+      'rejected_unmapped','unmapped_product',v_receipt) RETURNING id INTO v_delivery_id;
+    INSERT INTO public.replay_vault_commercial_delivery_attempts(canonical_delivery_id,provider,provider_delivery_id,
+      signature_timestamp,signature_sha256)
+    VALUES(v_delivery_id,v_provider,v_event_id,p_signature_timestamp,p_signature_sha256);
     RETURN v_receipt;
   END IF;
 
@@ -316,20 +338,26 @@ BEGIN
       IF NOT v_semantic_equal THEN
         v_receipt:=jsonb_build_object('success',false,'replayed',false,'status','commercial_transaction_conflict');
         INSERT INTO public.replay_vault_commercial_deliveries(provider,provider_delivery_id,event_type,order_id,transaction_id,
-          normalized_email,product_id,price_id,payload_sha256,signature_sha256,signature_verified,effective_at,requested_expires_at,
+          normalized_email,product_id,price_id,payload_sha256,signature_sha256,signature_timestamp,signature_verified,effective_at,requested_expires_at,
           outcome,error_class,receipt)
         VALUES(v_provider,v_event_id,p_event_type,v_order_id,v_transaction_id,v_email,p_product_id,p_price_id,
-          p_payload_sha256,p_signature_sha256,true,p_effective_at,p_access_expires_at,
-          'commercial_conflict','transaction_evidence_conflict',v_receipt);
+          p_payload_sha256,p_signature_sha256,p_signature_timestamp,true,p_effective_at,p_access_expires_at,
+          'commercial_conflict','transaction_evidence_conflict',v_receipt) RETURNING id INTO v_delivery_id;
+        INSERT INTO public.replay_vault_commercial_delivery_attempts(canonical_delivery_id,provider,provider_delivery_id,
+          signature_timestamp,signature_sha256)
+        VALUES(v_delivery_id,v_provider,v_event_id,p_signature_timestamp,p_signature_sha256);
         RETURN v_receipt;
       END IF;
       v_receipt:=jsonb_build_object('success',true,'replayed',true,'status','applied','purchaseContributionId',v_existing.id)
-        ||public.replay_vault_recompute_entitlement_r7(v_email,p_effective_at);
+        ||public.replay_vault_recompute_entitlement_r7(v_email,clock_timestamp());
       INSERT INTO public.replay_vault_commercial_deliveries(provider,provider_delivery_id,event_type,order_id,transaction_id,
-        normalized_email,product_id,price_id,payload_sha256,signature_sha256,signature_verified,effective_at,requested_expires_at,
+        normalized_email,product_id,price_id,payload_sha256,signature_sha256,signature_timestamp,signature_verified,effective_at,requested_expires_at,
         outcome,receipt)
       VALUES(v_provider,v_event_id,p_event_type,v_order_id,v_transaction_id,v_email,p_product_id,p_price_id,
-        p_payload_sha256,p_signature_sha256,true,p_effective_at,p_access_expires_at,'replayed_purchase',v_receipt);
+        p_payload_sha256,p_signature_sha256,p_signature_timestamp,true,p_effective_at,p_access_expires_at,'replayed_purchase',v_receipt) RETURNING id INTO v_delivery_id;
+      INSERT INTO public.replay_vault_commercial_delivery_attempts(canonical_delivery_id,provider,provider_delivery_id,
+        signature_timestamp,signature_sha256)
+      VALUES(v_delivery_id,v_provider,v_event_id,p_signature_timestamp,p_signature_sha256);
       RETURN v_receipt;
     END IF;
 
@@ -347,28 +375,37 @@ BEGIN
     v_delivery_id:=gen_random_uuid(); v_contribution_id:=gen_random_uuid();
     v_receipt:=jsonb_build_object('success',true,'replayed',false,'status','applied','purchaseContributionId',v_contribution_id);
     INSERT INTO public.replay_vault_commercial_deliveries(id,provider,provider_delivery_id,event_type,order_id,transaction_id,
-      normalized_email,product_id,price_id,payload_sha256,signature_sha256,signature_verified,effective_at,requested_expires_at,
+      normalized_email,product_id,price_id,payload_sha256,signature_sha256,signature_timestamp,signature_verified,effective_at,requested_expires_at,
       outcome,receipt)
     VALUES(v_delivery_id,v_provider,v_event_id,p_event_type,v_order_id,v_transaction_id,v_email,p_product_id,p_price_id,
-      p_payload_sha256,p_signature_sha256,true,p_effective_at,p_access_expires_at,'applied',v_receipt);
+      p_payload_sha256,p_signature_sha256,p_signature_timestamp,true,p_effective_at,p_access_expires_at,'applied',v_receipt);
+    INSERT INTO public.replay_vault_commercial_delivery_attempts(canonical_delivery_id,provider,provider_delivery_id,
+      signature_timestamp,signature_sha256)
+    VALUES(v_delivery_id,v_provider,v_event_id,p_signature_timestamp,p_signature_sha256);
     INSERT INTO public.replay_vault_purchase_contributions(id,provider,transaction_id,order_id,normalized_email,product_id,price_id,
       entitlement_tier,purchase_effective_at,requested_expires_at,contribution_starts_at,contribution_expires_at,purchase_delivery_id)
     VALUES(v_contribution_id,v_provider,v_transaction_id,v_order_id,v_email,p_product_id,p_price_id,v_mapping.entitlement_tier,
       p_effective_at,p_access_expires_at,v_start,v_end,v_delivery_id) RETURNING * INTO v_purchase;
-    RETURN v_receipt||public.replay_vault_recompute_entitlement_r7(v_email,p_effective_at);
+    RETURN v_receipt||public.replay_vault_recompute_entitlement_r7(v_email,clock_timestamp());
   END IF;
 
   SELECT * INTO v_purchase FROM public.replay_vault_purchase_contributions c
     WHERE c.provider=v_provider AND c.transaction_id=v_parent_transaction;
+  IF FOUND AND p_effective_at<v_purchase.purchase_effective_at THEN
+    RAISE EXCEPTION 'invalid replay vault commercial event' USING ERRCODE='22023';
+  END IF;
   IF NOT FOUND OR v_purchase.order_id<>v_parent_order OR v_purchase.normalized_email<>v_email
     OR v_purchase.product_id<>p_product_id OR v_purchase.price_id<>p_price_id THEN
     v_receipt:=jsonb_build_object('success',false,'replayed',false,'status','rejected_transition');
     INSERT INTO public.replay_vault_commercial_deliveries(provider,provider_delivery_id,event_type,
       lifecycle_parent_order_id,lifecycle_parent_transaction_id,normalized_email,product_id,price_id,payload_sha256,
-      signature_sha256,signature_verified,effective_at,requested_expires_at,outcome,error_class,receipt)
+      signature_sha256,signature_timestamp,signature_verified,effective_at,requested_expires_at,outcome,error_class,receipt)
     VALUES(v_provider,v_event_id,p_event_type,v_parent_order,v_parent_transaction,v_email,p_product_id,p_price_id,
-      p_payload_sha256,p_signature_sha256,true,p_effective_at,p_access_expires_at,
-      'rejected_transition','exact_parent_purchase_not_found',v_receipt);
+      p_payload_sha256,p_signature_sha256,p_signature_timestamp,true,p_effective_at,p_access_expires_at,
+      'rejected_transition','exact_parent_purchase_not_found',v_receipt) RETURNING id INTO v_delivery_id;
+    INSERT INTO public.replay_vault_commercial_delivery_attempts(canonical_delivery_id,provider,provider_delivery_id,
+      signature_timestamp,signature_sha256)
+    VALUES(v_delivery_id,v_provider,v_event_id,p_signature_timestamp,p_signature_sha256);
     RETURN v_receipt;
   END IF;
 
@@ -376,13 +413,16 @@ BEGIN
   v_receipt:=jsonb_build_object('success',true,'replayed',false,'status','applied','purchaseContributionId',v_purchase.id);
   INSERT INTO public.replay_vault_commercial_deliveries(id,provider,provider_delivery_id,event_type,
     lifecycle_parent_order_id,lifecycle_parent_transaction_id,normalized_email,product_id,price_id,payload_sha256,
-    signature_sha256,signature_verified,effective_at,requested_expires_at,outcome,receipt)
+    signature_sha256,signature_timestamp,signature_verified,effective_at,requested_expires_at,outcome,receipt)
   VALUES(v_delivery_id,v_provider,v_event_id,p_event_type,v_parent_order,v_parent_transaction,v_email,p_product_id,p_price_id,
-    p_payload_sha256,p_signature_sha256,true,p_effective_at,p_access_expires_at,'applied',v_receipt);
+    p_payload_sha256,p_signature_sha256,p_signature_timestamp,true,p_effective_at,p_access_expires_at,'applied',v_receipt);
+  INSERT INTO public.replay_vault_commercial_delivery_attempts(canonical_delivery_id,provider,provider_delivery_id,
+    signature_timestamp,signature_sha256)
+  VALUES(v_delivery_id,v_provider,v_event_id,p_signature_timestamp,p_signature_sha256);
   INSERT INTO public.replay_vault_purchase_lifecycle_evidence(provider,parent_transaction_id,parent_order_id,lifecycle_type,
     lifecycle_delivery_id,purchase_contribution_id,effective_at)
   VALUES(v_provider,v_parent_transaction,v_parent_order,p_event_type,v_delivery_id,v_purchase.id,p_effective_at);
-  RETURN v_receipt||public.replay_vault_recompute_entitlement_r7(v_email,p_effective_at);
+  RETURN v_receipt||public.replay_vault_recompute_entitlement_r7(v_email,clock_timestamp());
 END $$;
 
 CREATE OR REPLACE FUNCTION public.reconcile_replay_vault_unmapped_event_r7(p_original_delivery_id uuid,p_actor text)
@@ -399,7 +439,8 @@ BEGIN
   END IF;
   result:=public.apply_replay_vault_commercial_event_r7(d.provider,'reconcile:'||d.id::text,d.order_id,d.transaction_id,
     d.lifecycle_parent_order_id,d.lifecycle_parent_transaction_id,d.normalized_email,d.event_type,d.product_id,d.price_id,
-    d.payload_sha256,coalesce(d.signature_sha256,encode(digest(d.payload_sha256,'sha256'),'hex')),d.effective_at,d.requested_expires_at);
+    d.payload_sha256,coalesce(d.signature_sha256,encode(digest(d.payload_sha256,'sha256'),'hex')),
+    coalesce(d.signature_timestamp,floor(extract(epoch from d.received_at))::bigint),d.effective_at,d.requested_expires_at);
   SELECT id INTO replay_id FROM public.replay_vault_commercial_deliveries
     WHERE provider=d.provider AND provider_delivery_id='reconcile:'||d.id::text;
   INSERT INTO public.replay_vault_commercial_resolutions(original_delivery_id,resolution_type,resolved_by,replay_delivery_id,result_receipt)
@@ -425,11 +466,17 @@ BEGIN
   SELECT EXISTS(SELECT 1 FROM public.entitlements e WHERE lower(trim(e.email))=v_email AND e.tier='mastermind' AND e.status='active'
     AND (e.starts_at IS NULL OR (e.starts_at::timestamp AT TIME ZONE 'America/New_York')<=p_as_of)
     AND (e.ends_at IS NULL OR public.replay_vault_exclusive_end(e.ends_at)>p_as_of)) INTO v_mastermind_active;
-  SELECT r.tier INTO v_tier FROM public.replay_vault_entitlements r
-   WHERE (r.auth_user_id=p_user_id OR (r.auth_user_id IS NULL AND r.normalized_email=v_email))
-    AND r.commercial_evidence_state='validated' AND r.status IN ('active','cancel_at_period_end')
-    AND r.access_starts_at<=p_as_of AND (r.tier='lifetime' OR r.access_expires_at>p_as_of)
-   ORDER BY CASE r.tier WHEN 'lifetime' THEN 3 WHEN 'annual' THEN 2 ELSE 1 END DESC LIMIT 1;
+  SELECT c.entitlement_tier INTO v_tier
+  FROM public.replay_vault_purchase_contributions c
+  WHERE c.normalized_email=v_email AND c.contribution_starts_at<=p_as_of
+    AND (c.contribution_expires_at IS NULL OR p_as_of<c.contribution_expires_at)
+    AND NOT EXISTS(
+      SELECT 1 FROM public.replay_vault_purchase_lifecycle_evidence l
+      WHERE l.purchase_contribution_id=c.id
+        AND l.lifecycle_type IN ('expiration','refund','chargeback','immediate_revocation')
+        AND l.effective_at<=p_as_of)
+  ORDER BY CASE c.entitlement_tier WHEN 'lifetime' THEN 3 WHEN 'annual' THEN 2 ELSE 1 END DESC,
+    c.contribution_starts_at DESC,c.created_at DESC,c.id DESC LIMIT 1;
   v_entitled:=v_mastermind_active AND v_tier IS NOT NULL;
   IF v_entitled THEN v_member_scopes:=ARRAY['core_curriculum','current_replay_30_day'];
     IF v_tier IN ('annual','lifetime') THEN v_member_scopes:=v_member_scopes||'replay_vault'::text; END IF; END IF;
@@ -453,16 +500,24 @@ BEGIN
     'internalReason',v_internal_reason,'previewActive',v_preview_allowed,'memberTier',v_tier);
 END $$;
 
+-- Forward hardening for inherited trigger helper: fixed lookup path and owner-only ACL.
+CREATE OR REPLACE FUNCTION public.replay_forbid_generated_question_publish()
+RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog AS $$ BEGIN
+  IF NEW.state::text='published' THEN RAISE EXCEPTION 'generated question candidates cannot publish'; END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION public.replay_forbid_generated_question_publish() FROM PUBLIC,anon,authenticated,service_role;
+
 -- Retire the unsafe order-only producer while preserving the accepted function
 -- for historical schema compatibility. Runtime may execute only R7.
 REVOKE ALL ON FUNCTION public.apply_replay_vault_webhook_event(text,text,text,text,text,text,text,text,timestamptz,timestamptz)
   FROM PUBLIC,anon,authenticated,service_role;
 REVOKE ALL ON FUNCTION public.replay_vault_r7_forbid_mutation() FROM PUBLIC,anon,authenticated,service_role;
 REVOKE ALL ON FUNCTION public.replay_vault_recompute_entitlement_r7(text,timestamptz) FROM PUBLIC,anon,authenticated,service_role;
-REVOKE ALL ON FUNCTION public.apply_replay_vault_commercial_event_r7(text,text,text,text,text,text,text,text,text,text,text,text,timestamptz,timestamptz)
+REVOKE ALL ON FUNCTION public.apply_replay_vault_commercial_event_r7(text,text,text,text,text,text,text,text,text,text,text,text,bigint,timestamptz,timestamptz)
   FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.reconcile_replay_vault_unmapped_event_r7(uuid,text) FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.apply_replay_vault_commercial_event_r7(text,text,text,text,text,text,text,text,text,text,text,text,timestamptz,timestamptz) TO service_role;
+GRANT EXECUTE ON FUNCTION public.apply_replay_vault_commercial_event_r7(text,text,text,text,text,text,text,text,text,text,text,text,bigint,timestamptz,timestamptz) TO service_role;
 GRANT EXECUTE ON FUNCTION public.reconcile_replay_vault_unmapped_event_r7(uuid,text) TO service_role;
 -- Reassert inherited Edge-facing ACLs exactly; 1500 publication predicates and
 -- question RPC grants are untouched by this migration.
@@ -475,3 +530,5 @@ GRANT EXECUTE ON FUNCTION public.get_mastermind_portal_access_scopes(text) TO se
 COMMENT ON TABLE public.replay_vault_purchase_contributions IS 'Immutable purchase contributions keyed by exact provider transaction/charge; order/subscription identity retained separately.';
 COMMENT ON TABLE public.replay_vault_commercial_deliveries IS 'Append-only verified webhook delivery evidence; rejected evidence never reserves a purchase transaction key.';
 COMMENT ON TABLE public.replay_vault_commercial_resolutions IS 'Append-only explicit reconciliation evidence after mapping activation.';
+
+COMMENT ON TABLE public.replay_vault_commercial_delivery_attempts IS 'Append-only evidence for every verified timestamp and signature attempt, separate from canonical payload identity.';

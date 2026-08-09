@@ -51,3 +51,22 @@ Deno.test("signature failure prevents injected RPC call",async()=>{
   }),Error,"invalid_signature");
   assertEquals(calls,0);
 });
+
+Deno.test("unauthenticated malformed/conflicting bodies verify before parse or mapping and never call RPC",async()=>{
+  for (const raw of ["{",JSON.stringify({...purchase,transaction_id:"other-charge"})]) {
+    const order:string[]=[];
+    await assertRejects(()=>processCommercialWebhook(raw,headers(),{
+      verifyPayload:()=>{order.push("verify");return Promise.resolve(null);},
+      rpc:()=>{order.push("rpc");return Promise.resolve({});},
+    }),Error,"invalid_signature");
+    assertEquals(order,["verify"]);
+  }
+});
+Deno.test("verified malformed body parses only after verifier",async()=>{
+  const order:string[]=[];
+  await assertRejects(()=>processCommercialWebhook("{",headers(),{
+    verifyPayload:()=>{order.push("verify");return Promise.resolve("b".repeat(64));},
+    rpc:()=>{order.push("rpc");return Promise.resolve({});},
+  }),Error,"malformed_json");
+  assertEquals(order,["verify"]);
+});

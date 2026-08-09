@@ -5,7 +5,7 @@ export type CommercialRpcArgs = {
   p_provider:string; p_event_id:string; p_order_id:string|null; p_transaction_id:string|null;
   p_parent_order_id:string|null; p_parent_transaction_id:string|null; p_email:string; p_event_type:string;
   p_product_id:string; p_price_id:string; p_payload_sha256:string; p_signature_sha256:string;
-  p_effective_at:string; p_access_expires_at:string|null;
+  p_signature_timestamp:number; p_effective_at:string; p_access_expires_at:string|null;
 };
 export type CommercialDependencies = {
   verifyPayload:(timestamp:string,raw:string,signature:string)=>Promise<string|null>;
@@ -33,6 +33,10 @@ function header(headers:Headers,name:string):string { return headers.get(name)?.
 export async function mapVerifiedCommercialWebhook(
   raw:string,headers:Headers,verifyPayload:(timestamp:string,raw:string,signature:string)=>Promise<string|null>,
 ):Promise<CommercialRpcArgs> {
+  const timestamp=header(headers,"X-Webhook-Timestamp"),signature=header(headers,"X-Webhook-Signature");
+  if (!/^\d{10}$/.test(timestamp)||!signature) throw new Error("missing_signature_evidence");
+  const payloadHash=await verifyPayload(timestamp,raw,signature);
+  if (!payloadHash) throw new Error("invalid_signature");
   let body:JsonObject;
   try { body=object(JSON.parse(raw)); } catch { throw new Error("malformed_json"); }
   const data=object(body.data),order=object(body.order),transaction=object(body.transaction),contact=object(body.contact);
@@ -62,10 +66,6 @@ export async function mapVerifiedCommercialWebhook(
   if (!eventId||!email.includes("@")||!productId||!priceId) throw new Error("missing_required_identity");
   if (PURCHASE_TYPES.has(eventType) && (!orderId||!transactionId)) throw new Error("missing_purchase_identity");
   if (LIFECYCLE_TYPES.has(eventType) && (!parentOrderId||!parentTransactionId)) throw new Error("missing_parent_purchase_identity");
-  const timestamp=header(headers,"X-Webhook-Timestamp"),signature=header(headers,"X-Webhook-Signature");
-  if (!/^\d{10}$/.test(timestamp)||!signature) throw new Error("missing_signature_evidence");
-  const payloadHash=await verifyPayload(timestamp,raw,signature);
-  if (!payloadHash) throw new Error("invalid_signature");
   return {
     p_provider:provider,p_event_id:eventId,
     p_order_id:PURCHASE_TYPES.has(eventType)?orderId:null,
@@ -73,7 +73,7 @@ export async function mapVerifiedCommercialWebhook(
     p_parent_order_id:LIFECYCLE_TYPES.has(eventType)?parentOrderId:null,
     p_parent_transaction_id:LIFECYCLE_TYPES.has(eventType)?parentTransactionId:null,
     p_email:email,p_event_type:eventType,p_product_id:productId,p_price_id:priceId,
-    p_payload_sha256:payloadHash,p_signature_sha256:await sha256Hex(signature),
+    p_payload_sha256:payloadHash,p_signature_sha256:await sha256Hex(signature),p_signature_timestamp:Number(timestamp),
     p_effective_at:effectiveAt,p_access_expires_at:accessExpiresAt,
   };
 }

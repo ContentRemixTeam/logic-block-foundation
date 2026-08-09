@@ -10,6 +10,12 @@ INSERT INTO public.replay_vault_entitlements(
 VALUES(
   'member@example.com','11111111-1111-4111-8111-111111111111','annual','active',
   '2026-01-01','2027-01-01','fixture','order','2026-01-01','2026-01-01');
+INSERT INTO public.replay_vault_provider_product_mappings(provider,product_id,price_id,entitlement_tier,grant_interval,active,approved_by,approved_at)
+VALUES('fixture','vault','annual','annual',interval '1 year',true,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',clock_timestamp());
+SET ROLE service_role;
+SELECT public.apply_replay_vault_commercial_event_r7('fixture','member-commercial','member-order','member-charge',NULL,NULL,
+  'member@example.com','grant','vault','annual',repeat('a',64),repeat('b',64),1786291200,'2026-01-01','2027-01-01');
+RESET ROLE;
 UPDATE public.replay_vault_launch_config SET launch_state='launched';
 INSERT INTO public.mastermind_portal_resources(
   id,portal_resource_id,product_title,title,portal_path,approved_access_scope,available_until)
@@ -110,7 +116,7 @@ SELECT public.record_replay_vault_playback_event(
   'allowed','dropbox',NULL,:'question_id'::uuid);
 SELECT public.apply_replay_vault_commercial_event_r7(
   'acl-probe','event-1800','order-1800','transaction-1800',NULL,NULL,'member@example.com','grant','unmapped','unmapped',
-  repeat('f',64),repeat('e',64),clock_timestamp(),NULL) AS webhook_receipt \gset
+  repeat('f',64),repeat('e',64),1786291200,clock_timestamp(),NULL) AS webhook_receipt \gset
 SELECT public.get_mastermind_portal_access_scopes('member@example.com') AS scope_receipt \gset
 RESET ROLE;
 SELECT set_config('fixture.moment_id', :'moment_id', false);
@@ -177,7 +183,7 @@ DO $$DECLARE sig text; runtime_role text;BEGIN
     'public.search_replay_vault_resources(uuid,text,text,text,integer,boolean,boolean,timestamptz)',
     'public.resolve_replay_vault_playback(uuid,text,text,uuid,uuid,boolean,timestamptz)',
     'public.record_replay_vault_playback_event(uuid,uuid,text,text,uuid,uuid)',
-    'public.apply_replay_vault_commercial_event_r7(text,text,text,text,text,text,text,text,text,text,text,text,timestamptz,timestamptz)',
+    'public.apply_replay_vault_commercial_event_r7(text,text,text,text,text,text,text,text,text,text,text,text,bigint,timestamptz,timestamptz)',
     'public.get_mastermind_portal_access_scopes(text)',
     'public.replay_questions_create_candidate(uuid,integer,bigint,bigint,bigint,text,text)',
     'public.replay_questions_promote_candidate(uuid,text,text,text)',
@@ -228,7 +234,7 @@ DO $$DECLARE sig text;BEGIN FOREACH sig IN ARRAY ARRAY[
  'public.search_replay_vault_resources(uuid,text,text,text,integer,boolean,boolean,timestamptz)',
  'public.resolve_replay_vault_playback(uuid,text,text,uuid,uuid,boolean,timestamptz)',
  'public.record_replay_vault_playback_event(uuid,uuid,text,text,uuid,uuid)',
- 'public.apply_replay_vault_commercial_event_r7(text,text,text,text,text,text,text,text,text,text,text,text,timestamptz,timestamptz)',
+ 'public.apply_replay_vault_commercial_event_r7(text,text,text,text,text,text,text,text,text,text,text,text,bigint,timestamptz,timestamptz)',
  'public.get_mastermind_portal_access_scopes(text)'] LOOP
  IF NOT has_function_privilege('service_role',sig,'EXECUTE') OR has_function_privilege('authenticated',sig,'EXECUTE') THEN RAISE EXCEPTION 'inherited Edge RPC ACL regression %',sig;END IF;
  END LOOP;END$$;
@@ -266,9 +272,9 @@ DO $$BEGIN
 END$$;
 RESET ROLE;
 UPDATE public.replay_question_publication_controls SET publication_enabled=false,changed_by='integrated-fixture-reset';
-UPDATE public.replay_vault_entitlements SET status='revoked',revoked_at=now()
-WHERE auth_user_id='11111111-1111-4111-8111-111111111111';
 SET ROLE service_role;
+SELECT public.apply_replay_vault_commercial_event_r7('fixture','member-revoke',NULL,NULL,'member-order','member-charge',
+  'member@example.com','immediate_revocation','vault','annual',repeat('e',64),repeat('f',64),1786291600,clock_timestamp(),NULL);
 DO $$BEGIN
   BEGIN
     PERFORM public.replay_vault_get_interaction(
