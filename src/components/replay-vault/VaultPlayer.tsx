@@ -5,8 +5,10 @@ import { RefreshCw } from 'lucide-react';
 import { formatCompactTime } from './replayVaultCore.mjs';
 import type { PlaybackResult, PlaybackTarget } from './types';
 import { VaultInteractionBar } from './VaultInteractionBar';
-interface VaultPlayerProps { playback: PlaybackResult; target: PlaybackTarget; videoRef: RefObject<HTMLVideoElement>; announcement: string; sourceGeneration: number; recoveryBusy: boolean; recoveryFailed: boolean; onLoadedMetadata: () => void; onMediaError: () => void; onManualRefresh: () => void; }
-export function VaultPlayer({ playback, target, videoRef, announcement, sourceGeneration, recoveryBusy, recoveryFailed, onLoadedMetadata, onMediaError, onManualRefresh }: VaultPlayerProps) {
+import { VaultTranscript } from './VaultTranscript';
+import { VaultCallQuestions } from './VaultCallQuestions';
+interface VaultPlayerProps { playback: PlaybackResult; target: PlaybackTarget; videoRef: RefObject<HTMLVideoElement>; announcement: string; sourceGeneration: number; recoveryBusy: boolean; recoveryFailed: boolean; onLoadedMetadata: () => void; onMediaError: () => void; onManualRefresh: () => void; onOpen: (target: PlaybackTarget) => void; }
+export function VaultPlayer({ playback, target, videoRef, announcement, sourceGeneration, recoveryBusy, recoveryFailed, onLoadedMetadata, onMediaError, onManualRefresh, onOpen }: VaultPlayerProps) {
   const isYouTube = playback.provider === 'youtube';
   const youtubeUrl = isYouTube ? `${playback.playbackUrl}${playback.playbackUrl.includes('?') ? '&' : '?'}start=${Math.max(0, Math.floor(target.startSeconds ?? 0))}` : null;
   return (
@@ -24,6 +26,8 @@ export function VaultPlayer({ playback, target, videoRef, announcement, sourceGe
           </video>
         )}
         <VaultInteractionBar playback={playback} target={target} videoRef={videoRef} sourceGeneration={sourceGeneration} />
+        <VaultCallQuestions resourceId={playback.resourceId} title={playback.title} onOpen={onOpen} />
+        <VaultTranscript resourceId={playback.resourceId} title={playback.title} videoRef={videoRef} onOpen={onOpen} />
         <p className="sr-only" role="status" aria-live="polite">{announcement}</p>
         {!isYouTube && recoveryBusy && <p role="status" className="text-sm text-muted-foreground">Refreshing protected playback…</p>}
         {!isYouTube && recoveryFailed && (

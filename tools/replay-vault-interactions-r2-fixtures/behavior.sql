@@ -205,6 +205,38 @@ DO $$DECLARE n text; runtime_role text;BEGIN
   END LOOP;
 END$$;
 
+DO $$DECLARE n text;BEGIN FOREACH n IN ARRAY ARRAY['replay_vault_bookmarks','replay_vault_watch_state','replay_vault_playback_sessions','replay_vault_media_events','replay_vault_note_backlinks']LOOP IF has_table_privilege('service_role','public.'||n,'SELECT')OR has_table_privilege('authenticated','public.'||n,'SELECT')THEN RAISE EXCEPTION 'direct read granted %',n;END IF;END LOOP;
+ IF NOT has_function_privilege('service_role','public.replay_vault_begin_session(uuid,text,text,text,uuid)','EXECUTE') OR has_function_privilege('authenticated','public.replay_vault_begin_session(uuid,text,text,text,uuid)','EXECUTE') THEN RAISE EXCEPTION 'RPC ACL';END IF;END$$;
+-- Migration 1600 must preserve every Edge-facing RPC accepted by migration 1400.
+DO $$DECLARE sig text;BEGIN FOREACH sig IN ARRAY ARRAY[
+ 'public.replay_vault_access_decision(uuid,text,text,text,boolean,timestamptz)',
+ 'public.search_replay_vault_resources(uuid,text,text,text,integer,boolean,boolean,timestamptz)',
+ 'public.resolve_replay_vault_playback(uuid,text,text,uuid,uuid,boolean,timestamptz)',
+ 'public.record_replay_vault_playback_event(uuid,uuid,text,text,uuid,uuid)',
+ 'public.apply_replay_vault_webhook_event(text,text,text,text,text,text,text,text,timestamptz,timestamptz)',
+ 'public.get_mastermind_portal_access_scopes(text)'] LOOP
+ IF NOT has_function_privilege('service_role',sig,'EXECUTE') OR has_function_privilege('authenticated',sig,'EXECUTE') THEN RAISE EXCEPTION 'inherited Edge RPC ACL regression %',sig;END IF;
+ END LOOP;END$$;
+UPDATE public.replay_vault_entitlements SET status='active',revoked_at=NULL WHERE auth_user_id='11111111-1111-4111-8111-111111111111';
+DO $$DECLARE u uuid:='11111111-1111-4111-8111-111111111111';j jsonb;BEGIN
+ j:=public.replay_vault_set_bookmark(u,'forged@example.com','replay-r2','replay',NULL,true);
+ IF NOT (j->>'saved')::boolean OR j->>'targetKind'<>'replay' THEN RAISE EXCEPTION 'full replay bookmark receipt %',j;END IF;
+ IF (SELECT count(*) FROM public.replay_vault_browse_member(u,NULL,0,20))<>1 THEN RAISE EXCEPTION 'authorized browse projection';END IF;
+ IF (SELECT count(*) FROM public.replay_vault_categories_member(u))<>1 THEN RAISE EXCEPTION 'authorized categories projection';END IF;
+ IF (SELECT count(*) FROM public.replay_vault_transcript_member(u,'replay-r2',-1,100))<>1 THEN RAISE EXCEPTION 'authorized transcript projection';END IF;
+ IF (SELECT count(*) FROM public.replay_vault_questions_member(u,'replay-r2',0,40))<>1 THEN RAISE EXCEPTION 'authorized call questions projection';END IF;
+ IF (SELECT count(*) FROM public.replay_vault_questions_member(u,NULL,0,40))<>1 THEN RAISE EXCEPTION 'authorized questions directory';END IF;
+ IF (SELECT count(*) FROM public.replay_vault_saved_member(u,'all',0,40))<2 THEN RAISE EXCEPTION 'combined saved projection';END IF;
+ IF (SELECT count(*) FROM public.replay_vault_saved_member(u,'videos',0,40))<>1 THEN RAISE EXCEPTION 'saved video filter';END IF;
+ IF (SELECT count(*) FROM public.replay_vault_saved_member(u,'moments',0,40))<1 THEN RAISE EXCEPTION 'saved moments filter';END IF;
+END$$;
+DO $$DECLARE sig text;BEGIN FOREACH sig IN ARRAY ARRAY[
+ 'public.replay_vault_browse_member(uuid,text,integer,integer)','public.replay_vault_categories_member(uuid)',
+ 'public.replay_vault_transcript_member(uuid,text,integer,integer)','public.replay_vault_questions_member(uuid,text,integer,integer)',
+ 'public.replay_vault_saved_member(uuid,text,integer,integer)'] LOOP
+ IF NOT has_function_privilege('service_role',sig,'EXECUTE') OR has_function_privilege('authenticated',sig,'EXECUTE') OR has_function_privilege('anon',sig,'EXECUTE') THEN RAISE EXCEPTION 'R4 RPC ACL %',sig;END IF;END LOOP;END$$;
+
+
 -- Revoke the workflow-created Question via the real RPC, then prove its
 -- interaction disappears. Revoke entitlement and prove all moment state hides;
 -- metadata-free bookmark deletion remains possible after access loss.

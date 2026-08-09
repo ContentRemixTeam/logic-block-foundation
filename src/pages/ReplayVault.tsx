@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Clock, Library, Lock, Search, WifiOff } from 'lucide-react';
 import { VaultPlayer } from '@/components/replay-vault/VaultPlayer';
 import { VaultSearchResults } from '@/components/replay-vault/VaultSearchResults';
+import { VaultLibrarySurfaces } from '@/components/replay-vault/VaultLibrarySurfaces';
 import { groupSearchResults, makeAuthReturnTo, normalizeAccessResponse, parseDetailTarget, shouldAutoRefresh, validatePlaybackResponse } from '@/components/replay-vault/replayVaultCore.mjs';
 import type { PlaybackResult, PlaybackTarget, VaultAccessState, VaultReplayGroup } from '@/components/replay-vault/types';
 import { useVaultSeekCoordinator } from '@/components/replay-vault/useVaultSeekCoordinator';
@@ -190,7 +191,8 @@ export default function ReplayVault() {
           {searchError && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{searchError}</p>}
           {deepLink.status === 'error' && <div role="alert" className="flex flex-col gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3"><p className="text-sm">That protected answer could not be opened. Your access has not changed.</p><Button type="button" variant="outline" className="w-fit" onClick={retryDeepLink}>Try answer again</Button></div>}
           {playbackError && deepLink.status !== 'error' && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{playbackError}</p>}
-          {playback && target && <VaultPlayer playback={playback} target={target} videoRef={videoRef} announcement={announcement} sourceGeneration={sourceGeneration} recoveryBusy={recoveryBusy} recoveryFailed={recoveryFailed} onLoadedMetadata={handleLoadedMetadata} onMediaError={handleMediaError} onManualRefresh={() => void refreshPlayback(true)} />}
+          {playback && target && <VaultPlayer playback={playback} target={target} videoRef={videoRef} announcement={announcement} sourceGeneration={sourceGeneration} recoveryBusy={recoveryBusy} recoveryFailed={recoveryFailed} onLoadedMetadata={handleLoadedMetadata} onMediaError={handleMediaError} onManualRefresh={() => void refreshPlayback(true)} onOpen={handleOpen} />}
+          <VaultLibrarySurfaces onOpen={handleOpen} />
           {groups.length > 0 && <VaultSearchResults groups={groups} loadingKey={loadingKey} onOpen={handleOpen} />}
           {!searching && submittedQuery && groups.length === 0 && !searchError && <Card><CardHeader><CardTitle>No approved moments found</CardTitle><CardDescription>Try fewer words or a broader topic. Your search is still in the box.</CardDescription></CardHeader><CardContent className="flex flex-col gap-2 sm:flex-row"><Button type="button" onClick={() => searchInputRef.current?.focus()}>Edit search</Button><Button type="button" variant="outline" onClick={() => { setQuery(''); setSubmittedQuery(''); setGroups([]); searchInputRef.current?.focus(); }}>Clear search</Button></CardContent></Card>}
         </>}

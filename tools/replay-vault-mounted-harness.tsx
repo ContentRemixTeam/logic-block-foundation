@@ -270,8 +270,43 @@ async function interactionReceiptsAreMountedAndPartialOutcomesHonest() {
   assert(document.querySelectorAll('[role="status"]').length>=1,'status region required');
 }
 
+async function parityDirectoriesAndReceiptsMount() {
+  __vaultMock.reset();
+  __vaultMock.enqueue('get-mastermind-portal-access', allowed);
+  __vaultMock.enqueue('vault-member-library', {data:{items:[{resourceId,title:'Recent canonical call',category:'Office hours',durationSeconds:1200,publishedAt:'2026-08-09T00:00:00Z',questionCount:2}]},error:null});
+  __vaultMock.enqueue('vault-member-library', {data:{categories:[{category:'Office hours',resourceCount:1}]},error:null});
+  await mount();await tick();
+  assert(document.body.textContent?.includes('Recent canonical call'),'canonical browse and Recent Calls must mount');
+  assert(document.body.textContent?.includes('Office hours (1)'),'authorized category directory must mount');
+  __vaultMock.enqueue('vault-member-interactions',{data:{data:{saved:true,changed:true,bookmarkId:'66666666-6666-4666-8666-666666666666',resourceId,targetKind:'replay',targetId:'10000000-0000-4000-8000-000000000001'}},error:null});
+  await click(byText('Save full video'));assert(document.body.textContent?.includes('Full replay saved.'),'full-video bookmark requires confirmed canonical receipt');
+  __vaultMock.enqueue('vault-member-library',{data:{items:[{questionId:questionOne,resourceId,title:'Recent canonical call',category:'Office hours',question:'How do I protect capacity?',answerSummary:'Choose one priority.',answerer:'Faith',startSeconds:42,endSeconds:70}]},error:null});
+  await click(byText('questions'));await tick();assert(document.body.textContent?.includes('How do I protect capacity?'),'standalone authorized Questions directory must mount');
+  __vaultMock.enqueue('vault-member-library',{data:{items:[{bookmarkId:'66666666-6666-4666-8666-666666666666',resourceId,title:'Recent canonical call',category:'Office hours',targetKind:'replay',targetId:'10000000-0000-4000-8000-000000000001',startSeconds:0,savedAt:'2026-08-09T00:00:00Z',label:'Full replay'}]},error:null});
+  await click(byText('saved'));await tick();assert(document.body.textContent?.includes('Remove everywhere'),'central Saved page must mount video/moment filter and removal control');
+  __vaultMock.enqueue('vault-member-interactions',{data:{data:{deleted:true,bookmarkId:'66666666-6666-4666-8666-666666666666'}},error:null});
+  await click(byText('Remove everywhere'));assert(document.body.textContent?.includes('Removed everywhere from Saved.'),'remove-everywhere UI must be receipt-gated');
+  const buttons=[...document.querySelectorAll<HTMLButtonElement>('button')].filter(b=>['browse','questions','saved'].includes(b.textContent?.trim()||''));
+  assert(buttons.length===3&&buttons.every(b=>b.getBoundingClientRect().height>=44),'parity navigation must keep 44px targets');
+}
+
+async function fullTranscriptAndCallQuestionsMount() {
+  __vaultMock.reset();__vaultMock.enqueue('get-mastermind-portal-access',allowed);
+  __vaultMock.enqueue('vault-member-library',{data:{items:[]},error:null});__vaultMock.enqueue('vault-member-library',{data:{categories:[]},error:null});
+  __vaultMock.enqueue('search-mastermind-resources',groups());__vaultMock.enqueue('get-mastermind-playback-link',nativePlayback());
+  __vaultMock.enqueue('vault-member-library',{data:{items:[{questionId:questionOne,resourceId,title:'Answer replay',category:'Office hours',question:'What is capacity?',answerSummary:'Protect it.',answerer:'Faith',startSeconds:42,endSeconds:70}]},error:null});
+  __vaultMock.enqueue('vault-member-library',{data:{items:[{cueId:momentOne,cueIndex:0,startSeconds:42,endSeconds:70,text:'Complete authorized transcript cue.'},{cueId:momentTwo,cueIndex:1,startSeconds:90,endSeconds:110,text:'Second authorized cue.'}]},error:null});
+  await mount();await typeAndSubmit('capacity');await click(byText('Watch answer'));await tick();await tick();
+  assert(document.body.textContent?.includes('Questions answered in this call'),'call-level questions index must mount');
+  assert(document.body.textContent?.includes('Complete authorized transcript cue.'),'full authorized transcript must mount');
+  const cue=[...document.querySelectorAll<HTMLButtonElement>('[data-vault-transcript] button')].find(b=>b.textContent?.includes('Second authorized cue'))!;
+  __vaultMock.enqueue('get-mastermind-playback-link',nativePlayback(undefined,momentTwo,90));await click(cue);await tick();
+  const body=__vaultMock.lastBody('get-mastermind-playback-link');assert(body.momentId===momentTwo&&body.questionId===null&&!('startSeconds'in body),'transcript seek must send only durable cue identity, never caller timestamp');
+  assert(cue.getAttribute('aria-current')==='true','activated transcript cue must expose aria-current');
+}
+
 async function run() {
-  const tests = [malformedAccessIsUnavailable, producerAccessStatesStayDistinct, accessRaceKeepsNewestIntent, deepLinkIsBoundedAndRetryExplicit, searchRaceKeepsNewestIntent, playbackRaceAndSameTargetSeek, nativeRecoveryHandlesSameAndNewUrlOnce, youtubeRecoveryIsHonest, semanticsAndReflow, interactionReceiptsAreMountedAndPartialOutcomesHonest];
+  const tests = [malformedAccessIsUnavailable, producerAccessStatesStayDistinct, accessRaceKeepsNewestIntent, deepLinkIsBoundedAndRetryExplicit, searchRaceKeepsNewestIntent, playbackRaceAndSameTargetSeek, nativeRecoveryHandlesSameAndNewUrlOnce, youtubeRecoveryIsHonest, semanticsAndReflow, interactionReceiptsAreMountedAndPartialOutcomesHonest, parityDirectoriesAndReceiptsMount, fullTranscriptAndCallQuestionsMount];
   const passed: string[] = [];
   for (const test of tests) { await test(); passed.push(test.name); }
   document.body.innerHTML = `<pre id="test-report" data-status="pass">${passed.join('\n')}</pre>`;

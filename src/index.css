@@ -40,8 +40,8 @@
     --border-strong: 220 13% 88%;
 
     /* === PRIMARY BRAND (Pink) === */
-    --primary: 330 81% 54%;              /* #dd3386 */
-    --primary-hover: 330 81% 48%;
+    --primary: 330 81% 46%;              /* WCAG AA with white: >5.4:1 */
+    --primary-hover: 330 81% 40%;
     --primary-foreground: 0 0% 100%;
 
     /* === SECONDARY === */
@@ -182,8 +182,8 @@
   /* ===== PINK PREMIUM THEME ===== */
   [data-theme="pink"],
   [data-theme="vibrant"] {
-    --primary: 330 81% 60%;
-    --primary-hover: 330 81% 55%;
+    --primary: 330 81% 46%;
+    --primary-hover: 330 81% 40%;
     --primary-foreground: 0 0% 100%;
     --accent: 330 81% 60%;
     --accent-hover: 330 81% 55%;
@@ -388,8 +388,8 @@
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-ring: 330 81% 60%;
     
-    --primary: 330 81% 60%;
-    --primary-hover: 330 81% 55%;
+    --primary: 330 81% 46%;
+    --primary-hover: 330 81% 40%;
     --primary-foreground: 0 0% 100%;
     --secondary: 240 3% 20%;
     --secondary-foreground: 0 0% 98%;
