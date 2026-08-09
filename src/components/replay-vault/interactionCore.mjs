@@ -1,9 +1,8 @@
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const SAFE_RESOURCE=/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
-const MEMBERSHIPIO_RESOURCE=/^membershipio:[0-9a-f]{64}$/;
+const SAFE_RESOURCE=/^[A-Za-z0-9][A-Za-z0-9._~:-]{0,219}$/;
 const obj=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:null;
 const num=x=>typeof x==='number'&&Number.isFinite(x)&&x>=0?x:null;
-export function validInteractionResourceId(value){return typeof value==='string'&&(SAFE_RESOURCE.test(value)||MEMBERSHIPIO_RESOURCE.test(value));}
+export function validInteractionResourceId(value){return typeof value==='string'&&SAFE_RESOURCE.test(value);}
 export function interactionTarget(target){if(!validInteractionResourceId(target?.resourceId))return null;if(UUID.test(target?.questionId??''))return {resourceId:target.resourceId,targetKind:'question',targetId:target.questionId};if(UUID.test(target?.momentId??''))return {resourceId:target.resourceId,targetKind:'moment',targetId:target.momentId};return null;}
 export function createSequencedEventQueue(initialSequence,transmit){let nextSequence=initialSequence;let tail=Promise.resolve();return{enqueue(eventId,payload){const run=async()=>{const sequence=nextSequence;const body={...payload,eventId,sequence};let failure;for(let attempt=0;attempt<2;attempt++){try{const receipt=await transmit(body);if(!receipt||receipt.nextSequence!==sequence+1)throw new Error('invalid_receipt');nextSequence=receipt.nextSequence;return receipt;}catch(error){failure=error;}}throw failure;};const result=tail.then(run);tail=result.then(()=>undefined,()=>undefined);return result;},nextSequence(){return nextSequence;}};}
 export function watchReceipt(value){const x=obj(value);if(!x)return null;const duration=num(x.durationSeconds),watched=num(x.watchedSeconds),last=num(x.lastPositionSeconds);if(duration===null||duration<=0||watched===null||last===null||typeof x.completed!=='boolean')return null;return {watchedSeconds:watched,durationSeconds:duration,lastPositionSeconds:last,completed:x.completed};}

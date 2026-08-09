@@ -59,6 +59,7 @@ export default function ReplayVault() {
     const generation = accessRequest.current.generation + 1;
     accessRequest.current = { generation, controller };
     setAccess({ status: 'loading' });
+    setPlayback(null); setTarget(null);
     try {
       const { data, error } = await supabase.functions.invoke('get-mastermind-portal-access', { body: {} });
       if (controller.signal.aborted || accessRequest.current.generation !== generation) return;
@@ -81,7 +82,7 @@ export default function ReplayVault() {
     const controller = new AbortController();
     const generation = playbackRequest.current.generation + 1;
     playbackRequest.current = { generation, controller };
-    if (options.recovery) setRecoveryBusy(true); else setLoadingKey(key);
+    if (options.recovery) setRecoveryBusy(true); else { setLoadingKey(key); setPlayback(null); setTarget(null); }
     setPlaybackError(null);
     if (!options.recovery) setRecoveryFailed(false);
     try {

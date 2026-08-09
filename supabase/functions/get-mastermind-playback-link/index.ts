@@ -4,6 +4,7 @@ import { bearerHeader, inaccessible, isAllowedOrigin, readBoundedJson, responseH
 import { mapPlaybackResponse } from "../_shared/replayVaultProducer.mjs";
 
 const MAX_RESOURCE_ID = 220;
+const RESOURCE_ID = /^[A-Za-z0-9][A-Za-z0-9._~:-]{0,219}$/;
 const DROPBOX_TEMPORARY_LINK_TTL_SECONDS = 4 * 60 * 60;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 interface PlaybackRequest { resourceId?: string; questionId?: string; momentId?: string; preview?: boolean }
@@ -57,7 +58,7 @@ serve(async (req: Request) => {
     const resourceId = typeof body.resourceId === "string" ? body.resourceId.trim() : "";
     const questionId = typeof body.questionId === "string" ? body.questionId.trim() : "";
     const momentId = typeof body.momentId === "string" ? body.momentId.trim() : "";
-    if (!resourceId || resourceId.length > MAX_RESOURCE_ID || (Boolean(questionId) && Boolean(momentId)) ||
+    if (!resourceId || resourceId.length > MAX_RESOURCE_ID || !RESOURCE_ID.test(resourceId) || (Boolean(questionId) && Boolean(momentId)) ||
         (questionId && !UUID.test(questionId)) || (momentId && !UUID.test(momentId))) return inaccessible(req);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -76,7 +77,7 @@ serve(async (req: Request) => {
     });
     if (error) throw error;
     const row = ((data ?? []) as PlaybackRow[])[0];
-    if (!row) return inaccessible(req);
+    if (!row || row.portal_resource_id !== resourceId || !RESOURCE_ID.test(row.portal_resource_id)) return inaccessible(req);
     const playbackUrl = await temporaryLink(row.dropbox_locator);
     if (!playbackUrl) throw new Error("dropbox_unavailable");
 

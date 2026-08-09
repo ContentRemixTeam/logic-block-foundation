@@ -236,19 +236,19 @@ UPDATE public.replay_vault_entitlements SET status='active',revoked_at=NULL WHER
 DO $$DECLARE u uuid:='11111111-1111-4111-8111-111111111111';j jsonb;BEGIN
  j:=public.replay_vault_set_bookmark(u,'forged@example.com','replay-r2','replay',NULL,true);
  IF NOT (j->>'saved')::boolean OR j->>'targetKind'<>'replay' THEN RAISE EXCEPTION 'full replay bookmark receipt %',j;END IF;
- IF (SELECT count(*) FROM public.replay_vault_browse_member(u,NULL,0,20))<>1 THEN RAISE EXCEPTION 'authorized browse projection';END IF;
+ IF (SELECT count(*) FROM public.replay_vault_browse_member(u,NULL,20,NULL))<>1 THEN RAISE EXCEPTION 'authorized browse projection';END IF;
  IF (SELECT count(*) FROM public.replay_vault_categories_member(u))<>1 THEN RAISE EXCEPTION 'authorized categories projection';END IF;
  IF (SELECT count(*) FROM public.replay_vault_transcript_member(u,'replay-r2',-1,100))<>1 THEN RAISE EXCEPTION 'authorized transcript projection';END IF;
- IF (SELECT count(*) FROM public.replay_vault_questions_member(u,'replay-r2',0,40))<>1 THEN RAISE EXCEPTION 'authorized call questions projection';END IF;
- IF (SELECT count(*) FROM public.replay_vault_questions_member(u,NULL,0,40))<>1 THEN RAISE EXCEPTION 'authorized questions directory';END IF;
- IF (SELECT count(*) FROM public.replay_vault_saved_member(u,'all',0,40))<2 THEN RAISE EXCEPTION 'combined saved projection';END IF;
- IF (SELECT count(*) FROM public.replay_vault_saved_member(u,'videos',0,40))<>1 THEN RAISE EXCEPTION 'saved video filter';END IF;
- IF (SELECT count(*) FROM public.replay_vault_saved_member(u,'moments',0,40))<1 THEN RAISE EXCEPTION 'saved moments filter';END IF;
+ IF (SELECT count(*) FROM public.replay_vault_questions_member(u,'replay-r2',40,NULL))<>1 THEN RAISE EXCEPTION 'authorized call questions projection';END IF;
+ IF (SELECT count(*) FROM public.replay_vault_questions_member(u,NULL,40,NULL))<>1 THEN RAISE EXCEPTION 'authorized questions directory';END IF;
+ IF (SELECT count(*) FROM public.replay_vault_saved_member(u,'all',40,NULL))<2 THEN RAISE EXCEPTION 'combined saved projection';END IF;
+ IF (SELECT count(*) FROM public.replay_vault_saved_member(u,'videos',40,NULL))<>1 THEN RAISE EXCEPTION 'saved video filter';END IF;
+ IF (SELECT count(*) FROM public.replay_vault_saved_member(u,'moments',40,NULL))<1 THEN RAISE EXCEPTION 'saved moments filter';END IF;
 END$$;
 DO $$DECLARE sig text;BEGIN FOREACH sig IN ARRAY ARRAY[
- 'public.replay_vault_browse_member(uuid,text,integer,integer)','public.replay_vault_categories_member(uuid)',
- 'public.replay_vault_transcript_member(uuid,text,integer,integer)','public.replay_vault_questions_member(uuid,text,integer,integer)',
- 'public.replay_vault_saved_member(uuid,text,integer,integer)'] LOOP
+ 'public.replay_vault_browse_member(uuid,text,integer,text)','public.replay_vault_categories_member(uuid,integer,text)',
+ 'public.replay_vault_transcript_member(uuid,text,integer,integer)','public.replay_vault_questions_member(uuid,text,integer,text)',
+ 'public.replay_vault_saved_member(uuid,text,integer,text)'] LOOP
  IF NOT has_function_privilege('service_role',sig,'EXECUTE') OR has_function_privilege('authenticated',sig,'EXECUTE') OR has_function_privilege('anon',sig,'EXECUTE') THEN RAISE EXCEPTION 'R4 RPC ACL %',sig;END IF;END LOOP;END$$;
 
 

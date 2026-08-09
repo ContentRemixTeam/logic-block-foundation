@@ -23,8 +23,8 @@ check("search returns durable bounded moments without access counts",()=>{
   lacks(search,"resultCount");lacks(search,"accessScopeCounts");
 });
 check("playback binds zero or one server cue ID and returns authoritative bounds",()=>{
-  has(playback,"Boolean(questionId) && Boolean(momentId)");has(paritySql,"IF p_question_id IS NOT NULL AND p_moment_id IS NOT NULL THEN RETURN");has(paritySql,"v_start:=0; v_end:=v_duration");
-  has(paritySql,"FROM public.replay_published_resource_projection r");has(paritySql,"s.id=p_moment_id AND s.transcript_version_id=v_transcript_version_id");has(paritySql,"a.id=p_question_id AND a.resource_id=v_resource_id");has(playback,"mapPlaybackResponse");has(producer,"startSeconds: finiteSeconds(row.authoritative_start_seconds)");has(producer,"endSeconds: finiteSeconds(row.authoritative_end_seconds)");
+  has(playback,"Boolean(questionId) && Boolean(momentId)");has(paritySql,"(p_question_id IS NOT NULL AND p_moment_id IS NOT NULL) THEN RETURN");has(paritySql,"v_start:=0;v_end:=v_duration");
+  has(paritySql,"FROM public.replay_published_resource_projection r");has(paritySql,"id=p_moment_id AND transcript_version_id=v_transcript_version_id");has(paritySql,"id=p_question_id AND resource_id=v_resource_id");has(playback,"mapPlaybackResponse");has(producer,"startSeconds: finiteSeconds(row.authoritative_start_seconds)");has(producer,"endSeconds: finiteSeconds(row.authoritative_end_seconds)");
 });
 check("only Dropbox temporary links leave the edge",()=>{
   has(playback,"get_temporary_link");lacks(playback,"dropboxPath:");lacks(playback,"sourceUrl:");

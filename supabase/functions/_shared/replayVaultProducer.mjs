@@ -1,3 +1,4 @@
+export const REPLAY_RESOURCE_ID = /^[A-Za-z0-9][A-Za-z0-9._~:-]{0,219}$/;
 const CONTROL_CHARS = /[\u0000-\u001f\u007f-\u009f]/g;
 const URL_OR_PRIVATE_HOST = /(?:https?|ftp|file):\/\/[^\s<>{}\[\]"']+|\bwww\.[^\s<>{}\[\]"']+|\b(?:storage\.googleapis\.com|revex-membership-production|dropbox(?:api)?\.com)\b[^\s<>{}\[\]"']*/gi;
 const WINDOWS_PATH = /(?:\b[A-Za-z]:\\|\\\\)[^\s<>{}\[\]"']+/g;

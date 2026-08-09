@@ -25,8 +25,8 @@ assert.match(searchEndpoint, /\.map\(mapSearchRow\)/);
 assert.match(playbackEndpoint, /import \{ mapPlaybackResponse \} from "\.\.\/_shared\/replayVaultProducer\.mjs"/);
 assert.match(playbackEndpoint, /const MAX_RESOURCE_ID = 220/);
 assert.match(playbackEndpoint, /Boolean\(questionId\) && Boolean\(momentId\)/, 'playback endpoint zero-or-one-target guard drifted');
-assert.match(parityMigration, /IF p_question_id IS NOT NULL AND p_moment_id IS NOT NULL THEN RETURN;/, 'SQL dual-target playback guard drifted');
-assert.match(parityMigration, /v_start:=0; v_end:=v_duration;/, 'SQL resource-only playback start contract drifted');
+assert.match(parityMigration, /\(p_question_id IS NOT NULL AND p_moment_id IS NOT NULL\) THEN RETURN;/, 'SQL dual-target playback guard drifted');
+assert.match(parityMigration, /v_start:=0;v_end:=v_duration;/, 'SQL resource-only playback start contract drifted');
 assert.match(playbackEndpoint, /secureJson\(req, mapPlaybackResponse\(/);
 assert.match(importer, /portal_resource_id = f"membershipio:\{file_hash\}"/);
 for (const field of ["allowed", "memberEntitled", "memberTier", "memberScopes", "previewCapabilities", "previewActive", "launchState"]) {

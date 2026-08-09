@@ -256,6 +256,8 @@ async function semanticsAndReflow() {
   const watch = byText('Watch answer')!;
   assert(watch.tagName === 'BUTTON' && (watch as HTMLButtonElement).type === 'button', 'answer activation must use native keyboard button semantics');
   assert(document.querySelector('[data-motion-safe]'), 'route must expose reduced-motion-safe behavior');
+  const compiledCss=[...document.styleSheets].flatMap(sheet=>{try{return [...sheet.cssRules].map(rule=>rule.cssText)}catch{return []}}).join(' ');
+  assert(compiledCss.includes('prefers-reduced-motion: reduce')&&(compiledCss.includes('animation: none')||compiledCss.includes('animation-duration: 0.01ms')),'compiled CSS must disable animation under prefers-reduced-motion');
 }
 
 
@@ -278,6 +280,25 @@ async function interactionReceiptsAreMountedAndPartialOutcomesHonest() {
   assert(document.querySelectorAll('[role="status"]').length>=1,'status region required');
 }
 
+
+async function libraryRaceKeepsNewestIntent() {
+  __vaultMock.reset();
+  __vaultMock.enqueue('get-mastermind-portal-access', allowed);
+  const staleBrowse=deferred<any>();
+  __vaultMock.setHandler('vault-member-library', async ({body}: {body?: Record<string, unknown>}) => {
+    if(body?.action==='browse') return staleBrowse.promise;
+    if(body?.action==='categories') return {data:{categories:[],nextCursor:null},error:null};
+    if(body?.action==='questions') return {data:{items:[{questionId:questionOne,resourceId,title:'Newest questions replay',category:'Office hours',question:'Newest approved question?',answerSummary:'Newest answer.',answerer:'Faith',startSeconds:42,endSeconds:70}],nextCursor:null},error:null};
+    return {data:{items:[],nextCursor:null},error:null};
+  });
+  await mount();
+  await click(byText('questions'));
+  await waitFor(()=>Boolean(document.body.textContent?.includes('Newest approved question?')),'newest Questions intent');
+  staleBrowse.resolve({data:{items:[{resourceId,title:'STALE BROWSE MUST NOT RENDER',category:'Old',durationSeconds:10,publishedAt:null,questionCount:0}],nextCursor:null},error:null});
+  await tick();await tick();
+  assert(document.body.textContent?.includes('Newest approved question?')&&!document.body.textContent?.includes('STALE BROWSE MUST NOT RENDER'),'stale browse completion must not replace newer Questions intent');
+}
+
 async function parityDirectoriesAndReceiptsMount() {
   __vaultMock.reset();
   __vaultMock.enqueue('get-mastermind-portal-access', allowed);
@@ -286,12 +307,14 @@ async function parityDirectoriesAndReceiptsMount() {
   await mount();await tick();
   assert(document.body.textContent?.includes('Recent canonical call'),'canonical browse and Recent Calls must mount');
   assert(document.body.textContent?.includes('Office hours (1)'),'authorized category directory must mount');
+  const assertLibraryBounds=(label:string)=>{const viewportWidth=document.documentElement.clientWidth;const controls=[...document.querySelectorAll<HTMLElement>('[data-vault-library] button')];assert(controls.length>0,`${label} must expose library controls`);for(const control of controls){const rect=control.getBoundingClientRect();assert(rect.left>=0&&rect.right<=viewportWidth,`${label} control crosses the ${viewportWidth}px viewport`);assert(rect.width>0&&rect.height>=44,`${label} control must be visible and at least 44px at ${viewportWidth}px`);}};
+  assertLibraryBounds('browse');
   __vaultMock.enqueue('vault-member-interactions',{data:{data:{saved:true,changed:true,bookmarkId:'66666666-6666-4666-8666-666666666666',resourceId,targetKind:'replay',targetId:'10000000-0000-4000-8000-000000000001'}},error:null});
   await click(byText('Save full video'));assert(document.body.textContent?.includes('Full replay saved.'),'full-video bookmark requires confirmed canonical receipt');
   __vaultMock.enqueue('vault-member-library',{data:{items:[{questionId:questionOne,resourceId,title:'Recent canonical call',category:'Office hours',question:'How do I protect capacity?',answerSummary:'Choose one priority.',answerer:'Faith',startSeconds:42,endSeconds:70}]},error:null});
-  await click(byText('questions'));await tick();assert(document.body.textContent?.includes('How do I protect capacity?'),'standalone authorized Questions directory must mount');
+  await click(byText('questions'));await tick();assert(document.body.textContent?.includes('How do I protect capacity?'),'standalone authorized Questions directory must mount');assertLibraryBounds('questions');
   __vaultMock.enqueue('vault-member-library',{data:{items:[{bookmarkId:'66666666-6666-4666-8666-666666666666',resourceId,title:'Recent canonical call',category:'Office hours',targetKind:'replay',targetId:'10000000-0000-4000-8000-000000000001',startSeconds:0,savedAt:'2026-08-09T00:00:00Z',label:'Full replay'}]},error:null});
-  await click(byText('saved'));await tick();assert(document.body.textContent?.includes('Remove everywhere'),'central Saved page must mount video/moment filter and removal control');
+  await click(byText('saved'));await tick();assert(document.body.textContent?.includes('Remove everywhere'),'central Saved page must mount video/moment filter and removal control');assertLibraryBounds('saved');
   __vaultMock.enqueue('get-mastermind-playback-link',fullReplayPlayback);
   __vaultMock.enqueue('vault-member-library',{data:{items:[]},error:null});
   __vaultMock.enqueue('vault-member-library',{data:{items:[]},error:null});
@@ -311,9 +334,9 @@ async function fullTranscriptAndCallQuestionsMount() {
   __vaultMock.setHandler('vault-member-library',({body}: {body?: Record<string, unknown>})=>{
     if(body?.action==='browse')return {data:{items:[]},error:null};
     if(body?.action==='categories')return {data:{categories:[]},error:null};
-    if(body?.action==='call_questions')return {data:{items:[{questionId:questionOne,resourceId,title:'Answer replay',category:'Office hours',question:'What is capacity?',answerSummary:'Protect it.',answerer:'Faith',startSeconds:42,endSeconds:70}]},error:null};
-    if(body?.action==='transcript'&&body?.afterIndex===-1)return {data:{items:transcriptPageOne},error:null};
-    if(body?.action==='transcript'&&body?.afterIndex===99)return {data:{items:[{cueId:'00000000-0000-4000-8000-000000000100',cueIndex:100,startSeconds:500,endSeconds:504,text:'Authorized cue beyond first page.'}]},error:null};
+    if(body?.action==='questions'&&body?.resourceId===resourceId)return {data:{items:[{questionId:questionOne,resourceId,title:'Answer replay',category:'Office hours',question:'What is capacity?',answerSummary:'Protect it.',answerer:'Faith',startSeconds:42,endSeconds:70}],nextCursor:null},error:null};
+    if(body?.action==='transcript'&&!body?.cursor)return {data:{items:transcriptPageOne,nextCursor:'eyJhZnRlckluZGV4Ijo5OX0'},error:null};
+    if(body?.action==='transcript'&&body?.cursor==='eyJhZnRlckluZGV4Ijo5OX0')return {data:{items:[{cueId:'00000000-0000-4000-8000-000000000100',cueIndex:100,startSeconds:500,endSeconds:504,text:'Authorized cue beyond first page.'}],nextCursor:null},error:null};
     throw new Error(`Unexpected library action ${JSON.stringify(body)}`);
   });
   __vaultMock.enqueue('search-mastermind-resources',groups());__vaultMock.enqueue('get-mastermind-playback-link',nativePlayback());
@@ -322,7 +345,8 @@ async function fullTranscriptAndCallQuestionsMount() {
   assert(document.body.textContent?.includes('Questions answered in this call'),'call-level questions index must mount');
   assert(document.body.textContent?.includes('Complete authorized transcript cue.'),'full authorized transcript must mount');
   assert(document.body.textContent?.includes('Authorized cue beyond first page.'),`full transcript must render records beyond the 100-cue server page cap; calls=${__vaultMock.count('vault-member-library')} last=${JSON.stringify(__vaultMock.lastBody('vault-member-library'))}`);
-  assert(__vaultMock.count('vault-member-library')===5&&__vaultMock.lastBody('vault-member-library').afterIndex===99,'transcript consumer must request the terminal page with a canonical cue cursor');
+  assert(__vaultMock.count('vault-member-library')===5&&__vaultMock.lastBody('vault-member-library').cursor==='eyJhZnRlckluZGV4Ijo5OX0','transcript consumer must request the terminal page with an opaque canonical cue cursor');
+  assert(document.body.textContent?.includes('What is capacity?'),'call-level Questions proof must render the real questions action response, not only the static section heading');
   const cue=[...document.querySelectorAll<HTMLButtonElement>('[data-vault-transcript] button')].find(b=>b.textContent?.includes('Second authorized cue'))!;
   __vaultMock.enqueue('get-mastermind-playback-link',nativePlayback(undefined,momentTwo,90));await click(cue);await tick();
   const body=__vaultMock.lastBody('get-mastermind-playback-link');assert(body.momentId===momentTwo&&body.questionId===null&&!('startSeconds'in body),'transcript seek must send only durable cue identity, never caller timestamp');
@@ -332,7 +356,7 @@ async function fullTranscriptAndCallQuestionsMount() {
 }
 
 async function run() {
-  const tests = [malformedAccessIsUnavailable, producerAccessStatesStayDistinct, accessRaceKeepsNewestIntent, deepLinkIsBoundedAndRetryExplicit, searchRaceKeepsNewestIntent, playbackRaceAndSameTargetSeek, nativeRecoveryHandlesSameAndNewUrlOnce, youtubeRecoveryIsHonest, semanticsAndReflow, interactionReceiptsAreMountedAndPartialOutcomesHonest, parityDirectoriesAndReceiptsMount, fullTranscriptAndCallQuestionsMount];
+  const tests = [malformedAccessIsUnavailable, producerAccessStatesStayDistinct, accessRaceKeepsNewestIntent, deepLinkIsBoundedAndRetryExplicit, searchRaceKeepsNewestIntent, playbackRaceAndSameTargetSeek, nativeRecoveryHandlesSameAndNewUrlOnce, youtubeRecoveryIsHonest, semanticsAndReflow, interactionReceiptsAreMountedAndPartialOutcomesHonest, libraryRaceKeepsNewestIntent, parityDirectoriesAndReceiptsMount, fullTranscriptAndCallQuestionsMount];
   const passed: string[] = [];
   for (const test of tests) { await test(); passed.push(test.name); }
   document.body.innerHTML = `<pre id="test-report" data-status="pass">${passed.join('\n')}</pre>`;

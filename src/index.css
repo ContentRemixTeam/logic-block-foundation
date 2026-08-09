@@ -52,7 +52,7 @@
     /* === ACCENT (Pink Premium) === */
     --accent: 330 81% 97%;
     --accent-hover: 330 81% 55%;
-    --accent-foreground: 330 81% 54%;
+    --accent-foreground: 330 81% 40%;
 
     /* === SEMANTIC COLORS === */
     --success: 142 71% 45%;
@@ -63,7 +63,7 @@
     --warning-light: 38 92% 95%;
     --warning-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 50%;
+    --destructive: 0 72% 42%;
     --destructive-light: 0 84% 97%;
     --destructive-foreground: 0 85% 97%;
 
@@ -185,12 +185,12 @@
     --primary: 330 81% 46%;
     --primary-hover: 330 81% 40%;
     --primary-foreground: 0 0% 100%;
-    --accent: 330 81% 60%;
-    --accent-hover: 330 81% 55%;
-    --accent-foreground: 0 0% 100%;
-    --ring: 330 81% 60%;
-    --sidebar-primary: 330 81% 60%;
-    --sidebar-ring: 330 81% 60%;
+    --accent: 330 60% 95%;
+    --accent-hover: 330 60% 90%;
+    --accent-foreground: 330 81% 40%;
+    --ring: 330 81% 46%;
+    --sidebar-primary: 330 81% 46%;
+    --sidebar-ring: 330 81% 46%;
     --sidebar-accent: 330 60% 96%;
     --sidebar-accent-foreground: 330 81% 30%;
     --chart-1: 330 81% 60%;
@@ -202,15 +202,15 @@
 
   /* ===== ORANGE THEME ===== */
   [data-theme="orange"] {
-    --primary: 28 80% 52%;
-    --primary-hover: 28 80% 47%;
+    --primary: 28 80% 32%;
+    --primary-hover: 28 80% 27%;
     --primary-foreground: 0 0% 100%;
-    --accent: 28 80% 52%;
-    --accent-hover: 28 80% 47%;
-    --accent-foreground: 0 0% 100%;
-    --ring: 28 80% 52%;
-    --sidebar-primary: 28 80% 52%;
-    --sidebar-ring: 28 80% 52%;
+    --accent: 28 60% 95%;
+    --accent-hover: 28 60% 90%;
+    --accent-foreground: 28 80% 27%;
+    --ring: 28 80% 32%;
+    --sidebar-primary: 28 80% 32%;
+    --sidebar-ring: 28 80% 32%;
     --sidebar-accent: 28 60% 96%;
     --sidebar-accent-foreground: 28 80% 30%;
     --chart-1: 28 80% 52%;
@@ -222,15 +222,15 @@
 
   /* ===== GREEN THEME ===== */
   [data-theme="green"] {
-    --primary: 142 76% 36%;
-    --primary-hover: 142 76% 31%;
+    --primary: 142 76% 30%;
+    --primary-hover: 142 76% 25%;
     --primary-foreground: 0 0% 100%;
-    --accent: 142 76% 36%;
-    --accent-hover: 142 76% 31%;
-    --accent-foreground: 0 0% 100%;
-    --ring: 142 76% 36%;
-    --sidebar-primary: 142 76% 36%;
-    --sidebar-ring: 142 76% 36%;
+    --accent: 142 60% 95%;
+    --accent-hover: 142 60% 90%;
+    --accent-foreground: 142 76% 25%;
+    --ring: 142 76% 30%;
+    --sidebar-primary: 142 76% 30%;
+    --sidebar-ring: 142 76% 30%;
     --sidebar-accent: 142 60% 96%;
     --sidebar-accent-foreground: 142 76% 20%;
     --chart-1: 142 76% 36%;
@@ -242,15 +242,15 @@
 
   /* ===== RED THEME ===== */
   [data-theme="red"] {
-    --primary: 0 84% 60%;
-    --primary-hover: 0 84% 55%;
+    --primary: 0 84% 43%;
+    --primary-hover: 0 84% 38%;
     --primary-foreground: 0 0% 100%;
-    --accent: 0 84% 60%;
-    --accent-hover: 0 84% 55%;
-    --accent-foreground: 0 0% 100%;
-    --ring: 0 84% 60%;
-    --sidebar-primary: 0 84% 60%;
-    --sidebar-ring: 0 84% 60%;
+    --accent: 0 60% 95%;
+    --accent-hover: 0 60% 90%;
+    --accent-foreground: 0 84% 38%;
+    --ring: 0 84% 43%;
+    --sidebar-primary: 0 84% 43%;
+    --sidebar-ring: 0 84% 43%;
     --sidebar-accent: 0 60% 96%;
     --sidebar-accent-foreground: 0 84% 30%;
     --chart-1: 0 84% 60%;
@@ -262,15 +262,15 @@
 
   /* ===== BLUE THEME ===== */
   [data-theme="blue"] {
-    --primary: 221 83% 53%;
-    --primary-hover: 221 83% 48%;
+    --primary: 221 83% 43%;
+    --primary-hover: 221 83% 38%;
     --primary-foreground: 0 0% 100%;
-    --accent: 221 83% 53%;
-    --accent-hover: 221 83% 48%;
-    --accent-foreground: 0 0% 100%;
-    --ring: 221 83% 53%;
-    --sidebar-primary: 221 83% 53%;
-    --sidebar-ring: 221 83% 53%;
+    --accent: 221 60% 95%;
+    --accent-hover: 221 60% 90%;
+    --accent-foreground: 221 83% 38%;
+    --ring: 221 83% 43%;
+    --sidebar-primary: 221 83% 43%;
+    --sidebar-ring: 221 83% 43%;
     --sidebar-accent: 221 60% 96%;
     --sidebar-accent-foreground: 221 83% 30%;
     --chart-1: 221 83% 53%;
@@ -282,15 +282,15 @@
 
   /* ===== PURPLE THEME ===== */
   [data-theme="purple"] {
-    --primary: 262 83% 58%;
-    --primary-hover: 262 83% 53%;
+    --primary: 262 83% 43%;
+    --primary-hover: 262 83% 38%;
     --primary-foreground: 0 0% 100%;
-    --accent: 262 83% 58%;
-    --accent-hover: 262 83% 53%;
-    --accent-foreground: 0 0% 100%;
-    --ring: 262 83% 58%;
-    --sidebar-primary: 262 83% 58%;
-    --sidebar-ring: 262 83% 58%;
+    --accent: 262 60% 95%;
+    --accent-hover: 262 60% 90%;
+    --accent-foreground: 262 83% 38%;
+    --ring: 262 83% 43%;
+    --sidebar-primary: 262 83% 43%;
+    --sidebar-ring: 262 83% 43%;
     --sidebar-accent: 262 60% 96%;
     --sidebar-accent-foreground: 262 83% 30%;
     --chart-1: 262 83% 58%;
@@ -302,15 +302,15 @@
 
   /* ===== TEAL THEME ===== */
   [data-theme="teal"] {
-    --primary: 173 80% 40%;
-    --primary-hover: 173 80% 35%;
+    --primary: 173 80% 27%;
+    --primary-hover: 173 80% 22%;
     --primary-foreground: 0 0% 100%;
-    --accent: 173 80% 40%;
-    --accent-hover: 173 80% 35%;
-    --accent-foreground: 0 0% 100%;
-    --ring: 173 80% 40%;
-    --sidebar-primary: 173 80% 40%;
-    --sidebar-ring: 173 80% 40%;
+    --accent: 173 60% 95%;
+    --accent-hover: 173 60% 90%;
+    --accent-foreground: 173 80% 22%;
+    --ring: 173 80% 27%;
+    --sidebar-primary: 173 80% 27%;
+    --sidebar-ring: 173 80% 27%;
     --sidebar-accent: 173 60% 96%;
     --sidebar-accent-foreground: 173 80% 20%;
     --chart-1: 173 80% 40%;
@@ -322,15 +322,15 @@
 
   /* ===== MINIMAL THEME ===== */
   [data-theme="minimal"] {
-    --primary: 221 83% 53%;
-    --primary-hover: 221 83% 48%;
+    --primary: 221 83% 43%;
+    --primary-hover: 221 83% 38%;
     --primary-foreground: 0 0% 100%;
-    --accent: 221 83% 53%;
-    --accent-hover: 221 83% 48%;
-    --accent-foreground: 0 0% 100%;
-    --ring: 221 83% 53%;
-    --sidebar-primary: 221 83% 53%;
-    --sidebar-ring: 221 83% 53%;
+    --accent: 221 60% 95%;
+    --accent-hover: 221 60% 90%;
+    --accent-foreground: 221 83% 38%;
+    --ring: 221 83% 43%;
+    --sidebar-primary: 221 83% 43%;
+    --sidebar-ring: 221 83% 43%;
   }
 
   /* ===== B&W THEME ===== */

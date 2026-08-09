@@ -3,12 +3,11 @@ const MAX_BODY_BYTES = 8192;
 const DEFAULT_ORIGINS = ["https://app.faithmariah.com", "https://planner.faithmariah.com"];
 export const GENERIC_ERROR = { error: "Replay Vault request could not be completed" } as const;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const SAFE_RESOURCE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
-const MEMBERSHIPIO_RESOURCE = /^membershipio:[0-9a-f]{64}$/;
+const SAFE_RESOURCE = /^[A-Za-z0-9][A-Za-z0-9._~:-]{0,219}$/;
 export type AuthUser = { id: string; email?: string | null };
 export type Dependencies = { authenticate(req: Request): Promise<AuthUser | null>; rpc(name: string, args: Record<string, unknown>): Promise<{ data: unknown; error?: { code?: string } | null }>; log(taxonomy: "auth_rejected"|"request_rejected"|"rpc_rejected"|"internal_error", meta: { requestId: string; action?: string; code?: string }): void };
 export function allowedOrigins(env = Deno.env.get("VAULT_ALLOWED_ORIGINS")): Set<string> { const values: string[] = (env ?? "").split(",").map((x: string)=>x.trim()).filter(Boolean); return new Set<string>(values.length ? values : DEFAULT_ORIGINS); }
-export function validResourceId(value: unknown): value is string { return typeof value === "string" && (SAFE_RESOURCE.test(value) || MEMBERSHIPIO_RESOURCE.test(value)); }
+export function validResourceId(value: unknown): value is string { return typeof value === "string" && SAFE_RESOURCE.test(value); }
 function headers(origin: string | null, allowed: Set<string>) { const h: Record<string,string>={"Content-Type":"application/json","Cache-Control":"no-store","Vary":"Origin"};if(origin&&allowed.has(origin)){h["Access-Control-Allow-Origin"]=origin;h["Access-Control-Allow-Headers"]="authorization, x-client-info, apikey, content-type";h["Access-Control-Allow-Methods"]="POST, OPTIONS";}return h; }
 function reply(origin:string|null,allowed:Set<string>,body:unknown,status:number){return new Response(status===204?null:JSON.stringify(body),{status,headers:headers(origin,allowed)});}
 async function boundedJson(req:Request){const declared=Number(req.headers.get("content-length")??"0");if(!Number.isFinite(declared)||declared>MAX_BODY_BYTES)throw new Error("body_too_large");const reader=req.body?.getReader();if(!reader)return {};let size=0;const chunks:Uint8Array[]=[];while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>MAX_BODY_BYTES){await reader.cancel();throw new Error("body_too_large");}chunks.push(value);}const bytes=new Uint8Array(size);let at=0;for(const c of chunks){bytes.set(c,at);at+=c.byteLength;}return JSON.parse(new TextDecoder().decode(bytes)||"{}");}

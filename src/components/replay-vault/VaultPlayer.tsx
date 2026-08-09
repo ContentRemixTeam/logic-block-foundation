@@ -31,7 +31,7 @@ export function VaultPlayer({ playback, target, videoRef, announcement, sourceGe
           ? <VaultInteractionBar playback={playback} target={target} videoRef={videoRef} sourceGeneration={sourceGeneration} />
           : <p className="rounded-md border p-3 text-sm text-muted-foreground">Full-replay saving is available from Browse and Saved. Answer notes, sharing, and watch progress start when you open an exact transcript moment or approved question.</p>}
         <VaultCallQuestions resourceId={playback.resourceId} title={playback.title} onOpen={onOpen} />
-        <VaultTranscript resourceId={playback.resourceId} title={playback.title} currentTime={currentTime} onOpen={onOpen} />
+        <VaultTranscript resourceId={playback.resourceId} title={playback.title} currentTime={currentTime} timeSynchronized={!isYouTube} onOpen={onOpen} />
         <p className="sr-only" role="status" aria-live="polite">{announcement}</p>
         {!isYouTube && recoveryBusy && <p role="status" className="text-sm text-muted-foreground">Refreshing protected playback…</p>}
         {!isYouTube && recoveryFailed && (
