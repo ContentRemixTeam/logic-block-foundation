@@ -46,7 +46,8 @@ Deno.serve(async (req:Request)=>{
       p_effective_at:new Date(timestampSeconds*1000).toISOString(),p_access_expires_at:accessExpiresAt,
     });
     if (error) throw error;
-    if (result?.status==="event_id_payload_conflict") return secureJson(req,{ error:"Event conflict" },409);
+    if (result?.status==="event_id_payload_conflict"||result?.status==="semantic_transaction_payload_conflict")
+      return secureJson(req,{ error:"Event conflict" },409);
     if (result?.status==="rejected_unmapped") return secureJson(req,{ error:"Unmapped product" },422);
     if (result?.status==="rejected_transition") return secureJson(req,{ error:"Invalid transition" },422);
     return secureJson(req,{ success:result?.success===true,replayed:result?.replayed===true,status:result?.status,

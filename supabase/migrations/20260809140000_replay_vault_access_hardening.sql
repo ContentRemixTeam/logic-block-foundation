@@ -117,6 +117,8 @@ CREATE TABLE public.replay_vault_webhook_events (
   product_id text NOT NULL,
   price_id text NOT NULL,
   payload_sha256 text NOT NULL CHECK (payload_sha256 ~ '^[0-9a-f]{64}$'),
+  semantic_transaction_key text NOT NULL CHECK (trim(semantic_transaction_key) <> ''),
+  semantic_payload_sha256 text NOT NULL CHECK (semantic_payload_sha256 ~ '^[0-9a-f]{64}$'),
   signature_verified boolean NOT NULL CHECK (signature_verified),
   received_at timestamptz NOT NULL DEFAULT clock_timestamp(),
   effective_at timestamptz NOT NULL,
@@ -127,7 +129,8 @@ CREATE TABLE public.replay_vault_webhook_events (
   result_tier text CHECK (result_tier IS NULL OR result_tier IN ('monthly','annual','lifetime')),
   result_status text CHECK (result_status IS NULL OR result_status IN ('active','cancel_at_period_end','expired','revoked')),
   result_expires_at timestamptz,
-  CONSTRAINT replay_vault_webhook_events_unique UNIQUE (provider, event_id)
+  CONSTRAINT replay_vault_webhook_events_unique UNIQUE (provider, event_id),
+  CONSTRAINT replay_vault_webhook_semantic_transaction_unique UNIQUE (provider, semantic_transaction_key)
 );
 
 CREATE OR REPLACE FUNCTION public.replay_vault_ledger_append_only()
@@ -229,7 +232,7 @@ BEGIN
   SELECT EXISTS (SELECT 1 FROM public.entitlements e
     WHERE lower(trim(e.email))=v_email AND e.tier='mastermind' AND e.status='active'
       AND (e.starts_at IS NULL OR (e.starts_at::timestamp AT TIME ZONE 'America/New_York') <= p_as_of)
-      AND (e.ends_at IS NULL OR ((e.ends_at + 1)::timestamp AT TIME ZONE 'America/New_York') > p_as_of)
+      AND (e.ends_at IS NULL OR public.replay_vault_exclusive_end(e.ends_at) > p_as_of)
   ) INTO v_mastermind_active;
   SELECT r.tier INTO v_tier FROM public.replay_vault_entitlements r
    WHERE (r.auth_user_id=p_user_id OR (r.auth_user_id IS NULL AND r.normalized_email=v_email))
@@ -259,7 +262,7 @@ BEGIN
   ELSIF p_action='search' AND (v_resource.pairing_state <> 'paired' OR v_resource.transcript_state <> 'active') THEN v_internal_reason := 'transcript_not_active';
   ELSIF p_action='playback' AND (v_resource.pairing_state <> 'paired' OR v_resource.media_state <> 'approved') THEN v_internal_reason := 'playback_not_approved';
   ELSIF v_resource.available_until IS NOT NULL
-    AND (((v_resource.available_until + 1)::timestamp AT TIME ZONE 'America/New_York') <= p_as_of) THEN v_internal_reason := 'availability_expired';
+    AND public.replay_vault_exclusive_end(v_resource.available_until) <= p_as_of THEN v_internal_reason := 'availability_expired';
   ELSIF NOT v_preview_allowed AND NOT (v_resource.approved_access_scope = ANY(v_member_scopes)) THEN v_internal_reason := 'scope_denied';
   ELSE v_allowed := true; v_internal_reason := 'allowed'; END IF;
   RETURN jsonb_build_object('allowed',v_allowed,'publicReason',CASE WHEN v_allowed THEN 'allowed' ELSE 'inaccessible' END,
@@ -355,16 +358,29 @@ DECLARE
   v_provider text:=lower(trim(p_provider)); v_email text:=lower(trim(p_email));
   v_mapping public.replay_vault_provider_product_mappings%ROWTYPE;
   v_event public.replay_vault_webhook_events%ROWTYPE;
+  v_semantic_event public.replay_vault_webhook_events%ROWTYPE;
   v_ent public.replay_vault_entitlements%ROWTYPE;
   v_tier text; v_status text; v_expiry timestamptz; v_error text;
   v_paid_at timestamptz; v_revoked_at timestamptz;
+  v_semantic_key text; v_semantic_hash text;
 BEGIN
   IF trim(coalesce(p_event_id,''))='' OR trim(coalesce(p_order_id,''))='' OR position('@' in v_email)<=1
     OR p_event_type NOT IN ('grant','renewal','cancel_at_period_end','expiration','refund','chargeback','immediate_revocation')
     OR p_payload_sha256 !~ '^[0-9a-f]{64}$' OR p_effective_at IS NULL THEN
     RAISE EXCEPTION 'invalid replay vault event';
   END IF;
-  PERFORM pg_advisory_xact_lock(hashtextextended(v_provider||':'||p_event_id,0));
+  -- Event IDs are delivery identities. Provider orders are durable commercial
+  -- identities for grant/renewal; each lifecycle transition remains addressable.
+  v_semantic_key:=CASE WHEN p_event_type IN ('grant','renewal')
+    THEN 'purchase:'||lower(trim(p_order_id))
+    ELSE 'lifecycle:'||p_event_type||':'||lower(trim(p_order_id)) END;
+  v_semantic_hash:=encode(digest(jsonb_build_object(
+    'email',v_email,'event_type',p_event_type,'product_id',p_product_id,'price_id',p_price_id,
+    'access_expires_at',p_access_expires_at
+  )::text,'sha256'),'hex');
+  -- Fixed lock order prevents both delivery and semantic races.
+  PERFORM pg_advisory_xact_lock(hashtextextended(v_provider||':'||v_semantic_key,0));
+  PERFORM pg_advisory_xact_lock(hashtextextended(v_provider||':event:'||p_event_id,0));
   SELECT * INTO v_event FROM public.replay_vault_webhook_events WHERE provider=v_provider AND event_id=p_event_id;
   IF FOUND THEN
     IF v_event.payload_sha256 <> p_payload_sha256 THEN
@@ -374,12 +390,23 @@ BEGIN
       'tier',v_event.result_tier,'entitlementStatus',v_event.result_status,'accessExpiresAt',v_event.result_expires_at);
   END IF;
 
+  SELECT * INTO v_semantic_event FROM public.replay_vault_webhook_events
+    WHERE provider=v_provider AND semantic_transaction_key=v_semantic_key;
+  IF FOUND THEN
+    IF v_semantic_event.semantic_payload_sha256 <> v_semantic_hash THEN
+      RETURN jsonb_build_object('success',false,'replayed',false,'status','semantic_transaction_payload_conflict');
+    END IF;
+    RETURN jsonb_build_object('success',v_semantic_event.status='applied','replayed',true,'status',v_semantic_event.status,
+      'tier',v_semantic_event.result_tier,'entitlementStatus',v_semantic_event.result_status,
+      'accessExpiresAt',v_semantic_event.result_expires_at);
+  END IF;
+
   SELECT * INTO v_mapping FROM public.replay_vault_provider_product_mappings
    WHERE provider=v_provider AND product_id=p_product_id AND price_id=p_price_id AND active;
   IF NOT FOUND THEN
     INSERT INTO public.replay_vault_webhook_events(provider,event_id,order_id,normalized_email,event_type,product_id,price_id,
-      payload_sha256,signature_verified,effective_at,requested_expires_at,status,error_class)
-    VALUES(v_provider,p_event_id,p_order_id,v_email,p_event_type,p_product_id,p_price_id,p_payload_sha256,true,
+      payload_sha256,semantic_transaction_key,semantic_payload_sha256,signature_verified,effective_at,requested_expires_at,status,error_class)
+    VALUES(v_provider,p_event_id,p_order_id,v_email,p_event_type,p_product_id,p_price_id,p_payload_sha256,v_semantic_key,v_semantic_hash,true,
       p_effective_at,p_access_expires_at,'rejected_unmapped','unmapped_product');
     RETURN jsonb_build_object('success',false,'replayed',false,'status','rejected_unmapped');
   END IF;
@@ -415,8 +442,8 @@ BEGIN
 
   IF v_error IS NOT NULL THEN
     INSERT INTO public.replay_vault_webhook_events(provider,event_id,order_id,normalized_email,event_type,product_id,price_id,
-      payload_sha256,signature_verified,effective_at,requested_expires_at,status,error_class,result_tier,result_status,result_expires_at)
-    VALUES(v_provider,p_event_id,p_order_id,v_email,p_event_type,p_product_id,p_price_id,p_payload_sha256,true,p_effective_at,
+      payload_sha256,semantic_transaction_key,semantic_payload_sha256,signature_verified,effective_at,requested_expires_at,status,error_class,result_tier,result_status,result_expires_at)
+    VALUES(v_provider,p_event_id,p_order_id,v_email,p_event_type,p_product_id,p_price_id,p_payload_sha256,v_semantic_key,v_semantic_hash,true,p_effective_at,
       p_access_expires_at,'rejected_transition',v_error,v_ent.tier,v_ent.status,v_ent.access_expires_at);
     RETURN jsonb_build_object('success',false,'replayed',false,'status','rejected_transition');
   END IF;
@@ -431,8 +458,8 @@ BEGIN
       revoked_at=v_revoked_at,updated_at=clock_timestamp() WHERE id=v_ent.id;
   END IF;
   INSERT INTO public.replay_vault_webhook_events(provider,event_id,order_id,normalized_email,event_type,product_id,price_id,
-    payload_sha256,signature_verified,effective_at,requested_expires_at,status,applied_at,result_tier,result_status,result_expires_at)
-  VALUES(v_provider,p_event_id,p_order_id,v_email,p_event_type,p_product_id,p_price_id,p_payload_sha256,true,p_effective_at,
+    payload_sha256,semantic_transaction_key,semantic_payload_sha256,signature_verified,effective_at,requested_expires_at,status,applied_at,result_tier,result_status,result_expires_at)
+  VALUES(v_provider,p_event_id,p_order_id,v_email,p_event_type,p_product_id,p_price_id,p_payload_sha256,v_semantic_key,v_semantic_hash,true,p_effective_at,
     p_access_expires_at,'applied',clock_timestamp(),v_tier,v_status,v_expiry);
   RETURN jsonb_build_object('success',true,'replayed',false,'status','applied','tier',v_tier,
     'entitlementStatus',v_status,'accessExpiresAt',v_expiry);

@@ -9,6 +9,7 @@ DECLARE
   r2_media uuid; r2_transcript uuid; r2_tv uuid; r2_attempt uuid;
   question_cluster uuid; question_candidate uuid;
   expiry timestamptz := '2026-09-01 00:00:00+00';
+  available_date date; boundary_at timestamptz;
 BEGIN
   INSERT INTO public.admin_users VALUES(admin_id);
   INSERT INTO public.entitlements(email,tier,status,starts_at,ends_at) VALUES
@@ -27,7 +28,7 @@ BEGIN
   INSERT INTO public.mastermind_portal_resources(portal_resource_id,product_title,title,portal_path,access_scope,approved_access_scope,stages)
   VALUES('replay-1','Vault','Pricing replay','/r1','bonus_or_access_review','replay_vault',ARRAY['sell']) RETURNING id INTO r1;
   INSERT INTO public.mastermind_portal_resources(portal_resource_id,product_title,title,portal_path,access_scope,approved_access_scope,stages)
-  VALUES('replay-2','Vault','More pricing','/r2','core_curriculum','replay_vault',ARRAY['sell']) RETURNING id INTO r2;
+  VALUES('replay-2','Vault','More pricing','/r2','core_curriculum','current_replay_30_day',ARRAY['sell']) RETURNING id INTO r2;
   INSERT INTO public.mastermind_portal_resources(portal_resource_id,product_title,title,portal_path,access_scope,approved_access_scope,stages)
   VALUES('forged-legacy','Vault','Forged pricing sentinel','/forged','replay_vault','replay_vault',ARRAY['sell']) RETURNING id INTO forged;
 
@@ -71,15 +72,15 @@ BEGIN
   INSERT INTO public.replay_media_migration_attempts(run_id,source_asset_id,manifest_sha256,run_sha256,worker_sha256,
     source_native_id,source_metadata_sha256,source_url_fingerprint,destination_policy_version,stable_destination_key,
     dropbox_file_id,dropbox_path_private,dropbox_content_hash,size_bytes,duration_ms,full_decode_ok,range_request_ok,
-    sample_seek_ok,status,attempt_number,started_at,completed_at,receipt_sha256)
+    sample_seek_ok,status,attempt_number,started_at,completed_at,receipt_sha256,verification_evidence_sha256)
   VALUES(run_id,r1_media,repeat('c',64),repeat('d',64),repeat('e',64),'r1-media',repeat('4',64),repeat('f',64),
-    'fixture','r1','id-r1','/vault/private-r1.mp4','hash-r1',1000,3600000,true,true,true,'verified',1,now(),now(),repeat('1',64)) RETURNING id INTO r1_attempt;
+    'fixture','r1','id-r1','/vault/private-r1.mp4','hash-r1',1000,3600000,true,true,true,'verified',1,now(),now(),repeat('1',64),repeat('d',64)) RETURNING id INTO r1_attempt;
   INSERT INTO public.replay_media_migration_attempts(run_id,source_asset_id,manifest_sha256,run_sha256,worker_sha256,
     source_native_id,source_metadata_sha256,source_url_fingerprint,destination_policy_version,stable_destination_key,
     dropbox_file_id,dropbox_path_private,dropbox_content_hash,size_bytes,duration_ms,full_decode_ok,range_request_ok,
-    sample_seek_ok,status,attempt_number,started_at,completed_at,receipt_sha256)
+    sample_seek_ok,status,attempt_number,started_at,completed_at,receipt_sha256,verification_evidence_sha256)
   VALUES(run_id,r2_media,repeat('2',64),repeat('3',64),repeat('4',64),'r2-media',repeat('6',64),repeat('5',64),
-    'fixture','r2','id-r2','/vault/private-r2.mp4','hash-r2',1000,2400000,true,true,true,'verified',1,now(),now(),repeat('6',64)) RETURNING id INTO r2_attempt;
+    'fixture','r2','id-r2','/vault/private-r2.mp4','hash-r2',1000,2400000,true,true,true,'verified',1,now(),now(),repeat('6',64),repeat('e',64)) RETURNING id INTO r2_attempt;
 
   UPDATE public.mastermind_portal_resources SET publication_state='published',privacy_state='approved',pairing_state='paired',
     transcript_state='active',media_state='approved',published_at=now(),active_transcript_version_id=r1_tv,
@@ -87,6 +88,22 @@ BEGIN
   UPDATE public.mastermind_portal_resources SET publication_state='published',privacy_state='approved',pairing_state='paired',
     transcript_state='active',media_state='approved',published_at=now(),active_transcript_version_id=r2_tv,
     active_playback_attempt_id=r2_attempt WHERE id=r2;
+
+  -- Bind this lower-level access fixture to the exact 1300 publication
+  -- authority. The final-stack interaction fixture separately proves the real
+  -- producer/review workflow end to end.
+  INSERT INTO public.replay_publication_authority(
+    resource_id,state,run_id,package_sha256,transcript_source_asset_id,media_source_asset_id,
+    transcript_version_id,playback_attempt_id,pairing_candidate_id,transcript_content_sha256,
+    media_evidence_sha256,source_identity_sha256,ready_review_version,ready_reviewer,ready_at,
+    approval_review_version,approval_reviewer,approved_at,published_by,published_at)
+  VALUES
+    (r1,'PUBLISHED',run_id,repeat('1',64),r1_transcript,r1_media,r1_tv,r1_attempt,
+      (SELECT id FROM public.replay_pairing_candidates WHERE resource_id=r1),repeat('9',64),repeat('d',64),repeat('2',64),
+      'access-fixture','privacy',now(),'access-fixture','editor',now(),'publisher',now()),
+    (r2,'PUBLISHED',run_id,repeat('3',64),r2_transcript,r2_media,r2_tv,r2_attempt,
+      (SELECT id FROM public.replay_pairing_candidates WHERE resource_id=r2),repeat('b',64),repeat('e',64),repeat('4',64),
+      'access-fixture','privacy',now(),'access-fixture','editor',now(),'publisher',now());
 
   -- Forged legacy rows and self-declared labels have no canonical active version/attempt and must never cross the boundary.
   UPDATE public.mastermind_portal_resources SET publication_state='published',privacy_state='approved',pairing_state='paired',
@@ -99,17 +116,43 @@ BEGIN
   INSERT INTO public.replay_question_clusters(normalized_question_member_safe,editorial_status)
   VALUES('How should I price this?','approved') RETURNING id INTO question_cluster;
   INSERT INTO public.replay_question_candidates(resource_id,transcript_version_id,question_segment_index,question_start_ms,
-    answer_start_ms,answer_end_ms,raw_excerpt_sha256,extractor_version,proposed_question_private,state)
-  VALUES(r1,r1_tv,2,110000,120000,165000,repeat('7',64),'fixture','How should I price this?','approved') RETURNING id INTO question_candidate;
+    answer_start_ms,answer_end_ms,raw_excerpt_sha256,extractor_version,proposed_question_private,source_privacy_flag,state,origin,content_sha256)
+  VALUES(r1,r1_tv,2,110000,120000,165000,repeat('7',64),'fixture','How should I price this?','clear','approved','human_curated',repeat('8',64)) RETURNING id INTO question_candidate;
   INSERT INTO public.replay_answers(question_cluster_id,question_candidate_id,resource_id,transcript_version_id,playback_attempt_id,
     question_start_ms,answer_start_ms,answer_end_ms,member_question,safe_answer_summary,answerer_attribution,visibility_scope,
     is_best_answer,privacy_approval,editorial_approval,seek_approval,privacy_reviewer,editorial_reviewer,seek_reviewer,
-    privacy_reviewed_at,editorial_reviewed_at,seek_reviewed_at,published_at)
+    privacy_reviewed_at,editorial_reviewed_at,seek_reviewed_at,published_at,publication_state,content_sha256)
   VALUES(question_cluster,question_candidate,r1,r1_tv,r1_attempt,110000,120000,165000,'How should I price this?',
-    'Use a durable pricing strategy.','Faith','replay_vault',true,'approved','approved','approved','privacy','editor','seek',now(),now(),now(),now()) RETURNING id INTO q1;
+    'Use a durable pricing strategy.','Faith','replay_vault',true,'approved','approved','approved','privacy','editor','seek',now(),now(),now(),now(),'PUBLISHED',repeat('9',64)) RETURNING id INTO q1;
 
   IF NOT (public.replay_vault_access_decision(u,'annual@example.com',NULL,'access',false,expiry-'1 microsecond'::interval)->>'allowed')::boolean THEN RAISE EXCEPTION 'pre-expiry denied'; END IF;
   IF (public.replay_vault_access_decision(u,'annual@example.com',NULL,'access',false,expiry)->>'allowed')::boolean THEN RAISE EXCEPTION 'exact expiry allowed'; END IF;
+
+  -- The projection exposes the shared exclusive TIMESTAMPTZ boundary but never
+  -- evaluates wall-clock availability itself. Capability p_as_of is authoritative.
+  UPDATE public.entitlements SET ends_at='2030-12-31' WHERE email='annual@example.com';
+  UPDATE public.replay_vault_entitlements SET access_expires_at='2031-01-01' WHERE normalized_email='annual@example.com';
+  FOR available_date, boundary_at IN
+    SELECT * FROM (VALUES
+      ('2026-03-08'::date,'2026-03-09 04:00:00+00'::timestamptz), -- spring DST
+      ('2026-11-01'::date,'2026-11-02 05:00:00+00'::timestamptz), -- fall DST
+      ('2028-02-29'::date,'2028-03-01 05:00:00+00'::timestamptz)  -- leap day
+    ) AS boundaries(available_date,boundary_at)
+  LOOP
+    UPDATE public.mastermind_portal_resources SET available_until=available_date WHERE id=r2;
+    IF public.replay_vault_exclusive_end(available_date)<>boundary_at THEN RAISE EXCEPTION 'exclusive boundary mismatch %',available_date; END IF;
+    IF (SELECT availability_expires_at FROM public.replay_published_resource_projection WHERE id=r2)<>boundary_at THEN RAISE EXCEPTION 'projection boundary mismatch %',available_date; END IF;
+    IF NOT (public.replay_vault_access_decision(u,'annual@example.com','replay-2','search',false,boundary_at-'1 microsecond'::interval)->>'allowed')::boolean THEN RAISE EXCEPTION 'before boundary denied %',available_date; END IF;
+    IF (public.replay_vault_access_decision(u,'annual@example.com','replay-2','search',false,boundary_at)->>'allowed')::boolean THEN RAISE EXCEPTION 'at boundary allowed %',available_date; END IF;
+    IF (public.replay_vault_access_decision(u,'annual@example.com','replay-2','search',false,boundary_at+'1 microsecond'::interval)->>'allowed')::boolean THEN RAISE EXCEPTION 'after boundary allowed %',available_date; END IF;
+    IF NOT EXISTS(SELECT 1 FROM public.replay_published_resource_projection WHERE id=r2) THEN RAISE EXCEPTION 'projection used independent current clock %',available_date; END IF;
+  END LOOP;
+  -- Explicit backdated as-of remains deterministic even when the date is old relative to server time.
+  UPDATE public.mastermind_portal_resources SET available_until='2026-02-28' WHERE id=r2;
+  IF NOT (public.replay_vault_access_decision(u,'annual@example.com','replay-2','search',false,'2026-03-01 04:59:59.999999+00')->>'allowed')::boolean
+    OR (public.replay_vault_access_decision(u,'annual@example.com','replay-2','search',false,'2026-03-01 05:00:00+00')->>'allowed')::boolean
+  THEN RAISE EXCEPTION 'backdated as-of authority failed'; END IF;
+  UPDATE public.mastermind_portal_resources SET available_until='2026-08-09' WHERE id=r2;
 
   RAISE NOTICE 'projection rows %, search vectors %, access %',
     (SELECT count(*) FROM public.replay_published_resource_projection),
@@ -141,6 +184,11 @@ BEGIN
   j:=public.apply_replay_vault_webhook_event('ghl','evt-grant','ord-1','transition@example.com','grant','annual-product','annual-price',repeat('b',64),'2026-08-09','2027-08-09');
   IF j->>'status'<>'event_id_payload_conflict' THEN RAISE EXCEPTION 'payload conflict not denied'; END IF;
   IF (SELECT count(*) FROM public.replay_vault_webhook_events WHERE provider='ghl' AND event_id='evt-grant')<>1 THEN RAISE EXCEPTION 'duplicate ledger row'; END IF;
+  j:=public.apply_replay_vault_webhook_event('ghl','evt-grant-redelivery','ord-1','transition@example.com','grant','annual-product','annual-price',repeat('9',64),'2026-08-10','2027-08-09');
+  IF NOT (j->>'replayed')::boolean OR j->>'status'<>'applied' THEN RAISE EXCEPTION 'same semantic order did not replay %',j; END IF;
+  j:=public.apply_replay_vault_webhook_event('ghl','evt-grant-conflict','ord-1','other@example.com','grant','annual-product','annual-price',repeat('8',64),'2026-08-10','2027-08-09');
+  IF j->>'status'<>'semantic_transaction_payload_conflict' THEN RAISE EXCEPTION 'semantic payload conflict not denied %',j; END IF;
+  IF (SELECT count(*) FROM public.replay_vault_webhook_events WHERE provider='ghl' AND semantic_transaction_key='purchase:ord-1')<>1 THEN RAISE EXCEPTION 'semantic duplicate ledger row'; END IF;
 
   j:=public.apply_replay_vault_webhook_event('ghl','evt-cancel','ord-1','transition@example.com','cancel_at_period_end','annual-product','annual-price',repeat('c',64),'2026-08-10','2027-07-31');
   IF j->>'entitlementStatus'<>'cancel_at_period_end' OR j->>'accessExpiresAt' NOT LIKE '2027-07-31%' THEN RAISE EXCEPTION 'cancel exact period end failed: %',j; END IF;
@@ -152,8 +200,8 @@ BEGIN
   IF j->>'entitlementStatus'<>'revoked' THEN RAISE EXCEPTION 'immediate revocation failed: %',j; END IF;
 
   BEGIN
-    INSERT INTO public.replay_vault_webhook_events(provider,event_id,order_id,normalized_email,event_type,product_id,price_id,payload_sha256,signature_verified,effective_at,status)
-    VALUES('ghl','invalid-signature','x','x@example.com','grant','x','x',repeat('0',64),false,now(),'applied');
+    INSERT INTO public.replay_vault_webhook_events(provider,event_id,order_id,normalized_email,event_type,product_id,price_id,payload_sha256,semantic_transaction_key,semantic_payload_sha256,signature_verified,effective_at,status)
+    VALUES('ghl','invalid-signature','x','x@example.com','grant','x','x',repeat('0',64),'purchase:x',repeat('1',64),false,now(),'applied');
     RAISE EXCEPTION 'invalid signature persisted';
   EXCEPTION WHEN check_violation THEN NULL; END;
 END $$;
