@@ -64,12 +64,53 @@ function canUseDirectSourceUrl(sourceUrl: string) {
   }
 }
 
-async function dropboxTemporaryLink(dropboxPath: string) {
-  const dropboxAccessToken = Deno.env.get("DROPBOX_ACCESS_TOKEN");
-  if (!dropboxAccessToken) {
-    console.error("[get-mastermind-playback-link] Missing DROPBOX_ACCESS_TOKEN");
-    return null;
+let cachedDropboxToken: { accessToken: string; expiresAt: number } | null = null;
+
+async function getDropboxAccessToken() {
+  if (cachedDropboxToken && cachedDropboxToken.expiresAt > Date.now() + 5 * 60 * 1000) {
+    return cachedDropboxToken.accessToken;
   }
+
+  const refreshToken = Deno.env.get("DROPBOX_REFRESH_TOKEN");
+  const clientId = Deno.env.get("DROPBOX_CLIENT_ID");
+  if (refreshToken && clientId) {
+    const tokenResponse = await fetch("https://api.dropbox.com/oauth2/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: refreshToken,
+        client_id: clientId,
+      }),
+    });
+
+    if (tokenResponse.ok) {
+      const tokenBody = (await tokenResponse.json().catch(() => null)) as {
+        access_token?: string;
+        expires_in?: number;
+      } | null;
+      if (tokenBody?.access_token) {
+        cachedDropboxToken = {
+          accessToken: tokenBody.access_token,
+          expiresAt: Date.now() + (tokenBody.expires_in ?? 14_400) * 1000,
+        };
+        return cachedDropboxToken.accessToken;
+      }
+    } else {
+      console.error("[get-mastermind-playback-link] Dropbox token refresh failed", tokenResponse.status);
+    }
+  }
+
+  const fallbackAccessToken = Deno.env.get("DROPBOX_ACCESS_TOKEN");
+  if (fallbackAccessToken) return fallbackAccessToken;
+
+  console.error("[get-mastermind-playback-link] Missing Dropbox refresh/client credentials");
+  return null;
+}
+
+async function dropboxTemporaryLink(dropboxPath: string) {
+  const dropboxAccessToken = await getDropboxAccessToken();
+  if (!dropboxAccessToken) return null;
 
   const response = await fetch("https://api.dropboxapi.com/2/files/get_temporary_link", {
     method: "POST",

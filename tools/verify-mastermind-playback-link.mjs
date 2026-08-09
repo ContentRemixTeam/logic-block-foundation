@@ -59,7 +59,10 @@ assert(edgeFunction.includes("source_system\", \"portal_playback_source\""), "Pl
 assert(edgeFunction.includes("review_status\", \"approved\""), "Playback function must use approved playback evidence only");
 assert(edgeFunction.includes("isAllowedResource(portalResource, allowedAccessScopes)"), "Playback function must enforce member-specific access scopes");
 assert(edgeFunction.includes("available_until >= new Date().toISOString().slice(0, 10)"), "Playback function must enforce current replay availability");
-assert(edgeFunction.includes("DROPBOX_ACCESS_TOKEN"), "Playback function must keep Dropbox access token server-side");
+assert(edgeFunction.includes("DROPBOX_REFRESH_TOKEN"), "Playback function must keep the durable Dropbox refresh token server-side");
+assert(edgeFunction.includes("DROPBOX_CLIENT_ID"), "Playback function must keep the Dropbox client id server-side");
+assert(edgeFunction.includes('grant_type: "refresh_token"'), "Playback function must refresh Dropbox access server-side");
+assert(edgeFunction.includes("DROPBOX_ACCESS_TOKEN"), "Playback function may retain a server-side access-token fallback");
 assert(edgeFunction.includes("https://api.dropboxapi.com/2/files/get_temporary_link"), "Playback function must use Dropbox temporary links for Dropbox paths");
 assert(edgeFunction.includes("BLOCKED_DIRECT_SOURCE_HOSTS"), "Playback function must define blocked direct-source hosts");
 assert(edgeFunction.includes("canUseDirectSourceUrl(evidence.source_url)"), "Playback function must reject unsafe direct source URL fallbacks");
