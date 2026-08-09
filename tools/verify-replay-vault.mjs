@@ -15,8 +15,8 @@ requireText(vault, "invoke('get-mastermind-portal-access'", "protected access st
 requireText(vault, "invoke('search-mastermind-resources'", "protected transcript search");
 requireText(vault, "invoke('get-mastermind-playback-link'", "protected playback lookup");
 requireText(vault, "onLoadedMetadata={handleLoadedMetadata}", "metadata-gated exact seek");
-requireText(vault, "videoRef.current.currentTime = pendingStartSeconds", "exact timestamp seek");
-requireText(vault, "full Replay Vault is reserved for annual and lifetime members", "monthly access explanation");
+requireText("src/components/replay-vault/useVaultSeekCoordinator.ts", "applySeekTarget(media, targetSeconds)", "exact timestamp seek coordinator");
+requireText(vault, "You can search the approved current replay window. Older archive results stay private.", "limited current-replay explanation");
 requireText("src/App.tsx", 'path="/mastermind/replay-vault"', "Replay Vault route");
 requireText("src/App.tsx", "<MastermindGate><PageSuspense><ReplayVault />", "admin launch gate retained");
 requireText("supabase/config.toml", "[functions.get-mastermind-portal-access]", "access Edge Function config");
