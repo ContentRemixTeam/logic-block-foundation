@@ -37,7 +37,10 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-from replay_vault_foundation import timestamp_to_ms, transcript_digest
+from replay_vault_foundation import (
+    FoundationError, atomic_write_private, canonical_json, parse_vtt_ms, private_atomic_open, sha256_bytes,
+    timestamp_to_ms, transcript_digest, transcript_quality, write_json,
+)
 
 HUB_ID = 13921
 HUB_HASH = "62R4w3ejNl"
@@ -45,6 +48,7 @@ HUB_TITLE = "Becoming Boss Mastermind Replay Vault"
 API_BASE = "https://app.membership.io"
 DEFAULT_OUTPUT = Path.home() / "Dropbox" / "Becoming Boss Mastermind Vault Migration" / "App Import"
 DEFAULT_DROPBOX_ROOTS = [Path.home() / "Dropbox" / "Videos_Zoom Replays", Path.home() / "Dropbox" / "Zoom"]
+MAX_RESPONSE_BYTES = 64 * 1024 * 1024
 MEDIA_EXTENSIONS = {".mp4", ".mov", ".m4v", ".mkv", ".webm", ".mp3", ".m4a", ".wav", ".aac"}
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".m4v", ".mkv", ".webm"}
 TIMESTAMP_RE = re.compile(
@@ -107,7 +111,10 @@ def request_json(token: str, url: str, timeout: int = 90) -> Any:
         headers={"Authorization": f"Bearer {token}", "Accept": "application/json", "User-Agent": "VaultMigration/2.0"},
     )
     with urllib.request.urlopen(request, timeout=timeout) as response:
-        return json.load(response)
+        raw = response.read(MAX_RESPONSE_BYTES + 1)
+    if len(raw) > MAX_RESPONSE_BYTES:
+        raise RuntimeError("Membership.io JSON response exceeds bound")
+    return json.loads(raw)
 
 
 def request_text(token: str, url: str, timeout: int = 90) -> str:
@@ -116,7 +123,10 @@ def request_text(token: str, url: str, timeout: int = 90) -> str:
         headers={"Authorization": f"Bearer {token}", "Accept": "text/vtt,text/plain,*/*", "User-Agent": "VaultMigration/2.0"},
     )
     with urllib.request.urlopen(request, timeout=timeout) as response:
-        return response.read().decode("utf-8", "replace")
+        raw = response.read(MAX_RESPONSE_BYTES + 1)
+    if len(raw) > MAX_RESPONSE_BYTES:
+        raise RuntimeError("Membership.io VTT response exceeds bound")
+    return raw.decode("utf-8")
 
 
 def fetch_playlists(token: str) -> list[dict[str, Any]]:
@@ -190,36 +200,7 @@ def strip_vtt_markup(value: str) -> str:
 
 
 def parse_vtt(vtt: str) -> list[dict[str, Any]]:
-    lines = vtt.replace("\r\n", "\n").replace("\r", "\n").split("\n")
-    segments: list[dict[str, Any]] = []
-    index = 0
-    while index < len(lines):
-        match = TIMESTAMP_RE.search(lines[index])
-        if not match:
-            index += 1
-            continue
-        start = to_milliseconds(match.group("start"))
-        end = to_milliseconds(match.group("end"))
-        index += 1
-        text_lines: list[str] = []
-        while index < len(lines) and lines[index].strip():
-            text_lines.append(lines[index].strip())
-            index += 1
-        text = strip_vtt_markup(" ".join(text_lines))
-        if text:
-            speaker = ""
-            speaker_match = re.match(r"^([^:]{2,80}):\s+(.+)$", text)
-            if speaker_match:
-                speaker = speaker_match.group(1).strip()
-            segments.append({
-                "segment_index": len(segments),
-                "starts_at_ms": start,
-                "ends_at_ms": max(start, end),
-                "speaker": speaker,
-                "transcript_text": text,
-            })
-        index += 1
-    return segments
+    return parse_vtt_ms(vtt)
 
 
 @dataclass(frozen=True)
@@ -318,11 +299,12 @@ def select_local_match(
 
 
 def sql_literal(path: Path) -> str:
-    return str(path.resolve()).replace("'", "''")
+    # Portable package-local path; never embed a host absolute path.
+    return path.name.replace("'", "''")
 
 
 def write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, Any]]) -> None:
-    with path.open("w", newline="", encoding="utf-8") as handle:
+    with private_atomic_open(path, newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
@@ -421,7 +403,7 @@ def main() -> int:
 
     unique_files: dict[str, dict[str, Any]] = {}
     placements: defaultdict[str, list[dict[str, Any]]] = defaultdict(list)
-    for playlist in playlists:
+    for playlist in sorted(playlists, key=lambda row: (str(row.get("hash") or ""), str(row.get("id") or ""))):
         playlist_hash = str(playlist.get("hash") or "")
         for item in sorted(files_by_playlist.get(playlist_hash, []), key=lambda row: int(row.get("position") or 0)):
             if item.get("content_type") != "media" and item.get("collection_name") not in {"videos", "audio"}:
@@ -437,6 +419,11 @@ def main() -> int:
                 "position": int(item.get("position") or 0),
             })
 
+    duplicate_source_ids = [key for key, count in Counter(str(row.get("source_id") or "") for row in unique_files.values() if row.get("source_id")).items() if count > 1]
+    if duplicate_source_ids:
+        raise RuntimeError(f"duplicate Membership.io source IDs: {sorted(duplicate_source_ids)}")
+    for file_hash in placements:
+        placements[file_hash].sort(key=lambda row: (row["playlist_hash"], row["position"], row["playlist_id"]))
     file_rows = sorted(unique_files.values(), key=lambda item: (clean_text(item.get("title")).lower(), str(item.get("hash"))))
     if args.limit > 0:
         file_rows = file_rows[: args.limit]
@@ -459,7 +446,11 @@ def main() -> int:
         try:
             body = request_text(token, url)
             segments = parse_vtt(body)
-            return file_hash, segments, "saved" if segments else "empty", hashlib.sha256(body.encode("utf-8")).hexdigest()
+            duration_ms = round(float(item.get("length") or 0) * 1000)
+            quality = transcript_quality(segments, duration_ms)
+            if quality["status"] != "pass":
+                raise FoundationError("caption VTT failed transcript quality: " + ",".join(quality["flags"]))
+            return file_hash, segments, "saved", hashlib.sha256(body.encode("utf-8")).hexdigest()
         except urllib.error.HTTPError as error:
             return file_hash, [], f"http_{error.code}", ""
         except Exception as error:  # noqa: BLE001 - record bounded failure class, not credential data
@@ -477,7 +468,7 @@ def main() -> int:
         "portal_resource_id", "segment_index", "starts_at_ms", "ends_at_ms", "speaker", "transcript_text",
     ]
 
-    with segment_path.open("w", newline="", encoding="utf-8") as segment_handle:
+    with private_atomic_open(segment_path, newline="") as segment_handle:
         segment_writer = csv.DictWriter(segment_handle, fieldnames=streaming_segment_fields, extrasaction="ignore")
         segment_writer.writeheader()
         batch_size = max(8, args.max_workers * 4)
@@ -486,9 +477,9 @@ def main() -> int:
             batch = file_rows[batch_start : batch_start + batch_size]
             with ThreadPoolExecutor(max_workers=max(1, args.max_workers)) as executor:
                 future_items = {executor.submit(fetch_caption, item): item for item in batch}
-                for future in as_completed(future_items):
-                    item = future_items[future]
-                    file_hash, segments, status, caption_raw_sha256 = future.result()
+                completed = [(future_items[future], future.result()) for future in as_completed(future_items)]
+                for item, result in sorted(completed, key=lambda pair: str(pair[0].get("hash") or "")):
+                    file_hash, segments, status, caption_raw_sha256 = result
                     transcript_source = "migration_caption_evidence" if segments else ""
                     title = clean_text(item.get("title")) or f"Vault video {file_hash}"
                     placement_rows = placements[file_hash]
@@ -631,15 +622,25 @@ def main() -> int:
     segment_fields = [
         "portal_resource_id", "segment_index", "starts_at_ms", "ends_at_ms", "speaker", "transcript_text",
     ]
+    resources.sort(key=lambda row: row["portal_resource_id"])
+    evidence.sort(key=lambda row: (row["portal_resource_id"], row["source_system"], row["source_fingerprint"]))
+    private_manifest.sort(key=lambda row: row["portal_resource_id"])
     write_csv(output_dir / "vault_resources.csv", resource_fields, resources)
     write_csv(output_dir / "vault_source_evidence.csv", evidence_fields, evidence)
-    (output_dir / "vault_import_upsert.sql").write_text(build_sql(output_dir), encoding="utf-8")
+    atomic_write_private(output_dir / "vault_import_upsert.sql", build_sql(output_dir).encode("utf-8"))
     manifest_path = output_dir / "vault_private_media_manifest.json"
-    manifest_path.write_text(json.dumps(private_manifest, indent=2, ensure_ascii=False), encoding="utf-8")
-    os.chmod(manifest_path, stat.S_IRUSR | stat.S_IWUSR)
+    write_json(manifest_path, private_manifest)
 
+    semantic_artifact = {
+        "schema_version": 2,
+        "resources": resources,
+        "evidence": evidence,
+        "private_manifest": private_manifest,
+        "transcript_segment_count": segment_count,
+    }
     summary = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "schema_version": 2,
+        "semantic_content_sha256": sha256_bytes(canonical_json(semantic_artifact)),
         "hub_id": HUB_ID,
         "hub_hash": HUB_HASH,
         "playlist_count": len(playlists),
@@ -656,11 +657,9 @@ def main() -> int:
         ),
         "searchie_migration_required_count": sum(1 for row in resources if row["video_source_type"] == "membershipio_migration_required"),
         "local_media_inventory_count": len(local_media),
-        "elapsed_seconds": round(time.time() - started, 2),
-        "output_dir": str(output_dir),
     }
-    (output_dir / "vault_import_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
-    (output_dir / "vault_import_summary.md").write_text(
+    write_json(output_dir / "vault_import_summary.json", summary)
+    atomic_write_private(output_dir / "vault_import_summary.md", (
         "# Replay Vault Import Summary\n\n"
         + "\n".join(f"- {key.replace('_', ' ').title()}: {value}" for key, value in summary.items())
         + "\n\n## Safety\n\n"
@@ -668,9 +667,8 @@ def main() -> int:
         + "- Membership.io source URLs remain blocked migration evidence.\n"
         + "- No local Dropbox match is auto-approved without stable-ID, duration, and transcript-coverage evidence.\n"
         + "- Membership.io VTT captions remain migration_caption_evidence until canonical CRDB authority is linked.\n"
-        + "- Private URLs and transcript text are stored outside Git.\n",
-        encoding="utf-8",
-    )
+        + "- Private URLs and transcript text are stored outside Git.\n"
+    ).encode("utf-8"))
     print(json.dumps(summary, indent=2))
     return 0
 
