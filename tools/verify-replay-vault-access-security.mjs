@@ -34,12 +34,18 @@ check("playback binds zero or one server cue ID and returns authoritative bounds
 check("only Dropbox temporary links leave the edge",()=>{
   has(playback,"get_temporary_link");lacks(playback,"dropboxPath:");lacks(playback,"sourceUrl:");
 });
-check("signature rejection precedes injected R7 RPC and deliveries bind payload hash",()=>{
+check("signature rejection precedes parsing/RPC and delivery replay binds exact payload/business semantics",()=>{
   has(webhook,"processCommercialWebhook");has(webhook,"verifiedPayloadHash");has(webhook,"apply_replay_vault_commercial_event_r7");
-  assert.ok(commercial.indexOf("const payloadHash=await verifyPayload")<commercial.indexOf("if (!payloadHash) throw new Error(\"invalid_signature\")"));
+  const verifyIndex=commercial.indexOf("const payloadHash=await verifyPayload");
+  assert.ok(verifyIndex>=0 && verifyIndex<commercial.indexOf("JSON.parse(raw)"),"raw body must be signature-verified before JSON parsing");
+  assert.ok(verifyIndex<commercial.indexOf("if (!payloadHash) throw new Error(\"invalid_signature\")"));
   assert.ok(commercial.indexOf("const args=await mapVerifiedCommercialWebhook")<commercial.indexOf("deps.rpc(args)"));
   has(commercialTests,"signature failure prevents injected RPC call");
-  has(commercialSql,"v_delivery.payload_sha256<>p_payload_sha256");has(commercialSql,"event_id_payload_conflict");
+  has(commercialTests,"unauthenticated malformed/conflicting bodies verify before parse or mapping and never call RPC");
+  has(commercialSql,"v_semantic_equal:=v_delivery.payload_sha256=p_payload_sha256");
+  for(const field of ["v_delivery.event_type=p_event_type","v_delivery.order_id IS NOT DISTINCT FROM v_order_id","v_delivery.transaction_id IS NOT DISTINCT FROM v_transaction_id","v_delivery.normalized_email=v_email","v_delivery.product_id=p_product_id","v_delivery.price_id=p_price_id","v_delivery.effective_at=p_effective_at"]) has(commercialSql,field);
+  lacks(commercialSql,"v_delivery.signature_sha256=p_signature_sha256");
+  has(commercialSql,"replay_vault_commercial_delivery_attempts");has(commercialSql,"event_id_payload_conflict");
 });
 check("all requested transition types and fail-closed empty mapping exist",()=>{
   for(const v of ["grant","renewal","cancel_at_period_end","expiration","refund","chargeback","immediate_revocation"]) {has(commercialSql,v);has(commercial,v);}
