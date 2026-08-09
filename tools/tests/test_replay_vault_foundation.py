@@ -396,6 +396,59 @@ class VerifierFixtureTests(unittest.TestCase):
                 command = [sys.executable, str(TOOLS / "verify-replay-vault-import.py"), "--package-dir", str(root), "--allow-smoke", "--expected-semantic-content-sha256", trusted]
                 self.assertNotEqual(subprocess.run(command, capture_output=True, text=True).returncode, 0)
 
+    def test_trusted_root_binds_private_manifest_approval_and_pairing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); self.make_package(root)
+            trusted = json.loads((root / "vault_import_summary.json").read_text())["semantic_content_sha256"]
+            manifest = json.loads((root / "vault_private_media_manifest.json").read_text())
+            manifest[0].update({
+                "dropbox_match_status": "approved",
+                "dropbox_path": "/Vault/attacker-selected.mp4",
+                "dropbox_provider": "dropbox",
+                "dropbox_file_id": "attacker-file-id",
+                "dropbox_size_bytes": 123456,
+                "dropbox_content_sha256": digest(b"attacker"),
+                "dropbox_match_score": 1.0,
+                "dropbox_match_reason": "exact_authenticated_match",
+                "pairing_evidence": {
+                    "stable_bridge_exact": True,
+                    "candidate_count": 1,
+                    "duration_pass": True,
+                    "coverage_pass": True,
+                },
+            })
+            write_json(root / "vault_private_media_manifest.json", manifest)
+            command = [sys.executable, str(TOOLS / "verify-replay-vault-import.py"), "--package-dir", str(root),
+                       "--allow-smoke", "--expected-semantic-content-sha256", trusted]
+            result = subprocess.run(command, capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("semantic", result.stderr)
+
+    def test_csv_field_raw_utf8_byte_cap_exact_and_one_over(self) -> None:
+        verifier = load_script("verify_replay_vault_field_cap", "verify-replay-vault-import.py")
+        cap = verifier.MAX_CSV_FIELD_BYTES
+        fixtures = {
+            "ascii_exact": "a" * (cap - 1),
+            "ascii_over": "a" * cap,
+            "multibyte_exact": "é" * ((cap - 2) // 2) + "a",
+            "multibyte_over": "é" * (cap // 2),
+        }
+        for name, payload in fixtures.items():
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
+                path = Path(tmp) / "bounded.csv"
+                # The quoted payload crosses a physical line so multiline handling is exercised.
+                midpoint = len(payload) // 2
+                first, second = payload[:midpoint].encode("utf-8"), payload[midpoint:].encode("utf-8")
+                path.write_bytes(b"title,other\n\"" + first + b"\n" + second + b"\",x\n")
+                private(path)
+                rows = verifier.iter_csv(path, 1)
+                if name.endswith("over"):
+                    with self.assertRaisesRegex(verifier.VerificationError, "field byte bound"):
+                        next(rows)
+                else:
+                    row = next(rows)
+                    self.assertEqual(len(row["title"].encode("utf-8")), cap)  # payload plus embedded newline
+
     def test_verifier_rejects_actual_oversized_csv_before_parsing(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp); self.make_package(root); path = root / "vault_resources.csv"

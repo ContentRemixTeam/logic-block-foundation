@@ -27,7 +27,7 @@ def private_regular(path: Path) -> None:
     require(stat.S_ISREG(info.st_mode), f"non-regular package file: {path.name}")
     require(stat.S_IMODE(info.st_mode) == 0o600, f"private package file must be mode 0600: {path.name}")
 
-def _open_bounded_text(path: Path, limit: int):
+def _open_bounded_binary(path: Path, limit: int):
     private_regular(path)
     flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
     try: fd = os.open(path, flags)
@@ -35,13 +35,71 @@ def _open_bounded_text(path: Path, limit: int):
     info = os.fstat(fd)
     if not stat.S_ISREG(info.st_mode) or info.st_size > limit:
         os.close(fd); raise VerificationError(f"input byte bound exceeded: {path.name}")
-    return io.TextIOWrapper(os.fdopen(fd, "rb", closefd=True), encoding="utf-8", newline="")
+    return os.fdopen(fd, "rb", closefd=True)
+
+
+def _open_bounded_text(path: Path, limit: int):
+    return io.TextIOWrapper(_open_bounded_binary(path, limit), encoding="utf-8", newline="")
+
+
+def _validate_csv_field_bytes(handle, path: Path) -> None:
+    """Reject an oversized raw UTF-8 CSV field before csv creates strings/rows."""
+    field_bytes = 0
+    in_quotes = False
+    at_field_start = True
+    quote_pending = False
+
+    def add(amount: int = 1) -> None:
+        nonlocal field_bytes
+        field_bytes += amount
+        require(field_bytes <= MAX_CSV_FIELD_BYTES, f"CSV field byte bound exceeded: {path.name}")
+
+    def outside(byte: int) -> None:
+        nonlocal field_bytes, in_quotes, at_field_start
+        if at_field_start and byte == 0x22:  # opening quote is CSV syntax, not field data
+            in_quotes = True
+            at_field_start = False
+        elif byte in (0x2C, 0x0A, 0x0D):  # comma, LF, CR
+            field_bytes = 0
+            at_field_start = True
+        else:
+            add()
+            at_field_start = False
+
+    while True:
+        chunk = handle.read(64 * 1024)
+        if not chunk:
+            break
+        for byte in chunk:
+            if in_quotes:
+                if quote_pending:
+                    quote_pending = False
+                    if byte == 0x22:  # escaped quote: both raw bytes are field encoding
+                        add(2)
+                    else:
+                        in_quotes = False
+                        outside(byte)
+                elif byte == 0x22:
+                    quote_pending = True
+                else:
+                    add()  # includes CR/LF inside a quoted multiline field
+            else:
+                outside(byte)
+    handle.seek(0)
+
 
 def iter_csv(path: Path, maximum: int) -> Iterator[dict[str, str]]:
     old_limit = csv.field_size_limit()
+    # Character bound remains defense in depth; the binary pass is authoritative.
     csv.field_size_limit(MAX_CSV_FIELD_BYTES)
     try:
-        with _open_bounded_text(path, MAX_CSV_BYTES) as handle:
+        raw = _open_bounded_binary(path, MAX_CSV_BYTES)
+        try:
+            _validate_csv_field_bytes(raw, path)
+        except Exception:
+            raw.close()
+            raise
+        with io.TextIOWrapper(raw, encoding="utf-8", newline="") as handle:
             reader = csv.DictReader(handle)
             require(reader.fieldnames is not None, f"CSV header missing: {path.name}")
             for count, row in enumerate(reader, 1):

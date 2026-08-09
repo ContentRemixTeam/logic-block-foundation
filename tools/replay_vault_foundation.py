@@ -447,21 +447,38 @@ def _normalized_dropbox_path(value: Any) -> str:
     return normalized
 
 
+_VOLATILE_MANIFEST_FIELDS = frozenset({
+    # Provenance clocks vary across equivalent runs and are never release state.
+    "created_at", "updated_at", "generated_at", "enriched_at", "retrieved_at",
+    "fetched_at", "completed_at", "receipt_completed_at",
+    # Host-local discovery paths are provenance; portable Dropbox paths remain bound.
+    "local_path", "local_media_path",
+})
+
+
 def stable_manifest_contract(item: Mapping[str, Any]) -> dict[str, Any]:
-    """Project durable source facts, excluding timestamps and host-local paths."""
-    return {
-        "portal_resource_id": str(item.get("portal_resource_id") or ""),
-        "file_hash": str(item.get("file_hash") or ""),
-        "source_id": str(item.get("source_id") or ""),
-        "title": str(item.get("title") or ""),
-        "collection_name": str(item.get("collection_name") or ""),
-        "duration_seconds": float(item.get("duration_seconds") or item.get("duration") or 0),
-        "source_size_bytes": int(item.get("source_size_bytes") or 0),
-        "source_status": str(item.get("source_status") or ""),
-        "has_transcription": bool(item.get("has_transcription")),
-        "source_url_fingerprint": sha256_bytes(str(item.get("membershipio_source_url") or "").encode()),
-        "placements": item.get("placements") if isinstance(item.get("placements"), list) else [],
+    """Bind the complete durable private-manifest record.
+
+    Only explicitly volatile provenance clocks and host-local discovery paths are
+    excluded.  In particular, every Dropbox provider/file identity, portable
+    path, size/content hash, match decision, and nested pairing-evidence value is
+    retained so an old trusted semantic root cannot authorize changed state.
+    """
+    contract = {
+        str(key): value
+        for key, value in item.items()
+        if str(key) not in _VOLATILE_MANIFEST_FIELDS
     }
+    # Preserve the normalized fields used by the enricher while also retaining
+    # every original durable key above.
+    contract["duration_seconds"] = float(item.get("duration_seconds") or item.get("duration") or 0)
+    contract["source_size_bytes"] = int(item.get("source_size_bytes") or 0)
+    contract["source_status"] = str(item.get("source_status") or "")
+    contract["has_transcription"] = bool(item.get("has_transcription"))
+    source_url = str(item.get("membershipio_source_url") or "")
+    if source_url or "source_url_fingerprint" not in contract:
+        contract["source_url_fingerprint"] = sha256_bytes(source_url.encode())
+    return contract
 
 
 def reconcile_dropbox_receipts(

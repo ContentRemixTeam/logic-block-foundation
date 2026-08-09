@@ -119,7 +119,11 @@ def safe_int(value: Any) -> int:
 
 
 def source_metadata_contract(row: dict[str, Any]) -> dict[str, Any]:
-    return stable_manifest_contract(row)
+    # The digest cannot include its own prior value; the package semantic root
+    # still binds source_metadata_sha256 through stable_manifest_contract().
+    source = dict(row)
+    source.pop("source_metadata_sha256", None)
+    return stable_manifest_contract(source)
 
 
 @contextlib.contextmanager
