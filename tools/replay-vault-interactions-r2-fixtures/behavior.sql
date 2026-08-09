@@ -40,4 +40,24 @@ DO $$DECLARE u uuid:='11111111-1111-4111-8111-111111111111';rid uuid:='10000000-
 END$$;
 DO $$DECLARE n text;BEGIN FOREACH n IN ARRAY ARRAY['replay_vault_bookmarks','replay_vault_watch_state','replay_vault_playback_sessions','replay_vault_media_events','replay_vault_note_backlinks']LOOP IF has_table_privilege('service_role','public.'||n,'SELECT')OR has_table_privilege('authenticated','public.'||n,'SELECT')THEN RAISE EXCEPTION 'direct read granted %',n;END IF;END LOOP;
  IF NOT has_function_privilege('service_role','public.replay_vault_begin_session(uuid,text,text,text,uuid)','EXECUTE') OR has_function_privilege('authenticated','public.replay_vault_begin_session(uuid,text,text,text,uuid)','EXECUTE') THEN RAISE EXCEPTION 'RPC ACL';END IF;END$$;
+-- Migration 1600 must preserve every Edge-facing RPC accepted by migration 1400.
+DO $$DECLARE sig text;BEGIN FOREACH sig IN ARRAY ARRAY[
+ 'public.replay_vault_access_decision(uuid,text,text,text,boolean,timestamptz)',
+ 'public.search_replay_vault_resources(uuid,text,text,text,integer,boolean,boolean,timestamptz)',
+ 'public.resolve_replay_vault_playback(uuid,text,text,uuid,uuid,boolean,timestamptz)',
+ 'public.record_replay_vault_playback_event(uuid,uuid,text,text,uuid,uuid)',
+ 'public.apply_replay_vault_webhook_event(text,text,text,text,text,text,text,text,timestamptz,timestamptz)',
+ 'public.get_mastermind_portal_access_scopes(text)'] LOOP
+ IF NOT has_function_privilege('service_role',sig,'EXECUTE') OR has_function_privilege('authenticated',sig,'EXECUTE') THEN RAISE EXCEPTION 'inherited Edge RPC ACL regression %',sig;END IF;
+ END LOOP;END$$;
+UPDATE public.replay_vault_entitlements SET status='active',revoked_at=NULL WHERE auth_user_id='11111111-1111-4111-8111-111111111111';
+SELECT s.id AS acl_moment_id FROM public.replay_transcript_segments s JOIN public.replay_publication_authority a ON a.transcript_version_id=s.transcript_version_id WHERE a.resource_id='10000000-0000-4000-8000-000000000001'::uuid LIMIT 1 \gset
+SET ROLE service_role;
+SELECT public.replay_vault_access_decision('11111111-1111-4111-8111-111111111111','member@example.com','replay-r2','playback',false,clock_timestamp()) IS NOT NULL AS access_rpc_invoked;
+SELECT count(*)>=0 AS search_rpc_invoked FROM public.search_replay_vault_resources('11111111-1111-4111-8111-111111111111','member@example.com','Current',NULL,12,true,false,clock_timestamp());
+SELECT count(*)>=0 AS playback_rpc_invoked FROM public.resolve_replay_vault_playback('11111111-1111-4111-8111-111111111111','member@example.com','replay-r2',NULL,:'acl_moment_id'::uuid,false,clock_timestamp());
+SELECT public.record_replay_vault_playback_event('11111111-1111-4111-8111-111111111111','10000000-0000-4000-8000-000000000001','allowed','dropbox',:'acl_moment_id'::uuid,NULL) IS NULL AS playback_event_rpc_invoked;
+SELECT public.apply_replay_vault_webhook_event('acl-probe','event-1600','order-1600','member@example.com','grant','unmapped','unmapped',repeat('f',64),clock_timestamp(),NULL)->>'status'='rejected_unmapped' AS webhook_rpc_invoked;
+SELECT public.get_mastermind_portal_access_scopes('member@example.com') IS NOT NULL AS scopes_rpc_invoked;
+RESET ROLE;
 \echo PASS replay_vault_interactions_r2_real_stack_behavior
