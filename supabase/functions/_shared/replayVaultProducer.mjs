@@ -8,10 +8,10 @@ export function memberSafeText(value, maxLength, fallback = "") {
   const input = typeof value === "string" ? value : fallback;
   return input
     .replace(CONTROL_CHARS, " ")
+    .replace(PRIVATE_LOCATOR, "[private source]")
     .replace(URL_OR_PRIVATE_HOST, "[private source]")
     .replace(WINDOWS_PATH, "[private source]")
     .replace(POSIX_PATH, (_match, prefix) => `${prefix}[private source]`)
-    .replace(PRIVATE_LOCATOR, "[private source]")
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, maxLength);

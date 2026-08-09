@@ -61,6 +61,16 @@ Deno.test("search endpoint mapper sanitizes and caps every free-text response fi
     const searchText=JSON.stringify(search), playbackText=JSON.stringify(playback);
     assert(!searchText.includes(sentinel),`search mapper leaked complete sentinel ${sentinel}`);
     assert(!playback.title.includes(sentinel),`playback title leaked complete sentinel ${sentinel}`);
+    const sanitizedValues=[search.title,search.productTitle,search.category,search.sourceType,search.snippet,search.reason,playback.title];
+    if (sentinel.includes("\u0001")) {
+      for (const value of sanitizedValues) assert(!/[\u0000-\u001f\u007f]/.test(value),`control byte survived: ${value}`);
+    } else {
+      for (const value of sanitizedValues) assert(value.includes("[private source]")||value==="[redacted]",`locator was not replaced: ${value}`);
+    }
+    if (sentinel.startsWith("dropbox_path:")) {
+      for (const value of sanitizedValues) assert(value==="[private source]",`Dropbox locator did not normalize to one exact placeholder: ${value}`);
+    }
+    assert(!searchText.includes("source] source]"),"overlapping redactors produced a duplicate placeholder tail");
     assert(playback.playbackUrl==="https://content.dropboxapi.com/temporary-authorized-link","authorized temporary playback URL was altered");
   }
 });
