@@ -4,6 +4,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import os from "node:os";
+import { spawnSync } from "node:child_process";
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const read=(p)=>fs.readFileSync(path.join(root,p),"utf8");
 const sql=read("supabase/migrations/20260809140000_replay_vault_access_hardening.sql");
@@ -51,5 +53,32 @@ check("direct access is revoked, R7 is service-role-only, and functions use fixe
   has(commercialSql,"REVOKE ALL ON FUNCTION public.apply_replay_vault_webhook_event");
   has(commercialSql,"GRANT EXECUTE ON FUNCTION public.apply_replay_vault_commercial_event_r7");
   has(commercialSql,"SECURITY DEFINER SET search_path=pg_catalog,public");
+});
+
+check("commercial source guard executes the real Edge tests and rejects a string-preserving implementation mutation",()=>{
+  const testPath=path.join(root,"supabase/functions/_shared/replayVaultCommercialWebhook.test.ts");
+  const real=spawnSync("deno",["test","--no-lock","-A",testPath],{cwd:root,encoding:"utf8",timeout:120000});
+  assert.equal(real.status,0,`real commercial Edge tests failed:
+${real.stdout}
+${real.stderr}`);
+  const fixture=fs.mkdtempSync(path.join(os.tmpdir(),"replay-commercial-mutation-"));
+  try {
+    const implementationName="replayVaultCommercialWebhook.ts";
+    const testName="replayVaultCommercialWebhook.test.ts";
+    const original=fs.readFileSync(path.join(root,"supabase/functions/_shared",implementationName),"utf8");
+    const executable=`export async function processCommercialWebhook(raw:string,headers:Headers,deps:CommercialDependencies) {
+  const args=await mapVerifiedCommercialWebhook(raw,headers,deps.verifyPayload);
+  return { args,result:await deps.rpc(args) };
+}`;
+    assert.ok(original.includes(executable),"commercial executable fixture anchor drifted");
+    const mutation=`export async function processCommercialWebhook(_raw:string,_headers:Headers,_deps:CommercialDependencies) { throw new Error("implementation_commented_out"); }
+/* STRING-PRESERVATION CONTROL ONLY:
+${executable}
+*/`;
+    fs.writeFileSync(path.join(fixture,implementationName),original.replace(executable,mutation));
+    fs.copyFileSync(testPath,path.join(fixture,testName));
+    const mutated=spawnSync("deno",["test","--no-lock","-A",testName],{cwd:fixture,encoding:"utf8",timeout:120000});
+    assert.notEqual(mutated.status,0,"commercial Edge tests falsely passed after executable implementation was replaced while strings remained");
+  } finally { fs.rmSync(fixture,{recursive:true,force:true}); }
 });
 console.log(`Replay Vault supplemental source verifier passed: ${checks} checks`);

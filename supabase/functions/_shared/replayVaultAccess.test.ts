@@ -58,12 +58,12 @@ Deno.test("search endpoint mapper sanitizes and caps every free-text response fi
     const playback=mapPlaybackResponse({ portal_resource_id:"replay-1",title:sentinel,access_scope:"vault",
       authoritative_start_seconds:1,authoritative_end_seconds:2,moment_id:"11111111-1111-4111-8111-111111111111",question_id:null },
       "https://content.dropboxapi.com/temporary-authorized-link","2026-08-09T13:00:00.000Z");
-    const searchText=JSON.stringify(search), playbackText=JSON.stringify(playback);
+    const searchText=JSON.stringify(search);
     assert(!searchText.includes(sentinel),`search mapper leaked complete sentinel ${sentinel}`);
     assert(!playback.title.includes(sentinel),`playback title leaked complete sentinel ${sentinel}`);
     const sanitizedValues=[search.title,search.productTitle,search.category,search.sourceType,search.snippet,search.reason,playback.title];
     if (sentinel.includes("\u0001")) {
-      for (const value of sanitizedValues) assert(!/[\u0000-\u001f\u007f]/.test(value),`control byte survived: ${value}`);
+      for (const value of sanitizedValues) assert(![...value].some((character)=>{const code=character.charCodeAt(0);return code<=31||code===127;}),`control byte survived: ${value}`);
     } else {
       for (const value of sanitizedValues) assert(value.includes("[private source]")||value==="[redacted]",`locator was not replaced: ${value}`);
     }

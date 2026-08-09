@@ -14,11 +14,34 @@ async function boundedJson(req:Request){const declared=Number(req.headers.get("c
 const uuid=(v:unknown)=>typeof v==="string"&&UUID.test(v)?v:null;
 const text=(v:unknown,max=128)=>typeof v==="string"&&v.length>0&&v.length<=max?v:null;
 const integer=(v:unknown)=>typeof v==="number"&&Number.isSafeInteger(v)&&v>=0?v:null;
+const ACTION_FIELDS: Record<string, ReadonlySet<string>> = {
+ get_interaction: new Set(["action", "resourceId", "targetKind", "targetId"]),
+ set_bookmark: new Set(["action", "resourceId", "targetKind", "targetId", "saved"]),
+ delete_bookmark: new Set(["action", "bookmarkId"]),
+ begin_session: new Set(["action", "resourceId", "targetKind", "targetId"]),
+ media_event: new Set(["action", "sessionId", "eventId", "sequence", "eventType", "positionMs", "clientDurationMs"]),
+ create_note: new Set(["action", "resourceId", "targetKind", "targetId", "requestId", "positionMs"]),
+};
+const PRIVATE_FIELD = /^(?:dropboxpath|dropboxfileid|providerlocator|sourcelocator|playbackurl|permanenturl|sourceurl|providerurl|transcript(?:version)?id|media(?:migration)?attemptid|playbackattemptid)$/i;
+function containsPrivateLocator(value: unknown, seen = new Set<object>()): boolean {
+ if (!value || typeof value !== "object") return false;
+ const object = value as Record<string, unknown>;
+ if (seen.has(object)) return false;
+ seen.add(object);
+ for (const [key, nested] of Object.entries(object)) {
+  if (PRIVATE_FIELD.test(key) || containsPrivateLocator(nested, seen)) return true;
+ }
+ return false;
+}
+function exactActionShape(body: Record<string, unknown>, action: string | null): boolean {
+ const allowed = action ? ACTION_FIELDS[action] : undefined;
+ return Boolean(allowed) && Object.keys(body).every((key) => allowed!.has(key)) && !containsPrivateLocator(body);
+}
 function statusFor(code?:string){if(code==="42501")return 403;if(code==="22023"||code==="23505")return 409;if(code==="P0001")return 429;return 503;}
 export function createInteractionsHandler(deps:Dependencies, originEnv?:string){const origins=allowedOrigins(originEnv);return async(req:Request)=>{const origin=req.headers.get("origin"),requestId=crypto.randomUUID();
  if(!origin||!origins.has(origin)){deps.log("request_rejected",{requestId,code:"origin"});return reply(origin,origins,GENERIC_ERROR,403);}if(req.method==="OPTIONS")return reply(origin,origins,null,204);if(req.method!=="POST")return reply(origin,origins,GENERIC_ERROR,405);
  try{const user=await deps.authenticate(req);if(!user||!user.email){deps.log("auth_rejected",{requestId});return reply(origin,origins,GENERIC_ERROR,401);}const body=await boundedJson(req);if(!body||typeof body!=="object"||Array.isArray(body)||"userId"in body||"user_id"in body||"scopes"in body||"accessScopes"in body||"timestamp"in body||"asOf"in body){deps.log("request_rejected",{requestId,code:"shape"});return reply(origin,origins,GENERIC_ERROR,400);}
- const b=body as Record<string,unknown>,action=text(b.action,32);let rpc="",args:Record<string,unknown>={p_user_id:user.id,p_email:user.email};const resource=validResourceId(b.resourceId)?b.resourceId:null,kind=["replay","moment","question"].includes(String(b.targetKind))?String(b.targetKind):null,target=kind==="replay"?null:uuid(b.targetId);
+ const b=body as Record<string,unknown>,action=text(b.action,32);if(!exactActionShape(b,action)){deps.log("request_rejected",{requestId,action:action??undefined,code:"shape"});return reply(origin,origins,GENERIC_ERROR,400);}let rpc="",args:Record<string,unknown>={p_user_id:user.id,p_email:user.email};const resource=validResourceId(b.resourceId)?b.resourceId:null,kind=["replay","moment","question"].includes(String(b.targetKind))?String(b.targetKind):null,target=kind==="replay"?null:uuid(b.targetId);
  if(action==="get_interaction"&&resource&&kind&&(kind==="replay"||target)){rpc="replay_vault_get_interaction";args={...args,p_portal_resource_id:resource,p_target_kind:kind,p_target_id:target};}
  else if(action==="set_bookmark"&&resource&&kind&&(kind==="replay"||target)&&typeof b.saved==="boolean"){rpc="replay_vault_set_bookmark";args={...args,p_portal_resource_id:resource,p_target_kind:kind,p_target_id:target,p_saved:b.saved};}
  else if(action==="delete_bookmark"&&uuid(b.bookmarkId)){rpc="replay_vault_delete_bookmark_by_id";args={p_user_id:user.id,p_bookmark_id:b.bookmarkId};}

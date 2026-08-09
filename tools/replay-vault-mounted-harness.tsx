@@ -226,10 +226,17 @@ async function youtubeRecoveryIsHonest() {
   __vaultMock.enqueue('get-mastermind-portal-access', allowed);
   __vaultMock.enqueue('search-mastermind-resources', groups());
   __vaultMock.enqueue('get-mastermind-playback-link', { data: { ...nativePlayback().data, provider: 'youtube', playbackUrl: 'about:blank' }, error: null });
+  __vaultMock.setHandler('vault-member-library', ({body}: {body?: Record<string, unknown>}) => {
+    if(body?.action==='transcript') return {data:{items:[{cueId:momentOne,cueIndex:0,startSeconds:42,endSeconds:70,text:'External player cue.'}],nextCursor:null},error:null};
+    if(body?.action==='questions') return {data:{items:[],nextCursor:null},error:null};
+    return {data:{items:[],categories:[],nextCursor:null},error:null};
+  });
   await mount();
   await typeAndSubmit('capacity');
-  await click(byText('Watch answer'));
+  await click(byText('Watch answer'));await tick();
   assert(document.body.textContent?.includes('Automatic playback recovery is not available for YouTube'), 'YouTube must explicitly disclose unsupported recovery');
+  assert(document.body.textContent?.includes('Transcript timing cannot synchronize with this external player'), 'external transcript must disclose unsupported active tracking');
+  assert(document.querySelectorAll('[data-vault-transcript] [aria-current="true"]').length===0,'YouTube/external playback must never expose an active cue');
 }
 
 async function semanticsAndReflow() {
@@ -328,13 +335,60 @@ async function parityDirectoriesAndReceiptsMount() {
   assert(buttons.length===3&&buttons.every(b=>b.getBoundingClientRect().height>=44),'parity navigation must keep 44px targets');
 }
 
+
+const pageUuid=(index:number)=>`00000000-0000-4000-8000-${String(index).padStart(12,'0')}`;
+const browsePage=(count:number,label:string,offset=0)=>Array.from({length:count},(_,index)=>({resourceId:`replay-${label}-${offset+index}`,title:`${label} browse row ${offset+index}`,category:'Office hours',durationSeconds:1200,publishedAt:null,questionCount:1}));
+const categoryPage=(count:number,label:string,offset=0)=>Array.from({length:count},(_,index)=>({category:`${label} category ${offset+index}`,resourceCount:1}));
+const questionPage=(count:number,label:string,offset=0)=>Array.from({length:count},(_,index)=>({questionId:pageUuid(1000+offset+index),resourceId,title:`${label} questions replay`,category:'Office hours',question:`${label} question row ${offset+index}?`,answerSummary:'Approved answer.',answerer:'Faith',startSeconds:42+index,endSeconds:43+index}));
+const savedPage=(count:number,label:string,offset=0)=>Array.from({length:count},(_,index)=>({bookmarkId:pageUuid(2000+offset+index),resourceId,title:`${label} saved row ${offset+index}`,category:'Office hours',targetKind:'replay',targetId:pageUuid(3000+offset+index),startSeconds:0,savedAt:null,label:'Full replay'}));
+
+async function mountedPaginationAllLibrarySurfaces() {
+  __vaultMock.reset();__vaultMock.enqueue('get-mastermind-portal-access',allowed);
+  __vaultMock.setHandler('vault-member-library',({body}: {body?: Record<string,unknown>})=>{
+    if(body?.action==='browse') return body.cursor==='browse_next'?{data:{items:browsePage(1,'Terminal',20),nextCursor:null},error:null}:{data:{items:browsePage(20,'First'),nextCursor:'browse_next'},error:null};
+    if(body?.action==='categories') return body.cursor==='category_next'?{data:{categories:categoryPage(1,'Terminal',60),nextCursor:null},error:null}:{data:{categories:categoryPage(60,'First'),nextCursor:'category_next'},error:null};
+    if(body?.action==='questions') return body.cursor==='question_next'?{data:{items:questionPage(1,'Terminal',40),nextCursor:null},error:null}:{data:{items:questionPage(40,'First'),nextCursor:'question_next'},error:null};
+    if(body?.action==='saved') return body.cursor==='saved_next'?{data:{items:savedPage(1,'Terminal',40),nextCursor:null},error:null}:{data:{items:savedPage(40,'First'),nextCursor:'saved_next'},error:null};
+    throw new Error(`unexpected pagination request ${JSON.stringify(body)}`);
+  });
+  await mount();await waitFor(()=>Boolean(document.body.textContent?.includes('First browse row 19')),'browse first producer page');
+  assert(document.querySelectorAll('[data-vault-library] button').length>0&&document.body.textContent?.includes('Watch full replay'),'browse must mount returned rows and primary CTA');
+  await click(byText('More categories'));await waitFor(()=>Boolean(document.body.textContent?.includes('Terminal category 60')),'category terminal page');
+  assert(__vaultMock.lastBody('vault-member-library').action==='categories'&&__vaultMock.lastBody('vault-member-library').cursor==='category_next'&&__vaultMock.lastBody('vault-member-library').limit===60,'categories continuation envelope must carry explicit cursor and limit');
+  await click(byText('Load more'));await waitFor(()=>Boolean(document.body.textContent?.includes('Terminal browse row 20')),'browse terminal page');
+  assert(__vaultMock.lastBody('vault-member-library').action==='browse'&&__vaultMock.lastBody('vault-member-library').cursor==='browse_next'&&__vaultMock.lastBody('vault-member-library').limit===20,'browse continuation envelope must carry explicit cursor and limit');
+  assert(!byText('Load more'),'browse terminal response must remove continuation CTA');
+  await click(byText('questions'));await waitFor(()=>Boolean(document.body.textContent?.includes('First question row 39?')),'questions first producer page');
+  await click(byText('Load more'));await waitFor(()=>Boolean(document.body.textContent?.includes('Terminal question row 40?')),'questions terminal page');
+  assert(__vaultMock.lastBody('vault-member-library').action==='questions'&&__vaultMock.lastBody('vault-member-library').cursor==='question_next'&&__vaultMock.lastBody('vault-member-library').limit===40,'standalone Questions continuation envelope must be exact');
+  assert(document.body.textContent?.includes('Watch answer at')&&!byText('Load more'),'Questions must mount unique returned row/CTA and stop at terminal page');
+  await click(byText('saved'));await waitFor(()=>Boolean(document.body.textContent?.includes('First saved row 39')),'Saved first producer page');
+  await click(byText('Load more'));await waitFor(()=>Boolean(document.body.textContent?.includes('Terminal saved row 40')),'Saved terminal page');
+  assert(__vaultMock.lastBody('vault-member-library').action==='saved'&&__vaultMock.lastBody('vault-member-library').cursor==='saved_next'&&__vaultMock.lastBody('vault-member-library').limit===40&&__vaultMock.lastBody('vault-member-library').filter==='all','Saved continuation envelope must be exact');
+  assert(document.body.textContent?.includes('Open saved video')&&!byText('Load more'),'Saved must mount unique returned row/CTA and stop at terminal page');
+
+  __vaultMock.reset();__vaultMock.enqueue('get-mastermind-portal-access',allowed);
+  __vaultMock.setHandler('vault-member-library',({body}: {body?: Record<string,unknown>})=>{
+    if(body?.action==='browse')return {data:{items:browsePage(20,'Exact'),nextCursor:null},error:null};
+    if(body?.action==='categories')return {data:{categories:categoryPage(60,'Exact'),nextCursor:null},error:null};
+    if(body?.action==='questions')return {data:{items:questionPage(40,'Exact'),nextCursor:null},error:null};
+    if(body?.action==='saved')return {data:{items:savedPage(40,'Exact'),nextCursor:null},error:null};
+    throw new Error(`unexpected exact-multiple request ${JSON.stringify(body)}`);
+  });
+  await mount();await waitFor(()=>Boolean(document.body.textContent?.includes('Exact browse row 19')),'browse exact multiple');
+  assert(!byText('Load more')&&!byText('More categories'),'exact-multiple browse/categories must not invent continuation');
+  await click(byText('questions'));await waitFor(()=>Boolean(document.body.textContent?.includes('Exact question row 39?')),'questions exact multiple');assert(!byText('Load more'),'exact-multiple Questions must not invent continuation');
+  await click(byText('saved'));await waitFor(()=>Boolean(document.body.textContent?.includes('Exact saved row 39')),'Saved exact multiple');assert(!byText('Load more'),'exact-multiple Saved must not invent continuation');
+}
+
 async function fullTranscriptAndCallQuestionsMount() {
   __vaultMock.reset();__vaultMock.enqueue('get-mastermind-portal-access',allowed);
   const transcriptPageOne=Array.from({length:100},(_,index)=>({cueId:index===0?momentOne:index===1?momentTwo:`00000000-0000-4000-8000-${String(index).padStart(12,'0')}`,cueIndex:index,startSeconds:index===0?42:index===1?90:100+index*5,endSeconds:index===0?70:index===1?99:104+index*5,text:index===0?'Complete authorized transcript cue.':index===1?'Second authorized cue.':`Authorized cue ${index}.`}));
   __vaultMock.setHandler('vault-member-library',({body}: {body?: Record<string, unknown>})=>{
     if(body?.action==='browse')return {data:{items:[]},error:null};
     if(body?.action==='categories')return {data:{categories:[]},error:null};
-    if(body?.action==='questions'&&body?.resourceId===resourceId)return {data:{items:[{questionId:questionOne,resourceId,title:'Answer replay',category:'Office hours',question:'What is capacity?',answerSummary:'Protect it.',answerer:'Faith',startSeconds:42,endSeconds:70}],nextCursor:null},error:null};
+    if(body?.action==='questions'&&body?.resourceId===resourceId&&!body?.cursor)return {data:{items:[{questionId:questionOne,resourceId,title:'Answer replay',category:'Office hours',question:'What is capacity?',answerSummary:'Protect it.',answerer:'Faith',startSeconds:42,endSeconds:70},...questionPage(59,'Call first',1)],nextCursor:'call_questions_next'},error:null};
+    if(body?.action==='questions'&&body?.resourceId===resourceId&&body?.cursor==='call_questions_next')return {data:{items:questionPage(1,'Call terminal',60),nextCursor:null},error:null};
     if(body?.action==='transcript'&&!body?.cursor)return {data:{items:transcriptPageOne,nextCursor:'eyJhZnRlckluZGV4Ijo5OX0'},error:null};
     if(body?.action==='transcript'&&body?.cursor==='eyJhZnRlckluZGV4Ijo5OX0')return {data:{items:[{cueId:'00000000-0000-4000-8000-000000000100',cueIndex:100,startSeconds:500,endSeconds:504,text:'Authorized cue beyond first page.'}],nextCursor:null},error:null};
     throw new Error(`Unexpected library action ${JSON.stringify(body)}`);
@@ -347,16 +401,39 @@ async function fullTranscriptAndCallQuestionsMount() {
   assert(document.body.textContent?.includes('Authorized cue beyond first page.'),`full transcript must render records beyond the 100-cue server page cap; calls=${__vaultMock.count('vault-member-library')} last=${JSON.stringify(__vaultMock.lastBody('vault-member-library'))}`);
   assert(__vaultMock.count('vault-member-library')===5&&__vaultMock.lastBody('vault-member-library').cursor==='eyJhZnRlckluZGV4Ijo5OX0','transcript consumer must request the terminal page with an opaque canonical cue cursor');
   assert(document.body.textContent?.includes('What is capacity?'),'call-level Questions proof must render the real questions action response, not only the static section heading');
+  await click(byText('Load more questions'));await waitFor(()=>Boolean(document.body.textContent?.includes('Call terminal question row 60?')),'call Questions terminal page');
+  const callBody=__vaultMock.lastBody('vault-member-library');assert(callBody.action==='questions'&&callBody.resourceId===resourceId&&callBody.cursor==='call_questions_next'&&callBody.limit===60,'call Questions must preserve resource, cursor, and limit envelope');assert(!byText('Load more questions'),'call Questions terminal page must remove continuation CTA');
   const cue=[...document.querySelectorAll<HTMLButtonElement>('[data-vault-transcript] button')].find(b=>b.textContent?.includes('Second authorized cue'))!;
   __vaultMock.enqueue('get-mastermind-playback-link',nativePlayback(undefined,momentTwo,90));await click(cue);await tick();
   const body=__vaultMock.lastBody('get-mastermind-playback-link');assert(body.momentId===momentTwo&&body.questionId===null&&!('startSeconds'in body),'transcript seek must send only durable cue identity, never caller timestamp');
   const media=document.querySelector('video')!;await act(async()=>{media.currentTime=90;media.dispatchEvent(new window.Event('timeupdate'));});await tick();
-  const currentCues=[...document.querySelectorAll('[data-vault-transcript] [aria-current="true"]')];
+  let currentCues=[...document.querySelectorAll('[data-vault-transcript] [aria-current="true"]')];
   assert(currentCues.length===1&&currentCues[0].textContent?.includes('Second authorized cue.'),`exactly one time-active transcript cue must expose aria-current; found=${currentCues.length}`);
+  for (const [time,label] of [[0,'before first cue'],[80,'gap between cues'],[99,'exclusive cue end'],[5000,'after final cue']] as const) {
+    await act(async()=>{media.currentTime=time;media.dispatchEvent(new window.Event('timeupdate'));});await tick();
+    currentCues=[...document.querySelectorAll('[data-vault-transcript] [aria-current="true"]')];
+    assert(currentCues.length===0,`${label} must expose no aria-current cue; found=${currentCues.length}`);
+  }
+
+  __vaultMock.reset();__vaultMock.enqueue('get-mastermind-portal-access',allowed);
+  const exactTranscript=Array.from({length:100},(_,index)=>({cueId:pageUuid(5000+index),cueIndex:index,startSeconds:index*5,endSeconds:index*5+4,text:`Exact transcript cue ${index}.`}));
+  __vaultMock.setHandler('vault-member-library',({body}: {body?: Record<string,unknown>})=>{
+    if(body?.action==='browse')return {data:{items:[],nextCursor:null},error:null};
+    if(body?.action==='categories')return {data:{categories:[],nextCursor:null},error:null};
+    if(body?.action==='questions'&&body?.resourceId===resourceId)return {data:{items:questionPage(60,'Exact call'),nextCursor:null},error:null};
+    if(body?.action==='transcript')return {data:{items:exactTranscript,nextCursor:null},error:null};
+    throw new Error(`Unexpected exact transcript request ${JSON.stringify(body)}`);
+  });
+  __vaultMock.enqueue('search-mastermind-resources',groups());__vaultMock.enqueue('get-mastermind-playback-link',nativePlayback());
+  await mount();await typeAndSubmit('capacity');await click(byText('Watch answer'));await waitFor(()=>Boolean(document.body.textContent?.includes('Exact transcript cue 99.')),'exact-multiple transcript');
+  assert(document.querySelectorAll('[data-vault-transcript] li').length===100,'exact-multiple transcript must mount all 100 producer rows');
+  assert(!byText('Load more questions'),'exact-multiple call Questions must not invent continuation');
+  const exactCalls=__vaultMock.bodies('vault-member-library');
+  assert(exactCalls.filter((body)=>body.action==='transcript').length===1&&exactCalls.filter((body)=>body.action==='questions'&&body.resourceId===resourceId).length===1,'exact-multiple transcript and call Questions must make exactly one request each');
 }
 
 async function run() {
-  const tests = [malformedAccessIsUnavailable, producerAccessStatesStayDistinct, accessRaceKeepsNewestIntent, deepLinkIsBoundedAndRetryExplicit, searchRaceKeepsNewestIntent, playbackRaceAndSameTargetSeek, nativeRecoveryHandlesSameAndNewUrlOnce, youtubeRecoveryIsHonest, semanticsAndReflow, interactionReceiptsAreMountedAndPartialOutcomesHonest, libraryRaceKeepsNewestIntent, parityDirectoriesAndReceiptsMount, fullTranscriptAndCallQuestionsMount];
+  const tests = [malformedAccessIsUnavailable, producerAccessStatesStayDistinct, accessRaceKeepsNewestIntent, deepLinkIsBoundedAndRetryExplicit, searchRaceKeepsNewestIntent, playbackRaceAndSameTargetSeek, nativeRecoveryHandlesSameAndNewUrlOnce, youtubeRecoveryIsHonest, semanticsAndReflow, interactionReceiptsAreMountedAndPartialOutcomesHonest, libraryRaceKeepsNewestIntent, parityDirectoriesAndReceiptsMount, mountedPaginationAllLibrarySurfaces, fullTranscriptAndCallQuestionsMount];
   const passed: string[] = [];
   for (const test of tests) { await test(); passed.push(test.name); }
   document.body.innerHTML = `<pre id="test-report" data-status="pass">${passed.join('\n')}</pre>`;

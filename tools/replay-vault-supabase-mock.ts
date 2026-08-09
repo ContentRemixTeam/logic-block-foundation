@@ -12,6 +12,7 @@ export const __vaultMock = {
   enqueue(name: string, value: ResponseValue) { queues.set(name, [...(queues.get(name) ?? []), value]); },
   count(name: string) { return calls.get(name)?.length ?? 0; },
   lastBody(name: string) { return calls.get(name)?.at(-1)?.body ?? {}; },
+  bodies(name: string) { return (calls.get(name) ?? []).map((call) => call.body ?? {}); },
 };
 
 export const supabase = {
