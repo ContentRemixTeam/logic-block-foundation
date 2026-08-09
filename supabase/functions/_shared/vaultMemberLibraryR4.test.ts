@@ -1,3 +1,4 @@
+// deno-lint-ignore no-import-prefix
 import { assert, assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import { createMemberLibraryHandler, LIBRARY_ERROR, mapLibraryRequest } from './vaultMemberLibraryR4.ts';
 
@@ -14,10 +15,10 @@ function fixture(options: { authenticated?: boolean; rpcError?: boolean } = {}) 
   const logs: string[] = [];
   const handler = createMemberLibraryHandler({
     isAllowedOrigin: (req) => req.headers.get('origin') === origin,
-    authenticate: async () => options.authenticated === false ? null : { id: '11111111-1111-4111-8111-111111111111' },
-    rpc: async (name, args) => {
+    authenticate: () => Promise.resolve(options.authenticated === false ? null : { id: '11111111-1111-4111-8111-111111111111' }),
+    rpc: (name, args) => {
       calls.push({ name, args });
-      return options.rpcError ? { data: null, error: { code: '42501' } } : { data: [] };
+      return Promise.resolve(options.rpcError ? { data: null, error: { code: '42501' } } : { data: [] });
     },
     log: (_requestId, taxonomy) => logs.push(taxonomy),
   });
@@ -71,4 +72,4 @@ Deno.test('authorized requests use authenticated user only and RPC failures stay
   assertEquals(current.logs, ['rpc_rejected']);
 });
 
-Deno.test('limit plus one emits an explicit stable cursor and strips row cursor', async()=>{const calls:any[]=[];const handler=createMemberLibraryHandler({isAllowedOrigin:()=>true,authenticate:async()=>({id:'11111111-1111-4111-8111-111111111111'}),rpc:async(name,args)=>{calls.push({name,args});return {data:[{portal_resource_id:'a',title:'A',category:'C',duration_seconds:1,question_count:0,row_cursor:'{\"publishedAt\":\"2026-08-09T00:00:00Z\",\"id\":\"11111111-1111-4111-8111-111111111111\"}'},{portal_resource_id:'b',title:'B',category:'C',duration_seconds:1,question_count:0,row_cursor:'{\"publishedAt\":\"2026-08-08T00:00:00Z\",\"id\":\"22222222-2222-4222-8222-222222222222\"}'}]};},log:()=>{}});const response=await handler(request({action:'browse',limit:1}));const body=await response.json();assertEquals(response.status,200);assertEquals(body.items.length,1);assert(typeof body.nextCursor==='string');assertEquals(calls[0].args.p_limit,2);assert(!JSON.stringify(body).includes('row_cursor'));assert(mapLibraryRequest({action:'browse',cursor:body.nextCursor,limit:1},'11111111-1111-4111-8111-111111111111'));});
+Deno.test('limit plus one emits an explicit stable cursor and strips row cursor', async()=>{const calls:{name:string;args:Record<string,unknown>}[]=[];const handler=createMemberLibraryHandler({isAllowedOrigin:()=>true,authenticate:()=>Promise.resolve({id:'11111111-1111-4111-8111-111111111111'}),rpc:(name,args)=>{calls.push({name,args});return Promise.resolve({data:[{portal_resource_id:'a',title:'A',category:'C',duration_seconds:1,question_count:0,row_cursor:'{\"publishedAt\":\"2026-08-09T00:00:00Z\",\"id\":\"11111111-1111-4111-8111-111111111111\"}'},{portal_resource_id:'b',title:'B',category:'C',duration_seconds:1,question_count:0,row_cursor:'{\"publishedAt\":\"2026-08-08T00:00:00Z\",\"id\":\"22222222-2222-4222-8222-222222222222\"}'}]});},log:()=>{}});const response=await handler(request({action:'browse',limit:1}));const body=await response.json();assertEquals(response.status,200);assertEquals(body.items.length,1);assert(typeof body.nextCursor==='string');assertEquals(calls[0].args.p_limit,2);assert(!JSON.stringify(body).includes('row_cursor'));assert(mapLibraryRequest({action:'browse',cursor:body.nextCursor,limit:1},'11111111-1111-4111-8111-111111111111'));});
