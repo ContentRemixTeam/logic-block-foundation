@@ -44,17 +44,28 @@ async function typeAndSubmit(value: string) {
   await click(document.querySelector('button[type="submit"]'));
 }
 
-const allowed = { data: { decision: 'allowed', capabilities: ['core', 'full_vault'], checkedAt: '2026-08-09T00:00:00Z' }, error: null };
-const groups = (label = 'Answer') => ({ data: { groups: [{
-  resourceId: 'replay-1', title: `${label} replay`, category: 'Office hours', sourceType: 'video', publishedAt: null,
-  durationSeconds: 1200, thumbnailUrl: null, moments: [
-    { momentId: 'moment-1', questionId: 'question-1', matchType: 'best_answer', startSeconds: 42, endSeconds: 70, snippet: `${label} one`, reason: '', answerer: 'Faith' },
-    { momentId: 'moment-2', questionId: 'question-2', matchType: 'transcript', startSeconds: 90, endSeconds: 110, snippet: `${label} two`, reason: '', answerer: null },
-  ],
-}], totalGroups: 1 }, error: null });
-const nativePlayback = (url = 'file:///Users/faithhawks/Developer/Mastermind%20Scaling/worktrees/replay-vault-ux-r1/public/sounds/timer-complete.mp3?source=protected.mp4', momentId = 'moment-1', startSeconds = 42) => ({ data: {
-  resourceId: 'replay-1', title: 'Answer replay', provider: 'dropbox', playbackUrl: url, expiresAt: null, accessScope: 'vault',
-  momentId, questionId: momentId === 'moment-1' ? 'question-1' : 'question-2', startSeconds, endSeconds: startSeconds + 28,
+const resourceId = `membershipio:${'a'.repeat(64)}`;
+const momentOne = '11111111-1111-4111-8111-111111111111';
+const momentTwo = '22222222-2222-4222-8222-222222222222';
+const questionOne = '33333333-3333-4333-8333-333333333333';
+const questionTwo = '44444444-4444-4444-8444-444444444444';
+const accessPayload = (overrides: Record<string, unknown> = {}) => ({
+  allowed: true, memberEntitled: true, memberTier: 'annual',
+  memberScopes: ['core_curriculum', 'current_replay_30_day', 'replay_vault'],
+  previewCapabilities: [], previewActive: false, launchState: 'launched', ...overrides,
+});
+const allowed = { data: accessPayload(), error: null };
+const limited = { data: accessPayload({ memberTier: 'monthly', memberScopes: ['core_curriculum', 'current_replay_30_day'] }), error: null };
+const denied = { data: accessPayload({ allowed: false, memberEntitled: false, memberTier: null, memberScopes: [] }), error: null };
+const launchDisabled = { data: accessPayload({ allowed: false, launchState: 'disabled' }), error: null };
+const pilotExcluded = { data: accessPayload({ allowed: false, launchState: 'pilot' }), error: null };
+const groups = (label = 'Answer') => ({ data: { results: [
+  { resourceId, momentId: momentOne, questionId: questionOne, title: `${label} replay`, category: 'Office hours', sourceType: 'video', publishedAt: null, durationSeconds: 1200, thumbnailUrl: null, matchType: 'best_answer', startSeconds: 42, endSeconds: 70, snippet: `${label} one`, reason: '', answerer: null },
+  { resourceId, momentId: momentTwo, questionId: questionTwo, title: `${label} replay`, category: 'Office hours', sourceType: 'video', publishedAt: null, durationSeconds: 1200, thumbnailUrl: null, matchType: 'best_answer', startSeconds: 90, endSeconds: 110, snippet: `${label} two`, reason: '', answerer: null },
+] }, error: null });
+const nativePlayback = (url = 'file:///Users/faithhawks/Developer/Mastermind%20Scaling/worktrees/replay-vault-ux-r3/public/sounds/timer-complete.mp3?source=protected.mp4', momentId = momentOne, startSeconds = 42) => ({ data: {
+  resourceId, title: 'Answer replay', provider: 'dropbox', playbackUrl: url, expiresAt: null, accessScope: 'replay_vault',
+  momentId, questionId: momentId === momentOne ? questionOne : questionTwo, startSeconds, endSeconds: startSeconds + 28,
 }, error: null });
 
 async function malformedAccessIsUnavailable() {
@@ -63,6 +74,26 @@ async function malformedAccessIsUnavailable() {
   await mount();
   assert(document.body.textContent?.includes('Access check unavailable'), 'malformed 2xx access must be unavailable');
   assert(!document.body.textContent?.includes('Replay access not included'), 'malformed 2xx must not claim denial');
+}
+
+async function producerAccessStatesStayDistinct() {
+  for (const [fixture, expected, forbidden] of [
+    [allowed, 'Full Replay Vault', 'Access check unavailable'],
+    [limited, 'Current replays', 'Access check unavailable'],
+    [denied, 'Replay access not included', 'Access check unavailable'],
+    [launchDisabled, 'Replay Vault is not open yet', 'Replay access not included'],
+    [pilotExcluded, 'Replay Vault is not open yet', 'Replay access not included'],
+  ] as const) {
+    __vaultMock.reset();
+    __vaultMock.enqueue('get-mastermind-portal-access', fixture);
+    await mount();
+    assert(document.body.textContent?.includes(expected), `producer access fixture must render ${expected}`);
+    assert(!document.body.textContent?.includes(forbidden), `producer access fixture must not render ${forbidden}`);
+  }
+  __vaultMock.reset();
+  __vaultMock.enqueue('get-mastermind-portal-access', { data: null, error: { message: 'offline' } });
+  await mount();
+  assert(document.body.textContent?.includes('Access check unavailable'), 'transport failure must remain unavailable');
 }
 
 async function accessRaceKeepsNewestIntent() {
@@ -87,9 +118,10 @@ async function deepLinkIsBoundedAndRetryExplicit() {
   __vaultMock.enqueue('get-mastermind-portal-access', allowed);
   __vaultMock.enqueue('get-mastermind-playback-link', { data: null, error: { message: 'offline' } });
   __vaultMock.enqueue('get-mastermind-playback-link', { data: { ...nativePlayback().data, provider: 'youtube', playbackUrl: 'about:blank' }, error: null });
-  await mount('/mastermind/replay-vault?resource=replay-1&question=question-1&moment=moment-1#answer');
+  const deepLinkPath = `/mastermind/replay-vault?${new URLSearchParams({ resource: resourceId, moment: momentOne }).toString()}#answer`;
+  await mount(deepLinkPath);
   await tick();
-  assert(document.querySelector('[data-auth-return-to]')?.getAttribute('data-auth-return-to') === '/mastermind/replay-vault?resource=replay-1&question=question-1&moment=moment-1#answer', 'manager integration contract must preserve pathname, search, and hash');
+  assert(document.querySelector('[data-auth-return-to]')?.getAttribute('data-auth-return-to') === deepLinkPath, 'manager integration contract must preserve pathname, encoded canonical IDs, search, and hash');
   assert(__vaultMock.count('get-mastermind-playback-link') === 1, 'deep-link failure must attempt exactly once');
   await tick();
   assert(__vaultMock.count('get-mastermind-playback-link') === 1, 'deep-link failure must not loop');
@@ -97,7 +129,7 @@ async function deepLinkIsBoundedAndRetryExplicit() {
   await click(byText('Try answer again'));
   assert(__vaultMock.count('get-mastermind-playback-link') === 2, `explicit retry must make one new request (observed ${__vaultMock.count('get-mastermind-playback-link')})`);
   const body = __vaultMock.lastBody('get-mastermind-playback-link');
-  assert(body.questionId === 'question-1' && body.momentId === 'moment-1', 'resolver must receive stable question and moment IDs');
+  assert(body.questionId === null && body.momentId === momentOne, 'resolver must receive exactly one stable mapper target ID');
 }
 
 async function searchRaceKeepsNewestIntent() {
@@ -133,9 +165,9 @@ async function playbackRaceAndSameTargetSeek() {
   const watch = [...document.querySelectorAll<HTMLButtonElement>('button')].filter((node) => node.textContent?.includes('Watch answer'));
   await click(watch[0]);
   await click(watch[1]);
-  second.resolve(nativePlayback('file:///Users/faithhawks/Developer/Mastermind%20Scaling/worktrees/replay-vault-ux-r1/public/sounds/timer-complete.mp3?source=newest.mp4', 'moment-2', 90));
+  second.resolve(nativePlayback('file:///Users/faithhawks/Developer/Mastermind%20Scaling/worktrees/replay-vault-ux-r3/public/sounds/timer-complete.mp3?source=newest.mp4', momentTwo, 90));
   await tick();
-  first.resolve(nativePlayback('file:///Users/faithhawks/Developer/Mastermind%20Scaling/worktrees/replay-vault-ux-r1/public/sounds/timer-complete.mp3?source=stale.mp4', 'moment-1', 42));
+  first.resolve(nativePlayback('file:///Users/faithhawks/Developer/Mastermind%20Scaling/worktrees/replay-vault-ux-r3/public/sounds/timer-complete.mp3?source=stale.mp4', momentOne, 42));
   await tick();
   const video = document.querySelector<HTMLVideoElement>('video')!;
   assert(video.querySelector('source')?.getAttribute('src')?.includes('newest.mp4'), 'stale playback must not overwrite newest target');
@@ -144,7 +176,7 @@ async function playbackRaceAndSameTargetSeek() {
   await tick();
   assert(video.currentTime === 90, 'server-returned cue must be applied');
   video.currentTime = 300;
-  __vaultMock.enqueue('get-mastermind-playback-link', nativePlayback('file:///Users/faithhawks/Developer/Mastermind%20Scaling/worktrees/replay-vault-ux-r1/public/sounds/timer-complete.mp3?source=newest.mp4', 'moment-2', 90));
+  __vaultMock.enqueue('get-mastermind-playback-link', nativePlayback('file:///Users/faithhawks/Developer/Mastermind%20Scaling/worktrees/replay-vault-ux-r3/public/sounds/timer-complete.mp3?source=newest.mp4', momentTwo, 90));
   const newestButton = [...document.querySelectorAll<HTMLButtonElement>('button')].find((node) => node.getAttribute('aria-label')?.includes('1 minute 30 seconds'))!;
   await click(newestButton);
   assert(video.currentTime === 90, 'activating the same answer must seek back using an activation nonce');
@@ -176,7 +208,7 @@ async function nativeRecoveryHandlesSameAndNewUrlOnce() {
   await tick();
   assert(__vaultMock.count('get-mastermind-playback-link') === 2, 'automatic recovery must be bounded to one retry');
   assert(document.body.textContent?.includes('Refresh video'), 'bounded failure must offer manual refresh');
-  __vaultMock.enqueue('get-mastermind-playback-link', nativePlayback('file:///Users/faithhawks/Developer/Mastermind%20Scaling/worktrees/replay-vault-ux-r1/public/sounds/timer-complete.mp3?source=replaced.mp4'));
+  __vaultMock.enqueue('get-mastermind-playback-link', nativePlayback('file:///Users/faithhawks/Developer/Mastermind%20Scaling/worktrees/replay-vault-ux-r3/public/sounds/timer-complete.mp3?source=replaced.mp4'));
   await click(byText('Refresh video'));
   assert(document.querySelector('source')?.getAttribute('src')?.includes('replaced.mp4'), 'manual recovery must accept a new URL');
 }
@@ -202,24 +234,31 @@ async function semanticsAndReflow() {
   await typeAndSubmit('capacity');
   const row = document.querySelector('[data-vault-result-row]')!;
   assert(row.getAttribute('aria-busy') === 'false', 'only a selected row may become busy');
-  for (const width of [320, 360, 390]) {
-    const shell = document.getElementById('app-shell')!;
-    shell.style.width = `${width}px`;
-    assert(shell.scrollWidth <= width, `route must reflow without horizontal overflow at ${width}px`);
+  const viewportWidth = document.documentElement.clientWidth;
+  assert([320, 360, 390].includes(viewportWidth), `mounted verifier requires an actual 320/360/390 viewport (observed ${viewportWidth})`);
+  assert(document.documentElement.scrollWidth <= viewportWidth, `document overflows the ${viewportWidth}px viewport`);
+  assert(document.body.scrollWidth <= viewportWidth, `body overflows the ${viewportWidth}px viewport`);
+  const primaryControls = [document.querySelector('button[type="submit"]'), ...document.querySelectorAll('[data-vault-result-row] button')].filter(Boolean) as HTMLElement[];
+  assert(primaryControls.length >= 3, 'expected search and answer primary controls for bounds proof');
+  for (const control of primaryControls) {
+    const rect = control.getBoundingClientRect();
+    assert(rect.left >= 0 && rect.right <= viewportWidth, `primary control crosses the ${viewportWidth}px viewport`);
+    assert(rect.width > 0 && rect.height >= 44, `primary control must remain visible and at least 44px tall at ${viewportWidth}px`);
   }
   const watch = byText('Watch answer')!;
   assert(watch.tagName === 'BUTTON' && (watch as HTMLButtonElement).type === 'button', 'answer activation must use native keyboard button semantics');
   assert(document.querySelector('[data-motion-safe]'), 'route must expose reduced-motion-safe behavior');
 }
 
+
 async function interactionReceiptsAreMountedAndPartialOutcomesHonest() {
-  const moment='22222222-2222-4222-8222-222222222222', question='33333333-3333-4333-8333-333333333333', attempt='44444444-4444-4444-8444-444444444444', bookmark='55555555-5555-4555-8555-555555555555', note='66666666-6666-4666-8666-666666666666';
+  const attempt='55555555-5555-4555-8555-555555555555', bookmark='66666666-6666-4666-8666-666666666666', note='77777777-7777-4777-8777-777777777777';
   __vaultMock.reset();__vaultMock.enqueue('get-mastermind-portal-access',allowed);
-  __vaultMock.enqueue('search-mastermind-resources',{data:{groups:[{...groups().data.groups[0],moments:[{...groups().data.groups[0].moments[0],momentId:moment,questionId:question}]}],totalGroups:1},error:null});
-  __vaultMock.enqueue('get-mastermind-playback-link',{data:{...nativePlayback().data,momentId:moment,questionId:question,startSeconds:42},error:null});
-  __vaultMock.enqueue('vault-member-interactions',{data:{data:{target:{resourceId:'replay-1',targetKind:'question',targetId:question,playbackAttemptId:attempt},bookmark:null,watch:{watchedSeconds:12,durationSeconds:60,lastPositionSeconds:12,completed:false}}},error:null});
-  __vaultMock.enqueue('vault-member-interactions',{data:{data:{saved:true,changed:true,bookmarkId:bookmark,resourceId:'replay-1',targetKind:'question',targetId:question}},error:null});
-  __vaultMock.enqueue('vault-member-interactions',{data:{data:{replayed:false,noteId:note,openPath:`/notes?page=${note}`,resourceId:'replay-1',targetKind:'question',targetId:question}},error:null});
+  __vaultMock.enqueue('search-mastermind-resources',groups());
+  __vaultMock.enqueue('get-mastermind-playback-link',nativePlayback());
+  __vaultMock.enqueue('vault-member-interactions',{data:{data:{target:{resourceId,targetKind:'question',targetId:questionOne,playbackAttemptId:attempt},bookmark:null,watch:{watchedSeconds:12,durationSeconds:60,lastPositionSeconds:12,completed:false}}},error:null});
+  __vaultMock.enqueue('vault-member-interactions',{data:{data:{saved:true,changed:true,bookmarkId:bookmark,resourceId,targetKind:'question',targetId:questionOne}},error:null});
+  __vaultMock.enqueue('vault-member-interactions',{data:{data:{replayed:false,noteId:note,openPath:`/notes?page=${note}`,resourceId,targetKind:'question',targetId:questionOne}},error:null});
   await mount();await typeAndSubmit('capacity');await click(byText('Watch answer'));await tick();await tick();
   assert(document.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')==='20',`real-shaped RPC watch receipt must mount as semantic progress; body=${document.body.textContent}`);
   assert(document.body.textContent?.includes('Resume at 0:12'),'explicit honest resume must render');
@@ -232,7 +271,7 @@ async function interactionReceiptsAreMountedAndPartialOutcomesHonest() {
 }
 
 async function run() {
-  const tests = [malformedAccessIsUnavailable, accessRaceKeepsNewestIntent, deepLinkIsBoundedAndRetryExplicit, searchRaceKeepsNewestIntent, playbackRaceAndSameTargetSeek, nativeRecoveryHandlesSameAndNewUrlOnce, youtubeRecoveryIsHonest, semanticsAndReflow, interactionReceiptsAreMountedAndPartialOutcomesHonest];
+  const tests = [malformedAccessIsUnavailable, producerAccessStatesStayDistinct, accessRaceKeepsNewestIntent, deepLinkIsBoundedAndRetryExplicit, searchRaceKeepsNewestIntent, playbackRaceAndSameTargetSeek, nativeRecoveryHandlesSameAndNewUrlOnce, youtubeRecoveryIsHonest, semanticsAndReflow, interactionReceiptsAreMountedAndPartialOutcomesHonest];
   const passed: string[] = [];
   for (const test of tests) { await test(); passed.push(test.name); }
   document.body.innerHTML = `<pre id="test-report" data-status="pass">${passed.join('\n')}</pre>`;

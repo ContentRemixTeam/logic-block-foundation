@@ -1,36 +1,66 @@
-const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
-const CAPABILITIES = ['core', 'ask_faith', 'current_replay', 'full_vault'];
+const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._~:-]{0,219}$/;
+const MEMBER_TIERS = new Set(['monthly', 'annual', 'lifetime']);
+const LAUNCH_STATES = new Set(['disabled', 'pilot', 'launched']);
 
 export function isStableVaultId(value) {
   return typeof value === 'string' && ID_PATTERN.test(value);
 }
 
-export function normalizeAccessResponse(data) {
-  if (!data || typeof data !== 'object' || Array.isArray(data) || typeof data.error === 'string') {
-    return { status: 'unavailable' };
-  }
-  const checkedAt = typeof data.checkedAt === 'string' ? data.checkedAt : null;
-  const capabilities = Array.isArray(data.capabilities)
-    ? data.capabilities.filter((value) => CAPABILITIES.includes(value))
-    : legacyCapabilities(data);
-
-  if (data.decision === 'denied' || data.replayAccess === 'none') {
-    return { status: 'denied', reasonCode: typeof data.reasonCode === 'string' ? data.reasonCode : null, checkedAt };
-  }
-  if (data.decision === 'limited' || data.replayAccess === 'current_30_day') {
-    return { status: 'limited', capabilities, checkedAt };
-  }
-  if (data.decision === 'allowed' || data.replayAccess === 'full_vault' || data.hasMastermindAccess === true) {
-    return { status: capabilities.includes('full_vault') ? 'allowed' : 'limited', capabilities, checkedAt };
-  }
-  // A malformed 2xx is an availability failure, never evidence of lost entitlement.
-  return { status: 'unavailable' };
+function isStringArray(value) {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string');
 }
 
-function legacyCapabilities(data) {
-  if (data?.replayAccess === 'full_vault') return ['core', 'ask_faith', 'current_replay', 'full_vault'];
-  if (data?.replayAccess === 'current_30_day') return ['core', 'ask_faith', 'current_replay'];
-  return [];
+function producerAccessShape(data) {
+  if (!data || typeof data !== 'object' || Array.isArray(data) || typeof data.error === 'string') return false;
+  return typeof data.allowed === 'boolean'
+    && typeof data.memberEntitled === 'boolean'
+    && (data.memberTier === null || MEMBER_TIERS.has(data.memberTier))
+    && isStringArray(data.memberScopes)
+    && isStringArray(data.previewCapabilities)
+    && typeof data.previewActive === 'boolean'
+    && LAUNCH_STATES.has(data.launchState);
+}
+
+function memberCapabilities(scopes) {
+  const capabilities = [];
+  if (scopes.includes('core_curriculum')) capabilities.push('core');
+  if (scopes.includes('current_replay_30_day')) capabilities.push('current_replay');
+  if (scopes.includes('replay_vault')) capabilities.push('full_vault');
+  return capabilities;
+}
+
+export function normalizeAccessResponse(data) {
+  // A malformed 2xx or transport error is an availability failure, never evidence of lost entitlement.
+  if (!producerAccessShape(data)) return { status: 'unavailable' };
+
+  const checkedAt = null;
+  if (data.previewActive) {
+    if (!data.allowed || !data.previewCapabilities.includes('preview_vault')) return { status: 'unavailable' };
+    return { status: 'allowed', capabilities: ['core', 'current_replay', 'full_vault'], checkedAt };
+  }
+
+  if (data.allowed) {
+    if (!data.memberEntitled || data.memberTier === null || data.launchState === 'disabled') return { status: 'unavailable' };
+    const capabilities = memberCapabilities(data.memberScopes);
+    const hasCurrent = capabilities.includes('current_replay');
+    const hasFull = capabilities.includes('full_vault');
+    if (data.memberTier === 'monthly' && hasCurrent && !hasFull) return { status: 'limited', capabilities, checkedAt };
+    if ((data.memberTier === 'annual' || data.memberTier === 'lifetime') && hasCurrent && hasFull) {
+      return { status: 'allowed', capabilities, checkedAt };
+    }
+    return { status: 'unavailable' };
+  }
+
+  if (data.memberEntitled) {
+    if (data.memberTier === null || !data.memberScopes.includes('current_replay_30_day')) return { status: 'unavailable' };
+    if (data.launchState === 'disabled' || data.launchState === 'pilot') {
+      return { status: 'not_launched', memberTier: data.memberTier, launchState: data.launchState, checkedAt };
+    }
+    return { status: 'unavailable' };
+  }
+
+  if (data.memberTier !== null || data.memberScopes.length > 0) return { status: 'unavailable' };
+  return { status: 'denied', reasonCode: null, checkedAt };
 }
 
 function normalizedMoment(result) {
@@ -43,7 +73,8 @@ function normalizedMoment(result) {
   return {
     momentId: result.momentId,
     matchType: ['best_answer', 'question', 'transcript', 'metadata'].includes(result?.matchType) ? result.matchType : 'transcript',
-    questionId: isStableVaultId(result?.questionId) ? result.questionId : null,
+    // Search rows always carry a durable moment ID; send exactly that resolver ID because playback rejects dual targets.
+    questionId: null,
     startSeconds,
     endSeconds: Number.isFinite(result?.endSeconds) ? Math.max(startSeconds ?? 0, Number(result.endSeconds)) : null,
     snippet: typeof result?.snippet === 'string' ? result.snippet : '',
@@ -95,8 +126,8 @@ export function groupSearchResults(payload) {
 export function makeDetailHref({ resourceId, questionId = null, momentId = null }) {
   if (!isStableVaultId(resourceId)) throw new Error('A stable resource ID is required');
   const params = new URLSearchParams({ resource: resourceId });
-  if (isStableVaultId(questionId)) params.set('question', questionId);
   if (isStableVaultId(momentId)) params.set('moment', momentId);
+  else if (isStableVaultId(questionId)) params.set('question', questionId);
   return `/mastermind/replay-vault?${params.toString()}`;
 }
 
@@ -106,7 +137,8 @@ export function parseDetailTarget(search) {
   if (!isStableVaultId(resourceId)) return null;
   const question = params.get('question');
   const moment = params.get('moment');
-  return { resourceId, questionId: isStableVaultId(question) ? question : null, momentId: isStableVaultId(moment) ? moment : null };
+  if (isStableVaultId(moment)) return { resourceId, questionId: null, momentId: moment };
+  return { resourceId, questionId: isStableVaultId(question) ? question : null, momentId: null };
 }
 
 export function makeAuthReturnTo(location) {

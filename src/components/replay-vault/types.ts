@@ -3,6 +3,7 @@ export type VaultAccessState =
   | { status: 'loading' }
   | { status: 'allowed'; capabilities: VaultCapability[]; checkedAt: string | null }
   | { status: 'limited'; capabilities: VaultCapability[]; checkedAt: string | null }
+  | { status: 'not_launched'; memberTier: 'monthly' | 'annual' | 'lifetime'; launchState: 'disabled' | 'pilot'; checkedAt: string | null }
   | { status: 'denied'; reasonCode: string | null; checkedAt: string | null }
   | { status: 'unavailable' };
 export interface VaultMoment { momentId: string; matchType: 'best_answer' | 'question' | 'transcript' | 'metadata'; questionId: string | null; startSeconds: number | null; endSeconds: number | null; snippet: string; reason: string; answerer: string | null; }
