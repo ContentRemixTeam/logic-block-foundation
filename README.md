@@ -4,6 +4,15 @@
 
 **URL**: https://lovable.dev/projects/f8fea96b-b548-47af-85ad-28633436f2ca
 
+## Current Mastermind member pages
+
+These pages are on GitHub `main` and are part of this Lovable project:
+
+- `ReplayVault` — `src/pages/ReplayVault.tsx` — route `/mastermind/replay-vault`
+- `MastermindHub` (Success Plan / Success Path) — `src/pages/MastermindHub.tsx` — routes `/mastermind` and `/mastermind/success-path/:cycleId`
+
+Both routes are intentionally protected by `MastermindGate`. Navigation remains hidden until the production entitlement and member QA gates pass; route hiding is not used as authorization.
+
 ## How can I edit this code?
 
 There are several ways of editing your application.
