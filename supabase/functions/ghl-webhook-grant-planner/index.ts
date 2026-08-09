@@ -1,115 +1,56 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { safeLogId, secureJson } from "../_shared/replayVaultAccess.ts";
+import { verifiedPayloadHash } from "../_shared/replayVaultWebhook.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-ghl-api-key, x-webhook-secret',
-};
-
-type PlannerOffer = 'annual' | 'lifetime';
-
-const PLANNER_PRODUCTS = {
-  annual: '6a66194eef7b0732eca1d699',
-  lifetime: '6a661949ef7b076cc4a1d68b',
-} as const;
-
-const PLANNER_PRICES = {
-  annual: '6a66195cef7b077ab8a1d771',
-  lifetime: '6a66195a03821ead5895d089',
-} as const;
-
-function authorized(req: Request): boolean {
-  const secret = Deno.env.get('GHL_WEBHOOK_SECRET');
-  const supplied = req.headers.get('X-GHL-Api-Key')
-    ?? req.headers.get('X-Webhook-Secret')
-    ?? req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '');
-  return Boolean(secret && supplied && supplied.length === secret.length &&
-    supplied.split('').every((char, index) => char === secret[index]));
+type JsonObject = Record<string, unknown>;
+const MAX_SIGNATURE_AGE_SECONDS=300, MAX_BODY_BYTES=16_384;
+const EVENT_TYPES=new Set(["grant","renewal","cancel_at_period_end","expiration","refund","chargeback","immediate_revocation"]);
+function text(value:unknown):string { return typeof value === "string" ? value.trim() : ""; }
+function nested(body:JsonObject,key:string):JsonObject { const v=body[key]; return v&&typeof v==="object"&&!Array.isArray(v)?v as JsonObject:{}; }
+function isoOrNull(value:unknown):string|null {
+  const raw=text(value); if (!raw) return null; const ms=Date.parse(raw); return Number.isFinite(ms)?new Date(ms).toISOString():null;
 }
 
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
-}
-
-function addOneYear(date: Date) {
-  return new Date(date.getFullYear() + 1, date.getMonth(), date.getDate());
-}
-
-function getOffer(body: Record<string, any>): PlannerOffer | null {
-  const productId = String(body.productId ?? body.product_id ?? body.data?.productId ?? body.order?.productId ?? '');
-  const priceId = String(body.priceId ?? body.price_id ?? body.data?.priceId ?? body.order?.priceId ?? '');
-  if (productId === PLANNER_PRODUCTS.annual && priceId === PLANNER_PRICES.annual) return 'annual';
-  if (productId === PLANNER_PRODUCTS.lifetime && priceId === PLANNER_PRICES.lifetime) return 'lifetime';
-  if (productId || priceId) return null;
-
-  const value = String(
-    body.planner_offer ?? body.offer ?? body.product ?? body.product_name ??
-    body.order?.productName ?? body.data?.productName ?? ''
-  ).toLowerCase();
-  if (value.includes('lifetime')) return 'lifetime';
-  if (value.includes('annual') || value.includes('year')) return 'annual';
-  return null;
-}
-
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
-  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
-  if (!authorized(req)) return json({ error: 'Unauthorized' }, 401);
-
+Deno.serve(async (req:Request)=>{
+  if (req.method!=="POST") return secureJson(req,{ error:"Method not allowed" },405);
+  const requestId=safeLogId();
   try {
-    const body = await req.json() as Record<string, any>;
-    const email = String(body.email ?? body.contact?.email ?? body.data?.email ?? '').trim().toLowerCase();
-    const offer = getOffer(body);
-    if (!email || !email.includes('@')) return json({ error: 'A valid email is required' }, 400);
-    if (!offer) return json({ error: 'planner_offer must be explicitly annual or lifetime' }, 400);
+    const secret=Deno.env.get("GHL_WEBHOOK_SECRET"),supabaseUrl=Deno.env.get("SUPABASE_URL"),serviceKey=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!secret||!supabaseUrl||!serviceKey) throw new Error("not_configured");
+    const raw=await req.text();
+    if (new TextEncoder().encode(raw).byteLength>MAX_BODY_BYTES) return secureJson(req,{ error:"Invalid request" },400);
+    let body:JsonObject; try { body=JSON.parse(raw||"{}") as JsonObject; } catch { return secureJson(req,{ error:"Invalid request" },400); }
+    const data=nested(body,"data"),order=nested(body,"order"),contact=nested(body,"contact");
+    const provider=text(body.provider||"ghl").toLowerCase();
+    const eventId=text(req.headers.get("X-Webhook-Event-Id")||body.eventId||body.event_id||data.eventId);
+    const orderId=text(body.orderId||body.order_id||data.orderId||order.id);
+    const email=text(body.email||contact.email||data.email).toLowerCase();
+    const eventType=text(body.eventType||body.event_type||data.eventType||"grant").toLowerCase();
+    const productId=text(body.productId||body.product_id||data.productId||order.productId);
+    const priceId=text(body.priceId||body.price_id||data.priceId||order.priceId);
+    const accessExpiresAt=isoOrNull(body.accessExpiresAt||body.periodEnd||data.accessExpiresAt||data.periodEnd);
+    const timestamp=text(req.headers.get("X-Webhook-Timestamp")), suppliedSignature=text(req.headers.get("X-Webhook-Signature"));
+    if (provider!=="ghl"||!eventId||!orderId||!email.includes("@")||!productId||!priceId||!EVENT_TYPES.has(eventType)||!/^\d{10}$/.test(timestamp))
+      return secureJson(req,{ error:"Invalid request" },400);
+    const timestampSeconds=Number(timestamp);
+    const payloadHash=await verifiedPayloadHash(secret,timestamp,raw,suppliedSignature,Date.now()/1000,MAX_SIGNATURE_AGE_SECONDS);
+    // Invalid attempts never enter the immutable event ledger, so they cannot poison a later valid event ID.
+    if (!payloadHash) return secureJson(req,{ error:"Unauthorized" },401);
 
-    const incomingOrderId = String(body.orderId ?? body.order_id ?? body.data?.orderId ?? body.order?.id ?? '');
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    );
-    const today = new Date();
-
-    const { data: existing, error: lookupError } = await supabase
-      .from('entitlements')
-      .select('id, email, first_name, last_name, planner_tier, planner_status, planner_ends_at, planner_order_id')
-      .ilike('email', email)
-      .maybeSingle();
-    if (lookupError) return json({ error: lookupError.message }, 500);
-
-    if (existing && incomingOrderId && existing.planner_order_id === incomingOrderId) {
-      return json({ success: true, replayed: true, entitlement: existing });
-    }
-
-    const existingEnd = existing?.planner_ends_at
-      ? new Date(`${existing.planner_ends_at}T12:00:00`)
-      : null;
-    const annualBase = existingEnd && existingEnd > today ? existingEnd : today;
-    const endsAt = offer === 'annual' ? addOneYear(annualBase).toISOString().slice(0, 10) : null;
-
-    const values = {
-      planner_tier: offer,
-      planner_status: 'active',
-      planner_starts_at: today.toISOString().slice(0, 10),
-      planner_ends_at: endsAt,
-      planner_product_id: String(body.productId ?? body.product_id ?? body.data?.productId ?? body.order?.productId ?? PLANNER_PRODUCTS[offer]),
-      planner_price_id: String(body.priceId ?? body.price_id ?? body.data?.priceId ?? body.order?.priceId ?? PLANNER_PRICES[offer]),
-      planner_order_id: incomingOrderId,
-      planner_last_purchase_at: new Date().toISOString(),
-      first_name: body.first_name ?? body.firstName ?? body.contact?.first_name ?? existing?.first_name ?? null,
-      last_name: body.last_name ?? body.lastName ?? body.contact?.last_name ?? existing?.last_name ?? null,
-    };
-
-    const result = existing
-      ? await supabase.from('entitlements').update(values).eq('id', existing.id).select('id, email, planner_tier, planner_status, planner_starts_at, planner_ends_at').single()
-      : await supabase.from('entitlements').insert({ email, tier: 'planner', ...values }).select('id, email, planner_tier, planner_status, planner_starts_at, planner_ends_at').single();
-
-    if (result.error) return json({ error: result.error.message }, 500);
-    return json({ success: true, entitlement: result.data });
+    const service=createClient(supabaseUrl,serviceKey);
+    const { data:result,error }=await service.rpc("apply_replay_vault_webhook_event",{
+      p_provider:provider,p_event_id:eventId,p_order_id:orderId,p_email:email,p_event_type:eventType,
+      p_product_id:productId,p_price_id:priceId,p_payload_sha256:payloadHash,
+      p_effective_at:new Date(timestampSeconds*1000).toISOString(),p_access_expires_at:accessExpiresAt,
+    });
+    if (error) throw error;
+    if (result?.status==="event_id_payload_conflict") return secureJson(req,{ error:"Event conflict" },409);
+    if (result?.status==="rejected_unmapped") return secureJson(req,{ error:"Unmapped product" },422);
+    if (result?.status==="rejected_transition") return secureJson(req,{ error:"Invalid transition" },422);
+    return secureJson(req,{ success:result?.success===true,replayed:result?.replayed===true,status:result?.status,
+      tier:result?.tier??null,entitlementStatus:result?.entitlementStatus??null,accessExpiresAt:result?.accessExpiresAt??null });
   } catch (error) {
-    console.error('[ghl-webhook-grant-planner]', error);
-    return json({ error: 'Invalid request' }, 400);
+    console.error("[replay-vault-webhook]",requestId,error instanceof Error?error.message:"internal_error");
+    return secureJson(req,{ error:"Webhook unavailable" },500);
   }
 });

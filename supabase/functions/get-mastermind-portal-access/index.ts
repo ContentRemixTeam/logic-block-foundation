@@ -1,65 +1,59 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  bearerHeader,
+  inaccessible,
+  isAllowedOrigin,
+  readBoundedJson,
+  responseHeaders,
+  safeLogId,
+  secureJson,
+} from "../_shared/replayVaultAccess.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
+interface AccessRequest { preview?: boolean }
 
 serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  if (!isAllowedOrigin(req)) return inaccessible(req);
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: responseHeaders(req) });
+  if (req.method !== "POST") return secureJson(req, { error: "Method not allowed" }, 405);
 
+  const requestId = safeLogId();
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
+    const authHeader = bearerHeader(req);
+    if (!authHeader) return secureJson(req, { error: "Unauthorized" }, 401);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
-      return json({ error: "Access check is not configured" }, 500);
-    }
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !anonKey || !serviceKey) throw new Error("not_configured");
 
-    const token = authHeader.replace("Bearer ", "");
-    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
+    const body = await readBoundedJson<AccessRequest>(req);
+    const token = authHeader.slice("Bearer ".length);
+    const authClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
+    const { data, error: authError } = await authClient.auth.getUser(token);
+    if (authError || !data.user?.email) return secureJson(req, { error: "Unauthorized" }, 401);
+
+    const service = createClient(supabaseUrl, serviceKey);
+    const { data: decision, error } = await service.rpc("replay_vault_access_decision", {
+      p_user_id: data.user.id,
+      p_email: data.user.email,
+      p_resource_id: null,
+      p_action: "access",
+      p_preview: body.preview === true,
     });
-    const { data: userData, error: userError } = await authClient.auth.getUser(token);
-    if (userError || !userData?.user?.email) return json({ error: "Unauthorized" }, 401);
+    if (error) throw error;
 
-    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
-    const { data: accessScopes, error: scopeError } = await serviceClient.rpc(
-      "get_mastermind_portal_access_scopes",
-      { user_email: userData.user.email },
-    );
-
-    if (scopeError) {
-      console.error("[get-mastermind-portal-access] Scope check failed", scopeError);
-      return json({ error: "Could not verify access" }, 500);
-    }
-
-    const scopes = Array.isArray(accessScopes)
-      ? accessScopes.filter((scope): scope is string => typeof scope === "string")
-      : [];
-    const hasMastermindAccess = scopes.length > 0;
-    const hasFullReplayVault = scopes.includes("replay_vault") || scopes.includes("vault");
-
-    return json({
-      hasMastermindAccess,
-      hasFullReplayVault,
-      replayAccess: hasFullReplayVault ? "full_vault" : hasMastermindAccess ? "current_30_day" : "none",
-      scopes,
+    return secureJson(req, {
+      allowed: decision?.allowed === true,
+      memberEntitled: decision?.memberEntitled === true,
+      memberTier: decision?.memberTier ?? null,
+      memberScopes: Array.isArray(decision?.memberScopes) ? decision.memberScopes : [],
+      previewCapabilities: Array.isArray(decision?.previewCapabilities) ? decision.previewCapabilities : [],
+      previewActive: decision?.previewActive === true,
+      launchState: decision?.launchState ?? "disabled",
     });
   } catch (error) {
-    console.error("[get-mastermind-portal-access] Unexpected error", error);
-    return json({ error: "Unexpected error" }, 500);
+    console.error("[replay-vault-access]", requestId, error instanceof Error ? error.message : "internal_error");
+    return secureJson(req, { error: "Could not verify access" }, 500);
   }
 });
