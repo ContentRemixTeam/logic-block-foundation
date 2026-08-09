@@ -1,5 +1,5 @@
 import { inaccessible, isAllowedOrigin, readBoundedJson } from "./replayVaultAccess.ts";
-import { mapSearchRow } from "./replayVaultProducer.mjs";
+import { mapPlaybackResponse, mapSearchRow } from "./replayVaultProducer.mjs";
 import { sha256Hex, verifiedPayloadHash } from "./replayVaultWebhook.ts";
 function assert(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message); }
 async function sign(secret: string, timestamp: string, raw: string): Promise<string> {
@@ -49,6 +49,20 @@ Deno.test("search endpoint mapper sanitizes and caps every free-text response fi
   assert(mapped.snippet.length<=320,"snippet cap failed");
   assert(mapped.reason.length<=120,"reason cap failed");
   assert(mapped.startSeconds===10&&mapped.endSeconds===20,"UX timing names changed");
+
+  const labeledSentinels=["local:/Users/faithhawks/private","path:/private/tmp/raw.txt","source:C:\\Secrets\\raw.txt","dropbox_path:/vault/raw.mp4","https://private.example/raw","control\u0001char"];
+  for (const sentinel of labeledSentinels) {
+    const search=mapSearchRow({ portal_resource_id:"replay-1",moment_id:"11111111-1111-4111-8111-111111111111",question_id:null,
+      title:sentinel,product_title:sentinel,category_title:sentinel,resource_type:sentinel,snippet:sentinel,reason:sentinel,
+      starts_at_seconds:1,ends_at_seconds:2,duration_seconds:3 });
+    const playback=mapPlaybackResponse({ portal_resource_id:"replay-1",title:sentinel,access_scope:"vault",
+      authoritative_start_seconds:1,authoritative_end_seconds:2,moment_id:"11111111-1111-4111-8111-111111111111",question_id:null },
+      "https://content.dropboxapi.com/temporary-authorized-link","2026-08-09T13:00:00.000Z");
+    const searchText=JSON.stringify(search), playbackText=JSON.stringify(playback);
+    assert(!searchText.includes(sentinel),`search mapper leaked complete sentinel ${sentinel}`);
+    assert(!playback.title.includes(sentinel),`playback title leaked complete sentinel ${sentinel}`);
+    assert(playback.playbackUrl==="https://content.dropboxapi.com/temporary-authorized-link","authorized temporary playback URL was altered");
+  }
 });
 Deno.test("invalid signature cannot produce a persistent payload hash",async()=>{
   const secret="test-secret",timestamp="1786286400",raw='{"eventId":"immutable-event"}';

@@ -1,7 +1,7 @@
 const CONTROL_CHARS = /[\u0000-\u001f\u007f-\u009f]/g;
 const URL_OR_PRIVATE_HOST = /(?:https?|ftp|file):\/\/[^\s<>{}\[\]"']+|\bwww\.[^\s<>{}\[\]"']+|\b(?:storage\.googleapis\.com|revex-membership-production|dropbox(?:api)?\.com)\b[^\s<>{}\[\]"']*/gi;
 const WINDOWS_PATH = /(?:\b[A-Za-z]:\\|\\\\)[^\s<>{}\[\]"']+/g;
-const POSIX_PATH = /(^|[\s([{='"])(\/(?!\/)[^\s<>{}\[\]"']+)/g;
+const POSIX_PATH = /(^|[\s([{=:;,'"])(\/(?!\/)[^\s<>{}\[\]"']+)/g;
 const PRIVATE_LOCATOR = /\b(?:dbid:|dropbox(?:_path|_file_id)?|source_locator_private|portal_playback_source)\S*/gi;
 
 export function memberSafeText(value, maxLength, fallback = "") {
