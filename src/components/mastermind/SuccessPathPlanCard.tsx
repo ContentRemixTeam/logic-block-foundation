@@ -4,10 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { MastermindAction, MastermindFirstMove } from '@/hooks/useMastermindSuccessPath';
+import type { MastermindAction, MastermindCurriculumSlot, MastermindFirstMove } from '@/hooks/useMastermindSuccessPath';
 import {
   MASTERMIND_STAGE_LABELS,
-  getCurriculumSlot,
   getMastermindStage,
   type MastermindPlanCycle,
   type MastermindStageId,
@@ -34,12 +33,15 @@ interface SuccessPathPlanCardProps {
   selectedStageId: MastermindStageId;
   confirmed: boolean;
   milestoneId: string;
+  activeCurriculumSlot: MastermindCurriculumSlot | null;
+  curriculumUnavailable: boolean;
   action: MastermindAction | null;
   firstMoves: MastermindFirstMove[];
   saving: boolean;
   onConfirm: (stage: MastermindStageId) => Promise<void>;
   onSchedule: (value: ActionForm) => Promise<unknown>;
   onCheckIn: (value: CheckInForm) => Promise<unknown>;
+  onRetry: () => void;
 }
 
 const MAX_ACTION_LENGTH = 500;
@@ -62,12 +64,15 @@ export function SuccessPathPlanCard({
   selectedStageId,
   confirmed,
   milestoneId,
+  activeCurriculumSlot,
+  curriculumUnavailable,
   action,
   firstMoves,
   saving,
   onConfirm,
   onSchedule,
   onCheckIn,
+  onRetry,
 }: SuccessPathPlanCardProps) {
   const [showStageChoices, setShowStageChoices] = useState(false);
   const [form, setForm] = useState<ActionForm>({
@@ -87,7 +92,6 @@ export function SuccessPathPlanCard({
   const [localError, setLocalError] = useState('');
 
   const stage = getMastermindStage(selectedStageId);
-  const milestone = getCurriculumSlot(milestoneId) ?? stage.milestones[0];
   const verifiedFirstMoves = firstMoves
     .map((move) => move.task_text.trim())
     .filter(Boolean)
@@ -246,25 +250,37 @@ export function SuccessPathPlanCard({
           </div>
         )}
 
-        <div>
-          <p className="text-xs font-semibold uppercase text-muted-foreground">
-            One active milestone
-          </p>
-          <h3 className="mt-1 text-xl font-bold">{milestone.label}</h3>
-          <p className="text-sm text-muted-foreground">{milestone.output}</p>
-        </div>
+        {confirmed && curriculumUnavailable && (
+          <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+            <p className="font-semibold">Your confirmed curriculum is temporarily unavailable.</p>
+            <p className="mt-1 text-sm text-muted-foreground">We could not validate the frozen server assignment, so no milestone or resource details are shown.</p>
+            <Button className="mt-3 min-h-11" variant="outline" onClick={onRetry}>Retry curriculum</Button>
+          </div>
+        )}
 
-        <div className="rounded-lg border border-dashed p-4">
-          <Badge variant="secondary">{milestone.status}</Badge>
-          <p className="mt-2 font-medium">{milestone.sourceTitle}</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            This resource is not available here yet. The source still needs milestone-level
-            verification. Bring your exact attempt and result to support; no unverified link is
-            exposed.
-          </p>
-        </div>
+        {confirmed && activeCurriculumSlot && activeCurriculumSlot.id === milestoneId && (
+          <>
+            <div>
+              <p className="text-xs font-semibold uppercase text-muted-foreground">One active milestone</p>
+              <h3 className="mt-1 text-xl font-bold">{activeCurriculumSlot.label}</h3>
+              <p className="text-sm text-muted-foreground">{activeCurriculumSlot.output}</p>
+            </div>
+            <div className="rounded-lg border border-dashed p-4">
+              <Badge variant="secondary">{activeCurriculumSlot.status}</Badge>
+              <p className="mt-2 font-medium">{activeCurriculumSlot.sourceTitle}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{activeCurriculumSlot.provenanceNote}</p>
+              <p className="mt-2 text-sm">
+                {activeCurriculumSlot.status === 'Gap'
+                  ? 'This resource is not available here yet. Bring your exact attempt and result to support.'
+                  : activeCurriculumSlot.status === 'Refresh'
+                    ? 'This resource needs review before it can be opened here.'
+                    : 'The server has marked a resource ready; access remains managed by the portal.'}
+              </p>
+            </div>
+          </>
+        )}
 
-        {confirmed && (
+        {confirmed && activeCurriculumSlot && !curriculumUnavailable && (
           <div className="space-y-4 border-t pt-5">
             <h3 className="font-semibold">Schedule the smallest useful action</h3>
             <div className="grid gap-4 sm:grid-cols-2">

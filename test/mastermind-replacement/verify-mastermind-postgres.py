@@ -25,6 +25,7 @@ CYCLE_UNCONFIRMED = "33333333-3333-4333-8333-333333333333"
 CYCLE_CONCURRENT = "44444444-4444-4444-8444-444444444444"
 RECEIPT_A = "aaaaaaaa-0000-4000-8000-000000000001"
 RECEIPT_CONCURRENT = "aaaaaaaa-0000-4000-8000-000000000004"
+RECEIPT_A_NEW = "aaaaaaaa-0000-4000-8000-000000000005"
 
 
 class HarnessFailure(RuntimeError):
@@ -171,6 +172,12 @@ def main() -> None:
         """)
         prove("frozen manifest is exactly 24 server catalog values", manifest_check == "24|t|Choose the money-making focus|leverage-evaluate", manifest_check)
 
+        own_assignment = sql(f"SELECT count(*) FROM public.mastermind_cycle_curriculum_assignments WHERE user_id='{USER_A}' AND cycle_id='{CYCLE_A}';", user=USER_A, role="authenticated")
+        cross_assignment = sql(f"SELECT count(*) FROM public.mastermind_cycle_curriculum_assignments WHERE user_id='{USER_A}' AND cycle_id='{CYCLE_A}';", user=USER_B, role="authenticated")
+        own_refs = sql(f"SELECT count(*) FROM public.mastermind_curriculum_resource_refs WHERE user_id='{USER_A}' AND cycle_id='{CYCLE_A}';", user=USER_A, role="authenticated")
+        cross_refs = sql(f"SELECT count(*) FROM public.mastermind_curriculum_resource_refs WHERE user_id='{USER_A}' AND cycle_id='{CYCLE_A}';", user=USER_B, role="authenticated")
+        prove("assignment manifest and refs are owner-readable and cross-owner denied", own_assignment == "1" and own_refs == "24" and cross_assignment == "0" and cross_refs == "0")
+
         stable_key = f"{CYCLE_A}:offer-focus:active"
         schedule = lambda cycle, milestone, key, user=USER_A, ok=True: sql(
             "SELECT public.schedule_mastermind_success_path_action("+
@@ -237,6 +244,31 @@ def main() -> None:
         check_state = sql(f"SELECT count(*), count(support_suggestion), bool_and(response='Support') FROM public.mastermind_success_path_check_ins WHERE action_id='{action_id}';")
         snapshot_state = sql(f"SELECT confirmed_stage,current_milestone_id FROM public.cycle_success_path_snapshots WHERE user_id='{USER_A}' AND cycle_id='{CYCLE_A}';")
         prove("valid Support check-in inserts one suggestion without changing stage/milestone", check_state == "1|1|t" and valid_check_in["stage_changed"] is False and snapshot_state == "offer|offer-focus")
+
+        sql(f"INSERT INTO public.cycle_plan_reconciliation_requests(request_id,user_id,cycle_id,status) VALUES('{RECEIPT_A_NEW}','{USER_A}','{CYCLE_A}','complete'); UPDATE public.cycle_success_path_snapshots SET planner_receipt_id='{RECEIPT_A_NEW}' WHERE user_id='{USER_A}' AND cycle_id='{CYCLE_A}';")
+        schedule(CYCLE_A, "offer-focus", stable_key, ok=False)
+        check_in("Continue", ok=False)
+        invalidated = sql(f"SELECT planner_receipt_id<>confirmed_planner_receipt_id FROM public.cycle_success_path_snapshots WHERE user_id='{USER_A}' AND cycle_id='{CYCLE_A}';")
+        prove("new planner receipt invalidates prior confirmation for schedule and check-in", invalidated == "t", invalidated)
+
+        confirm(CYCLE_A, "offer", "offer-focus", RECEIPT_A_NEW)
+        confirm(CYCLE_A, "find", "find-path", RECEIPT_A_NEW)
+        retired_state = sql(f"SELECT count(*) FILTER (WHERE retired_at IS NOT NULL),count(*) FILTER (WHERE retired_at IS NULL) FROM public.mastermind_success_path_actions WHERE user_id='{USER_A}' AND cycle_id='{CYCLE_A}';")
+        check_in("Continue", ok=False)
+        prove("deliberate focus change retires old action and stale check-in is rejected", retired_state == "1|0", retired_state)
+
+        find_key = f"{CYCLE_A}:find-path:active"
+        find_action = json.loads(schedule(CYCLE_A, "find-path", find_key))
+        active_state = sql(f"SELECT count(*),count(*) FILTER (WHERE retired_at IS NULL),min(milestone_id) FILTER (WHERE retired_at IS NULL) FROM public.mastermind_success_path_actions WHERE user_id='{USER_A}' AND cycle_id='{CYCLE_A}';")
+        prove("focus change permits exactly one new active action for the current milestone", active_state == "2|1|find-path" and find_action["action_id"] != action_id, active_state)
+
+        spare_task = sql(f"INSERT INTO public.tasks(user_id,cycle_id,task_text,generation_key) VALUES('{USER_A}','{CYCLE_A}','spare','spare-active') RETURNING task_id;").splitlines()[0]
+        sql(f"INSERT INTO public.mastermind_success_path_actions(user_id,cycle_id,milestone_id,stable_key,task_id,exact_move,capacity_mode,done_enough,evidence,scheduled_date) VALUES('{USER_A}','{CYCLE_A}','find-path','second-active','{spare_task}','x','standard','x','x',current_date);", ok=False)
+        prove("partial unique invariant rejects a second active action in a cycle", True)
+
+        mismatched_task = sql(f"INSERT INTO public.tasks(user_id,cycle_id,task_text,generation_key) VALUES('{USER_B}','{CYCLE_B}','mismatch','mismatch-task') RETURNING task_id;").splitlines()[0]
+        sql(f"INSERT INTO public.mastermind_success_path_actions(user_id,cycle_id,milestone_id,stable_key,task_id,exact_move,capacity_mode,done_enough,evidence,scheduled_date,retired_at) VALUES('{USER_A}','{CYCLE_UNCONFIRMED}','offer-focus','mismatched-task','{mismatched_task}','x','standard','x','x',current_date,now());", ok=False)
+        prove("composite action-task FK rejects owner/cycle mismatch", True)
 
         sql(f"INSERT INTO public.mastermind_success_path_actions(user_id,cycle_id,milestone_id,stable_key,task_id,exact_move,capacity_mode,done_enough,evidence,scheduled_date) SELECT '{USER_A}','{CYCLE_A}','offer-focus','direct',task_id,'x','standard','x','x',current_date FROM public.tasks LIMIT 1;", user=USER_A, role="authenticated", ok=False)
         sql(f"INSERT INTO public.mastermind_success_path_check_ins(user_id,cycle_id,action_id,response,stage_at_check_in,milestone_at_check_in) VALUES('{USER_A}','{CYCLE_A}','{action_id}','Support','offer','offer-focus');", user=USER_A, role="authenticated", ok=False)

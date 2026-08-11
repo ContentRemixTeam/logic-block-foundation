@@ -51,10 +51,12 @@ export default function MastermindHub() {
     data: successPathData,
     isLoading: successPathLoading,
     isSaving: successPathSaving,
-    error: successPathError,
+    loadError: successPathLoadError,
+    mutationError: successPathMutationError,
     confirmStage,
     scheduleAction,
     recordCheckIn,
+    refetch: refetchSuccessPath,
   } = useMastermindSuccessPath(cycleId);
   const [searchQuery, setSearchQuery] = useState('');
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
@@ -192,41 +194,52 @@ export default function MastermindHub() {
               {successPathLoading && (
                 <Card><CardContent className="p-6" role="status" aria-live="polite">Loading your plan…</CardContent></Card>
               )}
-              {!successPathLoading && !successPathData?.onboarding?.completed_at && (
+              {!successPathLoading && successPathLoadError && (
+                <Card className="border-destructive/30"><CardContent className="space-y-3 p-6" role="alert" aria-live="assertive">
+                  <h2 className="text-xl font-bold">We could not load your Success Plan</h2>
+                  <p className="text-sm text-muted-foreground">Nothing has been changed. Check your connection and try loading the plan again.</p>
+                  <p className="text-sm text-destructive">{successPathLoadError}</p>
+                  <Button className="min-h-11" onClick={() => void refetchSuccessPath()}>Retry loading plan</Button>
+                </CardContent></Card>
+              )}
+              {!successPathLoading && !successPathLoadError && !successPathData?.onboarding?.completed_at && (
                 <MastermindWelcomeWizard onComplete={() => navigate('/cycle-setup')} />
               )}
-              {!successPathLoading && successPathData?.onboarding?.completed_at && !successPathData?.cycle && (
+              {!successPathLoading && !successPathLoadError && successPathData?.onboarding?.completed_at && !successPathData?.cycle && (
                 <Card><CardContent className="space-y-4 p-6">
                   <h2 className="text-xl font-bold">Build your canonical 90-day plan</h2>
                   <p className="text-sm text-muted-foreground">Your welcome context is saved. The planner now collects the current-quarter evidence used for your recommendation.</p>
                   <Button className="min-h-11" onClick={() => navigate('/cycle-setup')}>Continue to cycle setup</Button>
                 </CardContent></Card>
               )}
-              {!successPathLoading && successPathData?.cycle && successPathData.successPath && (
+              {!successPathLoading && !successPathLoadError && successPathData?.cycle && successPathData.successPath && (
                 <SuccessPathPlanCard
                   cycle={successPathData.cycle}
                   successPath={successPathData.successPath}
                   selectedStageId={selectedStageId}
                   confirmed={successPathData.hasConfirmedStage}
                   milestoneId={successPathData.snapshot?.current_milestone_id ?? getMastermindStage(selectedStageId).milestones[0].id}
+                  activeCurriculumSlot={successPathData.activeCurriculumSlot}
+                  curriculumUnavailable={successPathData.curriculumUnavailable}
                   action={successPathData.action}
                   firstMoves={successPathData.firstMoves}
                   saving={successPathSaving}
                   onConfirm={confirmStage}
                   onSchedule={scheduleAction}
                   onCheckIn={recordCheckIn}
+                  onRetry={() => void refetchSuccessPath()}
                 />
               )}
-              {!successPathLoading && successPathData?.cycle && !successPathData.successPath && (
+              {!successPathLoading && !successPathLoadError && successPathData?.cycle && !successPathData.successPath && (
                 <Card><CardContent className="space-y-4 p-6">
                   <h2 className="font-bold">Your planner needs real evidence</h2>
                   <p className="text-sm text-muted-foreground">We cannot recommend a focus from a placeholder goal. Reopen cycle setup and finish the saved plan.</p>
                   <Button className="min-h-11" onClick={() => navigate(`/cycle-setup?edit=${successPathData.cycle?.cycle_id}`)}>Finish cycle setup</Button>
                 </CardContent></Card>
               )}
-              {successPathError && (
+              {successPathMutationError && (
                 <p role="alert" aria-live="assertive" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-                  Your previous focus is still safe. We could not save this change: {successPathError}
+                  We could not complete that change: {successPathMutationError}
                 </p>
               )}
             </TabsContent>

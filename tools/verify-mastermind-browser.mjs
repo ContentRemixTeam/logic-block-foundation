@@ -65,7 +65,31 @@ const savedCycle = {
   updated_at: '2026-08-08T00:00:00.000Z',
 };
 
+const slotIds = [
+  ['offer-focus','offer'],['offer-buyer','offer'],['offer-mvp','offer'],['offer-validate','offer'],
+  ['find-path','find'],['find-create','find'],['find-bridge','find'],['find-evaluate','find'],
+  ['nurture-map','nurture'],['nurture-content','nurture'],['nurture-email','nurture'],['nurture-evaluate','nurture'],
+  ['sell-math','sell'],['sell-process','sell'],['sell-run','sell'],['sell-evaluate','sell'],
+  ['deliver-result','deliver'],['deliver-first-win','deliver'],['deliver-follow-through','deliver'],['deliver-proof','deliver'],
+  ['leverage-constraint','leverage'],['leverage-simplify','leverage'],['leverage-choice','leverage'],['leverage-evaluate','leverage'],
+];
+const frozenManifest = slotIds.map(([id, stageId]) => ({
+  id, stageId,
+  label: id === 'sell-math' ? 'Server-frozen sales math' : `Server-frozen ${id}`,
+  output: id === 'sell-math' ? 'A server-frozen invitation target.' : `Server output for ${id}.`,
+  sourceTitle: 'Server Frozen Curriculum', sourceOwner: 'Faith Mariah', status: 'Gap',
+  provenanceNote: `Server provenance for ${id}.`, resourceId: null,
+}));
+
 const scenarios = [
+  {
+    name: 'confirmed-cycle-320-chrome',
+    viewport: { width: 320, height: 720, mobile: true, deviceScaleFactor: 2 },
+    browserProfile: browserProfiles.androidChrome,
+    cycle: savedCycle,
+    confirmed: true,
+    checks: ['confirmedProducerFlow'],
+  },
   {
     name: 'saved-cycle-desktop',
     viewport: { width: 1280, height: 900, mobile: false, deviceScaleFactor: 1 },
@@ -317,7 +341,8 @@ async function openNewPage(debugPort) {
   return await CdpClient.connect(target.webSocketDebuggerUrl);
 }
 
-function buildMockScript(cycle) {
+function buildMockScript(scenario) {
+  const cycle = scenario.cycle;
   return `
 (() => {
   const user = {
@@ -340,6 +365,22 @@ function buildMockScript(cycle) {
     user
   };
   const cycle = ${JSON.stringify(cycle)};
+  const manifest = ${JSON.stringify(frozenManifest)};
+  let snapshot = ${JSON.stringify(scenario.confirmed ? {
+    snapshot_id: 'browser-snapshot', user_id: mockUserId, cycle_id: savedCycle.cycle_id,
+    planner_receipt_id: 'browser-receipt', confirmed_planner_receipt_id: 'browser-receipt',
+    recommended_stage: 'sell', confirmed_stage: 'sell', recommendation_reason: 'Saved evidence',
+    recommendation_evidence: 'Planner details', current_milestone_id: 'sell-math',
+    current_milestone_title: 'Server-frozen sales math', capacity_mode: 'normal',
+    curriculum_version: 'mastermind-curriculum-v1', confirmed_at: '2026-08-08T00:00:00.000Z',
+    created_at: '2026-08-08T00:00:00.000Z', updated_at: '2026-08-08T00:00:00.000Z',
+  } : null)};
+  let activeAction = ${JSON.stringify(scenario.confirmed ? {
+    action_id: 'browser-action', task_id: 'browser-task', stable_key: `${savedCycle.cycle_id}:sell-math:active`,
+    exact_move: 'Send five invitations', capacity_mode: 'standard', done_enough: 'Five sent',
+    evidence: 'Sent log', scheduled_date: '2026-08-12',
+  } : null)};
+  window.__mastermindRpcCalls = [];
   const inactiveMonthlyTheme = {
     active: false,
     template: null,
@@ -454,10 +495,32 @@ function buildMockScript(cycle) {
       });
     }
     if (url.includes('/rest/v1/cycle_success_path_snapshots')) {
-      return json(null);
+      return json(snapshot);
+    }
+    if (url.includes('/rest/v1/cycle_plan_reconciliation_requests')) {
+      return json(snapshot ? { request_id: 'browser-receipt' } : null);
+    }
+    if (url.includes('/rest/v1/mastermind_cycle_curriculum_assignments')) {
+      return json(snapshot ? { assignment_id: 'browser-assignment', manifest_version: 'mastermind-curriculum-v1', manifest } : null);
+    }
+    if (url.includes('/rest/v1/mastermind_curriculum_resource_refs')) {
+      const slot = manifest.find((item) => item.id === snapshot?.current_milestone_id);
+      return json(slot ? { assignment_id: 'browser-assignment', milestone_id: slot.id, status: slot.status, source_title: slot.sourceTitle, source_owner: slot.sourceOwner, member_output: slot.output, provenance_note: slot.provenanceNote, resource_id: slot.resourceId } : null);
     }
     if (url.includes('/rest/v1/mastermind_success_path_actions')) {
-      return json(null);
+      return json(activeAction);
+    }
+    if (url.includes('/rest/v1/rpc/record_mastermind_success_path_check_in')) {
+      const body = JSON.parse(init?.body || '{}'); window.__mastermindRpcCalls.push({ name: 'record_mastermind_success_path_check_in', body });
+      if (!activeAction || body.p_action_id !== activeAction.action_id) return json({ message: 'That action is unavailable.' }, 400);
+      return json({ check_in_id: 'browser-check-in', response: body.p_response, support_suggestion: null, stage_changed: false });
+    }
+    if (url.includes('/rest/v1/rpc/confirm_mastermind_success_path')) {
+      const body = JSON.parse(init?.body || '{}'); window.__mastermindRpcCalls.push({ name: 'confirm_mastermind_success_path', body });
+      const next = manifest.find((item) => item.stageId === body.p_stage);
+      snapshot = { ...snapshot, confirmed_stage: body.p_stage, current_milestone_id: next.id, current_milestone_title: next.label, confirmed_planner_receipt_id: snapshot.planner_receipt_id };
+      activeAction = null;
+      return json({ confirmed_stage: body.p_stage, current_milestone_id: next.id, assignment_id: 'browser-assignment' });
     }
     if (url.includes('/rest/v1/cycles_90_day')) {
       return json(cycle);
@@ -496,7 +559,7 @@ async function waitFor(client, expression, label, timeoutMs = 12000) {
 async function clickText(client, text) {
   const target = await evaluate(client, `
 (() => {
-  const candidates = Array.from(document.querySelectorAll('[role="tab"], button, a'));
+  const candidates = Array.from(document.querySelectorAll('[role="tab"], button, a, summary'));
   const matchesText = (element) => (element.textContent || '').trim().includes(${JSON.stringify(text)});
   const matchesExactText = (element) => (element.textContent || '').trim() === ${JSON.stringify(text)};
   const target =
@@ -552,6 +615,21 @@ async function setSearch(client, query) {
   assert.equal(changed, true, `Could not set Resource Finder search to: ${query}`);
 }
 
+async function setInputById(client, id, value) {
+  const changed = await evaluate(client, `
+(() => { const input=document.getElementById(${JSON.stringify(id)}); if(!input)return false;
+  const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;
+  setter.call(input,${JSON.stringify(value)});input.dispatchEvent(new Event('input',{bubbles:true}));return true; })()`);
+  assert.equal(changed, true, `Could not set input #${id}`);
+}
+
+async function assertKeyboardFocusable(client, text) {
+  const focused = await evaluate(client, `
+(() => { const element=Array.from(document.querySelectorAll('button,a,[role="button"]')).find((item)=>(item.textContent||'').trim().includes(${JSON.stringify(text)}));
+if(!element)return false;element.focus();return document.activeElement===element && element.tabIndex>=0; })()`);
+  assert.equal(focused, true, `${text} must accept keyboard focus`);
+}
+
 async function assertText(client, text) {
   const hasText = await evaluate(client, `document.body.innerText.includes(${JSON.stringify(text)})`);
   assert.equal(hasText, true, `Expected page text to include: ${text}`);
@@ -593,9 +671,9 @@ async function runChecks(client, checks, label) {
   if (checks.includes('savedCyclePath')) {
     await waitFor(client, 'document.body.innerText.includes("Confirm this focus")', `${label} saved-cycle path`);
     await assertText(client, 'Does Sell feel like the first broken link?');
-    await assertText(client, 'Set the sales target and math');
-    await assertText(client, 'Gap');
-    await assertText(client, 'This resource is not available here yet.');
+    await assertNoText(client, 'Server Frozen Curriculum');
+    await assertNoText(client, 'Server provenance');
+    await assertKeyboardFocusable(client, 'Confirm this focus');
     await assertNoText(client, 'Open My Starting Resource');
     await clickText(client, 'Get Support');
     await waitFor(client, 'document.body.innerText.includes("Enable Faith AI")', `${label} support tab`);
@@ -610,6 +688,29 @@ async function runChecks(client, checks, label) {
     await assertText(client, 'Sell path');
     await assertNoText(client, 'Money Moves Sprint');
     await assertNoHorizontalOverflow(client, `${label} resources tab`);
+  }
+
+  if (checks.includes('confirmedProducerFlow')) {
+    await waitFor(client, 'document.body.innerText.includes("Server-frozen sales math")', `${label} frozen assignment`);
+    await assertText(client, 'A server-frozen invitation target.');
+    await assertText(client, 'Server Frozen Curriculum');
+    await assertText(client, 'Server provenance for sell-math.');
+    await assertText(client, 'This resource is not available here yet.');
+    await assertNoText(client, 'Open My Starting Resource');
+    await assertKeyboardFocusable(client, 'Save check-in');
+    await setInputById(client, 'checkEvidence', 'Five invitations sent');
+    await clickText(client, 'Save check-in');
+    await waitFor(client, 'document.body.innerText.includes("Check-in saved. Your focus stayed the same.")', `${label} successful check-in`);
+    const checkCall = await evaluate(client, `window.__mastermindRpcCalls.find((call)=>call.name==='record_mastermind_success_path_check_in')`);
+    assert.deepEqual(checkCall, { name: 'record_mastermind_success_path_check_in', body: { p_action_id: 'browser-action', p_response: 'Continue', p_evidence: 'Five invitations sent', p_friction: '' } });
+    await clickText(client, 'Deliberately change focus');
+    await assertKeyboardFocusable(client, 'Offer');
+    await clickText(client, 'Offer');
+    await waitFor(client, 'document.body.innerText.includes("Server-frozen offer-focus")', `${label} changed frozen focus`);
+    await assertNoText(client, '30–60 second check-in');
+    const confirmCall = await evaluate(client, `window.__mastermindRpcCalls.find((call)=>call.name==='confirm_mastermind_success_path')`);
+    assert.deepEqual(confirmCall, { name: 'confirm_mastermind_success_path', body: { p_cycle_id: 'browser-qa-cycle', p_stage: 'offer', p_milestone_id: 'offer-focus', planner_receipt_id: 'browser-receipt' } });
+    await assertNoHorizontalOverflow(client, `${label} focus change`);
   }
 
   if (checks.includes('noCyclePrompt')) {
@@ -725,7 +826,7 @@ async function runScenario(baseUrl, debugPort, scenario, passNumber) {
     });
     await client.send('Emulation.setTouchEmulationEnabled', { enabled: scenario.viewport.mobile });
     await client.send('Page.addScriptToEvaluateOnNewDocument', {
-      source: buildMockScript(scenario.cycle),
+      source: buildMockScript(scenario),
     });
 
     const url = `${baseUrl}/mastermind?browserQa=${encodeURIComponent(scenario.name)}&pass=${passNumber}`;
