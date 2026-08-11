@@ -8,16 +8,32 @@ import {
   type MastermindSuccessPathOutput,
 } from '@/lib/mastermindSuccessPath';
 
-// These tables are not yet present in the generated Supabase types, so use a
-// loosely-typed client handle for them only.
-const db = supabase as unknown as {
-  from: (table: string) => any;
-};
+interface UntypedResult {
+  data: unknown;
+  error: unknown;
+}
 
-const CYCLE_SELECT = 'cycle_id,goal,start_date,end_date,focus_area,biggest_bottleneck,discover_score,nurture_score,convert_score,audience_target,audience_frustration,signature_message,why,low_energy_version,medium_energy_version,high_energy_version,updated_at';
-const SNAPSHOT_SELECT = 'snapshot_id,user_id,cycle_id,planner_receipt_id,recommended_stage,confirmed_stage,recommendation_reason,recommendation_evidence,current_milestone_id,current_milestone_title,capacity_mode,curriculum_version,confirmed_at,created_at,updated_at';
+interface UntypedQuery extends PromiseLike<UntypedResult> {
+  select(columns: string): UntypedQuery;
+  eq(column: string, value: unknown): UntypedQuery;
+  order(column: string, options: { ascending: boolean }): UntypedQuery;
+  limit(count: number): UntypedQuery;
+  maybeSingle(): UntypedQuery;
+  upsert(values: Record<string, unknown>, options?: { onConflict: string }): UntypedQuery;
+}
 
-interface MastermindSuccessPathSnapshot {
+interface UntypedSupabase {
+  from(table: string): UntypedQuery;
+  rpc(functionName: string, args: Record<string, unknown>): PromiseLike<UntypedResult>;
+}
+
+const db = supabase as unknown as UntypedSupabase;
+const CYCLE_SELECT =
+  'cycle_id,goal,start_date,end_date,focus_area,biggest_bottleneck,discover_score,nurture_score,convert_score,audience_target,audience_frustration,signature_message,why,low_energy_version,medium_energy_version,high_energy_version,planner_payload,updated_at';
+const SNAPSHOT_SELECT =
+  'snapshot_id,user_id,cycle_id,planner_receipt_id,recommended_stage,confirmed_stage,recommendation_reason,recommendation_evidence,current_milestone_id,current_milestone_title,capacity_mode,curriculum_version,confirmed_at,created_at,updated_at';
+
+export interface MastermindSuccessPathSnapshot {
   snapshot_id: string;
   user_id: string;
   cycle_id: string;
@@ -35,23 +51,84 @@ interface MastermindSuccessPathSnapshot {
   updated_at: string;
 }
 
+export interface MastermindAction {
+  action_id: string;
+  task_id: string;
+  stable_key: string;
+  exact_move: string;
+  capacity_mode: 'minimum' | 'standard' | 'stretch';
+  done_enough: string;
+  evidence: string;
+  scheduled_date: string;
+}
+
 export interface MastermindFirstMove {
   task_id: string;
   task_text: string;
   planned_day: string | null;
 }
 
+export interface MastermindOnboarding {
+  business_context: string;
+  reason_joined: string;
+  support_preference: string;
+  capacity_constraints: string;
+  completed_at: string | null;
+}
+
 interface MastermindSuccessPathData {
-  cycle: MastermindPlanCycle;
+  cycle: MastermindPlanCycle | null;
   successPath: MastermindSuccessPathOutput | null;
   snapshot: MastermindSuccessPathSnapshot | null;
   selectedStageId: MastermindStageId;
   hasConfirmedStage: boolean;
+  action: MastermindAction | null;
   firstMoves: MastermindFirstMove[];
+  onboarding: MastermindOnboarding | null;
 }
 
-function isMastermindStageId(value: string): value is MastermindStageId {
-  return ['offer', 'find', 'nurture', 'sell', 'deliver', 'leverage'].includes(value);
+interface ActionInput {
+  exactMove: string;
+  capacityMode: string;
+  doneEnough: string;
+  evidence: string;
+  scheduledDate: string;
+}
+
+interface CheckInInput {
+  response: string;
+  evidence: string;
+  friction: string;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isStage(value: unknown): value is MastermindStageId {
+  return (
+    typeof value === 'string' &&
+    ['offer', 'find', 'nurture', 'sell', 'deliver', 'leverage'].includes(value)
+  );
+}
+
+function parseSnapshot(value: unknown): MastermindSuccessPathSnapshot | null {
+  if (!isRecord(value) || !isStage(value.recommended_stage)) return null;
+  const rawSnapshot = value as Record<string, unknown> & { confirmed_stage: unknown };
+  if (rawSnapshot.confirmed_stage === null) {
+    return rawSnapshot as unknown as MastermindSuccessPathSnapshot;
+  }
+  return isStage(rawSnapshot.confirmed_stage)
+    ? (rawSnapshot as unknown as MastermindSuccessPathSnapshot)
+    : null;
+}
+
+function parseRows<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
+function safeErrorMessage(value: unknown, fallback: string) {
+  return value instanceof Error && value.message ? value.message : fallback;
 }
 
 export function useMastermindSuccessPath(cycleId?: string) {
@@ -63,7 +140,6 @@ export function useMastermindSuccessPath(cycleId?: string) {
   const loadSuccessPath = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-
     try {
       const { data: authData, error: authError } = await supabase.auth.getUser();
       if (authError) throw authError;
@@ -76,7 +152,6 @@ export function useMastermindSuccessPath(cycleId?: string) {
         .from('cycles_90_day')
         .select(CYCLE_SELECT)
         .eq('user_id', authData.user.id);
-
       cycleQuery = cycleId
         ? cycleQuery.eq('cycle_id', cycleId)
         : cycleQuery
@@ -85,22 +160,51 @@ export function useMastermindSuccessPath(cycleId?: string) {
             .order('updated_at', { ascending: false })
             .limit(1);
 
-      const { data: cycleRow, error: cycleError } = await cycleQuery.maybeSingle();
-      if (cycleError) throw cycleError;
-      if (!cycleRow) {
-        setData(null);
+      const [cycleResult, onboardingResult] = await Promise.all([
+        cycleQuery.maybeSingle(),
+        db
+          .from('mastermind_onboarding_profiles')
+          .select(
+            'business_context,reason_joined,support_preference,capacity_constraints,completed_at',
+          )
+          .eq('user_id', authData.user.id)
+          .maybeSingle(),
+      ]);
+      if (cycleResult.error) throw cycleResult.error;
+      if (onboardingResult.error) throw onboardingResult.error;
+      const onboarding = onboardingResult.data as MastermindOnboarding | null;
+      if (!cycleResult.data) {
+        setData({
+          cycle: null,
+          successPath: null,
+          snapshot: null,
+          selectedStageId: 'offer',
+          hasConfirmedStage: false,
+          action: null,
+          firstMoves: [],
+          onboarding,
+        });
         return;
       }
 
-      const cycle = cycleRow as MastermindPlanCycle;
+      const cycle = cycleResult.data as MastermindPlanCycle;
       const successPath = inferMastermindSuccessPath(cycle);
-
-      const [snapshotResult, firstMovesResult] = await Promise.all([
+      const [snapshotResult, actionResult, firstMovesResult] = await Promise.all([
         db
           .from('cycle_success_path_snapshots')
           .select(SNAPSHOT_SELECT)
           .eq('user_id', authData.user.id)
           .eq('cycle_id', cycle.cycle_id)
+          .maybeSingle(),
+        db
+          .from('mastermind_success_path_actions')
+          .select(
+            'action_id,task_id,stable_key,exact_move,capacity_mode,done_enough,evidence,scheduled_date',
+          )
+          .eq('user_id', authData.user.id)
+          .eq('cycle_id', cycle.cycle_id)
+          .order('updated_at', { ascending: false })
+          .limit(1)
           .maybeSingle(),
         supabase
           .from('tasks')
@@ -112,20 +216,14 @@ export function useMastermindSuccessPath(cycleId?: string) {
           .order('planned_day', { ascending: true })
           .limit(3),
       ]);
-
       if (snapshotResult.error) throw snapshotResult.error;
+      if (actionResult.error) throw actionResult.error;
       if (firstMovesResult.error) throw firstMovesResult.error;
-      const snapshotRow = snapshotResult.data;
-      const firstMoves = (firstMovesResult.data ?? []) as MastermindFirstMove[];
 
-      const rawSnapshot = snapshotRow as Omit<MastermindSuccessPathSnapshot, 'recommended_stage' | 'confirmed_stage'> & {
-        recommended_stage: string;
-        confirmed_stage: string | null;
-      } | null;
-
+      const rawSnapshot = parseSnapshot(snapshotResult.data);
       let receiptIsComplete = false;
       if (rawSnapshot?.planner_receipt_id) {
-        const { data: receiptRow, error: receiptError } = await db
+        const receiptResult = await db
           .from('cycle_plan_reconciliation_requests')
           .select('request_id')
           .eq('request_id', rawSnapshot.planner_receipt_id)
@@ -133,34 +231,26 @@ export function useMastermindSuccessPath(cycleId?: string) {
           .eq('cycle_id', cycle.cycle_id)
           .eq('status', 'complete')
           .maybeSingle();
-        if (receiptError) throw receiptError;
-        receiptIsComplete = Boolean(receiptRow);
+        if (receiptResult.error) throw receiptResult.error;
+        receiptIsComplete = Boolean(receiptResult.data);
       }
 
-      const snapshot = rawSnapshot
-        && receiptIsComplete
-        && isMastermindStageId(rawSnapshot.recommended_stage)
-        && (rawSnapshot.confirmed_stage === null || isMastermindStageId(rawSnapshot.confirmed_stage))
-        ? rawSnapshot as MastermindSuccessPathSnapshot
-        : null;
-
-      if (rawSnapshot && !snapshot) {
-        throw new Error('Your Success Path is not linked to a verified planner save. Reopen your 90-day plan and save it again.');
-      }
-
+      const snapshot = receiptIsComplete ? rawSnapshot : null;
       const selectedStageId = snapshot?.confirmed_stage ?? successPath?.stageId ?? 'offer';
-
+      const firstMoves = parseRows<MastermindFirstMove>(firstMovesResult.data);
       setData({
         cycle,
         successPath,
         snapshot,
         selectedStageId,
         hasConfirmedStage: Boolean(snapshot?.confirmed_stage && snapshot.confirmed_at),
+        action: actionResult.data as MastermindAction | null,
         firstMoves,
+        onboarding,
       });
-    } catch (err) {
-      console.error('Error loading Mastermind Success Path:', err);
-      setError(err instanceof Error ? err.message : 'Unable to load your Success Path.');
+    } catch (caught) {
+      console.error(caught);
+      setError(safeErrorMessage(caught, 'Unable to load your Success Path.'));
       setData(null);
     } finally {
       setIsLoading(false);
@@ -171,74 +261,88 @@ export function useMastermindSuccessPath(cycleId?: string) {
     void loadSuccessPath();
   }, [loadSuccessPath]);
 
-  const saveSelection = useCallback(async (stageId: MastermindStageId, milestoneId: string) => {
-    if (!data?.cycle || !data.snapshot?.planner_receipt_id) {
-      throw new Error('Save your 90-day plan successfully before choosing a Success Path focus.');
-    }
-
-    const stage = getMastermindStage(stageId);
-    const milestone = stage.milestones.find((item) => item.id === milestoneId);
-    if (!milestone) throw new Error('Choose a milestone from your current Success Path focus.');
-
-    setIsSaving(true);
-    setError(null);
-
-    try {
-      const { data: authData, error: authError } = await supabase.auth.getUser();
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('Sign in to save your Success Path.');
-
-      const recommendedStage = data.successPath?.stageId ?? stageId;
-      const now = new Date().toISOString();
-
-      const { data: savedRow, error: saveError } = await db
-        .from('cycle_success_path_snapshots')
-        .upsert({
-          user_id: authData.user.id,
-          cycle_id: data.cycle.cycle_id,
+  const confirmStage = useCallback(
+    async (stageId: MastermindStageId) => {
+      if (!data?.cycle) throw new Error('Save your 90-day plan first.');
+      if (!data.snapshot?.planner_receipt_id) {
+        throw new Error('Save your verified 90-day plan before confirming a focus.');
+      }
+      setIsSaving(true);
+      setError(null);
+      try {
+        const milestone = getMastermindStage(stageId).milestones[0];
+        const result = await db.rpc('confirm_mastermind_success_path', {
+          p_cycle_id: data.cycle.cycle_id,
+          p_stage: stageId,
+          p_milestone_id: milestone.id,
           planner_receipt_id: data.snapshot.planner_receipt_id,
-          recommended_stage: recommendedStage,
-          confirmed_stage: stageId,
-          recommendation_reason: data.successPath?.reason ?? 'Selected by the member.',
-          recommendation_evidence: data.successPath?.evidenceLabel ?? null,
-          current_milestone_id: milestone.id,
-          current_milestone_title: milestone.label,
-          curriculum_version: 'success-path-v1',
-          confirmed_at: now,
-        }, { onConflict: 'user_id,cycle_id' })
-        .select(SNAPSHOT_SELECT)
-        .single();
+        });
+        if (result.error) throw result.error;
+        await loadSuccessPath();
+      } catch (caught) {
+        setError(safeErrorMessage(caught, 'Unable to confirm your focus.'));
+        throw caught;
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [data, loadSuccessPath],
+  );
 
-      if (saveError) throw saveError;
+  const scheduleAction = useCallback(
+    async (input: ActionInput) => {
+      if (!data?.cycle || !data.snapshot?.current_milestone_id) {
+        throw new Error('Confirm a focus and milestone first.');
+      }
+      setIsSaving(true);
+      setError(null);
+      try {
+        const result = await db.rpc('schedule_mastermind_success_path_action', {
+          p_cycle_id: data.cycle.cycle_id,
+          p_milestone_id: data.snapshot.current_milestone_id,
+          p_stable_key: `${data.cycle.cycle_id}:${data.snapshot.current_milestone_id}:active`,
+          p_exact_move: input.exactMove,
+          p_capacity_mode: input.capacityMode,
+          p_done_enough: input.doneEnough,
+          p_evidence: input.evidence,
+          p_scheduled_date: input.scheduledDate,
+        });
+        if (result.error) throw result.error;
+        await loadSuccessPath();
+        return result.data;
+      } catch (caught) {
+        setError(safeErrorMessage(caught, 'Unable to save this action.'));
+        throw caught;
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [data, loadSuccessPath],
+  );
 
-      const snapshot = savedRow as unknown as MastermindSuccessPathSnapshot;
-      setData((current) => current ? {
-        ...current,
-        snapshot,
-        selectedStageId: stageId,
-        hasConfirmedStage: true,
-      } : current);
-
-      return snapshot;
-    } catch (err) {
-      console.error('Error saving Mastermind Success Path:', err);
-      const message = err instanceof Error ? err.message : 'Unable to save your Success Path.';
-      setError(message);
-      throw err;
-    } finally {
-      setIsSaving(false);
-    }
-  }, [data]);
-
-  const confirmStage = useCallback(async (stageId: MastermindStageId) => {
-    const firstMilestone = getMastermindStage(stageId).milestones[0];
-    return saveSelection(stageId, firstMilestone.id);
-  }, [saveSelection]);
-
-  const selectMilestone = useCallback(async (milestoneId: string) => {
-    const stageId = data?.selectedStageId ?? data?.successPath?.stageId ?? 'offer';
-    return saveSelection(stageId, milestoneId);
-  }, [data?.selectedStageId, data?.successPath?.stageId, saveSelection]);
+  const recordCheckIn = useCallback(
+    async (input: CheckInInput) => {
+      if (!data?.action) throw new Error('Schedule your action first.');
+      setIsSaving(true);
+      setError(null);
+      try {
+        const result = await db.rpc('record_mastermind_success_path_check_in', {
+          p_action_id: data.action.action_id,
+          p_response: input.response,
+          p_evidence: input.evidence,
+          p_friction: input.friction,
+        });
+        if (result.error) throw result.error;
+        return result.data;
+      } catch (caught) {
+        setError(safeErrorMessage(caught, 'Unable to save this check-in.'));
+        throw caught;
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [data?.action],
+  );
 
   return {
     data,
@@ -246,7 +350,8 @@ export function useMastermindSuccessPath(cycleId?: string) {
     isSaving,
     error,
     confirmStage,
-    selectMilestone,
+    scheduleAction,
+    recordCheckIn,
     refetch: loadSuccessPath,
   };
 }

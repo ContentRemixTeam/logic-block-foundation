@@ -1,4 +1,5 @@
 export type MastermindStageId = 'offer' | 'find' | 'nurture' | 'sell' | 'deliver' | 'leverage';
+export type CurriculumStatus = 'Ready' | 'Refresh' | 'Gap';
 
 export interface MastermindResourceRecommendation {
   resourceId: string;
@@ -6,12 +7,6 @@ export interface MastermindResourceRecommendation {
   access: 'Core' | '30-day replays' | 'Vault' | 'Access review';
   useWhen: string;
   portalPath?: string;
-}
-
-export interface MastermindMilestone {
-  id: string;
-  label: string;
-  output: string;
 }
 
 export interface MastermindRoadmapStage {
@@ -46,7 +41,23 @@ export interface MastermindPlanCycle {
   low_energy_version: string | null;
   medium_energy_version: string | null;
   high_energy_version: string | null;
+  planner_payload?: { details?: Record<string, unknown> } | null;
   updated_at: string | null;
+}
+
+export interface MastermindMilestone {
+  id: string;
+  label: string;
+  output: string;
+}
+
+export interface CurriculumSlot extends MastermindMilestone {
+  stageId: MastermindStageId;
+  sourceTitle: string;
+  sourceOwner: 'Faith Mariah';
+  status: CurriculumStatus;
+  provenanceNote: string;
+  resourceId: string | null;
 }
 
 export interface MastermindSuccessPathOutput {
@@ -56,49 +67,58 @@ export interface MastermindSuccessPathOutput {
   evidenceLabel: string;
 }
 
-interface KeywordRule {
-  stageId: MastermindStageId;
-  keywords: string[];
-}
+const slots = (stageId: MastermindStageId, items: Array<[string, string, string, string]>): CurriculumSlot[] =>
+  items.map(([id, label, output, sourceTitle]) => ({
+    id, label, output, stageId, sourceTitle, sourceOwner: 'Faith Mariah', status: 'Gap', resourceId: null,
+    provenanceNote: 'Curriculum audit names this teaching area, but no milestone-level resource has passed source, entitlement, and playback verification.',
+  }));
 
-export const MASTERMIND_STAGE_MILESTONES: Record<MastermindStageId, MastermindMilestone[]> = {
-  offer: [
-    { id: 'offer-focus', label: 'Choose the money-making focus', output: 'One active revenue stream for this quarter.' },
-    { id: 'offer-buyer', label: 'Choose the buyer and problem', output: 'One buyer doorway, paid problem, and piece of demand evidence.' },
-    { id: 'offer-mvp', label: 'Build the minimum viable offer', output: 'A clear promise, scope, delivery format, price, and boundary.' },
-    { id: 'offer-validate', label: 'Validate by making offers', output: 'A dated validation test with invitations and real response evidence.' },
-  ],
-  find: [
-    { id: 'find-path', label: 'Choose one discovery path', output: 'One channel or outreach route with a four-week test.' },
-    { id: 'find-create', label: 'Create discovery content or outreach', output: 'Four focused pieces or outreach attempts with one next step.' },
-    { id: 'find-bridge', label: 'Build the bridge to your email list', output: 'One live opt-in or invitation connected to the offer.' },
-    { id: 'find-evaluate', label: 'Repeat and evaluate discovery', output: 'Enough reach and opt-in evidence to choose the next test.' },
-  ],
-  nurture: [
-    { id: 'nurture-map', label: 'Map the nurture ecosystem', output: 'A simple path from discovery to email to invitation.' },
-    { id: 'nurture-content', label: 'Create content with a job', output: 'Four nurture ideas tied to a belief, proof, conversation, or invitation.' },
-    { id: 'nurture-email', label: 'Create a simple email system', output: 'A live welcome email or sequence and sustainable send rhythm.' },
-    { id: 'nurture-evaluate', label: 'Learn from audience behavior', output: 'Replies, clicks, questions, and buying signals translated into one next test.' },
-  ],
-  sell: [
-    { id: 'sell-math', label: 'Set the sales target and math', output: 'A revenue target, sales needed, and invitation target.' },
-    { id: 'sell-process', label: 'Choose one sales process', output: 'One capacity-fit route for making and following up on offers.' },
-    { id: 'sell-run', label: 'Run the complete sales cycle', output: 'The full invitation, follow-up, and close sequence completed.' },
-    { id: 'sell-evaluate', label: 'Evaluate and repeat', output: 'A neutral debrief and one keep, change, or test-next decision.' },
-  ],
-  deliver: [
-    { id: 'deliver-result', label: 'Map the customer result', output: 'A customer success path and definition of successful completion.' },
-    { id: 'deliver-first-win', label: 'Onboard to the first win', output: 'A clear first-win action and one improved onboarding step.' },
-    { id: 'deliver-follow-through', label: 'Support follow-through', output: 'A progress measure, check-in rhythm, and stuck-customer response.' },
-    { id: 'deliver-proof', label: 'Turn delivery into proof and improvement', output: 'A feedback and testimonial loop with one chosen improvement.' },
-  ],
-  leverage: [
-    { id: 'leverage-constraint', label: 'Find the real operational constraint', output: 'One named constraint and one workflow chosen for improvement.' },
-    { id: 'leverage-simplify', label: 'Simplify and document what works', output: 'One reduced workflow with a minimum standard, owner, and review rhythm.' },
-    { id: 'leverage-choice', label: 'Choose the right leverage', output: 'A remove, simplify, automate, AI, delegate, or hire decision with a reason.' },
-    { id: 'leverage-evaluate', label: 'Lead through evidence and capacity', output: 'A small operating scorecard and proof of less founder dependence.' },
-  ],
+export const MASTERMIND_CURRICULUM_MANIFEST: readonly CurriculumSlot[] = [
+  ...slots('offer', [
+    ['offer-focus', 'Choose the money-making focus', 'One active revenue stream for this quarter.', 'Mastermind Success Plan'],
+    ['offer-buyer', 'Choose the buyer and problem', 'One buyer doorway, paid problem, and piece of demand evidence.', 'Products & Offers'],
+    ['offer-mvp', 'Build the minimum viable offer', 'A clear promise, scope, delivery format, price, and boundary.', 'Products & Offers'],
+    ['offer-validate', 'Validate by making offers', 'A dated validation test with invitations and real response evidence.', 'Messy Action Sprints'],
+  ]),
+  ...slots('find', [
+    ['find-path', 'Choose one discovery path', 'One channel or outreach route with a four-week test.', 'Content Creation'],
+    ['find-create', 'Create discovery content or outreach', 'Four focused pieces or outreach attempts with one next step.', 'Content Creation'],
+    ['find-bridge', 'Build the bridge to your email list', 'One live opt-in or invitation connected to the offer.', 'Grow Your Email List'],
+    ['find-evaluate', 'Repeat and evaluate discovery', 'Enough reach and opt-in evidence to choose the next test.', 'Mastermind Coaching'],
+  ]),
+  ...slots('nurture', [
+    ['nurture-map', 'Map the nurture ecosystem', 'A simple path from discovery to email to invitation.', 'Grow Your Email List'],
+    ['nurture-content', 'Create content with a job', 'Four nurture ideas tied to a belief, proof, conversation, or invitation.', 'Content Creation'],
+    ['nurture-email', 'Create a simple email system', 'A live welcome email or sequence and sustainable send rhythm.', 'Grow Your Email List'],
+    ['nurture-evaluate', 'Learn from audience behavior', 'Replies, clicks, questions, and buying signals translated into one next test.', 'Mastermind Coaching'],
+  ]),
+  ...slots('sell', [
+    ['sell-math', 'Set the sales target and math', 'A revenue target, sales needed, and invitation target.', 'Sales & Marketing'],
+    ['sell-process', 'Choose one sales process', 'One capacity-fit route for making and following up on offers.', 'Sales & Marketing'],
+    ['sell-run', 'Run the complete sales cycle', 'The full invitation, follow-up, and close sequence completed.', 'Messy Action Sprints'],
+    ['sell-evaluate', 'Evaluate and repeat', 'A neutral debrief and one keep, change, or test-next decision.', 'Mastermind Coaching'],
+  ]),
+  ...slots('deliver', [
+    ['deliver-result', 'Map the customer result', 'A customer success path and definition of successful completion.', 'Mastermind Coaching'],
+    ['deliver-first-win', 'Onboard to the first win', 'A clear first-win action and one improved onboarding step.', 'Organization & Systems'],
+    ['deliver-follow-through', 'Support follow-through', 'A progress measure, check-in rhythm, and stuck-customer response.', 'Organization & Systems'],
+    ['deliver-proof', 'Turn delivery into proof and improvement', 'A feedback and testimonial loop with one chosen improvement.', 'Mastermind Coaching'],
+  ]),
+  ...slots('leverage', [
+    ['leverage-constraint', 'Find the real operational constraint', 'One named constraint and one workflow chosen for improvement.', 'Organization & Systems'],
+    ['leverage-simplify', 'Simplify and document what works', 'One reduced workflow with a minimum standard, owner, and review rhythm.', 'Organization & Systems'],
+    ['leverage-choice', 'Choose the right leverage', 'A remove, simplify, automate, AI, delegate, or hire decision with a reason.', 'Faith AI'],
+    ['leverage-evaluate', 'Lead through evidence and capacity', 'A small operating scorecard and proof of less founder dependence.', '90-Day Planning'],
+  ]),
+] as const;
+
+export const MASTERMIND_STAGE_ORDER: readonly MastermindStageId[] = ['offer', 'find', 'nurture', 'sell', 'deliver', 'leverage'];
+export const MASTERMIND_STAGE_LABELS: Record<MastermindStageId, string> = {
+  offer: 'Offer', find: 'Find', nurture: 'Nurture', sell: 'Sell', deliver: 'Deliver', leverage: 'Leverage',
 };
+export const MASTERMIND_STAGE_MILESTONES = Object.fromEntries(
+  MASTERMIND_STAGE_ORDER.map((stageId) => [stageId, MASTERMIND_CURRICULUM_MANIFEST.filter((slot) => slot.stageId === stageId)]),
+) as Record<MastermindStageId, CurriculumSlot[]>;
 
 export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
   {
@@ -259,126 +279,39 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
   },
 ];
 
-const KEYWORD_RULES: KeywordRule[] = [
-  {
-    stageId: 'offer',
-    keywords: ['offer', 'pricing', 'price', 'package', 'promise', 'niche', 'buyer', 'what to sell', 'product', 'program'],
-  },
-  {
-    stageId: 'find',
-    keywords: ['discover', 'visibility', 'traffic', 'reach', 'followers', 'views', 'subscribers', 'email list', 'leads', 'lead gen', 'platform'],
-  },
-  {
-    stageId: 'nurture',
-    keywords: ['nurture', 'warm', 'email', 'newsletter', 'trust', 'relationship', 'engagement', 'click', 'reply', 'bridge'],
-  },
-  {
-    stageId: 'sell',
-    keywords: ['sell', 'sales', 'convert', 'conversion', 'launch', 'webinar', 'pitch', 'checkout', 'sales page', 'follow up', 'follow-up', 'invitation', 'close'],
-  },
-  {
-    stageId: 'deliver',
-    keywords: ['deliver', 'delivery', 'client results', 'customer results', 'onboarding', 'retention', 'renewal', 'testimonial', 'proof', 'referral', 'refund', 'fulfillment'],
-  },
-  {
-    stageId: 'leverage',
-    keywords: ['leverage', 'system', 'automate', 'automation', 'delegate', 'simplify', 'capacity', 'burnout', 'overwhelm', 'manual', 'operations', 'workflow'],
-  },
-];
-
 export function getMastermindStage(stageId: MastermindStageId) {
   return MASTERMIND_SUCCESS_STAGES.find((stage) => stage.id === stageId) ?? MASTERMIND_SUCCESS_STAGES[0];
 }
 
+const text = (value: unknown) => typeof value === 'string' && value.trim().length > 0;
+const list = (value: unknown) => Array.isArray(value) && value.some((item) => text(item) || (item && typeof item === 'object'));
+
+/** First unproven link in the money path. Scores and keywords are intentionally ignored. */
 export function inferMastermindSuccessPath(cycle: MastermindPlanCycle | null): MastermindSuccessPathOutput | null {
-  if (!cycle) return null;
-
-  const normalizedGoal = cycle.goal?.trim().toLowerCase();
-  const isPlaceholderCycle = ['my 90-day goal', 'my 90 day goal', 'n'].includes(normalizedGoal)
-    && !cycle.biggest_bottleneck
-    && !cycle.audience_target
-    && !cycle.signature_message;
-  if (isPlaceholderCycle) return null;
-
-  const directText = (cycle.biggest_bottleneck ?? '').trim().toLowerCase();
-  const fullText = [
-    cycle.goal,
-    cycle.why,
-    cycle.biggest_bottleneck,
-    cycle.audience_target,
-    cycle.audience_frustration,
-    cycle.signature_message,
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
-
-  const keywordMatch = findKeywordMatch(directText || fullText);
-  if (keywordMatch) {
-    return {
-      stageId: keywordMatch.stageId,
-      confidence: directText ? 'high' : 'medium',
-      reason: `Your plan language points to "${keywordMatch.keyword}" as the first place to investigate.`,
-      evidenceLabel: cycle.biggest_bottleneck || cycle.focus_area || 'Plan language',
-    };
-  }
-
-  if (!cycle.audience_target && !cycle.signature_message) {
-    return {
-      stageId: 'offer',
-      confidence: 'medium',
-      reason: 'Your plan is missing buyer or message detail, so the offer needs to get concrete before downstream tactics can work.',
-      evidenceLabel: 'Buyer/message fields are still blank',
-    };
-  }
-
-  const diagnostic = getLowestDiagnostic(cycle);
-  if (diagnostic) {
-    return diagnostic;
-  }
-
+  if (!cycle || !text(cycle.goal) || ['my 90-day goal', 'my 90 day goal', 'n'].includes(cycle.goal.trim().toLowerCase())) return null;
+  const d = cycle.planner_payload?.details ?? {};
+  const evidence: Array<[MastermindStageId, boolean, string]> = [
+    ['offer', list(d.offers) && text(cycle.audience_target) && text(cycle.audience_frustration), 'a named offer plus buyer and paid problem evidence'],
+    ['find', text(d.leadPlatform) && text(d.leadFrequency) && Boolean(d.leadCommitted), 'a committed discovery channel and cadence'],
+    ['nurture', (list(d.nurturePlatforms) || text(d.nurtureMethod)) && text(d.freeTransformation), 'a nurture path and free transformation'],
+    ['sell', text(d.revenueGoal) && (list(d.promotions) || list(d.limitedOffers) || text(d.launchSchedule)), 'sales math and a dated invitation plan'],
+    ['deliver', list(d.proofMethods) && (text(d.metric1Name) || text(d.metric2Name) || text(d.metric3Name)), 'delivery proof and a result measure'],
+    ['leverage', list(d.recurringTasks) && (list(d.projects) || list(d.habits)), 'a repeatable operating workflow with an owner or rhythm'],
+  ];
+  const broken = evidence.find(([, proven]) => !proven) ?? evidence[evidence.length - 1];
+  const prior = evidence.slice(0, evidence.indexOf(broken)).filter(([, proven]) => proven).length;
   return {
-    stageId: 'offer',
-    confidence: 'low',
-    reason: 'There is not enough evidence to recommend a path yet. Start by checking whether the offer is clear before adding downstream tactics.',
-    evidenceLabel: 'Needs a quick path check',
+    stageId: broken[0],
+    confidence: prior === 0 ? 'low' : 'medium',
+    reason: `This is the first link in Offer → Find → Nurture → Sell → Deliver → Leverage that your saved plan does not yet prove. We need ${broken[2]} before moving downstream.`,
+    evidenceLabel: `Saved planner evidence: ${prior} earlier link${prior === 1 ? '' : 's'} proven`,
   };
 }
 
-function findKeywordMatch(text: string) {
-  if (!text.trim()) return null;
-
-  for (const rule of KEYWORD_RULES) {
-    const keyword = rule.keywords.find((term) => text.includes(term));
-    if (keyword) {
-      return { stageId: rule.stageId, keyword };
-    }
-  }
-
-  return null;
+export function getCurriculumSlot(milestoneId: string) {
+  return MASTERMIND_CURRICULUM_MANIFEST.find((slot) => slot.id === milestoneId) ?? null;
 }
 
-function getLowestDiagnostic(cycle: MastermindPlanCycle): MastermindSuccessPathOutput | null {
-  const scores = [
-    { stageId: 'find' as const, label: 'Discover', score: cycle.discover_score },
-    { stageId: 'nurture' as const, label: 'Nurture', score: cycle.nurture_score },
-    { stageId: 'sell' as const, label: 'Convert', score: cycle.convert_score },
-  ].filter((item): item is { stageId: 'find' | 'nurture' | 'sell'; label: string; score: number } =>
-    typeof item.score === 'number'
-  );
-
-  if (scores.length === 0) return null;
-
-  const sortedScores = [...scores].sort((a, b) => a.score - b.score);
-  const lowest = sortedScores[0];
-  const highest = sortedScores[sortedScores.length - 1];
-
-  if (lowest.score === 5 && highest.score === 5) return null;
-
-  return {
-    stageId: lowest.stageId,
-    confidence: lowest.score <= 6 ? 'medium' : 'low',
-    reason: `${lowest.label} is your lowest diagnostic score, so this is the first part of the money path to test.`,
-    evidenceLabel: `${lowest.label}: ${lowest.score}/10`,
-  };
+export function getRenderableCurriculumResourceId(slot: CurriculumSlot) {
+  return slot.status === 'Ready' && slot.resourceId?.trim() ? slot.resourceId : null;
 }

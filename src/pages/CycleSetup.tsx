@@ -1398,6 +1398,7 @@ export default function CycleSetup() {
         low_energy_version: lowEnergyVersion || null,
         medium_energy_version: mediumEnergyVersion || null,
         high_energy_version: highEnergyVersion || null,
+        planner_payload: { details: buildDraftData() },
         updated_at: new Date().toISOString(),
       });
 

@@ -8,16 +8,14 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MastermindGate } from '@/components/membership/MastermindGate';
 import { SuccessPathPlanCard } from '@/components/mastermind/SuccessPathPlanCard';
+import { MastermindWelcomeWizard } from '@/components/mastermind/MastermindWelcomeWizard';
 import {
   MASTERMIND_PORTAL_RESOURCES,
   type MastermindPortalAccess,
   type MastermindPortalResource,
 } from '@/data/mastermindPortalResources';
 import { useMastermindSuccessPath } from '@/hooks/useMastermindSuccessPath';
-import {
-  MASTERMIND_SUCCESS_STAGES,
-  type MastermindResourceRecommendation,
-} from '@/lib/mastermindSuccessPath';
+import { MASTERMIND_SUCCESS_STAGES, getMastermindStage } from '@/lib/mastermindSuccessPath';
 import { isDefaultMastermindPortalResource, searchMastermindPortalResources } from '@/lib/mastermindPortalSearch';
 import { getStorageItem, setStorageItem } from '@/lib/storage';
 import {
@@ -55,13 +53,13 @@ export default function MastermindHub() {
     isSaving: successPathSaving,
     error: successPathError,
     confirmStage,
-    selectMilestone,
+    scheduleAction,
+    recordCheckIn,
   } = useMastermindSuccessPath(cycleId);
   const [searchQuery, setSearchQuery] = useState('');
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [resourceFilter, setResourceFilter] = useState<ResourceFilterId>('all');
   const [activeTab, setActiveTab] = useState('path');
-  const [showMilestones, setShowMilestones] = useState(false);
 
   useEffect(() => {
     const stored = getStorageItem(STORAGE_KEY);
@@ -90,32 +88,6 @@ export default function MastermindHub() {
 
   const selectedStageId = successPathData?.selectedStageId ?? 'offer';
   const selectedStage = MASTERMIND_SUCCESS_STAGES.find((stage) => stage.id === selectedStageId) ?? MASTERMIND_SUCCESS_STAGES[0];
-  const currentMilestoneId = successPathData?.snapshot?.current_milestone_id ?? selectedStage.milestones[0].id;
-  const currentMilestone = selectedStage.milestones.find((milestone) => milestone.id === currentMilestoneId)
-    ?? selectedStage.milestones[0];
-
-  const handleStageSelect = async (stageId: typeof selectedStageId) => {
-    if (!successPathData?.cycle) {
-      navigate('/cycle-setup');
-      return;
-    }
-
-    try {
-      await confirmStage(stageId);
-    } catch {
-      // The hook keeps the member on the current saved focus and exposes the error inline.
-    }
-  };
-
-  const handleMilestoneSelect = async (milestoneId: string) => {
-    try {
-      await selectMilestone(milestoneId);
-      setShowMilestones(false);
-    } catch {
-      // The hook preserves the previous saved milestone and exposes the error inline.
-    }
-  };
-
   const resourceFilters = useMemo(() => (
     [
       { id: 'all' as const, label: 'All' },
@@ -177,12 +149,6 @@ export default function MastermindHub() {
     }
   };
 
-  const handleOpenRecommendedResource = (recommendation: MastermindResourceRecommendation) => {
-    const resource = MASTERMIND_PORTAL_RESOURCES.find((item) => item.id === recommendation.resourceId);
-    if (!resource || !isDefaultMastermindPortalResource(resource)) return;
-    handleOpen(resource);
-  };
-
   return (
     <Layout>
       <MastermindGate>
@@ -222,166 +188,47 @@ export default function MastermindHub() {
               <TabsTrigger value="resources">Resources</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="path" className="space-y-4">
-              <SuccessPathPlanCard
-                cycle={successPathData?.cycle}
-                successPath={successPathData?.successPath}
-                firstMoves={successPathData?.firstMoves ?? []}
-                selectedStageId={selectedStageId}
-                isLoading={successPathLoading}
-                onBuildPlan={() => navigate('/cycle-setup')}
-                onOpenResource={handleOpenRecommendedResource}
-                onAddToPlan={() => {
-                  const cycleId = successPathData?.cycle?.cycle_id;
-                  navigate(cycleId ? `/cycle-setup?edit=${cycleId}` : '/cycle-setup');
-                }}
-              />
-
-              {successPathData?.hasConfirmedStage && (
-                <p className="text-sm text-muted-foreground">
-                  <CheckCircle2 className="mr-1 inline h-4 w-4 text-primary" />
-                  {selectedStage.label} is saved as the focus for this 90-day cycle.
-                </p>
+            <TabsContent value="path" className="space-y-4 overflow-x-hidden">
+              {successPathLoading && (
+                <Card><CardContent className="p-6" role="status" aria-live="polite">Loading your plan…</CardContent></Card>
               )}
-
+              {!successPathLoading && !successPathData?.onboarding?.completed_at && (
+                <MastermindWelcomeWizard onComplete={() => navigate('/cycle-setup')} />
+              )}
+              {!successPathLoading && successPathData?.onboarding?.completed_at && !successPathData?.cycle && (
+                <Card><CardContent className="space-y-4 p-6">
+                  <h2 className="text-xl font-bold">Build your canonical 90-day plan</h2>
+                  <p className="text-sm text-muted-foreground">Your welcome context is saved. The planner now collects the current-quarter evidence used for your recommendation.</p>
+                  <Button className="min-h-11" onClick={() => navigate('/cycle-setup')}>Continue to cycle setup</Button>
+                </CardContent></Card>
+              )}
+              {!successPathLoading && successPathData?.cycle && successPathData.successPath && (
+                <SuccessPathPlanCard
+                  cycle={successPathData.cycle}
+                  successPath={successPathData.successPath}
+                  selectedStageId={selectedStageId}
+                  confirmed={successPathData.hasConfirmedStage}
+                  milestoneId={successPathData.snapshot?.current_milestone_id ?? getMastermindStage(selectedStageId).milestones[0].id}
+                  action={successPathData.action}
+                  firstMoves={successPathData.firstMoves}
+                  saving={successPathSaving}
+                  onConfirm={confirmStage}
+                  onSchedule={scheduleAction}
+                  onCheckIn={recordCheckIn}
+                />
+              )}
+              {!successPathLoading && successPathData?.cycle && !successPathData.successPath && (
+                <Card><CardContent className="space-y-4 p-6">
+                  <h2 className="font-bold">Your planner needs real evidence</h2>
+                  <p className="text-sm text-muted-foreground">We cannot recommend a focus from a placeholder goal. Reopen cycle setup and finish the saved plan.</p>
+                  <Button className="min-h-11" onClick={() => navigate(`/cycle-setup?edit=${successPathData.cycle?.cycle_id}`)}>Finish cycle setup</Button>
+                </CardContent></Card>
+              )}
               {successPathError && (
-                <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                <p role="alert" aria-live="assertive" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
                   Your previous focus is still safe. We could not save this change: {successPathError}
                 </p>
               )}
-
-              <Card>
-                <CardHeader>
-                  <Badge variant="outline" className="w-fit">Current milestone</Badge>
-                  <CardTitle>{currentMilestone.label}</CardTitle>
-                  <CardDescription>{currentMilestone.output}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button variant="outline" onClick={() => setShowMilestones((open) => !open)}>
-                    {showMilestones ? 'Keep this milestone' : 'Choose a different milestone'}
-                  </Button>
-
-                  {showMilestones && (
-                    <div className="grid gap-2">
-                      {selectedStage.milestones.map((milestone, index) => (
-                        <button
-                          key={milestone.id}
-                          type="button"
-                          disabled={successPathSaving}
-                          onClick={() => void handleMilestoneSelect(milestone.id)}
-                          className={cn(
-                            'flex items-start gap-3 rounded-lg border p-3 text-left transition hover:border-primary/50 hover:bg-muted/40',
-                            milestone.id === currentMilestone.id && 'border-primary bg-primary/5',
-                            successPathSaving && 'cursor-wait opacity-70'
-                          )}
-                        >
-                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                            {index + 1}
-                          </span>
-                          <span>
-                            <span className="block text-sm font-semibold">{milestone.label}</span>
-                            <span className="block text-xs text-muted-foreground">{milestone.output}</span>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Does this focus feel right?</CardTitle>
-                  <CardDescription>
-                    Choose the area that is the real constraint. Your choice is saved to this 90-day cycle and stays here when you return.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {MASTERMIND_SUCCESS_STAGES.map((stage) => (
-                      <button
-                        key={stage.id}
-                        type="button"
-                        disabled={successPathSaving}
-                        onClick={() => void handleStageSelect(stage.id)}
-                        className={cn(
-                          'flex items-center justify-between gap-3 rounded-lg border bg-card p-3 text-left transition hover:border-primary/50 hover:bg-muted/40',
-                          selectedStageId === stage.id && 'border-primary bg-primary/5 shadow-sm',
-                          successPathSaving && 'cursor-wait opacity-70'
-                        )}
-                      >
-                        <div>
-                          <p className="text-sm font-semibold">{stage.label}</p>
-                          <p className="text-xs text-muted-foreground">{stage.memberQuestion}</p>
-                        </div>
-                        {selectedStageId === stage.id && <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />}
-                      </button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
-                <Card>
-                  <CardHeader>
-                    <Badge variant="outline" className="mb-2 w-fit">{selectedStage.label} support</Badge>
-                    <CardTitle>Learn only when the next move needs help.</CardTitle>
-                    <CardDescription>
-                      Start with one resource. The plan is the work — the curriculum supports it.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-3">
-                      {selectedStage.resources.map((resource, index) => (
-                        <div key={resource.title} className="rounded-lg border p-4">
-                          <div className="flex items-start gap-3">
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                              {index + 1}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <p className="font-medium leading-snug">{resource.title}</p>
-                                <Badge variant="outline" className="text-[11px]">{resource.access}</Badge>
-                              </div>
-                              <p className="mt-1 text-sm text-muted-foreground">{resource.useWhen}</p>
-                              <Button
-                                variant="link"
-                                className="mt-2 h-auto p-0"
-                                onClick={() => handleOpenRecommendedResource(resource)}
-                              >
-                                Open resource
-                                <ArrowRight className="ml-1 h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <Sparkles className="h-4 w-4 text-primary" />
-                      Get unstuck
-                    </CardTitle>
-                    <CardDescription>
-                      Bring the real thing you tried and what happened. That gives Faith enough evidence to coach the next decision.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="rounded-lg bg-muted/50 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Bring this question</p>
-                      <p className="mt-2 text-sm">{selectedStage.supportPrompt}</p>
-                    </div>
-                    <Button className="w-full" onClick={() => window.open('https://airtable.com/appP01GhbZAtwT4nN/shrIRdOHFXijc8462', '_blank', 'noopener,noreferrer')}>
-                      Ask Faith
-                      <ExternalLink className="ml-2 h-4 w-4" />
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
             </TabsContent>
 
             {SHOW_VIDEO_SEARCH && MastermindVideoSearch && (

@@ -1,157 +1,398 @@
-import { ArrowRight, CheckCircle2, Sparkles } from 'lucide-react';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import type { MastermindFirstMove } from '@/hooks/useMastermindSuccessPath';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import type { MastermindAction, MastermindFirstMove } from '@/hooks/useMastermindSuccessPath';
 import {
+  MASTERMIND_STAGE_LABELS,
+  getCurriculumSlot,
   getMastermindStage,
   type MastermindPlanCycle,
-  type MastermindResourceRecommendation,
   type MastermindStageId,
   type MastermindSuccessPathOutput,
 } from '@/lib/mastermindSuccessPath';
 
+interface ActionForm {
+  exactMove: string;
+  capacityMode: string;
+  doneEnough: string;
+  evidence: string;
+  scheduledDate: string;
+}
+
+interface CheckInForm {
+  response: string;
+  evidence: string;
+  friction: string;
+}
+
 interface SuccessPathPlanCardProps {
-  cycle: MastermindPlanCycle | null | undefined;
-  successPath: MastermindSuccessPathOutput | null | undefined;
-  firstMoves: MastermindFirstMove[];
+  cycle: MastermindPlanCycle;
+  successPath: MastermindSuccessPathOutput;
   selectedStageId: MastermindStageId;
-  isLoading: boolean;
-  onBuildPlan: () => void;
-  onOpenResource: (resource: MastermindResourceRecommendation) => void;
-  onAddToPlan: () => void;
+  confirmed: boolean;
+  milestoneId: string;
+  action: MastermindAction | null;
+  firstMoves: MastermindFirstMove[];
+  saving: boolean;
+  onConfirm: (stage: MastermindStageId) => Promise<void>;
+  onSchedule: (value: ActionForm) => Promise<unknown>;
+  onCheckIn: (value: CheckInForm) => Promise<unknown>;
 }
 
-const PLACEHOLDER_GOALS = new Set(['my 90-day goal', 'my 90 day goal', 'n']);
+const MAX_ACTION_LENGTH = 500;
+const MAX_CHECK_IN_LENGTH = 1000;
+const CHECK_IN_RESPONSES = ['Continue', 'Improve', 'Reduce', 'Support'] as const;
 
-function getRealGoal(goal: string | null | undefined) {
-  const normalized = goal?.trim().toLowerCase();
-  if (!normalized || PLACEHOLDER_GOALS.has(normalized)) return null;
-  return goal?.trim() ?? null;
+function messageFromError(value: unknown, fallback: string) {
+  return value instanceof Error && value.message ? value.message : fallback;
 }
 
-/** The member-facing Success Plan: one focus, three moves, one finish line. */
+function supportSuggestion(value: unknown) {
+  if (typeof value !== 'object' || value === null) return null;
+  const suggestion = (value as Record<string, unknown>).support_suggestion;
+  return typeof suggestion === 'string' && suggestion.trim() ? suggestion : null;
+}
+
 export function SuccessPathPlanCard({
   cycle,
   successPath,
-  firstMoves,
   selectedStageId,
-  isLoading,
-  onBuildPlan,
-  onOpenResource,
-  onAddToPlan,
+  confirmed,
+  milestoneId,
+  action,
+  firstMoves,
+  saving,
+  onConfirm,
+  onSchedule,
+  onCheckIn,
 }: SuccessPathPlanCardProps) {
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="p-6 text-sm text-muted-foreground">
-          <Sparkles className="mr-2 inline h-4 w-4 animate-pulse" />
-          Building your Success Plan…
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!cycle || !successPath) {
-    return (
-      <Card className="border-primary/30 bg-primary/5">
-        <CardContent className="space-y-4 p-6">
-          <Badge variant="secondary" className="text-[11px]">Start here</Badge>
-          <div>
-            <h2 className="text-2xl font-bold leading-tight">Choose one result for the next 90 days.</h2>
-            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Answer a few questions and we’ll turn your goal into one focused path, three next moves, and the smallest useful set of support.
-            </p>
-          </div>
-          <Button onClick={onBuildPlan}>
-            Build My Success Plan
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
+  const [showStageChoices, setShowStageChoices] = useState(false);
+  const [form, setForm] = useState<ActionForm>({
+    exactMove: '',
+    capacityMode: 'standard',
+    doneEnough: '',
+    evidence: '',
+    scheduledDate: '',
+  });
+  const [checkIn, setCheckIn] = useState<CheckInForm>({
+    response: 'Continue',
+    evidence: '',
+    friction: '',
+  });
+  const [actionStatus, setActionStatus] = useState('');
+  const [checkInStatus, setCheckInStatus] = useState('');
+  const [localError, setLocalError] = useState('');
 
   const stage = getMastermindStage(selectedStageId);
-  const realGoal = getRealGoal(cycle.goal);
-  const firstResource = stage.resources[0];
-  const verifiedMoves = firstMoves.map((move) => move.task_text.trim()).filter(Boolean);
-  const visibleMoves = verifiedMoves.length > 0 ? verifiedMoves : stage.messyActionSprint;
-  const lowBatteryMove = cycle.low_energy_version?.trim();
+  const milestone = getCurriculumSlot(milestoneId) ?? stage.milestones[0];
+  const verifiedFirstMoves = firstMoves
+    .map((move) => move.task_text.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+  const lowBatteryVersion = cycle.low_energy_version?.trim();
+
+  const updateForm = (key: keyof ActionForm, value: string) => {
+    setForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const confirm = async (stageId: MastermindStageId) => {
+    setLocalError('');
+    try {
+      await onConfirm(stageId);
+    } catch (caught) {
+      setLocalError(messageFromError(caught, 'We could not confirm that focus. Please try again.'));
+    }
+  };
+
+  const schedule = async () => {
+    setLocalError('');
+    setActionStatus('');
+    const fields = [form.exactMove, form.doneEnough, form.evidence];
+    if (fields.some((value) => !value.trim()) || !form.scheduledDate) {
+      setLocalError('Complete the action, done-enough, evidence, and date fields.');
+      return;
+    }
+    if (fields.some((value) => value.trim().length > MAX_ACTION_LENGTH)) {
+      setLocalError(`Keep each action answer to ${MAX_ACTION_LENGTH} characters or fewer.`);
+      return;
+    }
+    try {
+      await onSchedule({
+        ...form,
+        exactMove: form.exactMove.trim(),
+        doneEnough: form.doneEnough.trim(),
+        evidence: form.evidence.trim(),
+      });
+      setActionStatus('Task saved to My Plan.');
+    } catch (caught) {
+      setLocalError(messageFromError(caught, 'We could not save this task. Please try again.'));
+    }
+  };
+
+  const saveCheckIn = async () => {
+    setLocalError('');
+    setCheckInStatus('');
+    if (!checkIn.evidence.trim()) {
+      setLocalError('Add a short note about what happened before saving your check-in.');
+      return;
+    }
+    if (
+      checkIn.evidence.trim().length > MAX_CHECK_IN_LENGTH ||
+      checkIn.friction.trim().length > MAX_CHECK_IN_LENGTH
+    ) {
+      setLocalError(`Keep each check-in answer to ${MAX_CHECK_IN_LENGTH} characters or fewer.`);
+      return;
+    }
+    try {
+      const receipt = await onCheckIn({
+        ...checkIn,
+        evidence: checkIn.evidence.trim(),
+        friction: checkIn.friction.trim(),
+      });
+      setCheckInStatus(
+        supportSuggestion(receipt) ?? 'Check-in saved. Your focus stayed the same.',
+      );
+    } catch (caught) {
+      setLocalError(messageFromError(caught, 'We could not save this check-in. Please try again.'));
+    }
+  };
 
   return (
-    <Card className="overflow-hidden border-primary/30 bg-primary/5">
-      <CardContent className="p-0">
-        <div className="space-y-4 p-6 md:p-8">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary" className="text-[11px]">Your 90-day focus</Badge>
-            <Badge variant="outline" className="text-[11px]">{stage.label}</Badge>
-          </div>
-
-          <div className="max-w-3xl">
-            <h2 className="text-2xl font-bold leading-tight md:text-3xl">{stage.milestone}</h2>
-            {realGoal && (
-              <p className="mt-2 text-sm text-muted-foreground">This supports your goal: {realGoal}</p>
-            )}
-          </div>
-
-          <div className="rounded-xl border bg-background/80 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Why this path</p>
-            <p className="mt-1 text-sm leading-relaxed">
-              {successPath.stageId === selectedStageId
-                ? successPath.reason
-                : `You chose the ${stage.label} path because it feels like the most important constraint to solve first.`}
+    <Card className="overflow-hidden border-primary/30">
+      <CardHeader>
+        <div className="flex flex-wrap gap-2">
+          <Badge>Your focus</Badge>
+          <Badge variant="outline">{stage.label}</Badge>
+          <Badge variant="outline">{successPath.confidence} confidence</Badge>
+        </div>
+        <CardTitle className="break-words">{cycle.goal}</CardTitle>
+        <CardDescription>{successPath.reason}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {!confirmed ? (
+          <div className="rounded-lg border bg-muted/30 p-4">
+            <p className="font-semibold">
+              Does {MASTERMIND_STAGE_LABELS[successPath.stageId]} feel like the first broken link?
             </p>
-          </div>
-
-          <div>
-            <p className="text-sm font-semibold">
-              {verifiedMoves.length > 0 ? 'Your verified first moves' : 'Your next three moves'}
+            <p className="mt-1 text-sm text-muted-foreground">
+              Your recommendation is not your path until you confirm it.
             </p>
-            <div className="mt-3 grid gap-3 md:grid-cols-3">
-              {visibleMoves.map((step, index) => (
-                <div key={step} className="flex gap-3 rounded-xl border bg-background p-4">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                    {index + 1}
-                  </div>
-                  <p className="text-sm leading-relaxed">{step}</p>
-                </div>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <Button
+                className="min-h-11"
+                disabled={saving}
+                onClick={() => void confirm(successPath.stageId)}
+              >
+                Confirm this focus
+              </Button>
+              <Button
+                className="min-h-11"
+                variant="outline"
+                onClick={() => setShowStageChoices(true)}
+              >
+                Change focus
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <p role="status" className="text-sm">
+            Focus confirmed by you. It will not change from a check-in.
+          </p>
+        )}
+
+        {(showStageChoices || confirmed) && (
+          <details open={showStageChoices} className="rounded-lg border p-4">
+            <summary className="min-h-11 cursor-pointer font-medium">
+              Deliberately change focus
+            </summary>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {Object.entries(MASTERMIND_STAGE_LABELS).map(([id, label]) => (
+                <Button
+                  key={id}
+                  variant={id === selectedStageId ? 'default' : 'outline'}
+                  className="min-h-11"
+                  disabled={saving}
+                  onClick={() => void confirm(id as MastermindStageId)}
+                >
+                  {label}
+                </Button>
               ))}
             </div>
+          </details>
+        )}
+
+        {verifiedFirstMoves.length > 0 && (
+          <div>
+            <p className="text-sm font-semibold">Your verified first moves</p>
+            <ol className="mt-2 space-y-2">
+              {verifiedFirstMoves.map((move) => (
+                <li key={move} className="rounded-md border bg-background px-3 py-2 text-sm">
+                  {move}
+                </li>
+              ))}
+            </ol>
           </div>
+        )}
 
-          {lowBatteryMove && (
-            <div className="rounded-xl border border-primary/20 bg-background p-4">
-              <Badge variant="outline" className="text-[11px]">Low-battery version</Badge>
-              <p className="mt-2 text-sm leading-relaxed">{lowBatteryMove}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                On a hard week, this smaller move still counts.
-              </p>
+        {lowBatteryVersion && (
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Low-battery version
+            </p>
+            <p className="mt-1 text-sm">{cycle.low_energy_version}</p>
+          </div>
+        )}
+
+        <div>
+          <p className="text-xs font-semibold uppercase text-muted-foreground">
+            One active milestone
+          </p>
+          <h3 className="mt-1 text-xl font-bold">{milestone.label}</h3>
+          <p className="text-sm text-muted-foreground">{milestone.output}</p>
+        </div>
+
+        <div className="rounded-lg border border-dashed p-4">
+          <Badge variant="secondary">{milestone.status}</Badge>
+          <p className="mt-2 font-medium">{milestone.sourceTitle}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            This resource is not available here yet. The source still needs milestone-level
+            verification. Bring your exact attempt and result to support; no unverified link is
+            exposed.
+          </p>
+        </div>
+
+        {confirmed && (
+          <div className="space-y-4 border-t pt-5">
+            <h3 className="font-semibold">Schedule the smallest useful action</h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="exactMove">Exact move</Label>
+                <Input
+                  id="exactMove"
+                  className="min-h-11"
+                  maxLength={MAX_ACTION_LENGTH}
+                  value={form.exactMove}
+                  onChange={(event) => updateForm('exactMove', event.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="doneEnough">What counts as done enough?</Label>
+                <Input
+                  id="doneEnough"
+                  className="min-h-11"
+                  maxLength={MAX_ACTION_LENGTH}
+                  value={form.doneEnough}
+                  onChange={(event) => updateForm('doneEnough', event.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="actionEvidence">What evidence will you collect?</Label>
+                <Input
+                  id="actionEvidence"
+                  className="min-h-11"
+                  maxLength={MAX_ACTION_LENGTH}
+                  value={form.evidence}
+                  onChange={(event) => updateForm('evidence', event.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="scheduledDate">Date</Label>
+                <Input
+                  id="scheduledDate"
+                  type="date"
+                  className="min-h-11"
+                  value={form.scheduledDate}
+                  onChange={(event) => updateForm('scheduledDate', event.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="capacityMode">Capacity mode</Label>
+                <select
+                  id="capacityMode"
+                  className="min-h-11 w-full rounded-md border bg-background px-3"
+                  value={form.capacityMode}
+                  onChange={(event) => updateForm('capacityMode', event.target.value)}
+                >
+                  <option value="minimum">Minimum</option>
+                  <option value="standard">Standard</option>
+                  <option value="stretch">Stretch</option>
+                </select>
+              </div>
             </div>
-          )}
-
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Button onClick={onAddToPlan}>
-              Update My 90-Day Plan
-              <ArrowRight className="ml-2 h-4 w-4" />
+            <Button className="min-h-11" disabled={saving} onClick={() => void schedule()}>
+              Save to my plan
             </Button>
-            {firstResource && (
-              <Button variant="outline" onClick={() => onOpenResource(firstResource)}>
-                Open My Starting Resource
-              </Button>
+            {(actionStatus || action) && (
+              <p role="status" aria-live="polite" className="text-sm text-muted-foreground">
+                {actionStatus || 'Task saved to My Plan.'}
+              </p>
             )}
           </div>
-        </div>
+        )}
 
-        <div className="border-t bg-background/60 px-6 py-4 md:px-8">
-          <div className="flex items-start gap-2">
-            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            <p className="text-sm">
-              <span className="font-semibold">You’ll know this path is working when: </span>
-              {stage.definitionOfDone.join(' · ')}
-            </p>
+        {action && (
+          <div className="space-y-4 border-t pt-5">
+            <div>
+              <h3 className="font-semibold">30–60 second check-in</h3>
+              <p className="text-sm text-muted-foreground">
+                This records support evidence. It never reroutes your focus.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {CHECK_IN_RESPONSES.map((response) => (
+                <Button
+                  className="min-h-11"
+                  key={response}
+                  variant={checkIn.response === response ? 'default' : 'outline'}
+                  onClick={() => setCheckIn((current) => ({ ...current, response }))}
+                >
+                  {response}
+                </Button>
+              ))}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="checkEvidence">What happened?</Label>
+              <Input
+                id="checkEvidence"
+                className="min-h-11"
+                maxLength={MAX_CHECK_IN_LENGTH}
+                value={checkIn.evidence}
+                onChange={(event) =>
+                  setCheckIn((current) => ({ ...current, evidence: event.target.value }))
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="friction">What made the move difficult?</Label>
+              <Input
+                id="friction"
+                className="min-h-11"
+                maxLength={MAX_CHECK_IN_LENGTH}
+                value={checkIn.friction}
+                onChange={(event) =>
+                  setCheckIn((current) => ({ ...current, friction: event.target.value }))
+                }
+              />
+            </div>
+            <Button className="min-h-11" disabled={saving} onClick={() => void saveCheckIn()}>
+              Save check-in
+            </Button>
+            {checkInStatus && (
+              <p role="status" aria-live="polite" className="text-sm">
+                {checkInStatus}
+              </p>
+            )}
           </div>
-        </div>
+        )}
+
+        {localError && (
+          <p role="alert" aria-live="assertive" className="text-sm text-destructive">
+            {localError}
+          </p>
+        )}
       </CardContent>
     </Card>
   );

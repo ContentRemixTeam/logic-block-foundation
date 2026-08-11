@@ -52,6 +52,16 @@ const savedCycle = {
   low_energy_version: 'Send one direct invitation',
   medium_energy_version: 'Finish the sales page draft and send one follow-up',
   high_energy_version: 'Run the complete sales sprint',
+  planner_payload: {
+    details: {
+      offers: [{ name: 'Becoming Boss' }],
+      leadPlatform: 'Podcast',
+      leadFrequency: 'Weekly',
+      leadCommitted: true,
+      nurtureMethod: 'Email',
+      freeTransformation: 'Choose the next money move',
+    },
+  },
   updated_at: '2026-08-08T00:00:00.000Z',
 };
 
@@ -434,7 +444,19 @@ function buildMockScript(cycle) {
     if (url.includes('/rest/v1/cycle_revenue_plan')) {
       return json(null);
     }
+    if (url.includes('/rest/v1/mastermind_onboarding_profiles')) {
+      return json({
+        business_context: 'Building a durable offer engine',
+        reason_joined: 'Create consistent revenue',
+        support_preference: 'Specific next steps',
+        capacity_constraints: 'Low-battery weeks',
+        completed_at: '2026-08-08T00:00:00.000Z'
+      });
+    }
     if (url.includes('/rest/v1/cycle_success_path_snapshots')) {
+      return json(null);
+    }
+    if (url.includes('/rest/v1/mastermind_success_path_actions')) {
       return json(null);
     }
     if (url.includes('/rest/v1/cycles_90_day')) {
@@ -569,20 +591,19 @@ async function runChecks(client, checks, label) {
   await assertNoHorizontalOverflow(client, `${label} initial view`);
 
   if (checks.includes('savedCyclePath')) {
-    await waitFor(client, 'document.body.innerText.includes("Your 90-day focus")', `${label} saved-cycle path`);
-    await assertText(client, 'Your 90-day focus');
-    await assertText(client, 'Run one complete sales cycle with follow-up and a real debrief.');
-    await assertText(client, 'Your next three moves');
-    await assertText(client, 'Name the warmest 10 people, segments, or audience signals available right now.');
-    await assertText(client, 'Ask Faith');
+    await waitFor(client, 'document.body.innerText.includes("Confirm this focus")', `${label} saved-cycle path`);
+    await assertText(client, 'Does Sell feel like the first broken link?');
+    await assertText(client, 'Set the sales target and math');
+    await assertText(client, 'Gap');
+    await assertText(client, 'This resource is not available here yet.');
+    await assertNoText(client, 'Open My Starting Resource');
     await clickText(client, 'Get Support');
     await waitFor(client, 'document.body.innerText.includes("Enable Faith AI")', `${label} support tab`);
     await assertText(client, 'Enable Faith AI');
     await clickText(client, 'Success Path');
-    await waitFor(client, 'document.body.innerText.includes("Your 90-day focus")', `${label} return to Success Path`);
+    await waitFor(client, 'document.body.innerText.includes("Confirm this focus")', `${label} return to Success Path`);
     await assertNoHorizontalOverflow(client, `${label} Success Path`);
 
-    await assertText(client, 'Open My Starting Resource');
     await clickText(client, 'Resources');
     await waitFor(client, 'document.body.innerText.includes("Resource finder")', `${label} resources tab`);
     await assertText(client, 'Sales & Marketing');
@@ -592,9 +613,9 @@ async function runChecks(client, checks, label) {
   }
 
   if (checks.includes('noCyclePrompt')) {
-    await waitFor(client, 'document.body.innerText.includes("Choose one result for the next 90 days.")', `${label} no-cycle prompt`);
-    await assertText(client, 'Build My Success Plan');
-    await assertNoText(client, 'Your 90-day focus');
+    await waitFor(client, 'document.body.innerText.includes("Build your canonical 90-day plan")', `${label} no-cycle prompt`);
+    await assertText(client, 'Continue to cycle setup');
+    await assertNoText(client, 'Confirm this focus');
     await assertNoHorizontalOverflow(client, `${label} no-cycle state`);
   }
 
