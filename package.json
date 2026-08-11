@@ -11,6 +11,8 @@
     "preview": "vite preview",
     "verify:mastermind-portal": "node tools/verify-mastermind-portal.mjs",
     "verify:mastermind-success-path": "node tools/verify-mastermind-success-path.mjs",
+    "verify:cycle-plan-reconciliation": "node tools/verify-cycle-plan-reconciliation.mjs",
+    "verify:cycle-plan-postgres": "python3 tools/verify-cycle-plan-reconciliation-postgres.py",
     "verify:replay-vault": "node tools/verify-replay-vault.mjs",
     "verify:mastermind-bundle": "node tools/verify-mastermind-bundle.mjs",
     "verify:mastermind-server-search": "node tools/verify-mastermind-server-search.mjs",
@@ -23,7 +25,8 @@
     "verify:replay-vault-import": "python3 tools/verify-replay-vault-import.py",
     "enrich:replay-vault-import": "python3 tools/enrich-replay-vault-media-manifest.py",
     "migrate:replay-vault-media": "python3 tools/migrate-replay-vault-media-to-dropbox.py",
-    "verify": "npm run verify:mastermind-portal && npm run verify:mastermind-success-path && npm run verify:replay-vault && npm run verify:mastermind-server-search && npm run verify:mastermind-playback-link && npm run qa:mastermind-live-gates:mock && tsc --noEmit && npm run build && npm run verify:mastermind-bundle && npm run verify:mastermind-browser"
+    "verify": "npm run verify:mastermind-portal && npm run verify:mastermind-success-path && npm run verify:cycle-plan-reconciliation && npm run verify:cycle-draft-honesty && npm run verify:cycle-plan-postgres && npm run verify:replay-vault && npm run verify:mastermind-server-search && npm run verify:mastermind-playback-link && npm run qa:mastermind-live-gates:mock && tsc --noEmit && npm run build && npm run verify:mastermind-bundle && npm run verify:mastermind-browser",
+    "verify:cycle-draft-honesty": "node tools/verify-cycle-draft-honesty.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

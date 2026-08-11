@@ -87,73 +87,25 @@ Deno.serve(async (req) => {
       );
     }
 
-    // No active cycle - auto-create one
-    console.log('No active cycle found - auto-creating one');
-
-    const today = new Date();
-    const endDate = new Date(today);
-    endDate.setDate(endDate.getDate() + 90);
-
-    const { data: newCycle, error: cycleError } = await supabaseClient
-      .from('cycles_90_day')
-      .insert({
-        user_id: userId,
-        start_date: today.toISOString().split('T')[0],
-        end_date: endDate.toISOString().split('T')[0],
-        goal: 'My 90-Day Goal',
-        why: '',
-        identity: '',
-        target_feeling: '',
-        supporting_projects: [],
-        discover_score: 5,
-        nurture_score: 5,
-        convert_score: 5,
-        focus_area: null,
-      })
-      .select()
-      .single();
-
-    if (cycleError) {
-      console.error('Error auto-creating cycle:', cycleError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to create cycle' }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    console.log('Cycle auto-created successfully:', newCycle.cycle_id);
-
-    // Return cycle data in same format as RPC
+    // No active cycle. Only the canonical planner may create one.
+    console.log('No active cycle found - canonical planner setup is required');
     return new Response(
       JSON.stringify({
-        cycle: {
-          cycle_id: newCycle.cycle_id,
-          goal: newCycle.goal,
-          why: newCycle.why,
-          identity: newCycle.identity,
-          target_feeling: newCycle.target_feeling,
-          start_date: newCycle.start_date,
-          end_date: newCycle.end_date,
-          days_remaining: 90,
-          discover_score: newCycle.discover_score,
-          nurture_score: newCycle.nurture_score,
-          convert_score: newCycle.convert_score,
-          focus_area: newCycle.focus_area,
-        },
-        auto_created: true,
+        cycle: null,
+        auto_created: false,
+        requires_setup: true,
+        setup_path: '/cycle-setup',
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in get-current-cycle-or-create:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: error?.message || 'Unknown error' }),
+      JSON.stringify({ error: message }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
