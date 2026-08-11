@@ -25,8 +25,9 @@
     "verify:replay-vault-import": "python3 tools/verify-replay-vault-import.py",
     "enrich:replay-vault-import": "python3 tools/enrich-replay-vault-media-manifest.py",
     "migrate:replay-vault-media": "python3 tools/migrate-replay-vault-media-to-dropbox.py",
-    "verify": "npm run verify:mastermind-portal && npm run verify:mastermind-success-path && npm run verify:cycle-plan-reconciliation && npm run verify:cycle-draft-honesty && npm run verify:cycle-plan-postgres && npm run verify:replay-vault && npm run verify:mastermind-server-search && npm run verify:mastermind-playback-link && npm run qa:mastermind-live-gates:mock && tsc --noEmit && npm run build && npm run verify:mastermind-bundle && npm run verify:mastermind-browser",
-    "verify:cycle-draft-honesty": "node tools/verify-cycle-draft-honesty.mjs"
+    "verify": "npm run verify:mastermind-portal && npm run verify:mastermind-success-path && npm run verify:cycle-plan-reconciliation && npm run verify:cycle-draft-honesty && npm run verify:cycle-plan-postgres && npm run verify:coaching-queue && npm run verify:replay-vault && npm run verify:mastermind-server-search && npm run verify:mastermind-playback-link && npm run qa:mastermind-live-gates:mock && tsc --noEmit && npm run build && npm run verify:mastermind-bundle && npm run verify:mastermind-browser",
+    "verify:cycle-draft-honesty": "node tools/verify-cycle-draft-honesty.mjs",
+    "verify:coaching-queue": "node --experimental-strip-types tools/verify-coaching-queue.mjs && python3 tools/verify-coaching-queue-postgres.py"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

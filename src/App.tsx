@@ -114,7 +114,9 @@ const Projects = lazyWithRetry(() => import('./pages/Projects'));
 const ProjectDetail = lazyWithRetry(() => import('./pages/ProjectDetail'));
 const MastermindHub = lazyWithRetry(() => import('./pages/MastermindHub'));
 const ReplayVault = lazyWithRetry(() => import('./pages/ReplayVault'));
+const CoachingQueuePilot = lazyWithRetry(() => import('./pages/CoachingQueuePilot'));
 const MastermindGate = lazyWithRetry(() => import('./components/mastermind/MastermindGate').then(m => ({ default: m.MastermindGate })));
+const CoachingQueuePilotGate = lazyWithRetry(() => import('./components/mastermind/CoachingQueuePilotGate').then(m => ({ default: m.CoachingQueuePilotGate })));
 const MastermindRosterImport = lazyWithRetry(() => import('./pages/MastermindRosterImport'));
 const WorkshopPlanner = lazyWithRetry(() => import('./pages/WorkshopPlanner'));
 const TrialSignup = lazyWithRetry(() => import('./pages/TrialSignup'));
@@ -272,6 +274,7 @@ const App = () => (
                       <Route path="/mastermind" element={<ProtectedRoute><MastermindGate><PageSuspense><MastermindHub /></PageSuspense></MastermindGate></ProtectedRoute>} />
                       <Route path="/mastermind/success-path/:cycleId" element={<ProtectedRoute><MastermindGate><PageSuspense><MastermindHub /></PageSuspense></MastermindGate></ProtectedRoute>} />
                       <Route path="/mastermind/replay-vault" element={<ProtectedRoute><MastermindGate><PageSuspense><ReplayVault /></PageSuspense></MastermindGate></ProtectedRoute>} />
+                      <Route path="/mastermind/coaching-queue-pilot" element={<ProtectedRoute><MastermindGate><CoachingQueuePilotGate><PageSuspense><CoachingQueuePilot /></PageSuspense></CoachingQueuePilotGate></MastermindGate></ProtectedRoute>} />
                       <Route path="/admin/mastermind-roster" element={<ProtectedRoute><PageSuspense><MastermindRosterImport /></PageSuspense></ProtectedRoute>} />
                       <Route path="/support" element={<ProtectedRoute><PageSuspense><Support /></PageSuspense></ProtectedRoute>} />
                       <Route path="/help/browser-storage" element={<ProtectedRoute><PageSuspense><BrowserStorageHelp /></PageSuspense></ProtectedRoute>} />
