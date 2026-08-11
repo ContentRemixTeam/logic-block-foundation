@@ -56,6 +56,7 @@ export interface MastermindSuccessPathSnapshot {
 export interface MastermindAction {
   action_id: string;
   task_id: string;
+  planner_receipt_id: string;
   stable_key: string;
   exact_move: string;
   capacity_mode: 'minimum' | 'standard' | 'stretch';
@@ -294,9 +295,11 @@ export function useMastermindSuccessPath(cycleId?: string) {
         }
         if (!curriculumUnavailable) {
           const actionResult = await db.from('mastermind_success_path_actions')
-            .select('action_id,task_id,stable_key,exact_move,capacity_mode,done_enough,evidence,scheduled_date')
+            .select('action_id,task_id,planner_receipt_id,stable_key,exact_move,capacity_mode,done_enough,evidence,scheduled_date')
             .eq('user_id', authData.user.id).eq('cycle_id', cycle.cycle_id)
-            .eq('milestone_id', snapshot.current_milestone_id).is('retired_at', null).maybeSingle();
+            .eq('milestone_id', snapshot.current_milestone_id)
+            .eq('planner_receipt_id', snapshot.planner_receipt_id)
+            .is('retired_at', null).maybeSingle();
           if (actionResult.error) throw actionResult.error;
           action = actionResult.data as MastermindAction | null;
         }

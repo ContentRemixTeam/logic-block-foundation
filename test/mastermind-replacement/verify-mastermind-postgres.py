@@ -15,6 +15,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 ROOT = Path(__file__).resolve().parents[2]
 MIGRATION = ROOT / "supabase/migrations/20260811120000_mastermind_planner_replacement.sql"
+REPAIR_MIGRATION = ROOT / "supabase/migrations/20260811183000_mastermind_action_receipt_provenance.sql"
 FIXTURE = Path(__file__).with_name("postgres-fixture.sql")
 PG_BIN = Path("/opt/homebrew/opt/postgresql@16/bin")
 USER_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
@@ -99,6 +100,7 @@ def main() -> None:
 
         run(connection + ["-f", FIXTURE], cwd=ROOT, env=env)
         run(connection + ["-f", MIGRATION], cwd=ROOT, env=env)
+        run(connection + ["-f", REPAIR_MIGRATION], cwd=ROOT, env=env)
         passed: list[str] = []
 
         def prove(label: str, condition: bool, detail: str = "") -> None:
@@ -107,7 +109,7 @@ def main() -> None:
             passed.append(label)
             print(f"PASS: {label}")
 
-        prove("exact migration applies with ON_ERROR_STOP=1", True)
+        prove("base and forward-only receipt provenance migrations apply with ON_ERROR_STOP=1", True)
         catalog = sql("SELECT count(*), count(*) FILTER (WHERE status='Gap' AND resource_id IS NULL) FROM public.mastermind_curriculum_catalog;")
         prove("catalog has exactly 24 all-Gap null resources", catalog == "24|24", catalog)
 
@@ -189,8 +191,8 @@ def main() -> None:
         schedule(CYCLE_A, "offer-buyer", f"{CYCLE_A}:offer-buyer:active", ok=False)
         schedule(CYCLE_A, "offer-focus", stable_key, user=USER_B, ok=False)
         first_action = json.loads(schedule(CYCLE_A, "offer-focus", stable_key))
-        counts = sql(f"SELECT (SELECT count(*) FROM public.tasks WHERE user_id='{USER_A}'), (SELECT count(*) FROM public.mastermind_success_path_actions WHERE user_id='{USER_A}');")
-        prove("action rejects unconfirmed, bad key, wrong milestone, and cross-owner then creates one task/action", counts == "1|1", counts)
+        counts = sql(f"SELECT (SELECT count(*) FROM public.tasks WHERE user_id='{USER_A}'), (SELECT count(*) FROM public.mastermind_success_path_actions WHERE user_id='{USER_A}'), (SELECT bool_and(planner_receipt_id='{RECEIPT_A}') FROM public.mastermind_success_path_actions WHERE user_id='{USER_A}');")
+        prove("action rejects unconfirmed, bad key, wrong milestone, and cross-owner then creates one receipt-bound task/action", counts == "1|1|t", counts)
 
         replay_action = json.loads(schedule(CYCLE_A, "offer-focus", stable_key))
         replay_counts = sql(f"SELECT (SELECT count(*) FROM public.tasks WHERE user_id='{USER_A}'), (SELECT count(*) FROM public.mastermind_success_path_actions WHERE user_id='{USER_A}');")
@@ -252,6 +254,15 @@ def main() -> None:
         prove("new planner receipt invalidates prior confirmation for schedule and check-in", invalidated == "t", invalidated)
 
         confirm(CYCLE_A, "offer", "offer-focus", RECEIPT_A_NEW)
+        same_milestone_reconfirm = sql(f"SELECT count(*) FILTER (WHERE retired_at IS NOT NULL),count(*) FILTER (WHERE retired_at IS NULL),bool_and(planner_receipt_id='{RECEIPT_A}') FROM public.mastermind_success_path_actions WHERE user_id='{USER_A}' AND cycle_id='{CYCLE_A}';")
+        check_in("Continue", ok=False)
+        prove("same-milestone reconfirm under receipt B retires receipt A action and does not reauthorize check-in", same_milestone_reconfirm == "1|0|t", same_milestone_reconfirm)
+
+        rescheduled_action = json.loads(schedule(CYCLE_A, "offer-focus", stable_key))
+        rescheduled_state = sql(f"SELECT count(*) FILTER (WHERE retired_at IS NULL),bool_and(planner_receipt_id='{RECEIPT_A_NEW}') FILTER (WHERE retired_at IS NULL) FROM public.mastermind_success_path_actions WHERE user_id='{USER_A}' AND cycle_id='{CYCLE_A}';")
+        rescheduled_check_in = json.loads(check_in("Continue"))
+        prove("explicit reschedule reactivates the stable action only under receipt B and then check-in succeeds", rescheduled_state == "1|t" and rescheduled_action["action_id"] == action_id and rescheduled_check_in["response"] == "Continue", rescheduled_state)
+
         confirm(CYCLE_A, "find", "find-path", RECEIPT_A_NEW)
         retired_state = sql(f"SELECT count(*) FILTER (WHERE retired_at IS NOT NULL),count(*) FILTER (WHERE retired_at IS NULL) FROM public.mastermind_success_path_actions WHERE user_id='{USER_A}' AND cycle_id='{CYCLE_A}';")
         check_in("Continue", ok=False)
@@ -263,11 +274,11 @@ def main() -> None:
         prove("focus change permits exactly one new active action for the current milestone", active_state == "2|1|find-path" and find_action["action_id"] != action_id, active_state)
 
         spare_task = sql(f"INSERT INTO public.tasks(user_id,cycle_id,task_text,generation_key) VALUES('{USER_A}','{CYCLE_A}','spare','spare-active') RETURNING task_id;").splitlines()[0]
-        sql(f"INSERT INTO public.mastermind_success_path_actions(user_id,cycle_id,milestone_id,stable_key,task_id,exact_move,capacity_mode,done_enough,evidence,scheduled_date) VALUES('{USER_A}','{CYCLE_A}','find-path','second-active','{spare_task}','x','standard','x','x',current_date);", ok=False)
+        sql(f"INSERT INTO public.mastermind_success_path_actions(user_id,cycle_id,milestone_id,stable_key,task_id,planner_receipt_id,exact_move,capacity_mode,done_enough,evidence,scheduled_date) VALUES('{USER_A}','{CYCLE_A}','find-path','second-active','{spare_task}','{RECEIPT_A_NEW}','x','standard','x','x',current_date);", ok=False)
         prove("partial unique invariant rejects a second active action in a cycle", True)
 
         mismatched_task = sql(f"INSERT INTO public.tasks(user_id,cycle_id,task_text,generation_key) VALUES('{USER_B}','{CYCLE_B}','mismatch','mismatch-task') RETURNING task_id;").splitlines()[0]
-        sql(f"INSERT INTO public.mastermind_success_path_actions(user_id,cycle_id,milestone_id,stable_key,task_id,exact_move,capacity_mode,done_enough,evidence,scheduled_date,retired_at) VALUES('{USER_A}','{CYCLE_UNCONFIRMED}','offer-focus','mismatched-task','{mismatched_task}','x','standard','x','x',current_date,now());", ok=False)
+        sql(f"INSERT INTO public.mastermind_success_path_actions(user_id,cycle_id,milestone_id,stable_key,task_id,planner_receipt_id,exact_move,capacity_mode,done_enough,evidence,scheduled_date,retired_at) VALUES('{USER_A}','{CYCLE_UNCONFIRMED}','offer-focus','mismatched-task','{mismatched_task}','aaaaaaaa-0000-4000-8000-000000000003','x','standard','x','x',current_date,now());", ok=False)
         prove("composite action-task FK rejects owner/cycle mismatch", True)
 
         sql(f"INSERT INTO public.mastermind_success_path_actions(user_id,cycle_id,milestone_id,stable_key,task_id,exact_move,capacity_mode,done_enough,evidence,scheduled_date) SELECT '{USER_A}','{CYCLE_A}','offer-focus','direct',task_id,'x','standard','x','x',current_date FROM public.tasks LIMIT 1;", user=USER_A, role="authenticated", ok=False)
