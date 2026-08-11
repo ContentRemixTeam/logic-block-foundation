@@ -17,6 +17,7 @@ Repository: `logic-block-foundation`
 - Live queue cards use the server-returned queue position as the single ordering authority; the client comparator is demo-only.
 - The server-owned call list ignores expired planned calls and prefers the currently open call before the next upcoming call.
 - Outcome completion locks the request before replay lookup; a forced-overlap two-session PostgreSQL test proves one creation plus one successful replay.
+- Member status and Faith's admin queue consume one canonical server ranking function. Only completed coaching counts as prior coaching; Ask Faith and private-written outcomes remain history but do not reduce live-coaching priority.
 - Added deterministic TypeScript contracts and disposable PostgreSQL behavior tests.
 
 ## Verified
@@ -26,6 +27,7 @@ Repository: `logic-block-foundation`
 - The PostgreSQL migration applies twice in a disposable PostgreSQL 16 database.
 - Runtime SQL tests prove owner privacy, denied direct writes, transactional late-arrival rollback, server-clock 15-minute close, authoritative fair order, preserved original waiting date, audited withdraw/resubmit and manual override, skipped-request carry-forward, expired-call exclusion, follow-up readback, result logging, and safe retry after the window closes.
 - A forced-overlap two-session PostgreSQL test proves simultaneous completion requests persist exactly one outcome and one Planner task while the second request returns a successful replay receipt.
+- Mixed-disposition parity tests prove every member's displayed position equals Faith's queue position for completed, Ask Faith, and private-written histories.
 - Built preview responds at `http://127.0.0.1:4173/mastermind/coaching-queue-pilot`.
 
 ## Deliberately not done

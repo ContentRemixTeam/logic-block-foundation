@@ -66,7 +66,13 @@ for (const required of [
   "'coaching_queue', 'coaching:' || p_request_id::text",
   'a failed arrival check rolls back the save',
   "AND call_row.queue_closes_at >= clock_timestamp()",
+  'CREATE OR REPLACE FUNCTION public.coaching_queue_ranked',
+  "WHERE outcome.disposition = 'completed'",
 ]) assert.ok(migration.includes(required), `missing migration contract: ${required}`);
+assert.ok(
+  (migration.match(/public\.coaching_queue_ranked\(p_call_id\)/g) || []).length >= 2,
+  'member and admin queue readers must share the canonical rank function',
+);
 const completeFunction = migration.slice(
   migration.indexOf('CREATE OR REPLACE FUNCTION public.complete_coaching_request'),
   migration.indexOf('CREATE OR REPLACE FUNCTION public.get_my_pending_coaching_followups'),

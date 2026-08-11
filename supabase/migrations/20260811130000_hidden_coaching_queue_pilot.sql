@@ -381,8 +381,18 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.get_my_coaching_queue_status(p_call_id uuid)
-RETURNS jsonb
+-- Canonical live-queue ranking. Only completed coaching sessions count as
+-- prior coaching; Ask Faith and private-written outcomes do not reduce live
+-- coaching priority. Both member status and Faith's queue consume this function.
+CREATE OR REPLACE FUNCTION public.coaching_queue_ranked(p_call_id uuid)
+RETURNS TABLE(
+  request_id uuid,
+  user_id uuid,
+  queue_position bigint,
+  total_count bigint,
+  coached_count integer,
+  last_coached_at timestamptz
+)
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
@@ -390,48 +400,74 @@ SET search_path = public
 AS $$
   WITH history AS (
     SELECT
-      member.id AS user_id,
-      count(outcome.outcome_id)::integer AS coached_count,
+      outcome.user_id,
+      count(*)::integer AS coached_count,
       max(outcome.coached_at) AS last_coached_at
-    FROM auth.users member
-    LEFT JOIN public.coaching_outcomes outcome ON outcome.user_id = member.id
-    GROUP BY member.id
-  ), ranked AS (
+    FROM public.coaching_outcomes outcome
+    WHERE outcome.disposition = 'completed'
+    GROUP BY outcome.user_id
+  ), candidates AS (
     SELECT
       request.request_id,
       request.user_id,
-      row_number() OVER (ORDER BY
-        coalesce(request.manual_priority, 10000) ASC,
-        (coalesce(history.coached_count, 0) = 0) DESC,
-        (request.deadline IS NOT NULL AND nullif(btrim(request.blocker), '') IS NOT NULL) DESC,
-        history.last_coached_at ASC NULLS FIRST,
-        request.times_skipped DESC,
-        request.returning_support_needed DESC,
-        request.waiting_since ASC,
-        request.request_id ASC
-      )::integer AS position,
-      count(*) OVER ()::integer AS total
+      coalesce(history.coached_count, 0) AS coached_count,
+      history.last_coached_at,
+      request.manual_priority,
+      request.deadline,
+      request.blocker,
+      request.times_skipped,
+      request.returning_support_needed,
+      request.waiting_since
     FROM public.coaching_requests request
     LEFT JOIN history ON history.user_id = request.user_id
     WHERE request.call_id = p_call_id
       AND request.status = 'queued'
       AND request.joined_at IS NOT NULL
   )
+  SELECT
+    candidate.request_id,
+    candidate.user_id,
+    row_number() OVER (ORDER BY
+      coalesce(candidate.manual_priority, 10000) ASC,
+      (candidate.coached_count = 0) DESC,
+      (candidate.deadline IS NOT NULL AND nullif(btrim(candidate.blocker), '') IS NOT NULL) DESC,
+      candidate.last_coached_at ASC NULLS FIRST,
+      candidate.times_skipped DESC,
+      candidate.returning_support_needed DESC,
+      candidate.waiting_since ASC,
+      candidate.request_id ASC
+    ) AS queue_position,
+    count(*) OVER () AS total_count,
+    candidate.coached_count,
+    candidate.last_coached_at
+  FROM candidates candidate;
+$$;
+
+CREATE OR REPLACE FUNCTION public.get_my_coaching_queue_status(p_call_id uuid)
+RETURNS jsonb
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  WITH ranked AS (
+    SELECT * FROM public.coaching_queue_ranked(p_call_id)
+  )
   SELECT coalesce(
     (SELECT jsonb_build_object(
       'joined', true,
-      'position', position,
-      'total', total,
+      'position', queue_position,
+      'total', total_count,
       'estimated_status', CASE
-        WHEN position = 1 THEN 'Near the front'
-        WHEN position <= 3 THEN 'In the first group'
+        WHEN queue_position = 1 THEN 'Near the front'
+        WHEN queue_position <= 3 THEN 'In the first group'
         ELSE 'In the queue'
       END
     ) FROM ranked WHERE user_id = auth.uid()),
     jsonb_build_object(
       'joined', false,
       'position', NULL,
-      'total', coalesce((SELECT max(total) FROM ranked), 0),
+      'total', coalesce((SELECT max(total_count) FROM ranked), 0),
       'estimated_status', 'Not currently in the live queue'
     )
   );
@@ -535,21 +571,14 @@ BEGIN
       review.last_checkin_at, review.latest_wins, review.latest_challenges,
       coalesce(history.coached_count, 0) AS coached_count,
       history.last_coached_at, history.previous_coaching_notes,
-      row_number() OVER (ORDER BY
-        coalesce(request.manual_priority, 10000) ASC,
-        (coalesce(history.coached_count, 0) = 0) DESC,
-        (request.deadline IS NOT NULL AND nullif(btrim(request.blocker), '') IS NOT NULL) DESC,
-        history.last_coached_at ASC NULLS FIRST,
-        request.times_skipped DESC,
-        request.returning_support_needed DESC,
-        request.waiting_since ASC,
-        request.request_id ASC
-      ) AS queue_position
+      canonical.queue_position
     FROM public.coaching_requests request
     LEFT JOIN public.user_profiles profile ON profile.id = request.user_id
     LEFT JOIN latest_cycle cycle ON cycle.user_id = request.user_id
     LEFT JOIN latest_review review ON review.user_id = request.user_id
     LEFT JOIN history ON history.user_id = request.user_id
+    LEFT JOIN public.coaching_queue_ranked(p_call_id) canonical
+      ON canonical.request_id = request.request_id
     WHERE request.call_id = p_call_id
       AND request.status IN ('queued', 'private_written')
   )
@@ -822,6 +851,8 @@ REVOKE ALL ON FUNCTION public.create_coaching_call(text, timestamptz, timestampt
 REVOKE ALL ON FUNCTION public.save_my_coaching_request(uuid, uuid, text, text, text, text, date, text, boolean, boolean, boolean, text, boolean, uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.join_my_coaching_queue(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.save_and_join_my_coaching_queue(uuid, uuid, text, text, text, text, date, text, boolean, boolean, boolean, boolean, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.coaching_queue_ranked(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.coaching_queue_ranked(uuid) FROM authenticated;
 REVOKE ALL ON FUNCTION public.get_my_coaching_queue_status(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.withdraw_my_coaching_request(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.get_admin_coaching_calls() FROM PUBLIC;

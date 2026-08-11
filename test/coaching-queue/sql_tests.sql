@@ -4,12 +4,16 @@ INSERT INTO auth.users(id, email) VALUES
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'faith@example.com'),
   ('11111111-1111-1111-1111-111111111111', 'avery@example.com'),
   ('22222222-2222-2222-2222-222222222222', 'jordan@example.com'),
-  ('33333333-3333-3333-3333-333333333333', 'morgan@example.com');
+  ('33333333-3333-3333-3333-333333333333', 'morgan@example.com'),
+  ('44444444-4444-4444-4444-444444444444', 'riley@example.com'),
+  ('55555555-5555-5555-5555-555555555555', 'casey@example.com');
 INSERT INTO public.admin_users(user_id) VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
 INSERT INTO public.user_profiles(id, email, first_name) VALUES
   ('11111111-1111-1111-1111-111111111111', 'avery@example.com', 'Avery'),
   ('22222222-2222-2222-2222-222222222222', 'jordan@example.com', 'Jordan'),
-  ('33333333-3333-3333-3333-333333333333', 'morgan@example.com', 'Morgan');
+  ('33333333-3333-3333-3333-333333333333', 'morgan@example.com', 'Morgan'),
+  ('44444444-4444-4444-4444-444444444444', 'riley@example.com', 'Riley'),
+  ('55555555-5555-5555-5555-555555555555', 'casey@example.com', 'Casey');
 INSERT INTO public.cycles_90_day(cycle_id, user_id, start_date, end_date, goal, focus_area, biggest_bottleneck)
 VALUES
   ('11111111-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '11111111-1111-1111-1111-111111111111', current_date - 10, current_date + 80, 'Sell ten spots', 'sell', 'Offer clarity'),
@@ -32,6 +36,17 @@ INSERT INTO public.coaching_requests(request_id, user_id, call_id, question, sta
 VALUES ('eeeeeeee-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'Historical question', 'coached', now() - interval '100 days');
 INSERT INTO public.coaching_outcomes(request_id, user_id, disposition, main_decision, next_action, created_by, coached_at, acknowledged_at)
 VALUES ('eeeeeeee-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'completed', 'Old decision', 'Old next action', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', now() - interval '100 days', now() - interval '99 days');
+
+-- Non-live outcomes are retained as history but do not count as completed coaching
+-- in the canonical live-queue rank.
+INSERT INTO public.coaching_requests(request_id, user_id, call_id, question, status, joined_at)
+VALUES
+  ('eeeeeeee-4444-4444-4444-444444444444', '44444444-4444-4444-4444-444444444444', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'Ask Faith history', 'ask_faith', now() - interval '1 day'),
+  ('eeeeeeee-5555-5555-5555-555555555555', '55555555-5555-5555-5555-555555555555', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'Private written history', 'private_written', now() - interval '2 days');
+INSERT INTO public.coaching_outcomes(request_id, user_id, disposition, main_decision, created_by, coached_at)
+VALUES
+  ('eeeeeeee-4444-4444-4444-444444444444', '44444444-4444-4444-4444-444444444444', 'ask_faith', 'Escalated to Ask Faith', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', now() - interval '1 day'),
+  ('eeeeeeee-5555-5555-5555-555555555555', '55555555-5555-5555-5555-555555555555', 'private_written', 'Answered privately', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', now() - interval '2 days');
 
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claims', '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}', false);
@@ -66,12 +81,30 @@ SELECT set_config('fixture.request_c', :'request_c', false);
 SELECT public.join_my_coaching_queue(:'request_c');
 RESET ROLE;
 
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claims', '{"sub":"44444444-4444-4444-4444-444444444444","role":"authenticated"}', false);
+SELECT (public.save_and_join_my_coaching_queue(
+  :'current_call_id', NULL, 'Question after Ask Faith history', NULL, NULL, NULL, NULL,
+  'live', false, false, false, false, NULL
+)->>'request_id') AS request_d \gset
+SELECT set_config('fixture.request_d', :'request_d', false);
+RESET ROLE;
+
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claims', '{"sub":"55555555-5555-5555-5555-555555555555","role":"authenticated"}', false);
+SELECT (public.save_and_join_my_coaching_queue(
+  :'current_call_id', NULL, 'Question after private written history', NULL, NULL, NULL, NULL,
+  'live', false, false, false, false, NULL
+)->>'request_id') AS request_e \gset
+SELECT set_config('fixture.request_e', :'request_e', false);
+RESET ROLE;
+
 DO $$
 DECLARE v_queue jsonb; v_first text; v_wait_before timestamptz; v_wait_after timestamptz;
 BEGIN
   PERFORM set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","role":"authenticated"}', false);
   v_queue := public.get_admin_coaching_queue(current_setting('fixture.current_call_id')::uuid);
-  IF jsonb_array_length(v_queue) <> 3 THEN RAISE EXCEPTION 'expected 3 queued cards: %', v_queue; END IF;
+  IF jsonb_array_length(v_queue) <> 5 THEN RAISE EXCEPTION 'expected 5 queued cards: %', v_queue; END IF;
   v_first := v_queue->0->>'member_name';
   IF v_first <> 'Jordan' THEN RAISE EXCEPTION 'never-coached deadline member should lead, got %', v_first; END IF;
   IF v_queue->0 ? 'manual_priority_reason' IS FALSE THEN RAISE EXCEPTION 'admin card contract incomplete'; END IF;
@@ -87,6 +120,50 @@ BEGIN
   IF v_wait_before <> v_wait_after THEN RAISE EXCEPTION 'updating a request reset its original waiting date'; END IF;
 END $$;
 
+-- Mixed completed / Ask Faith / private-written history must produce exactly
+-- the same position for Faith and the queued member.
+DO $$
+DECLARE v_queue jsonb; v_d integer; v_e integer; v_d_count integer; v_e_count integer;
+BEGIN
+  PERFORM set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","role":"authenticated"}', false);
+  v_queue := public.get_admin_coaching_queue(current_setting('fixture.current_call_id')::uuid);
+  SELECT (entry->>'queue_position')::integer INTO v_d
+  FROM jsonb_array_elements(v_queue) entry WHERE entry->>'user_id' = '44444444-4444-4444-4444-444444444444';
+  SELECT (entry->>'queue_position')::integer INTO v_e
+  FROM jsonb_array_elements(v_queue) entry WHERE entry->>'user_id' = '55555555-5555-5555-5555-555555555555';
+  IF v_d IS NULL OR v_e IS NULL THEN RAISE EXCEPTION 'admin mixed-disposition positions missing: %', v_queue; END IF;
+  PERFORM set_config('fixture.admin_d_position', v_d::text, false);
+  PERFORM set_config('fixture.admin_e_position', v_e::text, false);
+
+  SELECT coached_count INTO v_d_count FROM public.coaching_queue_ranked(current_setting('fixture.current_call_id')::uuid)
+  WHERE user_id = '44444444-4444-4444-4444-444444444444';
+  SELECT coached_count INTO v_e_count FROM public.coaching_queue_ranked(current_setting('fixture.current_call_id')::uuid)
+  WHERE user_id = '55555555-5555-5555-5555-555555555555';
+  IF v_d_count <> 0 OR v_e_count <> 0 THEN
+    RAISE EXCEPTION 'non-completed outcomes changed canonical coaching counts: D=%, E=%', v_d_count, v_e_count;
+  END IF;
+END $$;
+
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claims', '{"sub":"44444444-4444-4444-4444-444444444444","role":"authenticated"}', false);
+DO $$ DECLARE v_status jsonb; BEGIN
+  v_status := public.get_my_coaching_queue_status(current_setting('fixture.current_call_id')::uuid);
+  IF (v_status->>'position')::integer <> current_setting('fixture.admin_d_position')::integer THEN
+    RAISE EXCEPTION 'Ask Faith history member/admin position mismatch: member %, admin %', v_status->>'position', current_setting('fixture.admin_d_position');
+  END IF;
+END $$;
+RESET ROLE;
+
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claims', '{"sub":"55555555-5555-5555-5555-555555555555","role":"authenticated"}', false);
+DO $$ DECLARE v_status jsonb; BEGIN
+  v_status := public.get_my_coaching_queue_status(current_setting('fixture.current_call_id')::uuid);
+  IF (v_status->>'position')::integer <> current_setting('fixture.admin_e_position')::integer THEN
+    RAISE EXCEPTION 'private-written history member/admin position mismatch: member %, admin %', v_status->>'position', current_setting('fixture.admin_e_position');
+  END IF;
+END $$;
+RESET ROLE;
+
 -- Authenticated members cannot bypass RPC validation or read another member's request.
 BEGIN;
 SET LOCAL ROLE authenticated;
@@ -100,6 +177,11 @@ BEGIN
     INSERT INTO public.coaching_requests(user_id, call_id, question)
     VALUES ('11111111-1111-1111-1111-111111111111', current_setting('fixture.next_call_id')::uuid, 'Bypass attempt');
     RAISE EXCEPTION 'direct member insert unexpectedly succeeded';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    PERFORM 1 FROM public.coaching_queue_ranked(current_setting('fixture.current_call_id')::uuid);
+    RAISE EXCEPTION 'member directly executed the internal ranking helper';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
 END $$;
