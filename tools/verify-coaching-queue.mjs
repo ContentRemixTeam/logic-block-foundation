@@ -55,6 +55,20 @@ assert.match(pilotPage, /'save_and_join_my_coaching_queue'/);
 assert.doesNotMatch(pilotPage, /pilotRpc<[^>]+>\('join_my_coaching_queue'/);
 assert.match(pilotPage, /mode === 'live'[\s\S]+queuePosition/);
 
+const lovablePreview = fs.readFileSync(path.join(root, 'public/coaching-queue-preview.html'), 'utf8');
+for (const required of [
+  'SAFE LOVABLE PREVIEW — FAKE MEMBER DATA — NOTHING SAVES OR TOUCHES THE LIVE APP',
+  'Select your name',
+  'Quick Coaching',
+  'Five-minute hard stop',
+  'When were you last coached?',
+  'New and never coached',
+  'Related links',
+  'Relevant data or numbers',
+]) assert.ok(lovablePreview.includes(required), `missing Lovable preview contract: ${required}`);
+assert.doesNotMatch(lovablePreview, /<script\b/i);
+assert.doesNotMatch(lovablePreview, /\b(fetch|XMLHttpRequest|supabase|localStorage|sessionStorage)\b/i);
+
 const migration = fs.readFileSync(path.join(root, 'supabase/migrations/20260811130000_hidden_coaching_queue_pilot.sql'), 'utf8');
 for (const required of [
   "queue_closes_at <= starts_at + interval '15 minutes'",
