@@ -61,6 +61,7 @@ type QuarterDebriefsTable = {
     };
   };
   update: (value: Record<string, unknown>) => QuarterDebriefsTable;
+  then: PromiseLike<{ data: QuarterDebriefRow | null; error: { message?: string } | null }>['then'];
 };
 
 type BusinessSectionKey = 'lead_generation' | 'nurture' | 'sales' | 'delivery' | 'operations' | 'money';
