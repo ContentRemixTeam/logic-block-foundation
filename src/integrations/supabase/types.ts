@@ -2274,65 +2274,6 @@ export type Database = {
         }
         Relationships: []
       }
-      cycle_success_path_snapshots: {
-        Row: {
-          capacity_mode: string | null
-          confirmed_at: string
-          confirmed_stage: string
-          created_at: string
-          current_milestone_id: string | null
-          current_milestone_title: string | null
-          curriculum_version: string
-          cycle_id: string
-          recommendation_evidence: string | null
-          recommendation_reason: string | null
-          recommended_stage: string
-          snapshot_id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          capacity_mode?: string | null
-          confirmed_at?: string
-          confirmed_stage: string
-          created_at?: string
-          current_milestone_id?: string | null
-          current_milestone_title?: string | null
-          curriculum_version?: string
-          cycle_id: string
-          recommendation_evidence?: string | null
-          recommendation_reason?: string | null
-          recommended_stage: string
-          snapshot_id?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          capacity_mode?: string | null
-          confirmed_at?: string
-          confirmed_stage?: string
-          created_at?: string
-          current_milestone_id?: string | null
-          current_milestone_title?: string | null
-          curriculum_version?: string
-          cycle_id?: string
-          recommendation_evidence?: string | null
-          recommendation_reason?: string | null
-          recommended_stage?: string
-          snapshot_id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cycle_success_path_snapshots_cycle_id_fkey"
-            columns: ["cycle_id"]
-            isOneToOne: false
-            referencedRelation: "cycles_90_day"
-            referencedColumns: ["cycle_id"]
-          },
-        ]
-      }
       daily_battery_checkins: {
         Row: {
           created_at: string
