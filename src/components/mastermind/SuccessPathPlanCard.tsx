@@ -2,6 +2,7 @@ import { ArrowRight, CheckCircle2, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import type { MastermindFirstMove } from '@/hooks/useMastermindSuccessPath';
 import {
   getMastermindStage,
   type MastermindPlanCycle,
@@ -13,6 +14,7 @@ import {
 interface SuccessPathPlanCardProps {
   cycle: MastermindPlanCycle | null | undefined;
   successPath: MastermindSuccessPathOutput | null | undefined;
+  firstMoves: MastermindFirstMove[];
   selectedStageId: MastermindStageId;
   isLoading: boolean;
   onBuildPlan: () => void;
@@ -32,6 +34,7 @@ function getRealGoal(goal: string | null | undefined) {
 export function SuccessPathPlanCard({
   cycle,
   successPath,
+  firstMoves,
   selectedStageId,
   isLoading,
   onBuildPlan,
@@ -72,6 +75,9 @@ export function SuccessPathPlanCard({
   const stage = getMastermindStage(selectedStageId);
   const realGoal = getRealGoal(cycle.goal);
   const firstResource = stage.resources[0];
+  const verifiedMoves = firstMoves.map((move) => move.task_text.trim()).filter(Boolean);
+  const visibleMoves = verifiedMoves.length > 0 ? verifiedMoves : stage.messyActionSprint;
+  const lowBatteryMove = cycle.low_energy_version?.trim();
 
   return (
     <Card className="overflow-hidden border-primary/30 bg-primary/5">
@@ -99,9 +105,11 @@ export function SuccessPathPlanCard({
           </div>
 
           <div>
-            <p className="text-sm font-semibold">Your next three moves</p>
+            <p className="text-sm font-semibold">
+              {verifiedMoves.length > 0 ? 'Your verified first moves' : 'Your next three moves'}
+            </p>
             <div className="mt-3 grid gap-3 md:grid-cols-3">
-              {stage.messyActionSprint.map((step, index) => (
+              {visibleMoves.map((step, index) => (
                 <div key={step} className="flex gap-3 rounded-xl border bg-background p-4">
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                     {index + 1}
@@ -111,6 +119,16 @@ export function SuccessPathPlanCard({
               ))}
             </div>
           </div>
+
+          {lowBatteryMove && (
+            <div className="rounded-xl border border-primary/20 bg-background p-4">
+              <Badge variant="outline" className="text-[11px]">Low-battery version</Badge>
+              <p className="mt-2 text-sm leading-relaxed">{lowBatteryMove}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                On a hard week, this smaller move still counts.
+              </p>
+            </div>
+          )}
 
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button onClick={onAddToPlan}>

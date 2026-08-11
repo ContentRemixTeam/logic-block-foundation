@@ -226,6 +226,7 @@ export default function MastermindHub() {
               <SuccessPathPlanCard
                 cycle={successPathData?.cycle}
                 successPath={successPathData?.successPath}
+                firstMoves={successPathData?.firstMoves ?? []}
                 selectedStageId={selectedStageId}
                 isLoading={successPathLoading}
                 onBuildPlan={() => navigate('/cycle-setup')}

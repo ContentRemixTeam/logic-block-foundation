@@ -25,12 +25,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useCycleSetupDraft, CycleSetupDraft, SecondaryPlatform, LimitedTimeOffer, RecurringTaskDefinition, NurturePlatformDefinition } from '@/hooks/useCycleSetupDraft';
 import { SaveStatusBanner } from '@/components/cycle/SaveStatusBanner';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { AutopilotSetupModal, AutopilotOptions } from '@/components/cycle/AutopilotSetupModal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { loadCycleForExport, exportCycleAsJSON, exportCycleAsPDF, CycleExportData, generateExportFromFormData, CycleFormData, ExportResult } from '@/lib/cycleExport';
 import { PDFInstructionsModal } from '@/components/pdf/PDFInstructionsModal';
 import { PlanningLevelSelector } from '@/components/wizards/PlanningLevelSelector';
 import { PlanningLevel } from '@/types/wizard';
+import { clearCyclePlanKey, clearCyclePlanRequestId, getOrCreateCyclePlanKey, getOrCreateCyclePlanRequestId, submitCyclePlanReconciliation, type CyclePlanReconciliationPayload } from '@/lib/cyclePlanReconciliation';
+import { inferMastermindSuccessPath } from '@/lib/mastermindSuccessPath';
 
 const WORKSHOP_STORAGE_KEY = 'workshop-planner-data';
 
@@ -205,7 +206,6 @@ export default function CycleSetup() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showDraftDialog, setShowDraftDialog] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-const [showAutopilotModal, setShowAutopilotModal] = useState(false);
   const [showWorkshopImportBanner, setShowWorkshopImportBanner] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [previewData, setPreviewData] = useState<{ projects: any[]; tasks: any[] }>({ projects: [], tasks: [] });
@@ -574,7 +574,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
       const hasSignificantData = goal.trim().length > 5 || why.trim() || identity.trim() || offers.some(o => o.name.trim());
       if (hasSignificantData && !loading && !isEditMode) {
         e.preventDefault();
-        e.returnValue = 'You have unsaved changes. Your draft is saved, but are you sure you want to leave?';
+        e.returnValue = 'You have unsaved changes. Keep this page open until saving finishes.';
         return e.returnValue;
       }
     };
@@ -654,6 +654,106 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
     }
   }, [hasDraft]);
 
+  type PersistedPlannerDetails = Partial<CycleSetupDraft> & {
+    wish?: string;
+    outcome?: string;
+    obstacle?: string;
+    ifThenPlan?: string;
+    planningLevel?: PlanningLevel;
+  };
+
+  const applyPlannerDetails = useCallback((draft: PersistedPlannerDetails) => {
+    if (draft.startDate) {
+      try {
+        setStartDate(new Date(draft.startDate));
+      } catch {
+        setStartDate(new Date());
+      }
+    }
+    setGoal(draft.goal || '');
+    setWhy(draft.why || '');
+    setIdentity(draft.identity || '');
+    setFeeling(draft.feeling || '');
+    setWish(draft.wish || '');
+    setOutcome(draft.outcome || '');
+    setObstacle(draft.obstacle || '');
+    setIfThenPlan(draft.ifThenPlan || '');
+    setDiscoverScore(draft.discoverScore ?? 5);
+    setNurtureScore(draft.nurtureScore ?? 5);
+    setConvertScore(draft.convertScore ?? 5);
+    setBiggestBottleneck(draft.biggestBottleneck || '');
+    setAudienceTarget(draft.audienceTarget || '');
+    setAudienceFrustration(draft.audienceFrustration || '');
+    setSignatureMessage(draft.signatureMessage || '');
+    setKeyMessage1(draft.keyMessage1 || '');
+    setKeyMessage2(draft.keyMessage2 || '');
+    setKeyMessage3(draft.keyMessage3 || '');
+    setLeadPlatform(draft.leadPlatform || '');
+    setLeadContentType(draft.leadContentType || '');
+    setLeadFrequency(draft.leadFrequency || '');
+    setLeadPlatformGoal(draft.leadPlatformGoal || 'leads');
+    setLeadCommitted(draft.leadCommitted ?? false);
+    if (draft.secondaryPlatforms?.length) setSecondaryPlatforms(draft.secondaryPlatforms);
+    if (draft.postingDays?.length) setPostingDays(draft.postingDays);
+    setPostingTime(draft.postingTime || '');
+    setBatchDay(draft.batchDay || '');
+    setBatchFrequency(draft.batchFrequency || 'weekly');
+    setLeadGenContentAudit(draft.leadGenContentAudit || '');
+    setNurtureMethod(draft.nurtureMethod || '');
+    setNurtureFrequency(draft.nurtureFrequency || '');
+    setFreeTransformation(draft.freeTransformation || '');
+    setProofMethods(draft.proofMethods || []);
+    setNurturePostingDays(draft.nurturePostingDays || []);
+    setNurturePostingTime(draft.nurturePostingTime || '');
+    setNurtureBatchDay(draft.nurtureBatchDay || '');
+    setNurtureBatchFrequency(draft.nurtureBatchFrequency || 'weekly');
+    setNurtureContentAudit(draft.nurtureContentAudit || '');
+    setNurturePlatforms(draft.nurturePlatforms || []);
+    if (draft.offers?.length) setOffers(draft.offers);
+    if (draft.limitedOffers?.length) setLimitedOffers(draft.limitedOffers);
+    setRevenueGoal(draft.revenueGoal || '');
+    setPricePerSale(draft.pricePerSale || '');
+    setLaunchSchedule(draft.launchSchedule || '');
+    if (draft.monthPlans?.length) setMonthPlans(draft.monthPlans);
+    setMetric1Name(draft.metric1Name || '');
+    setMetric1Start(draft.metric1Start ?? '');
+    setMetric1Goal(draft.metric1Goal ?? '');
+    setMetric2Name(draft.metric2Name || '');
+    setMetric2Start(draft.metric2Start ?? '');
+    setMetric2Goal(draft.metric2Goal ?? '');
+    setMetric3Name(draft.metric3Name || '');
+    setMetric3Start(draft.metric3Start ?? '');
+    setMetric3Goal(draft.metric3Goal ?? '');
+    setMetric4Name(draft.metric4Name || '');
+    setMetric4Start(draft.metric4Start ?? '');
+    setMetric4Goal(draft.metric4Goal ?? '');
+    setMetric5Name(draft.metric5Name || '');
+    setMetric5Start(draft.metric5Start ?? '');
+    setMetric5Goal(draft.metric5Goal ?? '');
+    if (draft.projects?.length) setProjects(draft.projects);
+    if (draft.habits?.length) setHabits(draft.habits);
+    if (draft.thingsToRemember?.length) setThingsToRemember(draft.thingsToRemember);
+    setWeeklyPlanningDay(draft.weeklyPlanningDay || '');
+    setWeeklyDebriefDay(draft.weeklyDebriefDay || '');
+    setOfficeHoursStart(draft.officeHoursStart || '09:00');
+    setOfficeHoursEnd(draft.officeHoursEnd || '17:00');
+    if (draft.officeHoursDays?.length) setOfficeHoursDays(draft.officeHoursDays);
+    setAutoCreateWeeklyTasks(draft.autoCreateWeeklyTasks ?? true);
+    if (draft.recurringTasks?.length) setRecurringTasks(draft.recurringTasks);
+    setBiggestFear(draft.biggestFear || '');
+    setWhatWillYouDoWhenFearHits(draft.whatWillYouDoWhenFearHits || '');
+    setCommitmentStatement(draft.commitmentStatement || '');
+    setWhoWillHoldYouAccountable(draft.whoWillHoldYouAccountable || '');
+    if (draft.day1Top3?.length) setDay1Top3(draft.day1Top3);
+    setDay1Why(draft.day1Why || '');
+    if (draft.day2Top3?.length) setDay2Top3(draft.day2Top3);
+    setDay2Why(draft.day2Why || '');
+    if (draft.day3Top3?.length) setDay3Top3(draft.day3Top3);
+    setDay3Why(draft.day3Why || '');
+    setPlanningLevel(draft.planningLevel || 'simple');
+    setCurrentStep(draft.currentStep || 1);
+  }, []);
+
   // Load existing cycle for editing
   useEffect(() => {
     const loadExistingCycle = async () => {
@@ -721,6 +821,14 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
           setOfficeHoursEnd(cycleData.office_hours_end || '17:00');
           setOfficeHoursDays(Array.isArray(cycleData.office_hours_days) ? (cycleData.office_hours_days as string[]) : []);
 
+          const plannerDetails = (cycleData as unknown as {
+            planner_payload?: { details?: Partial<CycleSetupDraft> };
+          }).planner_payload?.details;
+
+          if (plannerDetails) {
+            applyPlannerDetails(plannerDetails);
+          } else {
+          // Legacy fallback for cycles saved before the atomic planner payload.
           // Load strategy
           const { data: strategyData } = await supabase
             .from('cycle_strategy')
@@ -781,6 +889,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
               isPrimary: o.is_primary || false,
             })));
           }
+          }
 
           toast({
             title: 'Editing cycle',
@@ -798,7 +907,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
     };
 
     loadExistingCycle();
-  }, [editCycleId, user, toast]);
+  }, [applyPlannerDetails, editCycleId, user, toast]);
 
   // Import from workshop localStorage
   const handleImportFromWorkshop = () => {
@@ -827,81 +936,8 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
   const handleRestoreDraft = useCallback(async () => {
     const draft = await loadDraft();
     if (draft) {
-      try {
-        setStartDate(new Date(draft.startDate));
-      } catch {
-        setStartDate(new Date());
-      }
-      setGoal(draft.goal || '');
-      setWhy(draft.why || '');
-      setIdentity(draft.identity || '');
-      setFeeling(draft.feeling || '');
-      setDiscoverScore(draft.discoverScore ?? 5);
-      setNurtureScore(draft.nurtureScore ?? 5);
-      setConvertScore(draft.convertScore ?? 5);
-      setBiggestBottleneck(draft.biggestBottleneck || '');
-      setAudienceTarget(draft.audienceTarget || '');
-      setAudienceFrustration(draft.audienceFrustration || '');
-      setSignatureMessage(draft.signatureMessage || '');
-      setKeyMessage1(draft.keyMessage1 || '');
-      setKeyMessage2(draft.keyMessage2 || '');
-      setKeyMessage3(draft.keyMessage3 || '');
-      setLeadPlatform(draft.leadPlatform || '');
-      setLeadContentType(draft.leadContentType || '');
-      setLeadFrequency(draft.leadFrequency || '');
-      setLeadPlatformGoal(draft.leadPlatformGoal || 'leads');
-      setLeadCommitted(draft.leadCommitted ?? false);
-      if (draft.secondaryPlatforms?.length) setSecondaryPlatforms(draft.secondaryPlatforms);
-      if (draft.postingDays?.length) setPostingDays(draft.postingDays);
-      setPostingTime(draft.postingTime || '');
-      setBatchDay(draft.batchDay || '');
-      setBatchFrequency(draft.batchFrequency || 'weekly');
-      setLeadGenContentAudit(draft.leadGenContentAudit || '');
-      setNurtureMethod(draft.nurtureMethod || '');
-      setNurtureFrequency(draft.nurtureFrequency || '');
-      setFreeTransformation(draft.freeTransformation || '');
-      setProofMethods(draft.proofMethods || []);
-      setNurturePostingDays(draft.nurturePostingDays || []);
-      setNurturePostingTime(draft.nurturePostingTime || '');
-      setNurtureBatchDay(draft.nurtureBatchDay || '');
-      setNurtureBatchFrequency(draft.nurtureBatchFrequency || 'weekly');
-      setNurtureContentAudit(draft.nurtureContentAudit || '');
-      if (draft.offers?.length) setOffers(draft.offers);
-      if (draft.limitedOffers?.length) setLimitedOffers(draft.limitedOffers);
-      setRevenueGoal(draft.revenueGoal || '');
-      setPricePerSale(draft.pricePerSale || '');
-      setLaunchSchedule(draft.launchSchedule || '');
-      if (draft.monthPlans?.length) setMonthPlans(draft.monthPlans);
-      setMetric1Name(draft.metric1Name || '');
-      setMetric1Start(draft.metric1Start ?? '');
-      setMetric2Name(draft.metric2Name || '');
-      setMetric2Start(draft.metric2Start ?? '');
-      setMetric3Name(draft.metric3Name || '');
-      setMetric3Start(draft.metric3Start ?? '');
-      if (draft.projects?.length) setProjects(draft.projects);
-      if (draft.habits?.length) setHabits(draft.habits);
-      if (draft.thingsToRemember?.length) setThingsToRemember(draft.thingsToRemember);
-      setWeeklyPlanningDay(draft.weeklyPlanningDay || '');
-      setWeeklyDebriefDay(draft.weeklyDebriefDay || '');
-      setOfficeHoursStart(draft.officeHoursStart || '09:00');
-      setOfficeHoursEnd(draft.officeHoursEnd || '17:00');
-      if (draft.officeHoursDays?.length) setOfficeHoursDays(draft.officeHoursDays);
-      setAutoCreateWeeklyTasks(draft.autoCreateWeeklyTasks ?? true);
-      // Step 8.5: Recurring Tasks
-      if (draft.recurringTasks?.length) setRecurringTasks(draft.recurringTasks);
-      // Step 9: Mindset & First 3 Days
-      setBiggestFear(draft.biggestFear || '');
-      setWhatWillYouDoWhenFearHits(draft.whatWillYouDoWhenFearHits || '');
-      setCommitmentStatement(draft.commitmentStatement || '');
-      setWhoWillHoldYouAccountable(draft.whoWillHoldYouAccountable || '');
-      if (draft.day1Top3?.length) setDay1Top3(draft.day1Top3);
-      setDay1Why(draft.day1Why || '');
-      if (draft.day2Top3?.length) setDay2Top3(draft.day2Top3);
-      setDay2Why(draft.day2Why || '');
-      if (draft.day3Top3?.length) setDay3Top3(draft.day3Top3);
-      setDay3Why(draft.day3Why || '');
-      setCurrentStep(draft.currentStep || 1);
-      
+      applyPlannerDetails(draft);
+
       toast({
         title: 'Draft restored',
         description: 'Your previous work has been loaded.',
@@ -909,7 +945,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
     }
     hasUserDismissedDraft.current = true; // Prevent dialog from re-appearing
     setShowDraftDialog(false);
-  }, [loadDraft, toast]);
+  }, [applyPlannerDetails, loadDraft, toast]);
 
   // Auto-save draft on state changes (debounced)
   useEffect(() => {
@@ -1287,7 +1323,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
     console.log('PREVIEW - Would create:', preview);
   };
 
-  const handleSubmit = async (autopilotOptions?: AutopilotOptions) => {
+  const handleSubmit = async () => {
     if (!user) return;
     
     // Prevent double submission
@@ -1315,7 +1351,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
     if (!navigator.onLine) {
       toast({
         title: "You're Offline",
-        description: "Please connect to the internet to save your cycle. Your draft is safe.",
+        description: "Please reconnect before leaving this screen so your plan can be saved.",
         variant: "destructive",
         duration: 10000,
       });
@@ -1340,963 +1376,136 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
     
     saveInProgressRef.current = true;
     setLoading(true);
-    setShowAutopilotModal(false);
-    setSaveProgress({ show: true, currentStep: 'Creating your 90-day cycle...', completedSteps: 0, totalSteps: 7 });
+    setSaveProgress({ show: true, currentStep: 'Saving your 90-day plan...', completedSteps: 0, totalSteps: 2 });
 
     try {
-      // Handle UPDATE mode
-      if (isEditMode && existingCycleId) {
-        const { error: updateError } = await supabase
-          .from('cycles_90_day')
-          .update({
-            goal,
-            why,
-            identity,
-            target_feeling: feeling,
-            wish: wish?.trim() || null,
-            outcome: outcome?.trim() || null,
-            obstacle: obstacle?.trim() || null,
-            if_then_plan: ifThenPlan?.trim() || null,
-            low_energy_version: lowEnergyVersion?.trim() || null,
-            medium_energy_version: mediumEnergyVersion?.trim() || null,
-            high_energy_version: highEnergyVersion?.trim() || null,
-            supporting_projects: projects.filter((p) => p.trim()),
-            discover_score: discoverScore,
-            nurture_score: nurtureScore,
-            convert_score: convertScore,
-            focus_area: focusArea,
-            metric_1_name: metric1Name || null,
-            metric_1_start: metric1Start === '' ? null : metric1Start,
-            metric_1_goal: metric1Goal === '' ? null : metric1Goal,
-            metric_2_name: metric2Name || null,
-            metric_2_start: metric2Start === '' ? null : metric2Start,
-            metric_2_goal: metric2Goal === '' ? null : metric2Goal,
-            metric_3_name: metric3Name || null,
-            metric_3_start: metric3Start === '' ? null : metric3Start,
-            metric_3_goal: metric3Goal === '' ? null : metric3Goal,
-            metric_4_name: metric4Name || null,
-            metric_4_start: metric4Start === '' ? null : metric4Start,
-            metric_4_goal: metric4Goal === '' ? null : metric4Goal,
-            metric_5_name: metric5Name || null,
-            metric_5_start: metric5Start === '' ? null : metric5Start,
-            metric_5_goal: metric5Goal === '' ? null : metric5Goal,
-            things_to_remember: thingsToRemember.filter((t) => t.trim()),
-            biggest_bottleneck: biggestBottleneck || null,
-            audience_target: audienceTarget || null,
-            audience_frustration: audienceFrustration || null,
-            signature_message: signatureMessage || null,
-            weekly_planning_day: weeklyPlanningDay || null,
-            weekly_debrief_day: weeklyDebriefDay || null,
-            office_hours_start: officeHoursStart || null,
-            office_hours_end: officeHoursEnd || null,
-            office_hours_days: officeHoursDays,
-            // Step 9: Mindset & First 3 Days
-            biggest_fear: biggestFear?.trim() || null,
-            fear_response: whatWillYouDoWhenFearHits?.trim() || null,
-            commitment_statement: commitmentStatement?.trim() || null,
-            accountability_person: whoWillHoldYouAccountable?.trim() || null,
-            day1_top3: day1Top3.filter(t => t?.trim()),
-            day1_why: day1Why?.trim() || null,
-            day2_top3: day2Top3.filter(t => t?.trim()),
-            day2_why: day2Why?.trim() || null,
-            day3_top3: day3Top3.filter(t => t?.trim()),
-            day3_why: day3Why?.trim() || null,
-          } as any)
-          .eq('cycle_id', existingCycleId);
-
-        if (updateError) throw updateError;
-
-        // Update strategy
-        const effectiveNurtureMethod = nurtureMethod === 'other' ? nurtureMethodCustom : nurtureMethod;
-        await supabase
-          .from('cycle_strategy')
-          .upsert({
-            cycle_id: existingCycleId,
-            user_id: user.id,
-            lead_primary_platform: leadPlatform || null,
-            lead_content_type: leadContentType || null,
-            lead_frequency: leadFrequency || null,
-            lead_committed_90_days: leadCommitted,
-            nurture_method: effectiveNurtureMethod || null,
-            nurture_frequency: nurtureFrequency || null,
-            free_transformation: freeTransformation || null,
-            proof_methods: proofMethods,
-            posting_days: postingDays,
-            posting_time: postingTime || null,
-            batch_day: batchDay || null,
-            batch_frequency: batchFrequency || 'weekly',
-            lead_gen_content_audit: leadGenContentAudit || null,
-            nurture_posting_days: nurturePlatforms[0]?.postingDays || nurturePostingDays,
-            nurture_posting_time: nurturePlatforms[0]?.postingTime || nurturePostingTime || null,
-            nurture_batch_day: (nurturePlatforms[0]?.batchDay && nurturePlatforms[0]?.batchDay !== 'none' ? nurturePlatforms[0]?.batchDay : nurtureBatchDay) || null,
-            nurture_batch_frequency: nurturePlatforms[0]?.batchFrequency || nurtureBatchFrequency || 'weekly',
-            nurture_content_audit: nurtureContentAudit || null,
-            secondary_platforms: secondaryPlatforms.filter(sp => sp.platform.trim()),
-            nurture_platforms: nurturePlatforms.filter(p => p.method.trim()),
-          } as any, { onConflict: 'cycle_id' });
-
-        toast({
-          title: '✅ Plan Updated!',
-          description: 'Your changes have been saved.',
-        });
-
-        clearDraft();
-        navigate('/cycles');
-        return;
-      }
-
-      // CREATE new cycle with RETRY LOGIC
-      const cycleInsertData = {
-        user_id: user.id,
+      const requestId = getOrCreateCyclePlanRequestId(user.id);
+      const planKey = getOrCreateCyclePlanKey(user.id);
+      const recommendation = inferMastermindSuccessPath({
+        cycle_id: existingCycleId ?? 'pending',
+        goal,
         start_date: format(startDate, 'yyyy-MM-dd'),
         end_date: format(endDate, 'yyyy-MM-dd'),
-        goal,
-        why,
-        identity,
-        target_feeling: feeling,
-        wish: wish?.trim() || null,
-        outcome: outcome?.trim() || null,
-        obstacle: obstacle?.trim() || null,
-        if_then_plan: ifThenPlan?.trim() || null,
-        low_energy_version: lowEnergyVersion?.trim() || null,
-        medium_energy_version: mediumEnergyVersion?.trim() || null,
-        high_energy_version: highEnergyVersion?.trim() || null,
-        supporting_projects: projects.filter((p) => p.trim()),
+        focus_area: focusArea,
+        biggest_bottleneck: biggestBottleneck || null,
         discover_score: discoverScore,
         nurture_score: nurtureScore,
         convert_score: convertScore,
-        focus_area: focusArea,
-        metric_1_name: metric1Name || null,
-        metric_1_start: metric1Start === '' ? null : metric1Start,
-        metric_1_goal: metric1Goal === '' ? null : metric1Goal,
-        metric_2_name: metric2Name || null,
-        metric_2_start: metric2Start === '' ? null : metric2Start,
-        metric_2_goal: metric2Goal === '' ? null : metric2Goal,
-        metric_3_name: metric3Name || null,
-        metric_3_start: metric3Start === '' ? null : metric3Start,
-        metric_3_goal: metric3Goal === '' ? null : metric3Goal,
-        metric_4_name: metric4Name || null,
-        metric_4_start: metric4Start === '' ? null : metric4Start,
-        metric_4_goal: metric4Goal === '' ? null : metric4Goal,
-        metric_5_name: metric5Name || null,
-        metric_5_start: metric5Start === '' ? null : metric5Start,
-        metric_5_goal: metric5Goal === '' ? null : metric5Goal,
-        things_to_remember: thingsToRemember.filter((t) => t.trim()),
-        biggest_bottleneck: biggestBottleneck || null,
         audience_target: audienceTarget || null,
         audience_frustration: audienceFrustration || null,
         signature_message: signatureMessage || null,
-        // Weekly routines
-        weekly_planning_day: weeklyPlanningDay || null,
-        weekly_debrief_day: weeklyDebriefDay || null,
-        office_hours_start: officeHoursStart || null,
-        office_hours_end: officeHoursEnd || null,
-        office_hours_days: officeHoursDays,
-        // Step 9: Mindset & First 3 Days (all optional)
-        biggest_fear: biggestFear?.trim() || null,
-        fear_response: whatWillYouDoWhenFearHits?.trim() || null,
-        commitment_statement: commitmentStatement?.trim() || null,
-        accountability_person: whoWillHoldYouAccountable?.trim() || null,
-        day1_top3: day1Top3.filter(t => t?.trim()),
-        day1_why: day1Why?.trim() || null,
-        day2_top3: day2Top3.filter(t => t?.trim()),
-        day2_why: day2Why?.trim() || null,
-        day3_top3: day3Top3.filter(t => t?.trim()),
-        day3_why: day3Why?.trim() || null,
-        // Promotions for dashboard widgets
-        promotions: limitedOffers
-          .filter(lto => lto.name.trim() && lto.startDate && lto.endDate)
-          .map(lto => ({
-            name: lto.name,
-            offer: lto.offerRef || '',
-            startDate: lto.startDate,
-            endDate: lto.endDate,
-            goal: lto.discount || '',
-            launchType: lto.promoType || 'open-close',
-            notes: lto.notes || ''
-          })),
+        why: why || null,
+        low_energy_version: lowEnergyVersion || null,
+        medium_energy_version: mediumEnergyVersion || null,
+        high_energy_version: highEnergyVersion || null,
+        updated_at: new Date().toISOString(),
+      });
+
+      const firstMoveTasks = [
+        { day: 1, date: day1Date ?? startDate, tasks: day1Top3, why: day1Why },
+        { day: 2, date: day2Date ?? addDays(startDate, 1), tasks: day2Top3, why: day2Why },
+        { day: 3, date: day3Date ?? addDays(startDate, 2), tasks: day3Top3, why: day3Why },
+      ].flatMap(({ day, date, tasks, why: taskWhy }) =>
+        tasks
+          .map((task, slotIndex) => ({
+            generation_key: `day-${day}:slot-${slotIndex + 1}`,
+            task_text: task?.trim() ?? '',
+            task_description: taskWhy?.trim() || null,
+            scheduled_date: format(date, 'yyyy-MM-dd'),
+            planned_day: format(date, 'yyyy-MM-dd'),
+            priority: 'high' as const,
+            category: 'first-3-days',
+            context_tags: ['first-3-days', `day-${day}`],
+          }))
+          .filter((task) => task.task_text)
+      );
+
+      const reconciliationPayload: CyclePlanReconciliationPayload = {
+        payload_version: 'cycle-plan-v1',
+        plan_key: planKey,
+        cycle_id: existingCycleId,
+        cycle: {
+          start_date: format(startDate, 'yyyy-MM-dd'),
+          end_date: format(endDate, 'yyyy-MM-dd'),
+          goal,
+          why,
+          identity,
+          target_feeling: feeling,
+          supporting_projects: projects.filter((project) => project.trim()),
+          discover_score: discoverScore,
+          nurture_score: nurtureScore,
+          convert_score: convertScore,
+          focus_area: focusArea,
+          biggest_bottleneck: biggestBottleneck || null,
+          audience_target: audienceTarget || null,
+          audience_frustration: audienceFrustration || null,
+          signature_message: signatureMessage || null,
+          low_energy_version: lowEnergyVersion || null,
+          medium_energy_version: mediumEnergyVersion || null,
+          high_energy_version: highEnergyVersion || null,
+          day1_top3: day1Top3.filter((task) => task?.trim()),
+          day1_why: day1Why || null,
+          day2_top3: day2Top3.filter((task) => task?.trim()),
+          day2_why: day2Why || null,
+          day3_top3: day3Top3.filter((task) => task?.trim()),
+          day3_why: day3Why || null,
+          weekly_planning_day: weeklyPlanningDay || null,
+          weekly_debrief_day: weeklyDebriefDay || null,
+        },
+        implementation_project: {
+          name: `${goal} — 90-Day Implementation`,
+          description: why || 'Generated from the canonical 90-day planner.',
+        },
+        tasks: firstMoveTasks,
+        details: {
+          ...buildDraftData(),
+          endDate: endDate.toISOString(),
+          wish,
+          outcome,
+          obstacle,
+          ifThenPlan,
+          metric1Goal,
+          metric2Goal,
+          metric3Goal,
+          metric4Name,
+          metric4Start,
+          metric4Goal,
+          metric5Name,
+          metric5Start,
+          metric5Goal,
+          promotions: limitedOffers,
+        },
+        success_path: recommendation ? {
+          recommended_stage: recommendation.stageId,
+          recommendation_reason: recommendation.reason,
+          recommendation_evidence: recommendation.evidenceLabel,
+          curriculum_version: 'success-path-v1',
+        } : undefined,
       };
 
-      // Retry logic for cycle creation (up to 2 attempts)
-      let cycle = null;
-      let cycleError = null;
-      const maxAttempts = 2;
+      setSaveProgress((previous) => ({
+        ...previous,
+        currentStep: 'Verifying your planner handoff...',
+        completedSteps: 1,
+      }));
+      const reconciliationReceipt = await submitCyclePlanReconciliation(reconciliationPayload, requestId);
+      const cycleId = reconciliationReceipt.cycle_id;
 
-      for (let attempt = 1; attempt <= maxAttempts && !cycle; attempt++) {
-        console.log(`🔄 Cycle creation attempt ${attempt}/${maxAttempts}`);
-        
-        const result = await supabase
-          .from('cycles_90_day')
-          .insert(cycleInsertData as any)
-          .select()
-          .single();
-        
-        if (result.error) {
-          console.error(`❌ Attempt ${attempt} failed:`, result.error);
-          cycleError = result.error;
-          if (attempt < maxAttempts) {
-            console.log('⏳ Waiting 1s before retry...');
-            await new Promise(r => setTimeout(r, 1000));
-          }
-        } else {
-          cycle = result.data;
-          console.log(`✅ Cycle created on attempt ${attempt}`);
-        }
-      }
-
-      if (!cycle) {
-        console.error('❌ Cycle creation failed after all attempts:', cycleError);
-        throw cycleError || new Error('Failed to create cycle after retries');
-      }
-
-      const cycleId = cycle.cycle_id;
-      console.log('✅ Cycle created with ID:', cycleId);
-
-      // VERIFICATION: Confirm the cycle was actually saved
-      const { data: verifyData, error: verifyError } = await supabase
-        .from('cycles_90_day')
-        .select('cycle_id, goal')
-        .eq('cycle_id', cycleId)
-        .eq('user_id', user.id)
-        .single();
-
-      if (verifyError || !verifyData) {
-        console.error('❌ Cycle verification failed:', verifyError);
-        toast({
-          title: "Save may have failed",
-          description: "Your draft is safely saved. Please check your dashboard. If your cycle doesn't appear, return here to try again.",
-          variant: "destructive",
-          duration: 15000,
-        });
-        // DON'T clear draft - keep it for recovery
-        // DON'T return - still try to save related data
-      } else {
-        console.log('✅ Cycle verified successfully:', verifyData.goal?.substring(0, 50));
-        // NOW it's safe to clear the draft since cycle is verified
-        clearDraft();
-        // Clear the setup visit marker since save succeeded
-        localStorage.removeItem('last_cycle_setup_visit');
-        console.log('✅ Draft cleared after successful verification');
-      }
-
-      // Update progress
-      setSaveProgress(prev => ({ ...prev, currentStep: 'Saving strategy...', completedSteps: 1 }));
-      
-      // Create cycle strategy with posting schedule and secondary platforms
-      const effectiveNurtureMethod = nurtureMethod === 'other' ? nurtureMethodCustom : nurtureMethod;
-      const effectiveSecondaryNurtureMethod = secondaryNurtureMethod === 'other' 
-        ? secondaryNurtureMethodCustom 
-        : (secondaryNurtureMethod === 'none' ? null : secondaryNurtureMethod);
-      const { error: strategyError } = await supabase
-        .from('cycle_strategy')
-        .insert({
-          cycle_id: cycleId,
-          user_id: user.id,
-          lead_primary_platform: leadPlatform || null,
-          lead_content_type: leadContentType || null,
-          lead_frequency: leadFrequency || null,
-          lead_committed_90_days: leadCommitted,
-          nurture_method: effectiveNurtureMethod || null,
-          nurture_frequency: nurtureFrequency || null,
-          free_transformation: freeTransformation || null,
-          proof_methods: proofMethods,
-          // Lead gen posting schedule fields
-          posting_days: postingDays,
-          posting_time: postingTime && postingTime !== 'none' ? postingTime : null,
-          batch_day: batchDay && batchDay !== 'none' ? batchDay : null,
-          batch_frequency: batchFrequency || 'weekly',
-          lead_gen_content_audit: leadGenContentAudit || null,
-          // Nurture posting schedule fields (legacy, from first nurture platform if exists)
-          nurture_posting_days: nurturePlatforms[0]?.postingDays || nurturePostingDays,
-          nurture_posting_time: nurturePlatforms[0]?.postingTime || nurturePostingTime || null,
-          nurture_batch_day: (nurturePlatforms[0]?.batchDay && nurturePlatforms[0]?.batchDay !== 'none' ? nurturePlatforms[0]?.batchDay : nurtureBatchDay) || null,
-          nurture_batch_frequency: nurturePlatforms[0]?.batchFrequency || nurtureBatchFrequency || 'weekly',
-          nurture_content_audit: nurtureContentAudit || null,
-          // Secondary platforms
-          secondary_platforms: secondaryPlatforms.filter(sp => sp.platform.trim()),
-          // NEW: All nurture platforms as JSONB array
-          nurture_platforms: nurturePlatforms.filter(p => p.method.trim()),
-        } as any);
-
-      if (strategyError) console.error('Strategy error:', strategyError);
-      
-      // Update progress
-      setSaveProgress(prev => ({ ...prev, currentStep: 'Creating offers...', completedSteps: 2 }));
-
-      // Create offers
-      const offersToCreate = offers
-        .filter((o) => o.name.trim())
-        .map((o, idx) => ({
-          cycle_id: cycleId,
-          user_id: user.id,
-          offer_name: o.name,
-          price: o.price ? parseFloat(o.price) : null,
-          sales_frequency: o.frequency || null,
-          transformation: o.transformation || null,
-          sort_order: idx,
-          is_primary: o.isPrimary,
-        }));
-
-      if (offersToCreate.length > 0) {
-        const { error: offersError } = await supabase
-          .from('cycle_offers')
-          .insert(offersToCreate);
-        if (offersError) console.error('Offers error:', offersError);
-      }
-
-      // Create limited time offers (flash sales, promos)
-      const ltoToCreate = limitedOffers
-        .filter((lto) => lto.name.trim() && lto.startDate && lto.endDate)
-        .map((lto, idx) => ({
-          cycle_id: cycleId,
-          user_id: user.id,
-          name: lto.name,
-          start_date: lto.startDate,
-          end_date: lto.endDate,
-          promo_type: lto.promoType || 'flash_sale',
-          discount: lto.discount || null,
-          notes: lto.notes || null,
-          sort_order: idx,
-        }));
-
-      if (ltoToCreate.length > 0) {
-        const { error: ltoError } = await supabase
-          .from('cycle_limited_offers')
-          .insert(ltoToCreate);
-        if (ltoError) console.error('Limited offers error:', ltoError);
-      }
-
-      // Create revenue plan
-      const { error: revenueError } = await supabase
-        .from('cycle_revenue_plan')
-        .insert({
-          cycle_id: cycleId,
-          user_id: user.id,
-          revenue_goal: revenueGoal ? parseFloat(revenueGoal) : null,
-          price_per_sale: pricePerSale ? parseFloat(pricePerSale) : null,
-          sales_needed: salesNeeded || null,
-          launch_schedule: launchSchedule || null,
-        });
-
-      if (revenueError) console.error('Revenue plan error:', revenueError);
-
-      // Create month plans
-      const monthPlansToCreate = monthPlans.map((mp, idx) => ({
-        cycle_id: cycleId,
-        user_id: user.id,
-        month_number: idx + 1,
-        month_name: mp.monthName || `Month ${idx + 1}`,
-        projects_text: mp.projects || null,
-        sales_promos_text: mp.salesPromos || null,
-        main_focus: mp.mainFocus || null,
+      setSaveProgress((previous) => ({
+        ...previous,
+        currentStep: 'Planner handoff verified.',
+        completedSteps: 2,
+        totalSteps: 2,
       }));
 
-      const { error: monthError } = await supabase
-        .from('cycle_month_plans')
-        .insert(monthPlansToCreate);
-
-      if (monthError) console.error('Month plans error:', monthError);
-      
-      // Update progress
-      setSaveProgress(prev => ({ ...prev, currentStep: 'Creating projects...', completedSteps: 3 }));
-
-      // Create projects (integrated with existing projects system)
-      const projectsToCreate = projects
-        .filter((p) => p.trim())
-        .map((p) => ({
-          user_id: user.id,
-          name: p,
-          status: 'active',
-          cycle_id: cycleId,
-        }));
-
-      if (projectsToCreate.length > 0) {
-        const { error: projectsError } = await supabase
-          .from('projects')
-          .insert(projectsToCreate);
-        if (projectsError) console.error('Projects error:', projectsError);
-      }
-
-      // Create habits (integrated with existing habits system)
-      const habitsToCreate = habits
-        .filter((h) => h.name.trim())
-        .map((h, idx) => ({
-          user_id: user.id,
-          habit_name: h.name,
-          category: h.category || null,
-          display_order: idx,
-          cycle_id: cycleId,
-        }));
-
-      if (habitsToCreate.length > 0) {
-        const { error: habitsError } = await supabase
-          .from('habits')
-          .insert(habitsToCreate);
-        if (habitsError) console.error('Habits error:', habitsError);
-      }
-      
-      // Update progress  
-      setSaveProgress(prev => ({ ...prev, currentStep: 'Setting up tasks...', completedSteps: 4 }));
-
-      // Create weekly planning and review tasks (if user opted in)
-      if (autoCreateWeeklyTasks && (weeklyPlanningDay || weeklyDebriefDay)) {
-        const dayMap: Record<string, number> = {
-          'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3,
-          'Thursday': 4, 'Friday': 5, 'Saturday': 6
-        };
-        
-        const weeklyTasksToCreate: any[] = [];
-        const cycleStartDate = new Date(startDate);
-        const cycleEndDate = new Date(endDate);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        // Create Weekly Planning Tasks
-        if (weeklyPlanningDay && dayMap[weeklyPlanningDay] !== undefined) {
-          const planningDayNum = dayMap[weeklyPlanningDay];
-          let planningDate = new Date(cycleStartDate > today ? cycleStartDate : today);
-          
-          // Find next planning day
-          while (planningDate.getDay() !== planningDayNum) {
-            planningDate.setDate(planningDate.getDate() + 1);
-          }
-          
-          // Create task for each week in the cycle
-          let weekNum = 1;
-          while (planningDate <= cycleEndDate) {
-            weeklyTasksToCreate.push({
-              user_id: user.id,
-              cycle_id: cycleId,
-              task_text: `📅 Plan My Week (Week ${weekNum})`,
-              task_description: 'Set your Top 3 priorities for the week. Review your 90-day goal and decide what moves the needle most this week.',
-              scheduled_date: format(planningDate, 'yyyy-MM-dd'),
-              status: 'todo',
-              priority: 'high',
-              source: 'autopilot',
-              is_system_generated: true,
-              system_source: 'cycle_autopilot',
-              template_key: `weekly_planning_${format(planningDate, 'yyyy-MM-dd')}_${cycleId}`,
-              context_tags: ['planning', 'weekly'],
-            });
-            planningDate.setDate(planningDate.getDate() + 7);
-            weekNum++;
-          }
-        }
-        
-        // Create Weekly Debrief Tasks
-        if (weeklyDebriefDay && dayMap[weeklyDebriefDay] !== undefined) {
-          const debriefDayNum = dayMap[weeklyDebriefDay];
-          let debriefDate = new Date(cycleStartDate > today ? cycleStartDate : today);
-          
-          // Find next debrief day
-          while (debriefDate.getDay() !== debriefDayNum) {
-            debriefDate.setDate(debriefDate.getDate() + 1);
-          }
-          
-          // Create task for each week in the cycle
-          let weekNum = 1;
-          while (debriefDate <= cycleEndDate) {
-            weeklyTasksToCreate.push({
-              user_id: user.id,
-              cycle_id: cycleId,
-              task_text: `📊 Weekly Review (Week ${weekNum})`,
-              task_description: 'Reflect on your wins, challenges, and learnings. What worked? What didn\'t? What will you do differently next week?',
-              scheduled_date: format(debriefDate, 'yyyy-MM-dd'),
-              status: 'todo',
-              priority: 'high',
-              source: 'autopilot',
-              is_system_generated: true,
-              system_source: 'cycle_autopilot',
-              template_key: `weekly_review_${format(debriefDate, 'yyyy-MM-dd')}_${cycleId}`,
-              context_tags: ['review', 'weekly'],
-            });
-            debriefDate.setDate(debriefDate.getDate() + 7);
-            weekNum++;
-          }
-        }
-        
-        // Insert all weekly tasks
-        if (weeklyTasksToCreate.length > 0) {
-          const { error: weeklyTaskError } = await supabase
-            .from('tasks')
-            .insert(weeklyTasksToCreate);
-          
-          if (weeklyTaskError) {
-            console.error('Weekly task creation error:', weeklyTaskError);
-            // Don't throw - this is optional, cycle should still save
-          } else {
-            console.log(`Created ${weeklyTasksToCreate.length} weekly planning/review tasks`);
-          }
-        }
-      }
-
-      // Create Recurring Tasks Project and Tasks (Step 8.5)
-      try {
-        const validRecurringTasks = recurringTasks.filter(t => t.title?.trim());
-        if (validRecurringTasks.length > 0) {
-          console.log('Creating recurring tasks project...');
-          
-          // Create "Recurring Tasks" project
-          const { data: recurringProject, error: recurringProjectError } = await supabase
-            .from('projects')
-            .insert({
-              user_id: user.id,
-              cycle_id: cycleId,
-              name: '🔁 Recurring Tasks',
-              description: 'Automatically generated recurring tasks for your 90-day cycle',
-              status: 'active'
-            })
-            .select()
-            .single();
-          
-          if (recurringProjectError) {
-            console.error('Recurring project creation error:', recurringProjectError);
-          } else if (recurringProject) {
-            console.log('Recurring project created:', recurringProject.id);
-            
-            // Generate tasks for each recurring task definition
-            const recurringTasksToCreate: any[] = [];
-            
-            const cycleStart = new Date(startDate);
-            const cycleEnd = new Date(endDate);
-            
-            const dayMap: Record<string, number> = {
-              'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3,
-              'Thursday': 4, 'Friday': 5, 'Saturday': 6
-            };
-            
-            for (const recurringTask of validRecurringTasks) {
-              const taskTitle = recurringTask.title.trim();
-              const taskDescription = recurringTask.description?.trim() || null;
-              
-              // Generate tasks based on frequency
-              if (recurringTask.category === 'daily') {
-                // Create a task for every day in the cycle
-                let currentDate = new Date(cycleStart);
-                while (currentDate <= cycleEnd) {
-                  recurringTasksToCreate.push({
-                    user_id: user.id,
-                    project_id: recurringProject.id,
-                    cycle_id: cycleId,
-                    task_text: taskTitle,
-                    task_description: taskDescription,
-                    scheduled_date: format(currentDate, 'yyyy-MM-dd'),
-                    status: 'todo',
-                    priority: 'medium',
-                    category: 'recurring-daily',
-                    context_tags: ['recurring', 'daily'],
-                    is_system_generated: true,
-                    system_source: 'cycle_recurring',
-                  });
-                  currentDate.setDate(currentDate.getDate() + 1);
-                }
-              }
-              
-              else if (recurringTask.category === 'weekly' && recurringTask.dayOfWeek) {
-                const targetDay = dayMap[recurringTask.dayOfWeek];
-                let currentDate = new Date(cycleStart);
-                
-                // Find first occurrence of target day
-                while (currentDate.getDay() !== targetDay && currentDate <= cycleEnd) {
-                  currentDate.setDate(currentDate.getDate() + 1);
-                }
-                
-                // Create tasks every 7 days
-                while (currentDate <= cycleEnd) {
-                  recurringTasksToCreate.push({
-                    user_id: user.id,
-                    project_id: recurringProject.id,
-                    cycle_id: cycleId,
-                    task_text: taskTitle,
-                    task_description: taskDescription,
-                    scheduled_date: format(currentDate, 'yyyy-MM-dd'),
-                    status: 'todo',
-                    priority: 'medium',
-                    category: 'recurring-weekly',
-                    context_tags: ['recurring', 'weekly'],
-                    is_system_generated: true,
-                    system_source: 'cycle_recurring',
-                  });
-                  currentDate.setDate(currentDate.getDate() + 7);
-                }
-              }
-              
-              else if (recurringTask.category === 'biweekly' && recurringTask.dayOfWeek) {
-                const targetDay = dayMap[recurringTask.dayOfWeek];
-                let currentDate = new Date(cycleStart);
-                
-                // Find first occurrence
-                while (currentDate.getDay() !== targetDay && currentDate <= cycleEnd) {
-                  currentDate.setDate(currentDate.getDate() + 1);
-                }
-                
-                // Create tasks every 14 days
-                while (currentDate <= cycleEnd) {
-                  recurringTasksToCreate.push({
-                    user_id: user.id,
-                    project_id: recurringProject.id,
-                    cycle_id: cycleId,
-                    task_text: taskTitle,
-                    task_description: taskDescription,
-                    scheduled_date: format(currentDate, 'yyyy-MM-dd'),
-                    status: 'todo',
-                    priority: 'medium',
-                    category: 'recurring-biweekly',
-                    context_tags: ['recurring', 'biweekly'],
-                    is_system_generated: true,
-                    system_source: 'cycle_recurring',
-                  });
-                  currentDate.setDate(currentDate.getDate() + 14);
-                }
-              }
-              
-              else if (recurringTask.category === 'monthly' && recurringTask.dayOfMonth) {
-                let currentDate = new Date(cycleStart);
-                currentDate.setDate(recurringTask.dayOfMonth);
-                
-                // If we're past that day in the start month, move to next month
-                if (currentDate < cycleStart) {
-                  currentDate.setMonth(currentDate.getMonth() + 1);
-                }
-                
-                // Create tasks each month
-                while (currentDate <= cycleEnd) {
-                  recurringTasksToCreate.push({
-                    user_id: user.id,
-                    project_id: recurringProject.id,
-                    cycle_id: cycleId,
-                    task_text: taskTitle,
-                    task_description: taskDescription,
-                    scheduled_date: format(currentDate, 'yyyy-MM-dd'),
-                    status: 'todo',
-                    priority: 'high',
-                    category: 'recurring-monthly',
-                    context_tags: ['recurring', 'monthly'],
-                    is_system_generated: true,
-                    system_source: 'cycle_recurring',
-                  });
-                  currentDate.setMonth(currentDate.getMonth() + 1);
-                }
-              }
-              
-              else if (recurringTask.category === 'quarterly') {
-                // Create 3 tasks: start, middle, and end of cycle
-                const quarterlyDates = [
-                  new Date(cycleStart),
-                  new Date(cycleStart.getTime() + (cycleEnd.getTime() - cycleStart.getTime()) / 2),
-                  new Date(cycleEnd.getTime() - 7 * 24 * 60 * 60 * 1000), // 1 week before end
-                ];
-                
-                quarterlyDates.forEach((date, idx) => {
-                  if (date <= cycleEnd) {
-                    recurringTasksToCreate.push({
-                      user_id: user.id,
-                      project_id: recurringProject.id,
-                      cycle_id: cycleId,
-                      task_text: `${taskTitle} (${idx === 0 ? 'Start' : idx === 1 ? 'Mid-Cycle' : 'End'})`,
-                      task_description: taskDescription,
-                      scheduled_date: format(date, 'yyyy-MM-dd'),
-                      status: 'todo',
-                      priority: 'high',
-                      category: 'recurring-quarterly',
-                      context_tags: ['recurring', 'quarterly'],
-                      is_system_generated: true,
-                      system_source: 'cycle_recurring',
-                    });
-                  }
-                });
-              }
-            }
-            
-            // Insert all recurring tasks
-            if (recurringTasksToCreate.length > 0) {
-              const { error: recurringTasksError } = await supabase
-                .from('tasks')
-                .insert(recurringTasksToCreate);
-              
-              if (recurringTasksError) {
-                console.error('Recurring tasks creation error:', recurringTasksError);
-              } else {
-                console.log(`Created ${recurringTasksToCreate.length} recurring tasks`);
-              }
-            }
-          }
-        }
-      } catch (recurringError) {
-        console.error('Recurring tasks error:', recurringError);
-        // Don't throw - this is optional, rest of cycle is fine
-      }
-
-      // Create nurture commitment for email check-ins if enabled
-      if (emailCheckinEnabled && nurtureMethod === 'email') {
-        try {
-          await supabase.functions.invoke('save-nurture-commitment', {
-            body: {
-              cycle_id: cycleId,
-              commitment_type: 'email',
-              cadence: 'weekly',
-              day_of_week: emailSendDay,
-              preferred_time_block: emailTimeBlock,
-              enabled: true,
-            },
-          });
-        } catch (commitmentError) {
-          console.error('Nurture commitment error:', commitmentError);
-        }
-      }
-
-      // Create user settings (upsert to avoid conflicts)
-      const { error: settingsError } = await supabase
-        .from('user_settings')
-        .upsert({ user_id: user.id }, { onConflict: 'user_id' });
-
-      if (settingsError) console.error('Settings error:', settingsError);
-      
-      // Update progress
-      setSaveProgress(prev => ({ ...prev, currentStep: 'Setting up automations...', completedSteps: 5 }));
-
-      // Auto-setup: Create Content Engine project + posting tasks (if enabled)
-      if (autopilotOptions?.createContentEngine && leadPlatform && postingDays.length > 0) {
-        try {
-          const { data: sessionData } = await supabase.auth.getSession();
-          const token = sessionData?.session?.access_token;
-          
-          const autoSetupResponse = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auto-setup-cycle`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                cycle_id: cycleId,
-                platform: leadPlatform,
-                content_type: leadContentType,
-                posting_days: postingDays,
-                posting_time: postingTime && postingTime !== 'none' ? postingTime : null,
-                batch_day: batchDay && batchDay !== 'none' ? batchDay : null,
-                start_date: format(startDate, 'yyyy-MM-dd'),
-                end_date: format(endDate, 'yyyy-MM-dd'),
-                create_content_engine: true,
-                // Pass other autopilot options
-                create_metrics_checkin: autopilotOptions?.createMetricsCheckin,
-                create_nurture_tasks: autopilotOptions?.createNurtureTasks,
-                create_offer_tasks: autopilotOptions?.createOfferTasks,
-                create_weekly_blocks: autopilotOptions?.createWeeklyBlocks,
-                // Context for other automations
-                focus_area: focusArea,
-                nurture_method: nurtureMethod,
-                nurture_frequency: nurtureFrequency,
-                free_transformation: freeTransformation || null,
-                // Nurture posting schedule (like lead gen)
-                nurture_posting_days: nurturePostingDays.length > 0 ? nurturePostingDays : null,
-                nurture_posting_time: nurturePostingTime || null,
-                nurture_batch_day: nurtureBatchDay && nurtureBatchDay !== 'none' ? nurtureBatchDay : null,
-                nurture_batch_frequency: nurtureBatchFrequency || 'weekly',
-                // Secondary nurture method and schedule
-                secondary_nurture_method: secondaryNurtureMethod && secondaryNurtureMethod !== 'none' ? secondaryNurtureMethod : null,
-                secondary_nurture_posting_days: secondaryNurturePostingDays.length > 0 ? secondaryNurturePostingDays : null,
-                secondary_nurture_posting_time: secondaryNurturePostingTime || null,
-                offers: offers.filter(o => o.name.trim()),
-                // Limited time offers for promo task generation
-                limited_offers: limitedOffers
-                  .filter(lto => lto.name.trim() && lto.startDate && lto.endDate)
-                  .map(lto => ({
-                    name: lto.name,
-                    startDate: lto.startDate,
-                    endDate: lto.endDate,
-                    promoType: lto.promoType,
-                    discount: lto.discount,
-                    notes: lto.notes,
-                  })),
-                metrics: {
-                  metric1: metric1Name,
-                  metric2: metric2Name,
-                  metric3: metric3Name,
-                },
-                // Audience & messaging context for content tasks
-                audience_target: audienceTarget || null,
-                audience_frustration: audienceFrustration || null,
-                signature_message: signatureMessage || null,
-              }),
-            }
-          );
-
-          const autoSetupResult = await autoSetupResponse.json();
-          
-          if (autoSetupResult.success) {
-            const taskCount = autoSetupResult.data?.tasks?.length || 0;
-            toast({
-              title: 'Autopilot setup complete!',
-              description: `Created project + ${taskCount} tasks for your 90-day cycle.`,
-            });
-          } else if (autoSetupResult.data?.errors?.length > 0) {
-            console.error('Auto-setup partial errors:', autoSetupResult.data.errors);
-            toast({
-              title: 'Setup completed with warnings',
-              description: autoSetupResult.data.errors[0],
-              variant: 'destructive',
-            });
-          }
-        } catch (autoSetupError) {
-          console.error('Auto-setup error:', autoSetupError);
-          // Log error to database
-          await supabase.functions.invoke('log-error', {
-            body: {
-              error_type: 'auto_setup_cycle',
-              error_message: String(autoSetupError),
-              component: 'CycleSetup',
-              route: '/cycle-setup',
-            },
-          });
-          toast({
-            title: 'Auto-setup failed',
-            description: 'Could not create automations. You can set them up manually.',
-            variant: 'destructive',
-          });
-        }
-      }
-      
-      // Update progress
-      setSaveProgress(prev => ({ ...prev, currentStep: 'Finalizing your plan...', completedSteps: 6 }));
-
-      // Create daily plans AND actual tasks for first 3 days (if tasks exist)
-      if (cycleId) {
-        try {
-          const dailyPlans: any[] = [];
-          const first3DaysTasks: any[] = [];
-          
-          // Day 1 (if date and tasks exist)
-          if (day1Date && day1Top3.some(t => t?.trim())) {
-            const day1DateStr = format(day1Date, 'yyyy-MM-dd');
-            dailyPlans.push({
-              user_id: user.id,
-              cycle_id: cycleId,
-              date: day1DateStr,
-              top_3_today: day1Top3.filter(t => t?.trim()),
-              thought: day1Why?.trim() || null,
-            });
-            // Create actual tasks for Day 1
-            day1Top3.filter(t => t?.trim()).forEach((taskText, idx) => {
-              first3DaysTasks.push({
-                user_id: user.id,
-                cycle_id: cycleId,
-                task_text: taskText.trim(),
-                scheduled_date: day1DateStr,
-                planned_day: day1DateStr,
-                priority_order: idx + 1,
-                priority: 'high',
-                status: 'todo',
-                source: 'first_3_days',
-                category: 'first-3-days',
-                context_tags: ['first-3-days', 'day-1'],
-                is_system_generated: true,
-                system_source: 'cycle_first_3_days',
-                template_key: `first3days_d1_${idx}_${cycleId}`,
-              });
-            });
-          }
-          
-          // Day 2 (if date and tasks exist)
-          if (day2Date && day2Top3.some(t => t?.trim())) {
-            const day2DateStr = format(day2Date, 'yyyy-MM-dd');
-            dailyPlans.push({
-              user_id: user.id,
-              cycle_id: cycleId,
-              date: day2DateStr,
-              top_3_today: day2Top3.filter(t => t?.trim()),
-              thought: day2Why?.trim() || null,
-            });
-            // Create actual tasks for Day 2
-            day2Top3.filter(t => t?.trim()).forEach((taskText, idx) => {
-              first3DaysTasks.push({
-                user_id: user.id,
-                cycle_id: cycleId,
-                task_text: taskText.trim(),
-                scheduled_date: day2DateStr,
-                planned_day: day2DateStr,
-                priority_order: idx + 1,
-                priority: 'high',
-                status: 'todo',
-                source: 'first_3_days',
-                category: 'first-3-days',
-                context_tags: ['first-3-days', 'day-2'],
-                is_system_generated: true,
-                system_source: 'cycle_first_3_days',
-                template_key: `first3days_d2_${idx}_${cycleId}`,
-              });
-            });
-          }
-          
-          // Day 3 (if date and tasks exist)
-          if (day3Date && day3Top3.some(t => t?.trim())) {
-            const day3DateStr = format(day3Date, 'yyyy-MM-dd');
-            dailyPlans.push({
-              user_id: user.id,
-              cycle_id: cycleId,
-              date: day3DateStr,
-              top_3_today: day3Top3.filter(t => t?.trim()),
-              thought: day3Why?.trim() || null,
-            });
-            // Create actual tasks for Day 3
-            day3Top3.filter(t => t?.trim()).forEach((taskText, idx) => {
-              first3DaysTasks.push({
-                user_id: user.id,
-                cycle_id: cycleId,
-                task_text: taskText.trim(),
-                scheduled_date: day3DateStr,
-                planned_day: day3DateStr,
-                priority_order: idx + 1,
-                priority: 'high',
-                status: 'todo',
-                source: 'first_3_days',
-                category: 'first-3-days',
-                context_tags: ['first-3-days', 'day-3'],
-                is_system_generated: true,
-                system_source: 'cycle_first_3_days',
-                template_key: `first3days_d3_${idx}_${cycleId}`,
-              });
-            });
-          }
-          
-          // Insert daily plans (if any exist)
-          if (dailyPlans.length > 0) {
-            const { error: dailyError } = await supabase
-              .from('daily_plans')
-              .insert(dailyPlans);
-            
-            if (dailyError) {
-              console.error('Daily plan creation error:', dailyError);
-            } else {
-              console.log(`Created ${dailyPlans.length} daily plans for first 3 days`);
-            }
-          }
-          
-          // Insert actual tasks (if any exist)
-          if (first3DaysTasks.length > 0) {
-            const { error: tasksError } = await supabase
-              .from('tasks')
-              .insert(first3DaysTasks);
-            
-            if (tasksError) {
-              console.error('First 3 days tasks creation error:', tasksError);
-            } else {
-              console.log(`Created ${first3DaysTasks.length} tasks for first 3 days`);
-            }
-          }
-        } catch (planError) {
-          console.error('Error creating daily plans/tasks:', planError);
-          // DON'T throw - this is optional, cycle is saved
-        }
-      }
-
-      // Draft is already cleared in verification block above (line ~1346)
-      // Only show success toast here
+      await clearDraft();
+      clearCyclePlanRequestId(user.id, reconciliationReceipt.request_id);
+      clearCyclePlanKey(user.id, planKey);
+      localStorage.removeItem('last_cycle_setup_visit');
 
       toast({
-        title: '🎉 You\'re Ready to Execute!',
-        description: 'Your 90-day plan is complete and your first 3 days are loaded.',
+        title: isEditMode ? '✅ Plan Updated' : '🎉 Your Success Path Is Ready',
+        description: 'Your complete planner answers, implementation project, and first moves were verified.',
         duration: 6000,
       });
 
@@ -2311,7 +1520,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
         }, 2000);
       }
 
-      navigate('/dashboard');
+      navigate(reconciliationReceipt.success_path_url ?? `/mastermind/success-path/${cycleId}`);
     } catch (error: any) {
       console.error('❌ CYCLE SAVE ERROR:', {
         message: error?.message,
@@ -2320,18 +1529,27 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
         hint: error?.hint,
       });
       
-      let userMessage = 'Unable to save your 90-day plan. ';
+      const safeReconciliationMessage = typeof error?.message === 'string' && (
+        error.message.startsWith('Your plan was saved, but the draft could not be cleared yet.')
+        || error.message.startsWith('This plan was saved from another tab or session.')
+        || error.message.startsWith('These answers changed after an earlier save attempt.')
+        || error.message.startsWith('We could not verify that your complete plan was saved')
+        || error.message.startsWith('We could not confirm your saved plan')
+      );
+      let userMessage = safeReconciliationMessage
+        ? error.message
+        : 'Unable to save your 90-day plan. ';
       
-      if (error?.message?.includes('duplicate')) {
+      if (!safeReconciliationMessage && error?.message?.includes('duplicate')) {
         userMessage += 'You may already have a cycle for these dates. Please check your Cycles page.';
-      } else if (error?.message?.includes('network') || error?.message?.includes('fetch')) {
-        userMessage += 'Please check your internet connection and try again.';
-      } else if (error?.code === 'PGRST116') {
+      } else if (!safeReconciliationMessage && (error?.message?.includes('network') || error?.message?.includes('fetch'))) {
+        userMessage += 'Please check your internet connection and try again. Your answers are still on this screen.';
+      } else if (!safeReconciliationMessage && error?.code === 'PGRST116') {
         userMessage += 'There was a data conflict. Please refresh and try again.';
-      } else if (error?.message?.includes('JWT') || error?.message?.includes('token')) {
+      } else if (!safeReconciliationMessage && (error?.message?.includes('JWT') || error?.message?.includes('token'))) {
         userMessage += 'Your session has expired. Please refresh the page and log in again.';
-      } else {
-        userMessage += 'Please try again. If this persists, contact support.';
+      } else if (!safeReconciliationMessage) {
+        userMessage += 'Please try again. Your answers are still on this screen.';
       }
       
       toast({
@@ -2343,7 +1561,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
     } finally {
       setLoading(false);
       saveInProgressRef.current = false;
-      setSaveProgress({ show: false, currentStep: '', completedSteps: 0, totalSteps: 7 });
+      setSaveProgress({ show: false, currentStep: '', completedSteps: 0, totalSteps: 2 });
     }
   };
 
@@ -2683,19 +1901,18 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
     }
   };
 
-  // Handler when user clicks Create Cycle - show export modal first for new cycles
+  // New plans may be exported before the verified save; edits save directly.
   const handleCreateCycleClick = () => {
     if (!isEditMode) {
       setShowExportModal(true);
-    } else {
-      setShowAutopilotModal(true);
+      return;
     }
+    void handleSubmit();
   };
 
-  // Continue after export modal
-  const handleContinueToAutopilot = () => {
+  const handleContinueToPlanner = () => {
     setShowExportModal(false);
-    setShowAutopilotModal(true);
+    void handleSubmit();
   };
 
   const progress = (currentStep / STEPS.length) * 100;
@@ -2719,7 +1936,7 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
                 </div>
                 <Progress value={(saveProgress.completedSteps / saveProgress.totalSteps) * 100} />
                 <p className="text-xs text-muted-foreground text-center">
-                  Your draft is safely saved. Please don't close this page.
+                  Keep this screen open while we finish. We won't clear your draft unless every required step succeeds.
                 </p>
               </div>
             </CardContent>
@@ -2758,10 +1975,12 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
       </AlertDialog>
 
       {/* Always-visible Save Status Banner */}
-      <SaveStatusBanner 
-        status={cloudSaveStatus} 
-        lastSaved={lastSaved} 
-        isSyncing={isSyncing} 
+      <SaveStatusBanner
+        status={cloudSaveStatus}
+        lastSaved={lastSaved}
+        isSyncing={isSyncing}
+        lastServerSync={lastServerSync}
+        syncError={syncError}
       />
 
       <div className="mx-auto max-w-4xl space-y-6">
@@ -2798,22 +2017,27 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
               {cloudSaveStatus === 'saving' || isSyncing ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  <span>Saving...</span>
+                  <span>{isSyncing ? 'Cloud backup pending...' : 'Saving in this browser...'}</span>
                 </>
-              ) : cloudSaveStatus === 'error' || syncError ? (
+              ) : cloudSaveStatus === 'error' ? (
+                <>
+                  <CloudOff className="h-4 w-4 text-destructive" />
+                  <span className="text-destructive">Could not save in this browser</span>
+                </>
+              ) : syncError ? (
                 <>
                   <CloudOff className="h-4 w-4 text-amber-500" />
-                  <span className="text-amber-600">Saved locally - will sync when online</span>
+                  <span className="text-amber-600">Saved in this browser; cloud backup not confirmed</span>
                 </>
-              ) : cloudSaveStatus === 'saved' || lastServerSync ? (
+              ) : lastServerSync ? (
                 <>
                   <Cloud className="h-4 w-4 text-green-500" />
-                  <span className="text-green-600">Draft saved to cloud</span>
+                  <span className="text-green-600">Cloud backup confirmed</span>
                 </>
-              ) : lastSaved ? (
+              ) : cloudSaveStatus === 'saved' || lastSaved ? (
                 <>
                   <Save className="h-4 w-4 text-muted-foreground" />
-                  <span>Saved locally</span>
+                  <span>Saved in this browser; cloud backup pending</span>
                 </>
               ) : null}
             </div>
@@ -5427,33 +4651,15 @@ const [showAutopilotModal, setShowAutopilotModal] = useState(false);
             <div className="flex justify-end pt-2 border-t">
               <Button 
                 variant="ghost" 
-                onClick={handleContinueToAutopilot}
+                onClick={handleContinueToPlanner}
                 className="gap-2"
               >
-                Skip and Add to Planner
+                Save and Open My Success Path
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
           </DialogContent>
         </Dialog>
-
-        {/* Autopilot Setup Modal */}
-        <AutopilotSetupModal
-          open={showAutopilotModal}
-          onOpenChange={setShowAutopilotModal}
-          onConfirm={handleSubmit}
-          loading={loading}
-          hasPlatform={!!leadPlatform}
-          hasPostingDays={postingDays.length > 0}
-          hasMetrics={!!(metric1Name || metric2Name || metric3Name)}
-          hasNurtureMethod={!!nurtureMethod}
-          hasOffers={offers.some(o => o.name.trim())}
-          postingDaysCount={postingDays.length}
-          nurtureFrequency={nurtureFrequency}
-          nurturePostingDaysCount={nurturePostingDays.length}
-          offersCount={offers.filter(o => o.name.trim()).length}
-          customProjectsCount={projects.filter(p => p.trim()).length}
-        />
 
         {/* PDF Instructions Modal */}
         <PDFInstructionsModal

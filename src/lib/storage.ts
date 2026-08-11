@@ -204,34 +204,45 @@ export function getStorageItem(key: string): string | null {
   return memoryStorage.get(key) ?? null;
 }
 
+export interface StorageWriteReceipt {
+  localStorage: boolean;
+  sessionStorage: boolean;
+  persistent: boolean;
+}
+
 /**
- * Safely set an item with multi-layer fallback
- * Tries all available storage mechanisms to maximize data survival
+ * Writes every available layer and reports whether a refresh-surviving browser
+ * layer actually accepted the value. Memory fallback is intentionally excluded
+ * from `persistent` so member-facing save claims can fail honestly.
  */
-export function setStorageItem(key: string, value: string): boolean {
-  let success = false;
-  
-  // Always write to memory first (guaranteed to work)
+export function setStorageItemWithReceipt(key: string, value: string): StorageWriteReceipt {
   memoryStorage.set(key, value);
-  
-  // Try localStorage
-  if (hasLocalStorage) {
-    if (safeLocalStorageSet(key, value)) {
-      success = true;
-    }
-  }
-  
-  // Also write to sessionStorage as backup (survives page refresh within session)
+
+  const localStorageSaved = hasLocalStorage && safeLocalStorageSet(key, value);
+  let sessionStorageSaved = false;
   if (hasSessionStorage) {
     try {
       sessionStorage.setItem(key, value);
-      success = true;
+      sessionStorageSaved = true;
     } catch (error) {
       console.warn(`Failed to set sessionStorage item "${key}":`, error);
     }
   }
-  
-  return success || memoryStorage.has(key);
+
+  return {
+    localStorage: localStorageSaved,
+    sessionStorage: sessionStorageSaved,
+    persistent: localStorageSaved || sessionStorageSaved,
+  };
+}
+
+/**
+ * Backwards-compatible safe write for callers that intentionally accept memory
+ * fallback. Persistence-sensitive flows should use setStorageItemWithReceipt.
+ */
+export function setStorageItem(key: string, value: string): boolean {
+  const receipt = setStorageItemWithReceipt(key, value);
+  return receipt.persistent || memoryStorage.has(key);
 }
 
 /**
