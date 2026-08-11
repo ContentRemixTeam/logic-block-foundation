@@ -8,6 +8,12 @@ import {
   type MastermindSuccessPathOutput,
 } from '@/lib/mastermindSuccessPath';
 
+// These tables are not yet present in the generated Supabase types, so use a
+// loosely-typed client handle for them only.
+const db = supabase as unknown as {
+  from: (table: string) => any;
+};
+
 const CYCLE_SELECT = 'cycle_id,goal,start_date,end_date,focus_area,biggest_bottleneck,discover_score,nurture_score,convert_score,audience_target,audience_frustration,signature_message,why,low_energy_version,medium_energy_version,high_energy_version,updated_at';
 const SNAPSHOT_SELECT = 'snapshot_id,user_id,cycle_id,planner_receipt_id,recommended_stage,confirmed_stage,recommendation_reason,recommendation_evidence,current_milestone_id,current_milestone_title,capacity_mode,curriculum_version,confirmed_at,created_at,updated_at';
 
@@ -90,7 +96,7 @@ export function useMastermindSuccessPath(cycleId?: string) {
       const successPath = inferMastermindSuccessPath(cycle);
 
       const [snapshotResult, firstMovesResult] = await Promise.all([
-        supabase
+        db
           .from('cycle_success_path_snapshots')
           .select(SNAPSHOT_SELECT)
           .eq('user_id', authData.user.id)
@@ -119,7 +125,7 @@ export function useMastermindSuccessPath(cycleId?: string) {
 
       let receiptIsComplete = false;
       if (rawSnapshot?.planner_receipt_id) {
-        const { data: receiptRow, error: receiptError } = await supabase
+        const { data: receiptRow, error: receiptError } = await db
           .from('cycle_plan_reconciliation_requests')
           .select('request_id')
           .eq('request_id', rawSnapshot.planner_receipt_id)
@@ -185,7 +191,7 @@ export function useMastermindSuccessPath(cycleId?: string) {
       const recommendedStage = data.successPath?.stageId ?? stageId;
       const now = new Date().toISOString();
 
-      const { data: savedRow, error: saveError } = await supabase
+      const { data: savedRow, error: saveError } = await db
         .from('cycle_success_path_snapshots')
         .upsert({
           user_id: authData.user.id,
