@@ -166,6 +166,8 @@ const WorkshopRegisterPage = lazyWithRetry(() => import('./pages/WorkshopRegiste
 const MoneyMovesSprintPage = lazyWithRetry(() => import('./pages/MoneyMovesSprintPage'));
 const LowBatteryPlanPage = lazyWithRetry(() => import('./pages/LowBatteryPlanPage'));
 const LowBatteryWorkshopAdmin = lazyWithRetry(() => import('./pages/LowBatteryWorkshopAdmin'));
+const MastermindReplacementPreview = lazyWithRetry(() => import('./pages/MastermindReplacementPreview'));
+const AdminPreviewGate = lazyWithRetry(() => import('./components/admin/AdminPreviewGate').then(m => ({ default: m.AdminPreviewGate })));
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -278,6 +280,7 @@ const App = () => (
                       <Route path="/help/browser-storage" element={<ProtectedRoute><PageSuspense><BrowserStorageHelp /></PageSuspense></ProtectedRoute>} />
                       <Route path="/settings" element={<ProtectedRoute><PageSuspense><Settings /></PageSuspense></ProtectedRoute>} />
                       <Route path="/admin" element={<ProtectedRoute><PageSuspense><Admin /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/admin/mastermind-replacement-preview" element={<ProtectedRoute><AdminPreviewGate><PageSuspense><MastermindReplacementPreview /></PageSuspense></AdminPreviewGate></ProtectedRoute>} />
                       <Route path="/admin/low-battery-workshop" element={<ProtectedRoute><PageSuspense><LowBatteryWorkshopAdmin /></PageSuspense></ProtectedRoute>} />
                       <Route path="/coaching-log" element={<ProtectedRoute><PageSuspense><CoachingLog /></PageSuspense></ProtectedRoute>} />
                       <Route path="/coach-prep" element={<ProtectedRoute><PageSuspense><CoachPrep /></PageSuspense></ProtectedRoute>} />
