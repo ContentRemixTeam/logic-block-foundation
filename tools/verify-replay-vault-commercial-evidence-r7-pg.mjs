@@ -8,7 +8,8 @@ import { spawn, spawnSync } from "node:child_process";
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const names=["20260809130000_replay_vault_deterministic_ingestion.sql","20260809140000_replay_vault_access_hardening.sql",
   "20260809150000_replay_vault_questions_answered_r1.sql","20260809160000_replay_vault_member_interactions_r2.sql",
-  "20260809170000_replay_vault_member_parity_r4.sql","20260809180000_replay_vault_commercial_evidence_r7.sql"];
+  "20260809170000_replay_vault_member_parity_r4.sql","20260809180000_replay_vault_commercial_evidence_r7.sql",
+  "20260809190000_replay_vault_complete_search_r1.sql"];
 const migrations=names.map(name=>path.join(root,"supabase/migrations",name));
 for(const file of migrations) if(!existsSync(file)) throw new Error(`missing migration ${file}`);
 if([...names].sort().join("|")!==names.join("|")) throw new Error("migration order is not exact");
@@ -54,8 +55,9 @@ const call=({event,order="concurrent-order",transaction,parentOrder=null,parentT
 const fresh=cluster("fresh");
 try{
   fresh.start();for(const migration of migrations)fresh.psql(["-f",migration]);fresh.psql(["-f",migrations.at(-1)]);
-  console.log("PASS migration_1800_apply_twice_fresh");
+  console.log("PASS latest_migration_apply_twice_fresh");
   fresh.psql(["-f",path.join(root,"tools/replay-vault-commercial-r7-fixtures/behavior.sql")]);
+  fresh.psql(["-f",path.join(root,"tools/replay-vault-complete-search-fixtures/behavior.sql")]);
   const hundred=await Promise.all(Array.from({length:100},(_,i)=>fresh.concurrent(call({event:`evt-100-${i}`,transaction:"charge-100",hash:sig(i),signature:sig(i+1)}))));
   if(hundred.filter(value=>value.includes('"replayed": false')).length!==1||hundred.filter(value=>value.includes('"replayed": true')).length!==99)
     throw new Error("100-way duplicate did not produce one apply plus 99 replays");
@@ -86,7 +88,7 @@ try{
   upgrade.start();upgrade.psql(["-f",migrations[0]]);upgrade.psql(["-f",migrations[1]]);
   upgrade.psql(["-f",path.join(root,"tools/replay-vault-commercial-r7-fixtures/upgrade-seed.sql")]);
   for(const migration of migrations.slice(2))upgrade.psql(["-f",migration]);
-  upgrade.psql(["-f",migrations.at(-1)]);console.log("PASS migration_1800_apply_twice_upgrade");
+  upgrade.psql(["-f",migrations.at(-1)]);console.log("PASS latest_migration_apply_twice_upgrade");
   upgrade.psql(["-f",path.join(root,"tools/replay-vault-commercial-r7-fixtures/upgrade-assert.sql")]);
   console.log(`PASS exact_base_upgrade_pg16 port=${upgrade.port}`);
 }finally{upgrade.stop();}

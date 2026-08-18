@@ -23,7 +23,7 @@ export function VaultPlayer({ playback, target, videoRef, announcement, sourceGe
             <p className="rounded-md border p-3 text-sm text-muted-foreground">Automatic playback recovery is not available for YouTube. If this player stops, return to the answer and open it again.</p>
           </>
         ) : (
-          <video ref={videoRef} key={sourceGeneration} data-source-generation={sourceGeneration} controls playsInline preload="metadata" className="aspect-video w-full max-w-full rounded-lg bg-black" onLoadedMetadata={onLoadedMetadata} onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)} onSeeked={(event) => setCurrentTime(event.currentTarget.currentTime)} onError={onMediaError} aria-label={`Protected replay: ${playback.title}`}>
+          <video ref={videoRef} key={sourceGeneration} data-source-generation={sourceGeneration} controls controlsList="nodownload noremoteplayback" disablePictureInPicture playsInline preload="metadata" className="aspect-video w-full max-w-full rounded-lg bg-black" onContextMenu={(event) => event.preventDefault()} onLoadedMetadata={onLoadedMetadata} onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)} onSeeked={(event) => setCurrentTime(event.currentTarget.currentTime)} onError={onMediaError} aria-label={`Protected replay: ${playback.title}`}>
             <source src={playback.playbackUrl} />Your browser does not support protected video playback.
           </video>
         )}

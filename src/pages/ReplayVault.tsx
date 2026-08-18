@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Badge } from '@/components/ui/badge';
@@ -14,11 +14,14 @@ import { groupSearchResults, makeAuthReturnTo, normalizeAccessResponse, parseDet
 import type { PlaybackResult, PlaybackTarget, VaultAccessState, VaultReplayGroup } from '@/components/replay-vault/types';
 import { useVaultSeekCoordinator } from '@/components/replay-vault/useVaultSeekCoordinator';
 
+const SHOW_PRIVATE_PILOT = import.meta.env.VITE_REPLAY_VAULT_PILOT === 'true';
+const PrivatePilot = SHOW_PRIVATE_PILOT ? lazy(() => import('@/components/mastermind/MastermindVideoSearch')) : null;
+
 function canUseVault(access: VaultAccessState) { return access.status === 'allowed' || access.status === 'limited'; }
 type DeepLinkState = { key: string | null; status: 'idle' | 'loading' | 'success' | 'error' };
 const targetKey = (target: { resourceId: string; momentId?: string | null; questionId?: string | null }) => `${target.resourceId}:${target.momentId ?? target.questionId ?? 'replay'}`;
 
-export default function ReplayVault() {
+function ProtectedReplayVault() {
   const location = useLocation();
   const headingRef = useRef<HTMLHeadingElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -143,7 +146,7 @@ export default function ReplayVault() {
     searchRequest.current = { generation, controller };
     setSearching(true); setSubmittedQuery(cleanQuery); setSearchError(null);
     try {
-      const { data, error } = await supabase.functions.invoke('search-mastermind-resources', { body: { query: cleanQuery, limit: 20, momentsPerReplay: 8, responseShape: 'grouped_moments_v1' } });
+      const { data, error } = await supabase.functions.invoke('search-mastermind-resources', { body: { query: cleanQuery, limit: 20, momentsPerReplay: 8, filters: { includeMetadataFallback: true }, responseShape: 'grouped_moments_v1' } });
       if (controller.signal.aborted || searchRequest.current.generation !== generation) return;
       setGroups(error ? [] : groupSearchResults(data));
       if (error) setSearchError('Search is temporarily unavailable. Your access has not changed.');
@@ -188,7 +191,7 @@ export default function ReplayVault() {
         {access.status === 'not_launched' && <Card><CardHeader><CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5 text-primary" aria-hidden="true" />Replay Vault is not open yet</CardTitle><CardDescription>Your membership is recognized. This Replay Vault is currently disabled or limited to the pilot group.</CardDescription></CardHeader></Card>}
         {access.status === 'denied' && <Card><CardHeader><CardTitle className="flex items-center gap-2"><Lock className="h-5 w-5" aria-hidden="true" />Replay access not included</CardTitle><CardDescription>Sign in with the email connected to an active Mastermind membership.</CardDescription></CardHeader></Card>}
         {canUseVault(access) && <>
-          <Card><CardHeader><CardTitle>What do you need help with?</CardTitle><CardDescription id="vault-search-help">Search approved titles and transcript moments available to you.</CardDescription></CardHeader><CardContent><form role="search" onSubmit={handleSearch} className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end"><div className="min-w-0 flex-1 space-y-2"><label htmlFor="vault-search" className="text-sm font-medium">Search Replay Vault</label><div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" /><Input ref={searchInputRef} id="vault-search" value={query} maxLength={160} aria-describedby="vault-search-help" onChange={(event) => setQuery(event.target.value)} placeholder="Try pricing, capacity, or sales" className="min-h-11 min-w-0 pl-10" /></div></div><Button type="submit" className="min-h-11 w-full sm:w-auto" disabled={query.trim().length < 2}>{searching ? 'Searching…' : 'Search Vault'}</Button></form><p className="sr-only" role="status" aria-live="polite">{searching ? 'Searching approved replays.' : submittedQuery ? `${groups.length} matching replays.` : ''}</p></CardContent></Card>
+          <Card><CardHeader><div className="flex flex-wrap items-center gap-2"><Badge>Entire Library</Badge><CardTitle>What do you need help with?</CardTitle></div><CardDescription id="vault-search-help">Search every approved title and transcript moment available to you.</CardDescription></CardHeader><CardContent><form role="search" onSubmit={handleSearch} className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end"><div className="min-w-0 flex-1 space-y-2"><label htmlFor="vault-search" className="text-sm font-medium">Search Entire Library</label><div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" /><Input ref={searchInputRef} id="vault-search" value={query} maxLength={160} aria-describedby="vault-search-help" onChange={(event) => setQuery(event.target.value)} placeholder="Try pricing, capacity, or sales" className="min-h-11 min-w-0 pl-10" /></div></div><Button type="submit" className="min-h-11 w-full sm:w-auto" disabled={query.trim().length < 2}>{searching ? 'Searching…' : 'Search Entire Library'}</Button></form><p className="sr-only" role="status" aria-live="polite">{searching ? 'Searching approved replays.' : submittedQuery ? `${groups.length} matching replays.` : ''}</p></CardContent></Card>
           {searchError && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{searchError}</p>}
           {deepLink.status === 'error' && <div role="alert" className="flex flex-col gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3"><p className="text-sm">That protected answer could not be opened. Your access has not changed.</p><Button type="button" variant="outline" className="w-fit" onClick={retryDeepLink}>Try answer again</Button></div>}
           {playbackError && deepLink.status !== 'error' && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{playbackError}</p>}
@@ -200,4 +203,11 @@ export default function ReplayVault() {
       </section>
     </Layout>
   );
+}
+
+export default function ReplayVault() {
+  if (SHOW_PRIVATE_PILOT && PrivatePilot) {
+    return <Layout><section className="mx-auto w-full min-w-0 max-w-6xl overflow-x-clip px-0.5"><Suspense fallback={<p role="status" className="text-sm text-muted-foreground">Loading private Replay Vault pilot…</p>}><PrivatePilot /></Suspense></section></Layout>;
+  }
+  return <ProtectedReplayVault />;
 }

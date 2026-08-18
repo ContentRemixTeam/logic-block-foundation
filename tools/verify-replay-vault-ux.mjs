@@ -133,6 +133,7 @@ async function runMounted(label, width, negative = false) {
     format: 'iife',
     jsx: 'automatic',
     tsconfig: path.join(root, 'tsconfig.app.json'),
+    define: { 'import.meta.env.VITE_REPLAY_VAULT_PILOT': '"false"' },
     plugins: [aliases(negative)],
     logLevel: 'silent',
   });
