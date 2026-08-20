@@ -2,10 +2,19 @@
 INSERT INTO public.replay_vault_provider_product_mappings(provider,product_id,price_id,entitlement_tier,grant_interval,active,approved_by,approved_at)
 VALUES
  ('ghl','vault','annual','annual',interval '1 year',true,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',clock_timestamp()),
+ ('ghl','vault','lifetime','lifetime',NULL,true,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',clock_timestamp()),
  ('ghl','vault','monthly','monthly',interval '1 month',true,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',clock_timestamp())
 ON CONFLICT(provider,product_id,price_id) DO UPDATE SET active=true,approved_by=excluded.approved_by,approved_at=excluded.approved_at;
 INSERT INTO public.entitlements(email,tier,status,starts_at,ends_at)
-VALUES('mixed@example.com','mastermind','active','2025-01-01','2028-01-01');
+VALUES
+ ('mixed@example.com','mastermind','active','2025-01-01','2028-01-01'),
+ ('lifetime@example.com','mastermind','active','2025-01-01',NULL);
+
+-- Prove the final R10 tier boundary under a launched Vault. The default
+-- disabled state would make every tier look denied and produce a false green.
+UPDATE public.replay_vault_launch_config SET launch_state='launched' WHERE singleton;
+SELECT public.apply_replay_vault_commercial_event_r7('ghl','evt-lifetime','lifetime-order','lifetime-charge',NULL,NULL,
+  'lifetime@example.com','grant','vault','lifetime',repeat('c',64),repeat('3',64),1786291200,'2025-01-01',NULL);
 
 -- Expired stronger tier must not elevate a newer weaker active contribution.
 SELECT public.apply_replay_vault_commercial_event_r7('ghl','evt-mixed-old','order-mixed','charge-mixed-old',NULL,NULL,
@@ -14,11 +23,74 @@ SELECT public.apply_replay_vault_commercial_event_r7('ghl','evt-mixed-current','
   'mixed@example.com','renewal','vault','monthly',repeat('b',64),repeat('2',64),1786291200,'2026-08-01','2026-09-01');
 DO $$ DECLARE j jsonb;u uuid:='99999999-9999-4999-8999-999999999999';BEGIN
   j:=public.replay_vault_access_decision(u,'mixed@example.com',NULL,'access',false,'2026-08-15 03:59:59.999999Z');
-  IF j->>'memberTier'<>'annual' OR NOT (j->'memberScopes' ? 'replay_vault') THEN
+  IF j->>'memberTier'<>'annual' OR NOT (j->'memberScopes' ? 'replay_vault') OR NOT (j->>'allowed')::boolean THEN
     RAISE EXCEPTION 'annual tier/scope missing before exact expiry %',j;END IF;
   j:=public.replay_vault_access_decision(u,'mixed@example.com',NULL,'access',false,'2026-08-15T04:00:00Z');
-  IF j->>'memberTier'<>'monthly' OR (j->'memberScopes' ? 'replay_vault') THEN
+  IF j->>'memberTier'<>'monthly' OR (j->'memberScopes' ? 'replay_vault') OR (j->>'allowed')::boolean THEN
     RAISE EXCEPTION 'expired annual tier/scope crossed boundary or mixed monthly expiry %',j;END IF;
+END $$;
+
+INSERT INTO public.admin_users(user_id)
+VALUES('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') ON CONFLICT DO NOTHING;
+INSERT INTO public.mastermind_portal_resources(
+  portal_resource_id,product_title,title,portal_path,publication_state,privacy_state,
+  pairing_state,transcript_state,media_state,approved_access_scope
+) VALUES(
+  'r10-preview-resource','Vault','R10 preview boundary','/mastermind/replay-vault/r10-preview-resource',
+  'inventoried','unreviewed','paired','active','approved','replay_vault'
+);
+
+DO $$ DECLARE
+  j jsonb;
+  annual_id uuid:='99999999-9999-4999-8999-999999999999';
+  admin_id uuid:='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+BEGIN
+  j:=public.replay_vault_access_decision(annual_id,'lifetime@example.com',NULL,'access',false,'2026-08-15T00:00:00Z');
+  IF j->>'memberTier'<>'lifetime' OR NOT (j->'memberScopes' ? 'replay_vault') OR NOT (j->>'allowed')::boolean THEN
+    RAISE EXCEPTION 'launched lifetime Vault access missing %',j;END IF;
+
+  BEGIN
+    PERFORM public.replay_vault_access_decision(annual_id,'lifetime@example.com',NULL,NULL,false,'2026-08-15T00:00:00Z');
+    RAISE EXCEPTION 'null action accepted';
+  EXCEPTION WHEN SQLSTATE 'P0001' THEN
+    IF SQLERRM='null action accepted' THEN RAISE; END IF;
+  END;
+
+  UPDATE public.replay_vault_launch_config SET launch_state='disabled' WHERE singleton;
+  j:=public.replay_vault_access_decision(annual_id,'mixed@example.com',NULL,'access',false,'2026-08-15T00:00:00Z');
+  IF (j->>'allowed')::boolean THEN RAISE EXCEPTION 'disabled annual entered Vault %',j;END IF;
+  j:=public.replay_vault_access_decision(annual_id,'mixed@example.com',NULL,'access',true,'2026-08-15T00:00:00Z');
+  IF (j->>'allowed')::boolean OR (j->>'previewActive')::boolean THEN RAISE EXCEPTION 'non-admin preview bypassed launch %',j;END IF;
+  j:=public.replay_vault_access_decision(admin_id,'admin@example.com',NULL,'access',true,'2026-08-15T00:00:00Z');
+  IF NOT (j->>'allowed')::boolean OR NOT (j->>'previewActive')::boolean THEN RAISE EXCEPTION 'admin preview entry missing %',j;END IF;
+
+  j:=public.replay_vault_access_decision(admin_id,'admin@example.com','r10-preview-resource','search',true,'2026-08-15T00:00:00Z');
+  IF (j->>'allowed')::boolean THEN RAISE EXCEPTION 'admin preview bypassed privacy %',j;END IF;
+  UPDATE public.mastermind_portal_resources SET privacy_state='approved',transcript_state='evidence_only'
+   WHERE portal_resource_id='r10-preview-resource';
+  j:=public.replay_vault_access_decision(admin_id,'admin@example.com','r10-preview-resource','search',true,'2026-08-15T00:00:00Z');
+  IF (j->>'allowed')::boolean THEN RAISE EXCEPTION 'admin preview bypassed transcript readiness %',j;END IF;
+  UPDATE public.mastermind_portal_resources SET transcript_state='active'
+   WHERE portal_resource_id='r10-preview-resource';
+  j:=public.replay_vault_access_decision(admin_id,'admin@example.com','r10-preview-resource','search',true,'2026-08-15T00:00:00Z');
+  IF NOT (j->>'allowed')::boolean THEN RAISE EXCEPTION 'admin preview could not inspect privacy-ready unpublished resource %',j;END IF;
+  UPDATE public.mastermind_portal_resources SET media_state='planned'
+   WHERE portal_resource_id='r10-preview-resource';
+  j:=public.replay_vault_access_decision(admin_id,'admin@example.com','r10-preview-resource','playback',true,'2026-08-15T00:00:00Z');
+  IF (j->>'allowed')::boolean THEN RAISE EXCEPTION 'admin preview bypassed playback readiness %',j;END IF;
+  UPDATE public.mastermind_portal_resources SET media_state='approved',available_until='2026-08-14'
+   WHERE portal_resource_id='r10-preview-resource';
+  j:=public.replay_vault_access_decision(admin_id,'admin@example.com','r10-preview-resource','playback',true,'2026-08-15T04:00:00Z');
+  IF (j->>'allowed')::boolean THEN RAISE EXCEPTION 'admin preview bypassed resource expiration %',j;END IF;
+  UPDATE public.replay_vault_launch_config SET launch_state='pilot' WHERE singleton;
+  j:=public.replay_vault_access_decision(annual_id,'mixed@example.com',NULL,'access',false,'2026-08-15T00:00:00Z');
+  IF (j->>'allowed')::boolean THEN RAISE EXCEPTION 'non-pilot annual entered pilot %',j;END IF;
+  INSERT INTO public.replay_vault_pilot_subjects(auth_user_id,enabled) VALUES(annual_id,true)
+    ON CONFLICT(auth_user_id) DO UPDATE SET enabled=true;
+  j:=public.replay_vault_access_decision(annual_id,'mixed@example.com',NULL,'access',false,'2026-08-15T00:00:00Z');
+  IF NOT (j->>'allowed')::boolean THEN RAISE EXCEPTION 'enabled annual pilot denied %',j;END IF;
+
+  UPDATE public.replay_vault_launch_config SET launch_state='launched' WHERE singleton;
 END $$;
 
 -- A future annual contribution must not elevate the active monthly contribution early.
@@ -26,7 +98,8 @@ SELECT public.apply_replay_vault_commercial_event_r7('ghl','evt-future-annual','
   'mixed@example.com','renewal','vault','annual',repeat('d',64),repeat('7',64),1786291200,'2026-09-01','2027-09-01');
 DO $$DECLARE j jsonb;BEGIN
   j:=public.replay_vault_access_decision('99999999-9999-4999-8999-999999999999','mixed@example.com',NULL,'access',false,'2026-09-01 03:59:59.999999Z');
-  IF j->>'memberTier'<>'monthly' THEN RAISE EXCEPTION 'future annual granted early %',j;END IF;
+  IF j->>'memberTier'<>'monthly' OR (j->'memberScopes' ? 'replay_vault') OR (j->>'allowed')::boolean THEN
+    RAISE EXCEPTION 'future annual granted early or monthly entered Vault %',j;END IF;
 END$$;
 
 -- A lifecycle time before its exact purchase rejects generically and mutates nothing.

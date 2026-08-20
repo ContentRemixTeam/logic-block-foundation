@@ -274,7 +274,7 @@ const App = () => (
                       <Route path="/self-coaching" element={<ProtectedRoute><PageSuspense><SelfCoaching /></PageSuspense></ProtectedRoute>} />
                       <Route path="/mastermind" element={<ProtectedRoute><MastermindGate><PageSuspense><MastermindHub /></PageSuspense></MastermindGate></ProtectedRoute>} />
                       <Route path="/mastermind/success-path/:cycleId" element={<ProtectedRoute><MastermindGate><PageSuspense><MastermindHub /></PageSuspense></MastermindGate></ProtectedRoute>} />
-                      <Route path="/mastermind/replay-vault" element={<ProtectedRoute><MastermindGate><PageSuspense><ReplayVault /></PageSuspense></MastermindGate></ProtectedRoute>} />
+                      <Route path="/mastermind/replay-vault" element={<ProtectedRoute><PageSuspense><ReplayVault /></PageSuspense></ProtectedRoute>} />
                       <Route path="/admin/mastermind-roster" element={<ProtectedRoute><PageSuspense><MastermindRosterImport /></PageSuspense></ProtectedRoute>} />
                       <Route path="/support" element={<ProtectedRoute><PageSuspense><Support /></PageSuspense></ProtectedRoute>} />
                       <Route path="/help/browser-storage" element={<ProtectedRoute><PageSuspense><BrowserStorageHelp /></PageSuspense></ProtectedRoute>} />

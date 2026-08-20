@@ -42,17 +42,18 @@ export function normalizeAccessResponse(data) {
   if (data.allowed) {
     if (!data.memberEntitled || data.memberTier === null || data.launchState === 'disabled') return { status: 'unavailable' };
     const capabilities = memberCapabilities(data.memberScopes);
-    const hasCurrent = capabilities.includes('current_replay');
     const hasFull = capabilities.includes('full_vault');
-    if (data.memberTier === 'monthly' && hasCurrent && !hasFull) return { status: 'limited', capabilities, checkedAt };
-    if ((data.memberTier === 'annual' || data.memberTier === 'lifetime') && hasCurrent && hasFull) {
+    if ((data.memberTier === 'annual' || data.memberTier === 'lifetime') && hasFull) {
       return { status: 'allowed', capabilities, checkedAt };
     }
     return { status: 'unavailable' };
   }
 
   if (data.memberEntitled) {
-    if (data.memberTier === null || !data.memberScopes.includes('current_replay_30_day')) return { status: 'unavailable' };
+    if (data.memberTier === 'monthly' && !data.memberScopes.includes('replay_vault')) {
+      return { status: 'denied', reasonCode: null, checkedAt };
+    }
+    if (data.memberTier === null || !data.memberScopes.includes('replay_vault')) return { status: 'unavailable' };
     if (data.launchState === 'disabled' || data.launchState === 'pilot') {
       return { status: 'not_launched', memberTier: data.memberTier, launchState: data.launchState, checkedAt };
     }

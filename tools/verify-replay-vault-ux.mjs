@@ -26,7 +26,7 @@ const questionTwo = '44444444-4444-4444-8444-444444444444';
 const accessPayload = (overrides = {}) => ({ allowed: true, memberEntitled: true, memberTier: 'annual', memberScopes: ['core_curriculum', 'current_replay_30_day', 'replay_vault'], previewCapabilities: [], previewActive: false, launchState: 'launched', ...overrides });
 assert.equal(normalizeAccessResponse(accessPayload()).status, 'allowed');
 assert.equal(normalizeAccessResponse(accessPayload({ memberTier: 'lifetime' })).status, 'allowed');
-assert.equal(normalizeAccessResponse(accessPayload({ memberTier: 'monthly', memberScopes: ['core_curriculum', 'current_replay_30_day'] })).status, 'limited');
+assert.equal(normalizeAccessResponse(accessPayload({ allowed: false, memberTier: 'monthly', memberScopes: ['core_curriculum', 'current_replay_30_day'] })).status, 'denied');
 assert.equal(normalizeAccessResponse(accessPayload({ allowed: false, memberEntitled: false, memberTier: null, memberScopes: [] })).status, 'denied');
 assert.equal(normalizeAccessResponse(accessPayload({ allowed: false, launchState: 'disabled' })).status, 'not_launched');
 assert.equal(normalizeAccessResponse(accessPayload({ allowed: false, launchState: 'pilot' })).status, 'not_launched');

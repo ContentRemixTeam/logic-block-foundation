@@ -46,7 +46,7 @@ const accessPayload = (overrides = {}) => ({
 const accessCases = [
   ["annual full", accessPayload(), "allowed"],
   ["lifetime full", accessPayload({ memberTier: "lifetime" }), "allowed"],
-  ["monthly current", accessPayload({ memberTier: "monthly", memberScopes: ["core_curriculum", "current_replay_30_day"] }), "limited"],
+  ["monthly denied", accessPayload({ allowed: false, memberTier: "monthly", memberScopes: ["core_curriculum", "current_replay_30_day"] }), "denied"],
   ["non-entitled denied", accessPayload({ allowed: false, memberEntitled: false, memberTier: null, memberScopes: [] }), "denied"],
   ["entitled launch disabled", accessPayload({ allowed: false, launchState: "disabled" }), "not_launched"],
   ["entitled pilot excluded", accessPayload({ allowed: false, launchState: "pilot" }), "not_launched"],

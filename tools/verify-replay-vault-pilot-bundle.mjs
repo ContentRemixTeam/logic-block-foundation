@@ -20,7 +20,11 @@ const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'replay-vault-pilot-bundle-
 try {
   const build = spawnSync('npx', ['vite', 'build', '--outDir', outDir], {
     cwd: root,
-    env: { ...process.env, VITE_REPLAY_VAULT_PILOT: 'true' },
+    env: {
+      ...process.env,
+      VITE_REPLAY_VAULT_PILOT: 'true',
+      VITE_ENABLE_MASTERMIND_VIDEO_SEARCH: 'true',
+    },
     encoding: 'utf8',
     timeout: 180000,
   });
@@ -41,12 +45,12 @@ try {
       assert.equal(combined.includes(sentinel), false, `excluded pilot content leaked into browser build: ${video.id} / ${sentinel.slice(0, 60)}`);
     }
   }
-  for (const required of ['Recommended for your plan', 'annual-goals', 'TFake8oGWXQ']) {
-    assert.equal(combined.includes(required), true, `pilot build is missing required selected content: ${required}`);
+  for (const forbidden of ['Recommended for your plan', 'annual-goals', 'TFake8oGWXQ', 'REPLAY_VAULT_PILOT_VIDEOS']) {
+    assert.equal(combined.includes(forbidden), false, `retired static pilot content leaked into production browser build: ${forbidden}`);
   }
   const pilotAssets = assets.filter((asset) => asset.text.includes('Recommended for your plan'));
-  assert.equal(pilotAssets.length, 1, 'pilot UI should live in exactly one lazy browser asset');
-  console.log(`Replay Vault pilot compiled privacy gate passed: ${excluded.length} excluded records absent; selected pilot asset ${path.basename(pilotAssets[0].path)}.`);
+  assert.equal(pilotAssets.length, 0, 'retired static pilot UI must not exist in any production browser asset');
+  console.log(`Replay Vault compiled privacy gate passed: ${excluded.length} privacy-sensitive fixtures and all retired static pilot sentinels are absent.`);
 } finally {
   fs.rmSync(outDir, { recursive: true, force: true });
 }

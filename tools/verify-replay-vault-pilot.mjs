@@ -36,8 +36,8 @@ const pilotData=fs.readFileSync(path.join(repo,'src/data/replayVaultPilotVideos.
 const pilotDataMarker='export const REPLAY_VAULT_PILOT_VIDEOS: MastermindVideo[] = ';
 const pilotDataStart=pilotData.indexOf('[',pilotData.indexOf(pilotDataMarker)+pilotDataMarker.length);
 const actualVideos=JSON.parse(pilotData.slice(pilotDataStart,pilotData.lastIndexOf('];')+1));
-assert.match(page,/VITE_REPLAY_VAULT_PILOT/);
-assert.match(page,/MastermindVideoSearch/);
+assert.doesNotMatch(page,/VITE_REPLAY_VAULT_PILOT/,'production Vault route must not contain a static pilot feature-flag bypass');
+assert.doesNotMatch(page,/MastermindVideoSearch/,'production Vault route must not mount the static pilot component');
 assert.match(pilot,/useMastermindSuccessPath/);
 assert.match(pilot,/Recommended for your plan/);
 assert.match(pilot,/Search titles, topics, keywords, and full transcripts/);

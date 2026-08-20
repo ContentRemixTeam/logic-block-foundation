@@ -59,7 +59,7 @@ const accessPayload = (overrides: Record<string, unknown> = {}) => ({
   previewCapabilities: [], previewActive: false, launchState: 'launched', ...overrides,
 });
 const allowed = { data: accessPayload(), error: null };
-const limited = { data: accessPayload({ memberTier: 'monthly', memberScopes: ['core_curriculum', 'current_replay_30_day'] }), error: null };
+const monthlyDenied = { data: accessPayload({ allowed: false, memberTier: 'monthly', memberScopes: ['core_curriculum', 'current_replay_30_day'] }), error: null };
 const denied = { data: accessPayload({ allowed: false, memberEntitled: false, memberTier: null, memberScopes: [] }), error: null };
 const launchDisabled = { data: accessPayload({ allowed: false, launchState: 'disabled' }), error: null };
 const pilotExcluded = { data: accessPayload({ allowed: false, launchState: 'pilot' }), error: null };
@@ -87,7 +87,7 @@ async function malformedAccessIsUnavailable() {
 async function producerAccessStatesStayDistinct() {
   for (const [fixture, expected, forbidden] of [
     [allowed, 'Full Replay Vault', 'Access check unavailable'],
-    [limited, 'Current replays', 'Access check unavailable'],
+    [monthlyDenied, 'Replay access not included', 'Access check unavailable'],
     [denied, 'Replay access not included', 'Access check unavailable'],
     [launchDisabled, 'Replay Vault is not open yet', 'Replay access not included'],
     [pilotExcluded, 'Replay Vault is not open yet', 'Replay access not included'],
@@ -95,6 +95,7 @@ async function producerAccessStatesStayDistinct() {
     __vaultMock.reset();
     __vaultMock.enqueue('get-mastermind-portal-access', fixture);
     await mount();
+    assert(__vaultMock.lastBody('get-mastermind-portal-access').preview === true, 'access request must ask the server to evaluate admin preview');
     assert(document.body.textContent?.includes(expected), `producer access fixture must render ${expected}`);
     assert(!document.body.textContent?.includes(forbidden), `producer access fixture must not render ${forbidden}`);
   }
@@ -138,6 +139,7 @@ async function deepLinkIsBoundedAndRetryExplicit() {
   assert(__vaultMock.count('get-mastermind-playback-link') === 2, `explicit retry must make one new request (observed ${__vaultMock.count('get-mastermind-playback-link')})`);
   const body = __vaultMock.lastBody('get-mastermind-playback-link');
   assert(body.questionId === null && body.momentId === momentOne, 'resolver must receive exactly one stable mapper target ID');
+  assert(body.preview === true, 'playback request must ask the server to evaluate admin preview');
 }
 
 async function searchRaceKeepsNewestIntent() {
@@ -158,6 +160,7 @@ async function searchRaceKeepsNewestIntent() {
   assert(!document.body.textContent?.includes('Stale replay'), 'stale search must not overwrite newest intent');
   const body = __vaultMock.lastBody('search-mastermind-resources');
   assert(body.responseShape === 'grouped_moments_v1' && body.momentsPerReplay === 8, 'search must request authoritative grouped multi-moment shape');
+  assert(body.preview === true, 'search request must ask the server to evaluate admin preview');
 }
 
 async function playbackRaceAndSameTargetSeek() {

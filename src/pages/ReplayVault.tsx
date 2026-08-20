@@ -1,4 +1,4 @@
-import { FormEvent, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Badge } from '@/components/ui/badge';
@@ -14,10 +14,7 @@ import { groupSearchResults, makeAuthReturnTo, normalizeAccessResponse, parseDet
 import type { PlaybackResult, PlaybackTarget, VaultAccessState, VaultReplayGroup } from '@/components/replay-vault/types';
 import { useVaultSeekCoordinator } from '@/components/replay-vault/useVaultSeekCoordinator';
 
-const SHOW_PRIVATE_PILOT = import.meta.env.VITE_REPLAY_VAULT_PILOT === 'true';
-const PrivatePilot = SHOW_PRIVATE_PILOT ? lazy(() => import('@/components/mastermind/MastermindVideoSearch')) : null;
-
-function canUseVault(access: VaultAccessState) { return access.status === 'allowed' || access.status === 'limited'; }
+function canUseVault(access: VaultAccessState) { return access.status === 'allowed'; }
 type DeepLinkState = { key: string | null; status: 'idle' | 'loading' | 'success' | 'error' };
 const targetKey = (target: { resourceId: string; momentId?: string | null; questionId?: string | null }) => `${target.resourceId}:${target.momentId ?? target.questionId ?? 'replay'}`;
 
@@ -64,7 +61,7 @@ function ProtectedReplayVault() {
     setAccess({ status: 'loading' });
     setPlayback(null); setTarget(null);
     try {
-      const { data, error } = await supabase.functions.invoke('get-mastermind-portal-access', { body: {} });
+      const { data, error } = await supabase.functions.invoke('get-mastermind-portal-access', { body: { preview: true } });
       if (controller.signal.aborted || accessRequest.current.generation !== generation) return;
       setAccess(error ? { status: 'unavailable' } : normalizeAccessResponse(data));
     } catch {
@@ -89,7 +86,7 @@ function ProtectedReplayVault() {
     setPlaybackError(null);
     if (!options.recovery) setRecoveryFailed(false);
     try {
-      const { data, error } = await supabase.functions.invoke('get-mastermind-playback-link', { body: { resourceId: nextTarget.resourceId, questionId: nextTarget.questionId, momentId: nextTarget.momentId, responseShape: 'verified_cue_v1' } });
+      const { data, error } = await supabase.functions.invoke('get-mastermind-playback-link', { body: { resourceId: nextTarget.resourceId, questionId: nextTarget.questionId, momentId: nextTarget.momentId, responseShape: 'verified_cue_v1', preview: true } });
       if (controller.signal.aborted || playbackRequest.current.generation !== generation) return false;
       const result = error ? null : validatePlaybackResponse(data, nextTarget);
       if (!result) {
@@ -146,7 +143,7 @@ function ProtectedReplayVault() {
     searchRequest.current = { generation, controller };
     setSearching(true); setSubmittedQuery(cleanQuery); setSearchError(null);
     try {
-      const { data, error } = await supabase.functions.invoke('search-mastermind-resources', { body: { query: cleanQuery, limit: 20, momentsPerReplay: 8, filters: { includeMetadataFallback: true }, responseShape: 'grouped_moments_v1' } });
+      const { data, error } = await supabase.functions.invoke('search-mastermind-resources', { body: { query: cleanQuery, limit: 20, momentsPerReplay: 8, filters: { includeMetadataFallback: true }, responseShape: 'grouped_moments_v1', preview: true } });
       if (controller.signal.aborted || searchRequest.current.generation !== generation) return;
       setGroups(error ? [] : groupSearchResults(data));
       if (error) setSearchError('Search is temporarily unavailable. Your access has not changed.');
@@ -187,7 +184,7 @@ function ProtectedReplayVault() {
         {access.status === 'loading' && <p role="status" aria-live="polite" className="text-sm text-muted-foreground">Checking Replay Vault access…</p>}
         {access.status === 'unavailable' && <Card role="alert"><CardHeader><CardTitle className="flex items-center gap-2"><WifiOff className="h-5 w-5" aria-hidden="true" />Access check unavailable</CardTitle><CardDescription>We could not verify access right now. This does not mean your membership changed.</CardDescription></CardHeader><CardContent><Button type="button" onClick={() => void loadAccess()}>Try again</Button></CardContent></Card>}
         {access.status === 'allowed' && <Card><CardHeader><CardTitle className="flex items-center gap-2"><Library className="h-5 w-5 text-primary" aria-hidden="true" />Full Replay Vault</CardTitle><CardDescription>Your access includes the full approved replay library.</CardDescription></CardHeader></Card>}
-        {access.status === 'limited' && <Card><CardHeader><CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5 text-primary" aria-hidden="true" />Current replays</CardTitle><CardDescription>You can search the approved current replay window. Older archive results stay private.</CardDescription></CardHeader></Card>}
+
         {access.status === 'not_launched' && <Card><CardHeader><CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5 text-primary" aria-hidden="true" />Replay Vault is not open yet</CardTitle><CardDescription>Your membership is recognized. This Replay Vault is currently disabled or limited to the pilot group.</CardDescription></CardHeader></Card>}
         {access.status === 'denied' && <Card><CardHeader><CardTitle className="flex items-center gap-2"><Lock className="h-5 w-5" aria-hidden="true" />Replay access not included</CardTitle><CardDescription>Sign in with the email connected to an active Mastermind membership.</CardDescription></CardHeader></Card>}
         {canUseVault(access) && <>
@@ -206,8 +203,5 @@ function ProtectedReplayVault() {
 }
 
 export default function ReplayVault() {
-  if (SHOW_PRIVATE_PILOT && PrivatePilot) {
-    return <Layout><section className="mx-auto w-full min-w-0 max-w-6xl overflow-x-clip px-0.5"><Suspense fallback={<p role="status" className="text-sm text-muted-foreground">Loading private Replay Vault pilot…</p>}><PrivatePilot /></Suspense></section></Layout>;
-  }
   return <ProtectedReplayVault />;
 }

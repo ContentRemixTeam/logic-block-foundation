@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useMemo, useEffect, type ComponentType } from 'react';
+import { useState, useMemo, useEffect, type ComponentType } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,11 +36,6 @@ import {
   X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const SHOW_VIDEO_SEARCH = import.meta.env.VITE_ENABLE_MASTERMIND_VIDEO_SEARCH === 'true';
-const MastermindVideoSearch = SHOW_VIDEO_SEARCH
-  ? lazy(() => import('@/components/mastermind/MastermindVideoSearch'))
-  : null;
 
 const STORAGE_KEY = 'mastermind-pinned-resources';
 
@@ -210,14 +205,8 @@ export default function MastermindHub() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <TabsList
-              className={cn(
-                'grid w-full',
-                SHOW_VIDEO_SEARCH ? 'grid-cols-2 sm:max-w-2xl sm:grid-cols-4' : 'grid-cols-3 sm:max-w-lg'
-              )}
-            >
+            <TabsList className="grid w-full grid-cols-3 sm:max-w-lg">
               <TabsTrigger value="path">Success Path</TabsTrigger>
-              {SHOW_VIDEO_SEARCH && <TabsTrigger value="videos">Video Search</TabsTrigger>}
               <TabsTrigger value="support">Get Support</TabsTrigger>
               <TabsTrigger value="resources">Resources</TabsTrigger>
             </TabsList>
@@ -382,22 +371,6 @@ export default function MastermindHub() {
                 </Card>
               </div>
             </TabsContent>
-
-            {SHOW_VIDEO_SEARCH && MastermindVideoSearch && (
-              <TabsContent value="videos">
-                <Suspense
-                  fallback={
-                    <Card>
-                      <CardContent className="p-6 text-sm text-muted-foreground">
-                        Loading video search...
-                      </CardContent>
-                    </Card>
-                  }
-                >
-                  <MastermindVideoSearch />
-                </Suspense>
-              </TabsContent>
-            )}
 
             <TabsContent value="support" className="grid gap-4 lg:grid-cols-3">
               <SupportCard

@@ -2,7 +2,6 @@ export type VaultCapability = 'core' | 'ask_faith' | 'current_replay' | 'full_va
 export type VaultAccessState =
   | { status: 'loading' }
   | { status: 'allowed'; capabilities: VaultCapability[]; checkedAt: string | null }
-  | { status: 'limited'; capabilities: VaultCapability[]; checkedAt: string | null }
   | { status: 'not_launched'; memberTier: 'monthly' | 'annual' | 'lifetime'; launchState: 'disabled' | 'pilot'; checkedAt: string | null }
   | { status: 'denied'; reasonCode: string | null; checkedAt: string | null }
   | { status: 'unavailable' };
