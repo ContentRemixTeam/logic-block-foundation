@@ -1,0 +1,378 @@
+{
+  "base_commit": "5f4c219cdbcc58b845b0e5d3a7e8d719e64f6ce3",
+  "file_count": 74,
+  "files": [
+    {
+      "path": "src/components/replay-vault/ProtectedReplayLink.tsx",
+      "bytes": 678,
+      "sha256": "022e2aa6a58e71c112c5696d3de88c66ffaf5e38036e8eabcbfd9d83cd9fd2fa"
+    },
+    {
+      "path": "src/components/replay-vault/VaultCallQuestions.tsx",
+      "bytes": 3064,
+      "sha256": "207f94429882d653c2233fdddc8360921c40eb75828527e8eaac6592e7167bd5"
+    },
+    {
+      "path": "src/components/replay-vault/VaultInteractionBar.tsx",
+      "bytes": 4499,
+      "sha256": "50705cf3470ab675821d2c1da67c56b59ab15b275c4942e16c15a76ba4c69944"
+    },
+    {
+      "path": "src/components/replay-vault/VaultLibrarySurfaces.tsx",
+      "bytes": 12015,
+      "sha256": "1874e71644fda8d2353c96fa4f6e3243e3b8b3c3f0433cf69bbb60ddaa2f56f4"
+    },
+    {
+      "path": "src/components/replay-vault/VaultPlayer.tsx",
+      "bytes": 4698,
+      "sha256": "bdad766e2e40ddf00234cf39ba435aa021d5a5aa7c7db1a00eada3982dad2435"
+    },
+    {
+      "path": "src/components/replay-vault/VaultSearchResults.tsx",
+      "bytes": 3686,
+      "sha256": "5ea8c1c19e0e284fe28f93293fde23818949257632b0204a7de3911e6e445da8"
+    },
+    {
+      "path": "src/components/replay-vault/VaultTranscript.tsx",
+      "bytes": 5137,
+      "sha256": "0f0556120758b5e3db8ac6e2f3f2b110f9a3b6be69e706ccde2101d352300d3c"
+    },
+    {
+      "path": "src/components/replay-vault/interactionCore.mjs",
+      "bytes": 3873,
+      "sha256": "c8660a23bdc78daec8bb7ce46660263a1fb096fbaf916e65416d16d3f80ce51e"
+    },
+    {
+      "path": "src/components/replay-vault/replayVaultCore.d.mts",
+      "bytes": 1115,
+      "sha256": "898b4289a20e9f6ec6b4ad8045d7aa43708986e50f2e27ce10ce0cbdad5779b9"
+    },
+    {
+      "path": "src/components/replay-vault/replayVaultCore.mjs",
+      "bytes": 8840,
+      "sha256": "4d593058f47741780c05ea536332351b1b60a6f5786771e4517df11b185ddf79"
+    },
+    {
+      "path": "src/components/replay-vault/replayVaultLibraryCore.mjs",
+      "bytes": 3211,
+      "sha256": "e8246ec6a3ffa484a02c82aa558c2e5dad6696c0b8f3b677e17913a5357c9069"
+    },
+    {
+      "path": "src/components/replay-vault/types.ts",
+      "bytes": 1494,
+      "sha256": "eab4d5f592a91533068f9949140c55ede42ad586cf8e185d60b9d5278d1754e0"
+    },
+    {
+      "path": "src/components/replay-vault/useVaultInteractions.ts",
+      "bytes": 7525,
+      "sha256": "ec096a6396caa0a1f042c185918b355b87d5e871245b91597c63dca9f96ad83f"
+    },
+    {
+      "path": "src/components/replay-vault/useVaultSeekCoordinator.ts",
+      "bytes": 1593,
+      "sha256": "dac23f1ba9b95fccb04ecf49d9553584eda71e2f2a103dc77053aa5a243a0f77"
+    },
+    {
+      "path": "src/pages/ReplayVault.tsx",
+      "bytes": 17228,
+      "sha256": "cbe18352d544912820164d1af9c5ce3a61b1e4a7ab7cd4224e21d5a63971c965"
+    },
+    {
+      "path": "supabase/functions/_shared/replayVaultAccess.test.ts",
+      "bytes": 6536,
+      "sha256": "dc32092e194953c10a0b9b9a3772f7b1dea0b35997cae7bcaaa0f072e299c4ae"
+    },
+    {
+      "path": "supabase/functions/_shared/replayVaultAccess.ts",
+      "bytes": 3244,
+      "sha256": "53ec086a8d0e44227745059a636fc77df161a52fac785f42633f0c73f46e698c"
+    },
+    {
+      "path": "supabase/functions/_shared/replayVaultCommercialWebhook.test.ts",
+      "bytes": 4489,
+      "sha256": "358611d876fbc381cb378f072266fa1c84309cf40ed3802c1d660adbe3f82455"
+    },
+    {
+      "path": "supabase/functions/_shared/replayVaultCommercialWebhook.ts",
+      "bytes": 6431,
+      "sha256": "44fb19caea8de882b2e051e145f0448ce298582d1b8e66e96f840378d49e4b50"
+    },
+    {
+      "path": "supabase/functions/_shared/replayVaultProducer.mjs",
+      "bytes": 2576,
+      "sha256": "388e70554d12d44dc15b65e30faa37512443d38101eec51ca8d31bb59ec724bd"
+    },
+    {
+      "path": "supabase/functions/_shared/replayVaultWebhook.ts",
+      "bytes": 1400,
+      "sha256": "556575cc4efd861f9fb83e0695d6605a6641de9969508b254b4f65ca13e4ad22"
+    },
+    {
+      "path": "supabase/functions/_shared/vaultInteractionsR2.test.ts",
+      "bytes": 7194,
+      "sha256": "6157a67f48c687baa442f6896fb20d78425a8d36f35c15d6c51512b39026a675"
+    },
+    {
+      "path": "supabase/functions/_shared/vaultInteractionsR2.ts",
+      "bytes": 7954,
+      "sha256": "1704f1213dc29f5a7fa50706fbb966a875e8f5826adf5ebd37c1989925195323"
+    },
+    {
+      "path": "supabase/functions/_shared/vaultMemberLibraryR4.test.ts",
+      "bytes": 5375,
+      "sha256": "3ddd57ac1810f7408c3f7abe9a06c2e6c5eb4cfabee01106cd184f5a680d6f5f"
+    },
+    {
+      "path": "supabase/functions/_shared/vaultMemberLibraryR4.ts",
+      "bytes": 7894,
+      "sha256": "ca14e4512f5b1859f6a881aa7fc7b5eaba93695859caf9b6f516bc4b62e38d62"
+    },
+    {
+      "path": "supabase/functions/search-mastermind-resources/index.ts",
+      "bytes": 3474,
+      "sha256": "c52577f64f87c51f133d6a7502d487f506700a02b8398bb86094f09d7988b272"
+    },
+    {
+      "path": "supabase/functions/vault-member-interactions/index.ts",
+      "bytes": 1220,
+      "sha256": "0e508e03a34641d0ad4111b084461d57cb47820b94981f1414fcbc3d2619f8c8"
+    },
+    {
+      "path": "supabase/functions/vault-member-library/index.ts",
+      "bytes": 1268,
+      "sha256": "48eef9dfb26ee75a10d42138d0d909badefaa534b77c8e792af3739a69877977"
+    },
+    {
+      "path": "supabase/migrations/20260809130000_replay_vault_deterministic_ingestion.sql",
+      "bytes": 48819,
+      "sha256": "0e50fea87f62f4ada05efa41966f18795d868a3e79170b6aa06e80d0728cac76"
+    },
+    {
+      "path": "supabase/migrations/20260809140000_replay_vault_access_hardening.sql",
+      "bytes": 30312,
+      "sha256": "f25b8879b64e253b503186f7159cb292155a8e7c37aab4637ccbe18209896232"
+    },
+    {
+      "path": "supabase/migrations/20260809150000_replay_vault_questions_answered_r1.sql",
+      "bytes": 29848,
+      "sha256": "aa0371e45c79334b4179160382d59c79f6e941b48b573d0afc7a14870e7982c2"
+    },
+    {
+      "path": "supabase/migrations/20260809160000_replay_vault_member_interactions_r2.sql",
+      "bytes": 22744,
+      "sha256": "00b3adff18ed1b7073bf1cfcd0b7de710d575888ab1890ccb8e45e86b5590b56"
+    },
+    {
+      "path": "supabase/migrations/20260809170000_replay_vault_member_parity_r4.sql",
+      "bytes": 15694,
+      "sha256": "bbac37c355aa437dfb174ea45fe2d62caf16abfb329d7df36be565992c42d9db"
+    },
+    {
+      "path": "supabase/migrations/20260809180000_replay_vault_commercial_evidence_r7.sql",
+      "bytes": 40686,
+      "sha256": "4a3d331a68f423842d2c6abf72abcef29466fc9e697f29ec6abcc6886da0ab8f"
+    },
+    {
+      "path": "supabase/migrations/20260809190000_replay_vault_complete_search_r1.sql",
+      "bytes": 7462,
+      "sha256": "5ac0c179cb660c2f5d9fedc818d8e74df123a20df2182906e36136fe7f167947"
+    },
+    {
+      "path": "supabase/migrations/20260820183000_replay_vault_annual_only_access_r10.sql",
+      "bytes": 6036,
+      "sha256": "0942fa1e26275625c77544eea0fa7bb87a431f9bda1409707439fd2cf064d641"
+    },
+    {
+      "path": "tools/build-membershipio-replay-vault-import.py",
+      "bytes": 33743,
+      "sha256": "0322172c514b31316e1ebdfef55778cbb3510a231e55ab463be4f613ee6354b6"
+    },
+    {
+      "path": "tools/build-replay-vault-crdb-crosswalk.py",
+      "bytes": 1220,
+      "sha256": "e18608d94a76d276507e72fa581e39cca04a07415d9e87dd290a2b0632eef006"
+    },
+    {
+      "path": "tools/build-replay-vault-transcript-version.py",
+      "bytes": 4005,
+      "sha256": "e63f65cf57cbe49cbe4f798deb755c63c05923f2f1292b15cc9f435febc865ce"
+    },
+    {
+      "path": "tools/enrich-replay-vault-media-manifest.py",
+      "bytes": 12404,
+      "sha256": "bd6590b237872d2b335424c90f18ce9a2e8b9b1af12d6ab5821f388541af784d"
+    },
+    {
+      "path": "tools/manage-replay-vault-questions.py",
+      "bytes": 10169,
+      "sha256": "e75c2a526cd239b3551e8b87406595677ad06d200d7d1617c9afcfc3bb44f47c"
+    },
+    {
+      "path": "tools/migrate-replay-vault-media-to-dropbox.py",
+      "bytes": 15398,
+      "sha256": "0a34747c02a889564999bdc751dfb095853e2dcfc02feecffc623c9aeedb84f8"
+    },
+    {
+      "path": "tools/reconcile-replay-vault-dropbox-receipts.py",
+      "bytes": 921,
+      "sha256": "07f7e84d48a730156a08cf6e111444f40b4d4a821e633419e4028236d5b6b0e3"
+    },
+    {
+      "path": "tools/replay-vault-access-fixtures/behavior.sql",
+      "bytes": 16391,
+      "sha256": "a3a4e61de42c6fc7f9b5cf522ce9703bea250601fcd5841c404703c05f91aeb5"
+    },
+    {
+      "path": "tools/replay-vault-access-fixtures/mock-base.sql",
+      "bytes": 2837,
+      "sha256": "baa22fc1c58431d8648522e825d20c49915ab12acc823bc595ef208041577357"
+    },
+    {
+      "path": "tools/replay-vault-commercial-r7-fixtures/behavior.sql",
+      "bytes": 23791,
+      "sha256": "467191ca3daf9b5375420e36bc76bc8bf2fa98ef50c4f94a2755141462488875"
+    },
+    {
+      "path": "tools/replay-vault-commercial-r7-fixtures/upgrade-assert.sql",
+      "bytes": 2852,
+      "sha256": "a2dc0c34f6de2d9f0b249e56cfad7ad3bcb4f136f6cd9e5f482f2467b07d6668"
+    },
+    {
+      "path": "tools/replay-vault-commercial-r7-fixtures/upgrade-seed.sql",
+      "bytes": 2956,
+      "sha256": "13e5f0693417b81d4ac13161c8c8aff794546aa2b02122622d70d9d7cb52b72e"
+    },
+    {
+      "path": "tools/replay-vault-complete-search-fixtures/behavior.sql",
+      "bytes": 3856,
+      "sha256": "010c4711c76c6760563f186f11a7ec232729b6e2f9e9fd1a115ab293858f4e2f"
+    },
+    {
+      "path": "tools/replay-vault-ingestion-fixtures/publication_authority.sql",
+      "bytes": 11521,
+      "sha256": "55c816ceedb387549c6a726422458f2a430ba938e67d17ff0d77941ffab0a9e3"
+    },
+    {
+      "path": "tools/replay-vault-interactions-r2-fixtures/behavior.sql",
+      "bytes": 22289,
+      "sha256": "db45994fe1f4e633a545c9f63dccdb85bfb278556b6fd35676dc787531495f19"
+    },
+    {
+      "path": "tools/replay-vault-layout-mock.tsx",
+      "bytes": 178,
+      "sha256": "80ad08fe482d233a6ecff9f46059124fdfff3476d4594f334baf69263b55e4f0"
+    },
+    {
+      "path": "tools/replay-vault-mounted-harness.tsx",
+      "bytes": 40053,
+      "sha256": "f0d57e1f19b66c76a03536b6d53e0df2790fe17017a1c74ecd277417b1a82dba"
+    },
+    {
+      "path": "tools/replay-vault-negative-stub.tsx",
+      "bytes": 105,
+      "sha256": "2425db25d8b52952a20f5da9033c7f293d7287c8d693c31e91f070b2cda15316"
+    },
+    {
+      "path": "tools/replay-vault-pilot-mounted-harness.tsx",
+      "bytes": 381,
+      "sha256": "bab943ceaa50f6212d47060dfcde415703dac39001723f6a89e52c49d2ec6da4"
+    },
+    {
+      "path": "tools/replay-vault-pilot-success-path-mock.ts",
+      "bytes": 529,
+      "sha256": "a20ac5f33a39e3444869ef11ff9b95c53c97a67cc949622bc0173972e2dc9f21"
+    },
+    {
+      "path": "tools/replay-vault-questions-fixtures/questions_answered_r1.sql",
+      "bytes": 17709,
+      "sha256": "b6a3dcaeb69b10a395b50d46cad4a4a1f8c470fa06c587200899699d5790cdac"
+    },
+    {
+      "path": "tools/replay-vault-supabase-mock.ts",
+      "bytes": 1349,
+      "sha256": "602948d5d46308cf748c0f91ea14f742a6c949125f85dad2081ca18f7ca7dd7f"
+    },
+    {
+      "path": "tools/verify-replay-vault-access-pg.mjs",
+      "bytes": 4624,
+      "sha256": "6e5ab07c0802a4ee8594d6e2580216b370d42b4086bc2e195cb265e9f4abf1fa"
+    },
+    {
+      "path": "tools/verify-replay-vault-access-security.mjs",
+      "bytes": 7824,
+      "sha256": "a595c717230017751e4eba94f958221874957f0913186501ddf194198eb5c640"
+    },
+    {
+      "path": "tools/verify-replay-vault-commercial-evidence-r7-pg.mjs",
+      "bytes": 8812,
+      "sha256": "639df3059698835622b466dcb1f83c5ef8a10f2b0a964d1d19112df2ee4802f4"
+    },
+    {
+      "path": "tools/verify-replay-vault-contrast.mjs",
+      "bytes": 6188,
+      "sha256": "6f0cfb9a7cc525955802d927f6b77f68393b97ea01ddd12d831f08a1667f300e"
+    },
+    {
+      "path": "tools/verify-replay-vault-import.py",
+      "bytes": 16226,
+      "sha256": "287e455f73ee8ee26bc5c3dec6be65a3fab6fe80888e7a228cae52327ea44bf9"
+    },
+    {
+      "path": "tools/verify-replay-vault-ingestion-pg.mjs",
+      "bytes": 2922,
+      "sha256": "19c2e79923af8efd88e639b8802459f53b2d8b71cb11e7924d0d5afc9b5fde35"
+    },
+    {
+      "path": "tools/verify-replay-vault-interactions-r2-pg.mjs",
+      "bytes": 5550,
+      "sha256": "94a40f11f6f70795c14e77569b56804761dc6b13c6a253180e89abbf07e5353c"
+    },
+    {
+      "path": "tools/verify-replay-vault-interactions-ui.mjs",
+      "bytes": 4692,
+      "sha256": "a487a79b5fa6caa44372a9ffb1fc2774a4a42b79394b823966decbec8cff8527"
+    },
+    {
+      "path": "tools/verify-replay-vault-parity-manifest.mjs",
+      "bytes": 1818,
+      "sha256": "1bf59b9ab9c537a2466ed411a6ef490415d8369005e81da28a19c0f4c53bce6d"
+    },
+    {
+      "path": "tools/verify-replay-vault-pilot-bundle.mjs",
+      "bytes": 2841,
+      "sha256": "c7d595d13b524c0525e4b6b3361d64e592e04b298a1e9403bd43b6a8cf7661bd"
+    },
+    {
+      "path": "tools/verify-replay-vault-pilot-mounted.mjs",
+      "bytes": 9049,
+      "sha256": "55368fb9a504d24dca587c9e8813daca8803b20c2774a6d60e58edb5d5f9302a"
+    },
+    {
+      "path": "tools/verify-replay-vault-pilot.mjs",
+      "bytes": 5431,
+      "sha256": "06c4a36db576ec07b418333de7eeaeef212aabaf4d8458f56325b2152fa4af49"
+    },
+    {
+      "path": "tools/verify-replay-vault-producer-contract.mjs",
+      "bytes": 11202,
+      "sha256": "95d73b18ce0724080884f0d98c0fe9f4e449ea1714487c2ec45cc333ace3abe0"
+    },
+    {
+      "path": "tools/verify-replay-vault-questions-pg.mjs",
+      "bytes": 4935,
+      "sha256": "80a3b784e721e0a4e89f298ecf7421e397a6654d3b657145d7c7d0355bf26f56"
+    },
+    {
+      "path": "tools/verify-replay-vault-ux.mjs",
+      "bytes": 9930,
+      "sha256": "27e67bed07818a25d81d0330386d4d44c5f393dc0aff30d7422107ce10ad824d"
+    },
+    {
+      "path": "tools/verify-replay-vault.mjs",
+      "bytes": 3667,
+      "sha256": "229cf495ce70aa8843df70b9bb8f034890bc7b4f9adfab6be66f732438dcc04b"
+    }
+  ],
+  "purpose": "Protected Replay Vault product baseline. Mastermind Planner Learning work must not change these exact files without explicit shared-interface review.",
+  "generated_at": "2026-08-22T17:25:00-04:00"
+}

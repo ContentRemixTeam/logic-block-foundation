@@ -1,0 +1,8 @@
+{
+  "base_commit": "5f4c219cdbcc58b845b0e5d3a7e8d719e64f6ce3",
+  "purpose": "Protected Replay Vault product baseline. Overnight Mastermind Planner Learning work must not change these files without an explicit shared-interface exception and independent review.",
+  "generated_at": "2026-08-22T17:25:00-04:00",
+  "generation_command": "git ls-files over protected Replay Vault path families + SHA-256 of exact bytes",
+  "manifest": "outputs/mastermind-success-path-overnight/replay-vault-protected-baseline.json",
+  "protected_file_count": 74
+}

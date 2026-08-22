@@ -14,11 +14,11 @@ Watching never completes a milestone. The regular Planner remains complete and M
 ## Sequential waves
 
 ### Wave 0 — Baseline and contracts
-- [ ] Verify dependency install and baseline checks
-- [ ] Record protected Replay Vault file/hash inventory
-- [ ] Map current Cycle Setup writer and accepted reconciliation behavior
-- [ ] Define final SQL/API/UI contracts and migration ordering
-- [ ] Create receipt
+- [x] Verify dependency install and baseline checks
+- [x] Record protected Replay Vault file/hash inventory
+- [x] Map current Cycle Setup writer and accepted reconciliation behavior
+- [x] Define final SQL/API/UI contracts and migration ordering
+- [x] Create receipt
 
 ### Wave 1 — Canonical transactional Planner save
 - [ ] Port/adapt one reconciliation payload + idempotent server transaction
