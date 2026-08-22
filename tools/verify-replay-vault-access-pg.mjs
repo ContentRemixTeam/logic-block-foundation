@@ -6,11 +6,10 @@ import { fileURLToPath } from "node:url";
 import { spawn, spawnSync } from "node:child_process";
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
-const ingestionRoot=path.resolve(root,"../replay-vault-ingestion-r1");
+const ingestionRoot=root;
 const ingestionCommit="5ddac1453a5cc0c16094a6eb4ca07dd821cb0cf8";
 const ingestionRelative="supabase/migrations/20260809130000_replay_vault_deterministic_ingestion.sql";
 const accessMigration=path.join(root,"supabase/migrations/20260809140000_replay_vault_access_hardening.sql");
-if (!existsSync(ingestionRoot)) throw new Error(`real ingestion repository missing: ${ingestionRoot}`);
 if (!existsSync(accessMigration)) throw new Error(`access migration missing: ${accessMigration}`);
 if (path.basename(accessMigration) <= path.basename(ingestionRelative)) throw new Error("access migration must sort after canonical ingestion migration");
 

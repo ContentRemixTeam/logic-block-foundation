@@ -30,7 +30,11 @@ forbidText("src/pages/MastermindHub.tsx", "VITE_ENABLE_MASTERMIND_VIDEO_SEARCH",
 forbidText("src/pages/MastermindHub.tsx", "MastermindVideoSearch", "retired static pilot mount removed");
 requireText("supabase/config.toml", "[functions.get-mastermind-portal-access]", "access Edge Function config");
 requireText("supabase/config.toml", "[functions.ghl-webhook-grant-planner]", "webhook Edge Function config");
-for (const nav of ["src/components/AppSidebar.tsx", "src/components/sidebar/MobileSidebarContent.tsx"]) {
+for (const nav of [
+  "src/components/AppSidebar.tsx",
+  "src/components/sidebar/MobileSidebarContent.tsx",
+  "src/pages/MastermindHub.tsx",
+]) {
   if (read(nav).includes("/mastermind/replay-vault")) failures.push(`launch gate: ${nav} exposes the unfinished Replay Vault`);
 }
 if (failures.length) {

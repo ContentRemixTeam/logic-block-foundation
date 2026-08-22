@@ -274,7 +274,7 @@ try {
     assert.ok(!mastermindResourcesSource.includes(hiddenSourceLabel), 'Frontend resource data should not include private source/audit label: ' + hiddenSourceLabel);
   }
   assert.ok(mastermindHubSource.includes('className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row"'), 'Primary Mastermind actions should stack cleanly on mobile');
-  assert.ok(mastermindHubSource.includes("navigate('/mastermind/replay-vault')"), 'Success Path should link directly to the protected Replay Vault');
+  assert.ok(!mastermindHubSource.includes("navigate('/mastermind/replay-vault')"), 'Success Path must keep the Replay Vault hidden until launch is enabled');
   assert.ok(!mastermindHubSource.includes('VITE_ENABLE_MASTERMIND_VIDEO_SEARCH'), 'MastermindHub must not retain the static video-search feature flag');
   assert.ok(!mastermindHubSource.includes('MastermindVideoSearch'), 'MastermindHub must not mount the static Replay Vault pilot');
 
