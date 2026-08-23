@@ -65,6 +65,8 @@ serve(async (req) => {
       draft: {
         draft_data: data.draft_data,
         current_step: data.current_step,
+        logical_plan_key: data.logical_plan_key,
+        request_id: data.reconciliation_request_id,
         updated_at: data.updated_at,
       }
     }), {

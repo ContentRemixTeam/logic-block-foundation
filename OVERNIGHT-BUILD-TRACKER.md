@@ -21,11 +21,13 @@ Watching never completes a milestone. The regular Planner remains complete and M
 - [x] Create receipt
 
 ### Wave 1 — Canonical transactional Planner save
-- [ ] Port/adapt one reconciliation payload + idempotent server transaction
-- [ ] Make logical cycle identity durable across browser/device
-- [ ] Preserve completed/member-edited work
-- [ ] Verify concurrent/retry/readback behavior
-- [ ] Create receipt
+- [x] One typed reconciliation payload + authenticated transaction source
+- [x] Durable logical plan, payload-bound request, and canonical receipt identities
+- [x] Generated row baselines preserve completed/member-edited work and retire stale generated rows
+- [x] Native PostgreSQL 16 apply-twice, RLS, cross-owner, preservation, retry/conflict, and concurrency probes
+- [x] Full repository `npm run verify`, build, lint, type, and protected Replay Vault gates
+- [x] VERIFIED LOCAL CANDIDATE receipt created
+- [ ] RELEASE BLOCKER — inherited migration `20260808120000_mastermind_portal_private_search.sql` fails a fresh PostgreSQL 16 replay at migration 182/193 (`generation expression is not immutable`); Wave 1 does not modify it
 
 ### Wave 2 — Capability and curriculum authority
 - [ ] Add fail-closed Mastermind Learning capability contract
@@ -74,3 +76,15 @@ The 543-lesson inventory exists, but a full transcript-by-transcript curriculum 
 ## Receipts
 
 Add exact commit, files, commands, exit codes, failures, and next dependency here after each wave.
+
+### Wave 1 recovery and parent verification — 2026-08-22
+
+Status: **VERIFIED LOCAL CANDIDATE — RELEASE BLOCKED**
+
+Real parent-environment PostgreSQL 16.14 execution removed the worker sandbox limitation. The focused migration/behavior suite passed apply-twice, retry/conflict, versioning, preservation/retirement, RLS/cross-owner, and real concurrent first-cycle probes. TypeScript, focused lint, production build, protected Replay Vault baseline, and complete `npm run verify` also passed.
+
+The exact 193-migration fresh-stack replay remains blocked at untouched inherited migration `20260808120000_mastermind_portal_private_search.sql` (`generation expression is not immutable`) after reaching migration 182/193. This is a release blocker, not represented as a Wave 1 pass.
+
+Canonical evidence: `outputs/mastermind-success-path-overnight/wave-1-verification-receipt.md`.
+
+No push, deployment, production migration, external SaaS action, access change, or member exposure occurred.

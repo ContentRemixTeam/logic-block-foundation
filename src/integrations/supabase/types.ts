@@ -1671,12 +1671,131 @@ export type Database = {
           },
         ]
       }
+      cycle_plan_identity_aliases_v2: {
+        Row: {
+          created_at: string
+          logical_plan_key: string
+          plan_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          logical_plan_key: string
+          plan_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          logical_plan_key?: string
+          plan_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      cycle_plan_intents_v2: {
+        Row: {
+          created_at: string
+          current_version: number
+          cycle_id: string | null
+          last_content_hash: string | null
+          last_planner_receipt_id: string | null
+          logical_plan_key: string
+          plan_id: string
+          quarter_start: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_version?: number
+          cycle_id?: string | null
+          last_content_hash?: string | null
+          last_planner_receipt_id?: string | null
+          logical_plan_key: string
+          plan_id?: string
+          quarter_start: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_version?: number
+          cycle_id?: string | null
+          last_content_hash?: string | null
+          last_planner_receipt_id?: string | null
+          logical_plan_key?: string
+          plan_id?: string
+          quarter_start?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      cycle_plan_reconciliation_requests_v2: {
+        Row: {
+          completed_at: string | null
+          content_hash: string
+          created_at: string
+          cycle_id: string | null
+          expected_version: number | null
+          ledger_id: string
+          payload_hash: string
+          payload_version: string
+          plan_id: string
+          planner_receipt_id: string | null
+          receipt: Json | null
+          request_id: string
+          resulting_version: number | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          content_hash: string
+          created_at?: string
+          cycle_id?: string | null
+          expected_version?: number | null
+          ledger_id?: string
+          payload_hash: string
+          payload_version: string
+          plan_id: string
+          planner_receipt_id?: string | null
+          receipt?: Json | null
+          request_id: string
+          resulting_version?: number | null
+          status: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          content_hash?: string
+          created_at?: string
+          cycle_id?: string | null
+          expected_version?: number | null
+          ledger_id?: string
+          payload_hash?: string
+          payload_version?: string
+          plan_id?: string
+          planner_receipt_id?: string | null
+          receipt?: Json | null
+          request_id?: string
+          resulting_version?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cycle_drafts: {
         Row: {
           created_at: string | null
           current_step: number | null
           draft_data: Json
           id: string
+          logical_plan_key: string | null
+          reconciliation_request_id: string | null
           updated_at: string | null
           user_id: string
         }
@@ -1685,6 +1804,8 @@ export type Database = {
           current_step?: number | null
           draft_data?: Json
           id?: string
+          logical_plan_key?: string | null
+          reconciliation_request_id?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -1693,6 +1814,8 @@ export type Database = {
           current_step?: number | null
           draft_data?: Json
           id?: string
+          logical_plan_key?: string | null
+          reconciliation_request_id?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -2127,7 +2250,13 @@ export type Database = {
           office_hours_end: string | null
           office_hours_start: string | null
           outcome: string | null
+          last_reconciliation_request_id: string | null
+          planner_content_hash: string | null
+          planner_payload: Json
+          planner_payload_version: string | null
+          planner_plan_id: string | null
           promotions: Json | null
+          reconciliation_version: number
           signature_message: string | null
           start_date: string
           supporting_projects: Json | null
@@ -2192,7 +2321,13 @@ export type Database = {
           office_hours_end?: string | null
           office_hours_start?: string | null
           outcome?: string | null
+          last_reconciliation_request_id?: string | null
+          planner_content_hash?: string | null
+          planner_payload?: Json
+          planner_payload_version?: string | null
+          planner_plan_id?: string | null
           promotions?: Json | null
+          reconciliation_version?: number
           signature_message?: string | null
           start_date: string
           supporting_projects?: Json | null
@@ -2257,7 +2392,13 @@ export type Database = {
           office_hours_end?: string | null
           office_hours_start?: string | null
           outcome?: string | null
+          last_reconciliation_request_id?: string | null
+          planner_content_hash?: string | null
+          planner_payload?: Json
+          planner_payload_version?: string | null
+          planner_plan_id?: string | null
           promotions?: Json | null
+          reconciliation_version?: number
           signature_message?: string | null
           start_date?: string
           supporting_projects?: Json | null
@@ -3495,6 +3636,10 @@ export type Database = {
           deleted_at: string | null
           description: string | null
           display_order: number | null
+          generation_active: boolean
+          generation_baseline: Json | null
+          generation_input_hash: string | null
+          generation_key: string | null
           habit_id: string
           habit_name: string
           is_active: boolean | null
@@ -3511,6 +3656,10 @@ export type Database = {
           deleted_at?: string | null
           description?: string | null
           display_order?: number | null
+          generation_active?: boolean
+          generation_baseline?: Json | null
+          generation_input_hash?: string | null
+          generation_key?: string | null
           habit_id?: string
           habit_name: string
           is_active?: boolean | null
@@ -3527,6 +3676,10 @@ export type Database = {
           deleted_at?: string | null
           description?: string | null
           display_order?: number | null
+          generation_active?: boolean
+          generation_baseline?: Json | null
+          generation_input_hash?: string | null
+          generation_key?: string | null
           habit_id?: string
           habit_name?: string
           is_active?: boolean | null
@@ -5446,6 +5599,10 @@ export type Database = {
           cycle_id: string | null
           description: string | null
           end_date: string | null
+          generation_active: boolean
+          generation_baseline: Json | null
+          generation_input_hash: string | null
+          generation_key: string | null
           has_topic_planning: boolean | null
           id: string
           is_launch: boolean
@@ -5475,6 +5632,10 @@ export type Database = {
           cycle_id?: string | null
           description?: string | null
           end_date?: string | null
+          generation_active?: boolean
+          generation_baseline?: Json | null
+          generation_input_hash?: string | null
+          generation_key?: string | null
           has_topic_planning?: boolean | null
           id?: string
           is_launch?: boolean
@@ -5504,6 +5665,10 @@ export type Database = {
           cycle_id?: string | null
           description?: string | null
           end_date?: string | null
+          generation_active?: boolean
+          generation_baseline?: Json | null
+          generation_input_hash?: string | null
+          generation_key?: string | null
           has_topic_planning?: boolean | null
           id?: string
           is_launch?: boolean
@@ -6776,6 +6941,10 @@ export type Database = {
           external_source: string | null
           external_updated_at: string | null
           external_url: string | null
+          generation_active: boolean
+          generation_baseline: Json | null
+          generation_input_hash: string | null
+          generation_key: string | null
           goal_id: string | null
           is_bare_minimum: boolean
           is_completed: boolean | null
@@ -6859,6 +7028,10 @@ export type Database = {
           external_source?: string | null
           external_updated_at?: string | null
           external_url?: string | null
+          generation_active?: boolean
+          generation_baseline?: Json | null
+          generation_input_hash?: string | null
+          generation_key?: string | null
           goal_id?: string | null
           is_bare_minimum?: boolean
           is_completed?: boolean | null
@@ -6942,6 +7115,10 @@ export type Database = {
           external_source?: string | null
           external_updated_at?: string | null
           external_url?: string | null
+          generation_active?: boolean
+          generation_baseline?: Json | null
+          generation_input_hash?: string | null
+          generation_key?: string | null
           goal_id?: string | null
           is_bare_minimum?: boolean
           is_completed?: boolean | null
@@ -8616,6 +8793,10 @@ export type Database = {
       }
     }
     Functions: {
+      reconcile_cycle_plan_v2: {
+        Args: { p_payload: Json; p_request_id: string }
+        Returns: Json
+      }
       auto_archive_old_notes: { Args: never; Returns: number }
       backfill_admin_user_id: { Args: never; Returns: undefined }
       check_feature_flag: { Args: { p_key: string }; Returns: boolean }

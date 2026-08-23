@@ -125,9 +125,10 @@ function safeLocalStorageSet(key: string, value: string): boolean {
   try {
     localStorage.setItem(key, value);
     return true;
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const storageError = e as { name?: string; code?: number };
     // Handle QuotaExceededError
-    if (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014) {
+    if (storageError.name === 'QuotaExceededError' || storageError.code === 22 || storageError.code === 1014) {
       console.warn('Storage quota exceeded, attempting cleanup...');
       
       // Try to clear old backups (anything older than 7 days)
@@ -204,34 +205,38 @@ export function getStorageItem(key: string): string | null {
   return memoryStorage.get(key) ?? null;
 }
 
-/**
- * Safely set an item with multi-layer fallback
- * Tries all available storage mechanisms to maximize data survival
- */
-export function setStorageItem(key: string, value: string): boolean {
-  let success = false;
-  
-  // Always write to memory first (guaranteed to work)
+export interface StorageWriteReceipt {
+  localStorage: boolean;
+  sessionStorage: boolean;
+  persistent: boolean;
+}
+
+/** Writes all available layers and reports refresh-surviving persistence. */
+export function setStorageItemWithReceipt(key: string, value: string): StorageWriteReceipt {
   memoryStorage.set(key, value);
-  
-  // Try localStorage
-  if (hasLocalStorage) {
-    if (safeLocalStorageSet(key, value)) {
-      success = true;
-    }
-  }
-  
-  // Also write to sessionStorage as backup (survives page refresh within session)
+
+  const localStorageSaved = hasLocalStorage && safeLocalStorageSet(key, value);
+  let sessionStorageSaved = false;
   if (hasSessionStorage) {
     try {
       sessionStorage.setItem(key, value);
-      success = true;
+      sessionStorageSaved = true;
     } catch (error) {
       console.warn(`Failed to set sessionStorage item "${key}":`, error);
     }
   }
-  
-  return success || memoryStorage.has(key);
+
+  return {
+    localStorage: localStorageSaved,
+    sessionStorage: sessionStorageSaved,
+    persistent: localStorageSaved || sessionStorageSaved,
+  };
+}
+
+/** Backwards-compatible safe write for callers that accept memory fallback. */
+export function setStorageItem(key: string, value: string): boolean {
+  const receipt = setStorageItemWithReceipt(key, value);
+  return receipt.persistent || memoryStorage.has(key);
 }
 
 /**
@@ -330,7 +335,7 @@ export function getStorageStatus(): {
  * Emergency backup to IndexedDB (for critical data)
  * Use when localStorage/sessionStorage fail
  */
-export async function emergencyBackupToIDB(key: string, data: any): Promise<boolean> {
+export async function emergencyBackupToIDB(key: string, data: unknown): Promise<boolean> {
   const idbAvailable = await checkIndexedDBAvailable();
   if (!idbAvailable) return false;
   
@@ -380,7 +385,7 @@ export async function emergencyBackupToIDB(key: string, data: any): Promise<bool
 /**
  * Restore from emergency IndexedDB backup
  */
-export async function restoreFromIDB(key: string): Promise<any | null> {
+export async function restoreFromIDB(key: string): Promise<unknown | null> {
   const idbAvailable = await checkIndexedDBAvailable();
   if (!idbAvailable) return null;
   

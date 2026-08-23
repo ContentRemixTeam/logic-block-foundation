@@ -37,7 +37,15 @@ serve(async (req) => {
       });
     }
 
-    const { draft_data, current_step } = await req.json();
+    const { draft_data, current_step, logical_plan_key, request_id } = await req.json();
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if ((logical_plan_key && !uuidPattern.test(logical_plan_key))
+      || (request_id && !uuidPattern.test(request_id))) {
+      return new Response(JSON.stringify({ error: 'Invalid reconciliation identity' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     console.log('Saving draft for user:', user.id, 'step:', current_step);
 
     // Upsert the draft (one draft per user)
@@ -47,6 +55,8 @@ serve(async (req) => {
         user_id: user.id,
         draft_data: draft_data,
         current_step: current_step || 1,
+        logical_plan_key: logical_plan_key || null,
+        reconciliation_request_id: request_id || null,
         updated_at: new Date().toISOString(),
       }, {
         onConflict: 'user_id',

@@ -1,14 +1,18 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { getStorageItem, setStorageItem, removeStorageItem } from '@/lib/storage';
+import { getStorageItem, setStorageItem, setStorageItemWithReceipt, removeStorageItem } from '@/lib/storage';
+import { beginDraftVersion, ownsDraftVersion, parseValidDraftTimestamp } from '@/lib/draftSyncOwnership';
+import type { CyclePlanDraftIdentity } from '@/lib/cyclePlanReconciliation';
+import { clearCycleDraftAfterReceipt } from '@/lib/cycleDraftCleanup';
 
 const DRAFT_STORAGE_KEY = 'boss-planner-cycle-setup-draft';
 const DRAFT_MAX_AGE_DAYS = 14; // Drafts expire after 14 days
 
 // Check if draft is expired
 const isDraftExpired = (updatedAt: string): boolean => {
-  const draftDate = new Date(updatedAt);
+  const draftDate = parseValidDraftTimestamp(updatedAt);
+  if (!draftDate) return true;
   const now = new Date();
   const daysDiff = (now.getTime() - draftDate.getTime()) / (1000 * 60 * 60 * 24);
   return daysDiff > DRAFT_MAX_AGE_DAYS;
@@ -67,6 +71,8 @@ export interface NurturePlatformDefinition {
 }
 
 export interface CycleSetupDraft {
+  /** Durable cloud-backed save identities; browser storage is only a cache. */
+  reconciliation?: CyclePlanDraftIdentity;
   // Step 1: Dates & Goal
   startDate: string;
   goal: string;
@@ -290,17 +296,26 @@ export function useCycleSetupDraft() {
   const [lastServerSync, setLastServerSync] = useState<Date | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const syncInFlightRef = useRef<Promise<void> | null>(null);
+  const draftVersionRef = useRef(0);
 
   // Check for existing draft on mount (both localStorage and server)
   useEffect(() => {
     const checkDrafts = async () => {
+      const checkedVersion = draftVersionRef.current;
+      let localTimestamp: Date | null = null;
       // Check localStorage first
       try {
         const stored = localStorage.getItem(DRAFT_STORAGE_KEY);
         if (stored) {
           const draft = JSON.parse(stored) as CycleSetupDraft;
-          setHasDraft(true);
-          setDraftTimestamp(draft.lastSaved);
+          localTimestamp = parseValidDraftTimestamp(draft.lastSaved);
+          if (localTimestamp) {
+            setHasDraft(true);
+            setDraftTimestamp(draft.lastSaved);
+          } else {
+            removeStorageItem(DRAFT_STORAGE_KEY);
+          }
         }
       } catch (e) {
         console.error('Error checking localStorage draft:', e);
@@ -311,10 +326,9 @@ export function useCycleSetupDraft() {
         try {
           const { data, error } = await supabase.functions.invoke('get-cycle-draft');
           if (!error && data?.draft) {
-            const serverTimestamp = new Date(data.draft.updated_at);
-            const localTimestamp = draftTimestamp ? new Date(draftTimestamp) : null;
-            
-            // If server draft is newer, update state
+            if (!ownsDraftVersion(draftVersionRef, checkedVersion)) return;
+            const serverTimestamp = parseValidDraftTimestamp(data.draft.updated_at);
+            if (!serverTimestamp) throw new Error('Cloud draft returned an invalid timestamp.');
             if (!localTimestamp || serverTimestamp > localTimestamp) {
               setHasDraft(true);
               setDraftTimestamp(data.draft.updated_at);
@@ -330,45 +344,67 @@ export function useCycleSetupDraft() {
     checkDrafts();
   }, [user]);
 
-  // Sync draft to server (debounced)
-  const syncToServer = useCallback(async (data: Partial<CycleSetupDraft>) => {
-    if (!user) return;
-
-    // Clear any pending sync
-    if (syncTimeoutRef.current) {
-      clearTimeout(syncTimeoutRef.current);
-    }
-
-    // Debounce server sync to 3 seconds
-    syncTimeoutRef.current = setTimeout(async () => {
-      setIsSyncing(true);
+  const writeServerDraft = useCallback(async (data: Partial<CycleSetupDraft>, version: number) => {
+    if (!user || !ownsDraftVersion(draftVersionRef, version)) return;
+    setIsSyncing(true);
+    setSyncError(null);
+    try {
+      const { data: result, error } = await supabase.functions.invoke('save-cycle-draft', {
+        body: {
+          draft_data: data,
+          current_step: data.currentStep || 1,
+          logical_plan_key: data.reconciliation?.logical_plan_key,
+          request_id: data.reconciliation?.request_id,
+        },
+      });
+      if (error) throw error;
+      const confirmedAt = parseValidDraftTimestamp(result?.updated_at);
+      if (!confirmedAt) throw new Error('Cloud draft save returned no valid confirmation.');
+      if (!ownsDraftVersion(draftVersionRef, version)) return;
+      setLastServerSync(confirmedAt);
       setSyncError(null);
-
-      try {
-        const { data: result, error } = await supabase.functions.invoke('save-cycle-draft', {
-          body: {
-            draft_data: data,
-            current_step: data.currentStep || 1,
-          },
-        });
-
-        if (error) {
-          console.error('Error syncing to server:', error);
-          setSyncError('Failed to save to cloud');
-        } else {
-          setLastServerSync(new Date(result.updated_at));
-          setSyncError(null);
-        }
-      } catch (e) {
-        console.error('Error syncing to server:', e);
-        setSyncError('Failed to save to cloud');
-      } finally {
-        setIsSyncing(false);
-      }
-    }, 3000);
+    } catch (error) {
+      console.error('Error syncing to server:', error);
+      if (ownsDraftVersion(draftVersionRef, version)) setSyncError('Failed to save to cloud');
+      throw error;
+    } finally {
+      if (ownsDraftVersion(draftVersionRef, version)) setIsSyncing(false);
+    }
   }, [user]);
 
-  const saveDraft = useCallback((data: Partial<CycleSetupDraft>) => {
+  const queueServerSync = useCallback((data: Partial<CycleSetupDraft>, version: number): Promise<void> => {
+    const previousSync = syncInFlightRef.current;
+    const syncPromise = (async () => {
+      if (previousSync) await previousSync.catch(() => undefined);
+      await writeServerDraft(data, version);
+    })();
+    syncInFlightRef.current = syncPromise;
+    void syncPromise.finally(() => {
+      if (syncInFlightRef.current === syncPromise) syncInFlightRef.current = null;
+    }).catch(() => undefined);
+    return syncPromise;
+  }, [writeServerDraft]);
+
+  // Every response is owned by the exact draft version that scheduled it.
+  const syncToServer = useCallback((data: Partial<CycleSetupDraft>, version: number) => {
+    if (!user) return;
+    if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    syncTimeoutRef.current = setTimeout(() => {
+      syncTimeoutRef.current = null;
+      if (ownsDraftVersion(draftVersionRef, version)) {
+        void queueServerSync(data, version).catch(() => undefined);
+      }
+    }, 3000);
+  }, [queueServerSync, user]);
+
+  const saveDraft = useCallback(async (
+    data: Partial<CycleSetupDraft>,
+    immediateCloud = false,
+  ): Promise<void> => {
+    const version = beginDraftVersion(draftVersionRef);
+    setLastServerSync(null);
+    setIsSyncing(false);
+    setSyncError(null);
     try {
       const existingDraft = getStorageItem(DRAFT_STORAGE_KEY);
       const existing = existingDraft ? JSON.parse(existingDraft) : DEFAULT_DRAFT;
@@ -377,28 +413,50 @@ export function useCycleSetupDraft() {
         ...data,
         lastSaved: new Date().toISOString(),
       };
-      setStorageItem(DRAFT_STORAGE_KEY, JSON.stringify(updated));
+      const storageReceipt = setStorageItemWithReceipt(DRAFT_STORAGE_KEY, JSON.stringify(updated));
+      if (!storageReceipt.persistent) {
+        throw new Error('This browser could not persist the draft across a refresh. Keep this page open.');
+      }
       setHasDraft(true);
       setDraftTimestamp(updated.lastSaved);
-
-      // Also sync to server
-      syncToServer(updated);
+      if (immediateCloud && user) {
+        if (syncTimeoutRef.current) {
+          clearTimeout(syncTimeoutRef.current);
+          syncTimeoutRef.current = null;
+        }
+        await queueServerSync(updated, version);
+      } else {
+        syncToServer(updated, version);
+      }
     } catch (e) {
       console.error('Error saving draft:', e);
+      throw e;
     }
-  }, [syncToServer]);
+  }, [queueServerSync, syncToServer, user]);
 
   const loadDraft = useCallback(async (): Promise<CycleSetupDraft | null> => {
+    const loadVersion = draftVersionRef.current;
     // First try server if user is logged in
     if (user) {
       try {
         const { data, error } = await supabase.functions.invoke('get-cycle-draft');
         if (!error && data?.draft?.draft_data) {
-          const serverDraft = data.draft.draft_data as CycleSetupDraft;
+          if (!ownsDraftVersion(draftVersionRef, loadVersion)) return null;
+          const rawServerDraft = data.draft.draft_data as CycleSetupDraft;
+          const serverDraft = rawServerDraft.reconciliation
+            ? rawServerDraft
+            : {
+                ...rawServerDraft,
+                reconciliation: data.draft.logical_plan_key && data.draft.request_id
+                  ? {
+                      logical_plan_key: data.draft.logical_plan_key,
+                      request_id: data.draft.request_id,
+                    }
+                  : undefined,
+              };
           const serverTimestamp = data.draft.updated_at;
-          
-          // Check if server draft is expired
-          if (isDraftExpired(serverTimestamp)) {
+          const serverDate = parseValidDraftTimestamp(serverTimestamp);
+          if (!serverDate || isDraftExpired(serverTimestamp)) {
             console.log('Server draft expired after', DRAFT_MAX_AGE_DAYS, 'days, will clear it');
             // Don't clear yet, check local first
           } else {
@@ -406,13 +464,13 @@ export function useCycleSetupDraft() {
             const localStored = getStorageItem(DRAFT_STORAGE_KEY);
             if (localStored) {
               const localDraft = JSON.parse(localStored) as CycleSetupDraft;
-              const localTimestamp = new Date(localDraft.lastSaved);
+              const localTimestamp = parseValidDraftTimestamp(localDraft.lastSaved);
               
               // Check if local draft is expired
               if (isDraftExpired(localDraft.lastSaved)) {
                 console.log('Local draft expired, clearing...');
                 removeStorageItem(DRAFT_STORAGE_KEY);
-              } else if (localTimestamp > new Date(serverTimestamp)) {
+              } else if (localTimestamp && localTimestamp > serverDate) {
                 return localDraft;
               }
             }
@@ -422,7 +480,7 @@ export function useCycleSetupDraft() {
               ...serverDraft,
               lastSaved: serverTimestamp,
             }));
-            setLastServerSync(new Date(serverTimestamp));
+            setLastServerSync(serverDate);
             return serverDraft;
           }
         }
@@ -431,7 +489,7 @@ export function useCycleSetupDraft() {
       }
     }
 
-    // Fallback to localStorage (via safe storage)
+    if (!ownsDraftVersion(draftVersionRef, loadVersion)) return null;
     try {
       const stored = getStorageItem(DRAFT_STORAGE_KEY);
       if (stored) {
@@ -454,25 +512,40 @@ export function useCycleSetupDraft() {
     return null;
   }, [user]);
 
-  const clearDraft = useCallback(async () => {
-    // Clear localStorage (via safe storage)
-    try {
-      removeStorageItem(DRAFT_STORAGE_KEY);
-      setHasDraft(false);
-      setDraftTimestamp(null);
-    } catch (e) {
-      console.error('Error clearing localStorage draft:', e);
+  const clearDraft = useCallback(async (expectedIdentity?: CyclePlanDraftIdentity) => {
+    beginDraftVersion(draftVersionRef);
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+      syncTimeoutRef.current = null;
     }
-
-    // Clear server draft
+    if (syncInFlightRef.current) {
+      await syncInFlightRef.current.catch(() => undefined);
+    }
     if (user) {
       try {
-        await supabase.functions.invoke('delete-cycle-draft');
-        setLastServerSync(null);
-      } catch (e) {
-        console.error('Error clearing server draft:', e);
+        await clearCycleDraftAfterReceipt(
+          async () => {
+            const { error } = await supabase.functions.invoke('delete-cycle-draft', {
+              body: expectedIdentity ? {
+                logical_plan_key: expectedIdentity.logical_plan_key,
+                request_id: expectedIdentity.request_id,
+              } : {},
+            });
+            return { error };
+          },
+          () => removeStorageItem(DRAFT_STORAGE_KEY),
+        );
+      } catch (error) {
+        setSyncError('Plan saved, but draft cleanup needs a retry');
+        throw error;
       }
+      setLastServerSync(null);
+    } else {
+      removeStorageItem(DRAFT_STORAGE_KEY);
     }
+    setHasDraft(false);
+    setDraftTimestamp(null);
+    setSyncError(null);
   }, [user]);
 
   const getDraftAge = useCallback((): string | null => {

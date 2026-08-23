@@ -1,0 +1,9 @@
+Wave 1 recovery was completed and independently verified in the parent environment.
+
+Status: VERIFIED LOCAL CANDIDATE — RELEASE BLOCKED.
+
+Focused native PostgreSQL 16.14 behavior, apply-twice, RLS, cross-owner, preservation/retirement, retry/conflict, and real concurrency probes pass. TypeScript, lint, build, protected Replay Vault baseline, and complete repository verification pass.
+
+Fresh chronological replay remains blocked at inherited untouched migration `20260808120000_mastermind_portal_private_search.sql` at 182/193 because PostgreSQL 16 rejects its generated expression as non-immutable. This remains a release blocker.
+
+No production action, push, deployment, migration apply, SaaS call, access change, or member exposure occurred.
