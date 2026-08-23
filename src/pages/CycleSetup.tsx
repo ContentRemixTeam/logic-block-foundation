@@ -11,7 +11,7 @@ import { Layout } from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, X, Target, BarChart3, Brain, CalendarIcon, Users, Megaphone, DollarSign, ChevronLeft, ChevronRight, Check, Sparkles, Heart, TrendingUp, Upload, FileJson, Save, Mail, Clock, Lightbulb, Zap, AlertCircle, CheckCircle, Download, FileText, Cloud, CloudOff, Loader2 } from 'lucide-react';
+import { Plus, X, Target, BarChart3, Brain, CalendarIcon, Users, Megaphone, DollarSign, ChevronLeft, ChevronRight, Check, Sparkles, Heart, TrendingUp, Upload, FileJson, Mail, Clock, Lightbulb, Zap, AlertCircle, CheckCircle, Download, FileText, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -24,7 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useCycleSetupDraft, CycleSetupDraft, SecondaryPlatform, LimitedTimeOffer, RecurringTaskDefinition, NurturePlatformDefinition } from '@/hooks/useCycleSetupDraft';
 import { SaveStatusBanner } from '@/components/cycle/SaveStatusBanner';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { loadCycleForExport, exportCycleAsJSON, exportCycleAsPDF, CycleExportData, generateExportFromFormData, CycleFormData, ExportResult } from '@/lib/cycleExport';
 import { PDFInstructionsModal } from '@/components/pdf/PDFInstructionsModal';
@@ -40,6 +40,16 @@ import {
   type CyclePlanGeneratedTask,
   type CyclePlanReconciliationPayload,
 } from '@/lib/cyclePlanReconciliation';
+import {
+  beginAuthoritativeCycleLoad,
+  createDurableCycleItemId,
+  normalizeHabits,
+  normalizeSupportingProjects,
+  settleAuthoritativeCycleLoad,
+  type AuthoritativeCycleLoadState,
+  type HabitDraft,
+  type SupportingProjectDraft,
+} from '@/lib/cycleSetupPersistence';
 
 const WORKSHOP_STORAGE_KEY = 'workshop-planner-data';
 
@@ -213,7 +223,7 @@ export default function CycleSetup() {
   const [importJson, setImportJson] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showDraftDialog, setShowDraftDialog] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [lastLocalSave, setLastLocalSave] = useState<Date | null>(null);
   const [showWorkshopImportBanner, setShowWorkshopImportBanner] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [previewData, setPreviewData] = useState<{
@@ -223,24 +233,34 @@ export default function CycleSetup() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [existingCycleId, setExistingCycleId] = useState<string | null>(null);
   const [existingCycleVersion, setExistingCycleVersion] = useState<number | null>(null);
+  const [existingCycleLoadState, setExistingCycleLoadState] = useState<AuthoritativeCycleLoadState>(
+    editCycleId ? 'loading' : 'ready',
+  );
+  const [existingCycleLoadRetry, setExistingCycleLoadRetry] = useState(0);
+  const existingCycleLoadRef = useRef(0);
   const reconciliationIdentityRef = useRef<CyclePlanDraftIdentity | null>(null);
   const [exporting, setExporting] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showPDFInstructions, setShowPDFInstructions] = useState(false);
+  const [isStartingFresh, setIsStartingFresh] = useState(false);
   
-  const { hasDraft, saveDraft, loadDraft, clearDraft, getDraftAge, isSyncing, lastServerSync, syncError } = useCycleSetupDraft();
+  const {
+    hasDraft, saveDraft, loadDraft, clearDraft, getDraftAge, isSyncing,
+    lastServerSync, cloudIssue, draftDiscoveryState,
+  } = useCycleSetupDraft();
   
   // Track if user has dismissed the draft dialog to prevent it from re-appearing
   const hasUserDismissedDraft = useRef(false);
   
   // Track if we should skip the next auto-save (to prevent race condition after clearing draft)
   const skipNextAutoSave = useRef(false);
+  const formAutoSaveVersionRef = useRef(0);
   
   // Double-click protection ref
   const saveInProgressRef = useRef(false);
   
   // Cloud save status indicator
-  const [cloudSaveStatus, setCloudSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [localSaveStatus, setLocalSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   
   // Save progress indicator for multi-step save
   const [saveProgress, setSaveProgress] = useState<{
@@ -259,7 +279,7 @@ export default function CycleSetup() {
   // beforeunload warning when data is still saving
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (cloudSaveStatus === 'saving') {
+      if (localSaveStatus === 'saving') {
         e.preventDefault();
         e.returnValue = 'Your data is still saving. Are you sure you want to leave?';
         return e.returnValue;
@@ -268,7 +288,7 @@ export default function CycleSetup() {
     
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [cloudSaveStatus]);
+  }, [localSaveStatus]);
 
   // Import from workshop JSON
   const handleImportFromJson = (jsonData: WorkshopImportData) => {
@@ -506,9 +526,11 @@ export default function CycleSetup() {
   const [metric5Name, setMetric5Name] = useState('');
   const [metric5Start, setMetric5Start] = useState<number | ''>('');
   const [metric5Goal, setMetric5Goal] = useState<number | ''>('');
-  const [projects, setProjects] = useState<string[]>(['']);
-  const [habits, setHabits] = useState<Array<{ name: string; category: string }>>([
-    { name: '', category: '' },
+  const [projects, setProjects] = useState<SupportingProjectDraft[]>([
+    { id: 'slot-1', name: '' },
+  ]);
+  const [habits, setHabits] = useState<HabitDraft[]>([
+    { id: 'slot-1', name: '', category: '' },
   ]);
   const [thingsToRemember, setThingsToRemember] = useState<string[]>(['', '', '']);
   
@@ -637,11 +659,10 @@ export default function CycleSetup() {
       return;
     }
     
-    if (hasDraft) {
+    if (hasDraft && !editCycleId && existingCycleLoadState === 'ready') {
       setShowDraftDialog(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array - only run once on mount
+  }, [editCycleId, existingCycleLoadState, hasDraft]);
 
   // Check for workshop planner data on mount
   useEffect(() => {
@@ -695,8 +716,8 @@ export default function CycleSetup() {
     setLeadFrequency(draft.leadFrequency || '');
     setLeadPlatformGoal(draft.leadPlatformGoal || 'leads');
     setLeadCommitted(draft.leadCommitted ?? false);
-    if (draft.secondaryPlatforms?.length) setSecondaryPlatforms(draft.secondaryPlatforms);
-    if (draft.postingDays?.length) setPostingDays(draft.postingDays);
+    if (Array.isArray(draft.secondaryPlatforms)) setSecondaryPlatforms(draft.secondaryPlatforms);
+    if (Array.isArray(draft.postingDays)) setPostingDays(draft.postingDays);
     setPostingTime(draft.postingTime || '');
     setBatchDay(draft.batchDay || '');
     setBatchFrequency(draft.batchFrequency || 'weekly');
@@ -704,19 +725,19 @@ export default function CycleSetup() {
     setNurtureMethod(draft.nurtureMethod || '');
     setNurtureFrequency(draft.nurtureFrequency || '');
     setFreeTransformation(draft.freeTransformation || '');
-    setProofMethods(draft.proofMethods || []);
-    setNurturePostingDays(draft.nurturePostingDays || []);
+    if (Array.isArray(draft.proofMethods)) setProofMethods(draft.proofMethods);
+    if (Array.isArray(draft.nurturePostingDays)) setNurturePostingDays(draft.nurturePostingDays);
     setNurturePostingTime(draft.nurturePostingTime || '');
     setNurtureBatchDay(draft.nurtureBatchDay || '');
     setNurtureBatchFrequency(draft.nurtureBatchFrequency || 'weekly');
     setNurtureContentAudit(draft.nurtureContentAudit || '');
-    setNurturePlatforms(draft.nurturePlatforms || []);
-    if (draft.offers?.length) setOffers(draft.offers);
-    if (draft.limitedOffers?.length) setLimitedOffers(draft.limitedOffers);
+    if (Array.isArray(draft.nurturePlatforms)) setNurturePlatforms(draft.nurturePlatforms);
+    if (Array.isArray(draft.offers)) setOffers(draft.offers);
+    if (Array.isArray(draft.limitedOffers)) setLimitedOffers(draft.limitedOffers);
     setRevenueGoal(draft.revenueGoal || '');
     setPricePerSale(draft.pricePerSale || '');
     setLaunchSchedule(draft.launchSchedule || '');
-    if (draft.monthPlans?.length) setMonthPlans(draft.monthPlans);
+    if (Array.isArray(draft.monthPlans)) setMonthPlans(draft.monthPlans);
     setMetric1Name(draft.metric1Name || '');
     setMetric1Start(draft.metric1Start ?? '');
     setMetric1Goal(draft.metric1Goal ?? '');
@@ -732,25 +753,25 @@ export default function CycleSetup() {
     setMetric5Name(draft.metric5Name || '');
     setMetric5Start(draft.metric5Start ?? '');
     setMetric5Goal(draft.metric5Goal ?? '');
-    if (draft.projects?.length) setProjects(draft.projects);
-    if (draft.habits?.length) setHabits(draft.habits);
-    if (draft.thingsToRemember?.length) setThingsToRemember(draft.thingsToRemember);
+    if (Array.isArray(draft.projects)) setProjects(normalizeSupportingProjects(draft.projects));
+    if (Array.isArray(draft.habits)) setHabits(normalizeHabits(draft.habits));
+    if (Array.isArray(draft.thingsToRemember)) setThingsToRemember(draft.thingsToRemember);
     setWeeklyPlanningDay(draft.weeklyPlanningDay || '');
     setWeeklyDebriefDay(draft.weeklyDebriefDay || '');
     setOfficeHoursStart(draft.officeHoursStart || '09:00');
     setOfficeHoursEnd(draft.officeHoursEnd || '17:00');
-    if (draft.officeHoursDays?.length) setOfficeHoursDays(draft.officeHoursDays);
+    if (Array.isArray(draft.officeHoursDays)) setOfficeHoursDays(draft.officeHoursDays);
     setAutoCreateWeeklyTasks(draft.autoCreateWeeklyTasks ?? true);
-    if (draft.recurringTasks?.length) setRecurringTasks(draft.recurringTasks);
+    if (Array.isArray(draft.recurringTasks)) setRecurringTasks(draft.recurringTasks);
     setBiggestFear(draft.biggestFear || '');
     setWhatWillYouDoWhenFearHits(draft.whatWillYouDoWhenFearHits || '');
     setCommitmentStatement(draft.commitmentStatement || '');
     setWhoWillHoldYouAccountable(draft.whoWillHoldYouAccountable || '');
-    if (draft.day1Top3?.length) setDay1Top3(draft.day1Top3);
+    if (Array.isArray(draft.day1Top3)) setDay1Top3(draft.day1Top3);
     setDay1Why(draft.day1Why || '');
-    if (draft.day2Top3?.length) setDay2Top3(draft.day2Top3);
+    if (Array.isArray(draft.day2Top3)) setDay2Top3(draft.day2Top3);
     setDay2Why(draft.day2Why || '');
-    if (draft.day3Top3?.length) setDay3Top3(draft.day3Top3);
+    if (Array.isArray(draft.day3Top3)) setDay3Top3(draft.day3Top3);
     setDay3Why(draft.day3Why || '');
     setPlanningLevel(draft.planningLevel || 'simple');
     setCurrentStep(draft.currentStep || 1);
@@ -758,9 +779,18 @@ export default function CycleSetup() {
 
   // Load existing cycle for editing
   useEffect(() => {
-    const loadExistingCycle = async () => {
-      if (!editCycleId || !user) return;
+    const requestId = beginAuthoritativeCycleLoad(existingCycleLoadRef);
+    if (!editCycleId) {
+      setExistingCycleLoadState('ready');
+      return;
+    }
+    if (!user) {
+      setExistingCycleLoadState('loading');
+      return;
+    }
+    setExistingCycleLoadState('loading');
 
+    const loadExistingCycle = async () => {
       try {
         // Load main cycle data
         const { data: cycleData, error: cycleError } = await supabase
@@ -768,9 +798,10 @@ export default function CycleSetup() {
           .select('*')
           .eq('cycle_id', editCycleId)
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (cycleError) throw cycleError;
+        if (!settleAuthoritativeCycleLoad(existingCycleLoadRef, requestId, 'ready')) return;
         
         if (cycleData) {
           setIsEditMode(true);
@@ -833,11 +864,13 @@ export default function CycleSetup() {
           } else {
           // Legacy fallback for cycles saved before the atomic planner payload.
           // Load strategy
-          const { data: strategyData } = await supabase
+          const { data: strategyData, error: strategyError } = await supabase
             .from('cycle_strategy')
             .select('*')
             .eq('cycle_id', editCycleId)
             .single();
+          if (!settleAuthoritativeCycleLoad(existingCycleLoadRef, requestId, 'ready')) return;
+          if (strategyError && strategyError.code !== 'PGRST116') throw strategyError;
           
           if (strategyData) {
             setLeadPlatform(strategyData.lead_primary_platform || '');
@@ -864,11 +897,13 @@ export default function CycleSetup() {
           }
 
           // Load revenue plan
-          const { data: revenueData } = await supabase
+          const { data: revenueData, error: revenueError } = await supabase
             .from('cycle_revenue_plan')
             .select('*')
             .eq('cycle_id', editCycleId)
             .single();
+          if (!settleAuthoritativeCycleLoad(existingCycleLoadRef, requestId, 'ready')) return;
+          if (revenueError && revenueError.code !== 'PGRST116') throw revenueError;
           
           if (revenueData) {
             setRevenueGoal(revenueData.revenue_goal?.toString() || '');
@@ -877,11 +912,13 @@ export default function CycleSetup() {
           }
 
           // Load offers
-          const { data: offersData } = await supabase
+          const { data: offersData, error: offersError } = await supabase
             .from('cycle_offers')
             .select('*')
             .eq('cycle_id', editCycleId)
             .order('sort_order');
+          if (!settleAuthoritativeCycleLoad(existingCycleLoadRef, requestId, 'ready')) return;
+          if (offersError) throw offersError;
           
           if (offersData && offersData.length > 0) {
             setOffers(offersData.map(o => ({
@@ -898,19 +935,56 @@ export default function CycleSetup() {
             title: 'Editing cycle',
             description: 'Make your changes and save when ready.',
           });
+        } else {
+          setIsEditMode(false);
+          setExistingCycleId(null);
+          setExistingCycleVersion(null);
+          reconciliationIdentityRef.current = null;
+          applyPlannerDetails({
+            startDate: new Date().toISOString(),
+            secondaryPlatforms: [],
+            postingDays: [],
+            proofMethods: [],
+            nurturePostingDays: [],
+            nurturePlatforms: [],
+            offers: [{ name: '', price: '', frequency: '', transformation: '', isPrimary: true }],
+            limitedOffers: [],
+            monthPlans: [
+              { monthName: 'Month 1', projects: '', salesPromos: '', mainFocus: '' },
+              { monthName: 'Month 2', projects: '', salesPromos: '', mainFocus: '' },
+              { monthName: 'Month 3', projects: '', salesPromos: '', mainFocus: '' },
+            ],
+            projects: [{ id: createDurableCycleItemId(), name: '' }],
+            habits: [{ id: createDurableCycleItemId(), name: '', category: '' }],
+            thingsToRemember: ['', '', ''],
+            officeHoursDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+            recurringTasks: [],
+            day1Top3: ['', '', ''],
+            day2Top3: ['', '', ''],
+            day3Top3: ['', '', ''],
+            currentStep: 1,
+          });
+          setLowEnergyVersion('');
+          setMediumEnergyVersion('');
+          setHighEnergyVersion('');
+          setDay1Date(undefined);
+          setDay2Date(undefined);
+          setDay3Date(undefined);
         }
+        if (!settleAuthoritativeCycleLoad(existingCycleLoadRef, requestId, 'ready')) return;
+        setExistingCycleLoadState('ready');
       } catch (error) {
+        if (!settleAuthoritativeCycleLoad(existingCycleLoadRef, requestId, 'load_failed')) return;
         console.error('Error loading existing cycle:', error);
-        toast({
-          title: 'Error loading cycle',
-          description: 'Could not load the cycle for editing.',
-          variant: 'destructive',
-        });
+        setExistingCycleLoadState('load_failed');
       }
     };
 
-    loadExistingCycle();
-  }, [applyPlannerDetails, editCycleId, user, toast]);
+    void loadExistingCycle();
+    return () => {
+      if (existingCycleLoadRef.current === requestId) existingCycleLoadRef.current += 1;
+    };
+  }, [applyPlannerDetails, editCycleId, existingCycleLoadRetry, user, toast]);
 
   // Import from workshop localStorage
   const handleImportFromWorkshop = () => {
@@ -950,15 +1024,76 @@ export default function CycleSetup() {
     setShowDraftDialog(false);
   }, [applyPlannerDetails, loadDraft, toast]);
 
+  const handleReloadCloudDraft = useCallback(async () => {
+    try {
+      const draft = await loadDraft(true);
+      if (draft) {
+        applyPlannerDetails(draft);
+        setLocalSaveStatus('saved');
+        setLastLocalSave(new Date());
+        toast({
+          title: 'Cloud draft reloaded',
+          description: 'Newer cloud work is now authoritative. Future saves can sync again.',
+        });
+        return;
+      }
+      toast({
+        title: 'No cloud draft found',
+        description: 'Cloud state was reloaded. Your device recovery remains available.',
+      });
+    } catch (error) {
+      setLocalSaveStatus('error');
+      toast({
+        title: 'Cloud reload failed',
+        description: error instanceof Error ? error.message : 'Keep this page open and try again.',
+        variant: 'destructive',
+      });
+    }
+  }, [applyPlannerDetails, loadDraft, toast]);
+
+  const handleStartFresh = useCallback(async () => {
+    formAutoSaveVersionRef.current += 1;
+    setIsStartingFresh(true);
+    try {
+      await clearDraft();
+      hasUserDismissedDraft.current = true;
+      skipNextAutoSave.current = true;
+      reconciliationIdentityRef.current = null;
+      setShowDraftDialog(false);
+      toast({
+        title: 'Draft cleared',
+        description: 'The exact loaded recovery draft was cleared. You can start fresh.',
+      });
+    } catch (error) {
+      console.error('Conditional Start Fresh failed:', error);
+      toast({
+        title: 'Draft preserved',
+        description: error instanceof Error
+          ? error.message
+          : 'The draft could not be verified for deletion. Reload and try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsStartingFresh(false);
+    }
+  }, [clearDraft, toast]);
+
   // Auto-save draft on state changes (debounced)
   useEffect(() => {
+    if (!user
+      || draftDiscoveryState !== 'ready'
+      || showDraftDialog
+      || (hasDraft && !hasUserDismissedDraft.current)) return;
+    if (existingCycleLoadState !== 'ready') return;
     // Skip auto-save if we just cleared the draft to prevent race condition
     if (skipNextAutoSave.current) {
       skipNextAutoSave.current = false;
       return;
     }
     
+    const scheduledAutoSaveVersion = formAutoSaveVersionRef.current;
     const timeoutId = setTimeout(() => {
+      if (formAutoSaveVersionRef.current !== scheduledAutoSaveVersion) return;
       const reconciliation = user
         ? getOrCreateCyclePlanIdentity(user.id, reconciliationIdentityRef.current)
         : undefined;
@@ -1000,6 +1135,7 @@ export default function CycleSetup() {
         nurtureBatchDay,
         nurtureBatchFrequency,
         nurtureContentAudit,
+        nurturePlatforms,
         offers,
         limitedOffers,
         revenueGoal,
@@ -1038,18 +1174,18 @@ export default function CycleSetup() {
       };
       
       // Update cloud save status and save draft
-      setCloudSaveStatus('saving');
+      setLocalSaveStatus('saving');
       
       // Use async IIFE to handle the promise
       (async () => {
         try {
           await saveDraft(draftData);
-          setCloudSaveStatus('saved');
-          setLastSaved(new Date());
+          setLocalSaveStatus('saved');
+          setLastLocalSave(new Date());
           console.log('✅ Draft auto-saved successfully');
         } catch (error) {
           console.error('❌ Draft auto-save failed:', error);
-          setCloudSaveStatus('error');
+          setLocalSaveStatus('error');
         }
       })();
     }, 1000); // Debounce 1 second - faster auto-saves for data protection
@@ -1060,14 +1196,14 @@ export default function CycleSetup() {
     discoverScore, nurtureScore, convertScore, biggestBottleneck,
     audienceTarget, audienceFrustration, signatureMessage, keyMessage1, keyMessage2, keyMessage3,
     leadPlatform, leadContentType, leadFrequency, leadPlatformGoal, leadCommitted, secondaryPlatforms, postingDays, postingTime, batchDay, batchFrequency, leadGenContentAudit,
-    nurtureMethod, nurtureFrequency, freeTransformation, proofMethods, nurturePostingDays, nurturePostingTime, nurtureBatchDay, nurtureBatchFrequency, nurtureContentAudit,
+    nurtureMethod, nurtureFrequency, freeTransformation, proofMethods, nurturePostingDays, nurturePostingTime, nurtureBatchDay, nurtureBatchFrequency, nurtureContentAudit, nurturePlatforms,
     offers, limitedOffers, revenueGoal, pricePerSale, launchSchedule, monthPlans,
     metric1Name, metric1Start, metric2Name, metric2Start, metric3Name, metric3Start,
     projects, habits, thingsToRemember, 
     weeklyPlanningDay, weeklyDebriefDay, officeHoursStart, officeHoursEnd, officeHoursDays, autoCreateWeeklyTasks, recurringTasks,
     biggestFear, whatWillYouDoWhenFearHits, commitmentStatement, whoWillHoldYouAccountable,
     day1Top3, day1Why, day2Top3, day2Why, day3Top3, day3Why,
-    currentStep, saveDraft, user
+    currentStep, saveDraft, user, existingCycleLoadState, draftDiscoveryState, hasDraft, showDraftDialog
   ]);
 
   // Calculate focus area based on lowest score
@@ -1096,10 +1232,10 @@ export default function CycleSetup() {
   }, [revenueGoal, pricePerSale]);
 
   // Project helpers
-  const addProject = () => setProjects([...projects, '']);
+  const addProject = () => setProjects([...projects, { id: createDurableCycleItemId(), name: '' }]);
   const updateProject = (idx: number, value: string) => {
     const updated = [...projects];
-    updated[idx] = value;
+    updated[idx] = { ...updated[idx], name: value };
     setProjects(updated);
   };
   const removeProject = (idx: number) => {
@@ -1107,7 +1243,7 @@ export default function CycleSetup() {
   };
 
   // Habit helpers
-  const addHabit = () => setHabits([...habits, { name: '', category: '' }]);
+  const addHabit = () => setHabits([...habits, { id: createDurableCycleItemId(), name: '', category: '' }]);
   const updateHabit = (idx: number, field: 'name' | 'category', value: string) => {
     const updated = [...habits];
     updated[idx][field] = value;
@@ -1312,10 +1448,10 @@ export default function CycleSetup() {
     });
     
     // Preview custom projects
-    projects.forEach(projectName => {
-      if (projectName.trim()) {
+    projects.forEach(project => {
+      if (project.name.trim()) {
         preview.projects.push({
-          name: projectName,
+          name: project.name,
           description: 'Custom project'
         });
       }
@@ -1336,7 +1472,7 @@ export default function CycleSetup() {
   };
 
   const handleSubmit = async () => {
-    if (!user) return;
+    if (!user || existingCycleLoadState !== 'ready') return;
     
     // Prevent double submission
     if (saveInProgressRef.current || loading) {
@@ -1424,17 +1560,17 @@ export default function CycleSetup() {
           name: `${goal} — 90-Day Implementation`,
           description: why || 'Generated from the canonical 90-day planner.',
         },
-        ...projects.map((name, slotIndex) => ({
-          generation_key: `supporting-project:slot-${slotIndex + 1}`,
-          name: name.trim(),
+        ...projects.map((project) => ({
+          generation_key: `supporting-project:${project.id}`,
+          name: project.name.trim(),
           description: 'Supporting project from Cycle Setup.',
         })).filter((project) => project.name),
       ];
-      const generatedHabits = habits.map((habit, slotIndex) => ({
-        generation_key: `habit:slot-${slotIndex + 1}`,
+      const generatedHabits = habits.map((habit, displayOrder) => ({
+        generation_key: `habit:${habit.id}`,
         habit_name: habit.name.trim(),
         category: habit.category || null,
-        display_order: slotIndex,
+        display_order: displayOrder,
       })).filter((habit) => habit.habit_name);
       const dailyPlans = [
         { date: format(day1Date ?? startDate, 'yyyy-MM-dd'), top_3_today: day1Top3.filter((task) => task?.trim()), thought: day1Why || null },
@@ -1455,7 +1591,7 @@ export default function CycleSetup() {
           why,
           identity,
           target_feeling: feeling,
-          supporting_projects: projects.filter((project) => project.trim()),
+          supporting_projects: projects.map((project) => project.name).filter((project) => project.trim()),
           discover_score: discoverScore,
           nurture_score: nurtureScore,
           convert_score: convertScore,
@@ -1628,6 +1764,7 @@ export default function CycleSetup() {
         saveError.message.startsWith('Your plan was saved, but the draft could not be cleared yet.')
         || saveError.message.startsWith('This retry ID already completed with different answers.')
         || saveError.message.startsWith('This plan changed in another tab or device.')
+        || saveError.message.startsWith('A required Daily Plan date is already attached to another cycle.')
         || saveError.message.startsWith('Your plan was committed, but its receipt readback was not verified.')
         || saveError.message.startsWith('Your plan receipt could not be verified.')
       );
@@ -1771,16 +1908,16 @@ export default function CycleSetup() {
   const saveBeforeNavigation = useCallback(async () => {
     if (skipNextAutoSave.current) return;
     
-    setCloudSaveStatus('saving');
+    setLocalSaveStatus('saving');
     try {
       const draftData = buildDraftData();
       await saveDraft(draftData);
-      setCloudSaveStatus('saved');
-      setLastSaved(new Date());
+      setLocalSaveStatus('saved');
+      setLastLocalSave(new Date());
       console.log('✅ Draft saved before navigation');
     } catch (error) {
       console.error('❌ Draft save failed:', error);
-      setCloudSaveStatus('error');
+      setLocalSaveStatus('error');
     }
   }, [buildDraftData, saveDraft]);
 
@@ -2029,6 +2166,40 @@ export default function CycleSetup() {
     void handleSubmit();
   };
 
+  if (existingCycleLoadState === 'loading') {
+    return (
+      <Layout>
+        <div className="mx-auto max-w-xl py-16">
+          <Card>
+            <CardContent className="flex items-center gap-3 pt-6" role="status">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span>Loading the authoritative cycle before editing…</span>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (existingCycleLoadState === 'load_failed') {
+    return (
+      <Layout>
+        <div className="mx-auto max-w-xl py-16">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Cycle could not be loaded</AlertTitle>
+            <AlertDescription className="space-y-4">
+              <p>Your browser recovery state is preserved. Editing and saving stay disabled until the authoritative load succeeds.</p>
+              <Button variant="outline" onClick={() => setExistingCycleLoadRetry((value) => value + 1)}>
+                Retry
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
+      </Layout>
+    );
+  }
+
   const progress = (currentStep / STEPS.length) * 100;
 
   return (
@@ -2073,14 +2244,10 @@ export default function CycleSetup() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              hasUserDismissedDraft.current = true; // Prevent dialog from re-appearing
-              skipNextAutoSave.current = true; // Prevent immediate re-save
-              clearDraft();
-              setShowDraftDialog(false);
-            }}>
-              Start Fresh
-            </AlertDialogCancel>
+            <Button variant="outline" onClick={() => void handleStartFresh()} disabled={isStartingFresh}>
+              {isStartingFresh ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isStartingFresh ? 'Verifying…' : 'Start Fresh'}
+            </Button>
             <AlertDialogAction onClick={handleRestoreDraft}>
               Resume Draft
             </AlertDialogAction>
@@ -2090,11 +2257,12 @@ export default function CycleSetup() {
 
       {/* Always-visible Save Status Banner */}
       <SaveStatusBanner
-        status={cloudSaveStatus}
-        lastSaved={lastSaved}
-        isSyncing={isSyncing}
-        lastServerSync={lastServerSync}
-        syncError={syncError}
+        localStatus={localSaveStatus}
+        lastLocalSave={lastLocalSave}
+        isCloudSyncing={isSyncing}
+        lastCloudSync={lastServerSync}
+        cloudIssue={cloudIssue}
+        onReloadCloudDraft={() => void handleReloadCloudDraft()}
       />
 
       <div className="mx-auto max-w-4xl space-y-6">
@@ -2125,36 +2293,7 @@ export default function CycleSetup() {
               Define your goals and strategy for the next 90 days
             </p>
           </div>
-          {/* Save Status Indicator */}
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              {cloudSaveStatus === 'saving' || isSyncing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  <span>{isSyncing ? 'Cloud backup pending...' : 'Saving in this browser...'}</span>
-                </>
-              ) : cloudSaveStatus === 'error' ? (
-                <>
-                  <CloudOff className="h-4 w-4 text-destructive" />
-                  <span className="text-destructive">Could not save in this browser</span>
-                </>
-              ) : syncError ? (
-                <>
-                  <CloudOff className="h-4 w-4 text-amber-500" />
-                  <span className="text-amber-600">Saved in this browser; cloud backup not confirmed</span>
-                </>
-              ) : lastServerSync ? (
-                <>
-                  <Cloud className="h-4 w-4 text-green-500" />
-                  <span className="text-green-600">Cloud backup confirmed</span>
-                </>
-              ) : cloudSaveStatus === 'saved' || lastSaved ? (
-                <>
-                  <Save className="h-4 w-4 text-muted-foreground" />
-                  <span>Saved in this browser; cloud backup pending</span>
-                </>
-              ) : null}
-            </div>
             <div className="flex gap-2">
             <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
               <DialogTrigger asChild>
@@ -3777,9 +3916,9 @@ export default function CycleSetup() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {projects.map((project, idx) => (
-                    <div key={idx} className="flex gap-2">
+                    <div key={project.id} className="flex gap-2">
                       <Input
-                        value={project}
+                        value={project.name}
                         onChange={(e) => updateProject(idx, e.target.value)}
                         placeholder="Project name"
                       />
@@ -3805,7 +3944,7 @@ export default function CycleSetup() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {habits.map((habit, idx) => (
-                    <div key={idx} className="flex gap-2">
+                    <div key={habit.id} className="flex gap-2">
                       <Input
                         value={habit.name}
                         onChange={(e) => updateHabit(idx, 'name', e.target.value)}

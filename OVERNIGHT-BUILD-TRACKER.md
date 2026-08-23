@@ -1,7 +1,7 @@
 # Mastermind Curriculum + Success Path Overnight Build Tracker
 
 Status: ACTIVE — PRIVATE SOURCE BUILD ONLY
-Last updated: 2026-08-22
+Last updated: 2026-08-23
 Base: `5f4c219c`
 Branch: `hermes/mastermind-success-path-results-overnight-20260822`
 
@@ -24,10 +24,15 @@ Watching never completes a milestone. The regular Planner remains complete and M
 - [x] One typed reconciliation payload + authenticated transaction source
 - [x] Durable logical plan, payload-bound request, and canonical receipt identities
 - [x] Generated row baselines preserve completed/member-edited work and retire stale generated rows
-- [x] Native PostgreSQL 16 apply-twice, RLS, cross-owner, preservation, retry/conflict, and concurrency probes
-- [x] Full repository `npm run verify`, build, lint, type, and protected Replay Vault gates
-- [x] VERIFIED LOCAL CANDIDATE receipt created
-- [ ] RELEASE BLOCKER — inherited migration `20260808120000_mastermind_portal_private_search.sql` fails a fresh PostgreSQL 16 replay at migration 182/193 (`generation expression is not immutable`); Wave 1 does not modify it
+- [x] Critical repair implementation for Daily Plan preservation, stable generated identities, exact empty-array hydration, conditional Start Fresh, legacy owner-quarter convergence, Replay Vault verifier scope, and authoritative-load gating
+- [x] Round 2 source repair for draft DML revocation/CAS, caller-bound dedup receipts, non-absorbing generation baselines, rollback-safe Daily Plan collisions, account-scoped recovery, nurture-platform persistence, truthful save status, real untracked protected discovery, and PostgreSQL 16 migration-182 compatibility
+- [x] Round 3 source repair for complete private-ledger ACL revocation, durable conflict-blocked cloud saves, provenance-safe generated-row reactivation, and separate local/cloud/conflict status evidence
+- [x] Focused client behavior, static migration boundary, Replay Vault baseline/control, Deno lint, diff, secret, and absolute-path checks pass on the repaired source
+- [ ] Repaired-source native PostgreSQL 16 behavior/concurrency execution — blocked because this sandbox denies both mmap and SysV shared-memory bootstrap
+- [ ] Repaired-source TypeScript, ESLint, build, and complete `npm run verify` — blocked because dependencies are absent and the restricted network cannot restore them
+- [ ] REPAIR VERIFICATION COMPLETE — current status is PARTIAL/BLOCKED; the earlier verified-candidate evidence predates these repairs
+- [x] HISTORICAL BLOCKER SOURCE-REPAIRED — Round 2's authorized compatibility edit replaces direct generated-expression `array_to_string` use with a restricted immutable helper; native replay proof remains pending below
+- [ ] ROUND 2 DATABASE PROOF — the authorized migration-182 compatibility source repair is present, but this sandbox still blocks PostgreSQL 16 bootstrap before any migration can run; parent must prove the full chronological replay reaches and tests Wave 1
 
 ### Wave 2 — Capability and curriculum authority
 - [ ] Add fail-closed Mastermind Learning capability contract
@@ -88,3 +93,48 @@ The exact 193-migration fresh-stack replay remains blocked at untouched inherite
 Canonical evidence: `outputs/mastermind-success-path-overnight/wave-1-verification-receipt.md`.
 
 No push, deployment, production migration, external SaaS action, access change, or member exposure occurred.
+
+### Wave 1 critical repair — 2026-08-23
+
+Status: **REPAIR IMPLEMENTED — VERIFICATION PARTIAL — RELEASE BLOCKED**
+
+All seven independent-review blockers have source and test repairs at checkpoint `34133f9474a9ded885013466876038ee3e0b9ab9` plus the current uncommitted working-tree changes. Exact-current focused client behavior, migration boundary, protected Replay Vault 74-file baseline, verifier self/mutation control, focused Deno lint, diff, secret, and absolute-path gates pass.
+
+The repaired PostgreSQL behavior suite is written but has not run in this sandbox: PostgreSQL 16 cannot allocate either mmap or SysV shared memory. TypeScript, ESLint, production build, and the full repository verifier are also blocked because `node_modules` is absent and npm cannot reach the registry. Therefore the prior 2026-08-22 database/build evidence is historical evidence for the pre-repair source, not proof for this repaired working tree.
+
+The separate inherited 193-migration failure at untouched `20260808120000_mastermind_portal_private_search.sql` remains a release blocker. No production-readiness claim is made.
+
+Canonical repair evidence: `outputs/mastermind-success-path-overnight/wave-1-critical-repair-receipt.md`.
+
+No commit, push, deployment, production migration, Supabase link, external SaaS action, entitlement/access change, publishing, or member exposure occurred.
+
+### Wave 1 critical repair Round 2 — 2026-08-23
+
+Status: **ALL TEN SOURCE REPAIRS IMPLEMENTED — CLIENT/STATIC/TYPE/LINT/BUILD GREEN — DATABASE AND FULL VERIFY BLOCKED**
+
+Round 2 preserves the uncommitted Round 1 work and repairs all ten consolidated findings in source and tests. Authenticated direct draft DML is revoked; cloud saves use exact predecessor CAS with idempotent retry; dedup receipts bind each caller's payload hash; generated baselines advance field-by-field without absorbing member edits; required Daily Plan collisions fail before writes and late races roll back; browser recovery is user-scoped; `nurturePlatforms` autosaves including `[]`; save status wording is evidence-driven; Replay Vault discovery includes real untracked files; and migration 182 now uses a schema-qualified immutable/parallel-safe array helper with restricted ACLs.
+
+Exact-current focused client, static migration, TypeScript, focused ESLint, scoped Deno lint, production build, Replay Vault 74-file baseline, actual-untracked mutation control, diff, secret, and absolute-path gates pass. The complete `npm run verify` exits 13 when the byte-identical protected mounted Replay Vault verifier cannot establish headless Chrome DevTools in this sandbox. Both PostgreSQL 16 runners exit 1 at `initdb` shared-memory allocation before applying migrations; therefore no native CAS/ACL/concurrency or chronological replay pass is claimed here.
+
+Migration 182 historical-source SHA-256 changed honestly from `5cd4c100bf7d4df6f960775d06588d938b8b154ac1b62efc227d0e7c4f60acea` to `d9b22f482a4000a8e0c0cf0040fac50871d124d04c77f986d067e43526f86d33`. Current Wave 1 migration SHA-256 is `2f037da95c0d7c5c32c5b1858ddebfab984536c60c68b8829ca0926cdfb3714a`.
+
+Canonical Round 2 evidence is appended to `outputs/mastermind-success-path-overnight/wave-1-critical-repair-receipt.md`.
+
+No commit, push, deployment, production migration apply/link, external SaaS action, GHL or entitlement change, publishing, or member exposure occurred. Wave 2 remained paused.
+
+### Wave 1 critical repair Round 3 — 2026-08-23
+
+Status: **ALL FOUR SOURCE REPAIRS IMPLEMENTED — CLIENT/STATIC/TYPE/LINT/BUILD/PROTECTED BASELINE GREEN — DATABASE AND FULL VERIFY BLOCKED**
+
+Round 3 preserves the uncommitted Round 1/2 changes and closes the four final source findings. Every Wave 1 private table now revokes `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `REFERENCES`, and `TRIGGER` from PUBLIC, anon, and authenticated while retaining only required owner reads and security-definer writes. Typed draft CAS conflicts enter a durable `conflict_blocked` coordinator state that ignores queued/later writes until explicit authoritative reload. Generated projects, habits, and tasks now carry `generation_retired_at` provenance, reactivate only from exact untouched generator-owned retirement state, and preserve/report unsafe human-modified inactive rows. Save UI evidence now separates the latest local write result from cloud failure and cloud conflict, so an old local timestamp cannot imply current durability.
+
+Exact-current focused client behavior, static migration checks, TypeScript, focused ESLint, focused Deno lint, production build, Replay Vault 74/74 baseline, real-untracked rejection control, diff check, and source scans pass. The focused and 192-predecessor-plus-candidate PostgreSQL 16 runners both exit 1 at sandbox-blocked `initdb` shared-memory allocation before schema apply, so ACL/TRUNCATE/reactivation SQL behavior is not claimed. Complete `npm run verify` exits 13 at the unchanged protected Replay Vault mounted-browser verifier because headless Chrome never establishes DevTools and Node reports unsettled top-level await.
+
+Canonical Round 3 evidence is appended to `outputs/mastermind-success-path-overnight/wave-1-critical-repair-receipt.md`. Final handoff: `outputs/mastermind-success-path-overnight/wave-1-critical-repair-round-3-final-message.txt`.
+
+No commit, push, deployment, production migration apply/link, external SaaS action, entitlement/access change, publishing, or member exposure occurred. Wave 2 remained paused.
+
+## Parent final acceptance — 2026-08-23
+
+Final repaired tree passed focused and full chronological PostgreSQL 16, TypeScript, lint, build, complete `npm run verify`, Replay Vault 74/74 plus real untracked-addition controls, and `git diff --check`. All independent critical/high findings were repaired. Canonical receipt: `outputs/mastermind-success-path-overnight/wave-1-final-acceptance-2026-08-23.md`. Classification: accepted local source checkpoint; production/release remains unauthorized.
+

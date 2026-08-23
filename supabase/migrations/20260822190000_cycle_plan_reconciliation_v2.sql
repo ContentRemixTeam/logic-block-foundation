@@ -7,7 +7,8 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 ALTER TABLE public.cycle_drafts
   ADD COLUMN IF NOT EXISTS logical_plan_key uuid,
-  ADD COLUMN IF NOT EXISTS reconciliation_request_id uuid;
+  ADD COLUMN IF NOT EXISTS reconciliation_request_id uuid,
+  ADD COLUMN IF NOT EXISTS draft_revision uuid;
 
 ALTER TABLE public.cycles_90_day
   ADD COLUMN IF NOT EXISTS planner_payload jsonb NOT NULL DEFAULT '{}'::jsonb,
@@ -21,19 +22,22 @@ ALTER TABLE public.projects
   ADD COLUMN IF NOT EXISTS generation_key text,
   ADD COLUMN IF NOT EXISTS generation_input_hash text,
   ADD COLUMN IF NOT EXISTS generation_baseline jsonb,
-  ADD COLUMN IF NOT EXISTS generation_active boolean NOT NULL DEFAULT true;
+  ADD COLUMN IF NOT EXISTS generation_active boolean NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS generation_retired_at timestamptz;
 
 ALTER TABLE public.habits
   ADD COLUMN IF NOT EXISTS generation_key text,
   ADD COLUMN IF NOT EXISTS generation_input_hash text,
   ADD COLUMN IF NOT EXISTS generation_baseline jsonb,
-  ADD COLUMN IF NOT EXISTS generation_active boolean NOT NULL DEFAULT true;
+  ADD COLUMN IF NOT EXISTS generation_active boolean NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS generation_retired_at timestamptz;
 
 ALTER TABLE public.tasks
   ADD COLUMN IF NOT EXISTS generation_key text,
   ADD COLUMN IF NOT EXISTS generation_input_hash text,
   ADD COLUMN IF NOT EXISTS generation_baseline jsonb,
-  ADD COLUMN IF NOT EXISTS generation_active boolean NOT NULL DEFAULT true;
+  ADD COLUMN IF NOT EXISTS generation_active boolean NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS generation_retired_at timestamptz;
 
 CREATE UNIQUE INDEX IF NOT EXISTS cycles_90_day_owner_cycle_unique
   ON public.cycles_90_day(user_id, cycle_id);
@@ -152,6 +156,22 @@ ALTER TABLE public.cycle_plan_intents_v2 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cycle_plan_identity_aliases_v2 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cycle_plan_reconciliation_requests_v2 ENABLE ROW LEVEL SECURITY;
 
+-- Draft rows remain owner-readable for authoritative discovery, but all writes
+-- are forced through the serialized CAS RPCs below. Remove historical policies
+-- before recreating the one minimum member read path.
+DROP POLICY IF EXISTS "Users can view own drafts" ON public.cycle_drafts;
+DROP POLICY IF EXISTS "Users can insert own drafts" ON public.cycle_drafts;
+DROP POLICY IF EXISTS "Users can update own drafts" ON public.cycle_drafts;
+DROP POLICY IF EXISTS "Users can delete own drafts" ON public.cycle_drafts;
+DROP POLICY IF EXISTS "Members read own cycle drafts v2" ON public.cycle_drafts;
+CREATE POLICY "Members read own cycle drafts v2"
+  ON public.cycle_drafts FOR SELECT TO authenticated
+  USING (auth.uid() = user_id);
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
+  ON TABLE public.cycle_drafts FROM PUBLIC, anon, authenticated;
+REVOKE SELECT ON TABLE public.cycle_drafts FROM PUBLIC, anon;
+GRANT SELECT ON TABLE public.cycle_drafts TO authenticated;
+
 DROP POLICY IF EXISTS "Members read own cycle plan intents v2" ON public.cycle_plan_intents_v2;
 CREATE POLICY "Members read own cycle plan intents v2"
   ON public.cycle_plan_intents_v2 FOR SELECT TO authenticated
@@ -161,13 +181,202 @@ CREATE POLICY "Members read own cycle plan receipts v2"
   ON public.cycle_plan_reconciliation_requests_v2 FOR SELECT TO authenticated
   USING (auth.uid() = user_id);
 
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
+  ON TABLE public.cycle_plan_intents_v2 FROM PUBLIC, anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
+  ON TABLE public.cycle_plan_identity_aliases_v2 FROM PUBLIC, anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
+  ON TABLE public.cycle_plan_reconciliation_requests_v2 FROM PUBLIC, anon, authenticated;
+REVOKE SELECT ON TABLE public.cycle_plan_intents_v2 FROM PUBLIC, anon;
+REVOKE SELECT ON TABLE public.cycle_plan_reconciliation_requests_v2 FROM PUBLIC, anon;
+REVOKE SELECT ON TABLE public.cycle_plan_identity_aliases_v2 FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.cycle_plan_intents_v2 TO authenticated;
 GRANT SELECT ON public.cycle_plan_reconciliation_requests_v2 TO authenticated;
-REVOKE ALL ON public.cycle_plan_identity_aliases_v2 FROM anon, authenticated;
-REVOKE INSERT, UPDATE, DELETE ON public.cycle_plan_intents_v2 FROM authenticated;
-REVOKE INSERT, UPDATE, DELETE ON public.cycle_plan_reconciliation_requests_v2 FROM authenticated;
-REVOKE ALL ON public.cycle_plan_intents_v2 FROM anon;
-REVOKE ALL ON public.cycle_plan_reconciliation_requests_v2 FROM anon;
+
+DROP FUNCTION IF EXISTS public.save_cycle_draft_v2(jsonb, integer, uuid, uuid, uuid);
+CREATE OR REPLACE FUNCTION public.save_cycle_draft_v2(
+  p_draft_data jsonb,
+  p_current_step integer,
+  p_logical_plan_key uuid,
+  p_request_id uuid,
+  p_draft_revision uuid,
+  p_expected_draft_id uuid,
+  p_expected_updated_at timestamptz,
+  p_expected_draft_revision uuid,
+  p_expect_absent boolean
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth, pg_temp
+AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_draft public.cycle_drafts%ROWTYPE;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE = '42501', MESSAGE = 'Sign in before saving a cycle draft.';
+  END IF;
+  IF p_draft_data IS NULL OR jsonb_typeof(p_draft_data) <> 'object' OR p_draft_revision IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Draft data and a draft revision are required.';
+  END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended('cycle-draft:' || v_user_id::text, 0));
+  SELECT * INTO v_draft
+  FROM public.cycle_drafts
+  WHERE user_id = v_user_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    IF NOT COALESCE(p_expect_absent, false) THEN
+      RETURN jsonb_build_object(
+        'success', false, 'conflict', true, 'conflict_kind', 'draft_missing'
+      );
+    END IF;
+    BEGIN
+      INSERT INTO public.cycle_drafts(
+        user_id, draft_data, current_step, logical_plan_key,
+        reconciliation_request_id, draft_revision, updated_at
+      ) VALUES (
+        v_user_id, p_draft_data, COALESCE(p_current_step, 1), p_logical_plan_key,
+        p_request_id, p_draft_revision, now()
+      ) RETURNING * INTO v_draft;
+    EXCEPTION WHEN unique_violation THEN
+      RETURN jsonb_build_object(
+        'success', false, 'conflict', true, 'conflict_kind', 'draft_created_elsewhere'
+      );
+    END;
+    RETURN jsonb_build_object(
+      'success', true, 'created', true, 'replayed', false,
+      'id', v_draft.id,
+      'logical_plan_key', v_draft.logical_plan_key,
+      'request_id', v_draft.reconciliation_request_id,
+      'draft_revision', v_draft.draft_revision,
+      'updated_at', v_draft.updated_at
+    );
+  END IF;
+
+  -- A lost response may retry the exact already-applied write. Reusing that
+  -- revision with any different content or identity is a typed conflict.
+  IF v_draft.draft_revision = p_draft_revision THEN
+    IF v_draft.draft_data IS NOT DISTINCT FROM p_draft_data
+       AND v_draft.current_step IS NOT DISTINCT FROM COALESCE(p_current_step, 1)
+       AND v_draft.logical_plan_key IS NOT DISTINCT FROM p_logical_plan_key
+       AND v_draft.reconciliation_request_id IS NOT DISTINCT FROM p_request_id THEN
+      RETURN jsonb_build_object(
+        'success', true, 'created', false, 'replayed', true,
+        'id', v_draft.id,
+        'logical_plan_key', v_draft.logical_plan_key,
+        'request_id', v_draft.reconciliation_request_id,
+        'draft_revision', v_draft.draft_revision,
+        'updated_at', v_draft.updated_at
+      );
+    END IF;
+    RETURN jsonb_build_object(
+      'success', false, 'conflict', true, 'conflict_kind', 'draft_revision_reused'
+    );
+  END IF;
+
+  IF COALESCE(p_expect_absent, false) THEN
+    RETURN jsonb_build_object(
+      'success', false, 'conflict', true, 'conflict_kind', 'draft_created_elsewhere'
+    );
+  END IF;
+
+  IF p_expected_draft_id IS NULL OR v_draft.id <> p_expected_draft_id
+     OR (
+       v_draft.draft_revision IS NOT NULL
+       AND v_draft.draft_revision IS DISTINCT FROM p_expected_draft_revision
+     )
+     OR (
+       v_draft.draft_revision IS NULL
+       AND (p_expected_draft_revision IS NOT NULL
+         OR p_expected_updated_at IS NULL
+         OR v_draft.updated_at IS DISTINCT FROM p_expected_updated_at)
+     ) THEN
+    RETURN jsonb_build_object(
+      'success', false, 'conflict', true, 'conflict_kind', 'draft_changed'
+    );
+  END IF;
+
+  UPDATE public.cycle_drafts SET
+    draft_data = p_draft_data,
+    current_step = COALESCE(p_current_step, 1),
+    logical_plan_key = p_logical_plan_key,
+    reconciliation_request_id = p_request_id,
+    draft_revision = p_draft_revision,
+    updated_at = now()
+  WHERE id = v_draft.id AND user_id = v_user_id
+  RETURNING * INTO v_draft;
+  RETURN jsonb_build_object(
+    'success', true, 'created', false, 'replayed', false,
+    'id', v_draft.id,
+    'logical_plan_key', v_draft.logical_plan_key,
+    'request_id', v_draft.reconciliation_request_id,
+    'draft_revision', v_draft.draft_revision,
+    'updated_at', v_draft.updated_at
+  );
+END
+$$;
+
+CREATE OR REPLACE FUNCTION public.delete_cycle_draft_conditionally_v2(
+  p_draft_id uuid,
+  p_expected_updated_at timestamptz,
+  p_draft_revision uuid,
+  p_logical_plan_key uuid,
+  p_request_id uuid,
+  p_expect_absent boolean DEFAULT false
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth, pg_temp
+AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_draft public.cycle_drafts%ROWTYPE;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE = '42501', MESSAGE = 'Sign in before clearing a cycle draft.';
+  END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended('cycle-draft:' || v_user_id::text, 0));
+  SELECT * INTO v_draft
+  FROM public.cycle_drafts
+  WHERE user_id = v_user_id
+  FOR UPDATE;
+
+  IF p_expect_absent THEN
+    IF FOUND THEN
+      RETURN jsonb_build_object('success', false, 'conflict', true, 'conflict_kind', 'newer_draft_present');
+    END IF;
+    RETURN jsonb_build_object('success', true, 'deleted', false, 'verified_absent', true);
+  END IF;
+
+  IF p_draft_id IS NULL OR p_expected_updated_at IS NULL OR NOT FOUND
+     OR v_draft.id <> p_draft_id
+     OR v_draft.updated_at IS DISTINCT FROM p_expected_updated_at
+     OR v_draft.draft_revision IS DISTINCT FROM p_draft_revision
+     OR v_draft.logical_plan_key IS DISTINCT FROM p_logical_plan_key
+     OR v_draft.reconciliation_request_id IS DISTINCT FROM p_request_id THEN
+    RETURN jsonb_build_object('success', false, 'conflict', true, 'conflict_kind', 'draft_changed');
+  END IF;
+
+  DELETE FROM public.cycle_drafts WHERE id = v_draft.id AND user_id = v_user_id;
+  RETURN jsonb_build_object(
+    'success', true,
+    'deleted', true,
+    'draft_id', v_draft.id,
+    'expected_updated_at', v_draft.updated_at,
+    'draft_revision', v_draft.draft_revision,
+    'logical_plan_key', v_draft.logical_plan_key,
+    'request_id', v_draft.reconciliation_request_id
+  );
+END
+$$;
+
+REVOKE ALL ON FUNCTION public.save_cycle_draft_v2(jsonb, integer, uuid, uuid, uuid, uuid, timestamptz, uuid, boolean) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.save_cycle_draft_v2(jsonb, integer, uuid, uuid, uuid, uuid, timestamptz, uuid, boolean) TO authenticated;
+REVOKE ALL ON FUNCTION public.delete_cycle_draft_conditionally_v2(uuid, timestamptz, uuid, uuid, uuid, boolean) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_cycle_draft_conditionally_v2(uuid, timestamptz, uuid, uuid, uuid, boolean) TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.reconcile_cycle_plan_v2(
   p_request_id uuid,
@@ -190,8 +399,15 @@ DECLARE
   v_quarter_start date;
   v_expected_version bigint;
   v_intent public.cycle_plan_intents_v2%ROWTYPE;
+  v_intent_found boolean := false;
   v_existing public.cycle_plan_reconciliation_requests_v2%ROWTYPE;
   v_cycle_id uuid;
+  v_owner_quarter_cycle_ids uuid[] := ARRAY[]::uuid[];
+  v_owner_quarter_cycle_count integer := 0;
+  v_owner_quarter_cycle_id uuid;
+  v_candidate_planner_plan_id uuid;
+  v_candidate_reconciliation_version bigint;
+  v_candidate_payload_version text;
   v_new_version bigint;
   v_planner_receipt_id uuid;
   v_receipt jsonb;
@@ -208,6 +424,25 @@ DECLARE
   v_retired_projects integer := 0;
   v_retired_habits integer := 0;
   v_retired_tasks integer := 0;
+  v_reactivated_projects integer := 0;
+  v_reactivated_habits integer := 0;
+  v_reactivated_tasks integer := 0;
+  v_preserved_inactive_projects integer := 0;
+  v_preserved_inactive_habits integer := 0;
+  v_preserved_inactive_tasks integer := 0;
+  v_generation_reactivation_conflicts jsonb := '[]'::jsonb;
+  v_existing_generation_active boolean;
+  v_safe_reactivation boolean;
+  v_row_generation_active boolean;
+  v_daily_dates date[] := ARRAY[]::date[];
+  v_daily_plan_inserted_count integer := 0;
+  v_daily_plan_linked_count integer := 0;
+  v_daily_plan_preserved_count integer := 0;
+  v_daily_plan_conflict_count integer := 0;
+  v_daily_plan_outcomes jsonb := '[]'::jsonb;
+  v_daily_date date;
+  v_daily_day_id uuid;
+  v_daily_cycle_id uuid;
 BEGIN
   IF v_user_id IS NULL THEN
     RAISE EXCEPTION USING ERRCODE = '42501', MESSAGE = 'Sign in before saving your 90-day plan.';
@@ -277,6 +512,30 @@ BEGIN
     END IF;
   END IF;
 
+  -- Lock and inventory every owner cycle already claiming this quarter before
+  -- creating an intent or cycle. Aggregate outside the locked subquery because
+  -- PostgreSQL does not allow FOR UPDATE directly on an aggregate result.
+  SELECT COALESCE(array_agg(locked.cycle_id ORDER BY locked.cycle_id), ARRAY[]::uuid[])
+  INTO v_owner_quarter_cycle_ids
+  FROM (
+    SELECT cycle_id
+    FROM public.cycles_90_day
+    WHERE user_id = v_user_id
+      AND date_trunc('quarter', start_date)::date = v_quarter_start
+    FOR UPDATE
+  ) AS locked;
+  v_owner_quarter_cycle_count := cardinality(v_owner_quarter_cycle_ids);
+
+  IF v_cycle_id IS NOT NULL AND NOT (v_cycle_id = ANY(v_owner_quarter_cycle_ids)) THEN
+    RETURN jsonb_build_object(
+      'status', 'conflict', 'conflict', true,
+      'conflict_kind', 'cycle_quarter_mismatch',
+      'cycle_id', v_cycle_id,
+      'quarter_start', v_quarter_start,
+      'requires_review', true
+    );
+  END IF;
+
   -- Resolve durable logical identity before the quarter fallback. An existing
   -- plan may never be silently rebound to another quarter or cycle.
   SELECT intent.* INTO v_intent
@@ -285,8 +544,9 @@ BEGIN
     ON alias.plan_id = intent.plan_id AND alias.user_id = intent.user_id
   WHERE alias.user_id = v_user_id AND alias.logical_plan_key = v_logical_plan_key
   FOR UPDATE OF intent;
+  v_intent_found := FOUND;
 
-  IF FOUND AND v_intent.quarter_start <> v_quarter_start THEN
+  IF v_intent_found AND v_intent.quarter_start <> v_quarter_start THEN
     RETURN jsonb_build_object(
       'status', 'conflict', 'conflict', true,
       'conflict_kind', 'quarter_changed',
@@ -295,12 +555,13 @@ BEGIN
     );
   END IF;
 
-  IF NOT FOUND AND v_cycle_id IS NOT NULL THEN
+  IF NOT v_intent_found AND v_cycle_id IS NOT NULL THEN
     SELECT * INTO v_intent
     FROM public.cycle_plan_intents_v2
     WHERE user_id = v_user_id AND cycle_id = v_cycle_id
     FOR UPDATE;
-    IF FOUND AND v_intent.quarter_start <> v_quarter_start THEN
+    v_intent_found := FOUND;
+    IF v_intent_found AND v_intent.quarter_start <> v_quarter_start THEN
       RETURN jsonb_build_object(
         'status', 'conflict', 'conflict', true,
         'conflict_kind', 'quarter_changed',
@@ -310,29 +571,133 @@ BEGIN
     END IF;
   END IF;
 
-  IF NOT FOUND THEN
+  IF NOT v_intent_found THEN
     SELECT * INTO v_intent
     FROM public.cycle_plan_intents_v2
     WHERE user_id = v_user_id AND quarter_start = v_quarter_start
     FOR UPDATE;
+    v_intent_found := FOUND;
   END IF;
 
-  IF NOT FOUND THEN
-    INSERT INTO public.cycle_plan_intents_v2(user_id, logical_plan_key, quarter_start)
-    VALUES (v_user_id, v_logical_plan_key, v_quarter_start)
+  IF v_owner_quarter_cycle_count > 1 THEN
+    RETURN jsonb_build_object(
+      'status', 'conflict', 'conflict', true,
+      'conflict_kind', 'ambiguous_owner_quarter_cycles',
+      'quarter_start', v_quarter_start,
+      'cycle_ids', to_jsonb(v_owner_quarter_cycle_ids),
+      'requires_review', true
+    );
+  END IF;
+
+  IF v_owner_quarter_cycle_count = 1 THEN
+    v_owner_quarter_cycle_id := v_owner_quarter_cycle_ids[1];
+    SELECT planner_plan_id, reconciliation_version, planner_payload_version
+    INTO v_candidate_planner_plan_id, v_candidate_reconciliation_version, v_candidate_payload_version
+    FROM public.cycles_90_day
+    WHERE user_id = v_user_id AND cycle_id = v_owner_quarter_cycle_id;
+
+    IF v_intent_found AND v_intent.cycle_id IS NOT NULL
+       AND v_intent.cycle_id <> v_owner_quarter_cycle_id THEN
+      RETURN jsonb_build_object(
+        'status', 'conflict', 'conflict', true,
+        'conflict_kind', 'owner_quarter_cycle_conflict',
+        'quarter_start', v_quarter_start,
+        'cycle_ids', to_jsonb(v_owner_quarter_cycle_ids),
+        'requires_review', true
+      );
+    END IF;
+    IF (NOT v_intent_found OR v_intent.cycle_id IS NULL)
+       AND (v_candidate_planner_plan_id IS NOT NULL
+         OR COALESCE(v_candidate_reconciliation_version, 0) <> 0
+         OR v_candidate_payload_version IS NOT NULL) THEN
+      RETURN jsonb_build_object(
+        'status', 'conflict', 'conflict', true,
+        'conflict_kind', 'owner_quarter_cycle_conflict',
+        'quarter_start', v_quarter_start,
+        'cycle_ids', to_jsonb(v_owner_quarter_cycle_ids),
+        'requires_review', true
+      );
+    END IF;
+    IF v_cycle_id IS NOT NULL AND v_cycle_id <> v_owner_quarter_cycle_id THEN
+      RETURN jsonb_build_object(
+        'status', 'conflict', 'conflict', true,
+        'conflict_kind', 'owner_quarter_cycle_conflict',
+        'quarter_start', v_quarter_start,
+        'cycle_ids', to_jsonb(v_owner_quarter_cycle_ids),
+        'requires_review', true
+      );
+    END IF;
+    v_cycle_id := v_owner_quarter_cycle_id;
+  ELSIF v_intent_found AND v_intent.cycle_id IS NOT NULL THEN
+    RETURN jsonb_build_object(
+      'status', 'conflict', 'conflict', true,
+      'conflict_kind', 'owner_quarter_cycle_conflict',
+      'quarter_start', v_quarter_start,
+      'cycle_id', v_intent.cycle_id,
+      'requires_review', true
+    );
+  END IF;
+
+  -- Preflight every required Daily Plan date under deterministic locks before
+  -- the first intent/cycle/project/task/ledger write. A date attached to any
+  -- non-target cycle is a typed conflict and the caller keeps its recovery.
+  FOR v_row IN
+    SELECT value FROM jsonb_array_elements(COALESCE(p_payload->'daily_plans', '[]'::jsonb))
+  LOOP
+    BEGIN
+      v_daily_date := (v_row->>'date')::date;
+    EXCEPTION WHEN OTHERS THEN
+      RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Generated Daily Plan dates must be valid.';
+    END;
+    IF v_daily_date IS NULL OR v_daily_date = ANY(v_daily_dates) THEN
+      RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Generated Daily Plan dates must be present and unique.';
+    END IF;
+    v_daily_dates := array_append(v_daily_dates, v_daily_date);
+  END LOOP;
+  SELECT COALESCE(array_agg(value ORDER BY value), ARRAY[]::date[])
+  INTO v_daily_dates
+  FROM unnest(v_daily_dates) AS dates(value);
+  FOREACH v_daily_date IN ARRAY v_daily_dates LOOP
+    PERFORM pg_advisory_xact_lock(hashtextextended(
+      'daily-plan:' || v_user_id::text || ':' || v_daily_date::text, 0
+    ));
+    v_daily_cycle_id := NULL;
+    SELECT cycle_id INTO v_daily_cycle_id
+    FROM public.daily_plans
+    WHERE user_id = v_user_id AND date = v_daily_date
+    FOR UPDATE;
+    IF FOUND AND v_daily_cycle_id IS NOT NULL
+       AND (v_cycle_id IS NULL OR v_daily_cycle_id <> v_cycle_id) THEN
+      RETURN jsonb_build_object(
+        'status', 'conflict', 'conflict', true,
+        'conflict_kind', 'daily_plan_collision',
+        'date', v_daily_date,
+        'existing_cycle_id', v_daily_cycle_id,
+        'requires_support', true
+      );
+    END IF;
+  END LOOP;
+
+  IF NOT v_intent_found THEN
+    INSERT INTO public.cycle_plan_intents_v2(user_id, logical_plan_key, quarter_start, cycle_id)
+    VALUES (v_user_id, v_logical_plan_key, v_quarter_start, v_cycle_id)
     RETURNING * INTO v_intent;
+    v_intent_found := true;
   END IF;
 
   INSERT INTO public.cycle_plan_identity_aliases_v2(user_id, logical_plan_key, plan_id)
   VALUES (v_user_id, v_logical_plan_key, v_intent.plan_id)
   ON CONFLICT (user_id, logical_plan_key) DO NOTHING;
 
-  IF v_cycle_id IS NOT NULL THEN
-    IF v_intent.cycle_id IS NOT NULL AND v_intent.cycle_id <> v_cycle_id THEN
-      RETURN jsonb_build_object('status', 'conflict', 'conflict', true, 'conflict_kind', 'quarter_changed', 'current_version', v_intent.current_version);
-    END IF;
-  ELSE
+  IF v_cycle_id IS NULL THEN
     v_cycle_id := v_intent.cycle_id;
+  ELSIF v_intent.cycle_id IS NOT NULL AND v_intent.cycle_id <> v_cycle_id THEN
+    RETURN jsonb_build_object(
+      'status', 'conflict', 'conflict', true,
+      'conflict_kind', 'owner_quarter_cycle_conflict',
+      'current_version', v_intent.current_version,
+      'requires_review', true
+    );
   END IF;
 
   -- A second browser with identical content converges on the canonical receipt.
@@ -348,6 +713,7 @@ BEGIN
     v_receipt := v_receipt || jsonb_build_object(
       'request_id', p_request_id,
       'logical_plan_key', v_logical_plan_key,
+      'payload_hash', v_payload_hash,
       'replayed', true
     );
     INSERT INTO public.cycle_plan_reconciliation_requests_v2(
@@ -507,34 +873,88 @@ BEGIN
       NULLIF(v_row->>'projects', ''), NULLIF(v_row->>'salesPromos', ''), NULLIF(v_row->>'mainFocus', ''));
   END LOOP;
 
-  -- Generated projects preserve completed or member-edited rows.
+  -- Generated projects preserve completed/member-edited rows. A retired row
+  -- reactivates only when its complete archived state still matches the exact
+  -- generator baseline and retirement provenance.
   FOR v_row IN SELECT value FROM jsonb_array_elements(COALESCE(p_payload->'generated_projects', '[]'::jsonb)) LOOP
     v_generation_key := btrim(v_row->>'generation_key');
     IF v_generation_key = '' OR btrim(v_row->>'name') = '' OR v_generation_key = ANY(v_project_keys) THEN
       RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Generated project keys and names must be unique.';
     END IF;
     v_project_keys := array_append(v_project_keys, v_generation_key);
+    v_existing_generation_active := NULL;
+    v_safe_reactivation := false;
+    SELECT generation_active,
+      (NOT generation_active
+        AND generation_retired_at IS NOT NULL
+        AND updated_at IS NOT DISTINCT FROM generation_retired_at
+        AND status = 'archived'
+        AND generation_baseline IS NOT NULL
+        AND generation_baseline->>'status' = 'active'
+        AND name IS NOT DISTINCT FROM generation_baseline->>'name'
+        AND description IS NOT DISTINCT FROM generation_baseline->>'description')
+    INTO v_existing_generation_active, v_safe_reactivation
+    FROM public.projects
+    WHERE user_id = v_user_id AND cycle_id = v_cycle_id AND generation_key = v_generation_key
+    FOR UPDATE;
     INSERT INTO public.projects(user_id, cycle_id, name, description, status, generation_key, generation_input_hash, generation_baseline, generation_active)
     VALUES (v_user_id, v_cycle_id, btrim(v_row->>'name'), NULLIF(v_row->>'description', ''), 'active', v_generation_key,
       v_content_hash, jsonb_build_object('name', btrim(v_row->>'name'), 'description', NULLIF(v_row->>'description', ''), 'status', 'active'), true)
     ON CONFLICT (user_id, cycle_id, generation_key) WHERE generation_key IS NOT NULL DO UPDATE SET
-      name = CASE WHEN public.projects.status = 'completed' OR public.projects.generation_baseline IS NULL
+      name = CASE WHEN NOT public.projects.generation_active AND NOT v_safe_reactivation THEN public.projects.name
+        WHEN v_safe_reactivation THEN EXCLUDED.name
+        WHEN public.projects.status = 'completed' OR public.projects.generation_baseline IS NULL
         OR public.projects.name IS DISTINCT FROM public.projects.generation_baseline->>'name'
-        OR public.projects.description IS DISTINCT FROM public.projects.generation_baseline->>'description'
         THEN public.projects.name ELSE EXCLUDED.name END,
-      description = CASE WHEN public.projects.status = 'completed' OR public.projects.generation_baseline IS NULL
-        OR public.projects.name IS DISTINCT FROM public.projects.generation_baseline->>'name'
+      description = CASE WHEN NOT public.projects.generation_active AND NOT v_safe_reactivation THEN public.projects.description
+        WHEN v_safe_reactivation THEN EXCLUDED.description
+        WHEN public.projects.status = 'completed' OR public.projects.generation_baseline IS NULL
         OR public.projects.description IS DISTINCT FROM public.projects.generation_baseline->>'description'
         THEN public.projects.description ELSE EXCLUDED.description END,
-      generation_input_hash = EXCLUDED.generation_input_hash,
-      generation_baseline = CASE WHEN public.projects.status = 'completed' THEN public.projects.generation_baseline ELSE EXCLUDED.generation_baseline END,
-      generation_active = true, updated_at = now()
-    RETURNING id INTO v_project_id;
+      status = CASE WHEN v_safe_reactivation THEN COALESCE(public.projects.generation_baseline->>'status', 'active') ELSE public.projects.status END,
+      generation_input_hash = CASE WHEN NOT public.projects.generation_active AND NOT v_safe_reactivation
+        THEN public.projects.generation_input_hash ELSE EXCLUDED.generation_input_hash END,
+      generation_baseline = CASE
+        WHEN NOT public.projects.generation_active AND NOT v_safe_reactivation THEN public.projects.generation_baseline
+        WHEN v_safe_reactivation THEN EXCLUDED.generation_baseline
+        WHEN public.projects.generation_baseline IS NULL THEN NULL
+        ELSE jsonb_build_object(
+          'name', CASE
+            WHEN public.projects.status <> 'completed'
+              AND public.projects.name IS NOT DISTINCT FROM public.projects.generation_baseline->>'name'
+            THEN EXCLUDED.generation_baseline->'name'
+            ELSE public.projects.generation_baseline->'name'
+          END,
+          'description', CASE
+            WHEN public.projects.status <> 'completed'
+              AND public.projects.description IS NOT DISTINCT FROM public.projects.generation_baseline->>'description'
+            THEN EXCLUDED.generation_baseline->'description'
+            ELSE public.projects.generation_baseline->'description'
+          END,
+          'status', public.projects.generation_baseline->'status'
+        )
+      END,
+      generation_active = public.projects.generation_active OR v_safe_reactivation,
+      generation_retired_at = CASE WHEN v_safe_reactivation THEN NULL ELSE public.projects.generation_retired_at END,
+      updated_at = CASE WHEN NOT public.projects.generation_active AND NOT v_safe_reactivation
+        THEN public.projects.updated_at ELSE now() END
+    RETURNING id, generation_active INTO v_project_id, v_row_generation_active;
     v_project_ids := v_project_ids || jsonb_build_object(v_generation_key, v_project_id);
-    v_active_projects := v_active_projects + 1;
+    IF v_row_generation_active THEN
+      v_active_projects := v_active_projects + 1;
+      IF v_existing_generation_active = false AND v_safe_reactivation THEN
+        v_reactivated_projects := v_reactivated_projects + 1;
+      END IF;
+    ELSE
+      v_preserved_inactive_projects := v_preserved_inactive_projects + 1;
+      v_generation_reactivation_conflicts := v_generation_reactivation_conflicts || jsonb_build_array(
+        jsonb_build_object('kind', 'project', 'generation_key', v_generation_key, 'outcome', 'member_state_preserved')
+      );
+    END IF;
   END LOOP;
 
-  UPDATE public.projects SET generation_active = false, status = 'archived', updated_at = now()
+  UPDATE public.projects SET generation_active = false, status = 'archived',
+    generation_retired_at = now(), updated_at = now()
   WHERE user_id = v_user_id AND cycle_id = v_cycle_id AND generation_key IS NOT NULL AND generation_active
     AND NOT (generation_key = ANY(v_project_keys)) AND status <> 'completed'
     AND generation_baseline IS NOT NULL
@@ -549,24 +969,82 @@ BEGIN
       RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'Generated habit keys and names must be unique.';
     END IF;
     v_habit_keys := array_append(v_habit_keys, v_generation_key);
+    v_existing_generation_active := NULL;
+    v_safe_reactivation := false;
+    SELECT generation_active,
+      (NOT generation_active
+        AND generation_retired_at IS NOT NULL
+        AND updated_at IS NOT DISTINCT FROM generation_retired_at
+        AND NOT is_active
+        AND deleted_at IS NOT DISTINCT FROM generation_retired_at
+        AND generation_baseline IS NOT NULL
+        AND COALESCE((generation_baseline->>'is_active')::boolean, true)
+        AND habit_name IS NOT DISTINCT FROM generation_baseline->>'habit_name'
+        AND category IS NOT DISTINCT FROM generation_baseline->>'category')
+    INTO v_existing_generation_active, v_safe_reactivation
+    FROM public.habits
+    WHERE user_id = v_user_id AND cycle_id = v_cycle_id AND generation_key = v_generation_key
+    FOR UPDATE;
     INSERT INTO public.habits(user_id, cycle_id, habit_name, category, display_order, is_active, generation_key, generation_input_hash, generation_baseline, generation_active)
     VALUES (v_user_id, v_cycle_id, btrim(v_row->>'habit_name'), NULLIF(v_row->>'category', ''), COALESCE((v_row->>'display_order')::integer, 0), true,
       v_generation_key, v_content_hash, jsonb_build_object('habit_name', btrim(v_row->>'habit_name'), 'category', NULLIF(v_row->>'category', ''), 'is_active', true), true)
     ON CONFLICT (user_id, cycle_id, generation_key) WHERE generation_key IS NOT NULL DO UPDATE SET
-      habit_name = CASE WHEN public.habits.generation_baseline IS NULL OR public.habits.habit_name IS DISTINCT FROM public.habits.generation_baseline->>'habit_name'
+      habit_name = CASE WHEN NOT public.habits.generation_active AND NOT v_safe_reactivation THEN public.habits.habit_name
+        WHEN v_safe_reactivation THEN EXCLUDED.habit_name
+        WHEN public.habits.generation_baseline IS NULL OR public.habits.habit_name IS DISTINCT FROM public.habits.generation_baseline->>'habit_name'
         THEN public.habits.habit_name ELSE EXCLUDED.habit_name END,
-      category = CASE WHEN public.habits.generation_baseline IS NULL OR public.habits.category IS DISTINCT FROM public.habits.generation_baseline->>'category'
+      category = CASE WHEN NOT public.habits.generation_active AND NOT v_safe_reactivation THEN public.habits.category
+        WHEN v_safe_reactivation THEN EXCLUDED.category
+        WHEN public.habits.generation_baseline IS NULL OR public.habits.category IS DISTINCT FROM public.habits.generation_baseline->>'category'
         THEN public.habits.category ELSE EXCLUDED.category END,
-      display_order = EXCLUDED.display_order, generation_input_hash = EXCLUDED.generation_input_hash,
-      generation_baseline = EXCLUDED.generation_baseline, generation_active = true, updated_at = now();
-    v_active_habits := v_active_habits + 1;
+      display_order = CASE WHEN NOT public.habits.generation_active AND NOT v_safe_reactivation
+        THEN public.habits.display_order ELSE EXCLUDED.display_order END,
+      is_active = CASE WHEN v_safe_reactivation THEN true ELSE public.habits.is_active END,
+      deleted_at = CASE WHEN v_safe_reactivation THEN NULL ELSE public.habits.deleted_at END,
+      generation_input_hash = CASE WHEN NOT public.habits.generation_active AND NOT v_safe_reactivation
+        THEN public.habits.generation_input_hash ELSE EXCLUDED.generation_input_hash END,
+      generation_baseline = CASE
+        WHEN NOT public.habits.generation_active AND NOT v_safe_reactivation THEN public.habits.generation_baseline
+        WHEN v_safe_reactivation THEN EXCLUDED.generation_baseline
+        WHEN public.habits.generation_baseline IS NULL THEN NULL
+        ELSE jsonb_build_object(
+          'habit_name', CASE
+            WHEN public.habits.habit_name IS NOT DISTINCT FROM public.habits.generation_baseline->>'habit_name'
+            THEN EXCLUDED.generation_baseline->'habit_name'
+            ELSE public.habits.generation_baseline->'habit_name'
+          END,
+          'category', CASE
+            WHEN public.habits.category IS NOT DISTINCT FROM public.habits.generation_baseline->>'category'
+            THEN EXCLUDED.generation_baseline->'category'
+            ELSE public.habits.generation_baseline->'category'
+          END,
+          'is_active', public.habits.generation_baseline->'is_active'
+        )
+      END,
+      generation_active = public.habits.generation_active OR v_safe_reactivation,
+      generation_retired_at = CASE WHEN v_safe_reactivation THEN NULL ELSE public.habits.generation_retired_at END,
+      updated_at = CASE WHEN NOT public.habits.generation_active AND NOT v_safe_reactivation
+        THEN public.habits.updated_at ELSE now() END
+    RETURNING generation_active INTO v_row_generation_active;
+    IF v_row_generation_active THEN
+      v_active_habits := v_active_habits + 1;
+      IF v_existing_generation_active = false AND v_safe_reactivation THEN
+        v_reactivated_habits := v_reactivated_habits + 1;
+      END IF;
+    ELSE
+      v_preserved_inactive_habits := v_preserved_inactive_habits + 1;
+      v_generation_reactivation_conflicts := v_generation_reactivation_conflicts || jsonb_build_array(
+        jsonb_build_object('kind', 'habit', 'generation_key', v_generation_key, 'outcome', 'member_state_preserved')
+      );
+    END IF;
   END LOOP;
-  UPDATE public.habits SET generation_active = false, is_active = false, deleted_at = COALESCE(deleted_at, now()), updated_at = now()
+  UPDATE public.habits SET generation_active = false, is_active = false,
+    generation_retired_at = now(), deleted_at = now(), updated_at = now()
   WHERE user_id = v_user_id AND cycle_id = v_cycle_id AND generation_key IS NOT NULL AND generation_active
     AND NOT (generation_key = ANY(v_habit_keys)) AND generation_baseline IS NOT NULL
     AND habit_name IS NOT DISTINCT FROM generation_baseline->>'habit_name'
     AND category IS NOT DISTINCT FROM generation_baseline->>'category'
-    AND is_active = true;
+    AND is_active = true AND deleted_at IS NULL;
   GET DIAGNOSTICS v_retired_habits = ROW_COUNT;
 
   FOR v_row IN SELECT value FROM jsonb_array_elements(COALESCE(p_payload->'generated_tasks', '[]'::jsonb)) LOOP
@@ -576,6 +1054,33 @@ BEGIN
     END IF;
     v_task_keys := array_append(v_task_keys, v_generation_key);
     v_project_id := NULLIF(v_project_ids->>COALESCE(v_row->>'project_generation_key', ''), '')::uuid;
+    v_existing_generation_active := NULL;
+    v_safe_reactivation := false;
+    SELECT generation_active,
+      (NOT generation_active
+        AND generation_retired_at IS NOT NULL
+        AND updated_at IS NOT DISTINCT FROM generation_retired_at
+        AND deleted_at IS NOT DISTINCT FROM generation_retired_at
+        AND system_source = 'cycle_reconciliation_v2_retired'
+        AND NOT COALESCE(is_completed, false)
+        AND generation_baseline IS NOT NULL
+        AND project_id::text IS NOT DISTINCT FROM generation_baseline->>'project_id'
+        AND task_text IS NOT DISTINCT FROM generation_baseline->>'task_text'
+        AND task_description IS NOT DISTINCT FROM generation_baseline->>'task_description'
+        AND scheduled_date::text IS NOT DISTINCT FROM generation_baseline->>'scheduled_date'
+        AND planned_day::text IS NOT DISTINCT FROM generation_baseline->>'planned_day'
+        AND priority IS NOT DISTINCT FROM generation_baseline->>'priority'
+        AND status IS NOT DISTINCT FROM generation_baseline->>'status'
+        AND category IS NOT DISTINCT FROM generation_baseline->>'category'
+        AND to_jsonb(context_tags) IS NOT DISTINCT FROM generation_baseline->'context_tags'
+        AND (v_project_id IS NULL OR EXISTS (
+          SELECT 1 FROM public.projects p
+          WHERE p.user_id = v_user_id AND p.id = v_project_id AND p.generation_active
+        )))
+    INTO v_existing_generation_active, v_safe_reactivation
+    FROM public.tasks
+    WHERE user_id = v_user_id AND cycle_id = v_cycle_id AND generation_key = v_generation_key
+    FOR UPDATE;
     INSERT INTO public.tasks(user_id, project_id, cycle_id, task_text, task_description, scheduled_date, planned_day,
       priority, status, category, context_tags, is_system_generated, system_source, generation_key,
       generation_input_hash, generation_baseline, generation_active)
@@ -590,21 +1095,71 @@ BEGIN
         'status', 'todo', 'category', COALESCE(NULLIF(v_row->>'category', ''), 'cycle-plan'),
         'context_tags', COALESCE(v_row->'context_tags', '["cycle-plan"]'::jsonb)), true)
     ON CONFLICT (user_id, cycle_id, generation_key) WHERE generation_key IS NOT NULL DO UPDATE SET
-      project_id = CASE WHEN public.tasks.generation_baseline IS NULL OR public.tasks.project_id::text IS DISTINCT FROM public.tasks.generation_baseline->>'project_id' THEN public.tasks.project_id ELSE EXCLUDED.project_id END,
-      task_text = CASE WHEN COALESCE(public.tasks.is_completed, false) OR public.tasks.generation_baseline IS NULL OR public.tasks.task_text IS DISTINCT FROM public.tasks.generation_baseline->>'task_text' THEN public.tasks.task_text ELSE EXCLUDED.task_text END,
-      task_description = CASE WHEN COALESCE(public.tasks.is_completed, false) OR public.tasks.generation_baseline IS NULL OR public.tasks.task_description IS DISTINCT FROM public.tasks.generation_baseline->>'task_description' THEN public.tasks.task_description ELSE EXCLUDED.task_description END,
-      scheduled_date = CASE WHEN COALESCE(public.tasks.is_completed, false) OR public.tasks.generation_baseline IS NULL OR public.tasks.scheduled_date::text IS DISTINCT FROM public.tasks.generation_baseline->>'scheduled_date' THEN public.tasks.scheduled_date ELSE EXCLUDED.scheduled_date END,
-      planned_day = CASE WHEN COALESCE(public.tasks.is_completed, false) OR public.tasks.generation_baseline IS NULL OR public.tasks.planned_day::text IS DISTINCT FROM public.tasks.generation_baseline->>'planned_day' THEN public.tasks.planned_day ELSE EXCLUDED.planned_day END,
-      priority = CASE WHEN COALESCE(public.tasks.is_completed, false) OR public.tasks.generation_baseline IS NULL OR public.tasks.priority IS DISTINCT FROM public.tasks.generation_baseline->>'priority' THEN public.tasks.priority ELSE EXCLUDED.priority END,
-      category = CASE WHEN COALESCE(public.tasks.is_completed, false) OR public.tasks.generation_baseline IS NULL OR public.tasks.category IS DISTINCT FROM public.tasks.generation_baseline->>'category' THEN public.tasks.category ELSE EXCLUDED.category END,
-      context_tags = CASE WHEN COALESCE(public.tasks.is_completed, false) OR public.tasks.generation_baseline IS NULL OR to_jsonb(public.tasks.context_tags) IS DISTINCT FROM public.tasks.generation_baseline->'context_tags' THEN public.tasks.context_tags ELSE EXCLUDED.context_tags END,
-      generation_input_hash = EXCLUDED.generation_input_hash,
-      generation_baseline = CASE WHEN COALESCE(public.tasks.is_completed, false) THEN public.tasks.generation_baseline ELSE EXCLUDED.generation_baseline END,
-      generation_active = true, system_source = 'cycle_reconciliation_v2', updated_at = now();
-    v_active_tasks := v_active_tasks + 1;
+      project_id = CASE WHEN NOT public.tasks.generation_active AND NOT v_safe_reactivation THEN public.tasks.project_id WHEN v_safe_reactivation THEN EXCLUDED.project_id WHEN COALESCE(public.tasks.is_completed, false) OR public.tasks.generation_baseline IS NULL OR public.tasks.project_id::text IS DISTINCT FROM public.tasks.generation_baseline->>'project_id' THEN public.tasks.project_id ELSE EXCLUDED.project_id END,
+      task_text = CASE WHEN NOT public.tasks.generation_active AND NOT v_safe_reactivation THEN public.tasks.task_text WHEN v_safe_reactivation THEN EXCLUDED.task_text WHEN COALESCE(public.tasks.is_completed, false) OR public.tasks.generation_baseline IS NULL OR public.tasks.task_text IS DISTINCT FROM public.tasks.generation_baseline->>'task_text' THEN public.tasks.task_text ELSE EXCLUDED.task_text END,
+      task_description = CASE WHEN NOT public.tasks.generation_active AND NOT v_safe_reactivation THEN public.tasks.task_description WHEN v_safe_reactivation THEN EXCLUDED.task_description WHEN COALESCE(public.tasks.is_completed, false) OR public.tasks.generation_baseline IS NULL OR public.tasks.task_description IS DISTINCT FROM public.tasks.generation_baseline->>'task_description' THEN public.tasks.task_description ELSE EXCLUDED.task_description END,
+      scheduled_date = CASE WHEN NOT public.tasks.generation_active AND NOT v_safe_reactivation THEN public.tasks.scheduled_date WHEN v_safe_reactivation THEN EXCLUDED.scheduled_date WHEN COALESCE(public.tasks.is_completed, false) OR public.tasks.generation_baseline IS NULL OR public.tasks.scheduled_date::text IS DISTINCT FROM public.tasks.generation_baseline->>'scheduled_date' THEN public.tasks.scheduled_date ELSE EXCLUDED.scheduled_date END,
+      planned_day = CASE WHEN NOT public.tasks.generation_active AND NOT v_safe_reactivation THEN public.tasks.planned_day WHEN v_safe_reactivation THEN EXCLUDED.planned_day WHEN COALESCE(public.tasks.is_completed, false) OR public.tasks.generation_baseline IS NULL OR public.tasks.planned_day::text IS DISTINCT FROM public.tasks.generation_baseline->>'planned_day' THEN public.tasks.planned_day ELSE EXCLUDED.planned_day END,
+      priority = CASE WHEN NOT public.tasks.generation_active AND NOT v_safe_reactivation THEN public.tasks.priority WHEN v_safe_reactivation THEN EXCLUDED.priority WHEN COALESCE(public.tasks.is_completed, false) OR public.tasks.generation_baseline IS NULL OR public.tasks.priority IS DISTINCT FROM public.tasks.generation_baseline->>'priority' THEN public.tasks.priority ELSE EXCLUDED.priority END,
+      category = CASE WHEN NOT public.tasks.generation_active AND NOT v_safe_reactivation THEN public.tasks.category WHEN v_safe_reactivation THEN EXCLUDED.category WHEN COALESCE(public.tasks.is_completed, false) OR public.tasks.generation_baseline IS NULL OR public.tasks.category IS DISTINCT FROM public.tasks.generation_baseline->>'category' THEN public.tasks.category ELSE EXCLUDED.category END,
+      context_tags = CASE WHEN NOT public.tasks.generation_active AND NOT v_safe_reactivation THEN public.tasks.context_tags WHEN v_safe_reactivation THEN EXCLUDED.context_tags WHEN COALESCE(public.tasks.is_completed, false) OR public.tasks.generation_baseline IS NULL OR to_jsonb(public.tasks.context_tags) IS DISTINCT FROM public.tasks.generation_baseline->'context_tags' THEN public.tasks.context_tags ELSE EXCLUDED.context_tags END,
+      deleted_at = CASE WHEN v_safe_reactivation THEN NULL ELSE public.tasks.deleted_at END,
+      generation_input_hash = CASE WHEN NOT public.tasks.generation_active AND NOT v_safe_reactivation
+        THEN public.tasks.generation_input_hash ELSE EXCLUDED.generation_input_hash END,
+      generation_baseline = CASE
+        WHEN NOT public.tasks.generation_active AND NOT v_safe_reactivation THEN public.tasks.generation_baseline
+        WHEN v_safe_reactivation THEN EXCLUDED.generation_baseline
+        WHEN public.tasks.generation_baseline IS NULL THEN NULL
+        ELSE jsonb_build_object(
+          'project_id', CASE WHEN NOT COALESCE(public.tasks.is_completed, false)
+              AND public.tasks.project_id::text IS NOT DISTINCT FROM public.tasks.generation_baseline->>'project_id'
+            THEN EXCLUDED.generation_baseline->'project_id' ELSE public.tasks.generation_baseline->'project_id' END,
+          'task_text', CASE WHEN NOT COALESCE(public.tasks.is_completed, false)
+              AND public.tasks.task_text IS NOT DISTINCT FROM public.tasks.generation_baseline->>'task_text'
+            THEN EXCLUDED.generation_baseline->'task_text' ELSE public.tasks.generation_baseline->'task_text' END,
+          'task_description', CASE WHEN NOT COALESCE(public.tasks.is_completed, false)
+              AND public.tasks.task_description IS NOT DISTINCT FROM public.tasks.generation_baseline->>'task_description'
+            THEN EXCLUDED.generation_baseline->'task_description' ELSE public.tasks.generation_baseline->'task_description' END,
+          'scheduled_date', CASE WHEN NOT COALESCE(public.tasks.is_completed, false)
+              AND public.tasks.scheduled_date::text IS NOT DISTINCT FROM public.tasks.generation_baseline->>'scheduled_date'
+            THEN EXCLUDED.generation_baseline->'scheduled_date' ELSE public.tasks.generation_baseline->'scheduled_date' END,
+          'planned_day', CASE WHEN NOT COALESCE(public.tasks.is_completed, false)
+              AND public.tasks.planned_day::text IS NOT DISTINCT FROM public.tasks.generation_baseline->>'planned_day'
+            THEN EXCLUDED.generation_baseline->'planned_day' ELSE public.tasks.generation_baseline->'planned_day' END,
+          'priority', CASE WHEN NOT COALESCE(public.tasks.is_completed, false)
+              AND public.tasks.priority IS NOT DISTINCT FROM public.tasks.generation_baseline->>'priority'
+            THEN EXCLUDED.generation_baseline->'priority' ELSE public.tasks.generation_baseline->'priority' END,
+          'status', public.tasks.generation_baseline->'status',
+          'category', CASE WHEN NOT COALESCE(public.tasks.is_completed, false)
+              AND public.tasks.category IS NOT DISTINCT FROM public.tasks.generation_baseline->>'category'
+            THEN EXCLUDED.generation_baseline->'category' ELSE public.tasks.generation_baseline->'category' END,
+          'context_tags', CASE WHEN NOT COALESCE(public.tasks.is_completed, false)
+              AND to_jsonb(public.tasks.context_tags) IS NOT DISTINCT FROM public.tasks.generation_baseline->'context_tags'
+            THEN EXCLUDED.generation_baseline->'context_tags' ELSE public.tasks.generation_baseline->'context_tags' END
+        )
+      END,
+      generation_active = public.tasks.generation_active OR v_safe_reactivation,
+      generation_retired_at = CASE WHEN v_safe_reactivation THEN NULL ELSE public.tasks.generation_retired_at END,
+      system_source = CASE WHEN NOT public.tasks.generation_active AND NOT v_safe_reactivation
+        THEN public.tasks.system_source ELSE 'cycle_reconciliation_v2' END,
+      updated_at = CASE WHEN NOT public.tasks.generation_active AND NOT v_safe_reactivation
+        THEN public.tasks.updated_at ELSE now() END
+    RETURNING generation_active INTO v_row_generation_active;
+    IF v_row_generation_active THEN
+      v_active_tasks := v_active_tasks + 1;
+      IF v_existing_generation_active = false AND v_safe_reactivation THEN
+        v_reactivated_tasks := v_reactivated_tasks + 1;
+      END IF;
+    ELSE
+      v_preserved_inactive_tasks := v_preserved_inactive_tasks + 1;
+      v_generation_reactivation_conflicts := v_generation_reactivation_conflicts || jsonb_build_array(
+        jsonb_build_object('kind', 'task', 'generation_key', v_generation_key, 'outcome', 'member_state_preserved')
+      );
+    END IF;
   END LOOP;
 
-  UPDATE public.tasks SET generation_active = false, system_source = 'cycle_reconciliation_v2_retired', deleted_at = COALESCE(deleted_at, now()), updated_at = now()
+  UPDATE public.tasks SET generation_active = false, system_source = 'cycle_reconciliation_v2_retired',
+    generation_retired_at = now(), deleted_at = now(), updated_at = now()
   WHERE user_id = v_user_id AND cycle_id = v_cycle_id AND generation_key IS NOT NULL AND generation_active
     AND NOT (generation_key = ANY(v_task_keys)) AND NOT COALESCE(is_completed, false)
     AND generation_baseline IS NOT NULL AND status = COALESCE(generation_baseline->>'status', 'todo')
@@ -614,14 +1169,54 @@ BEGIN
     AND planned_day::text IS NOT DISTINCT FROM generation_baseline->>'planned_day'
     AND priority IS NOT DISTINCT FROM generation_baseline->>'priority'
     AND category IS NOT DISTINCT FROM generation_baseline->>'category'
-    AND to_jsonb(context_tags) IS NOT DISTINCT FROM generation_baseline->'context_tags';
+    AND to_jsonb(context_tags) IS NOT DISTINCT FROM generation_baseline->'context_tags'
+    AND deleted_at IS NULL;
   GET DIAGNOSTICS v_retired_tasks = ROW_COUNT;
 
   FOR v_row IN SELECT value FROM jsonb_array_elements(COALESCE(p_payload->'daily_plans', '[]'::jsonb)) LOOP
+    v_daily_date := (v_row->>'date')::date;
+    v_daily_day_id := NULL;
     INSERT INTO public.daily_plans(user_id, cycle_id, date, top_3_today, thought)
-    VALUES (v_user_id, v_cycle_id, (v_row->>'date')::date, COALESCE(v_row->'top_3_today', '[]'::jsonb), NULLIF(v_row->>'thought', ''))
-    ON CONFLICT (user_id, date) DO UPDATE SET cycle_id = EXCLUDED.cycle_id,
-      top_3_today = EXCLUDED.top_3_today, thought = EXCLUDED.thought, updated_at = now();
+    VALUES (v_user_id, v_cycle_id, v_daily_date, COALESCE(v_row->'top_3_today', '[]'::jsonb), NULLIF(v_row->>'thought', ''))
+    ON CONFLICT (user_id, date) DO NOTHING
+    RETURNING day_id INTO v_daily_day_id;
+
+    IF v_daily_day_id IS NOT NULL THEN
+      v_daily_plan_inserted_count := v_daily_plan_inserted_count + 1;
+      v_daily_plan_outcomes := v_daily_plan_outcomes || jsonb_build_array(jsonb_build_object(
+        'date', v_daily_date, 'outcome', 'created_generated_plan'
+      ));
+    ELSE
+      v_daily_cycle_id := NULL;
+      SELECT day_id, cycle_id
+      INTO v_daily_day_id, v_daily_cycle_id
+      FROM public.daily_plans
+      WHERE user_id = v_user_id AND date = v_daily_date
+      FOR UPDATE;
+      IF NOT FOUND THEN
+        RAISE EXCEPTION USING ERRCODE = '40001', MESSAGE = 'A Daily Plan changed concurrently; retry reconciliation.';
+      END IF;
+
+      IF v_daily_cycle_id IS NULL THEN
+        -- Link only the missing relationship. Every authored/completion field is
+        -- deliberately absent from this UPDATE and remains byte-for-byte owned
+        -- by the member-facing Daily Plan writer.
+        UPDATE public.daily_plans
+        SET cycle_id = v_cycle_id
+        WHERE day_id = v_daily_day_id AND user_id = v_user_id AND cycle_id IS NULL;
+        v_daily_plan_linked_count := v_daily_plan_linked_count + 1;
+        v_daily_plan_outcomes := v_daily_plan_outcomes || jsonb_build_array(jsonb_build_object(
+          'date', v_daily_date, 'outcome', 'linked_existing_preserved'
+        ));
+      ELSIF v_daily_cycle_id = v_cycle_id THEN
+        v_daily_plan_preserved_count := v_daily_plan_preserved_count + 1;
+        v_daily_plan_outcomes := v_daily_plan_outcomes || jsonb_build_array(jsonb_build_object(
+          'date', v_daily_date, 'outcome', 'existing_same_cycle_preserved'
+        ));
+      ELSE
+        RAISE EXCEPTION USING ERRCODE = '40001', MESSAGE = 'cycle_plan_daily_plan_collision: required date changed ownership; retry after support review.';
+      END IF;
+    END IF;
   END LOOP;
   INSERT INTO public.user_settings(user_id) VALUES (v_user_id) ON CONFLICT (user_id) DO NOTHING;
 
@@ -640,6 +1235,18 @@ BEGIN
     'retired_generated_project_count', v_retired_projects,
     'retired_generated_habit_count', v_retired_habits,
     'retired_generated_task_count', v_retired_tasks,
+    'reactivated_generated_project_count', v_reactivated_projects,
+    'reactivated_generated_habit_count', v_reactivated_habits,
+    'reactivated_generated_task_count', v_reactivated_tasks,
+    'preserved_inactive_generated_project_count', v_preserved_inactive_projects,
+    'preserved_inactive_generated_habit_count', v_preserved_inactive_habits,
+    'preserved_inactive_generated_task_count', v_preserved_inactive_tasks,
+    'generation_reactivation_conflicts', v_generation_reactivation_conflicts,
+    'daily_plan_inserted_count', v_daily_plan_inserted_count,
+    'daily_plan_linked_count', v_daily_plan_linked_count,
+    'daily_plan_preserved_count', v_daily_plan_preserved_count,
+    'daily_plan_conflict_count', v_daily_plan_conflict_count,
+    'daily_plan_outcomes', v_daily_plan_outcomes,
     'completed_at', now()
   );
 

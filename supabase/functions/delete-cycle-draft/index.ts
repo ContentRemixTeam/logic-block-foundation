@@ -37,18 +37,29 @@ serve(async (req) => {
       });
     }
 
-    let expectedIdentity: { logical_plan_key?: string; request_id?: string } = {};
-    if (req.method !== 'DELETE' || req.headers.get('content-length') !== '0') {
-      try {
-        expectedIdentity = await req.json();
-      } catch {
-        expectedIdentity = {};
-      }
+    let expectedIdentity: {
+      draft_id?: string;
+      expected_updated_at?: string;
+      draft_revision?: string | null;
+      logical_plan_key?: string | null;
+      request_id?: string | null;
+      expect_absent?: boolean;
+    } = {};
+    try {
+      expectedIdentity = await req.json();
+    } catch {
+      expectedIdentity = {};
     }
     const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if ((expectedIdentity.logical_plan_key && !uuidPattern.test(expectedIdentity.logical_plan_key))
-      || (expectedIdentity.request_id && !uuidPattern.test(expectedIdentity.request_id))) {
-      return new Response(JSON.stringify({ error: 'Invalid reconciliation identity' }), {
+    const validTimestamp = typeof expectedIdentity.expected_updated_at === 'string'
+      && Number.isFinite(Date.parse(expectedIdentity.expected_updated_at));
+    const expectsAbsent = expectedIdentity.expect_absent === true;
+    if ((!expectsAbsent && (!expectedIdentity.draft_id || !uuidPattern.test(expectedIdentity.draft_id)
+      || !validTimestamp))
+      || (expectedIdentity.logical_plan_key && !uuidPattern.test(expectedIdentity.logical_plan_key))
+      || (expectedIdentity.request_id && !uuidPattern.test(expectedIdentity.request_id))
+      || (expectedIdentity.draft_revision && !uuidPattern.test(expectedIdentity.draft_revision))) {
+      return new Response(JSON.stringify({ error: 'An exact draft deletion receipt is required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -56,17 +67,14 @@ serve(async (req) => {
 
     console.log('Deleting owned draft for user:', user.id);
 
-    let deleteQuery = supabase
-      .from('cycle_drafts')
-      .delete()
-      .eq('user_id', user.id);
-    if (expectedIdentity.logical_plan_key) {
-      deleteQuery = deleteQuery.eq('logical_plan_key', expectedIdentity.logical_plan_key);
-    }
-    if (expectedIdentity.request_id) {
-      deleteQuery = deleteQuery.eq('reconciliation_request_id', expectedIdentity.request_id);
-    }
-    const { data, error } = await deleteQuery.select('id');
+    const { data, error } = await supabase.rpc('delete_cycle_draft_conditionally_v2', {
+      p_draft_id: expectedIdentity.draft_id || null,
+      p_expected_updated_at: expectedIdentity.expected_updated_at || null,
+      p_draft_revision: expectedIdentity.draft_revision || null,
+      p_logical_plan_key: expectedIdentity.logical_plan_key || null,
+      p_request_id: expectedIdentity.request_id || null,
+      p_expect_absent: expectsAbsent,
+    });
 
     if (error) {
       console.error('Error deleting draft:', error);
@@ -76,7 +84,7 @@ serve(async (req) => {
       });
     }
 
-    if ((expectedIdentity.logical_plan_key || expectedIdentity.request_id) && data?.length !== 1) {
+    if (!data?.success) {
       return new Response(JSON.stringify({ error: 'Draft changed after this Planner receipt; newer recovery state was preserved.' }), {
         status: 409,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -84,7 +92,7 @@ serve(async (req) => {
     }
 
     console.log('Draft deleted successfully');
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 

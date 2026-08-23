@@ -1793,6 +1793,7 @@ export type Database = {
           created_at: string | null
           current_step: number | null
           draft_data: Json
+          draft_revision: string | null
           id: string
           logical_plan_key: string | null
           reconciliation_request_id: string | null
@@ -1803,6 +1804,7 @@ export type Database = {
           created_at?: string | null
           current_step?: number | null
           draft_data?: Json
+          draft_revision?: string | null
           id?: string
           logical_plan_key?: string | null
           reconciliation_request_id?: string | null
@@ -1813,6 +1815,7 @@ export type Database = {
           created_at?: string | null
           current_step?: number | null
           draft_data?: Json
+          draft_revision?: string | null
           id?: string
           logical_plan_key?: string | null
           reconciliation_request_id?: string | null
@@ -3640,6 +3643,7 @@ export type Database = {
           generation_baseline: Json | null
           generation_input_hash: string | null
           generation_key: string | null
+          generation_retired_at: string | null
           habit_id: string
           habit_name: string
           is_active: boolean | null
@@ -3660,6 +3664,7 @@ export type Database = {
           generation_baseline?: Json | null
           generation_input_hash?: string | null
           generation_key?: string | null
+          generation_retired_at?: string | null
           habit_id?: string
           habit_name: string
           is_active?: boolean | null
@@ -3680,6 +3685,7 @@ export type Database = {
           generation_baseline?: Json | null
           generation_input_hash?: string | null
           generation_key?: string | null
+          generation_retired_at?: string | null
           habit_id?: string
           habit_name?: string
           is_active?: boolean | null
@@ -5603,6 +5609,7 @@ export type Database = {
           generation_baseline: Json | null
           generation_input_hash: string | null
           generation_key: string | null
+          generation_retired_at: string | null
           has_topic_planning: boolean | null
           id: string
           is_launch: boolean
@@ -5636,6 +5643,7 @@ export type Database = {
           generation_baseline?: Json | null
           generation_input_hash?: string | null
           generation_key?: string | null
+          generation_retired_at?: string | null
           has_topic_planning?: boolean | null
           id?: string
           is_launch?: boolean
@@ -5669,6 +5677,7 @@ export type Database = {
           generation_baseline?: Json | null
           generation_input_hash?: string | null
           generation_key?: string | null
+          generation_retired_at?: string | null
           has_topic_planning?: boolean | null
           id?: string
           is_launch?: boolean
@@ -6945,6 +6954,7 @@ export type Database = {
           generation_baseline: Json | null
           generation_input_hash: string | null
           generation_key: string | null
+          generation_retired_at: string | null
           goal_id: string | null
           is_bare_minimum: boolean
           is_completed: boolean | null
@@ -7032,6 +7042,7 @@ export type Database = {
           generation_baseline?: Json | null
           generation_input_hash?: string | null
           generation_key?: string | null
+          generation_retired_at?: string | null
           goal_id?: string | null
           is_bare_minimum?: boolean
           is_completed?: boolean | null
@@ -7119,6 +7130,7 @@ export type Database = {
           generation_baseline?: Json | null
           generation_input_hash?: string | null
           generation_key?: string | null
+          generation_retired_at?: string | null
           goal_id?: string | null
           is_bare_minimum?: boolean
           is_completed?: boolean | null
@@ -8793,8 +8805,33 @@ export type Database = {
       }
     }
     Functions: {
+      delete_cycle_draft_conditionally_v2: {
+        Args: {
+          p_draft_id: string | null
+          p_draft_revision: string | null
+          p_expect_absent?: boolean
+          p_expected_updated_at: string | null
+          p_logical_plan_key: string | null
+          p_request_id: string | null
+        }
+        Returns: Json
+      }
       reconcile_cycle_plan_v2: {
         Args: { p_payload: Json; p_request_id: string }
+        Returns: Json
+      }
+      save_cycle_draft_v2: {
+        Args: {
+          p_current_step: number
+          p_draft_data: Json
+          p_draft_revision: string
+          p_expected_draft_id: string | null
+          p_expected_draft_revision: string | null
+          p_expected_updated_at: string | null
+          p_expect_absent: boolean
+          p_logical_plan_key: string | null
+          p_request_id: string | null
+        }
         Returns: Json
       }
       auto_archive_old_notes: { Args: never; Returns: number }

@@ -1,10 +1,13 @@
 export async function clearCycleDraftAfterReceipt(
-  deleteCloudDraft: () => Promise<{ error: unknown | null }>,
-  clearBrowserDraft: () => void,
+  deleteCloudDraft: () => Promise<{ data: unknown; error: unknown | null }>,
+  isExpectedCloudReceipt: (data: unknown) => boolean,
+  clearBrowserDraftConditionally: () => boolean,
 ): Promise<void> {
-  const { error } = await deleteCloudDraft();
-  if (error) {
-    throw new Error('Your plan was saved, but the draft could not be cleared yet. Retry to verify cleanup.');
+  const { data, error } = await deleteCloudDraft();
+  if (error || !isExpectedCloudReceipt(data)) {
+    throw new Error('The draft changed or cloud cleanup could not be verified. Recovery was preserved; reload before trying again.');
   }
-  clearBrowserDraft();
+  if (!clearBrowserDraftConditionally()) {
+    throw new Error('A newer browser draft appeared while cleanup was running. Recovery was preserved; reload before trying again.');
+  }
 }

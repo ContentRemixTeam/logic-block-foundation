@@ -16,6 +16,7 @@
     "verify:cycle-plan-postgres": "python3 tools/verify-cycle-plan-reconciliation-postgres.py",
     "verify:cycle-plan-full-stack-postgres": "python3 tools/verify-cycle-plan-full-stack-postgres.py",
     "verify:replay-vault-protected-baseline": "python3 tools/verify-replay-vault-protected-baseline.py",
+    "verify:replay-vault-protected-baseline-control": "python3 tools/test-replay-vault-protected-baseline-control.py",
     "verify:replay-vault": "node tools/verify-replay-vault.mjs",
     "verify:replay-vault-pilot": "node tools/verify-replay-vault-pilot.mjs",
     "verify:replay-vault-pilot-bundle": "node tools/verify-replay-vault-pilot-bundle.mjs",

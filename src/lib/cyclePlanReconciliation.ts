@@ -1,5 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
+import { cyclePlanReceiptMatchesReadback } from '@/lib/cyclePlanReceiptVerification';
+export { cyclePlanReceiptMatchesReadback } from '@/lib/cyclePlanReceiptVerification';
 
 const IDENTITY_STORAGE_PREFIX = 'cycle_plan_reconciliation_identity_v2';
 
@@ -125,13 +127,35 @@ export interface CyclePlanReconciliationReceipt {
   retired_generated_project_count: number;
   retired_generated_habit_count: number;
   retired_generated_task_count: number;
+  reactivated_generated_project_count: number;
+  reactivated_generated_habit_count: number;
+  reactivated_generated_task_count: number;
+  preserved_inactive_generated_project_count: number;
+  preserved_inactive_generated_habit_count: number;
+  preserved_inactive_generated_task_count: number;
+  generation_reactivation_conflicts: Array<{
+    kind: 'project' | 'habit' | 'task';
+    generation_key: string;
+    outcome: 'member_state_preserved';
+  }>;
+  daily_plan_inserted_count: number;
+  daily_plan_linked_count: number;
+  daily_plan_preserved_count: number;
+  daily_plan_conflict_count: number;
+  daily_plan_outcomes: Array<{
+    date: string;
+    outcome: 'created_generated_plan' | 'linked_existing_preserved' | 'existing_same_cycle_preserved' | 'other_cycle_preserved';
+    existing_cycle_id?: string;
+  }>;
   completed_at: string;
 }
 
 interface CyclePlanConflictReceipt {
   status: 'conflict';
   conflict: true;
-  conflict_kind: 'request_changed' | 'stale_version' | 'quarter_changed';
+  conflict_kind: 'request_changed' | 'stale_version' | 'quarter_changed'
+    | 'cycle_quarter_mismatch' | 'owner_quarter_cycle_conflict' | 'ambiguous_owner_quarter_cycles'
+    | 'daily_plan_collision';
   current_version?: number;
 }
 
@@ -232,7 +256,10 @@ function isConflictReceipt(value: unknown): value is CyclePlanConflictReceipt {
   const row = value as Record<string, unknown>;
   return row.status === 'conflict'
     && row.conflict === true
-    && ['request_changed', 'stale_version', 'quarter_changed'].includes(String(row.conflict_kind));
+    && [
+      'request_changed', 'stale_version', 'quarter_changed', 'cycle_quarter_mismatch',
+      'owner_quarter_cycle_conflict', 'ambiguous_owner_quarter_cycles', 'daily_plan_collision',
+    ].includes(String(row.conflict_kind));
 }
 
 function isCompleteReceipt(value: unknown): value is CyclePlanReconciliationReceipt {
@@ -248,6 +275,12 @@ function isCompleteReceipt(value: unknown): value is CyclePlanReconciliationRece
     && typeof row.content_hash === 'string' && /^[0-9a-f]{64}$/.test(row.content_hash)
     && typeof row.version === 'number' && Number.isSafeInteger(row.version) && row.version > 0
     && typeof row.active_generated_task_count === 'number'
+    && typeof row.daily_plan_inserted_count === 'number'
+    && typeof row.daily_plan_linked_count === 'number'
+    && typeof row.daily_plan_preserved_count === 'number'
+    && typeof row.daily_plan_conflict_count === 'number'
+    && row.daily_plan_conflict_count === 0
+    && Array.isArray(row.daily_plan_outcomes)
     && typeof row.completed_at === 'string';
 }
 
@@ -261,13 +294,29 @@ export async function submitCyclePlanReconciliation(
   });
 
   if (error) {
+    if (error.message?.includes('cycle_plan_daily_plan_collision:')) {
+      throw new Error('A required Daily Plan date is already attached to another cycle. Nothing was changed; keep this recovery and contact support before retrying.');
+    }
     throw new Error(error.message || 'Your plan save was not verified. Keep this screen open and retry the same save.');
   }
   if (isConflictReceipt(data)) {
+    if (data.conflict_kind === 'daily_plan_collision') {
+      throw new Error('A required Daily Plan date is already attached to another cycle. Nothing was changed; keep this recovery and contact support before retrying.');
+    }
     if (data.conflict_kind === 'request_changed') {
       throw new Error('This retry ID already completed with different answers. Reload the verified plan before saving again.');
     }
+    if (data.conflict_kind === 'ambiguous_owner_quarter_cycles'
+      || data.conflict_kind === 'owner_quarter_cycle_conflict'
+      || data.conflict_kind === 'cycle_quarter_mismatch') {
+      throw new Error('More than one cycle authority may exist for this quarter. Nothing was replaced; review your Cycles before retrying.');
+    }
     throw new Error('This plan changed in another tab or device. Reload it before replacing those answers.');
+  }
+  if (data && typeof data === 'object'
+    && (data as Record<string, unknown>).status === 'complete'
+    && Number((data as Record<string, unknown>).daily_plan_conflict_count) > 0) {
+    throw new Error('A required Daily Plan date is already attached to another cycle. Nothing was changed; keep this recovery and contact support before retrying.');
   }
   if (!isCompleteReceipt(data)
     || data.request_id !== requestId
@@ -287,24 +336,7 @@ export async function verifyCyclePlanReceiptReadback(
     .eq('request_id', receipt.request_id)
     .single();
 
-  const storedReceipt = data?.receipt as Record<string, unknown> | undefined;
-  if (error
-    || data?.status !== 'complete'
-    || data?.request_id !== receipt.request_id
-    || data?.plan_id !== receipt.logical_plan_id
-    || data?.planner_receipt_id !== receipt.planner_receipt_id
-    || data?.cycle_id !== receipt.cycle_id
-    || data?.payload_hash !== receipt.payload_hash
-    || data?.content_hash !== receipt.content_hash
-    || data?.resulting_version !== receipt.version
-    || storedReceipt?.planner_receipt_id !== receipt.planner_receipt_id
-    || storedReceipt?.request_id !== receipt.request_id
-    || storedReceipt?.logical_plan_id !== receipt.logical_plan_id
-    || storedReceipt?.logical_plan_key !== receipt.logical_plan_key
-    || storedReceipt?.cycle_id !== receipt.cycle_id
-    || storedReceipt?.payload_hash !== receipt.payload_hash
-    || storedReceipt?.content_hash !== receipt.content_hash
-    || storedReceipt?.version !== receipt.version) {
+  if (error || !cyclePlanReceiptMatchesReadback(receipt, data)) {
     throw new Error("Your plan was committed, but its receipt readback was not verified. This screen's draft was not cleared; retry the same save.");
   }
 }

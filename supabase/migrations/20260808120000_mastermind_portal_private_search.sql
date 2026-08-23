@@ -3,6 +3,22 @@
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+-- PostgreSQL 16 rejects array_to_string directly in a stored generated
+-- expression because the built-in is not declared immutable. This narrow,
+-- deterministic wrapper preserves the exact space-joined search semantics.
+CREATE OR REPLACE FUNCTION public.mastermind_portal_search_array_text(p_values text[])
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+PARALLEL SAFE
+SET search_path = pg_catalog
+AS $$
+  SELECT pg_catalog.array_to_string(p_values, ' ')
+$$;
+
+REVOKE ALL ON FUNCTION public.mastermind_portal_search_array_text(text[]) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.mastermind_portal_search_array_text(text[]) TO service_role;
+
 CREATE TABLE IF NOT EXISTS public.mastermind_portal_resources (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   portal_resource_id TEXT NOT NULL UNIQUE,
@@ -32,8 +48,8 @@ CREATE TABLE IF NOT EXISTS public.mastermind_portal_resources (
       coalesce(product_title, '') || ' ' ||
       coalesce(category_title, '') || ' ' ||
       coalesce(search_summary, '') || ' ' ||
-      array_to_string(success_paths, ' ') || ' ' ||
-      array_to_string(stages, ' ')
+      public.mastermind_portal_search_array_text(success_paths) || ' ' ||
+      public.mastermind_portal_search_array_text(stages)
     )
   ) STORED,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),

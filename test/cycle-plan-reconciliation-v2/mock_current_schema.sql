@@ -31,6 +31,15 @@ CREATE TABLE public.cycle_drafts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL UNIQUE, draft_data jsonb NOT NULL DEFAULT '{}',
   current_step integer DEFAULT 1, created_at timestamptz DEFAULT now(), updated_at timestamptz DEFAULT now()
 );
+ALTER TABLE public.cycle_drafts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view own drafts" ON public.cycle_drafts
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own drafts" ON public.cycle_drafts
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own drafts" ON public.cycle_drafts
+  FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own drafts" ON public.cycle_drafts
+  FOR DELETE USING (auth.uid() = user_id);
 CREATE TABLE public.cycle_strategy (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), cycle_id uuid NOT NULL UNIQUE REFERENCES public.cycles_90_day(cycle_id),
   user_id uuid NOT NULL, lead_primary_platform text, lead_content_type text, lead_frequency text,
@@ -81,11 +90,17 @@ CREATE TABLE public.tasks (
 );
 CREATE TABLE public.daily_plans (
   day_id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL, cycle_id uuid REFERENCES public.cycles_90_day(cycle_id),
-  date date NOT NULL, top_3_today jsonb DEFAULT '[]', thought text, created_at timestamptz DEFAULT now(),
+  date date NOT NULL, top_3_today jsonb DEFAULT '[]', thought text, feeling text,
+  selected_weekly_priorities jsonb DEFAULT '[]', deep_mode_notes jsonb DEFAULT '{}', made_offer boolean DEFAULT false,
+  daily_wins jsonb DEFAULT '[]', scratch_pad_content text, one_thing text, alignment_score integer,
+  brain_dump text, end_of_day_reflection text, active_launch_id uuid,
+  created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now(), UNIQUE(user_id, date)
 );
 
 GRANT USAGE ON SCHEMA public, auth TO anon, authenticated, service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated, service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  GRANT ALL ON TABLES TO PUBLIC, anon, authenticated, service_role;
 GRANT SELECT ON auth.users TO service_role;
 GRANT EXECUTE ON FUNCTION auth.uid() TO anon, authenticated, service_role;

@@ -63,10 +63,12 @@ serve(async (req) => {
     console.log('Draft found, updated_at:', data.updated_at);
     return new Response(JSON.stringify({ 
       draft: {
+        id: data.id,
         draft_data: data.draft_data,
         current_step: data.current_step,
         logical_plan_key: data.logical_plan_key,
         request_id: data.reconciliation_request_id,
+        draft_revision: data.draft_revision,
         updated_at: data.updated_at,
       }
     }), {

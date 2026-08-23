@@ -16,6 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATIONS = ROOT / "supabase/migrations"
 CANDIDATE = MIGRATIONS / "20260822190000_cycle_plan_reconciliation_v2.sql"
+BEHAVIOR = ROOT / "test/cycle-plan-reconciliation-v2/behavior.sql"
 
 
 def need(name: str) -> str:
@@ -47,7 +48,7 @@ DO $$ BEGIN CREATE ROLE authenticated NOLOGIN; EXCEPTION WHEN duplicate_object T
 DO $$ BEGIN CREATE ROLE service_role NOLOGIN BYPASSRLS; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 CREATE SCHEMA IF NOT EXISTS auth;
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
-CREATE TABLE IF NOT EXISTS auth.users(id uuid PRIMARY KEY, email text UNIQUE);
+CREATE TABLE IF NOT EXISTS auth.users(id uuid PRIMARY KEY, email text UNIQUE, raw_user_meta_data jsonb NOT NULL DEFAULT '{}'::jsonb);
 INSERT INTO auth.users(id, email) VALUES ('72011c8d-a746-47e8-8f45-79789388260b', 'legacy-feature-fixture@example.test') ON CONFLICT (id) DO NOTHING;
 CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$
   SELECT NULLIF(current_setting('request.jwt.claims', true)::jsonb->>'sub', '')::uuid
@@ -109,8 +110,94 @@ GRANT EXECUTE ON FUNCTION auth.uid(), auth.jwt() TO anon, authenticated, service
                 except RuntimeError as error:
                     raise RuntimeError(f"Full stack failed at {index}/{len(migrations)} {migration.name}\n{error}") from error
             checked([*command, "-f", str(CANDIDATE)], env)
+            search_probe = """
+DO $$
+DECLARE
+  v_vector tsvector;
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.proname = 'mastermind_portal_search_array_text'
+      AND p.provolatile = 'i' AND p.proparallel = 's'
+  ) THEN
+    RAISE EXCEPTION 'migration 182 compatibility helper is not immutable/parallel safe';
+  END IF;
+  IF has_function_privilege('authenticated', 'public.mastermind_portal_search_array_text(text[])', 'EXECUTE') THEN
+    RAISE EXCEPTION 'migration 182 helper leaked member execution';
+  END IF;
+  INSERT INTO public.mastermind_portal_resources(
+    portal_resource_id, product_title, category_title, title, portal_path,
+    search_summary, success_paths, stages
+  ) VALUES (
+    'pg16-compatibility-probe', 'Offer Product', 'Sales Category',
+    'Searchable Title', '/private/probe', 'Summary Phrase',
+    ARRAY['success path phrase'], ARRAY['growth stage']
+  ) RETURNING metadata_search_vector INTO v_vector;
+  IF NOT (v_vector @@ plainto_tsquery('english', 'Searchable Title Offer Product Sales Category Summary Phrase success path growth stage')) THEN
+    RAISE EXCEPTION 'migration 182 generated search semantics changed: %', v_vector;
+  END IF;
+END
+$$;
+"""
+            checked([*command, "-c", search_probe], env)
+            checked([*command, "-f", str(BEHAVIOR)], env)
+            private_acl_probe = """
+DO $$
+DECLARE
+  v_table text;
+  v_privilege text;
+BEGIN
+  FOREACH v_table IN ARRAY ARRAY[
+    'cycle_drafts', 'cycle_plan_intents_v2', 'cycle_plan_identity_aliases_v2',
+    'cycle_plan_reconciliation_requests_v2'
+  ] LOOP
+    FOREACH v_privilege IN ARRAY ARRAY['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER'] LOOP
+      IF has_table_privilege('anon', format('public.%I', v_table), v_privilege)
+         OR has_table_privilege('authenticated', format('public.%I', v_table), v_privilege) THEN
+        RAISE EXCEPTION 'effective private-table privilege %.% survived realistic defaults', v_table, v_privilege;
+      END IF;
+      IF EXISTS (
+        SELECT 1
+        FROM pg_class c
+        CROSS JOIN LATERAL aclexplode(COALESCE(c.relacl, acldefault('r', c.relowner))) acl
+        WHERE c.oid = format('public.%I', v_table)::regclass
+          AND acl.grantee = 0
+          AND upper(acl.privilege_type) = v_privilege
+      ) THEN
+        RAISE EXCEPTION 'PUBLIC private-table privilege %.% survived realistic defaults', v_table, v_privilege;
+      END IF;
+    END LOOP;
+  END LOOP;
+END
+$$;
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claims', '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}', false);
+DO $$
+DECLARE
+  v_before bigint;
+  v_after bigint;
+BEGIN
+  SELECT count(*) INTO v_before FROM public.cycle_plan_reconciliation_requests_v2;
+  IF v_before = 0 THEN RAISE EXCEPTION 'receipt survival probe has no ledger fixture'; END IF;
+  BEGIN
+    TRUNCATE TABLE public.cycle_plan_reconciliation_requests_v2;
+    RAISE EXCEPTION 'authenticated TRUNCATE unexpectedly succeeded';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  SELECT count(*) INTO v_after FROM public.cycle_plan_reconciliation_requests_v2;
+  IF v_after <> v_before THEN
+    RAISE EXCEPTION 'receipt ledger changed across denied TRUNCATE: before %, after %', v_before, v_after;
+  END IF;
+END
+$$;
+RESET ROLE;
+"""
+            checked([*command, "-c", private_acl_probe], env)
             print(f"PASS {len(migrations) - 1} predecessor migrations + candidate")
             print("PASS candidate double apply on full chronological stack")
+            print("PASS migration 182 PostgreSQL 16 helper ACL and search semantics")
+            print("PASS Wave 1 behavior suite on full chronological stack")
+            print("PASS final effective private-ledger ACLs and denied-TRUNCATE receipt survival")
             print(f"PASS native disposable {version} full-stack probe")
         finally:
             if started:

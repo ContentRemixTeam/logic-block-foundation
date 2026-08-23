@@ -9,9 +9,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "outputs/mastermind-success-path-overnight/replay-vault-protected-baseline.json"
+CONTROL_PLANE_PATHS = {
+    "tools/verify-replay-vault-protected-baseline.py",
+    "tools/test-replay-vault-protected-baseline-control.py",
+}
 
 
 def is_protected_scope(path: str) -> bool:
+    if path in CONTROL_PLANE_PATHS:
+        return False
     lower = path.lower()
     return (
         path == "src/pages/ReplayVault.tsx"
@@ -25,27 +31,18 @@ def is_protected_scope(path: str) -> bool:
     )
 
 
-def main() -> None:
-    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    expected = {entry["path"]: entry for entry in manifest["files"]}
-    if manifest["file_count"] != 74 or len(expected) != 74:
-        raise SystemExit(f"FAIL protected manifest expected 74 unique files, found {len(expected)}")
-
-    tracked = subprocess.run(
-        ["git", "ls-files"], cwd=ROOT, check=True, text=True, capture_output=True,
-    ).stdout.splitlines()
-    actual_scope = {path for path in tracked if is_protected_scope(path)}
-    base_tracked = subprocess.run(
-        ["git", "ls-tree", "-r", "--name-only", manifest["base_commit"]],
-        cwd=ROOT, check=True, text=True, capture_output=True,
-    ).stdout.splitlines()
-    base_scope = {path for path in base_tracked if is_protected_scope(path)}
+def evaluate_protected_scope(
+    root: Path,
+    expected: dict[str, dict[str, object]],
+    actual_scope: set[str],
+    base_scope: set[str],
+) -> tuple[list[str], list[str], list[str], list[str]]:
     missing = sorted(set(expected) - actual_scope)
     additions = sorted(actual_scope - base_scope)
     removals = sorted(base_scope - actual_scope)
     mismatches: list[str] = []
     for relative_path, entry in expected.items():
-        source = ROOT / relative_path
+        source = root / relative_path
         if not source.is_file():
             mismatches.append(f"missing:{relative_path}")
             continue
@@ -55,6 +52,28 @@ def main() -> None:
             mismatches.append(
                 f"changed:{relative_path}:bytes={len(content)}:sha256={digest}"
             )
+    return missing, additions, removals, mismatches
+
+
+def main() -> None:
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    expected = {entry["path"]: entry for entry in manifest["files"]}
+    if manifest["file_count"] != 74 or len(expected) != 74:
+        raise SystemExit(f"FAIL protected manifest expected 74 unique files, found {len(expected)}")
+
+    tracked = subprocess.run(
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
+        cwd=ROOT, check=True, text=True, capture_output=True,
+    ).stdout.splitlines()
+    actual_scope = {path for path in tracked if is_protected_scope(path)}
+    base_tracked = subprocess.run(
+        ["git", "ls-tree", "-r", "--name-only", manifest["base_commit"]],
+        cwd=ROOT, check=True, text=True, capture_output=True,
+    ).stdout.splitlines()
+    base_scope = {path for path in base_tracked if is_protected_scope(path)}
+    missing, additions, removals, mismatches = evaluate_protected_scope(
+        ROOT, expected, actual_scope, base_scope,
+    )
 
     if missing or additions or removals or mismatches:
         if missing:
