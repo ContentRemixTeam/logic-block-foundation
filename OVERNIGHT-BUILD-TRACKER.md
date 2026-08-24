@@ -275,3 +275,8 @@ Accepted implementation source: `b3f9f85446d195bcd74ce49ec1c7f6f147af0f7a`. Inde
 ## Final private-preview handoff — 2026-08-24
 
 Created `outputs/mastermind-success-path-overnight/final-private-preview-handoff.md`. The accepted Waves 1–4 source is locked and fully verified, but live private-preview activation remains fail-closed because zero curriculum rows are editorially `Ready` and no nonproduction backend, edge deployment, real media locator, test capability, or frozen test assignment was authorized. Activation now requires three explicit decisions: one approved Offer lesson, authorization for an isolated nonproduction Supabase preview environment, and one named test account. Production/member launch remains blocked.
+
+
+## Faith-only offline private preview — 2026-08-24
+
+Faith approved a clearly labeled fake lesson for a private test. Built a self-contained offline HTML preview from the accepted production Success Path page with isolated local Supabase/Layout fixtures. CSP blocks all network and media; mounted Chrome at 390/1440 px recorded zero external requests, zero overflow/clipped/sub-44px controls, required private/fake labeling, one lesson/action/support route, and honest fail-closed playback. TypeScript, focused lint, production build, production-bundle exclusion, and full `npm run verify` passed. Delivery: `~/Desktop/HERMES-FILES/mastermind-private-preview.html`. No real app, backend, curriculum, member, entitlement, or production state changed.
