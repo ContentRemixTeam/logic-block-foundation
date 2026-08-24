@@ -223,3 +223,7 @@ Closed nested generic task evidence, denylist-only denial privacy, timeline top-
 ## Wave 3 static FK closure — 2026-08-23
 
 Static verifier now rejects exact same-name FK source/target/delete-action mutations. Parent passed static 229, native PG16, full chronology, full verify, and Replay Vault controls.
+
+## Wave 3 accepted boundary — 2026-08-23
+
+Accepted implementation source: `396febb31cdb5497ae8016b918edc4939f979fca`. Final independent closure returned NO BLOCKERS for exact static FK mutation rejection and runtime closed-schema privacy mutation/rollback. Final gates: static 229; native PostgreSQL 16.14 behavior/RLS/ACL/concurrency/privacy; complete 196-migration chronology with Wave 1/2/3 double-apply; TypeScript; lint; production build; full repository verification; Replay Vault 74/74 plus mutation controls. Production remained untouched. Wave 4 may begin only from this accepted source plus this documentation lock.

@@ -92,3 +92,9 @@ Parent PASS: static 226; native PostgreSQL 16.14; complete 196-migration chronol
 ## Static FK closure — 2026-08-23
 
 The static gate now binds all eight protected foreign keys to exact source columns, target table/columns, and `ON DELETE RESTRICT`. Negative synthetic controls reject the reviewed proposal-id-only and task `ON DELETE CASCADE` regressions. Parent PASS: static 229, native PG16 privacy/relationship suite, full 196-migration chronology, full repository verification, Replay Vault 74/74 and controls.
+
+## Independent final acceptance
+
+**ACCEPTED SOURCE:** `396febb31cdb5497ae8016b918edc4939f979fca`
+
+Two final exact reviewers returned **NO BLOCKERS**. One reproduced both same-name FK regressions and proved static rejection; the other executed native PostgreSQL denial/timeline privacy mutations, verified exact-schema rejection and rollback restoration, and separately proved unknown event-field rejection.
