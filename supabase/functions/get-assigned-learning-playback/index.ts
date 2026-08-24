@@ -4,7 +4,6 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   createAssignedLearningPlaybackHandler,
-  type AssignedLearningPlaybackRow,
 } from "../_shared/assignedLearningPlayback.ts";
 
 let cachedToken: { value: string; expiresAt: number } | null = null;
@@ -67,7 +66,7 @@ const handler = createAssignedLearningPlaybackHandler({
       p_as_of: input.asOf,
     });
     if (error) throw new Error("authorization_unavailable");
-    return data as AssignedLearningPlaybackRow | null;
+    return data;
   },
   mintDropboxLink,
 });

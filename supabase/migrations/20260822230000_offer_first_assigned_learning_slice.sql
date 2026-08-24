@@ -14,11 +14,70 @@ CREATE TABLE IF NOT EXISTS public.planner_learning_playback_authorizations (
     'unconfirmed', 'resource_not_ready', 'stale_authority'
   )),
   authority_sha256 text CHECK (authority_sha256 IS NULL OR authority_sha256 ~ '^[0-9a-f]{64}$'),
+  evaluation_sequence bigint NOT NULL DEFAULT 1,
+  supersedes_authorization_receipt_id uuid,
   evaluated_at timestamptz NOT NULL,
   receipt jsonb NOT NULL CHECK (jsonb_typeof(receipt) = 'object'),
   created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-  UNIQUE(user_id, request_id)
+  CONSTRAINT planner_learning_playback_authorizations_sequence_check CHECK (
+    (evaluation_sequence = 1 AND supersedes_authorization_receipt_id IS NULL)
+    OR (evaluation_sequence > 1 AND supersedes_authorization_receipt_id IS NOT NULL)
+  ),
+  CONSTRAINT planner_learning_playback_authorizations_request_evaluation_key
+    UNIQUE(user_id, request_id, evaluation_sequence),
+  CONSTRAINT planner_learning_playback_authorizations_supersedes_fkey
+    FOREIGN KEY (supersedes_authorization_receipt_id)
+    REFERENCES public.planner_learning_playback_authorizations(authorization_receipt_id)
+    ON DELETE RESTRICT
 );
+
+-- Idempotently repair the rejected single-receipt shape without rewriting or
+-- deleting any historical evaluation. Existing rows become sequence 1 roots.
+ALTER TABLE public.planner_learning_playback_authorizations
+  ADD COLUMN IF NOT EXISTS evaluation_sequence bigint NOT NULL DEFAULT 1;
+ALTER TABLE public.planner_learning_playback_authorizations
+  ADD COLUMN IF NOT EXISTS supersedes_authorization_receipt_id uuid;
+ALTER TABLE public.planner_learning_playback_authorizations
+  DROP CONSTRAINT IF EXISTS planner_learning_playback_authorizations_user_id_request_id_key;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_constraint
+    WHERE conrelid='public.planner_learning_playback_authorizations'::regclass
+      AND conname='planner_learning_playback_authorizations_sequence_check'
+  ) THEN
+    ALTER TABLE public.planner_learning_playback_authorizations
+      ADD CONSTRAINT planner_learning_playback_authorizations_sequence_check CHECK (
+        (evaluation_sequence = 1 AND supersedes_authorization_receipt_id IS NULL)
+        OR (evaluation_sequence > 1 AND supersedes_authorization_receipt_id IS NOT NULL)
+      );
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_constraint
+    WHERE conrelid='public.planner_learning_playback_authorizations'::regclass
+      AND conname='planner_learning_playback_authorizations_request_evaluation_key'
+  ) THEN
+    ALTER TABLE public.planner_learning_playback_authorizations
+      ADD CONSTRAINT planner_learning_playback_authorizations_request_evaluation_key
+      UNIQUE(user_id, request_id, evaluation_sequence);
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_constraint
+    WHERE conrelid='public.planner_learning_playback_authorizations'::regclass
+      AND conname='planner_learning_playback_authorizations_supersedes_fkey'
+  ) THEN
+    ALTER TABLE public.planner_learning_playback_authorizations
+      ADD CONSTRAINT planner_learning_playback_authorizations_supersedes_fkey
+      FOREIGN KEY (supersedes_authorization_receipt_id)
+      REFERENCES public.planner_learning_playback_authorizations(authorization_receipt_id)
+      ON DELETE RESTRICT;
+  END IF;
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS planner_learning_playback_authorizations_latest_idx
+  ON public.planner_learning_playback_authorizations(user_id, request_id, evaluation_sequence DESC);
 
 ALTER TABLE public.planner_learning_playback_authorizations ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.planner_learning_playback_authorizations
@@ -109,6 +168,7 @@ AS $$
 DECLARE
   v_cap_state text;
   v_cap_reason text;
+  v_capability_authority_sha256 text;
   v_cycle public.cycles_90_day%ROWTYPE;
   v_state public.success_path_cycle_states%ROWTYPE;
   v_action public.success_path_actions%ROWTYPE;
@@ -137,6 +197,32 @@ BEGIN
   ELSIF v_cap_state <> 'granted' THEN
     RETURN jsonb_build_object('decision','denied','reason','inaccessible');
   END IF;
+
+  -- Hash the exact private capability evidence without returning or persisting
+  -- its email/entitlement/hold values. A granted-to-granted evidence rotation
+  -- must still rotate playback authority for the post-mint fence.
+  SELECT public.mastermind_wave2_jsonb_sha256(jsonb_build_object(
+    'identity_email_sha256', public.mastermind_wave2_jsonb_sha256(to_jsonb(lower(btrim(u.email)))),
+    'entitlements', coalesce((
+      SELECT jsonb_agg(jsonb_build_object(
+        'id',e.id,'tier',e.tier,'status',e.status,'starts_at',e.starts_at,
+        'ends_at',e.ends_at,'created_at',e.created_at,'updated_at',e.updated_at
+      ) ORDER BY e.id)
+      FROM public.entitlements e
+      WHERE lower(btrim(e.email))=lower(btrim(u.email)) AND e.tier='mastermind'
+    ),'[]'::jsonb),
+    'holds', coalesce((
+      SELECT jsonb_agg(jsonb_build_object(
+        'hold_id',h.hold_id,'hold_state',h.hold_state,'reason_code',h.reason_code,
+        'evidence_checked_at',h.evidence_checked_at,'starts_at',h.starts_at,
+        'expires_at',h.expires_at,'created_at',h.created_at
+      ) ORDER BY h.starts_at,h.hold_id)
+      FROM public.capability_verification_holds h
+      WHERE h.user_id=p_user_id AND h.capability_key='mastermind.learning.assigned'
+        AND h.starts_at<=p_as_of AND (h.expires_at IS NULL OR p_as_of<h.expires_at)
+    ),'[]'::jsonb)
+  )) INTO v_capability_authority_sha256
+  FROM auth.users u WHERE u.id=p_user_id;
 
   SELECT * INTO v_cycle FROM public.cycles_90_day
    WHERE user_id = p_user_id AND cycle_id = p_cycle_id;
@@ -320,6 +406,7 @@ BEGIN
     'provider',v_media.provider,'private_locator',v_media.private_locator,
     'authority_sha256',public.mastermind_wave2_jsonb_sha256(jsonb_build_object(
       'user_id',p_user_id,'cycle_id',p_cycle_id,'path_id',v_state.path_id,
+      'capability_authority_sha256',v_capability_authority_sha256,
       'path_version',v_state.state_version,'state_receipt_id',v_state.state_receipt_id,
       'planner_request_ledger_id',v_state.planner_request_ledger_id,
       'planner_receipt_id',v_state.planner_receipt_id,'assignment_id',v_state.assignment_id,
@@ -415,9 +502,13 @@ DECLARE
   v_existing public.planner_learning_playback_authorizations%ROWTYPE;
   v_decision text;
   v_reason text;
+  v_authority_hash text;
   v_receipt_id uuid := gen_random_uuid();
+  v_evaluation_sequence bigint := 1;
+  v_supersedes_receipt_id uuid;
   v_receipt jsonb;
   v_existing_found boolean := false;
+  v_replayed boolean := false;
 BEGIN
   IF p_user_id IS NULL OR p_cycle_id IS NULL OR p_assignment_item_id IS NULL
      OR p_request_id IS NULL OR p_as_of IS NULL THEN
@@ -432,10 +523,12 @@ BEGIN
     'planner-learning-playback:'||p_user_id::text||':'||p_request_id::text,0
   ));
   SELECT * INTO v_existing FROM public.planner_learning_playback_authorizations
-   WHERE user_id=p_user_id AND request_id=p_request_id;
+   WHERE user_id=p_user_id AND request_id=p_request_id
+   ORDER BY evaluation_sequence DESC
+   LIMIT 1;
   v_existing_found := FOUND;
   IF v_existing_found AND v_existing.request_sha256<>v_hash THEN
-    RAISE EXCEPTION 'playback authorization request conflict';
+    RETURN jsonb_build_object('decision','conflict','reason','request_conflict');
   END IF;
 
   -- Always revalidate before returning an idempotent receipt. A prior allowed
@@ -452,30 +545,54 @@ BEGIN
     WHEN 'resource_not_ready' THEN 'resource_not_ready'
     WHEN 'stale_authority' THEN 'stale_authority'
     ELSE 'inaccessible' END;
+  v_authority_hash := CASE WHEN v_decision='allowed'
+    THEN v_authority->>'authority_sha256'
+    ELSE public.mastermind_wave2_jsonb_sha256(jsonb_build_object(
+      'decision',v_decision,'reason',v_reason
+    )) END;
 
-  IF NOT v_existing_found THEN
+  IF v_existing_found
+     AND v_existing.request_sha256=v_hash
+     AND v_existing.decision=v_decision
+     AND v_existing.safe_reason=v_reason
+     AND v_existing.authority_sha256=v_authority_hash THEN
+    v_receipt_id := v_existing.authorization_receipt_id;
+    v_evaluation_sequence := v_existing.evaluation_sequence;
+    v_supersedes_receipt_id := v_existing.supersedes_authorization_receipt_id;
+    v_replayed := true;
+  ELSE
+    IF v_existing_found THEN
+      v_evaluation_sequence := v_existing.evaluation_sequence+1;
+      v_supersedes_receipt_id := v_existing.authorization_receipt_id;
+    END IF;
     v_receipt := jsonb_build_object(
       'authorization_receipt_id',v_receipt_id,'request_id',p_request_id,
-      'decision',v_decision,'reason',v_reason,'evaluated_at',p_as_of
+      'decision',v_decision,'reason',v_reason,'authority_sha256',v_authority_hash,
+      'evaluation_sequence',v_evaluation_sequence,
+      'supersedes_authorization_receipt_id',v_supersedes_receipt_id,
+      'evaluated_at',p_as_of
     );
     INSERT INTO public.planner_learning_playback_authorizations(
       authorization_receipt_id,request_id,request_sha256,user_id,cycle_id,
-      assignment_item_id,decision,safe_reason,authority_sha256,evaluated_at,receipt
+      assignment_item_id,decision,safe_reason,authority_sha256,evaluation_sequence,
+      supersedes_authorization_receipt_id,evaluated_at,receipt
     ) VALUES(
       v_receipt_id,p_request_id,v_hash,p_user_id,p_cycle_id,p_assignment_item_id,
-      v_decision,v_reason,CASE WHEN v_decision='allowed' THEN v_authority->>'authority_sha256' ELSE NULL END,
-      p_as_of,v_receipt
+      v_decision,v_reason,v_authority_hash,v_evaluation_sequence,v_supersedes_receipt_id,p_as_of,v_receipt
     );
-  ELSE
-    v_receipt_id := v_existing.authorization_receipt_id;
   END IF;
 
   IF v_decision<>'allowed' THEN
-    RETURN jsonb_build_object('decision','denied','reason',v_reason);
+    RETURN jsonb_build_object(
+      'decision','denied','reason',v_reason,'replayed',v_replayed,
+      'authorization_receipt_id',v_receipt_id,'authority_sha256',v_authority_hash,
+      'evaluation_sequence',v_evaluation_sequence
+    );
   END IF;
   RETURN jsonb_build_object(
-    'decision','allowed','reason','authorized','replayed',v_existing_found,
-    'authorization_receipt_id',v_receipt_id,
+    'decision','allowed','reason','authorized','replayed',v_replayed,
+    'authorization_receipt_id',v_receipt_id,'authority_sha256',v_authority_hash,
+    'evaluation_sequence',v_evaluation_sequence,
     'assignment_item_id',v_authority->'assignment_item_id',
     'title',v_authority->'title','provider',v_authority->'provider',
     'private_locator',v_authority->'private_locator'
@@ -505,4 +622,4 @@ COMMENT ON TABLE public.planner_learning_playback_authorizations IS
 COMMENT ON FUNCTION public.resolve_my_success_path_learning_slice(uuid) IS
   'Closed member-safe projection for one confirmed current Success Path lesson and canonical Planner action.';
 COMMENT ON FUNCTION public.resolve_assigned_learning_playback(uuid,uuid,uuid,uuid,timestamptz) IS
-  'Service-only, request-idempotent authorization for one current assigned Planner Learning media item.';
+  'Service-only live authorization that replays an exact matching evaluation or appends one superseding receipt.';

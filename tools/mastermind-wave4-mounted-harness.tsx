@@ -60,7 +60,7 @@ async function run() {
   }
   __wave4Mock.enqueue('get-assigned-learning-playback', { data: {
     assignmentItemId: item, title: 'Synthetic Offer Lesson', provider: 'private_media',
-    playbackUrl: 'https://content.dropboxapi.com/wave4-network-blocked-fixture', expiresAt: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
+    playbackUrl: 'https://dl.dropboxusercontent.com/wave4-network-blocked-fixture', expiresAt: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
   }, error: null });
   await click('Watch this lesson');
   await waitFor(() => Boolean(document.querySelector('video')), 'protected player');

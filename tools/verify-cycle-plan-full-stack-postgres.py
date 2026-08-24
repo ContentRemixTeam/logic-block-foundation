@@ -46,6 +46,8 @@ def main() -> None:
     if " 16." not in version:
         raise SystemExit(f"BLOCKED PostgreSQL 16 required, found {version}")
     migrations = sorted(MIGRATIONS.glob("*.sql"))
+    if len(migrations) != 197:
+        raise SystemExit(f"Expected exact 197-migration chronology, found {len(migrations)}")
     if not migrations or migrations[-1] != LATEST_CANDIDATE:
         raise SystemExit("Latest Wave 4 candidate is not the final chronological migration")
     if any(candidate not in migrations for candidate in WAVE_CANDIDATES):

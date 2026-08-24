@@ -31,7 +31,7 @@ async function viewport(html, width) {
     const command=(method,params={})=>new Promise((resolve,reject)=>{const commandId=++id;pending.set(commandId,{resolve,reject});socket.send(JSON.stringify({id:commandId,method,params}));});
     const evaluate=async(expression)=>(await command('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true})).result.value;
     await command('Page.enable');await command('Runtime.enable');await command('Network.enable');
-    await command('Network.setBlockedURLs',{urls:['https://content.dropboxapi.com/*']});
+    await command('Network.setBlockedURLs',{urls:['https://dl.dropboxusercontent.com/*']});
     await command('Emulation.setDeviceMetricsOverride',{width,height:1200,deviceScaleFactor:1,mobile:true});
     await command('Page.navigate',{url:`file://${html}`});
     let status='';for(let attempt=0;attempt<100&&status!=='complete'&&status!=='failed';attempt+=1){await new Promise((resolve)=>setTimeout(resolve,100));status=await evaluate('document.body.dataset.wave4Mounted||""');}
@@ -48,7 +48,15 @@ async function viewport(html, width) {
     assert.deepEqual(result.forbiddenMutationCalls,[],'watching or mounted UI invoked forbidden completion/Vault calls');
     socket.close();
   } finally {
-    if(browser.exitCode===null)browser.kill('SIGTERM');
+    if (browser.exitCode === null) {
+      const exited = new Promise((resolve) => browser.once('exit', resolve));
+      browser.kill('SIGTERM');
+      await Promise.race([exited, new Promise((resolve) => setTimeout(resolve, 2000))]);
+      if (browser.exitCode === null) {
+        browser.kill('SIGKILL');
+        await Promise.race([exited, new Promise((resolve) => setTimeout(resolve, 2000))]);
+      }
+    }
   }
 }
 

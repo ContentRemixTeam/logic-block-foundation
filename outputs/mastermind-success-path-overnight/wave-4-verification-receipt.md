@@ -120,3 +120,106 @@ Parent gates passed:
 One initial repository-wide run reached the final inherited browser gate and lost its inspected Chrome target with an allocator warning. The isolated gate then passed, and a fresh complete `npm run verify` passed in one execution. No flaky pass is substituted for acceptance evidence.
 
 Status after this supersession: **PARENT-VERIFIED PRIVATE SOURCE CANDIDATE — IMMUTABLE INDEPENDENT REVIEW REQUIRED**. No production, editorial, entitlement, publishing, SaaS, or member action occurred.
+
+## Rejected-candidate immutable-review security repair — 2026-08-24
+
+Status: **PARENT-VERIFIABLE PRIVATE SOURCE REPAIR CANDIDATE — NATIVE/MOUNTED PARENT VERIFICATION REQUIRED**
+
+This section supersedes the preceding Wave 4 parent-verification classification for candidate `d2f64f997860e3726c573b9999bc3f4ac06cc380`. Immutable review rejected that candidate. The accepted implementation boundary remains Wave 3 source `396febb31cdb5497ae8016b918edc4939f979fca`; no prior evidence is erased or relabeled as evidence for this repair.
+
+### Exact critical/high repairs
+
+- Migration 197 now preserves append-only evaluation history with a positive `evaluation_sequence`, a self-referencing supersession FK, exact per-request sequence uniqueness, and a latest-evaluation index. The rejected one-row uniqueness is dropped idempotently. The resolver locks the exact user/request, computes live authority on every call, returns a closed conflict for changed payload, replays only an exact request/decision/reason/authority match, and otherwise appends one sequential receipt that supersedes the prior evaluation. Allowed and denied private producer results carry the exact stored receipt ID, authority hash, sequence, decision, and safe reason.
+- Granted capability evidence is included through a private one-way authority digest, so granted-to-granted entitlement evidence rotation produces a new allowed evaluation rather than replaying stale authority. Raw email, entitlement, hold, locator, or URL values are not placed in the receipt table or browser result.
+- The edge boundary treats RPC data as `unknown` and parses exact allowed, denied, and conflict producer schemas on both calls. Unknown/missing/mistyped/null/opposite-state fields, invalid IDs/hashes/sequences/reasons/provider/title/locator, and malformed second results fail closed.
+- Playback now requires authorization before mint and a second live authorization after mint for the same verified user/cycle/item/request. The second allowed producer must match the first receipt ID, authority hash, sequence, item, title, provider, and locator exactly. Revocation, decision transition, authority rotation, mismatch, or outage cannot return the minted URL.
+- Dropbox locators accept only bounded `id:<file-id>` grammar. Playback URLs are parsed with `URL` and require HTTPS, exact host `dl.dropboxusercontent.com`, no credentials, fragment, or unexpected port, a 2,048-character maximum, and no ambiguous whitespace/control characters.
+- Every migration-197 helper/trigger/private function has an exact revoke from `PUBLIC`, `anon`, `authenticated`, and `service_role`. The only grants are authenticated execution of `resolve_my_success_path_learning_slice(uuid)` and service-role execution of `resolve_assigned_learning_playback(uuid,uuid,uuid,uuid,timestamptz)`.
+- The native verifier now launches real simultaneous `psql` processes for exact allowed, exact denied, controlled denied-to-allowed transition, and exact-payload/changed-payload conflict races. It also checks immutable response/row/JSON consistency, one receipt per authority state, no sequence gaps, exact supersession, no UPDATE/DELETE escape, every effective function ACL including a PUBLIC/default-only probe role, direct PUBLIC ACL entries, and a real authenticated cross-owner helper-call denial.
+- Mutation controls now mutate the real RPC producer, post-mint fence, locator grammar, playback-host check, DB item gate, UI receipt readback, and helper PUBLIC revoke. Edge mutations must fail executable Deno tests while validator tokens remain. The helper-revoke mutation must fail both static and native ACL gates.
+
+### Verification on the repaired uncommitted tree
+
+| Gate | Result | Evidence |
+|---|---:|---|
+| `npm run verify:mastermind-wave4-static` | PASS | 114 exact receipt, ACL, producer, fence, allowlist, chronology, concurrency-wiring, UI, and privacy checks |
+| `npm run verify:mastermind-wave4-edge` | PASS | 7/7 executable Deno tests plus focused Deno lint |
+| TypeScript | PASS | `npx tsc --noEmit` exited 0 |
+| Focused lint | PASS | Wave 4 edge, mounted harness, static, and mutation sources exited 0 |
+| Production build | PASS | Vite transformed 5,169 modules; inherited Browserslist-age and chunk-size warnings only |
+| Wave 2 / Wave 3 static | PASS | 132 / 229 checks |
+| Portal / Success Path / production bundle | PASS | All three focused inherited verifiers exited 0 |
+| Replay Vault protected baseline | PASS | 74/74 hashes and byte counts; zero scope additions |
+| Replay Vault protected controls | PASS | Scope, self-exclusion, synthetic mutation/addition, and real untracked-addition controls |
+| Migration chronology source count | PASS | Exactly 197 SQL files; chronology gate now requires the exact count |
+| `git diff --check` | PASS | No whitespace errors after repair receipt/final-message finalization |
+| Secret scan | PASS | No private-key, provider-token, or hardcoded credential-assignment signature in changed implementation source |
+| Absolute-host-path scan | PASS | No `/Users`, `/home`, or Windows user path added to changed implementation source |
+| Executable mutation controls | PARTIAL | DB/UI and all security mutations failed static; producer/fence/locator/host mutations also failed executable edge tests. Native helper-ACL mutation could not bootstrap PostgreSQL in this sandbox, so the aggregate correctly did not pass. |
+| Focused native PostgreSQL 16 | BLOCKED | PostgreSQL 16.14 `initdb` cannot allocate mmap or SysV bootstrap shared memory in this managed sandbox; no repaired database behavior/ACL/concurrency claim is made. |
+| Complete 197 chronology + double-apply | BLOCKED | Same pre-schema PostgreSQL bootstrap restriction; no chronological behavior pass is claimed. |
+| Mounted 320/360/390 | BLOCKED | Background headless Chrome could not establish a DevTools session; the accepted focus-handoff repair remains in source and the mounted harness remains wired to all three widths. |
+| `npm run verify:mastermind-wave4` | BLOCKED | Static passed, then the mandatory focused PostgreSQL child stopped the aggregate. |
+| Full `npm run verify` | BLOCKED | Wave 2 static passed, then the mandatory inherited Wave 2 PostgreSQL child stopped the aggregate. |
+
+Source SHA-256 values before documentation finalization:
+
+- migration 197: `c11c92b3fa0758461e7449046490266cde6201283cf06761733785aaee175d6f`
+- edge boundary: `642071d2c49c860e928fff0cf60e576b529f797f8a2a296a9e5d1ec824407b66`
+- edge regression suite: `7b3d9f86f27cb738e2db7be2f743b7b1d091d3212fa4cbda837c0539207c13b2`
+
+### Exact Git status and untracked inventory
+
+```text
+ M OVERNIGHT-BUILD-TRACKER.md
+ M outputs/mastermind-success-path-overnight/wave-4-verification-receipt.md
+ M package.json
+ M src/integrations/supabase/types.ts
+ M supabase/functions/_shared/assignedLearningPlayback.test.ts
+ M supabase/functions/_shared/assignedLearningPlayback.ts
+ M supabase/functions/get-assigned-learning-playback/index.ts
+ M supabase/migrations/20260822230000_offer_first_assigned_learning_slice.sql
+ M tools/mastermind-wave4-mounted-harness.tsx
+ M tools/verify-cycle-plan-full-stack-postgres.py
+ M tools/verify-mastermind-wave4-mounted.mjs
+ M tools/verify-mastermind-wave4-mutation-control.mjs
+ M tools/verify-mastermind-wave4-postgres.py
+ M tools/verify-mastermind-wave4.mjs
+?? outputs/mastermind-success-path-overnight/wave-4-security-repair-final-message.txt
+?? outputs/mastermind-success-path-overnight/wave-4-security-repair-prompt.md
+```
+
+The prompt file is the preserved user-provided untracked repair brief. The final-message file is the required new repair handoff. No other untracked files remain.
+
+### Parent verification required on the exact tree
+
+1. `npm run verify:mastermind-wave4-postgres`
+2. `npm run verify:mastermind-wave4-chronology`
+3. `npm run verify:mastermind-wave4-mounted`
+4. `npm run verify:mastermind-wave4-mutation-control`
+5. `npm run verify:mastermind-wave4`
+6. `npm run verify`
+7. Replay Vault protected baseline/control, final diff/source scans, and exact status/untracked inventory
+
+No commit, push, deploy, production migration apply, real/member curriculum seed or publication, entitlement mutation, SaaS/GHL/Searchie action, member exposure, or Wave 5 work occurred.
+
+Final classification: **parent-verifiable private source repair candidate**. It is not accepted, production-ready, pilot-ready, member-ready, launch-ready, or editorially ready.
+
+
+## Security-repair parent verification supersession — 2026-08-24
+
+The security-repair writer's environment-blocked items are superseded by parent execution on the exact repaired tree. Parent also hardened mounted-verifier teardown to await Chrome exit before profile cleanup after a serial stress run exposed an `ENOTEMPTY` cleanup race; UI assertions themselves had passed.
+
+Verified on the repaired candidate:
+
+- Wave 4 static: **114** exact checks;
+- native PostgreSQL **16.14**, including sequential/superseding immutable receipt history, denial→allow, allow→deny, changed-authority allow, unchanged replay, append-only enforcement, true simultaneous PostgreSQL processes, payload-conflict races, exhaustive migration-197 effective function ACLs for PUBLIC/default + anon + authenticated + service_role, and authenticated cross-owner helper denial;
+- complete **197-migration** chronology with Wave 1–4 double-apply;
+- edge **7/7** plus Deno lint, including exact producer schemas, pre/post-mint receipt/hash fence, strict Dropbox locator grammar, exact playback-host validation, revocation/rotation/transition/outage during mint, and private browser-schema closure;
+- mounted 320/360/390 px, followed by **five consecutive serial passes** after teardown hardening;
+- executable mutations for producer schema, post-mint fence, locator, playback host, DB/item authority, UI readback, and private-helper ACL relaxation; the ACL relaxation was rejected by both static and native PostgreSQL gates;
+- full `npm run verify` in one execution, including production build and browser verifier 5 scenarios × 2 passes;
+- Replay Vault protected baseline **74/74** and all protected mutation/addition controls;
+- `git diff --check`, secret scan, and absolute-host-path scan.
+
+Status: **PARENT-VERIFIED SECURITY-REPAIR PRIVATE SOURCE CANDIDATE — EXACT IMMUTABLE RE-REVIEW REQUIRED**. No deployment, production migration, real curriculum seed, entitlement/publication change, SaaS mutation, or member exposure occurred.

@@ -7041,11 +7041,13 @@ export type Database = {
           created_at: string
           cycle_id: string
           decision: string
+          evaluation_sequence: number
           evaluated_at: string
           receipt: Json
           request_id: string
           request_sha256: string
           safe_reason: string
+          supersedes_authorization_receipt_id: string | null
           user_id: string
         }
         Insert: {
@@ -7055,11 +7057,13 @@ export type Database = {
           created_at?: string
           cycle_id: string
           decision: string
+          evaluation_sequence?: number
           evaluated_at: string
           receipt: Json
           request_id: string
           request_sha256: string
           safe_reason: string
+          supersedes_authorization_receipt_id?: string | null
           user_id: string
         }
         Update: {
@@ -7069,14 +7073,24 @@ export type Database = {
           created_at?: string
           cycle_id?: string
           decision?: string
+          evaluation_sequence?: number
           evaluated_at?: string
           receipt?: Json
           request_id?: string
           request_sha256?: string
           safe_reason?: string
+          supersedes_authorization_receipt_id?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "planner_learning_playback_authorizations_supersedes_fkey"
+            columns: ["supersedes_authorization_receipt_id"]
+            isOneToOne: false
+            referencedRelation: "planner_learning_playback_authorizations"
+            referencedColumns: ["authorization_receipt_id"]
+          },
+        ]
       }
       success_path_absence_recoveries: {
         Row: {

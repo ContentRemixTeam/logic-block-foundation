@@ -1,9 +1,46 @@
 export const ASSIGNED_LEARNING_MAX_BODY_BYTES = 2_048;
 export const ASSIGNED_LEARNING_TTL_SECONDS = 4 * 60 * 60;
+export const ASSIGNED_LEARNING_MAX_PLAYBACK_URL_BYTES = 2_048;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const SHA256 = /^[0-9a-f]{64}$/;
+const DROPBOX_LOCATOR = /^id:[A-Za-z0-9_-]{16,128}$/;
+const DROPBOX_TEMPORARY_CONTENT_HOSTS = new Set(["dl.dropboxusercontent.com"]);
 const RESPONSE_KEYS = new Set([
-  "assignmentItemId", "title", "provider", "playbackUrl", "expiresAt",
+  "assignmentItemId",
+  "title",
+  "provider",
+  "playbackUrl",
+  "expiresAt",
+]);
+const ALLOWED_PRODUCER_KEYS = new Set([
+  "decision",
+  "reason",
+  "replayed",
+  "authorization_receipt_id",
+  "authority_sha256",
+  "evaluation_sequence",
+  "assignment_item_id",
+  "title",
+  "provider",
+  "private_locator",
+]);
+const DENIED_PRODUCER_KEYS = new Set([
+  "decision",
+  "reason",
+  "replayed",
+  "authorization_receipt_id",
+  "authority_sha256",
+  "evaluation_sequence",
+]);
+const CONFLICT_PRODUCER_KEYS = new Set(["decision", "reason"]);
+const DENIED_REASONS = new Set([
+  "inaccessible",
+  "verification_unavailable",
+  "review_required",
+  "unconfirmed",
+  "resource_not_ready",
+  "stale_authority",
 ]);
 
 export interface AssignedLearningPlaybackRequest {
@@ -12,28 +49,52 @@ export interface AssignedLearningPlaybackRequest {
   requestId: string;
 }
 
-export interface AssignedLearningPlaybackRow {
-  decision: "allowed" | "denied";
-  reason: string;
-  assignment_item_id?: string;
-  title?: string;
-  provider?: string;
-  private_locator?: string;
+export interface AssignedLearningAuthorizationInput {
+  userId: string;
+  cycleId: string;
+  assignmentItemId: string;
+  requestId: string;
+  asOf: string;
 }
+
+interface ReceiptProducer {
+  replayed: boolean;
+  authorization_receipt_id: string;
+  authority_sha256: string;
+  evaluation_sequence: number;
+}
+
+interface AllowedProducer extends ReceiptProducer {
+  decision: "allowed";
+  reason: "authorized";
+  assignment_item_id: string;
+  title: string;
+  provider: "dropbox";
+  private_locator: string;
+}
+
+interface DeniedProducer extends ReceiptProducer {
+  decision: "denied";
+  reason: string;
+}
+
+interface ConflictProducer {
+  decision: "conflict";
+  reason: "request_conflict";
+}
+
+type AuthorizationProducer = AllowedProducer | DeniedProducer | ConflictProducer;
 
 export interface AssignedLearningDependencies {
   allowedOrigins: Set<string>;
   now: () => Date;
   authenticate: (authorization: string) => Promise<{ userId: string } | null>;
-  authorize: (input: {
-    userId: string;
-    cycleId: string;
-    assignmentItemId: string;
-    requestId: string;
-    asOf: string;
-  }) => Promise<AssignedLearningPlaybackRow | null>;
+  authorize: (input: AssignedLearningAuthorizationInput) => Promise<unknown>;
   mintDropboxLink: (locator: string) => Promise<string | null>;
 }
+
+const exactKeys = (record: Record<string, unknown>, expected: Set<string>): boolean =>
+  Object.keys(record).length === expected.size && Object.keys(record).every((key) => expected.has(key));
 
 const baseHeaders = (origin: string | null, allowed: Set<string>): HeadersInit => {
   const headers: Record<string, string> = {
@@ -63,6 +124,9 @@ const inaccessible = (request: Request, allowed: Set<string>) =>
 
 const unavailable = (request: Request, allowed: Set<string>) =>
   json(request, allowed, { error: "Playback is temporarily unavailable. Please try again." }, 503);
+
+const conflict = (request: Request, allowed: Set<string>) =>
+  json(request, allowed, { error: "Conflict" }, 409);
 
 async function boundedBody(request: Request): Promise<unknown> {
   const declared = Number(request.headers.get("Content-Length"));
@@ -112,19 +176,78 @@ function parseRequest(value: unknown): AssignedLearningPlaybackRequest | null {
   return record as unknown as AssignedLearningPlaybackRequest;
 }
 
-function safeTitle(value: string): string | null {
-  const title = value.trim();
-  if (!title || title.length > 160 || [...title].some((character) => {
+function safeTitle(value: unknown): string | null {
+  if (typeof value !== "string" || value !== value.trim()) return null;
+  if (!value || value.length > 160 || [...value].some((character) => {
     const code = character.charCodeAt(0);
     return code <= 31 || code === 127;
   })) return null;
-  if (/(https?:\/\/|file:\/\/|dropbox[_ -]?path|private[_ -]?locator|\/users\/|\/private\/)/i.test(title)) return null;
-  return title;
+  if (/(https?:\/\/|file:\/\/|dropbox[_ -]?path|private[_ -]?locator|\/users\/|\/private\/)/i.test(value)) return null;
+  return value;
+}
+
+function validReceiptProducer(record: Record<string, unknown>): boolean {
+  return typeof record.replayed === "boolean" &&
+    typeof record.authorization_receipt_id === "string" && UUID.test(record.authorization_receipt_id) &&
+    typeof record.authority_sha256 === "string" && SHA256.test(record.authority_sha256) &&
+    typeof record.evaluation_sequence === "number" && Number.isSafeInteger(record.evaluation_sequence) &&
+    record.evaluation_sequence > 0;
+}
+
+export function isValidDropboxLocator(value: unknown): value is string {
+  return typeof value === "string" && DROPBOX_LOCATOR.test(value);
+}
+
+export function isValidDropboxPlaybackUrl(value: unknown): value is string {
+  if (typeof value !== "string" || value.length === 0 || value.length > ASSIGNED_LEARNING_MAX_PLAYBACK_URL_BYTES ||
+    value !== value.trim() || [...value].some((character) => {
+      const code = character.charCodeAt(0);
+      return code <= 31 || code === 127;
+    })) return false;
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return false;
+  }
+  return parsed.protocol === "https:" && DROPBOX_TEMPORARY_CONTENT_HOSTS.has(parsed.hostname) &&
+    parsed.username === "" && parsed.password === "" && parsed.port === "" && parsed.hash === "";
+}
+
+export function parseAssignedLearningAuthorizationProducer(value: unknown): AuthorizationProducer | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  if (record.decision === "conflict") {
+    return exactKeys(record, CONFLICT_PRODUCER_KEYS) && record.reason === "request_conflict"
+      ? record as unknown as ConflictProducer
+      : null;
+  }
+  if (record.decision === "denied") {
+    return exactKeys(record, DENIED_PRODUCER_KEYS) && typeof record.reason === "string" &&
+        DENIED_REASONS.has(record.reason) &&
+        validReceiptProducer(record)
+      ? record as unknown as DeniedProducer
+      : null;
+  }
+  if (record.decision !== "allowed" || !exactKeys(record, ALLOWED_PRODUCER_KEYS) ||
+    record.reason !== "authorized" || !validReceiptProducer(record) ||
+    typeof record.assignment_item_id !== "string" || !UUID.test(record.assignment_item_id) ||
+    record.provider !== "dropbox" || !isValidDropboxLocator(record.private_locator)) return null;
+  const title = safeTitle(record.title);
+  return title === null ? null : { ...record, title } as unknown as AllowedProducer;
+}
+
+function sameAllowedAuthority(first: AllowedProducer, second: AllowedProducer): boolean {
+  return second.authorization_receipt_id === first.authorization_receipt_id &&
+    second.authority_sha256 === first.authority_sha256 &&
+    second.evaluation_sequence === first.evaluation_sequence &&
+    second.assignment_item_id === first.assignment_item_id &&
+    second.title === first.title && second.provider === first.provider &&
+    second.private_locator === first.private_locator;
 }
 
 export function isClosedAssignedLearningPlaybackResponse(body: Record<string, unknown>): boolean {
-  return Object.keys(body).every((key) => RESPONSE_KEYS.has(key)) &&
-    Object.keys(body).length === RESPONSE_KEYS.size;
+  return exactKeys(body, RESPONSE_KEYS);
 }
 
 export function createAssignedLearningPlaybackHandler(deps: AssignedLearningDependencies) {
@@ -134,10 +257,14 @@ export function createAssignedLearningPlaybackHandler(deps: AssignedLearningDepe
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: baseHeaders(origin, deps.allowedOrigins) });
     }
-    if (request.method !== "POST") return json(request, deps.allowedOrigins, { error: "Method not allowed" }, 405);
+    if (request.method !== "POST") {
+      return json(request, deps.allowedOrigins, { error: "Method not allowed" }, 405);
+    }
 
     const authorization = request.headers.get("Authorization");
-    if (!authorization?.startsWith("Bearer ")) return json(request, deps.allowedOrigins, { error: "Unauthorized" }, 401);
+    if (!authorization?.startsWith("Bearer ")) {
+      return json(request, deps.allowedOrigins, { error: "Unauthorized" }, 401);
+    }
 
     let body: AssignedLearningPlaybackRequest | null = null;
     try {
@@ -153,42 +280,57 @@ export function createAssignedLearningPlaybackHandler(deps: AssignedLearningDepe
     } catch {
       return unavailable(request, deps.allowedOrigins);
     }
-    if (!identity || !UUID.test(identity.userId)) return json(request, deps.allowedOrigins, { error: "Unauthorized" }, 401);
+    if (!identity || !UUID.test(identity.userId)) {
+      return json(request, deps.allowedOrigins, { error: "Unauthorized" }, 401);
+    }
 
-    let row: AssignedLearningPlaybackRow | null;
-    try {
-      row = await deps.authorize({
+    const authorize = async (): Promise<AuthorizationProducer | null> => {
+      const raw = await deps.authorize({
         userId: identity.userId,
         cycleId: body.cycleId,
         assignmentItemId: body.assignmentItemId,
         requestId: body.requestId,
         asOf: deps.now().toISOString(),
       });
+      return parseAssignedLearningAuthorizationProducer(raw);
+    };
+
+    let first: AuthorizationProducer | null;
+    try {
+      first = await authorize();
     } catch {
       return unavailable(request, deps.allowedOrigins);
     }
-    if (!row || row.decision !== "allowed" || row.assignment_item_id !== body.assignmentItemId) {
-      return inaccessible(request, deps.allowedOrigins);
-    }
-    const title = typeof row.title === "string" ? safeTitle(row.title) : null;
-    if (!title || row.provider !== "dropbox" || typeof row.private_locator !== "string" || !row.private_locator.trim()) {
-      return unavailable(request, deps.allowedOrigins);
-    }
+    if (!first) return unavailable(request, deps.allowedOrigins);
+    if (first.decision === "conflict") return conflict(request, deps.allowedOrigins);
+    if (first.decision === "denied") return inaccessible(request, deps.allowedOrigins);
+    if (first.assignment_item_id !== body.assignmentItemId) return unavailable(request, deps.allowedOrigins);
 
+    const mintedAt = deps.now();
     let playbackUrl: string | null;
     try {
-      playbackUrl = await deps.mintDropboxLink(row.private_locator);
+      playbackUrl = await deps.mintDropboxLink(first.private_locator);
     } catch {
       playbackUrl = null;
     }
-    if (!playbackUrl || !/^https:\/\/[^\s]+$/i.test(playbackUrl)) return unavailable(request, deps.allowedOrigins);
+    if (!isValidDropboxPlaybackUrl(playbackUrl)) return unavailable(request, deps.allowedOrigins);
+
+    let second: AuthorizationProducer | null;
+    try {
+      second = await authorize();
+    } catch {
+      return unavailable(request, deps.allowedOrigins);
+    }
+    if (!second || second.decision !== "allowed" || !sameAllowedAuthority(first, second)) {
+      return unavailable(request, deps.allowedOrigins);
+    }
 
     const response = {
-      assignmentItemId: row.assignment_item_id,
-      title,
+      assignmentItemId: first.assignment_item_id,
+      title: first.title,
       provider: "private_media",
       playbackUrl,
-      expiresAt: new Date(deps.now().getTime() + ASSIGNED_LEARNING_TTL_SECONDS * 1000).toISOString(),
+      expiresAt: new Date(mintedAt.getTime() + ASSIGNED_LEARNING_TTL_SECONDS * 1000).toISOString(),
     };
     if (!isClosedAssignedLearningPlaybackResponse(response)) return unavailable(request, deps.allowedOrigins);
     return json(request, deps.allowedOrigins, response, 200);

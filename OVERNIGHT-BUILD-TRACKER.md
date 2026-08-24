@@ -244,3 +244,24 @@ Canonical evidence: `outputs/mastermind-success-path-overnight/wave-4-verificati
 ## Wave 4 parent verification and repair — 2026-08-24
 
 Parent closed two verifier false negatives (mounted-root scope and user-specific opaque assignment IDs), normalized native PostgreSQL boolean ACL formatting, and repaired a real background-refresh/player-focus handoff race. The final candidate passed Wave 4 static 79; native PostgreSQL 16.14; complete 197-migration chronology and double-apply; edge 4/4 plus lint; mounted 320/360/390 px with five consecutive stability repetitions; executable DB/edge/UI mutation controls; full `npm run verify` in one execution including production build and browser 5 scenarios × 2 passes; Replay Vault 74/74 plus protected controls; diff, secret, and host-path checks. Immutable independent review is required before Wave 4 acceptance. Production and real curriculum remain untouched.
+
+## Wave 4 immutable-review security repair — 2026-08-24
+
+Status: **PARENT-VERIFIABLE PRIVATE SOURCE REPAIR CANDIDATE — NATIVE PG16/MOUNTED PARENT VERIFICATION REQUIRED**
+
+Immutable review rejected candidate `d2f64f997860e3726c573b9999bc3f4ac06cc380`; the prior parent-verification evidence is historical and does not accept this repaired tree. Accepted Wave 3 source remains `396febb31cdb5497ae8016b918edc4939f979fca`.
+
+The uncommitted repair closes only the six reported critical/high areas: sequential superseding append-only playback evaluations; exact live decision/reason/authority receipt replay; pre/post-Dropbox receipt-and-hash fencing; exact private producer schemas; strict Dropbox locator and playback-host validation; exhaustive migration-197 function ACLs including PUBLIC/default; and true simultaneous PostgreSQL process probes for allowed, denied, controlled-transition, and payload-conflict races. Generated contracts, static/native/edge/mutation verifiers, full chronology wiring, and the mounted Dropbox fixture were updated. The accepted Wave 3 focus-handoff repair remains intact.
+
+Locally passed: Wave 4 static 114; edge 7/7 plus Deno lint; TypeScript; focused lint; production build (5,169 modules); Wave 2/3 static 132/229; portal/Success Path/bundle gates; Replay Vault protected baseline 74/74 and every protected control; exact 197-file source count. Static mutation controls reject every repair relaxation, and executable edge controls reject producer/fence/locator/host relaxations.
+
+Environment blockers are explicit: PostgreSQL 16.14 cannot allocate bootstrap shared memory before schema apply, so focused receipt/ACL/concurrency, full chronology/double-apply, and native helper-ACL mutation evidence are not claimed. Background headless Chrome cannot establish DevTools, so mounted 320/360/390 behavior is not claimed. Wave 4 and repository aggregates stop at their mandatory PostgreSQL children.
+
+Canonical superseding evidence: `outputs/mastermind-success-path-overnight/wave-4-verification-receipt.md`. Final handoff: `outputs/mastermind-success-path-overnight/wave-4-security-repair-final-message.txt`.
+
+No commit, push, deploy, production migration, real/member curriculum seed or publication, entitlement/SaaS/GHL/Searchie mutation, member exposure, or Wave 5 work occurred. Final classification remains **parent-verifiable private source repair candidate**, never accepted/production/pilot/editorially ready.
+
+
+## Wave 4 security-repair parent verification — 2026-08-24
+
+The rejected `d2f64f997860e3726c573b9999bc3f4ac06cc380` findings were repaired: current decisions now bind matching append-only sequential receipts; Dropbox minting is fenced by exact pre/post receipt and authority hash; private producer schemas and Dropbox locator/playback hosts are closed; every migration-197 helper ACL is exhaustively enforced; and true concurrent PostgreSQL receipt probes run. Parent passed static 114, native PG16, full 197 chronology/double-apply, edge 7/7, mounted 320/360/390 with five serial repetitions, static/native behavior mutation controls, full `npm run verify`, browser 5×2, Replay Vault 74/74 controls, and source scans. Exact immutable re-review is required. Production and real curriculum remain untouched.
