@@ -41,8 +41,13 @@ requireCheck(!/mastermind[^\n]{0,80}(task_text|task_description|category|context
 requireCheck(migration.includes("'^guided-action-v1:[0-9a-f]{64}$'"), 'stable action identity contract missing');
 requireCheck(migration.includes("p_cycle_id::text || ':' || p_milestone_key || ':' || p_move_key || ':' || p_action_version::text"), 'logical action identity must derive from cycle, milestone, move, and action version');
 requireCheck(migration.includes('ON CONFLICT (user_id, cycle_id, generation_key)'), 'canonical task create is not concurrency-idempotent');
-requireCheck(!migration.includes('video_completion') || migration.includes("'video_completion'"), 'video completion must only appear in evidence rejection');
-requireCheck(migration.includes("'watch_percentage', 'watch_percent', 'video_completion', 'lesson_completion'"), 'watch/lesson completion rejection missing');
+requireCheck(migration.includes('success_path_evidence_node_is_safe')
+  && migration.includes('p_depth > 6') && migration.includes("jsonb_typeof(p_value)='array'")
+  && migration.includes('taskcompletion') && migration.includes('coursemetadata'),
+  'recursive evidence key/value proxy rejection missing');
+requireCheck(migration.includes('success_path_evidence_supports_advancement')
+  && migration.includes("'business_metric', 'customer_response', 'deliverable', 'decision', 'experiment_result'"),
+  'advancement-eligible evidence classification missing');
 requireCheck(migration.includes("p_outcome NOT IN ('continue','improve','reduce','support')"), 'explicit evaluation outcomes missing');
 requireCheck(migration.includes("p_outcome='reduce'"), 'reduce behavior missing');
 requireCheck(migration.includes("capacity_mode='reduced'"), 'reduce must change capacity mode');
@@ -50,12 +55,26 @@ requireCheck(migration.includes("p_outcome='support'"), 'support behavior missin
 requireCheck(migration.includes("status IN ('open', 'acknowledged', 'resolved')"), 'support lifecycle missing');
 requireCheck(migration.includes("p_transition_kind='milestone_advance'"), 'milestone advancement evidence gate missing');
 requireCheck(migration.includes("p_confirm IS DISTINCT FROM true"), 'false transition confirmation must fail closed');
-requireCheck(migration.includes("p_expected_impact_diff IS DISTINCT FROM v_proposal.impact_diff"), 'exact transition diff comparison missing');
-requireCheck(migration.includes("'impact_order',jsonb_build_array('stage','milestone','assignment','action','history')"), 'ordered adversarial diff boundary missing');
+requireCheck(migration.includes('success_path_canonical_transition_diff')
+  && migration.includes('v_recomputed_diff:=public.success_path_canonical_transition_diff')
+  && migration.includes('p_expected_impact_diff IS DISTINCT FROM v_recomputed_diff'),
+  'confirmation does not rederive and compare exact transition authority');
+requireCheck(migration.includes("'impact_order',jsonb_build_array('transition','path','stage','milestone','learning_authority','action','evidence','history')"), 'ordered complete adversarial diff boundary missing');
+for (const field of [
+  'expected_state_version', 'assignment_item_id', 'catalog_version_key', 'catalog_item_id',
+  'authority_sha256', 'canonical_resource_id', 'media_asset_id', 'transcript_version_id',
+  'playback_attempt_id', 'publication_sha256', 'logical_action_key', 'request_sha256',
+  'canonical_identity_semantics',
+]) requireCheck(migration.includes(`'${field}'`), `transition authority diff missing ${field}`);
 requireCheck(migration.includes("'evidence_preserved',true,'actions_preserved',true,'checkins_preserved',true"), 'transition preservation impact missing');
 requireCheck(!migration.includes('difficult_week'), 'one difficult week must not be an authority or proposal input');
 requireCheck(migration.includes("'stage_preserved',true,'milestone_preserved',true,'overdue_items_created',0"), 'absence recovery preservation receipt missing');
 requireCheck(migration.includes("p_small_action_minutes NOT BETWEEN 5 AND 60"), 'absence recovery small-action bound missing');
+requireCheck((migration.match(/success_path_retire_canonical_action\(/g) || []).length >= 5,
+  'reduce/transition/recovery do not all retire prior canonical generation safely');
+requireCheck(migration.includes('success_path_one_active_canonical_task_idx')
+  && migration.includes("system_source = 'guided_action_v1'") && migration.includes('generation_active'),
+  'database active canonical task uniqueness gate missing');
 
 for (const rpc of [
   'create_success_path_recommendation', 'resolve_my_success_path', 'confirm_my_success_path',
@@ -87,14 +106,59 @@ requireCheck(migration.includes('last_planner_receipt_id'), 'current Planner rec
 requireCheck(migration.includes("REVOKE ALL ON FUNCTION public.update_success_path_support")
   && migration.includes('TO service_role;'), 'support operation is not narrow service-role-only');
 requireCheck(migration.includes('success_path_forbid_history_mutation'), 'append-only history guard missing');
-for (const privilege of ['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER']) {
+requireCheck(migration.includes("REVOKE ALL ON TABLE public.%I FROM PUBLIC, anon, authenticated, service_role"),
+  'Wave 3 table ACL loop does not revoke service_role');
+requireCheck(!migration.includes("REVOKE ALL ON TABLE public.%I FROM PUBLIC, anon, authenticated',v_table"),
+  'defective service_role table bypass pattern returned');
+for (const privilege of ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER']) {
   requireCheck(postgres.includes(`"${privilege}"`), `native final ACL verifier missing ${privilege}`);
 }
+for (const role of ['anon', 'authenticated', 'service_role']) {
+  requireCheck(postgres.includes(`"${role}"`), `native effective ACL matrix missing ${role}`);
+}
+requireCheck(postgres.includes("grantee='PUBLIC'"), 'native ACL matrix missing PUBLIC grants oracle');
+requireCheck(postgres.includes('service_statements') && postgres.includes('forged-service-append'),
+  'native service_role forged append/delete/truncate proof missing');
+
+const functionBody = (name) => {
+  const start = migration.indexOf(`CREATE OR REPLACE FUNCTION public.${name}`);
+  return migration.slice(start, migration.indexOf('\n$$;', start) + 4);
+};
+const previewBody = functionBody('preview_my_success_path_transition');
+const firstPreviewLookup = previewBody.indexOf('SELECT * INTO v_existing FROM public.success_path_focus_proposals');
+const previewLock = previewBody.indexOf('pg_advisory_xact_lock', firstPreviewLookup);
+const previewRecheck = previewBody.indexOf('SELECT * INTO v_existing FROM public.success_path_focus_proposals', previewLock);
+requireCheck(firstPreviewLookup >= 0 && previewLock > firstPreviewLookup && previewRecheck > previewLock,
+  'preview request receipt does not follow check-lock-recheck ordering');
+for (const functionName of ['submit_my_success_path_evidence', 'recover_my_success_path_after_absence']) {
+  const body = functionBody(functionName);
+  const first = body.indexOf('SELECT * INTO v_existing');
+  const lock = body.indexOf('pg_advisory_xact_lock', first);
+  const recheck = body.indexOf('SELECT * INTO v_existing', lock);
+  requireCheck(first >= 0 && lock > first && recheck > lock,
+    `${functionName} does not follow check-lock-recheck ordering`);
+}
+const checkinBody = functionBody('evaluate_my_success_path_week');
+requireCheck(checkinBody.includes("'success-path-request:'") && checkinBody.includes("'success-path-checkin:'")
+  && checkinBody.indexOf("'success-path-request:'") < checkinBody.indexOf("'success-path-checkin:'"),
+  'check-in request/period advisory locks are absent or nondeterministic');
+requireCheck(checkinBody.includes('WHERE user_id=v_user_id AND cycle_id=p_cycle_id AND period_key=p_period_key'),
+  'check-in does not recheck authoritative period receipt');
+const supportBody = functionBody('update_success_path_support');
+requireCheck(supportBody.includes('user_id=v_support.user_id AND support_request_id=p_support_request_id AND request_id=p_request_id'),
+  'support request replay lookup is not scoped to owner/support/request identity');
+requireCheck(!/success_path_support_events WHERE request_id=p_request_id/.test(supportBody),
+  'defective global support request-id lookup returned');
 
 const privacySentinels = [
-  'stage', 'milestone', 'action', 'evidence', 'support', 'count', 'title', 'placement',
-  'media_asset_id', 'transcript_version_id', 'private_locator', 'vault_resource_id',
-  'planner_receipt_id', 'assignment_id', 'catalog_content_sha256',
+  'recommendation_reason', 'recommendation_evidence_sha256', 'recommended_stage', 'confirmed_stage',
+  'milestone', 'action_id', 'action_text', 'logical_action_key', 'task_id', 'evidence_receipt_id',
+  'evidence_type', 'structured_value', 'member_note', 'support_request_id', 'operator_notes',
+  'actor_reference', 'actor_identity', 'actor_role', 'internal_reason', 'count', 'title', 'placement',
+  'label', 'discovery', 'search_metadata', 'canonical_resource_id', 'media_asset_id',
+  'transcript_version_id', 'playback_attempt_id', 'publication_sha256', 'private_locator',
+  'provider_asset_id', 'source_native_id', 'vault_resource_id', 'planner_receipt_id',
+  'assignment_id', 'assignment_item_id', 'catalog_version_id', 'catalog_content_sha256',
 ];
 for (const sentinel of privacySentinels) {
   requireCheck(postgres.includes(`"${sentinel}"`), `native serialized-denial verifier missing ${sentinel}`);
@@ -109,11 +173,66 @@ const hasExecutableMutation = (source) => source.includes('executable_privacy_mu
   && source.includes('CREATE OR REPLACE FUNCTION public.resolve_my_success_path')
   && executableMutationBinding.test(source)
   && source.includes('mutation_control.get("reason") != "executable_privacy_mutation_control"')
+  && source.includes("'recommendation_reason','PRIVATE-RECOMMENDATION-REASON'")
+  && source.includes("'canonical_resource_id'")
+  && source.includes("'publication_sha256'")
   && source.includes('rollback restoration')
   && !/mutation_control\s*\[\s*["']action_id["']\s*\]\s*=/.test(source);
 requireCheck(hasExecutableMutation(postgres), 'native privacy mutation must execute the database-mutated resolver');
 const legacyRegression = `${postgres}\nmutation_control["action_id"] = "leak"`;
 requireCheck(!hasExecutableMutation(legacyRegression), 'static anti-regression failed to reject local-dictionary mutation');
+
+const timelineMutationBinding = /timeline_mutation_lines\s*=\s*run\([\s\S]*timeline_mutation_sql[\s\S]*json\.loads\(timeline_mutation_lines\[-1\]\)/;
+const hasTimelineMutation = (source) => source.includes('CREATE OR REPLACE FUNCTION public.resolve_my_success_path_timeline')
+  && source.includes("'actor_reference','PRIVATE-ACTOR-REFERENCE'")
+  && source.includes("'internal_actor_metadata'")
+  && timelineMutationBinding.test(source)
+  && source.includes('assert_timeline_private_free("executable timeline mutation", timeline_mutation')
+  && source.includes('timeline rollback restoration')
+  && !/timeline_mutation\s*\[\s*["']actor_reference["']\s*\]\s*=/.test(source);
+requireCheck(hasTimelineMutation(postgres), 'timeline privacy mutation must execute the database-mutated resolver response');
+requireCheck(!hasTimelineMutation(`${postgres}\ntimeline_mutation["actor_reference"] = "leak"`),
+  'timeline static anti-regression failed to reject local-object mutation');
+
+for (const proof of [
+  'concurrent transition preview retry', 'concurrent evidence retry', 'distinct-request same-period',
+  'concurrent absence recovery retry', '"action text":', 'same-milestone/item',
+  'backward frozen assignment item', 'active incomplete canonical tasks', '"confirmed stage":',
+  '"evidence pointer":', '"support pointer":', 'PRIVATE-RECOMMENDATION-REASON',
+  'PRIVATE-ACTOR-REFERENCE', 'pg_proc signature drift', 'information_schema nullability drift',
+]) requireCheck(postgres.includes(proof), `native critical proof missing: ${proof}`);
+
+const extractNamedBlock = (source, marker, nextMarker) => {
+  const start = source.indexOf(marker);
+  const end = source.indexOf(nextMarker, start);
+  return source.slice(start, end);
+};
+const expectedTypeArgs = {
+  confirm_my_success_path_transition: ['p_confirm', 'p_confirmation_request_id', 'p_expected_impact_diff', 'p_expected_impact_diff_sha256', 'p_proposal_id'],
+  evaluate_my_success_path_week: ['p_action_id', 'p_cycle_id', 'p_evidence_receipt_id', 'p_expected_path_version', 'p_outcome', 'p_period_key', 'p_reduced_action_minutes', 'p_reduced_action_text', 'p_request_id'],
+  preview_my_success_path_transition: ['p_cycle_id', 'p_evidence_receipt_id', 'p_expected_path_version', 'p_proposed_action_minutes', 'p_proposed_action_text', 'p_proposed_assignment_id', 'p_proposed_assignment_item_id', 'p_proposed_milestone_key', 'p_proposed_milestone_title', 'p_proposed_move_key', 'p_proposed_stage', 'p_reason_code', 'p_request_id', 'p_transition_kind'],
+  submit_my_success_path_evidence: ['p_action_id', 'p_cycle_id', 'p_evidence_type', 'p_expected_path_version', 'p_member_note', 'p_observed_at', 'p_reference_label', 'p_request_id', 'p_structured_value'],
+};
+for (const [name, args] of Object.entries(expectedTypeArgs)) {
+  const block = extractNamedBlock(types, `      ${name}: {`, '\n      }\n');
+  const argsStart = block.indexOf('Args: {');
+  const argsEnd = block.indexOf('\n        }', argsStart);
+  const actual = [...block.slice(argsStart, argsEnd).matchAll(/^\s+(p_[a-z0-9_]+)(?:\?)?:/gm)].map((match) => match[1]).sort();
+  requireCheck(JSON.stringify(actual) === JSON.stringify([...args].sort()),
+    `generated TypeScript Args drift for ${name}: ${actual.join(',')}`);
+}
+for (const [table, exactFields] of Object.entries({
+  success_path_cycle_states: ['active_assignment_item_id: string | null', 'assignment_id: string', 'catalog_content_sha256: string', 'confirmed_stage: string | null'],
+  success_path_evidence_receipts: ['member_note: string | null', 'structured_value: Json'],
+  success_path_focus_proposals: ['evidence_receipt_id: string | null', 'impact_diff: Json'],
+})) {
+  const block = extractNamedBlock(types, `      ${table}: {`, '\n      }\n');
+  for (const field of exactFields) requireCheck(block.includes(field),
+    `generated TypeScript nullability/type drift for ${table}.${field}`);
+}
+requireCheck(postgres.includes('expected_signatures') && postgres.includes('nullable_contract')
+  && postgres.includes('relationship_count'),
+  'manual TypeScript surface lacks database signature/nullability/relationship drift oracle');
 
 requireCheck(pkg.scripts['verify:mastermind-wave3-static'] === 'node tools/verify-mastermind-wave3.mjs', 'Wave 3 static script wiring mismatch');
 requireCheck(pkg.scripts['verify:mastermind-wave3-postgres'] === 'python3 tools/verify-mastermind-wave3-postgres.py', 'Wave 3 PG script wiring mismatch');

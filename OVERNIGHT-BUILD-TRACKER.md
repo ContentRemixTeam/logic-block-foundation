@@ -202,3 +202,17 @@ No commit, push, deploy, production migration, real curriculum/member seed, SaaS
 
 Parent passed Wave 3 static 138, native PostgreSQL 16.14 behavior/RLS/ACL/concurrency/privacy, complete 196-migration chronological replay with Wave candidates applied twice, TypeScript/focused lint/build/full repository verification, Replay Vault 74/74 and mutation controls, and diff check. One verifier-only task fixture was corrected from nonexistent `tasks.completed_at` to canonical `is_completed`. Immutable review is required before acceptance.
 
+## Wave 3 critical repair — 2026-08-23
+
+Status: **SOURCE REPAIRED — NATIVE PG16/PARENT ACCEPTANCE REQUIRED — PRODUCTION BLOCKED**
+
+Immutable review rejected checkpoint `fa37a180fa2365bbdf8c37a86ac9c8fd2b116749`. The uncommitted repair closes the confirmed service-role direct-table bypass, request/period concurrency races, stored-proposal trust, incomplete transition authority diff, nested watch/task evidence proxies, duplicate active canonical task generation, resolver semantic serialization gaps, privacy-oracle omissions, and verifier false-greens.
+
+Locally verified: Wave 3 static 222, Wave 2 static 132, migration/client static checks, TypeScript, focused lint, production build, Replay Vault protected baseline 74/74 plus all protected mutation controls, and diff checks. Native Wave 3 PG16 and complete chronological PG16 remain blocked before schema apply because this managed sandbox cannot allocate PostgreSQL bootstrap shared memory. Full `npm run verify` stops at the mandatory Wave 2 PG16 child. The standalone Replay Vault aggregate also hit its existing unsettled top-level-await harness warning; its protected 74/74 gate and mutation controls pass independently.
+
+No native database behavior/ACL/concurrency/apply-twice claim is made for this repair until parent rerun. No commit, push, deploy, production migration, real/member seed, SaaS mutation, publishing, access change, member exposure, or Wave 4 work occurred.
+
+## Wave 3 critical-repair parent verification — 2026-08-23
+
+All 15 immutable-review findings were repaired. Parent passed static 222, native PostgreSQL 16.14 all-role ACL/concurrency/evidence/task/transition/malformed-state/privacy/type-contract suites, full 196-migration replay with candidate double-apply, TypeScript/lint/build/full repository verification, Replay Vault 74/74 and mutation controls, and diff check. Immutable re-review required.
+

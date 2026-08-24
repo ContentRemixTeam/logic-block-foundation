@@ -1,0 +1,6 @@
+Wave 3 critical repair is implemented and parent-verified on the exact uncommitted tree.
+
+PASS: all 15 immutable-review findings repaired, including service-role lockdown, concurrent replay correctness, complete live-recomputed transition authority, recursive business-evidence validation, one active neutral Planner action with undeleted history, semantic malformed-state denial, complete response/timeline privacy, and adversarial verifier controls.
+PASS: static 222, native PostgreSQL 16.14, full 196-migration replay, TypeScript, lint, build, full repository verification, Replay Vault 74/74 and controls, and diff check.
+PENDING: immutable independent re-review.
+Production remains blocked and untouched; Wave 4 not started.

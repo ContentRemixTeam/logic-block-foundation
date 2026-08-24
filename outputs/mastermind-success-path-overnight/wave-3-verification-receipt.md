@@ -1,97 +1,85 @@
-# Wave 3 Verification Receipt
+# Wave 3 Critical Repair Verification Receipt
 
 Date: 2026-08-23
-Status: **PARENT-VERIFIED LOCAL CANDIDATE — IMMUTABLE REVIEW PENDING; PRODUCTION BLOCKED**
-Accepted Wave 2 checkpoint: `25811fdcd2ef74d8425843024575bc845a6e65ea`
-Documentation-lock base HEAD: `eb53a68adc39f6fbef4de56d83420c159bfe56a2`
+Status: **REPAIRED PARENT-VERIFIED LOCAL CANDIDATE — IMMUTABLE RE-REVIEW PENDING; PRODUCTION BLOCKED**
+Accepted Wave 2 source: `25811fdcd2ef74d8425843024575bc845a6e65ea`
+Rejected Wave 3 checkpoint: `fa37a180fa2365bbdf8c37a86ac9c8fd2b116749`
 
-## Implemented contract
+## Repair implemented
 
-- One protected `user_id + cycle_id` Success Path snapshot binds the exact completed/current Planner request ledger + receipt and exact frozen Wave 2 assignment/catalog authority.
-- Recommendation and member confirmation are separate. A null confirmation remains structurally null and serializes as `unconfirmed`.
-- One protected immutable action ledger links each stable cycle + milestone + move + action-version identity to one neutral canonical `tasks` row. It stores no parallel completion state and never rewrites member-modified, completed, or retired task history.
-- Private business-evidence receipts bind exact path, milestone, action, task, Planner receipt, assignment item, assignment/catalog version, request ID, and canonical request hash. Watching and lesson completion are rejected as evidence.
-- One period-keyed transactional evaluation boundary supports `continue`, `improve`, `reduce`, and `support`. Reduce changes action size/capacity only; support creates an explicit lifecycle receipt; neither silently changes stage or milestone.
-- Focus/milestone changes require a server-derived ordered impact diff and exact true confirmation. Milestone advancement requires observable business evidence. History-preservation flags are part of the reviewed diff.
-- Absence recovery preserves result/stage/milestone, creates one small current action, reports zero overdue items, and is request-idempotent.
-- Support request/acknowledgement/resolution and the member-safe Success Path timeline are protected and append-only. Member projection omits private operator reasons.
-- All protected tables deny ordinary direct access. Member RPCs derive `auth.uid()` and revalidate capability, cycle ownership, current Planner receipt, and frozen assignment authority. Service operations are limited to recommendation creation and support lifecycle updates.
+- Every Wave 3 private/authority/append-only table now revokes all direct table privileges from `PUBLIC`, `anon`, `authenticated`, and `service_role`. `service_role` retains Wave 3 execution only for recommendation creation and support lifecycle updates; browser/member RPCs are explicitly denied to it.
+- Request and period transitions use check → deterministic advisory transaction lock(s) → recheck semantics. Preview, evidence, check-ins, confirmation, recovery, recommendation, and support operations have native same-request/cross-request concurrency or conflict assertions.
+- The transition diff is server-derived as `success-path-transition-diff-jsonb-v2` and binds transition kind, expected state version, old/new stage and milestone, assignment/item/catalog authority, frozen publication/media authority, action identity/text/size, evidence receipt/hash/type, and history/retirement semantics. Confirmation re-reads live state, frozen assignment/item, evidence, and proposal rows and recomputes the diff/hash before activation.
+- `milestone_advance` requires eligible observable business evidence plus a different later ordinal in the same frozen assignment. Same-item/same-milestone and backward items fail closed. Focus-change reroutes are explicit in the reviewed diff.
+- Structured evidence is recursively bounded and rejects forbidden watch/video/lesson/progress/percentage/task/checkmark/playback/transcript/course concepts in keys or values at any supported depth, including arrays and normalized capitalization/spacing variants. Only explicit observable evidence types can advance a milestone; capacity/context receipts cannot.
+- Reduce, confirmed transition, and absence recovery retire only the previous task's `generation_active` flag. Task rows remain undeleted and retain exact member text/completion. A partial unique index prevents two active incomplete neutral `guided_action_v1` tasks per owner/cycle.
+- The resolver revalidates recommendation and active item snapshots, assignment/catalog validity, action/task identity and version, state-changing receipts, evidence/check-in/support pointer coherence, and current task generation state before serialization. Malformed states return a metadata-free stale envelope.
+- Denial and timeline privacy oracles now recursively cover Wave 3 and Wave 2 private/authority fields. Executable database function mutations inject recommendation, publication/media, actor-reference, and operator metadata; the real RPC response must fail the oracle, then rollback restoration must pass. Static controls reject local-object substitutions.
+- Native contract tests query `pg_proc`, `information_schema.columns`, and validated foreign keys to detect database signature, nullability, and relationship drift against the manually maintained TypeScript surface.
 
-## Files changed
+## Files changed by this repair
 
 - `supabase/migrations/20260822220000_success_path_execution_ledger.sql`
-- `src/integrations/supabase/types.ts`
-- `tools/verify-mastermind-wave3.mjs`
 - `tools/verify-mastermind-wave3-postgres.py`
-- `tools/verify-cycle-plan-full-stack-postgres.py`
-- `tools/verify-cycle-plan-migration-static.mjs`
-- `package.json`
+- `tools/verify-mastermind-wave3.mjs`
 - `OVERNIGHT-BUILD-TRACKER.md`
 - `outputs/mastermind-success-path-overnight/wave-3-verification-receipt.md`
+- `outputs/mastermind-success-path-overnight/wave-3-final-message.txt`
 
-The untracked user-supplied `outputs/mastermind-success-path-overnight/wave-3-codex-prompt.md` was preserved and was not treated as implementation output.
+The user-supplied untracked `outputs/mastermind-success-path-overnight/wave-3-critical-repair-prompt.md` was preserved and not treated as implementation output. Replay Vault protected scope was not edited.
 
-## Executed verification
+## VERIFIED in this sandbox
 
-- `npm run verify:mastermind-wave3-static` — exit `0`; 138 schema/type/privacy/test-wiring checks passed.
-- `npm run verify:mastermind-wave2-static` — exit `0`; 132 accepted Wave 2 checks passed after aggregate wiring retained the Wave 2 gate.
-- `npm run verify:cycle-plan-migration-static` — exit `0`; additive Wave 1→Wave 3 chronology and inherited reconciliation protections passed.
-- `npm run verify:cycle-plan-reconciliation` — exit `0`; all focused Planner client persistence, receipt, CAS, identity, load-state, and preservation checks passed.
-- `npx tsc --noEmit` — exit `0` after generated contract changes.
+- `npm run verify:mastermind-wave3-static` — exit `0`; **222** bound schema/security/privacy/concurrency/type-contract checks.
+- `npm run verify:mastermind-wave2-static` — exit `0`; **132** accepted Wave 2 checks.
+- `npm run verify:cycle-plan-migration-static` — exit `0`.
+- `npm run verify:cycle-plan-reconciliation` — exit `0`.
+- `npx tsc --noEmit` — exit `0`.
 - `npx eslint tools/verify-mastermind-wave3.mjs src/integrations/supabase/types.ts` — exit `0`.
-- `python3 -m py_compile tools/verify-mastermind-wave3-postgres.py tools/verify-cycle-plan-full-stack-postgres.py` — exit `0`; generated `__pycache__` was removed afterward.
-- `npm run build` — exit `0`; 5,165 modules transformed. Existing Browserslist age and chunk-size warnings remain non-failing.
-- `npm run verify:replay-vault-protected-baseline` — exit `0`; 74/74 protected hashes and byte counts match, with zero protected-scope additions.
-- `npm run verify:replay-vault-protected-baseline-control` — exit `0`; unchanged scope, self-exclusion, synthetic mutation/addition, real untracked addition discovery, and cleanup controls passed.
+- Python verifier compile check — exit `0`; generated cache removed.
+- `npm run build` — exit `0`; 5,165 modules transformed. Existing Browserslist-age and chunk-size warnings remain non-failing.
+- `npm run verify:replay-vault-protected-baseline` — exit `0`; **74/74** hashes and byte counts match, zero protected additions.
+- `npm run verify:replay-vault-protected-baseline-control` — exit `0`; unchanged scope, self-exclusion, synthetic mutation/addition, real untracked-addition discovery, and cleanup controls passed.
 - `git diff --check` — exit `0` before receipt finalization.
-- Secret scan across all Wave 3-owned source/artifact files — exit `0`; no private keys, live keys, or service-role values found.
-- Host absolute-path scan across all Wave 3-owned source/artifact files — exit `0`; no host-home references found. The migration's two file-URI matches are intentional unsafe-locator rejection patterns, not stored paths.
 
-Wave 3 migration SHA-256: `d91489572b9c5c48ad88a3b5ea0967b0bf732081c42ce2b19ef9fa76dc02ab46`.
+Migration SHA-256 before receipt finalization: `d8fd62ee38ce161bc7c316bbbbf9967a7941bdce68c4bdb7b8e3fc39bf0abf19`.
 
-## PostgreSQL and aggregate blockers
+## BLOCKED / not claimed
 
-- `npm run verify:mastermind-wave3-postgres` — exit `1` before migration apply. PostgreSQL 16 `initdb` could allocate neither mmap nor SysV bootstrap shared memory in this managed sandbox. No Wave 3 database behavior pass is claimed.
-- `npm run verify:cycle-plan-full-stack-postgres` — exit `1` before chronological replay for the same bootstrap restriction. No 196-migration replay or apply-twice pass is claimed.
-- `npm run verify:mastermind-wave3` — exit `1`; Wave 3 static passed, then the mandatory native PG16 child hit the bootstrap blocker.
-- `npm run verify` — exit `1`; repository aggregate passed the retained Wave 2 static child, then stopped at the mandatory Wave 2 PostgreSQL bootstrap gate before reaching Wave 3 or later children. Wave 3 remains wired immediately after Wave 2 and was run independently above.
+- `npm run verify:mastermind-wave3-postgres` — blocked before schema apply because PostgreSQL 16 `initdb` could allocate neither mmap nor SysV bootstrap shared memory in this managed sandbox. No native behavior/ACL/concurrency result is claimed.
+- `npm run verify:cycle-plan-full-stack-postgres` — blocked before chronological replay by the same PostgreSQL bootstrap restriction. No 196-migration replay or candidate double-apply result is claimed.
+- `npm run verify:mastermind-wave3` — Wave 3 static passed, then its mandatory PG16 child hit the bootstrap blocker.
+- `npm run verify` — Wave 2 static passed, then the mandatory Wave 2 PG16 child hit the bootstrap blocker; the complete aggregate did not finish.
+- Standalone `npm run verify:replay-vault` — exited at the existing `verify-replay-vault-ux.mjs` unsettled top-level-await harness warning. The protected Replay Vault 74/74 baseline and all its mutation controls were run separately and passed.
 
-## Native cases authored for parent execution
+## Native PG16 cases authored for parent execution
 
-The focused PG16 verifier applies exact focused Wave 1/Wave 2 predecessors, applies Wave 3 twice, and exercises:
-
-- nonmember, expired, verification-unavailable, review-required, and cross-owner personas;
-- explicit null/unconfirmed recommendation state;
-- an executable database resolver-leak mutation and rollback restoration;
-- exact current Planner receipt, frozen assignment, and malformed-state fail-closed envelopes;
-- concurrent canonical action confirmation with one action/task identity;
-- member-modified/completed/retired task preservation;
-- evidence exact replay, changed-payload conflict, unsafe locator/secret rejection, and watch-completion rejection;
-- concurrent same-period check-ins, Reduce semantics, Support open/acknowledged/resolved lifecycle, and no silent reroute;
-- milestone-advancement evidence gating plus false, incomplete, reordered, false-hash, and false-confirmation transition adversaries;
-- absence recovery exact replay, one small action, zero overdue items, and retained history;
-- member/cross-owner timeline privacy and absence of private operator reasons;
-- final effective `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `REFERENCES`, `TRIGGER`, direct timeline `SELECT`, and function ACL denial;
-- ordinary Planner task neutrality and one-to-one action/task counts.
-
-The complete chronological runner now requires the Wave 3 migration to be the final checked-in migration, replays all migrations through Wave 3 in filename order, reapplies Wave 1/Wave 2/Wave 3 candidates, runs inherited Wave 1 behavior, and extends final private-ledger ACL probes to every Wave 3 table.
+- final effective `SELECT/INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER` denial for all Wave 3 tables across `PUBLIC`, `anon`, `authenticated`, and `service_role`;
+- denied service-role direct select, forged append, delete, and truncate, followed by successful narrow recommendation/support RPC replays;
+- concurrent exact preview/evidence/recovery convergence, evidence changed-payload conflict, and distinct-request same-period check-in convergence;
+- cross-owner support request-ID collision without false replay/conflict;
+- recursive nested evidence proxy rejection plus valid business evidence and advancement-ineligible context evidence;
+- proposal action/item/catalog mutation and stale-path confirmation failures;
+- exact complete/reordered/false transition diff adversaries and a real later frozen-item advancement;
+- reduce/transition/recovery preservation of exact member text/completion, `deleted_at IS NULL`, prior inactivity, and exactly one active incomplete current task;
+- malformed stage, milestone, action, assignment item, evidence pointer, support pointer, assignment version, Planner receipt, frozen authority, and action version returning empty metadata-free envelopes;
+- executable resolver and timeline mutation/rollback privacy controls for recommendation reason, Wave 2 publication/media authority, actor reference, internal actor role, and operator notes;
+- exact `pg_proc` RPC signatures, `information_schema` nullability, and validated relationship checks.
 
 ## Production status
 
-- No commit, push, deploy, production migration apply/link, real curriculum/member seed, SaaS/GHL/Searchie mutation, publishing, entitlement/access change, member exposure, or Wave 4 work occurred.
-- Replay Vault protected source remains byte-identical at 74/74 with zero additions.
-- Production status: **BLOCKED / NOT DEPLOYED**. Parent must execute both PostgreSQL 16 gates and the complete repository aggregate on an unrestricted host, then perform immutable review before any release decision.
+No commit, push, deploy, production migration apply/link, real curriculum/member seed, SaaS/GHL/Searchie mutation, publishing, entitlement/access change, member exposure, or Wave 4 work occurred.
 
-## Parent verification — 2026-08-23
+Production status: **BLOCKED / NOT DEPLOYED**. Parent must rerun native Wave 3 PG16, complete chronological PG16 with candidate double-apply, and the full repository aggregate on an unrestricted host, then obtain immutable acceptance review.
 
-The exact Wave 3 tree passed:
+## Parent critical-repair verification — 2026-08-23
 
-- Wave 3 static/type/privacy verifier: 138 checks.
-- Native PostgreSQL 16.14 behavior/RLS/ACL/concurrency/privacy suite after correcting one verifier-only fixture to use canonical `tasks.is_completed` (the repository has no `tasks.completed_at`).
-- Complete chronological PostgreSQL 16.14 stack through Wave 3: 196 migrations; Wave 1/Wave 2/Wave 3 candidate double-apply; inherited helper and Wave 1 behavior/ACL probes.
-- TypeScript, focused ESLint (Python file correctly reported outside ESLint config), production build, and complete `npm run verify`.
-- Replay Vault protected baseline 74/74 with zero additions and all synthetic/real mutation controls.
-- `git diff --check`.
+Parent corrected two migration execution defects exposed by native PostgreSQL (`public.digest` qualification under hardened search paths and object cardinality via `jsonb_object_keys`) and reran the exact repaired tree. PASS:
 
-No production migration, push, deploy, real curriculum/member seed, entitlement change, SaaS mutation, publishing, member exposure, or Wave 4 work occurred.
+- Wave 3 static/type/privacy: 222 checks.
+- Native PostgreSQL 16.14: all-role ACL lockdown; concurrent request/period convergence; recursive evidence validation; neutral task retirement with undeleted member history; real later-item advancement; recomputed transition diff mutation rejection; malformed-state fail-closed behavior; timeline/operator privacy; executable mutation controls; pg_proc/information_schema/relationship parity.
+- Complete 196-migration chronological PostgreSQL 16.14 replay; Wave 1/2/3 candidates applied twice.
+- TypeScript, focused ESLint, production build, complete `npm run verify`, Replay Vault 74/74 and all mutation controls, and `git diff --check`.
+
+No production migration, push, deployment, real/member seed, entitlement/SaaS mutation, publishing, member exposure, or Wave 4 work occurred.
 

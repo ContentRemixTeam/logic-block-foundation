@@ -110,6 +110,13 @@ CREATE TABLE IF NOT EXISTS public.success_path_actions (
     REFERENCES public.tasks(user_id, cycle_id, task_id) ON DELETE RESTRICT
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS success_path_one_active_canonical_task_idx
+  ON public.tasks(user_id, cycle_id)
+  WHERE system_source = 'guided_action_v1'
+    AND generation_active
+    AND NOT coalesce(is_completed, false)
+    AND deleted_at IS NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -456,15 +463,58 @@ RETURNS boolean LANGUAGE sql IMMUTABLE SET search_path = pg_catalog AS $$
   )
 $$;
 
+CREATE OR REPLACE FUNCTION public.success_path_evidence_node_is_safe(p_value jsonb, p_depth integer)
+RETURNS boolean LANGUAGE plpgsql IMMUTABLE SET search_path = pg_catalog AS $$
+DECLARE
+  v_key text;
+  v_child jsonb;
+  v_normalized text;
+BEGIN
+  IF p_value IS NULL OR p_depth > 6 THEN RETURN false; END IF;
+  IF jsonb_typeof(p_value)='object' THEN
+    IF (SELECT count(*) FROM jsonb_object_keys(p_value))>20 THEN RETURN false; END IF;
+    FOR v_key,v_child IN SELECT key,value FROM jsonb_each(p_value) LOOP
+      v_normalized:=regexp_replace(lower(v_key),'[^a-z0-9]+','','g');
+      IF v_normalized ~ '(watch|video|lesson|progress|percentage|percent|taskcompletion|taskcompleted|checkmark|playback|transcript|coursemetadata|course)'
+         OR v_normalized ~ '(password|apikey|secret|token|url|locator|path)'
+         OR NOT public.success_path_evidence_node_is_safe(v_child,p_depth+1) THEN RETURN false; END IF;
+    END LOOP;
+  ELSIF jsonb_typeof(p_value)='array' THEN
+    IF jsonb_array_length(p_value)>20 THEN RETURN false; END IF;
+    FOR v_child IN SELECT value FROM jsonb_array_elements(p_value) LOOP
+      IF NOT public.success_path_evidence_node_is_safe(v_child,p_depth+1) THEN RETURN false; END IF;
+    END LOOP;
+  ELSIF jsonb_typeof(p_value)='string' THEN
+    v_normalized:=regexp_replace(lower(p_value #>> '{}'),'[^a-z0-9]+','','g');
+    IF v_normalized ~ '(watch|video|lesson|progress|percentage|percent|taskcompletion|taskcompleted|checkmark|playback|transcript|coursemetadata|course)'
+       OR v_normalized ~ '(https|s3|gs|file|bearer|password|apikey|secret|accesstoken)' THEN RETURN false; END IF;
+  END IF;
+  RETURN true;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION public.success_path_evidence_value_is_safe(p_value jsonb)
+RETURNS boolean LANGUAGE sql IMMUTABLE SET search_path = pg_catalog, public AS $$
+  SELECT jsonb_typeof(p_value)='object'
+    AND p_value<>'{}'::jsonb
+    AND octet_length(p_value::text)<=2048
+    AND p_value::text ~ ':[[:space:]]*(true|false|-?[0-9]+([.][0-9]+)?|"[^"[:space:]][^"]*")'
+    AND public.success_path_evidence_node_is_safe(p_value,0)
+$$;
+
+CREATE OR REPLACE FUNCTION public.success_path_evidence_supports_advancement(p_evidence_type text)
 RETURNS boolean LANGUAGE sql IMMUTABLE SET search_path = pg_catalog AS $$
-  SELECT jsonb_typeof(p_value) = 'object'
-    AND octet_length(p_value::text) <= 2048
-    AND NOT (p_value ?| ARRAY[
-      'watch_percentage', 'watch_percent', 'video_completion', 'lesson_completion',
-      'password', 'api_key', 'secret', 'token', 'url', 'locator', 'path'
-    ])
-    AND p_value::text !~* '(https?://|s3://|gs://|file://|bearer[[:space:]]|password|api[_ -]?key|secret|access[_ -]?token)'
+  SELECT p_evidence_type IN (
+    'business_metric', 'customer_response', 'deliverable', 'decision', 'experiment_result'
+  )
+$$;
+
+CREATE OR REPLACE FUNCTION public.success_path_logical_action_key(
+  p_cycle_id uuid, p_milestone_key text, p_move_key text, p_action_version bigint
+) RETURNS text LANGUAGE sql IMMUTABLE SET search_path = pg_catalog AS $$
+  SELECT 'guided-action-v1:' || encode(public.digest(convert_to(
+    p_cycle_id::text || ':' || p_milestone_key || ':' || p_move_key || ':' || p_action_version::text,
+    'UTF8'), 'sha256'), 'hex')
 $$;
 
 CREATE OR REPLACE FUNCTION public.success_path_authority_is_valid(p_path_id uuid, p_user_id uuid)
@@ -526,9 +576,9 @@ DECLARE
   v_task public.tasks%ROWTYPE;
   v_baseline jsonb;
 BEGIN
-  v_logical_key := 'guided-action-v1:' || encode(digest(convert_to(
-    p_cycle_id::text || ':' || p_milestone_key || ':' || p_move_key || ':' || p_action_version::text,
-    'UTF8'), 'sha256'), 'hex');
+  v_logical_key := public.success_path_logical_action_key(
+    p_cycle_id, p_milestone_key, p_move_key, p_action_version
+  );
   PERFORM pg_advisory_xact_lock(hashtextextended(p_user_id::text || ':' || v_logical_key, 0));
   SELECT * INTO v_action FROM public.success_path_actions
    WHERE user_id = p_user_id AND cycle_id = p_cycle_id AND logical_action_key = v_logical_key;
@@ -549,7 +599,7 @@ BEGIN
   ) VALUES (
     p_user_id, p_cycle_id, p_action_text, NULL, 'todo', 'medium',
     true, 'guided_action_v1', false, v_logical_key,
-    encode(digest(convert_to(p_action_text || ':' || p_estimated_minutes::text, 'UTF8'), 'sha256'), 'hex'),
+    encode(public.digest(convert_to(p_action_text || ':' || p_estimated_minutes::text, 'UTF8'), 'sha256'), 'hex'),
     jsonb_build_object('task_text', p_action_text, 'task_description', NULL,
       'status', 'todo', 'priority', 'medium', 'scheduled_date', NULL,
       'planned_day', NULL, 'category', NULL, 'context_tags', '[]'::jsonb), true
@@ -574,6 +624,137 @@ BEGIN
     v_task.task_id, p_action_text, p_estimated_minutes, v_baseline, p_creation_reason
   ) RETURNING action_id INTO v_action.action_id;
   RETURN v_action.action_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.success_path_retire_canonical_action(
+  p_user_id uuid, p_cycle_id uuid, p_path_id uuid, p_action_id uuid
+) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+DECLARE v_task_id uuid;
+BEGIN
+  SELECT a.task_id INTO v_task_id
+    FROM public.success_path_actions a
+   WHERE a.action_id = p_action_id
+     AND a.user_id = p_user_id
+     AND a.cycle_id = p_cycle_id
+     AND a.path_id = p_path_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'prior canonical action is unavailable';
+  END IF;
+  UPDATE public.tasks
+     SET generation_active = false
+   WHERE task_id = v_task_id
+     AND user_id = p_user_id
+     AND cycle_id = p_cycle_id
+     AND system_source = 'guided_action_v1'
+     AND generation_active;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.success_path_canonical_transition_diff(
+  p_user_id uuid, p_path_id uuid, p_expected_path_version bigint,
+  p_transition_kind text, p_reason_code text, p_evidence_receipt_id uuid,
+  p_proposed_assignment_id uuid, p_proposed_assignment_item_id uuid,
+  p_proposed_stage text, p_proposed_milestone_key text, p_proposed_milestone_title text,
+  p_proposed_move_key text, p_proposed_action_text text, p_proposed_action_minutes integer
+) RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+DECLARE
+  v_state public.success_path_cycle_states%ROWTYPE;
+  v_action public.success_path_actions%ROWTYPE;
+  v_task public.tasks%ROWTYPE;
+  v_old_assignment public.curriculum_cycle_assignments%ROWTYPE;
+  v_new_assignment public.curriculum_cycle_assignments%ROWTYPE;
+  v_old_item public.curriculum_cycle_assignment_items%ROWTYPE;
+  v_new_item public.curriculum_cycle_assignment_items%ROWTYPE;
+  v_evidence public.success_path_evidence_receipts%ROWTYPE;
+  v_next_action_version bigint;
+BEGIN
+  SELECT * INTO v_state FROM public.success_path_cycle_states
+   WHERE path_id = p_path_id AND user_id = p_user_id;
+  SELECT * INTO v_action FROM public.success_path_actions
+   WHERE action_id = v_state.current_action_id AND user_id = p_user_id
+     AND cycle_id = v_state.cycle_id AND path_id = p_path_id;
+  SELECT * INTO v_task FROM public.tasks
+   WHERE task_id = v_action.task_id AND user_id = p_user_id AND cycle_id = v_state.cycle_id;
+  SELECT * INTO v_old_assignment FROM public.curriculum_cycle_assignments
+   WHERE assignment_id = v_state.assignment_id AND user_id = p_user_id AND cycle_id = v_state.cycle_id;
+  SELECT * INTO v_new_assignment FROM public.curriculum_cycle_assignments
+   WHERE assignment_id = p_proposed_assignment_id AND user_id = p_user_id AND cycle_id = v_state.cycle_id;
+  SELECT * INTO v_old_item FROM public.curriculum_cycle_assignment_items
+   WHERE assignment_id = v_state.assignment_id AND assignment_item_id = v_state.active_assignment_item_id
+     AND user_id = p_user_id AND cycle_id = v_state.cycle_id;
+  SELECT * INTO v_new_item FROM public.curriculum_cycle_assignment_items
+   WHERE assignment_id = p_proposed_assignment_id AND assignment_item_id = p_proposed_assignment_item_id
+     AND user_id = p_user_id AND cycle_id = v_state.cycle_id;
+  IF p_evidence_receipt_id IS NOT NULL THEN
+    SELECT * INTO v_evidence FROM public.success_path_evidence_receipts
+     WHERE evidence_receipt_id = p_evidence_receipt_id AND user_id = p_user_id
+       AND cycle_id = v_state.cycle_id AND path_id = p_path_id;
+  END IF;
+  IF v_state.path_id IS NULL OR v_state.state_version <> p_expected_path_version
+     OR v_action.action_id IS NULL OR v_task.task_id IS NULL
+     OR v_old_assignment.assignment_id IS NULL OR v_new_assignment.assignment_id IS NULL
+     OR v_old_item.assignment_item_id IS NULL OR v_new_item.assignment_item_id IS NULL
+     OR (p_evidence_receipt_id IS NOT NULL AND v_evidence.evidence_receipt_id IS NULL) THEN
+    RAISE EXCEPTION 'transition authority is unavailable or stale';
+  END IF;
+  SELECT coalesce(max(a.action_version), 0) + 1 INTO v_next_action_version
+    FROM public.success_path_actions a
+   WHERE a.user_id = p_user_id AND a.cycle_id = v_state.cycle_id
+     AND a.milestone_key = p_proposed_milestone_key AND a.move_key = p_proposed_move_key;
+  RETURN jsonb_build_object(
+    'encoding_contract','success-path-transition-diff-jsonb-v2',
+    'impact_order',jsonb_build_array('transition','path','stage','milestone','learning_authority','action','evidence','history'),
+    'transition',jsonb_build_object(
+      'kind',p_transition_kind,'reason_code',p_reason_code,
+      'assignment_reroute',v_state.assignment_id <> p_proposed_assignment_id,
+      'learning_item_changed',v_state.active_assignment_item_id <> p_proposed_assignment_item_id),
+    'path',jsonb_build_object('path_id',v_state.path_id,'expected_state_version',p_expected_path_version),
+    'stage',jsonb_build_object('old',v_state.confirmed_stage,'new',p_proposed_stage),
+    'milestone',jsonb_build_object(
+      'old',jsonb_build_object('key',v_state.active_milestone_key,'title',v_state.active_milestone_title,
+        'assignment_order',v_old_item.assignment_order),
+      'new',jsonb_build_object('key',p_proposed_milestone_key,'title',p_proposed_milestone_title,
+        'assignment_order',v_new_item.assignment_order)),
+    'learning_authority',jsonb_build_object(
+      'old',jsonb_build_object('assignment_id',v_state.assignment_id,'assignment_version',v_state.assignment_version,
+        'assignment_item_id',v_state.active_assignment_item_id,'catalog_version_id',v_state.catalog_version_id,
+        'catalog_version_key',v_old_item.authority_snapshot #>> '{catalog,version_key}',
+        'catalog_content_sha256',v_state.catalog_content_sha256,'catalog_item_id',v_old_item.catalog_item_id,
+        'stable_item_key',v_old_item.authority_snapshot #>> '{item,stable_item_key}',
+        'authority_sha256',v_old_item.authority_sha256,'canonical_resource_id',v_old_item.canonical_resource_id,
+        'media_asset_id',v_old_item.authority_snapshot #>> '{item,media_asset_id}',
+        'transcript_version_id',v_old_item.transcript_version_id,'playback_attempt_id',v_old_item.playback_attempt_id,
+        'publication_sha256',v_old_item.publication_sha256),
+      'new',jsonb_build_object('assignment_id',v_new_assignment.assignment_id,
+        'assignment_version',v_new_assignment.assignment_version,'assignment_item_id',v_new_item.assignment_item_id,
+        'catalog_version_id',v_new_assignment.catalog_version_id,
+        'catalog_version_key',v_new_item.authority_snapshot #>> '{catalog,version_key}',
+        'catalog_content_sha256',v_new_assignment.catalog_content_sha256,'catalog_item_id',v_new_item.catalog_item_id,
+        'stable_item_key',v_new_item.authority_snapshot #>> '{item,stable_item_key}',
+        'authority_sha256',v_new_item.authority_sha256,'canonical_resource_id',v_new_item.canonical_resource_id,
+        'media_asset_id',v_new_item.authority_snapshot #>> '{item,media_asset_id}',
+        'transcript_version_id',v_new_item.transcript_version_id,'playback_attempt_id',v_new_item.playback_attempt_id,
+        'publication_sha256',v_new_item.publication_sha256,
+        'planner_request_ledger_id',v_new_assignment.planner_request_ledger_id,
+        'planner_receipt_id',v_new_assignment.planner_receipt_id)),
+    'action',jsonb_build_object(
+      'old',jsonb_build_object('action_id',v_action.action_id,'task_id',v_action.task_id,
+        'logical_action_key',v_action.logical_action_key,'text',v_action.action_text,
+        'estimated_minutes',v_action.estimated_minutes,'capacity_mode',v_state.capacity_mode),
+      'new',jsonb_build_object('logical_action_key',public.success_path_logical_action_key(
+          v_state.cycle_id,p_proposed_milestone_key,p_proposed_move_key,v_next_action_version),
+        'action_version',v_next_action_version,'move_key',p_proposed_move_key,
+        'text',p_proposed_action_text,'estimated_minutes',p_proposed_action_minutes,'capacity_mode','standard')),
+    'evidence',CASE WHEN v_evidence.evidence_receipt_id IS NULL THEN NULL ELSE jsonb_build_object(
+      'evidence_receipt_id',v_evidence.evidence_receipt_id,'request_sha256',v_evidence.request_sha256,
+      'evidence_type',v_evidence.evidence_type,'eligible_for_advancement',
+        public.success_path_evidence_supports_advancement(v_evidence.evidence_type)) END,
+    'history',jsonb_build_object('prior_task_preserved',true,'prior_task_generation_active',false,
+      'prior_task_deleted',false,'prior_task_text_preserved',true,'prior_task_completion_preserved',true,
+      'canonical_identity_semantics','replace_active_preserve_history',
+      'evidence_preserved',true,'actions_preserved',true,'checkins_preserved',true)
+  );
 END;
 $$;
 
@@ -610,6 +791,16 @@ BEGIN
     'action_minutes', p_recommended_action_minutes, 'reason', p_recommendation_reason,
     'evidence_sha256', p_recommendation_evidence_sha256
   ));
+  SELECT * INTO v_existing FROM public.success_path_cycle_states
+   WHERE user_id = p_user_id AND recommendation_request_id = p_request_id;
+  IF FOUND THEN
+    IF v_existing.cycle_id = p_cycle_id AND v_existing.recommendation_request_sha256 = v_hash THEN
+      RETURN jsonb_build_object('status','unconfirmed','replayed',true,'path_id',v_existing.path_id,
+        'path_version',v_existing.state_version,'recommendation_receipt_id',v_existing.recommendation_receipt_id);
+    END IF;
+    RAISE EXCEPTION 'Success Path recommendation request conflict';
+  END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended('success-path-request:'||p_user_id::text||':'||p_request_id::text,0));
   PERFORM pg_advisory_xact_lock(hashtextextended('success-path:' || p_user_id::text || ':' || p_cycle_id::text, 0));
   SELECT * INTO v_existing FROM public.success_path_cycle_states
    WHERE user_id = p_user_id AND cycle_id = p_cycle_id FOR UPDATE;
@@ -644,14 +835,14 @@ BEGIN
     path_id,user_id,cycle_id,planner_request_ledger_id,planner_receipt_id,
     assignment_id,assignment_version,catalog_version_id,catalog_content_sha256,
     recommendation_request_id,recommendation_request_sha256,recommendation_receipt_id,
-    recommendation_evidence_sha256,recommendation_reason,recommended_stage,
+    recommendation_evidence_sha256,recommendation_reason,recommended_stage,state_receipt_id,
     recommended_milestone_key,recommended_milestone_title,recommended_assignment_item_id,
     recommended_move_key,recommended_action_text,recommended_action_minutes
   ) VALUES (
     v_path_id,p_user_id,p_cycle_id,p_planner_request_ledger_id,p_planner_receipt_id,
     p_assignment_id,v_assignment.assignment_version,v_assignment.catalog_version_id,
     v_assignment.catalog_content_sha256,p_request_id,v_hash,v_receipt_id,
-    p_recommendation_evidence_sha256,p_recommendation_reason,p_recommended_stage,
+    p_recommendation_evidence_sha256,p_recommendation_reason,p_recommended_stage,v_receipt_id,
     p_recommended_milestone_key,p_recommended_milestone_title,p_recommended_assignment_item_id,
     p_recommended_move_key,p_recommended_action_text,p_recommended_action_minutes
   );
@@ -674,7 +865,11 @@ DECLARE
   v_state public.success_path_cycle_states%ROWTYPE;
   v_action public.success_path_actions%ROWTYPE;
   v_task public.tasks%ROWTYPE;
+  v_assignment public.curriculum_cycle_assignments%ROWTYPE;
+  v_recommended_item public.curriculum_cycle_assignment_items%ROWTYPE;
+  v_active_item public.curriculum_cycle_assignment_items%ROWTYPE;
   v_support_state text;
+  v_semantically_valid boolean := true;
 BEGIN
   IF v_user_id IS NULL THEN RAISE EXCEPTION 'authentication required' USING ERRCODE='28000'; END IF;
   SELECT decision_state,safe_reason INTO v_cap_state,v_cap_reason
@@ -698,6 +893,33 @@ BEGIN
     RETURN jsonb_build_object('capability_state','granted','reason','success_path_authority_stale',
       'path_state','stale','success_path',NULL);
   END IF;
+  SELECT * INTO v_assignment FROM public.curriculum_cycle_assignments a
+   WHERE a.assignment_id=v_state.assignment_id AND a.user_id=v_user_id AND a.cycle_id=p_cycle_id;
+  SELECT * INTO v_recommended_item FROM public.curriculum_cycle_assignment_items ai
+   WHERE ai.assignment_item_id=v_state.recommended_assignment_item_id
+     AND ai.assignment_id=v_state.assignment_id AND ai.user_id=v_user_id AND ai.cycle_id=p_cycle_id;
+  v_semantically_valid := coalesce(v_assignment.assignment_id IS NOT NULL
+    AND v_assignment.assignment_status='active'
+    AND v_assignment.assignment_version=v_state.assignment_version
+    AND v_assignment.catalog_version_id=v_state.catalog_version_id
+    AND v_assignment.catalog_content_sha256=v_state.catalog_content_sha256
+    AND v_recommended_item.assignment_item_id IS NOT NULL
+    AND v_recommended_item.catalog_version_id=v_state.catalog_version_id
+    AND v_recommended_item.authority_snapshot #>> '{item,stage}'=v_state.recommended_stage
+    AND v_recommended_item.authority_snapshot #>> '{item,milestone_key}'=v_state.recommended_milestone_key
+    AND v_recommended_item.authority_snapshot #>> '{item,milestone_title}'=v_state.recommended_milestone_title
+    AND public.mastermind_wave2_jsonb_sha256(v_recommended_item.authority_snapshot)=v_recommended_item.authority_sha256
+    AND ((v_state.confirmed_stage IS NULL AND v_state.state_version=1
+          AND v_state.state_receipt_id=v_state.recommendation_receipt_id
+          AND NOT EXISTS (SELECT 1 FROM public.success_path_confirmations c WHERE c.path_id=v_state.path_id))
+      OR (v_state.confirmed_stage IS NOT NULL AND v_state.state_version>=2
+          AND EXISTS (SELECT 1 FROM public.success_path_confirmations c
+            WHERE c.user_id=v_user_id AND c.cycle_id=p_cycle_id AND c.path_id=v_state.path_id
+              AND c.resulting_path_version=2))), false);
+  IF NOT v_semantically_valid THEN
+    RETURN jsonb_build_object('capability_state','granted','reason','success_path_authority_stale',
+      'path_state','stale','success_path',NULL);
+  END IF;
   IF v_state.current_action_id IS NOT NULL THEN
     SELECT * INTO v_action FROM public.success_path_actions a
      WHERE a.action_id=v_state.current_action_id AND a.user_id=v_user_id AND a.cycle_id=p_cycle_id;
@@ -705,7 +927,75 @@ BEGIN
       SELECT * INTO v_task FROM public.tasks t
        WHERE t.task_id=v_action.task_id AND t.user_id=v_user_id AND t.cycle_id=p_cycle_id;
     END IF;
-    IF NOT FOUND THEN
+    SELECT * INTO v_active_item FROM public.curriculum_cycle_assignment_items ai
+     WHERE ai.assignment_item_id=v_state.active_assignment_item_id
+       AND ai.assignment_id=v_state.assignment_id AND ai.user_id=v_user_id AND ai.cycle_id=p_cycle_id;
+    IF v_task.task_id IS NULL OR v_active_item.assignment_item_id IS NULL
+       OR v_active_item.authority_snapshot #>> '{item,stage}' IS DISTINCT FROM v_state.confirmed_stage
+       OR v_active_item.authority_snapshot #>> '{item,milestone_key}' IS DISTINCT FROM v_state.active_milestone_key
+       OR v_active_item.authority_snapshot #>> '{item,milestone_title}' IS DISTINCT FROM v_state.active_milestone_title
+       OR public.mastermind_wave2_jsonb_sha256(v_active_item.authority_snapshot)<>v_active_item.authority_sha256
+       OR v_action.path_id<>v_state.path_id OR v_action.path_version<>v_state.state_version
+       OR v_action.assignment_id<>v_state.assignment_id
+       OR v_action.assignment_item_id<>v_state.active_assignment_item_id
+       OR v_action.milestone_key<>v_state.active_milestone_key
+       OR v_action.logical_action_key<>public.success_path_logical_action_key(
+            p_cycle_id,v_action.milestone_key,v_action.move_key,v_action.action_version)
+       OR v_task.generation_key IS DISTINCT FROM v_action.logical_action_key
+       OR v_task.system_source IS DISTINCT FROM 'guided_action_v1'
+       OR v_task.generation_active IS DISTINCT FROM true OR v_task.deleted_at IS NOT NULL
+       OR (SELECT count(*) FROM public.tasks t WHERE t.user_id=v_user_id AND t.cycle_id=p_cycle_id
+             AND t.system_source='guided_action_v1' AND t.generation_active
+             AND NOT coalesce(t.is_completed,false) AND t.deleted_at IS NULL)>1
+       OR NOT EXISTS (
+         SELECT 1 FROM (
+           SELECT c.resulting_path_version AS version, c.action_id,
+                  c.receipt->>'state_receipt_id' AS receipt_id
+             FROM public.success_path_confirmations c WHERE c.path_id=v_state.path_id
+           UNION ALL
+           SELECT c.resulting_path_version, c.resulting_action_id, c.receipt->>'state_receipt_id'
+             FROM public.success_path_checkins c
+            WHERE c.path_id=v_state.path_id AND c.outcome='reduce'
+           UNION ALL
+           SELECT t.to_path_version, t.action_id, t.receipt->>'state_receipt_id'
+             FROM public.success_path_focus_transitions t WHERE t.path_id=v_state.path_id
+           UNION ALL
+           SELECT r.to_path_version, r.action_id, r.receipt->>'state_receipt_id'
+             FROM public.success_path_absence_recoveries r WHERE r.path_id=v_state.path_id
+         ) receipt_authority
+         WHERE receipt_authority.version=v_state.state_version
+           AND receipt_authority.action_id=v_state.current_action_id
+           AND receipt_authority.receipt_id=v_state.state_receipt_id::text
+       )
+       OR EXISTS (SELECT 1 FROM public.success_path_evidence_receipts e
+            LEFT JOIN public.success_path_actions ea ON ea.action_id=e.action_id
+          WHERE e.path_id=v_state.path_id AND (e.user_id<>v_user_id OR e.cycle_id<>p_cycle_id
+             OR ea.path_id<>v_state.path_id OR ea.user_id<>v_user_id OR ea.cycle_id<>p_cycle_id
+             OR e.task_id<>ea.task_id
+             OR e.receipt->>'evidence_receipt_id' IS DISTINCT FROM e.evidence_receipt_id::text
+             OR e.receipt->>'action_id' IS DISTINCT FROM e.action_id::text
+             OR e.receipt->>'path_version' IS DISTINCT FROM e.path_version::text))
+       OR EXISTS (SELECT 1 FROM public.success_path_checkins c
+            LEFT JOIN public.success_path_evidence_receipts e ON e.evidence_receipt_id=c.evidence_receipt_id
+          WHERE c.path_id=v_state.path_id AND (c.user_id<>v_user_id OR c.cycle_id<>p_cycle_id
+             OR e.path_id<>v_state.path_id OR e.user_id<>v_user_id OR e.cycle_id<>p_cycle_id
+             OR e.action_id<>c.action_id
+             OR c.receipt->>'checkin_id' IS DISTINCT FROM c.checkin_id::text
+             OR c.receipt->>'evidence_receipt_id' IS DISTINCT FROM c.evidence_receipt_id::text
+             OR c.receipt->>'action_id' IS DISTINCT FROM c.resulting_action_id::text
+             OR c.receipt->>'outcome' IS DISTINCT FROM c.outcome
+             OR c.receipt->>'path_version' IS DISTINCT FROM c.resulting_path_version::text))
+       OR EXISTS (SELECT 1 FROM public.success_path_support_requests s
+            LEFT JOIN public.success_path_checkins c ON c.checkin_id=s.checkin_id
+          WHERE s.path_id=v_state.path_id AND (s.user_id<>v_user_id OR s.cycle_id<>p_cycle_id
+             OR c.path_id<>v_state.path_id OR c.user_id<>v_user_id OR c.cycle_id<>p_cycle_id
+             OR c.outcome<>'support' OR c.support_request_id<>s.support_request_id
+             OR c.receipt->>'support_request_id' IS DISTINCT FROM s.support_request_id::text
+             OR NOT EXISTS (SELECT 1 FROM public.success_path_support_events se
+               WHERE se.user_id=s.user_id AND se.cycle_id=s.cycle_id
+                 AND se.support_request_id=s.support_request_id
+                 AND se.event_type=CASE WHEN s.status='open' THEN 'requested' ELSE s.status END
+                 AND se.status_receipt_id=s.status_receipt_id))) THEN
       RETURN jsonb_build_object('capability_state','granted','reason','success_path_authority_stale',
         'path_state','stale','success_path',NULL);
     END IF;
@@ -760,6 +1050,7 @@ BEGIN
     IF v_existing.request_sha256=v_hash THEN RETURN v_existing.receipt || jsonb_build_object('replayed',true); END IF;
     RAISE EXCEPTION 'Success Path confirmation request conflict';
   END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended('success-path-request:'||v_user_id::text||':'||p_request_id::text,0));
   PERFORM pg_advisory_xact_lock(hashtextextended('success-path:'||v_user_id::text||':'||p_cycle_id::text,0));
   SELECT * INTO v_existing FROM public.success_path_confirmations WHERE user_id=v_user_id AND request_id=p_request_id;
   IF FOUND THEN
@@ -829,6 +1120,7 @@ BEGIN
     IF v_existing.request_sha256=v_hash THEN RETURN v_existing.receipt || jsonb_build_object('replayed',true); END IF;
     RAISE EXCEPTION 'evidence request conflict';
   END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended('success-path-request:'||v_user_id::text||':'||p_request_id::text,0));
   PERFORM pg_advisory_xact_lock(hashtextextended('success-path:'||v_user_id::text||':'||p_cycle_id::text,0));
   SELECT * INTO v_existing FROM public.success_path_evidence_receipts WHERE user_id=v_user_id AND request_id=p_request_id;
   IF FOUND THEN
@@ -870,6 +1162,7 @@ DECLARE
   v_action public.success_path_actions%ROWTYPE; v_evidence public.success_path_evidence_receipts%ROWTYPE;
   v_existing public.success_path_checkins%ROWTYPE; v_result_action uuid; v_result_version bigint;
   v_checkin_id uuid := gen_random_uuid(); v_support_id uuid; v_status_receipt uuid; v_receipt jsonb;
+  v_state_receipt uuid;
 BEGIN
   IF v_user_id IS NULL THEN RAISE EXCEPTION 'authentication required' USING ERRCODE='28000'; END IF;
   IF p_request_id IS NULL OR p_period_key !~ '^[a-z0-9][a-z0-9:_-]{0,63}$'
@@ -887,7 +1180,14 @@ BEGIN
     IF v_existing.request_sha256=v_hash THEN RETURN v_existing.receipt || jsonb_build_object('replayed',true); END IF;
     RAISE EXCEPTION 'check-in request conflict';
   END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended('success-path-request:'||v_user_id::text||':'||p_request_id::text,0));
   PERFORM pg_advisory_xact_lock(hashtextextended('success-path-checkin:'||v_user_id::text||':'||p_cycle_id::text||':'||p_period_key,0));
+  SELECT * INTO v_existing FROM public.success_path_checkins
+   WHERE user_id=v_user_id AND request_id=p_request_id;
+  IF FOUND THEN
+    IF v_existing.request_sha256=v_hash THEN RETURN v_existing.receipt || jsonb_build_object('replayed',true); END IF;
+    RAISE EXCEPTION 'check-in request conflict';
+  END IF;
   SELECT * INTO v_existing FROM public.success_path_checkins
    WHERE user_id=v_user_id AND cycle_id=p_cycle_id AND period_key=p_period_key;
   IF FOUND THEN
@@ -908,18 +1208,21 @@ BEGIN
   IF p_outcome='reduce' THEN
     IF p_reduced_action_minutes<5 OR p_reduced_action_minutes>=v_action.estimated_minutes THEN RAISE EXCEPTION 'reduce must lower action minutes'; END IF;
     v_result_version:=v_state.state_version+1;
+    v_state_receipt:=gen_random_uuid();
+    PERFORM public.success_path_retire_canonical_action(v_user_id,p_cycle_id,v_state.path_id,p_action_id);
     v_result_action:=public.success_path_attach_canonical_action(v_user_id,p_cycle_id,v_state.path_id,
       v_result_version,v_state.active_milestone_key,v_state.assignment_id,v_state.active_assignment_item_id,v_action.move_key,
       v_action.action_version+1,p_reduced_action_text,p_reduced_action_minutes,'reduce');
     UPDATE public.success_path_cycle_states SET current_action_id=v_result_action,capacity_mode='reduced',
-      state_version=v_result_version,state_receipt_id=gen_random_uuid(),updated_at=clock_timestamp() WHERE path_id=v_state.path_id;
+      state_version=v_result_version,state_receipt_id=v_state_receipt,updated_at=clock_timestamp() WHERE path_id=v_state.path_id;
   ELSIF p_outcome='support' THEN
     v_support_id:=gen_random_uuid(); v_status_receipt:=gen_random_uuid();
   END IF;
   v_receipt:=jsonb_build_object('status','saved','replayed',false,'checkin_id',v_checkin_id,
     'period_key',p_period_key,'outcome',p_outcome,'path_version',v_result_version,
-    'action_id',v_result_action,'support_request_id',v_support_id,
-    'support_status',CASE WHEN v_support_id IS NULL THEN NULL ELSE 'open' END);
+    'action_id',v_result_action,'evidence_receipt_id',p_evidence_receipt_id,'support_request_id',v_support_id,
+    'support_status',CASE WHEN v_support_id IS NULL THEN NULL ELSE 'open' END,
+    'state_receipt_id',v_state_receipt);
   INSERT INTO public.success_path_checkins(checkin_id,request_id,request_sha256,user_id,cycle_id,path_id,
     path_version,period_key,action_id,evidence_receipt_id,outcome,resulting_action_id,
     resulting_path_version,support_request_id,receipt)
@@ -959,13 +1262,15 @@ CREATE OR REPLACE FUNCTION public.preview_my_success_path_transition(
 DECLARE
   v_user_id uuid:=auth.uid(); v_hash text; v_state public.success_path_cycle_states%ROWTYPE;
   v_existing public.success_path_focus_proposals%ROWTYPE; v_assignment public.curriculum_cycle_assignments%ROWTYPE;
-  v_item public.curriculum_cycle_assignment_items%ROWTYPE; v_evidence public.success_path_evidence_receipts%ROWTYPE;
+  v_item public.curriculum_cycle_assignment_items%ROWTYPE; v_current_item public.curriculum_cycle_assignment_items%ROWTYPE;
+  v_evidence public.success_path_evidence_receipts%ROWTYPE; v_current_action public.success_path_actions%ROWTYPE;
   v_proposal_id uuid:=gen_random_uuid(); v_diff jsonb; v_diff_hash text;
 BEGIN
   IF v_user_id IS NULL THEN RAISE EXCEPTION 'authentication required' USING ERRCODE='28000'; END IF;
   IF p_request_id IS NULL OR p_transition_kind NOT IN ('focus_change','milestone_advance')
      OR p_reason_code NOT IN ('member_requested','reviewed_business_evidence','planner_reconciled')
-     OR NOT public.success_path_text_is_safe(p_proposed_action_text,300) THEN RAISE EXCEPTION 'invalid transition proposal'; END IF;
+     OR NOT public.success_path_text_is_safe(p_proposed_action_text,300)
+     OR p_proposed_action_minutes NOT BETWEEN 5 AND 240 THEN RAISE EXCEPTION 'invalid transition proposal'; END IF;
   IF (p_transition_kind='milestone_advance' OR p_reason_code='reviewed_business_evidence') AND p_evidence_receipt_id IS NULL THEN
     RAISE EXCEPTION 'observable business evidence is required'; END IF;
   v_hash:=public.mastermind_wave2_jsonb_sha256(jsonb_build_object('cycle_id',p_cycle_id,'path_version',p_expected_path_version,
@@ -979,7 +1284,16 @@ BEGIN
       'proposal_id',v_existing.proposal_id,'impact_diff',v_existing.impact_diff,'impact_diff_sha256',v_existing.impact_diff_sha256); END IF;
     RAISE EXCEPTION 'transition proposal request conflict';
   END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended('success-path-request:'||v_user_id::text||':'||p_request_id::text,0));
   PERFORM pg_advisory_xact_lock(hashtextextended('success-path:'||v_user_id::text||':'||p_cycle_id::text,0));
+  SELECT * INTO v_existing FROM public.success_path_focus_proposals
+   WHERE user_id=v_user_id AND request_id=p_request_id;
+  IF FOUND THEN
+    IF v_existing.request_sha256=v_hash THEN RETURN jsonb_build_object('status','pending','replayed',true,
+      'proposal_id',v_existing.proposal_id,'impact_diff',v_existing.impact_diff,
+      'impact_diff_sha256',v_existing.impact_diff_sha256); END IF;
+    RAISE EXCEPTION 'transition proposal request conflict';
+  END IF;
   SELECT * INTO v_state FROM public.success_path_cycle_states WHERE user_id=v_user_id AND cycle_id=p_cycle_id FOR UPDATE;
   IF NOT FOUND OR v_state.confirmed_stage IS NULL OR v_state.state_version<>p_expected_path_version
      OR NOT EXISTS (SELECT 1 FROM public.mastermind_capability_state(v_user_id,'mastermind.learning.assigned',clock_timestamp()) c
@@ -1003,20 +1317,42 @@ BEGIN
      OR v_item.authority_snapshot #>> '{item,milestone_key}' IS DISTINCT FROM p_proposed_milestone_key
      OR v_item.authority_snapshot #>> '{item,milestone_title}' IS DISTINCT FROM p_proposed_milestone_title THEN
     RAISE EXCEPTION 'proposed focus does not match frozen Learning authority'; END IF;
+  SELECT * INTO v_current_item FROM public.curriculum_cycle_assignment_items ai
+   WHERE ai.user_id=v_user_id AND ai.cycle_id=p_cycle_id AND ai.assignment_id=v_state.assignment_id
+     AND ai.assignment_item_id=v_state.active_assignment_item_id;
+  SELECT * INTO v_current_action FROM public.success_path_actions a
+   WHERE a.user_id=v_user_id AND a.cycle_id=p_cycle_id AND a.path_id=v_state.path_id
+     AND a.action_id=v_state.current_action_id;
+  IF v_current_item.assignment_item_id IS NULL OR v_current_action.action_id IS NULL THEN
+    RAISE EXCEPTION 'current Success Path authority is unavailable';
+  END IF;
   IF p_evidence_receipt_id IS NOT NULL THEN
     SELECT * INTO v_evidence FROM public.success_path_evidence_receipts WHERE user_id=v_user_id AND cycle_id=p_cycle_id
-      AND path_id=v_state.path_id AND evidence_receipt_id=p_evidence_receipt_id;
+      AND path_id=v_state.path_id AND evidence_receipt_id=p_evidence_receipt_id
+      AND action_id=v_state.current_action_id AND path_version=v_state.state_version;
     IF NOT FOUND THEN RAISE EXCEPTION 'transition evidence unavailable'; END IF;
   END IF;
-  v_diff:=jsonb_build_object('encoding_contract','success-path-transition-diff-jsonb-v1',
-    'impact_order',jsonb_build_array('stage','milestone','assignment','action','history'),
-    'current',jsonb_build_object('path_version',v_state.state_version,'stage',v_state.confirmed_stage,
-      'milestone_key',v_state.active_milestone_key,'assignment_id',v_state.assignment_id,'action_id',v_state.current_action_id),
-    'proposed',jsonb_build_object('stage',p_proposed_stage,'milestone_key',p_proposed_milestone_key,
-      'milestone_title',p_proposed_milestone_title,'assignment_id',v_assignment.assignment_id,
-      'assignment_version',v_assignment.assignment_version,'planner_receipt_id',v_assignment.planner_receipt_id,
-      'move_key',p_proposed_move_key,'action_text',p_proposed_action_text,'action_minutes',p_proposed_action_minutes),
-    'history',jsonb_build_object('evidence_preserved',true,'actions_preserved',true,'checkins_preserved',true));
+  IF p_transition_kind='milestone_advance' AND (
+       p_proposed_assignment_id<>v_state.assignment_id
+       OR p_proposed_assignment_item_id=v_state.active_assignment_item_id
+       OR v_item.assignment_order<=v_current_item.assignment_order
+       OR p_proposed_milestone_key=v_state.active_milestone_key
+       OR NOT public.success_path_evidence_supports_advancement(v_evidence.evidence_type)
+     ) THEN RAISE EXCEPTION 'milestone advance requires eligible business evidence and a later frozen assignment item'; END IF;
+  IF p_transition_kind='focus_change'
+     AND p_proposed_assignment_id=v_state.assignment_id
+     AND p_proposed_assignment_item_id=v_state.active_assignment_item_id
+     AND p_proposed_stage=v_state.confirmed_stage
+     AND p_proposed_milestone_key=v_state.active_milestone_key
+     AND p_proposed_move_key=v_current_action.move_key
+     AND p_proposed_action_text=v_current_action.action_text
+     AND p_proposed_action_minutes=v_current_action.estimated_minutes THEN
+    RAISE EXCEPTION 'transition proposal is a no-op';
+  END IF;
+  v_diff:=public.success_path_canonical_transition_diff(v_user_id,v_state.path_id,v_state.state_version,
+    p_transition_kind,p_reason_code,p_evidence_receipt_id,v_assignment.assignment_id,p_proposed_assignment_item_id,
+    p_proposed_stage,p_proposed_milestone_key,p_proposed_milestone_title,p_proposed_move_key,
+    p_proposed_action_text,p_proposed_action_minutes);
   v_diff_hash:=public.mastermind_wave2_jsonb_sha256(v_diff);
   INSERT INTO public.success_path_focus_proposals(proposal_id,request_id,request_sha256,user_id,cycle_id,path_id,
     expected_path_version,transition_kind,reason_code,evidence_receipt_id,proposed_planner_request_ledger_id,
@@ -1041,6 +1377,8 @@ DECLARE
   v_user_id uuid:=auth.uid(); v_hash text; v_existing public.success_path_focus_transitions%ROWTYPE;
   v_proposal public.success_path_focus_proposals%ROWTYPE; v_state public.success_path_cycle_states%ROWTYPE;
   v_assignment public.curriculum_cycle_assignments%ROWTYPE; v_action public.success_path_actions%ROWTYPE;
+  v_item public.curriculum_cycle_assignment_items%ROWTYPE; v_current_item public.curriculum_cycle_assignment_items%ROWTYPE;
+  v_evidence public.success_path_evidence_receipts%ROWTYPE; v_recomputed_diff jsonb; v_recomputed_hash text;
   v_action_id uuid; v_receipt jsonb; v_receipt_id uuid:=gen_random_uuid(); v_next_action_version bigint;
 BEGIN
   IF v_user_id IS NULL THEN RAISE EXCEPTION 'authentication required' USING ERRCODE='28000'; END IF;
@@ -1055,12 +1393,11 @@ BEGIN
     IF v_existing.confirmation_request_sha256=v_hash THEN RETURN v_existing.receipt||jsonb_build_object('replayed',true); END IF;
     RAISE EXCEPTION 'transition confirmation request conflict';
   END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended('success-path-request:'||v_user_id::text||':'||p_confirmation_request_id::text,0));
+  PERFORM pg_advisory_xact_lock(hashtextextended('success-path-proposal:'||v_user_id::text||':'||p_proposal_id::text,0));
   SELECT * INTO v_proposal FROM public.success_path_focus_proposals
-   WHERE proposal_id=p_proposal_id AND user_id=v_user_id FOR SHARE;
-  IF NOT FOUND OR p_expected_impact_diff IS DISTINCT FROM v_proposal.impact_diff
-     OR p_expected_impact_diff_sha256 IS DISTINCT FROM v_proposal.impact_diff_sha256
-     OR public.mastermind_wave2_jsonb_sha256(v_proposal.impact_diff)<>v_proposal.impact_diff_sha256 THEN
-    RAISE EXCEPTION 'transition confirmation does not match exact reviewed proposal'; END IF;
+   WHERE proposal_id=p_proposal_id AND user_id=v_user_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'transition proposal unavailable'; END IF;
   PERFORM pg_advisory_xact_lock(hashtextextended('success-path:'||v_user_id::text||':'||v_proposal.cycle_id::text,0));
   SELECT * INTO v_existing FROM public.success_path_focus_transitions
    WHERE user_id=v_user_id AND confirmation_request_id=p_confirmation_request_id;
@@ -1070,22 +1407,73 @@ BEGIN
   END IF;
   IF EXISTS (SELECT 1 FROM public.success_path_focus_transitions WHERE proposal_id=p_proposal_id) THEN
     RAISE EXCEPTION 'transition proposal already confirmed'; END IF;
+  SELECT * INTO v_proposal FROM public.success_path_focus_proposals
+   WHERE proposal_id=p_proposal_id AND user_id=v_user_id FOR SHARE;
   SELECT * INTO v_state FROM public.success_path_cycle_states WHERE path_id=v_proposal.path_id AND user_id=v_user_id FOR UPDATE;
   SELECT * INTO v_assignment FROM public.curriculum_cycle_assignments a
    WHERE a.assignment_id=v_proposal.proposed_assignment_id AND a.user_id=v_user_id
      AND a.cycle_id=v_proposal.cycle_id AND a.assignment_status='active';
   IF v_state.path_id IS NULL OR v_state.state_version<>v_proposal.expected_path_version
      OR v_assignment.assignment_id IS NULL OR v_assignment.assignment_version<>v_proposal.proposed_assignment_version
+     OR v_assignment.catalog_version_id<>v_proposal.proposed_catalog_version_id
      OR v_assignment.catalog_content_sha256<>v_proposal.proposed_catalog_content_sha256
+     OR v_assignment.planner_request_ledger_id<>v_proposal.proposed_planner_request_ledger_id
+     OR v_assignment.planner_receipt_id<>v_proposal.proposed_planner_receipt_id
      OR NOT public.curriculum_assignment_authority_is_valid(v_assignment.assignment_id)
      OR NOT EXISTS (SELECT 1 FROM public.cycle_plan_intents_v2 i WHERE i.user_id=v_user_id
        AND i.cycle_id=v_proposal.cycle_id AND i.last_planner_receipt_id=v_assignment.planner_receipt_id)
      OR NOT EXISTS (SELECT 1 FROM public.mastermind_capability_state(v_user_id,'mastermind.learning.assigned',clock_timestamp()) c
        WHERE c.decision_state='granted') THEN RAISE EXCEPTION 'transition proposal is stale'; END IF;
-  SELECT * INTO v_action FROM public.success_path_actions WHERE action_id=v_state.current_action_id;
+  SELECT * INTO v_item FROM public.curriculum_cycle_assignment_items ai
+   WHERE ai.user_id=v_user_id AND ai.cycle_id=v_state.cycle_id
+     AND ai.assignment_id=v_proposal.proposed_assignment_id
+     AND ai.assignment_item_id=v_proposal.proposed_assignment_item_id;
+  SELECT * INTO v_current_item FROM public.curriculum_cycle_assignment_items ai
+   WHERE ai.user_id=v_user_id AND ai.cycle_id=v_state.cycle_id
+     AND ai.assignment_id=v_state.assignment_id AND ai.assignment_item_id=v_state.active_assignment_item_id;
+  SELECT * INTO v_action FROM public.success_path_actions
+   WHERE action_id=v_state.current_action_id AND user_id=v_user_id
+     AND cycle_id=v_state.cycle_id AND path_id=v_state.path_id;
+  IF v_item.assignment_item_id IS NULL OR v_current_item.assignment_item_id IS NULL OR v_action.action_id IS NULL
+     OR v_item.authority_snapshot #>> '{item,stage}' IS DISTINCT FROM v_proposal.proposed_stage
+     OR v_item.authority_snapshot #>> '{item,milestone_key}' IS DISTINCT FROM v_proposal.proposed_milestone_key
+     OR v_item.authority_snapshot #>> '{item,milestone_title}' IS DISTINCT FROM v_proposal.proposed_milestone_title
+     OR v_item.catalog_version_id<>v_proposal.proposed_catalog_version_id
+     OR public.mastermind_wave2_jsonb_sha256(v_item.authority_snapshot)<>v_item.authority_sha256 THEN
+    RAISE EXCEPTION 'transition proposal Learning authority is stale';
+  END IF;
+  IF v_proposal.evidence_receipt_id IS NOT NULL THEN
+    SELECT * INTO v_evidence FROM public.success_path_evidence_receipts e
+     WHERE e.evidence_receipt_id=v_proposal.evidence_receipt_id AND e.user_id=v_user_id
+       AND e.cycle_id=v_state.cycle_id AND e.path_id=v_state.path_id
+       AND e.action_id=v_state.current_action_id AND e.path_version=v_state.state_version;
+    IF NOT FOUND THEN RAISE EXCEPTION 'transition evidence is stale'; END IF;
+  END IF;
+  IF v_proposal.transition_kind='milestone_advance' AND (
+       v_proposal.proposed_assignment_id<>v_state.assignment_id
+       OR v_proposal.proposed_assignment_item_id=v_state.active_assignment_item_id
+       OR v_item.assignment_order<=v_current_item.assignment_order
+       OR v_proposal.proposed_milestone_key=v_state.active_milestone_key
+       OR NOT public.success_path_evidence_supports_advancement(v_evidence.evidence_type)
+     ) THEN RAISE EXCEPTION 'milestone advance is not a later eligible frozen item'; END IF;
+  v_recomputed_diff:=public.success_path_canonical_transition_diff(v_user_id,v_state.path_id,v_state.state_version,
+    v_proposal.transition_kind,v_proposal.reason_code,v_proposal.evidence_receipt_id,
+    v_proposal.proposed_assignment_id,v_proposal.proposed_assignment_item_id,v_proposal.proposed_stage,
+    v_proposal.proposed_milestone_key,v_proposal.proposed_milestone_title,v_proposal.proposed_move_key,
+    v_proposal.proposed_action_text,v_proposal.proposed_action_minutes);
+  v_recomputed_hash:=public.mastermind_wave2_jsonb_sha256(v_recomputed_diff);
+  IF v_recomputed_diff IS DISTINCT FROM v_proposal.impact_diff
+     OR v_recomputed_hash IS DISTINCT FROM v_proposal.impact_diff_sha256
+     OR p_expected_impact_diff IS DISTINCT FROM v_recomputed_diff
+     OR p_expected_impact_diff_sha256 IS DISTINCT FROM v_recomputed_hash THEN
+    RAISE EXCEPTION 'transition confirmation does not match recomputed reviewed authority';
+  END IF;
   SELECT coalesce(max(a.action_version),0)+1 INTO v_next_action_version FROM public.success_path_actions a
    WHERE a.user_id=v_user_id AND a.cycle_id=v_state.cycle_id AND a.milestone_key=v_proposal.proposed_milestone_key
      AND a.move_key=v_proposal.proposed_move_key;
+  PERFORM public.success_path_retire_canonical_action(
+    v_user_id,v_state.cycle_id,v_state.path_id,v_state.current_action_id
+  );
   v_action_id:=public.success_path_attach_canonical_action(v_user_id,v_state.cycle_id,v_state.path_id,
     v_state.state_version+1,v_proposal.proposed_milestone_key,v_proposal.proposed_assignment_id,v_proposal.proposed_assignment_item_id,
     v_proposal.proposed_move_key,v_next_action_version,v_proposal.proposed_action_text,
@@ -1134,6 +1522,7 @@ BEGIN
     IF v_existing.request_sha256=v_hash THEN RETURN v_existing.receipt||jsonb_build_object('replayed',true); END IF;
     RAISE EXCEPTION 'absence recovery request conflict';
   END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended('success-path-request:'||v_user_id::text||':'||p_request_id::text,0));
   PERFORM pg_advisory_xact_lock(hashtextextended('success-path:'||v_user_id::text||':'||p_cycle_id::text,0));
   SELECT * INTO v_existing FROM public.success_path_absence_recoveries WHERE user_id=v_user_id AND request_id=p_request_id;
   IF FOUND THEN
@@ -1145,6 +1534,9 @@ BEGIN
      OR v_state.state_version<>p_expected_path_version OR v_state.current_action_id IS NULL THEN
     RAISE EXCEPTION 'Success Path unavailable or stale'; END IF;
   SELECT * INTO v_action FROM public.success_path_actions WHERE action_id=v_state.current_action_id;
+  PERFORM public.success_path_retire_canonical_action(
+    v_user_id,p_cycle_id,v_state.path_id,v_state.current_action_id
+  );
   v_action_id:=public.success_path_attach_canonical_action(v_user_id,p_cycle_id,v_state.path_id,v_state.state_version+1,
     v_state.active_milestone_key,v_state.assignment_id,v_state.active_assignment_item_id,v_action.move_key,v_action.action_version+1,
     p_small_action_text,p_small_action_minutes,'absence_recovery');
@@ -1152,6 +1544,7 @@ BEGIN
     state_version=state_version+1,state_receipt_id=v_receipt_id,updated_at=clock_timestamp() WHERE path_id=v_state.path_id;
   v_receipt:=jsonb_build_object('status','saved','replayed',false,'recovery_id',gen_random_uuid(),
     'path_version',v_state.state_version+1,'action_id',v_action_id,'prior_action_id',v_state.current_action_id,
+    'state_receipt_id',v_receipt_id,
     'stage_preserved',true,'milestone_preserved',true,'overdue_items_created',0);
   INSERT INTO public.success_path_absence_recoveries(recovery_id,request_id,request_sha256,user_id,cycle_id,path_id,
     from_path_version,to_path_version,prior_action_id,action_id,receipt)
@@ -1180,20 +1573,32 @@ BEGIN
      OR NOT public.success_path_text_is_safe(p_reason,500) THEN RAISE EXCEPTION 'invalid support operation'; END IF;
   v_hash:=public.mastermind_wave2_jsonb_sha256(jsonb_build_object('support_request_id',p_support_request_id,
     'status',p_status,'actor_reference',p_actor_reference,'reason',p_reason));
-  SELECT * INTO v_existing FROM public.success_path_support_events WHERE request_id=p_request_id;
+  SELECT * INTO v_existing FROM public.success_path_support_events
+   WHERE support_request_id=p_support_request_id AND request_id=p_request_id;
   IF FOUND THEN
     IF v_existing.request_sha256=v_hash THEN RETURN jsonb_build_object('status',v_existing.event_type,'replayed',true,
       'support_request_id',v_existing.support_request_id,'status_receipt_id',v_existing.status_receipt_id); END IF;
     RAISE EXCEPTION 'support operation request conflict';
   END IF;
-  SELECT * INTO v_support FROM public.success_path_support_requests WHERE support_request_id=p_support_request_id FOR UPDATE;
+  PERFORM pg_advisory_xact_lock(hashtextextended('success-path-support:'||p_support_request_id::text,0));
+  SELECT * INTO v_support FROM public.success_path_support_requests
+   WHERE support_request_id=p_support_request_id FOR UPDATE;
   IF FOUND THEN
-    SELECT * INTO v_existing FROM public.success_path_support_events WHERE request_id=p_request_id;
-    IF FOUND THEN
-      IF v_existing.request_sha256=v_hash THEN RETURN jsonb_build_object('status',v_existing.event_type,'replayed',true,
-        'support_request_id',v_existing.support_request_id,'status_receipt_id',v_existing.status_receipt_id); END IF;
-      RAISE EXCEPTION 'support operation request conflict';
-    END IF;
+    PERFORM pg_advisory_xact_lock(hashtextextended(
+      'success-path-support-request:'||v_support.user_id::text||':'||p_request_id::text,0
+    ));
+    SELECT * INTO v_existing FROM public.success_path_support_events
+     WHERE user_id=v_support.user_id AND support_request_id=p_support_request_id AND request_id=p_request_id;
+  END IF;
+  IF v_existing.support_event_id IS NOT NULL THEN
+    IF v_existing.request_sha256=v_hash THEN RETURN jsonb_build_object('status',v_existing.event_type,'replayed',true,
+      'support_request_id',v_existing.support_request_id,'status_receipt_id',v_existing.status_receipt_id); END IF;
+    RAISE EXCEPTION 'support operation request conflict';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.success_path_support_events
+      WHERE user_id=v_support.user_id AND request_id=p_request_id
+        AND support_request_id<>p_support_request_id) THEN
+    RAISE EXCEPTION 'support operation request identity conflict';
   END IF;
   IF v_support.support_request_id IS NULL OR NOT public.success_path_authority_is_valid(v_support.path_id,v_support.user_id) THEN RAISE EXCEPTION 'support request unavailable'; END IF;
   IF (p_status='acknowledged' AND v_support.status<>'open') OR
@@ -1222,7 +1627,7 @@ CREATE OR REPLACE FUNCTION public.resolve_my_success_path_timeline(p_cycle_id uu
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $$
 DECLARE
   v_user_id uuid:=auth.uid(); v_state public.success_path_cycle_states%ROWTYPE; v_events jsonb;
-  v_cap_state text; v_cap_reason text;
+  v_cap_state text; v_cap_reason text; v_resolved jsonb;
 BEGIN
   IF v_user_id IS NULL THEN RAISE EXCEPTION 'authentication required' USING ERRCODE='28000'; END IF;
   SELECT decision_state,safe_reason INTO v_cap_state,v_cap_reason
@@ -1238,11 +1643,13 @@ BEGIN
   IF NOT FOUND THEN
     RETURN jsonb_build_object('capability_state','granted','reason','no_success_path','timeline_state','pending','events','[]'::jsonb);
   END IF;
-  IF NOT public.success_path_authority_is_valid(v_state.path_id,v_user_id) THEN
+  v_resolved:=public.resolve_my_success_path(p_cycle_id);
+  IF NOT public.success_path_authority_is_valid(v_state.path_id,v_user_id)
+     OR v_resolved->'success_path' IS NULL OR v_resolved->'success_path'='null'::jsonb THEN
     RETURN jsonb_build_object('capability_state','granted','reason','success_path_authority_stale','timeline_state','stale','events','[]'::jsonb);
   END IF;
   SELECT coalesce(jsonb_agg(jsonb_build_object('event_id',e.timeline_event_id,'event_type',e.event_type,
-    'path_version',e.path_version,'payload',e.member_payload,'created_at',e.created_at) ORDER BY e.created_at,e.timeline_event_id),'[]'::jsonb)
+    'path_version',e.path_version,'created_at',e.created_at) ORDER BY e.created_at,e.timeline_event_id),'[]'::jsonb)
     INTO v_events FROM public.success_path_timeline_events e
    WHERE e.user_id=v_user_id AND e.cycle_id=p_cycle_id AND e.path_id=v_state.path_id;
   RETURN jsonb_build_object('capability_state','granted','reason','timeline_available','timeline_state','saved','events',v_events);
@@ -1259,38 +1666,43 @@ BEGIN
     'success_path_support_events','success_path_timeline_events'
   ] LOOP
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY',v_table);
-    EXECUTE format('REVOKE ALL ON TABLE public.%I FROM PUBLIC, anon, authenticated',v_table);
+    EXECUTE format('REVOKE ALL ON TABLE public.%I FROM PUBLIC, anon, authenticated, service_role',v_table);
   END LOOP;
 END
 $$;
 
 REVOKE ALL ON FUNCTION public.success_path_forbid_history_mutation() FROM PUBLIC,anon,authenticated,service_role;
 REVOKE ALL ON FUNCTION public.success_path_text_is_safe(text,integer) FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.success_path_evidence_node_is_safe(jsonb,integer) FROM PUBLIC,anon,authenticated,service_role;
 REVOKE ALL ON FUNCTION public.success_path_evidence_value_is_safe(jsonb) FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.success_path_evidence_supports_advancement(text) FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.success_path_logical_action_key(uuid,text,text,bigint) FROM PUBLIC,anon,authenticated,service_role;
 REVOKE ALL ON FUNCTION public.success_path_authority_is_valid(uuid,uuid) FROM PUBLIC,anon,authenticated,service_role;
 REVOKE ALL ON FUNCTION public.success_path_append_timeline(uuid,uuid,uuid,bigint,text,text,text,text,text,jsonb,jsonb) FROM PUBLIC,anon,authenticated,service_role;
 REVOKE ALL ON FUNCTION public.success_path_attach_canonical_action(uuid,uuid,uuid,bigint,text,uuid,uuid,text,bigint,text,integer,text) FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.success_path_retire_canonical_action(uuid,uuid,uuid,uuid) FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.success_path_canonical_transition_diff(uuid,uuid,bigint,text,text,uuid,uuid,uuid,text,text,text,text,text,integer) FROM PUBLIC,anon,authenticated,service_role;
 
-REVOKE ALL ON FUNCTION public.create_success_path_recommendation(uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,text,text,text,integer,text,text,text) FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.create_success_path_recommendation(uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,text,text,text,integer,text,text,text) FROM PUBLIC,anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION public.create_success_path_recommendation(uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,text,text,text,integer,text,text,text) TO service_role;
-REVOKE ALL ON FUNCTION public.update_success_path_support(uuid,uuid,text,text,text) FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.update_success_path_support(uuid,uuid,text,text,text) FROM PUBLIC,anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION public.update_success_path_support(uuid,uuid,text,text,text) TO service_role;
 
-REVOKE ALL ON FUNCTION public.resolve_my_success_path(uuid) FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION public.resolve_my_success_path(uuid) FROM PUBLIC,anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION public.resolve_my_success_path(uuid) TO authenticated;
-REVOKE ALL ON FUNCTION public.confirm_my_success_path(uuid,uuid,bigint,text,text,text,uuid,text,text,integer,text) FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION public.confirm_my_success_path(uuid,uuid,bigint,text,text,text,uuid,text,text,integer,text) FROM PUBLIC,anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION public.confirm_my_success_path(uuid,uuid,bigint,text,text,text,uuid,text,text,integer,text) TO authenticated;
-REVOKE ALL ON FUNCTION public.submit_my_success_path_evidence(uuid,uuid,bigint,uuid,text,jsonb,text,text,timestamptz) FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION public.submit_my_success_path_evidence(uuid,uuid,bigint,uuid,text,jsonb,text,text,timestamptz) FROM PUBLIC,anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION public.submit_my_success_path_evidence(uuid,uuid,bigint,uuid,text,jsonb,text,text,timestamptz) TO authenticated;
-REVOKE ALL ON FUNCTION public.evaluate_my_success_path_week(uuid,uuid,text,bigint,uuid,uuid,text,text,integer) FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION public.evaluate_my_success_path_week(uuid,uuid,text,bigint,uuid,uuid,text,text,integer) FROM PUBLIC,anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION public.evaluate_my_success_path_week(uuid,uuid,text,bigint,uuid,uuid,text,text,integer) TO authenticated;
-REVOKE ALL ON FUNCTION public.preview_my_success_path_transition(uuid,uuid,bigint,text,text,uuid,uuid,uuid,text,text,text,text,text,integer) FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION public.preview_my_success_path_transition(uuid,uuid,bigint,text,text,uuid,uuid,uuid,text,text,text,text,text,integer) FROM PUBLIC,anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION public.preview_my_success_path_transition(uuid,uuid,bigint,text,text,uuid,uuid,uuid,text,text,text,text,text,integer) TO authenticated;
-REVOKE ALL ON FUNCTION public.confirm_my_success_path_transition(uuid,uuid,jsonb,text,boolean) FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION public.confirm_my_success_path_transition(uuid,uuid,jsonb,text,boolean) FROM PUBLIC,anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION public.confirm_my_success_path_transition(uuid,uuid,jsonb,text,boolean) TO authenticated;
-REVOKE ALL ON FUNCTION public.recover_my_success_path_after_absence(uuid,uuid,bigint,text,integer) FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION public.recover_my_success_path_after_absence(uuid,uuid,bigint,text,integer) FROM PUBLIC,anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION public.recover_my_success_path_after_absence(uuid,uuid,bigint,text,integer) TO authenticated;
-REVOKE ALL ON FUNCTION public.resolve_my_success_path_timeline(uuid) FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION public.resolve_my_success_path_timeline(uuid) FROM PUBLIC,anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION public.resolve_my_success_path_timeline(uuid) TO authenticated;
 
 COMMENT ON TABLE public.success_path_cycle_states IS
