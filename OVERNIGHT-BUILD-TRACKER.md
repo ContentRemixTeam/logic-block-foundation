@@ -270,3 +270,8 @@ The rejected `d2f64f997860e3726c573b9999bc3f4ac06cc380` findings were repaired: 
 ## Wave 4 accepted boundary — 2026-08-24
 
 Accepted implementation source: `b3f9f85446d195bcd74ce49ec1c7f6f147af0f7a`. Independent database/security and edge/privacy closure reviews both returned **NO BLOCKERS** after adversarial execution of receipt transitions, real concurrency, exhaustive ACLs, helper-relaxation controls, post-mint authority fencing, exact producer/browser schemas, Dropbox locator/host validation, and Replay Vault isolation. Parent gates: static 114; native PG16; full 197 chronology/double-apply; edge 7/7; mounted five serial passes; full repository verification; browser 5×2; Replay Vault 74/74 plus controls. Wave 4 is locked as private source only. Production, real curriculum, entitlements, publication, SaaS, and members remain untouched.
+
+
+## Final private-preview handoff — 2026-08-24
+
+Created `outputs/mastermind-success-path-overnight/final-private-preview-handoff.md`. The accepted Waves 1–4 source is locked and fully verified, but live private-preview activation remains fail-closed because zero curriculum rows are editorially `Ready` and no nonproduction backend, edge deployment, real media locator, test capability, or frozen test assignment was authorized. Activation now requires three explicit decisions: one approved Offer lesson, authorization for an isolated nonproduction Supabase preview environment, and one named test account. Production/member launch remains blocked.
