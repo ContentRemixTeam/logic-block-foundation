@@ -43,7 +43,8 @@ requireCheck(migration.includes("p_cycle_id::text || ':' || p_milestone_key || '
 requireCheck(migration.includes('ON CONFLICT (user_id, cycle_id, generation_key)'), 'canonical task create is not concurrency-idempotent');
 requireCheck(migration.includes('success_path_evidence_node_is_safe')
   && migration.includes('p_depth > 6') && migration.includes("jsonb_typeof(p_value)='array'")
-  && migration.includes('taskcompletion') && migration.includes('coursemetadata'),
+  && migration.includes('|task|completion|completed|complete|done|checked|checkmark|')
+  && migration.includes('coursemetadata'),
   'recursive evidence key/value proxy rejection missing');
 requireCheck(migration.includes('success_path_evidence_supports_advancement')
   && migration.includes("'business_metric', 'customer_response', 'deliverable', 'decision', 'experiment_result'"),
@@ -231,8 +232,20 @@ for (const [table, exactFields] of Object.entries({
     `generated TypeScript nullability/type drift for ${table}.${field}`);
 }
 requireCheck(postgres.includes('expected_signatures') && postgres.includes('nullable_contract')
-  && postgres.includes('relationship_count'),
-  'manual TypeScript surface lacks database signature/nullability/relationship drift oracle');
+  && postgres.includes('expected_relationships') && postgres.includes('source_columns')
+  && postgres.includes('target_columns') && postgres.includes('delete_action'),
+  'manual TypeScript surface lacks exact database signature/nullability/relationship drift oracle');
+requireCheck(postgres.includes('set(value) != DENIAL_RESPONSE_FIELDS')
+  && postgres.includes('set(value) != TIMELINE_RESPONSE_FIELDS')
+  && postgres.includes('set(event) != TIMELINE_EVENT_FIELDS'),
+  'privacy verifier does not enforce closed denial/timeline response schemas');
+requireCheck(postgres.includes('UNSEEDED-WAVE2-LEAK') && postgres.includes('PRIVATE-TOPLEVEL-ACTOR')
+  && postgres.includes('PRIVATE-TOPLEVEL-OPERATOR'),
+  'privacy executable controls do not cover unknown denial or top-level timeline fields');
+requireCheck(postgres.includes('{\"nested\":{\"task\":{\"completed\":true}}}'),
+  'native evidence verifier lacks generic nested task-completion proxy control');
+requireCheck(!postgres.includes('relationship_count ='),
+  'name-count-only relationship drift oracle returned');
 
 requireCheck(pkg.scripts['verify:mastermind-wave3-static'] === 'node tools/verify-mastermind-wave3.mjs', 'Wave 3 static script wiring mismatch');
 requireCheck(pkg.scripts['verify:mastermind-wave3-postgres'] === 'python3 tools/verify-mastermind-wave3-postgres.py', 'Wave 3 PG script wiring mismatch');

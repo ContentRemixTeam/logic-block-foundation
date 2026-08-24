@@ -83,3 +83,9 @@ Parent corrected two migration execution defects exposed by native PostgreSQL (`
 
 No production migration, push, deployment, real/member seed, entitlement/SaaS mutation, publishing, member exposure, or Wave 4 work occurred.
 
+## Final closure repair — 2026-08-23
+
+Repaired four adversarial closure findings: generic nested task/completion proxies are recursively rejected; denied Success Path envelopes use an exact four-field closed schema; timeline responses/events use exact closed schemas including top-level enforcement; and foreign-key parity verifies source table/columns, target table/columns, validation, and delete action rather than constraint names alone.
+
+Parent PASS: static 226; native PostgreSQL 16.14; complete 196-migration chronology with Wave candidates double-applied; TypeScript; focused lint; production build; full `npm run verify`; Replay Vault 74/74 plus mutation controls; `git diff --check`. Production remains blocked and untouched.
+

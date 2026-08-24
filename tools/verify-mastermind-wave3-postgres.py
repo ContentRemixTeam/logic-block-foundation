@@ -97,6 +97,10 @@ TIMELINE_PRIVATE_FIELDS = PRIVATE_DENIAL_FIELDS | {
     "reason", "private_payload", "support_operator", "created_by", "confirmed_by", "qa_approved_by",
 }
 
+DENIAL_RESPONSE_FIELDS = {"capability_state", "reason", "path_state", "success_path"}
+TIMELINE_RESPONSE_FIELDS = {"capability_state", "reason", "timeline_state", "events"}
+TIMELINE_EVENT_FIELDS = {"event_id", "event_type", "path_version", "created_at"}
+
 
 def nested_keys(value: Any) -> set[str]:
     if isinstance(value, dict):
@@ -114,8 +118,12 @@ def nested_keys(value: Any) -> set[str]:
 
 def assert_denial(label: str, value: dict[str, Any], sentinels: tuple[str, ...]) -> None:
     serialized = json.dumps(value, sort_keys=True, separators=(",", ":"))
-    if value.get("success_path") is not None:
-        raise RuntimeError(f"{label} exposed a Success Path: {serialized}")
+    if set(value) != DENIAL_RESPONSE_FIELDS:
+        raise RuntimeError(f"{label} violated closed denial schema: {sorted(value)}: {serialized}")
+    if value.get("success_path") is not None or value.get("path_state") not in {None, "pending", "stale"}:
+        raise RuntimeError(f"{label} exposed a Success Path or invalid safe state: {serialized}")
+    if not isinstance(value.get("capability_state"), str) or not isinstance(value.get("reason"), str):
+        raise RuntimeError(f"{label} denial scalars are malformed: {serialized}")
     leaked = sorted(nested_keys(value) & PRIVATE_DENIAL_FIELDS)
     if leaked:
         raise RuntimeError(f"{label} leaked protected keys {leaked}: {serialized}")
@@ -125,8 +133,13 @@ def assert_denial(label: str, value: dict[str, Any], sentinels: tuple[str, ...])
 
 
 def assert_timeline_private_free(label: str, value: dict[str, Any], sentinels: tuple[str, ...]) -> None:
-    events = value.get("events", [])
-    serialized = json.dumps(events, sort_keys=True, separators=(",", ":"))
+    serialized = json.dumps(value, sort_keys=True, separators=(",", ":"))
+    if set(value) != TIMELINE_RESPONSE_FIELDS or not isinstance(value.get("events"), list):
+        raise RuntimeError(f"{label} violated closed timeline schema: {sorted(value)}: {serialized}")
+    events = value["events"]
+    for event in events:
+        if not isinstance(event, dict) or set(event) != TIMELINE_EVENT_FIELDS:
+            raise RuntimeError(f"{label} violated closed timeline event schema: {event}: {serialized}")
     leaked = sorted(nested_keys(events) & TIMELINE_PRIVATE_FIELDS)
     if leaked:
         raise RuntimeError(f"{label} leaked timeline-private keys {leaked}: {serialized}")
@@ -298,6 +311,7 @@ def main() -> None:
             BEGIN RETURN jsonb_build_object('capability_state','denied','reason','executable_privacy_mutation_control',
               'path_state',NULL,'success_path',NULL,
               'recommendation_reason','PRIVATE-RECOMMENDATION-REASON',
+              'learning_authority',jsonb_build_object('secret_revision','UNSEEDED-WAVE2-LEAK'),
               'authority',jsonb_build_object('canonical_resource_id','{IDS['resource']}',
                 'media_asset_id','{IDS['media']}','transcript_version_id','{IDS['transcript']}',
                 'playback_attempt_id','{IDS['playback']}','publication_sha256','{'c'*64}',
@@ -368,6 +382,7 @@ def main() -> None:
                 '{"nested":{"Metric Name":"WATCH PERCENTAGE","value":100}}',
                 '{"values":[{"result":"Lesson Completion"}]}',
                 '{"result":{"task completion":{"check mark":true}}}',
+                '{"nested":{"task":{"completed":true}}}',
                 '{"context":"Video playback progress"}',
                 '{"course metadata":{"title":"private"}}',
             ]
@@ -631,7 +646,9 @@ def main() -> None:
             CREATE OR REPLACE FUNCTION public.resolve_my_success_path_timeline(p_cycle_id uuid) RETURNS jsonb
             LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $mutation$
             BEGIN RETURN jsonb_build_object('capability_state','granted','reason','timeline_available',
-              'timeline_state','saved','events',jsonb_build_array(jsonb_build_object(
+              'timeline_state','saved','actor_reference','PRIVATE-TOPLEVEL-ACTOR',
+              'operator_metadata',jsonb_build_object('role','PRIVATE-TOPLEVEL-OPERATOR'),
+              'events',jsonb_build_array(jsonb_build_object(
                 'event_type','support_resolved','actor_reference','PRIVATE-ACTOR-REFERENCE',
                 'internal_actor_metadata',jsonb_build_object('actor_role','PRIVATE-OPERATOR-ROLE',
                   'operator_notes','PRIVATE-OPERATOR-NOTES')))); END $mutation$;
@@ -753,13 +770,40 @@ def main() -> None:
                     f"SELECT is_nullable FROM information_schema.columns WHERE table_schema='public' AND table_name='{table}' AND column_name='{column}';"], env).stdout.strip()
                 if actual != expected:
                     raise RuntimeError(f"information_schema nullability drift for {table}.{column}: {actual}")
-            relationship_count = run([*psql, "-Atq", "-c",
-                "SELECT count(*) FROM pg_constraint WHERE connamespace='public'::regnamespace AND convalidated AND conname=ANY(ARRAY["
-                "'success_path_state_frozen_assignment_fkey','success_path_state_active_item_fkey','success_path_actions_owner_task_fkey',"
-                "'success_path_evidence_owner_path_fkey','success_path_checkins_owner_evidence_fkey','success_path_support_checkin_fkey',"
-                "'success_path_proposals_item_fkey','success_path_transitions_proposal_fkey']);"], env).stdout.strip()
-            if relationship_count != "8":
-                raise RuntimeError(f"database relationship contract drift: {relationship_count}/8")
+            expected_relationships = {
+                "success_path_state_frozen_assignment_fkey": ("public.success_path_cycle_states", "user_id,cycle_id,assignment_id", "public.curriculum_cycle_assignments", "user_id,cycle_id,assignment_id", "r"),
+                "success_path_state_active_item_fkey": ("public.success_path_cycle_states", "user_id,cycle_id,assignment_id,active_assignment_item_id", "public.curriculum_cycle_assignment_items", "user_id,cycle_id,assignment_id,assignment_item_id", "r"),
+                "success_path_actions_owner_task_fkey": ("public.success_path_actions", "user_id,cycle_id,task_id", "public.tasks", "user_id,cycle_id,task_id", "r"),
+                "success_path_evidence_owner_path_fkey": ("public.success_path_evidence_receipts", "user_id,cycle_id,path_id", "public.success_path_cycle_states", "user_id,cycle_id,path_id", "r"),
+                "success_path_checkins_owner_evidence_fkey": ("public.success_path_checkins", "user_id,cycle_id,evidence_receipt_id", "public.success_path_evidence_receipts", "user_id,cycle_id,evidence_receipt_id", "r"),
+                "success_path_support_checkin_fkey": ("public.success_path_support_requests", "user_id,cycle_id,checkin_id", "public.success_path_checkins", "user_id,cycle_id,checkin_id", "r"),
+                "success_path_proposals_item_fkey": ("public.success_path_focus_proposals", "user_id,cycle_id,proposed_assignment_id,proposed_assignment_item_id", "public.curriculum_cycle_assignment_items", "user_id,cycle_id,assignment_id,assignment_item_id", "r"),
+                "success_path_transitions_proposal_fkey": ("public.success_path_focus_transitions", "user_id,cycle_id,proposal_id", "public.success_path_focus_proposals", "user_id,cycle_id,proposal_id", "r"),
+            }
+            relationship_sql = """
+              SELECT jsonb_object_agg(c.conname,jsonb_build_object(
+                'source_table',sn.nspname||'.'||sr.relname,
+                'source_columns',(SELECT string_agg(a.attname,',' ORDER BY u.ord)
+                  FROM unnest(c.conkey) WITH ORDINALITY u(attnum,ord)
+                  JOIN pg_attribute a ON a.attrelid=c.conrelid AND a.attnum=u.attnum),
+                'target_table',tn.nspname||'.'||tr.relname,
+                'target_columns',(SELECT string_agg(a.attname,',' ORDER BY u.ord)
+                  FROM unnest(c.confkey) WITH ORDINALITY u(attnum,ord)
+                  JOIN pg_attribute a ON a.attrelid=c.confrelid AND a.attnum=u.attnum),
+                'delete_action',c.confdeltype::text,'validated',c.convalidated))
+              FROM pg_constraint c
+              JOIN pg_class sr ON sr.oid=c.conrelid JOIN pg_namespace sn ON sn.oid=sr.relnamespace
+              JOIN pg_class tr ON tr.oid=c.confrelid JOIN pg_namespace tn ON tn.oid=tr.relnamespace
+              WHERE c.conname=ANY(ARRAY[%s]);
+            """ % ",".join("'%s'" % name for name in expected_relationships)
+            relationship_rows = json.loads(run([*psql, "-Atq", "-c", relationship_sql], env).stdout.strip())
+            if set(relationship_rows) != set(expected_relationships):
+                raise RuntimeError(f"database relationship names drift: {sorted(relationship_rows)}")
+            for name, expected in expected_relationships.items():
+                actual = relationship_rows[name]
+                actual_tuple = (actual["source_table"], actual["source_columns"], actual["target_table"], actual["target_columns"], actual["delete_action"])
+                if actual_tuple != expected or actual["validated"] is not True:
+                    raise RuntimeError(f"database relationship contract drift for {name}: {actual}")
             labels = run([*psql, "-Atq", "-c",
                 f"SELECT count(*) FROM public.tasks WHERE user_id='{USERS['active']}' AND (coalesce(system_source,'') ILIKE '%mastermind%' "
                 "OR coalesce(category,'') ILIKE '%mastermind%' OR array_to_string(coalesce(context_tags,'{}'::text[]),',') ILIKE '%mastermind%');"], env).stdout.strip()

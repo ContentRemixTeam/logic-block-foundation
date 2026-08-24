@@ -475,7 +475,7 @@ BEGIN
     IF (SELECT count(*) FROM jsonb_object_keys(p_value))>20 THEN RETURN false; END IF;
     FOR v_key,v_child IN SELECT key,value FROM jsonb_each(p_value) LOOP
       v_normalized:=regexp_replace(lower(v_key),'[^a-z0-9]+','','g');
-      IF v_normalized ~ '(watch|video|lesson|progress|percentage|percent|taskcompletion|taskcompleted|checkmark|playback|transcript|coursemetadata|course)'
+      IF v_normalized ~ '(watch|video|lesson|progress|percentage|percent|task|completion|completed|complete|done|checked|checkmark|playback|transcript|coursemetadata|course)'
          OR v_normalized ~ '(password|apikey|secret|token|url|locator|path)'
          OR NOT public.success_path_evidence_node_is_safe(v_child,p_depth+1) THEN RETURN false; END IF;
     END LOOP;
@@ -486,7 +486,7 @@ BEGIN
     END LOOP;
   ELSIF jsonb_typeof(p_value)='string' THEN
     v_normalized:=regexp_replace(lower(p_value #>> '{}'),'[^a-z0-9]+','','g');
-    IF v_normalized ~ '(watch|video|lesson|progress|percentage|percent|taskcompletion|taskcompleted|checkmark|playback|transcript|coursemetadata|course)'
+    IF v_normalized ~ '(watch|video|lesson|progress|percentage|percent|task|completion|completed|complete|done|checked|checkmark|playback|transcript|coursemetadata|course)'
        OR v_normalized ~ '(https|s3|gs|file|bearer|password|apikey|secret|accesstoken)' THEN RETURN false; END IF;
   END IF;
   RETURN true;

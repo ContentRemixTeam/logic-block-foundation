@@ -216,3 +216,6 @@ No native database behavior/ACL/concurrency/apply-twice claim is made for this r
 
 All 15 immutable-review findings were repaired. Parent passed static 222, native PostgreSQL 16.14 all-role ACL/concurrency/evidence/task/transition/malformed-state/privacy/type-contract suites, full 196-migration replay with candidate double-apply, TypeScript/lint/build/full repository verification, Replay Vault 74/74 and mutation controls, and diff check. Immutable re-review required.
 
+## Wave 3 final closure repair — 2026-08-23
+
+Closed nested generic task evidence, denylist-only denial privacy, timeline top-level privacy, and name-only FK parity false-greens. Parent passed static 226, native PG16, full 196-migration chronology/double-apply, full repository verification, and Replay Vault 74/74 controls. Exact immutable re-review pending.
