@@ -89,3 +89,6 @@ Repaired four adversarial closure findings: generic nested task/completion proxi
 
 Parent PASS: static 226; native PostgreSQL 16.14; complete 196-migration chronology with Wave candidates double-applied; TypeScript; focused lint; production build; full `npm run verify`; Replay Vault 74/74 plus mutation controls; `git diff --check`. Production remains blocked and untouched.
 
+## Static FK closure — 2026-08-23
+
+The static gate now binds all eight protected foreign keys to exact source columns, target table/columns, and `ON DELETE RESTRICT`. Negative synthetic controls reject the reviewed proposal-id-only and task `ON DELETE CASCADE` regressions. Parent PASS: static 229, native PG16 privacy/relationship suite, full 196-migration chronology, full repository verification, Replay Vault 74/74 and controls.

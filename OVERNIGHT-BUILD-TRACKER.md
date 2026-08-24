@@ -219,3 +219,7 @@ All 15 immutable-review findings were repaired. Parent passed static 222, native
 ## Wave 3 final closure repair — 2026-08-23
 
 Closed nested generic task evidence, denylist-only denial privacy, timeline top-level privacy, and name-only FK parity false-greens. Parent passed static 226, native PG16, full 196-migration chronology/double-apply, full repository verification, and Replay Vault 74/74 controls. Exact immutable re-review pending.
+
+## Wave 3 static FK closure — 2026-08-23
+
+Static verifier now rejects exact same-name FK source/target/delete-action mutations. Parent passed static 229, native PG16, full chronology, full verify, and Replay Vault controls.

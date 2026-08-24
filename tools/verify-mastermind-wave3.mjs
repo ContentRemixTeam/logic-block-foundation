@@ -247,6 +247,36 @@ requireCheck(postgres.includes('{\"nested\":{\"task\":{\"completed\":true}}}'),
 requireCheck(!postgres.includes('relationship_count ='),
   'name-count-only relationship drift oracle returned');
 
+const normalizeSql = (source) => source.replace(/\s+/g, ' ').trim();
+const exactRelationshipFragments = [
+  'CONSTRAINT success_path_state_frozen_assignment_fkey FOREIGN KEY (user_id, cycle_id, assignment_id) REFERENCES public.curriculum_cycle_assignments(user_id, cycle_id, assignment_id) ON DELETE RESTRICT',
+  'CONSTRAINT success_path_state_active_item_fkey FOREIGN KEY (user_id, cycle_id, assignment_id, active_assignment_item_id) REFERENCES public.curriculum_cycle_assignment_items(user_id, cycle_id, assignment_id, assignment_item_id) ON DELETE RESTRICT',
+  'CONSTRAINT success_path_actions_owner_task_fkey FOREIGN KEY (user_id, cycle_id, task_id) REFERENCES public.tasks(user_id, cycle_id, task_id) ON DELETE RESTRICT',
+  'CONSTRAINT success_path_evidence_owner_path_fkey FOREIGN KEY (user_id, cycle_id, path_id) REFERENCES public.success_path_cycle_states(user_id, cycle_id, path_id) ON DELETE RESTRICT',
+  'CONSTRAINT success_path_checkins_owner_evidence_fkey FOREIGN KEY (user_id, cycle_id, evidence_receipt_id) REFERENCES public.success_path_evidence_receipts(user_id, cycle_id, evidence_receipt_id) ON DELETE RESTRICT',
+  'ADD CONSTRAINT success_path_support_checkin_fkey FOREIGN KEY (user_id, cycle_id, checkin_id) REFERENCES public.success_path_checkins(user_id, cycle_id, checkin_id) ON DELETE RESTRICT',
+  'CONSTRAINT success_path_proposals_item_fkey FOREIGN KEY (user_id, cycle_id, proposed_assignment_id, proposed_assignment_item_id) REFERENCES public.curriculum_cycle_assignment_items(user_id, cycle_id, assignment_id, assignment_item_id) ON DELETE RESTRICT',
+  'CONSTRAINT success_path_transitions_proposal_fkey FOREIGN KEY (user_id, cycle_id, proposal_id) REFERENCES public.success_path_focus_proposals(user_id, cycle_id, proposal_id) ON DELETE RESTRICT',
+];
+const hasExactRelationshipDefinitions = (source) => {
+  const normalized = normalizeSql(source);
+  return exactRelationshipFragments.every((fragment) => normalized.includes(fragment));
+};
+requireCheck(hasExactRelationshipDefinitions(migration),
+  'migration exact foreign-key source/target/delete contracts drifted');
+const weakProposalRelationship = migration.replace(
+  'FOREIGN KEY (user_id, cycle_id, proposal_id)\n    REFERENCES public.success_path_focus_proposals(user_id, cycle_id, proposal_id) ON DELETE RESTRICT',
+  'FOREIGN KEY (proposal_id)\n    REFERENCES public.success_path_focus_proposals(proposal_id) ON DELETE RESTRICT',
+);
+requireCheck(weakProposalRelationship !== migration && !hasExactRelationshipDefinitions(weakProposalRelationship),
+  'static FK negative control failed to reject proposal_id-only relationship');
+const cascadingTaskRelationship = migration.replace(
+  'REFERENCES public.tasks(user_id, cycle_id, task_id) ON DELETE RESTRICT',
+  'REFERENCES public.tasks(user_id, cycle_id, task_id) ON DELETE CASCADE',
+);
+requireCheck(cascadingTaskRelationship !== migration && !hasExactRelationshipDefinitions(cascadingTaskRelationship),
+  'static FK negative control failed to reject destructive task delete action');
+
 requireCheck(pkg.scripts['verify:mastermind-wave3-static'] === 'node tools/verify-mastermind-wave3.mjs', 'Wave 3 static script wiring mismatch');
 requireCheck(pkg.scripts['verify:mastermind-wave3-postgres'] === 'python3 tools/verify-mastermind-wave3-postgres.py', 'Wave 3 PG script wiring mismatch');
 requireCheck(pkg.scripts['verify:mastermind-wave3']?.includes('verify:cycle-plan-full-stack-postgres'), 'Wave 3 aggregate must include chronological PG replay');
