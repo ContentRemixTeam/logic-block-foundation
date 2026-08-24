@@ -418,6 +418,10 @@ def main() -> None:
             mutation_control = assigned_learning_after_mutation(
                 psql, env, USERS["nonmember"], ids["annual_cycle"], resolver_leak_mutation
             )
+            if mutation_control.get("reason") != "executable_privacy_mutation_control":
+                raise RuntimeError(
+                    "denied response mutation control did not execute the database-mutated resolver"
+                )
             try:
                 assert_fail_closed_envelope(
                     "denied response mutation control", mutation_control, private_sentinels

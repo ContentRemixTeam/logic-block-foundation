@@ -172,12 +172,29 @@ for (const state of [
 ]) {
   requireCheck(postgresVerifier.includes(state), `native denied-envelope coverage missing ${state}`);
 }
+const executablePrivacyMutationBinding = /mutation_control\s*=\s*assigned_learning_after_mutation\(\s*psql,\s*env,\s*USERS\["nonmember"\],\s*ids\["annual_cycle"\],\s*resolver_leak_mutation\s*\)/s;
+const legacyLocalMutationPatterns = [
+  /mutation_control\s*=\s*dict\s*\(/,
+  /mutation_control\s*\[\s*["']media_asset_id["']\s*\]\s*=/,
+];
+const hasExecutablePrivacyMutationControl = (source) => (
+  source.includes('denied response mutation control')
+    && source.includes('CREATE OR REPLACE FUNCTION public.resolve_my_assigned_learning')
+    && executablePrivacyMutationBinding.test(source)
+    && source.includes('mutation_control.get("reason") != "executable_privacy_mutation_control"')
+    && source.includes('rollback restoration')
+    && legacyLocalMutationPatterns.every((pattern) => !pattern.test(source))
+);
 requireCheck(
-  postgresVerifier.includes('denied response mutation control')
-    && postgresVerifier.includes('CREATE OR REPLACE FUNCTION public.resolve_my_assigned_learning')
-    && postgresVerifier.includes('assigned_learning_after_mutation(')
-    && postgresVerifier.includes('rollback restoration'),
-  'native verifier must execute and roll back a real resolver privacy mutation',
+  hasExecutablePrivacyMutationControl(postgresVerifier),
+  'native verifier must bind the asserted response to the executed resolver mutation and forbid local dictionary injection',
+);
+const syntheticLocalDictionaryRegression = `${postgresVerifier}
+mutation_control = dict(assigned_learning(psql, env, USERS["nonmember"], ids["annual_cycle"]))
+mutation_control["media_asset_id"] = ids["media"]`;
+requireCheck(
+  !hasExecutablePrivacyMutationControl(syntheticLocalDictionaryRegression),
+  'static privacy-mutation gate failed to reject the legacy local-dictionary regression control',
 );
 
 requireCheck(pkg.scripts['verify:mastermind-wave2'] === 'npm run verify:mastermind-wave2-static && npm run verify:mastermind-wave2-postgres && npm run verify:cycle-plan-full-stack-postgres', 'Wave 2 aggregate must include focused and full chronological PG16 proof');

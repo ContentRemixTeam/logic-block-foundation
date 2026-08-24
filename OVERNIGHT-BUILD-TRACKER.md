@@ -174,3 +174,7 @@ All four immutable-review blockers were repaired and passed parent native Postgr
 
 The final review's test-quality blocker is closed. The native PostgreSQL harness now replaces `resolve_my_assigned_learning(uuid)` inside a transaction with a leaking resolver that inserts `media_asset_id` into a denied envelope, calls that real resolver under the authenticated role, and requires the governing privacy assertion to fail. The transaction rolls back; the harness then calls the restored real resolver and requires the clean denied envelope to pass. Static verification requires this database mutation + rollback-restoration path, preventing regression to a local Python-dictionary injection. Focused PostgreSQL 16.14 and the complete repository aggregate both passed afterward.
 
+## Static executable-mutation anti-regression closure — 2026-08-23
+
+The static gate now requires the exact assignment of `mutation_control` from `assigned_learning_after_mutation(..., resolver_leak_mutation)`, requires a runtime provenance marker returned only by the database-mutated resolver, forbids the former local dictionary assignment and `media_asset_id` injection patterns, and runs a synthetic legacy-regression negative control that must be rejected. Static verification now passes 132 checks; native PostgreSQL 16 and the complete repository aggregate pass afterward.
+
