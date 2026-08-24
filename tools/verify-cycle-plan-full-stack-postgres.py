@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply the full chronological migration stack through Wave 3 on disposable PG16.
+"""Apply the full chronological migration stack through Wave 4 on disposable PG16.
 
 This intentionally fails (without relabeling source inspection as behavior) when
 the local PostgreSQL distribution lacks a Supabase-only extension required by a
@@ -20,6 +20,7 @@ WAVE_CANDIDATES = [
     MIGRATIONS / "20260822200000_mastermind_capability_projection.sql",
     MIGRATIONS / "20260822210000_planner_learning_catalog_assignments.sql",
     MIGRATIONS / "20260822220000_success_path_execution_ledger.sql",
+    MIGRATIONS / "20260822230000_offer_first_assigned_learning_slice.sql",
 ]
 LATEST_CANDIDATE = WAVE_CANDIDATES[-1]
 BEHAVIOR = ROOT / "test/cycle-plan-reconciliation-v2/behavior.sql"
@@ -46,9 +47,9 @@ def main() -> None:
         raise SystemExit(f"BLOCKED PostgreSQL 16 required, found {version}")
     migrations = sorted(MIGRATIONS.glob("*.sql"))
     if not migrations or migrations[-1] != LATEST_CANDIDATE:
-        raise SystemExit("Latest Wave 3 candidate is not the final chronological migration")
+        raise SystemExit("Latest Wave 4 candidate is not the final chronological migration")
     if any(candidate not in migrations for candidate in WAVE_CANDIDATES):
-        raise SystemExit("One or more Wave 1/Wave 2 candidate migrations are missing")
+        raise SystemExit("One or more Wave 1/Wave 2/Wave 3/Wave 4 candidate migrations are missing")
 
     bootstrap = """
 DO $$ BEGIN CREATE ROLE anon NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
@@ -207,7 +208,7 @@ RESET ROLE;
 """
             checked([*command, "-c", private_acl_probe], env)
             print(f"PASS complete chronological stack through {LATEST_CANDIDATE.name} ({len(migrations)} migrations)")
-            print("PASS Wave 1/Wave 2/Wave 3 candidates double apply on full chronological stack")
+            print("PASS Wave 1/Wave 2/Wave 3/Wave 4 candidates double apply on full chronological stack")
             print("PASS migration 182 PostgreSQL 16 helper ACL and search semantics")
             print("PASS Wave 1 behavior suite on full chronological stack")
             print("PASS final effective private-ledger ACLs and denied-TRUNCATE receipt survival")

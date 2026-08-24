@@ -7033,6 +7033,51 @@ export type Database = {
           },
         ]
       }
+      planner_learning_playback_authorizations: {
+        Row: {
+          assignment_item_id: string
+          authority_sha256: string | null
+          authorization_receipt_id: string
+          created_at: string
+          cycle_id: string
+          decision: string
+          evaluated_at: string
+          receipt: Json
+          request_id: string
+          request_sha256: string
+          safe_reason: string
+          user_id: string
+        }
+        Insert: {
+          assignment_item_id: string
+          authority_sha256?: string | null
+          authorization_receipt_id?: string
+          created_at?: string
+          cycle_id: string
+          decision: string
+          evaluated_at: string
+          receipt: Json
+          request_id: string
+          request_sha256: string
+          safe_reason: string
+          user_id: string
+        }
+        Update: {
+          assignment_item_id?: string
+          authority_sha256?: string | null
+          authorization_receipt_id?: string
+          created_at?: string
+          cycle_id?: string
+          decision?: string
+          evaluated_at?: string
+          receipt?: Json
+          request_id?: string
+          request_sha256?: string
+          safe_reason?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       success_path_absence_recoveries: {
         Row: {
           action_id: string
@@ -10425,7 +10470,21 @@ export type Database = {
         Args: { p_cycle_id: string }
         Returns: Json
       }
+      resolve_assigned_learning_playback: {
+        Args: {
+          p_as_of: string
+          p_assignment_item_id: string
+          p_cycle_id: string
+          p_request_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       resolve_my_success_path: {
+        Args: { p_cycle_id: string }
+        Returns: Json
+      }
+      resolve_my_success_path_learning_slice: {
         Args: { p_cycle_id: string }
         Returns: Json
       }

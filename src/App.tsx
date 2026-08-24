@@ -113,6 +113,7 @@ const InstallSuccess = lazyWithRetry(() => import('./pages/InstallSuccess'));
 const Projects = lazyWithRetry(() => import('./pages/Projects'));
 const ProjectDetail = lazyWithRetry(() => import('./pages/ProjectDetail'));
 const MastermindHub = lazyWithRetry(() => import('./pages/MastermindHub'));
+const MastermindSuccessPath = lazyWithRetry(() => import('./pages/MastermindSuccessPath'));
 const ReplayVault = lazyWithRetry(() => import('./pages/ReplayVault'));
 const MastermindGate = lazyWithRetry(() => import('./components/mastermind/MastermindGate').then(m => ({ default: m.MastermindGate })));
 const MastermindRosterImport = lazyWithRetry(() => import('./pages/MastermindRosterImport'));
@@ -273,7 +274,7 @@ const App = () => (
                       <Route path="/identity-anchors" element={<ProtectedRoute><PageSuspense><IdentityAnchors /></PageSuspense></ProtectedRoute>} />
                       <Route path="/self-coaching" element={<ProtectedRoute><PageSuspense><SelfCoaching /></PageSuspense></ProtectedRoute>} />
                       <Route path="/mastermind" element={<ProtectedRoute><MastermindGate><PageSuspense><MastermindHub /></PageSuspense></MastermindGate></ProtectedRoute>} />
-                      <Route path="/mastermind/success-path/:cycleId" element={<ProtectedRoute><MastermindGate><PageSuspense><MastermindHub /></PageSuspense></MastermindGate></ProtectedRoute>} />
+                      <Route path="/mastermind/success-path/:cycleId" element={<ProtectedRoute><MastermindGate><PageSuspense><MastermindSuccessPath /></PageSuspense></MastermindGate></ProtectedRoute>} />
                       <Route path="/mastermind/replay-vault" element={<ProtectedRoute><PageSuspense><ReplayVault /></PageSuspense></ProtectedRoute>} />
                       <Route path="/admin/mastermind-roster" element={<ProtectedRoute><PageSuspense><MastermindRosterImport /></PageSuspense></ProtectedRoute>} />
                       <Route path="/support" element={<ProtectedRoute><PageSuspense><Support /></PageSuspense></ProtectedRoute>} />

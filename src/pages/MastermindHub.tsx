@@ -27,7 +27,6 @@ import {
   CheckCircle2,
   ClipboardCheck,
   ExternalLink,
-  Library,
   Pin,
   Search,
   Sparkles,
@@ -193,10 +192,6 @@ export default function MastermindHub() {
               </div>
             </div>
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-              <Button variant="outline" onClick={() => navigate('/mastermind/replay-vault')}>
-                <Library className="mr-2 h-4 w-4" />
-                Replay Vault
-              </Button>
               <Button variant="outline" onClick={() => navigate('/weekly-review')}>
                 <ClipboardCheck className="mr-2 h-4 w-4" />
                 Weekly Check-In
@@ -427,7 +422,7 @@ export default function MastermindHub() {
                     Resource finder
                   </CardTitle>
                   <CardDescription>
-                    Monthly access is core curriculum plus current 30-day replays. Vault records stay marked separately.
+                    Your current plan stays focused on the one resource needed for the next action.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">

@@ -227,3 +227,20 @@ Static verifier now rejects exact same-name FK source/target/delete-action mutat
 ## Wave 3 accepted boundary — 2026-08-23
 
 Accepted implementation source: `396febb31cdb5497ae8016b918edc4939f979fca`. Final independent closure returned NO BLOCKERS for exact static FK mutation rejection and runtime closed-schema privacy mutation/rollback. Final gates: static 229; native PostgreSQL 16.14 behavior/RLS/ACL/concurrency/privacy; complete 196-migration chronology with Wave 1/2/3 double-apply; TypeScript; lint; production build; full repository verification; Replay Vault 74/74 plus mutation controls. Production remained untouched. Wave 4 may begin only from this accepted source plus this documentation lock.
+
+## Wave 4 Offer-first protected Planner Learning source candidate — 2026-08-24
+
+Status: **PARENT-VERIFIABLE PRIVATE SOURCE CANDIDATE — NATIVE PG16 AND MOUNTED-CHROME ACCEPTANCE BLOCKED LOCALLY — PRODUCTION UNTOUCHED**
+
+Wave 4 adds migration 197 with a closed authenticated one-item Success Path resolver, an exact assignment/action-bound service-only playback authorization RPC and append-only audit receipt, a separate secret-safe assigned-Learning edge function, and a dedicated gated `/mastermind/success-path/:cycleId` member surface. The monthly surface contains one Offer lesson, canonical Planner action, evidence/evaluation loop, and one support route; it does not expose or depend on Replay Vault authority or discovery features. No real curriculum was seeded or promoted.
+
+Locally passed: Wave 4 static 79; four edge tests and Deno lint; aggregate executable mutation control; TypeScript; focused ESLint; production build; Wave 2 static 132; Wave 3 static 229; inherited portal/Success Path/bundle checks; Replay Vault protected baseline 74/74 and all protected controls; `git diff --check`; secret and local absolute-host-path scans. The full aggregate starts correctly but stops at the mandatory inherited Wave 2 PostgreSQL gate because this sandbox cannot allocate PostgreSQL bootstrap shared memory.
+
+Parent must execute the focused Wave 4 native PostgreSQL 16 suite, complete 197-migration chronology with Wave candidates applied twice, the mounted 320/360/390 px Chrome suite, and the complete `npm run verify` on an unrestricted host. Local Chrome exits before establishing DevTools, so no mounted-browser behavior pass is claimed.
+
+Canonical evidence: `outputs/mastermind-success-path-overnight/wave-4-verification-receipt.md`. No commit, push, deploy, production migration, member/editorial seed, SaaS/GHL/Searchie mutation, entitlement change, publishing, external webhook, member exposure, or Wave 5 work occurred.
+
+
+## Wave 4 parent verification and repair — 2026-08-24
+
+Parent closed two verifier false negatives (mounted-root scope and user-specific opaque assignment IDs), normalized native PostgreSQL boolean ACL formatting, and repaired a real background-refresh/player-focus handoff race. The final candidate passed Wave 4 static 79; native PostgreSQL 16.14; complete 197-migration chronology and double-apply; edge 4/4 plus lint; mounted 320/360/390 px with five consecutive stability repetitions; executable DB/edge/UI mutation controls; full `npm run verify` in one execution including production build and browser 5 scenarios × 2 passes; Replay Vault 74/74 plus protected controls; diff, secret, and host-path checks. Immutable independent review is required before Wave 4 acceptance. Production and real curriculum remain untouched.
