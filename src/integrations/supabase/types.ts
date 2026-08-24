@@ -1745,6 +1745,41 @@ export type Database = {
           },
         ]
       }
+      curriculum_catalog_version_revocations: {
+        Row: {
+          catalog_version_id: string
+          evidence_sha256: string
+          reason: string
+          revocation_id: string
+          revoked_at: string
+          revoked_by: string
+        }
+        Insert: {
+          catalog_version_id: string
+          evidence_sha256: string
+          reason: string
+          revocation_id?: string
+          revoked_at?: string
+          revoked_by: string
+        }
+        Update: {
+          catalog_version_id?: string
+          evidence_sha256?: string
+          reason?: string
+          revocation_id?: string
+          revoked_at?: string
+          revoked_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_catalog_version_revocations_catalog_version_id_fkey"
+            columns: ["catalog_version_id"]
+            isOneToOne: true
+            referencedRelation: "curriculum_catalog_versions"
+            referencedColumns: ["catalog_version_id"]
+          },
+        ]
+      }
       curriculum_catalog_items: {
         Row: {
           action_prompt: string | null
@@ -1958,6 +1993,8 @@ export type Database = {
           assignment_item_id: string
           assignment_order: number
           assignment_role: string
+          authority_sha256: string
+          authority_snapshot: Json
           canonical_resource_id: string
           catalog_item_id: string
           catalog_version_id: string
@@ -1974,6 +2011,8 @@ export type Database = {
           assignment_item_id?: string
           assignment_order: number
           assignment_role: string
+          authority_sha256: string
+          authority_snapshot: Json
           canonical_resource_id: string
           catalog_item_id: string
           catalog_version_id: string
@@ -1990,6 +2029,8 @@ export type Database = {
           assignment_item_id?: string
           assignment_order?: number
           assignment_role?: string
+          authority_sha256?: string
+          authority_snapshot?: Json
           canonical_resource_id?: string
           catalog_item_id?: string
           catalog_version_id?: string
@@ -2023,8 +2064,10 @@ export type Database = {
           assignment_id: string
           assignment_status: string
           assignment_version: number
+          catalog_content_sha256: string
           catalog_version_id: string
           confirmed_at: string | null
+          confirmed_by: string | null
           context_key: string
           created_at: string
           created_by: string
@@ -2044,8 +2087,10 @@ export type Database = {
           assignment_id?: string
           assignment_status: string
           assignment_version: number
+          catalog_content_sha256: string
           catalog_version_id: string
           confirmed_at?: string | null
+          confirmed_by?: string | null
           context_key?: string
           created_at?: string
           created_by: string
@@ -2065,8 +2110,10 @@ export type Database = {
           assignment_id?: string
           assignment_status?: string
           assignment_version?: number
+          catalog_content_sha256?: string
           catalog_version_id?: string
           confirmed_at?: string | null
+          confirmed_by?: string | null
           context_key?: string
           created_at?: string
           created_by?: string
@@ -9310,6 +9357,7 @@ export type Database = {
         Args: {
           p_assignment_id: string
           p_confirmed_by: string
+          p_expected_rebuild_diff: Json
           p_expected_rebuild_diff_sha256: string
         }
         Returns: Json
@@ -9346,6 +9394,15 @@ export type Database = {
       }
       publish_curriculum_catalog_version: {
         Args: { p_catalog_version_id: string }
+        Returns: Json
+      }
+      revoke_curriculum_catalog_version: {
+        Args: {
+          p_catalog_version_id: string
+          p_evidence_sha256: string
+          p_reason: string
+          p_revoked_by: string
+        }
         Returns: Json
       }
       resolve_my_assigned_learning: {

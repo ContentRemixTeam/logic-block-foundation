@@ -1,109 +1,89 @@
-# Wave 2 Verification Receipt — Capability + Curriculum Authority
+# Wave 2 Critical Repair Verification Receipt
 
-Date: 2026-08-23  
-Status: **PARENT-VERIFIED LOCAL CANDIDATE; IMMUTABLE REVIEW PENDING — PRODUCTION BLOCKED**  
-Starting/current HEAD: `b6a99139a2b82cb3f824a052b92a2f0e2c35b33e`  
-Candidate commit: pending at receipt update
+Date: 2026-08-23
+Status: **REPAIRED PARENT-VERIFIED LOCAL CANDIDATE — IMMUTABLE RE-REVIEW PENDING; PRODUCTION BLOCKED**
+Accepted Wave 1 base: `b6a99139a2b82cb3f824a052b92a2f0e2c35b33e`
+Rejected Wave 2 checkpoint/current HEAD: `f93c0f691347b1add6663adedc244153cd33646d`
 
-## Implemented authority
+## Repaired authority
 
-- Ten exact caller-only capability keys with `granted | denied | verification_unavailable | review_required` outcomes.
-- `planner.base` derives from authenticated account identity; Mastermind capabilities derive from the existing entitlement ledger; Vault capabilities compose the unchanged R10 Vault decision; admin preview derives from `is_admin(auth.uid())`.
-- Append-only, restriction-only verification holds for missing, stale, contradictory, unavailable, or review-required evidence. Holds cannot grant access.
-- Versioned Planner Learning catalog, separate private media authority, exact `gap | candidate | refresh_required | ready | revoked` item states, and ready-state enforcement across transcript, provenance, rights, privacy, edit, caption, playback, action, and evidence QA.
-- Frozen assignments bound by composite foreign keys to one owner, cycle, exact completed Wave 1 ledger row, exact Planner receipt, catalog version, and item authority snapshot.
-- One active and one pending-rebuild assignment maximum per owner/cycle/context; rebuilds append a new assignment and require a hashed diff plus a separate confirmation RPC.
-- Caller-only assigned-Learning resolver. Denied, unavailable, review-required, cross-owner, stale-receipt, and revoked-item paths return no title, teacher, stage, milestone, resource count, media locator, transcript identity, or Vault metadata.
-- No real curriculum resources or GHL fixtures were seeded. Native-test fixtures are synthetic only.
+- Whole-catalog revocation is a service-role-only RPC with an exact append-only evidence event and terminal lifecycle transition. The member resolver checks both lifecycle and audit authority before exposing assignment metadata.
+- Rebuild proposal creation computes and persists a canonical JSONB diff from the exact frozen active assignment and proposed frozen authority snapshots. A caller-provided proposal diff is only an optional expected value and must match.
+- Rebuild confirmation requires the exact server-derived diff and canonical SHA-256, recomputes both from the pending frozen rows, revalidates current/proposed authority, and activates only that pending assignment.
+- Catalog `content_sha256` now hashes versioned canonical JSONB in deterministic item order. It binds publication-time catalog identity; every item, prompt, teacher/attribution/provenance field; every media identity and source hash; all QA states, receipt, timestamp, and approver fields; and the required capability.
+- Assignment rows freeze the catalog hash. Assignment items freeze the complete private publication authority snapshot plus its hash. Creation, confirmation, and resolution recompute receipts and fail closed on drift.
+- Denied/review envelopes remain limited to capability state, safe reason, assignment state, `assignment: null`, and `items: []`.
 
-The Application Data Safety skill materially shaped the frozen assignment columns: canonical resource UUID, transcript version, playback attempt, publication hash, required capability, exact Planner receipt, and serialized-response absence checks are separate from mutable catalog pointers and private provider locators.
+## Files changed by this repair
 
-## Files
-
-Application/source files created or modified by Wave 2:
-
-- `package.json`
 - `src/integrations/supabase/types.ts`
-- `supabase/migrations/20260822200000_mastermind_capability_projection.sql`
 - `supabase/migrations/20260822210000_planner_learning_catalog_assignments.sql`
-- `test/mastermind-wave2/mock-predecessor-extension.sql`
 - `tools/verify-mastermind-wave2.mjs`
 - `tools/verify-mastermind-wave2-postgres.py`
 - `OVERNIGHT-BUILD-TRACKER.md`
 - `outputs/mastermind-success-path-overnight/wave-2-verification-receipt.md`
 - `outputs/mastermind-success-path-overnight/wave-2-final-message.txt`
 
-Pre-existing dirty file preserved and not authored in this run:
+Untracked repair prompt preserved and not treated as implementation source:
 
-- `outputs/mastermind-success-path-overnight/wave-2-codex-prompt.md`
+- `outputs/mastermind-success-path-overnight/wave-2-critical-repair-prompt.md`
 
-## Exact verification commands and exits
+## Executed verification
 
-1. `npm run verify:mastermind-wave2-static` — exit `0`; 65 focused migration/type/ACL/boundary checks passed.
-2. `npm run verify:mastermind-wave2-postgres` — exit `1`; blocked during PostgreSQL 16.14 `initdb` before either Wave 2 migration applied. mmap failed with sandbox permission denial and SysV failed to allocate the bootstrap segment. No database behavior pass is claimed.
-3. `npx tsc --noEmit` — exit `0`.
-4. `npx eslint tools/verify-mastermind-wave2.mjs src/integrations/supabase/types.ts` — exit `0`.
-5. `npm run verify:replay-vault-edge-lint` — exit `0`; Deno checked 8 unchanged protected/shared Vault files. There are no changed Deno files in Wave 2.
-6. `npm run build` — exit `0`; Vite built 5,165 modules and generated the PWA. Existing stale Browserslist and chunk-size warnings are non-failing.
-7. `npm run verify` — exit `1`; the aggregate synchronously ran the Wave 2 static verifier, then stopped at the mandatory PostgreSQL bootstrap blocker. Later aggregate children did not execute in that command; their requested type/lint/build gates were run separately above.
-8. `npm run verify:replay-vault-protected-baseline` — exit `0`; `74/74` hashes and byte counts match, with `0` protected-scope additions.
-9. `git diff --check` — exit `0` on the source candidate before completion-artifact write; terminal handoff rerun is reported in the final response.
-10. Secret scan of the seven changed source/test files for common live-key/private-key patterns — exit `0`, no matches.
-11. Absolute-path scan of the seven changed source/test files for `/Users/faithhawks`, `/home/<user>`, or `file://` — exit `0`, no matches.
+- `npm run verify:mastermind-wave2-static` — exit `0`; 131 focused authority/type/ACL/test-wiring checks passed.
+- `npm run verify:mastermind-wave2-postgres` — exit `1`; PostgreSQL 16 `initdb` could not allocate either mmap or SysV bootstrap shared memory. No migration or database behavior pass is claimed.
+- `npm run verify:cycle-plan-full-stack-postgres` — exit `1`; the full chronological runner was blocked at PostgreSQL bootstrap before migration replay. No 195+ migration pass is claimed in this sandbox.
+- `npx tsc --noEmit` — exit `0`.
+- `npx eslint tools/verify-mastermind-wave2.mjs src/integrations/supabase/types.ts` — exit `0`.
+- `npm run lint` — exit `1`; repository-wide pre-existing baseline contains 638 errors and 113 warnings outside the repaired files. No repair-scope ESLint error was reported.
+- `npm run build` — exit `0`; 5,165 modules transformed. Existing Browserslist/chunk-size warnings remain non-failing.
+- `npm run verify` — exit `1`; the aggregate passed the Wave 2 static child and stopped at the mandatory PostgreSQL bootstrap blocker.
+- `npm run verify:replay-vault-protected-baseline` — exit `0`; 74/74 hashes and byte counts match with zero protected-scope additions.
+- `npm run verify:replay-vault-protected-baseline-control` — exit `0`; unchanged scope, synthetic mutation/addition, real untracked addition discovery, cleanup, and verifier self-exclusion controls passed.
+- Remaining aggregate children run independently: Deno Replay Vault lint, Mastermind portal, Success Path, Replay Vault pilot, pilot bundle, server search, playback link, and Mastermind production bundle passed. Mounted Chrome checks cannot establish DevTools; loopback mock/browser checks cannot bind `127.0.0.1`; Replay Vault commercial PostgreSQL is blocked by the same `initdb` restriction.
+- `git diff --check` — exit `0` after the final receipt update.
+- Secret scan of all seven repair-owned source/artifact files — exit `0`; no live-key/private-key patterns found.
+- Absolute-path scan of all seven repair-owned source/artifact files — exit `0`; no host-home or local-file URI matches found.
 
 Migration SHA-256 values:
 
-- Capability projection: `3d51a0b2cbd4301ae08cf2861223e9e92353f890a1a4ac5657ad57e37bedb8c3`
-- Learning catalog/assignments: `a6745abfe68b522ae75a26e9952b157c3a0b72b98806a9f22657b8f3cb3d029d`
-- Untouched inherited private-search migration: `d9b22f482a4000a8e0c0cf0040fac50871d124d04c77f986d067e43526f86d33`
+- Capability projection (unchanged by repair): `3d51a0b2cbd4301ae08cf2861223e9e92353f890a1a4ac5657ad57e37bedb8c3`
+- Repaired Learning catalog/assignment authority: `91b22c5d52a125afff7fb39bc5f069fcdd6cddfca2efd21a0f14ced7e0b3c98b`
 
-## Native database behaviors
+## Native PostgreSQL cases authored but not executed here
 
-Real PostgreSQL behaviors exercised in this sandbox: **none**. PostgreSQL 16.14 was found, but `initdb` failed before cluster creation under both supported bootstrap shared-memory strategies. A process exit is not acceptance.
+The checked-in PostgreSQL 16 verifier now exercises:
 
-The checked-in native harness is deterministic and is designed to exercise, once run on a capable PostgreSQL 16 host:
+- actual service-only append-only terminal whole-catalog revocation after an assignment is active;
+- direct authenticated RPC/table revocation denial and audit-row immutability;
+- exact server-derived proposal diff persistence and false caller proposal rejection;
+- omitted diff, omitted hash, incomplete diff, false diff, reordered item arrays, materially changed authority, and false hash confirmation rejection while the pending assignment remains pending;
+- truthful exact diff/hash activation;
+- publication receipt mutation controls across catalog, item, media, source, publication, prompt, teacher/provenance, capability, and every QA authority field;
+- assignment creation/resolution drift detection against recomputed catalog and frozen item authority;
+- real serialized JSON absence for standalone Planner, expired entitlement, verification unavailable, review-required conflict/hold, stale Planner receipt, invalid frozen authority, cross-owner, malformed authority, item revocation, and whole-catalog revocation;
+- negative sentinel values for private media/resource/transcript/playback/publication/provider/locator and Vault IDs, counts, titles, placements, and alternate labels;
+- an isolated denied-response mutation control that injects `media_asset_id` and requires the governing absence verifier to fail.
 
-- Wave 2 migration apply twice over the exact focused Wave 1 predecessor;
-- anonymous, standalone Planner, monthly, annual, lifetime, expired, conflicting, unavailable, and admin personas;
-- actual PUBLIC/anon function ACL denial and authenticated private-table DML denial;
-- independent Learning versus Vault capability outcomes;
-- cross-owner resolution/creation attempts and denied-response metadata absence;
-- ready-state QA rejection and valid synthetic ready publication;
-- published catalog/item immutability and explicit supersession;
-- frozen assignment stability after a later catalog publishes;
-- exact owner/cycle/receipt relational enforcement;
-- pending rebuild diff hashing and separate confirmation;
-- real concurrent duplicate assignment creation with one active winner;
-- append-only item revocation and fail-closed member resolution.
+These are authored controls, not database execution evidence, until the parent runs both PostgreSQL gates on an unrestricted PostgreSQL 16 host.
 
-These are authored test cases, not executed proof in this receipt.
+## Boundary and production status
 
-## Protected boundaries and blockers
+- Replay Vault protected source remains byte-identical at 74/74 with zero additions.
+- No commit, push, deploy, production migration, Supabase link/write, real curriculum/member seed, external SaaS mutation, publishing, entitlement/access change, or member exposure occurred.
+- Wave 3 was not started.
+- Production status: **BLOCKED / NOT DEPLOYED**. Independent parent PostgreSQL execution and immutable review remain required.
 
-- Replay Vault protected baseline: PASS, 74/74 exact, zero additions.
-- `20260808120000_mastermind_portal_private_search.sql`: unchanged. Its inherited PG16 generated-expression defect remains a separate full-history release blocker per the Wave 2 instruction.
-- No production migration was applied; no Supabase project was linked; no external service, GHL, entitlement, publishing, Business Brain, or member state changed.
-- Wave 3 UI/state/action work was not started.
+## Parent repair verification — 2026-08-23
 
-## Next dependency
+The exact repaired tree passed:
 
-Run `npm run verify:mastermind-wave2-postgres` on a host where PostgreSQL 16 can allocate bootstrap shared memory, then run the complete chronological stack without editing or bypassing the inherited private-search blocker. Wave 2 database acceptance—and therefore Wave 3 start—depends on that proof and any resulting source repair.
+- Wave 2 static verifier: 131 checks.
+- Native PostgreSQL 16.14 focused suite: catalog revocation, metadata-free denied states, 59-field publication-authority mutation controls, stale/malformed authority, server-derived rebuild diff mismatch matrix, concurrency, ACL/RLS, and item/catalog revocation.
+- Full chronological PostgreSQL 16.14: all 195 migrations through Wave 2; Wave candidate double-apply; inherited helper and Wave 1 behavior/ACL probes.
+- TypeScript, focused ESLint, production build, and complete `npm run verify`.
+- Replay Vault protected baseline 74/74, zero additions, plus all mutation controls including actual untracked protected-path rejection.
+- `git diff --check`.
 
-## Parent verification supersession — 2026-08-23
-
-The worker sandbox's PostgreSQL bootstrap limitation is superseded by execution in the parent macOS environment on the exact final source tree:
-
-- `npm run verify:mastermind-wave2`: exit `0`.
-- Focused native PostgreSQL 16.14: both Wave 2 migrations applied twice over exact Wave 1; persona, ACL/RLS, ready-state QA, immutability, owner/cycle/receipt binding, metadata absence, frozen assignment, rebuild confirmation, concurrent duplicate assignment, direct-write denial, and revocation checks all passed.
-- The Wave 2 aggregate now mandatorily includes `verify:cycle-plan-full-stack-postgres`.
-- Full chronological PostgreSQL 16.14: all **195 migrations** applied through `20260822210000_planner_learning_catalog_assignments.sql`; all three Wave 1/Wave 2 candidates double-applied; migration-182 helper semantics/ACL, Wave 1 behavior, and private-ledger ACL/TRUNCATE survival passed.
-- `npm run verify`: exit `0` after the final chronological-gate wiring.
-- TypeScript, focused ESLint, production build: exit `0`.
-- Replay Vault protected baseline: `74/74`, zero additions.
-- Replay Vault mutation controls: all passed, including a real untracked protected-path addition rejection and cleanup.
-- `git diff --check`: exit `0`.
-
-The inherited private-search PostgreSQL 16 compatibility issue was repaired and accepted in Wave 1 commit `b6a99139a2b82cb3f824a052b92a2f0e2c35b33e`; Wave 2 did not modify that inherited migration.
-
-No production migration, deploy, push, entitlement change, publishing, GHL/Searchie change, member exposure, or SaaS mutation occurred. Immutable independent review remains required before Wave 2 acceptance.
+No production migration, push, deploy, real curriculum/member seed, entitlement mutation, GHL/Searchie change, publishing, member exposure, or Wave 3 work occurred.
 

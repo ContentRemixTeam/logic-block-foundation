@@ -9,6 +9,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -79,6 +80,118 @@ def assert_state(states: dict[str, str], key: str, expected: str, persona: str) 
     actual = states.get(key)
     if actual != expected:
         raise RuntimeError(f"{persona} {key}: expected {expected}, found {actual}; {states}")
+
+
+PRIVATE_RESPONSE_FIELDS = {
+    "media_asset_id",
+    "canonical_resource_id",
+    "transcript_id",
+    "transcript_identifier",
+    "transcript_version",
+    "transcript_version_id",
+    "playback_attempt_id",
+    "publication_sha256",
+    "source_content_sha256",
+    "source_locator",
+    "source_path",
+    "source_url",
+    "provider",
+    "provider_asset_id",
+    "private_locator",
+    "url",
+    "vault_resource_id",
+    "vault_resource_ids",
+    "vault_resource_count",
+    "resource_id",
+    "resource_ids",
+    "resource_count",
+    "count",
+    "title",
+    "titles",
+    "stage",
+    "milestone",
+    "milestone_key",
+    "milestone_title",
+    "teacher",
+    "attribution",
+    "action_prompt",
+    "evidence_prompt",
+    "placement",
+    "placement_id",
+    "placement_metadata",
+    "alternate_label",
+    "alternate_labels",
+    "label",
+    "catalog_version_key",
+}
+
+
+def response_keys(value: Any) -> set[str]:
+    if isinstance(value, dict):
+        keys = set(value)
+        for child in value.values():
+            keys.update(response_keys(child))
+        return keys
+    if isinstance(value, list):
+        keys: set[str] = set()
+        for child in value:
+            keys.update(response_keys(child))
+        return keys
+    return set()
+
+
+def assert_fail_closed_envelope(label: str, value: dict, sentinels: tuple[str, ...] = ()) -> None:
+    serialized = json.dumps(value, sort_keys=True, separators=(",", ":"))
+    if value.get("assignment") is not None or value.get("items") != []:
+        raise RuntimeError(f"{label} did not return an empty fail-closed envelope: {serialized}")
+    leaked_fields = sorted(response_keys(value).intersection(PRIVATE_RESPONSE_FIELDS))
+    if leaked_fields:
+        raise RuntimeError(f"{label} leaked private response fields {leaked_fields}: {serialized}")
+    for sentinel in sentinels:
+        if sentinel and sentinel.lower() in serialized.lower():
+            raise RuntimeError(f"{label} leaked private sentinel {sentinel}: {serialized}")
+
+
+def jsonb_sql(value: Any) -> str:
+    return "'" + json.dumps(value, sort_keys=True, separators=(",", ":")).replace("'", "''") + "'::jsonb"
+
+
+def assigned_learning_after_mutation(
+    psql: list[str], env: dict[str, str], user_id: str, cycle_id: str, mutation: str,
+) -> dict:
+    query = (
+        "BEGIN; SET LOCAL session_replication_role = replica; " + mutation
+        + " SET LOCAL ROLE authenticated; " + jwt_sql(user_id)
+        + f"SELECT public.resolve_my_assigned_learning('{cycle_id}')::text; ROLLBACK;"
+    )
+    output = run([*psql, "-Atq", "-c", query], env).stdout.strip().splitlines()
+    return json.loads(output[-1])
+
+
+def assert_pending_assignment(psql: list[str], env: dict[str, str], assignment_id: str, label: str) -> None:
+    state = run([
+        *psql, "-Atq", "-c",
+        f"SELECT assignment_status FROM public.curriculum_cycle_assignments WHERE assignment_id='{assignment_id}';",
+    ], env).stdout.strip()
+    if state != "pending_confirmation":
+        raise RuntimeError(f"{label} changed pending assignment state to {state}")
+
+
+def assert_publication_receipt_changes(
+    psql: list[str], env: dict[str, str], catalog_id: str, table: str,
+    set_clause: str, where_clause: str, label: str,
+) -> None:
+    query = (
+        "BEGIN; SET LOCAL session_replication_role = replica; "
+        f"UPDATE public.{table} SET {set_clause} WHERE {where_clause}; "
+        "SELECT content_sha256 IS DISTINCT FROM "
+        f"public.curriculum_catalog_content_sha256('{catalog_id}') "
+        "FROM public.curriculum_catalog_versions "
+        f"WHERE catalog_version_id='{catalog_id}'; ROLLBACK;"
+    )
+    lines = run([*psql, "-Atq", "-c", query], env).stdout.strip().splitlines()
+    if not lines or lines[-1] != "t":
+        raise RuntimeError(f"publication receipt did not detect authority mutation {label}: {lines}")
 
 
 def main() -> None:
@@ -255,6 +368,7 @@ def main() -> None:
                 "item1": "aaaaaaaa-1100-4000-8000-000000000001",
                 "v2": "aaaaaaaa-2000-4000-8000-000000000001",
                 "item2": "aaaaaaaa-2200-4000-8000-000000000001",
+                "item3": "aaaaaaaa-2200-4000-8000-000000000002",
                 "annual_cycle": "aaaaaaaa-3000-4000-8000-000000000001",
                 "annual_plan": "aaaaaaaa-3000-4000-8000-000000000002",
                 "annual_ledger": "aaaaaaaa-3000-4000-8000-000000000003",
@@ -264,6 +378,40 @@ def main() -> None:
                 "lifetime_ledger": "aaaaaaaa-4000-4000-8000-000000000003",
                 "lifetime_receipt": "aaaaaaaa-4000-4000-8000-000000000004",
             }
+            private_sentinels = (
+                ids["media"], ids["resource"], ids["transcript"], ids["playback"],
+                "private://synthetic/not-playable", "fixture-1", "fixture-2", "fixture-3",
+                "synthetic-provider-path",
+                "Synthetic offer lesson", "Synthetic Teacher", "Offer foundation",
+                "vault-private-resource-sentinel", "vault-count-8741", "vault-title-sentinel",
+                "vault-placement-sentinel", "vault-alternate-label-sentinel",
+            )
+            early_denials = (
+                ("standalone Planner", USERS["nonmember"]),
+                ("expired entitlement", USERS["expired"]),
+                ("verification unavailable", USERS["unavailable"]),
+                ("review required / hold", USERS["conflict"]),
+            )
+            for label, user_id in early_denials:
+                denied = assigned_learning(psql, env, user_id, ids["annual_cycle"])
+                assert_fail_closed_envelope(label, denied, private_sentinels)
+
+            mutation_control = dict(assigned_learning(
+                psql, env, USERS["nonmember"], ids["annual_cycle"]
+            ))
+            mutation_control["media_asset_id"] = ids["media"]
+            try:
+                assert_fail_closed_envelope(
+                    "denied response mutation control", mutation_control, private_sentinels
+                )
+            except RuntimeError:
+                pass
+            else:
+                raise RuntimeError(
+                    "denied response mutation control did not fail after private authority injection"
+                )
+            print("PASS serialized denial envelopes cover standalone Planner, expired entitlement, "
+                  "verification unavailable, and review required / hold with mutation control")
             catalog_seed = f"""
               INSERT INTO public.curriculum_media_assets_private(
                 media_asset_id,asset_key,canonical_resource_id,provider,provider_asset_id,
@@ -363,13 +511,20 @@ def main() -> None:
                 if private_value in serialized:
                     raise RuntimeError(f"member Learning response leaked private authority {private_value}: {serialized}")
 
+            held_learning = assigned_learning_after_mutation(
+                psql, env, USERS["annual"], ids["annual_cycle"],
+                "INSERT INTO public.capability_verification_holds("
+                "user_id,capability_key,hold_state,reason_code,evidence_checked_at,starts_at,expires_at,created_by) "
+                f"VALUES ('{USERS['annual']}','mastermind.learning.assigned','review_required',"
+                "'manual_review',clock_timestamp(),clock_timestamp() - interval '1 minute',"
+                "clock_timestamp() + interval '1 hour','synthetic-hold');",
+            )
+            assert_fail_closed_envelope("review required hold", held_learning, private_sentinels)
+
             denied_learning = assigned_learning(psql, env, USERS["monthly"], ids["annual_cycle"])
-            denied_serialized = json.dumps(denied_learning, sort_keys=True)
             if denied_learning.get("reason") != "inaccessible" or denied_learning.get("items") != []:
                 raise RuntimeError(f"cross-owner read was not empty/inaccessible: {denied_learning}")
-            for protected in ("Synthetic", "offer", "Teacher", "milestone", "resource", "locator", "transcript"):
-                if protected.lower() in denied_serialized.lower():
-                    raise RuntimeError(f"denied response leaked protected metadata token {protected}: {denied_serialized}")
+            assert_fail_closed_envelope("cross-owner", denied_learning, private_sentinels)
             cross_owner_create = run([
                 *psql, "-Atq", "-c",
                 "SET ROLE service_role; SELECT public.create_curriculum_cycle_assignment("
@@ -400,6 +555,14 @@ def main() -> None:
                 '{'3' * 64}','{ids['media']}','{ids['resource']}','{ids['transcript']}','{ids['playback']}',
                 '{'4' * 64}','approved','approved','approved','approved','approved','approved','approved',
                 'approved','approved','{'5' * 64}',clock_timestamp(),'synthetic-reviewer','synthetic-test'
+              ), (
+                '{ids['item3']}','{ids['v2']}','offer-support-v2','ready','offer','offer-foundation',
+                'Offer foundation','supporting',2,'Synthetic offer support v2','Validate the sharper offer',
+                'Review one sharper promise','Save the review as evidence','Synthetic Teacher',
+                'Synthetic fixture only','synthetic','fixture-3','Generated test fixture; no real GHL resource',
+                '{'7' * 64}','{ids['media']}','{ids['resource']}','{ids['transcript']}','{ids['playback']}',
+                '{'8' * 64}','approved','approved','approved','approved','approved','approved','approved',
+                'approved','approved','{'9' * 64}',clock_timestamp(),'synthetic-reviewer','synthetic-test'
               );
             """
             run([*psql, "-c", v2_seed], env)
@@ -407,6 +570,105 @@ def main() -> None:
                 *psql, "-Atq", "-c",
                 f"SET ROLE service_role; SELECT public.publish_curriculum_catalog_version('{ids['v2']}');",
             ], env)
+            catalog_mutations = {
+                "catalog.version_key": "version_key='mutated-v2'",
+                "catalog.version_number": "version_number=2002",
+                "catalog.supersedes_version_id": "supersedes_version_id=NULL",
+                "catalog.created_at": "created_at=created_at + interval '1 second'",
+                "catalog.created_by": "created_by='mutated-creator'",
+                "catalog.published_at": "published_at=published_at + interval '1 second'",
+            }
+            item_mutations = {
+                "item.catalog_item_id": "catalog_item_id='bbbbbbbb-2200-4000-8000-000000000001'",
+                "item.catalog_version_id": "catalog_version_id='bbbbbbbb-2000-4000-8000-000000000001'",
+                "item.stable_item_key": "stable_item_key='mutated-key'",
+                "item.item_state": "item_state='candidate'",
+                "item.stage": "stage='find'",
+                "item.milestone_key": "milestone_key='mutated-milestone'",
+                "item.milestone_title": "milestone_title='Mutated milestone title'",
+                "item.item_role": "item_role='optional'",
+                "item.item_order": "item_order=99",
+                "item.title": "title='Mutated title'",
+                "item.intended_output": "intended_output='Mutated intended output'",
+                "item.action_prompt": "action_prompt='Mutated action prompt'",
+                "item.evidence_prompt": "evidence_prompt='Mutated evidence prompt'",
+                "item.teacher_display_name": "teacher_display_name='Mutated teacher'",
+                "item.attribution_text": "attribution_text='Mutated attribution'",
+                "item.source_system": "source_system='mutated-source'",
+                "item.source_native_id": "source_native_id='mutated-native-id'",
+                "item.source_provenance": "source_provenance='Mutated provenance'",
+                "item.provenance_sha256": f"provenance_sha256='{'a' * 64}'",
+                "item.media_asset_id": "media_asset_id=NULL",
+                "item.canonical_resource_id": "canonical_resource_id='bbbbbbbb-0000-4000-8000-000000000002'",
+                "item.transcript_version_id": "transcript_version_id='bbbbbbbb-0000-4000-8000-000000000003'",
+                "item.playback_attempt_id": "playback_attempt_id='bbbbbbbb-0000-4000-8000-000000000004'",
+                "item.publication_sha256": f"publication_sha256='{'b' * 64}'",
+                "item.transcript_qa_state": "transcript_qa_state='pending'",
+                "item.provenance_qa_state": "provenance_qa_state='pending'",
+                "item.rights_qa_state": "rights_qa_state='pending'",
+                "item.privacy_qa_state": "privacy_qa_state='pending'",
+                "item.edit_qa_state": "edit_qa_state='pending'",
+                "item.caption_qa_state": "caption_qa_state='pending'",
+                "item.playback_qa_state": "playback_qa_state='pending'",
+                "item.action_qa_state": "action_qa_state='pending'",
+                "item.evidence_qa_state": "evidence_qa_state='pending'",
+                "item.qa_receipt_sha256": f"qa_receipt_sha256='{'c' * 64}'",
+                "item.qa_approved_at": "qa_approved_at=qa_approved_at + interval '1 second'",
+                "item.qa_approved_by": "qa_approved_by='mutated-approver'",
+                "item.created_at": "created_at=created_at + interval '1 second'",
+                "item.created_by": "created_by='mutated-item-creator'",
+            }
+            media_mutations = {
+                "media.media_asset_id": "media_asset_id='bbbbbbbb-0000-4000-8000-000000000001'",
+                "media.asset_key": "asset_key='mutated-asset-key'",
+                "media.canonical_resource_id": "canonical_resource_id='bbbbbbbb-0000-4000-8000-000000000002'",
+                "media.provider": "provider='mutated-provider'",
+                "media.provider_asset_id": "provider_asset_id='mutated-provider-id'",
+                "media.private_locator": "private_locator='private://mutated/path'",
+                "media.source_content_sha256": f"source_content_sha256='{'d' * 64}'",
+                "media.transcript_version_id": "transcript_version_id='bbbbbbbb-0000-4000-8000-000000000003'",
+                "media.playback_attempt_id": "playback_attempt_id='bbbbbbbb-0000-4000-8000-000000000004'",
+                "media.created_at": "created_at=created_at + interval '1 second'",
+                "media.created_by": "created_by='mutated-media-creator'",
+            }
+            for label, set_clause in catalog_mutations.items():
+                assert_publication_receipt_changes(
+                    psql, env, ids["v2"], "curriculum_catalog_versions", set_clause,
+                    f"catalog_version_id='{ids['v2']}'", label,
+                )
+            for label, set_clause in item_mutations.items():
+                assert_publication_receipt_changes(
+                    psql, env, ids["v2"], "curriculum_catalog_items", set_clause,
+                    f"catalog_item_id='{ids['item2']}'", label,
+                )
+            for label, set_clause in media_mutations.items():
+                assert_publication_receipt_changes(
+                    psql, env, ids["v2"], "curriculum_media_assets_private", set_clause,
+                    f"media_asset_id='{ids['media']}'", label,
+                )
+            for label, statement in {
+                "catalog.catalog_version_id": (
+                    f"UPDATE public.curriculum_catalog_versions SET catalog_version_id="
+                    f"'bbbbbbbb-2000-4000-8000-000000000001' WHERE catalog_version_id='{ids['v2']}';"
+                ),
+                "catalog.catalog_context": (
+                    f"UPDATE public.curriculum_catalog_versions SET catalog_context='other' "
+                    f"WHERE catalog_version_id='{ids['v2']}';"
+                ),
+                "catalog.lifecycle_state": (
+                    f"UPDATE public.curriculum_catalog_versions SET lifecycle_state='draft' "
+                    f"WHERE catalog_version_id='{ids['v2']}';"
+                ),
+                "item.required_capability": (
+                    f"UPDATE public.curriculum_catalog_items SET required_capability='vault.playback' "
+                    f"WHERE catalog_item_id='{ids['item2']}';"
+                ),
+            }.items():
+                blocked = run([*psql, "-c", statement], env, expect_success=False)
+                if not blocked.stderr:
+                    raise RuntimeError(f"authority mutation control {label} failed without database rejection")
+            print(f"PASS publication receipt mutation controls cover "
+                  f"{len(catalog_mutations) + len(item_mutations) + len(media_mutations) + 4} authority fields")
             still_v1 = assigned_learning(psql, env, USERS["annual"], ids["annual_cycle"])
             if still_v1["assignment"]["catalog_version_key"] != "planner-learning-synthetic-v1" or still_v1["items"][0]["title"] != "Synthetic offer lesson v1":
                 raise RuntimeError(f"later catalog publication rewrote frozen assignment: {still_v1}")
@@ -418,11 +680,49 @@ def main() -> None:
                 raise RuntimeError(f"superseded catalog version mutation failed for wrong reason: {version_mutation.stderr}")
             print("PASS later catalog publication leaves the frozen assignment and member metadata unchanged")
 
+            stale_receipt = assigned_learning_after_mutation(
+                psql, env, USERS["annual"], ids["annual_cycle"],
+                f"UPDATE public.cycle_plan_intents_v2 SET last_planner_receipt_id="
+                f"'bbbbbbbb-3000-4000-8000-000000000004' WHERE plan_id='{ids['annual_plan']}';",
+            )
+            assert_fail_closed_envelope("stale Planner receipt", stale_receipt, private_sentinels)
+            invalid_frozen = assigned_learning_after_mutation(
+                psql, env, USERS["annual"], ids["annual_cycle"],
+                f"UPDATE public.curriculum_cycle_assignment_items SET authority_sha256='{'0' * 64}' "
+                f"WHERE assignment_id='{initial_assignment['assignment_id']}';",
+            )
+            assert_fail_closed_envelope("invalid frozen authority", invalid_frozen, private_sentinels)
+            malformed = assigned_learning_after_mutation(
+                psql, env, USERS["annual"], ids["annual_cycle"],
+                f"UPDATE public.curriculum_catalog_items SET title='PRIVATE-MALFORMED-TITLE-SENTINEL' "
+                f"WHERE catalog_item_id='{ids['item1']}';",
+            )
+            assert_fail_closed_envelope(
+                "malformed authority", malformed,
+                private_sentinels + ("PRIVATE-MALFORMED-TITLE-SENTINEL",),
+            )
+            print("PASS stale Planner receipt, invalid frozen authority, and malformed authority serialize fail closed")
+
+            false_proposal = (
+                "SET ROLE service_role; SELECT public.create_curriculum_cycle_assignment("
+                f"'{USERS['annual']}','{ids['annual_cycle']}','{ids['annual_ledger']}','{ids['annual_receipt']}',"
+                f"'{ids['v2']}','success_path',ARRAY['{ids['item2']}','{ids['item3']}']::uuid[],"
+                f"'{initial_assignment['assignment_id']}',"
+                "'{\"caller\":\"invented\"}'::jsonb,'synthetic-test')::text;"
+            )
+            false_proposal_result = run(
+                [*psql, "-Atq", "-c", false_proposal], env, expect_success=False
+            )
+            if "does not match server-derived" not in false_proposal_result.stderr:
+                raise RuntimeError(
+                    f"false caller proposal diff failed for wrong reason: {false_proposal_result.stderr}"
+                )
+
             rebuild_sql = (
                 "SET ROLE service_role; SELECT public.create_curriculum_cycle_assignment("
                 f"'{USERS['annual']}','{ids['annual_cycle']}','{ids['annual_ledger']}','{ids['annual_receipt']}',"
-                f"'{ids['v2']}','success_path',ARRAY['{ids['item2']}']::uuid[],'{initial_assignment['assignment_id']}',"
-                "'{\"added\":[\"offer-primary-v2\"],\"removed\":[\"offer-primary\"]}'::jsonb,'synthetic-test')::text;"
+                f"'{ids['v2']}','success_path',ARRAY['{ids['item2']}','{ids['item3']}']::uuid[],"
+                f"'{initial_assignment['assignment_id']}',NULL,'synthetic-test')::text;"
             )
             pending = json.loads(run([*psql, "-Atq", "-c", rebuild_sql], env).stdout.strip())
             if pending["assignment_status"] != "pending_confirmation" or not pending["confirmation_required"]:
@@ -430,9 +730,42 @@ def main() -> None:
             before_confirm = assigned_learning(psql, env, USERS["annual"], ids["annual_cycle"])
             if before_confirm["items"][0]["title"] != "Synthetic offer lesson v1":
                 raise RuntimeError(f"pending rebuild replaced active assignment before confirmation: {before_confirm}")
+            exact_diff = pending["rebuild_diff"]
+            exact_hash = pending["rebuild_diff_sha256"]
+            incomplete_diff = {"encoding_contract": exact_diff["encoding_contract"],
+                               "proposed": exact_diff["proposed"]}
+            false_diff = {"encoding_contract": exact_diff["encoding_contract"],
+                          "current": False, "proposed": False}
+            reordered_diff = json.loads(json.dumps(exact_diff))
+            reordered_diff["proposed"]["items"].reverse()
+            material_diff = json.loads(json.dumps(exact_diff))
+            material_diff["proposed"]["items"][0]["authority_snapshot"]["item"]["title"] = (
+                "Materially false title"
+            )
+            confirmation_failures = (
+                ("omitted caller diff", "NULL", f"'{exact_hash}'"),
+                ("omitted caller hash", jsonb_sql(exact_diff), "NULL"),
+                ("incomplete caller diff", jsonb_sql(incomplete_diff), f"'{exact_hash}'"),
+                ("false caller diff", jsonb_sql(false_diff), f"'{exact_hash}'"),
+                ("reordered caller diff", jsonb_sql(reordered_diff), f"'{exact_hash}'"),
+                ("materially mismatched caller diff", jsonb_sql(material_diff), f"'{exact_hash}'"),
+                ("false caller hash", jsonb_sql(exact_diff), f"'{'0' * 64}'"),
+            )
+            for label, expected_diff_sql, expected_hash_sql in confirmation_failures:
+                attempted = run([
+                    *psql, "-Atq", "-c",
+                    "SET ROLE service_role; SELECT public.confirm_curriculum_assignment_rebuild("
+                    f"'{pending['assignment_id']}',{expected_diff_sql},{expected_hash_sql},"
+                    "'synthetic-confirmer');",
+                ], env, expect_success=False)
+                if not attempted.stderr:
+                    raise RuntimeError(f"{label} failed without a database error")
+                assert_pending_assignment(psql, env, pending["assignment_id"], label)
+
             confirm_sql = (
                 "SET ROLE service_role; SELECT public.confirm_curriculum_assignment_rebuild("
-                f"'{pending['assignment_id']}','{pending['rebuild_diff_sha256']}','synthetic-confirmer')::text;"
+                f"'{pending['assignment_id']}',{jsonb_sql(exact_diff)},'{exact_hash}',"
+                "'synthetic-confirmer')::text;"
             )
             confirmed = json.loads(run([*psql, "-Atq", "-c", confirm_sql], env).stdout.strip())
             if confirmed["assignment_status"] != "active":
@@ -440,7 +773,8 @@ def main() -> None:
             after_confirm = assigned_learning(psql, env, USERS["annual"], ids["annual_cycle"])
             if after_confirm["items"][0]["title"] != "Synthetic offer lesson v2":
                 raise RuntimeError(f"confirmed rebuild did not switch frozen authority: {after_confirm}")
-            print("PASS rebuild creates a hashed diff boundary and switches only after explicit confirmation")
+            print("PASS server-derived rebuild diff rejects omitted, incomplete, false, reordered, "
+                  "materially mismatched diffs/hashes and activates only truthful exact confirmation")
 
             create_lifetime = (
                 "SET ROLE service_role; SELECT public.create_curriculum_cycle_assignment("
@@ -481,12 +815,62 @@ def main() -> None:
                 f"'synthetic revocation proof','{'6' * 64}','synthetic-test');",
             ], env)
             revoked = assigned_learning(psql, env, USERS["annual"], ids["annual_cycle"])
-            revoked_text = json.dumps(revoked, sort_keys=True)
             if revoked.get("assignment_state") != "review_required" or revoked.get("items") != []:
                 raise RuntimeError(f"revoked assigned item did not fail closed: {revoked}")
-            if "Synthetic offer lesson" in revoked_text or "Teacher" in revoked_text:
-                raise RuntimeError(f"revoked assignment response leaked protected metadata: {revoked_text}")
+            assert_fail_closed_envelope("item revoked", revoked, private_sentinels)
             print("PASS explicit catalog item revocation fails the member resolver closed without metadata")
+
+            authenticated_revoke = run([
+                *psql, "-c", "SET ROLE authenticated; " + jwt_sql(USERS["annual"])
+                + "SELECT public.revoke_curriculum_catalog_version("
+                f"'{ids['v2']}','browser attempt','{'a' * 64}','browser');",
+            ], env, expect_success=False)
+            if "permission denied" not in authenticated_revoke.stderr.lower():
+                raise RuntimeError(
+                    f"authenticated catalog revocation RPC was not denied: {authenticated_revoke.stderr}"
+                )
+            direct_catalog_mutation = run([
+                *psql, "-c", "SET ROLE authenticated; " + jwt_sql(USERS["annual"])
+                + "UPDATE public.curriculum_catalog_versions SET lifecycle_state='revoked' "
+                f"WHERE catalog_version_id='{ids['v2']}';",
+            ], env, expect_success=False)
+            if "permission denied" not in direct_catalog_mutation.stderr.lower():
+                raise RuntimeError(
+                    f"authenticated direct catalog mutation was not denied: {direct_catalog_mutation.stderr}"
+                )
+            catalog_revocation = json.loads(run([
+                *psql, "-Atq", "-c",
+                "SET ROLE service_role; SELECT public.revoke_curriculum_catalog_version("
+                f"'{ids['v2']}','synthetic whole-catalog revocation','{'e' * 64}',"
+                "'synthetic-revoker')::text;",
+            ], env).stdout.strip())
+            if catalog_revocation.get("lifecycle_state") != "revoked":
+                raise RuntimeError(f"catalog revocation transition failed: {catalog_revocation}")
+            catalog_revoked = assigned_learning(psql, env, USERS["annual"], ids["annual_cycle"])
+            if catalog_revoked.get("reason") != "assigned_catalog_revoked":
+                raise RuntimeError(f"whole catalog revoked for wrong resolver reason: {catalog_revoked}")
+            assert_fail_closed_envelope("whole catalog revoked", catalog_revoked, private_sentinels)
+            audit_count = run([
+                *psql, "-Atq", "-c",
+                f"SELECT count(*) FROM public.curriculum_catalog_version_revocations "
+                f"WHERE catalog_version_id='{ids['v2']}';",
+            ], env).stdout.strip()
+            if audit_count != "1":
+                raise RuntimeError(f"catalog revocation did not append exactly one audit row: {audit_count}")
+            audit_mutation = run([
+                *psql, "-c",
+                "UPDATE public.curriculum_catalog_version_revocations SET reason='rewritten';",
+            ], env, expect_success=False)
+            if "append-only" not in audit_mutation.stderr.lower():
+                raise RuntimeError(f"catalog revocation audit was not append-only: {audit_mutation.stderr}")
+            second_revocation = run([
+                *psql, "-c",
+                "SET ROLE service_role; SELECT public.revoke_curriculum_catalog_version("
+                f"'{ids['v2']}','second attempt','{'f' * 64}','synthetic-revoker');",
+            ], env, expect_success=False)
+            if "only a published non-revoked" not in second_revocation.stderr:
+                raise RuntimeError(f"catalog revocation was not terminal: {second_revocation.stderr}")
+            print("PASS whole catalog revoked through service-only append-only terminal RPC and serialized response is metadata-free")
             print("PASS Wave 2 PostgreSQL 16 schema/RLS/persona/concurrency suite")
         finally:
             if started:

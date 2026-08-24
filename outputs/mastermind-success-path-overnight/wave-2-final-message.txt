@@ -1,10 +1,9 @@
-Wave 2 source candidate is implemented and parent-verified on the exact final tree.
+Wave 2 critical repair is implemented in the uncommitted tree at HEAD f93c0f691347b1add6663adedc244153cd33646d.
 
-- Base: `b6a99139a2b82cb3f824a052b92a2f0e2c35b33e`
-- PASS: focused Wave 2 PostgreSQL 16.14 behavior, ACL/RLS, persona, concurrency, rebuild, revocation, and metadata-absence suite.
-- PASS: full chronological PostgreSQL 16.14 replay through all 195 migrations plus double-apply of all Wave 1/Wave 2 candidates.
-- PASS: TypeScript, ESLint, build, complete `npm run verify`, Replay Vault 74/74, mutation controls, and `git diff --check`.
-- Pending: immutable independent acceptance review.
-- No push, deployment, production migration apply, external mutation, member exposure, or Wave 3 work occurred.
+Catalog revocation now fails the assigned-Learning resolver closed through a service-only, append-only, terminal audited transition. Rebuilds persist a server-derived exact frozen-authority diff and require exact diff plus canonical hash confirmation. Publication hashing binds complete final stored catalog/item/media/QA authority, and assignments freeze and revalidate those receipts. The native verifier covers every requested denied state and private/Vault sentinel plus a verifier mutation control.
 
-Full evidence: `outputs/mastermind-success-path-overnight/wave-2-verification-receipt.md`.
+Verified locally: Wave 2 static 131 checks, TypeScript, focused ESLint, production build, Replay Vault 74/74 baseline, all Replay Vault baseline mutation controls, source scans, and `git diff --check`. Repository-wide lint retains pre-existing failures outside repair scope.
+
+Blocked locally: focused PostgreSQL, full chronological PostgreSQL, and full npm verify cannot pass because this managed sandbox prevents PostgreSQL bootstrap shared memory. Unchanged mounted browser/listener aggregate children are also sandbox-blocked. No database behavior acceptance is claimed.
+
+No commit, push, deploy, production migration, real data seed, SaaS mutation, member exposure, or Wave 3 work occurred. Production remains blocked and untouched. Parent must run both PostgreSQL 16 gates and the full aggregate on the exact uncommitted tree.

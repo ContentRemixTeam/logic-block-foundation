@@ -154,3 +154,19 @@ Canonical evidence: `outputs/mastermind-success-path-overnight/wave-2-verificati
 
 Worker sandbox database blocker superseded: parent native PostgreSQL 16.14 focused Wave 2 suite passed; full chronological 195-migration replay through Wave 2 passed; candidate migrations double-applied; TypeScript/lint/build/full repository verification and Replay Vault 74/74 plus mutation controls passed. Candidate is ready for immutable independent review; production remains blocked and untouched.
 
+## Wave 2 immutable-review critical repair — 2026-08-23
+
+Status: **SOURCE REPAIR IMPLEMENTED — STATIC/TYPE/FOCUSED-LINT/BUILD/PROTECTED BASELINE GREEN — NATIVE DATABASE ACCEPTANCE BLOCKED**
+
+The prior parent-verification evidence is superseded for the repaired source by immutable-review findings. The repair adds fail-closed whole-catalog revocation with an append-only terminal audit RPC; server-derived exact frozen-authority rebuild diffs and exact diff/hash confirmation; complete canonical publication hashing and frozen assignment authority snapshots; and serialized-response absence coverage for every requested denial/review/revocation/drift state with private/Vault sentinels and a verifier mutation control.
+
+Wave 2 static 131 checks, TypeScript, focused repair-scope ESLint, production build, Replay Vault 74/74 baseline, and protected mutation controls pass. Focused and full chronological PostgreSQL runners exit 1 before schema apply because the managed sandbox blocks PostgreSQL bootstrap shared memory. Full `npm run verify` exits 1 at that mandatory child. Repository-wide lint still contains pre-existing failures outside the repair files. No native repaired-source database acceptance is claimed.
+
+Canonical evidence: `outputs/mastermind-success-path-overnight/wave-2-verification-receipt.md`.
+
+No commit, push, deploy, production migration, real curriculum/member seed, SaaS mutation, publishing, access change, member exposure, or Wave 3 work occurred. Production remains blocked and untouched.
+
+## Wave 2 immutable-review repair verification — 2026-08-23
+
+All four immutable-review blockers were repaired and passed parent native PostgreSQL 16.14 focused + 195-migration chronological suites, 59-field publication-hash mutation controls, adversarial server-derived rebuild-diff checks, full denied-envelope metadata mutation controls, TypeScript/lint/build/full repository verification, Replay Vault 74/74 and mutation controls, and diff check. New immutable re-review required before acceptance.
+
