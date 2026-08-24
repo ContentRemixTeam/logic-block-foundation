@@ -178,3 +178,11 @@ The final review's test-quality blocker is closed. The native PostgreSQL harness
 
 The static gate now requires the exact assignment of `mutation_control` from `assigned_learning_after_mutation(..., resolver_leak_mutation)`, requires a runtime provenance marker returned only by the database-mutated resolver, forbids the former local dictionary assignment and `media_asset_id` injection patterns, and runs a synthetic legacy-regression negative control that must be rejected. Static verification now passes 132 checks; native PostgreSQL 16 and the complete repository aggregate pass afterward.
 
+## Wave 2 accepted — 2026-08-23
+
+Accepted immutable source checkpoint: `25811fdcd2ef74d8425843024575bc845a6e65ea`.
+
+Independent closure verdict: **NO BLOCKERS**. The final review confirmed the live PostgreSQL resolver mutation/rollback control, exact static binding to `assigned_learning_after_mutation(..., resolver_leak_mutation)`, runtime database provenance, rejection of the legacy local-dictionary injection pattern, and the synthetic negative regression control.
+
+Wave 2 is locked. Production remains untouched and blocked. Wave 3 may build only from this accepted authority.
+
