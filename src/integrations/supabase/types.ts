@@ -1618,6 +1618,45 @@ export type Database = {
         }
         Relationships: []
       }
+      capability_verification_holds: {
+        Row: {
+          capability_key: string
+          created_at: string
+          created_by: string
+          evidence_checked_at: string | null
+          expires_at: string | null
+          hold_id: string
+          hold_state: string
+          reason_code: string
+          starts_at: string
+          user_id: string
+        }
+        Insert: {
+          capability_key: string
+          created_at?: string
+          created_by: string
+          evidence_checked_at?: string | null
+          expires_at?: string | null
+          hold_id?: string
+          hold_state: string
+          reason_code: string
+          starts_at?: string
+          user_id: string
+        }
+        Update: {
+          capability_key?: string
+          created_at?: string
+          created_by?: string
+          evidence_checked_at?: string | null
+          expires_at?: string | null
+          hold_id?: string
+          hold_state?: string
+          reason_code?: string
+          starts_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ctfar: {
         Row: {
           action: string | null
@@ -1670,6 +1709,468 @@ export type Database = {
             referencedColumns: ["cycle_id"]
           },
         ]
+      }
+      curriculum_catalog_item_revocations: {
+        Row: {
+          catalog_item_id: string
+          evidence_sha256: string
+          reason: string
+          revocation_id: string
+          revoked_at: string
+          revoked_by: string
+        }
+        Insert: {
+          catalog_item_id: string
+          evidence_sha256: string
+          reason: string
+          revocation_id?: string
+          revoked_at?: string
+          revoked_by: string
+        }
+        Update: {
+          catalog_item_id?: string
+          evidence_sha256?: string
+          reason?: string
+          revocation_id?: string
+          revoked_at?: string
+          revoked_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_catalog_item_revocations_catalog_item_id_fkey"
+            columns: ["catalog_item_id"]
+            isOneToOne: true
+            referencedRelation: "curriculum_catalog_items"
+            referencedColumns: ["catalog_item_id"]
+          },
+        ]
+      }
+      curriculum_catalog_items: {
+        Row: {
+          action_prompt: string | null
+          action_qa_state: string
+          attribution_text: string
+          canonical_resource_id: string | null
+          caption_qa_state: string
+          catalog_item_id: string
+          catalog_version_id: string
+          created_at: string
+          created_by: string
+          edit_qa_state: string
+          evidence_prompt: string | null
+          evidence_qa_state: string
+          intended_output: string
+          item_order: number
+          item_role: string
+          item_state: string
+          media_asset_id: string | null
+          milestone_key: string
+          milestone_title: string
+          playback_attempt_id: string | null
+          playback_qa_state: string
+          privacy_qa_state: string
+          provenance_qa_state: string
+          provenance_sha256: string | null
+          publication_sha256: string | null
+          qa_approved_at: string | null
+          qa_approved_by: string | null
+          qa_receipt_sha256: string | null
+          required_capability: string
+          rights_qa_state: string
+          source_native_id: string
+          source_provenance: string
+          source_system: string
+          stable_item_key: string
+          stage: string
+          teacher_display_name: string
+          title: string
+          transcript_qa_state: string
+          transcript_version_id: string | null
+        }
+        Insert: {
+          action_prompt?: string | null
+          action_qa_state?: string
+          attribution_text: string
+          canonical_resource_id?: string | null
+          caption_qa_state?: string
+          catalog_item_id?: string
+          catalog_version_id: string
+          created_at?: string
+          created_by: string
+          edit_qa_state?: string
+          evidence_prompt?: string | null
+          evidence_qa_state?: string
+          intended_output: string
+          item_order: number
+          item_role: string
+          item_state: string
+          media_asset_id?: string | null
+          milestone_key: string
+          milestone_title: string
+          playback_attempt_id?: string | null
+          playback_qa_state?: string
+          privacy_qa_state?: string
+          provenance_qa_state?: string
+          provenance_sha256?: string | null
+          publication_sha256?: string | null
+          qa_approved_at?: string | null
+          qa_approved_by?: string | null
+          qa_receipt_sha256?: string | null
+          required_capability?: string
+          rights_qa_state?: string
+          source_native_id: string
+          source_provenance: string
+          source_system: string
+          stable_item_key: string
+          stage: string
+          teacher_display_name: string
+          title: string
+          transcript_qa_state?: string
+          transcript_version_id?: string | null
+        }
+        Update: {
+          action_prompt?: string | null
+          action_qa_state?: string
+          attribution_text?: string
+          canonical_resource_id?: string | null
+          caption_qa_state?: string
+          catalog_item_id?: string
+          catalog_version_id?: string
+          created_at?: string
+          created_by?: string
+          edit_qa_state?: string
+          evidence_prompt?: string | null
+          evidence_qa_state?: string
+          intended_output?: string
+          item_order?: number
+          item_role?: string
+          item_state?: string
+          media_asset_id?: string | null
+          milestone_key?: string
+          milestone_title?: string
+          playback_attempt_id?: string | null
+          playback_qa_state?: string
+          privacy_qa_state?: string
+          provenance_qa_state?: string
+          provenance_sha256?: string | null
+          publication_sha256?: string | null
+          qa_approved_at?: string | null
+          qa_approved_by?: string | null
+          qa_receipt_sha256?: string | null
+          required_capability?: string
+          rights_qa_state?: string
+          source_native_id?: string
+          source_provenance?: string
+          source_system?: string
+          stable_item_key?: string
+          stage?: string
+          teacher_display_name?: string
+          title?: string
+          transcript_qa_state?: string
+          transcript_version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_catalog_items_catalog_version_id_fkey"
+            columns: ["catalog_version_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_catalog_versions"
+            referencedColumns: ["catalog_version_id"]
+          },
+          {
+            foreignKeyName: "curriculum_catalog_items_media_asset_id_fkey"
+            columns: ["media_asset_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_media_assets_private"
+            referencedColumns: ["media_asset_id"]
+          },
+        ]
+      }
+      curriculum_catalog_versions: {
+        Row: {
+          catalog_context: string
+          catalog_version_id: string
+          content_sha256: string | null
+          created_at: string
+          created_by: string
+          lifecycle_state: string
+          published_at: string | null
+          revocation_reason: string | null
+          revoked_at: string | null
+          superseded_at: string | null
+          superseded_by_version_id: string | null
+          supersedes_version_id: string | null
+          version_key: string
+          version_number: number
+        }
+        Insert: {
+          catalog_context?: string
+          catalog_version_id?: string
+          content_sha256?: string | null
+          created_at?: string
+          created_by: string
+          lifecycle_state?: string
+          published_at?: string | null
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          superseded_at?: string | null
+          superseded_by_version_id?: string | null
+          supersedes_version_id?: string | null
+          version_key: string
+          version_number: number
+        }
+        Update: {
+          catalog_context?: string
+          catalog_version_id?: string
+          content_sha256?: string | null
+          created_at?: string
+          created_by?: string
+          lifecycle_state?: string
+          published_at?: string | null
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          superseded_at?: string | null
+          superseded_by_version_id?: string | null
+          supersedes_version_id?: string | null
+          version_key?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_catalog_versions_superseded_by_version_id_fkey"
+            columns: ["superseded_by_version_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_catalog_versions"
+            referencedColumns: ["catalog_version_id"]
+          },
+          {
+            foreignKeyName: "curriculum_catalog_versions_supersedes_version_id_fkey"
+            columns: ["supersedes_version_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_catalog_versions"
+            referencedColumns: ["catalog_version_id"]
+          },
+        ]
+      }
+      curriculum_cycle_assignment_items: {
+        Row: {
+          assignment_id: string
+          assignment_item_id: string
+          assignment_order: number
+          assignment_role: string
+          canonical_resource_id: string
+          catalog_item_id: string
+          catalog_version_id: string
+          created_at: string
+          cycle_id: string
+          playback_attempt_id: string
+          publication_sha256: string
+          required_capability: string
+          transcript_version_id: string
+          user_id: string
+        }
+        Insert: {
+          assignment_id: string
+          assignment_item_id?: string
+          assignment_order: number
+          assignment_role: string
+          canonical_resource_id: string
+          catalog_item_id: string
+          catalog_version_id: string
+          created_at?: string
+          cycle_id: string
+          playback_attempt_id: string
+          publication_sha256: string
+          required_capability: string
+          transcript_version_id: string
+          user_id: string
+        }
+        Update: {
+          assignment_id?: string
+          assignment_item_id?: string
+          assignment_order?: number
+          assignment_role?: string
+          canonical_resource_id?: string
+          catalog_item_id?: string
+          catalog_version_id?: string
+          created_at?: string
+          cycle_id?: string
+          playback_attempt_id?: string
+          publication_sha256?: string
+          required_capability?: string
+          transcript_version_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_assignment_items_catalog_item_fkey"
+            columns: ["catalog_version_id", "catalog_item_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_catalog_items"
+            referencedColumns: ["catalog_version_id", "catalog_item_id"]
+          },
+          {
+            foreignKeyName: "curriculum_assignment_items_owner_assignment_fkey"
+            columns: ["user_id", "cycle_id", "assignment_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_cycle_assignments"
+            referencedColumns: ["user_id", "cycle_id", "assignment_id"]
+          },
+        ]
+      }
+      curriculum_cycle_assignments: {
+        Row: {
+          assignment_id: string
+          assignment_status: string
+          assignment_version: number
+          catalog_version_id: string
+          confirmed_at: string | null
+          context_key: string
+          created_at: string
+          created_by: string
+          cycle_id: string
+          planner_receipt_id: string
+          planner_request_ledger_id: string
+          rebuild_diff: Json | null
+          rebuild_diff_sha256: string | null
+          revocation_reason: string | null
+          revoked_at: string | null
+          superseded_at: string | null
+          superseded_by_assignment_id: string | null
+          supersedes_assignment_id: string | null
+          user_id: string
+        }
+        Insert: {
+          assignment_id?: string
+          assignment_status: string
+          assignment_version: number
+          catalog_version_id: string
+          confirmed_at?: string | null
+          context_key?: string
+          created_at?: string
+          created_by: string
+          cycle_id: string
+          planner_receipt_id: string
+          planner_request_ledger_id: string
+          rebuild_diff?: Json | null
+          rebuild_diff_sha256?: string | null
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          superseded_at?: string | null
+          superseded_by_assignment_id?: string | null
+          supersedes_assignment_id?: string | null
+          user_id: string
+        }
+        Update: {
+          assignment_id?: string
+          assignment_status?: string
+          assignment_version?: number
+          catalog_version_id?: string
+          confirmed_at?: string | null
+          context_key?: string
+          created_at?: string
+          created_by?: string
+          cycle_id?: string
+          planner_receipt_id?: string
+          planner_request_ledger_id?: string
+          rebuild_diff?: Json | null
+          rebuild_diff_sha256?: string | null
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          superseded_at?: string | null
+          superseded_by_assignment_id?: string | null
+          supersedes_assignment_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_cycle_assignments_catalog_version_id_fkey"
+            columns: ["catalog_version_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_catalog_versions"
+            referencedColumns: ["catalog_version_id"]
+          },
+          {
+            foreignKeyName: "curriculum_assignments_exact_receipt_fkey"
+            columns: [
+              "user_id",
+              "cycle_id",
+              "planner_receipt_id",
+              "planner_request_ledger_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "cycle_plan_reconciliation_requests_v2"
+            referencedColumns: [
+              "user_id",
+              "cycle_id",
+              "planner_receipt_id",
+              "ledger_id",
+            ]
+          },
+          {
+            foreignKeyName: "curriculum_assignments_owner_cycle_fkey"
+            columns: ["user_id", "cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["user_id", "cycle_id"]
+          },
+          {
+            foreignKeyName: "curriculum_cycle_assignments_superseded_by_assignment_id_fkey"
+            columns: ["superseded_by_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_cycle_assignments"
+            referencedColumns: ["assignment_id"]
+          },
+          {
+            foreignKeyName: "curriculum_cycle_assignments_supersedes_assignment_id_fkey"
+            columns: ["supersedes_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_cycle_assignments"
+            referencedColumns: ["assignment_id"]
+          },
+        ]
+      }
+      curriculum_media_assets_private: {
+        Row: {
+          asset_key: string
+          canonical_resource_id: string
+          created_at: string
+          created_by: string
+          media_asset_id: string
+          playback_attempt_id: string
+          private_locator: string
+          provider: string
+          provider_asset_id: string
+          source_content_sha256: string
+          transcript_version_id: string
+        }
+        Insert: {
+          asset_key: string
+          canonical_resource_id?: string
+          created_at?: string
+          created_by: string
+          media_asset_id?: string
+          playback_attempt_id: string
+          private_locator: string
+          provider: string
+          provider_asset_id: string
+          source_content_sha256: string
+          transcript_version_id: string
+        }
+        Update: {
+          asset_key?: string
+          canonical_resource_id?: string
+          created_at?: string
+          created_by?: string
+          media_asset_id?: string
+          playback_attempt_id?: string
+          private_locator?: string
+          provider?: string
+          provider_asset_id?: string
+          source_content_sha256?: string
+          transcript_version_id?: string
+        }
+        Relationships: []
       }
       cycle_plan_identity_aliases_v2: {
         Row: {
@@ -8805,6 +9306,29 @@ export type Database = {
       }
     }
     Functions: {
+      confirm_curriculum_assignment_rebuild: {
+        Args: {
+          p_assignment_id: string
+          p_confirmed_by: string
+          p_expected_rebuild_diff_sha256: string
+        }
+        Returns: Json
+      }
+      create_curriculum_cycle_assignment: {
+        Args: {
+          p_catalog_version_id: string
+          p_context_key: string
+          p_created_by?: string
+          p_cycle_id: string
+          p_item_ids: string[]
+          p_planner_receipt_id: string
+          p_planner_request_ledger_id: string
+          p_rebuild_diff?: Json | null
+          p_supersedes_assignment_id?: string | null
+          p_user_id: string
+        }
+        Returns: Json
+      }
       delete_cycle_draft_conditionally_v2: {
         Args: {
           p_draft_id: string | null
@@ -8820,6 +9344,23 @@ export type Database = {
         Args: { p_payload: Json; p_request_id: string }
         Returns: Json
       }
+      publish_curriculum_catalog_version: {
+        Args: { p_catalog_version_id: string }
+        Returns: Json
+      }
+      resolve_my_assigned_learning: {
+        Args: { p_cycle_id: string }
+        Returns: Json
+      }
+      resolve_my_capabilities: {
+        Args: never
+        Returns: {
+          capability_key: string
+          capability_state: string
+          evaluated_at: string
+          reason: string
+        }[]
+      }
       save_cycle_draft_v2: {
         Args: {
           p_current_step: number
@@ -8833,6 +9374,18 @@ export type Database = {
           p_request_id: string | null
         }
         Returns: Json
+      }
+      set_capability_verification_hold: {
+        Args: {
+          p_capability_key: string
+          p_created_by: string
+          p_evidence_checked_at: string | null
+          p_expires_at: string | null
+          p_hold_state: string
+          p_reason_code: string
+          p_user_id: string
+        }
+        Returns: string
       }
       auto_archive_old_notes: { Args: never; Returns: number }
       backfill_admin_user_id: { Args: never; Returns: undefined }

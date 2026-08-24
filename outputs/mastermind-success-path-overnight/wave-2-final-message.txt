@@ -1,0 +1,10 @@
+Wave 2 source candidate is implemented and parent-verified on the exact final tree.
+
+- Base: `b6a99139a2b82cb3f824a052b92a2f0e2c35b33e`
+- PASS: focused Wave 2 PostgreSQL 16.14 behavior, ACL/RLS, persona, concurrency, rebuild, revocation, and metadata-absence suite.
+- PASS: full chronological PostgreSQL 16.14 replay through all 195 migrations plus double-apply of all Wave 1/Wave 2 candidates.
+- PASS: TypeScript, ESLint, build, complete `npm run verify`, Replay Vault 74/74, mutation controls, and `git diff --check`.
+- Pending: immutable independent acceptance review.
+- No push, deployment, production migration apply, external mutation, member exposure, or Wave 3 work occurred.
+
+Full evidence: `outputs/mastermind-success-path-overnight/wave-2-verification-receipt.md`.

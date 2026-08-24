@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply every chronological predecessor migration plus Wave 1 on disposable PG16.
+"""Apply the full chronological migration stack through Wave 2 on disposable PG16.
 
 This intentionally fails (without relabeling source inspection as behavior) when
 the local PostgreSQL distribution lacks a Supabase-only extension required by a
@@ -15,7 +15,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATIONS = ROOT / "supabase/migrations"
-CANDIDATE = MIGRATIONS / "20260822190000_cycle_plan_reconciliation_v2.sql"
+WAVE_CANDIDATES = [
+    MIGRATIONS / "20260822190000_cycle_plan_reconciliation_v2.sql",
+    MIGRATIONS / "20260822200000_mastermind_capability_projection.sql",
+    MIGRATIONS / "20260822210000_planner_learning_catalog_assignments.sql",
+]
+LATEST_CANDIDATE = WAVE_CANDIDATES[-1]
 BEHAVIOR = ROOT / "test/cycle-plan-reconciliation-v2/behavior.sql"
 
 
@@ -39,8 +44,10 @@ def main() -> None:
     if " 16." not in version:
         raise SystemExit(f"BLOCKED PostgreSQL 16 required, found {version}")
     migrations = sorted(MIGRATIONS.glob("*.sql"))
-    if not migrations or migrations[-1] != CANDIDATE:
-        raise SystemExit("Candidate is not the final chronological migration")
+    if not migrations or migrations[-1] != LATEST_CANDIDATE:
+        raise SystemExit("Latest Wave 2 candidate is not the final chronological migration")
+    if any(candidate not in migrations for candidate in WAVE_CANDIDATES):
+        raise SystemExit("One or more Wave 1/Wave 2 candidate migrations are missing")
 
     bootstrap = """
 DO $$ BEGIN CREATE ROLE anon NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
@@ -109,7 +116,8 @@ GRANT EXECUTE ON FUNCTION auth.uid(), auth.jwt() TO anon, authenticated, service
                     checked([*command, "-f", str(migration)], env)
                 except RuntimeError as error:
                     raise RuntimeError(f"Full stack failed at {index}/{len(migrations)} {migration.name}\n{error}") from error
-            checked([*command, "-f", str(CANDIDATE)], env)
+            for candidate in WAVE_CANDIDATES:
+                checked([*command, "-f", str(candidate)], env)
             search_probe = """
 DO $$
 DECLARE
@@ -193,8 +201,8 @@ $$;
 RESET ROLE;
 """
             checked([*command, "-c", private_acl_probe], env)
-            print(f"PASS {len(migrations) - 1} predecessor migrations + candidate")
-            print("PASS candidate double apply on full chronological stack")
+            print(f"PASS complete chronological stack through {LATEST_CANDIDATE.name} ({len(migrations)} migrations)")
+            print("PASS Wave 1/Wave 2 candidates double apply on full chronological stack")
             print("PASS migration 182 PostgreSQL 16 helper ACL and search semantics")
             print("PASS Wave 1 behavior suite on full chronological stack")
             print("PASS final effective private-ledger ACLs and denied-TRUNCATE receipt survival")

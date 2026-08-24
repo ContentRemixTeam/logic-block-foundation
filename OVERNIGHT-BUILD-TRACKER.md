@@ -35,12 +35,12 @@ Watching never completes a milestone. The regular Planner remains complete and M
 - [ ] ROUND 2 DATABASE PROOF — the authorized migration-182 compatibility source repair is present, but this sandbox still blocks PostgreSQL 16 bootstrap before any migration can run; parent must prove the full chronological replay reaches and tests Wave 1
 
 ### Wave 2 — Capability and curriculum authority
-- [ ] Add fail-closed Mastermind Learning capability contract
-- [ ] Keep Replay Vault capabilities independent
-- [ ] Add versioned Learning catalog and normalized frozen assignments
-- [ ] Add capability-aware RLS/RPCs
-- [ ] Regenerate/verify Supabase data contracts
-- [ ] Create receipt
+- [x] Add fail-closed Mastermind Learning capability contract
+- [x] Keep Replay Vault capabilities independent
+- [x] Add versioned Learning catalog and normalized frozen assignments
+- [x] Add capability-aware RLS/RPCs
+- [x] Regenerate/verify Supabase data contracts
+- [x] Create receipt
 
 ### Wave 3 — Success Path state and actions
 - [ ] Port/adapt welcome and recommendation UX
@@ -137,4 +137,20 @@ No commit, push, deployment, production migration apply/link, external SaaS acti
 ## Parent final acceptance — 2026-08-23
 
 Final repaired tree passed focused and full chronological PostgreSQL 16, TypeScript, lint, build, complete `npm run verify`, Replay Vault 74/74 plus real untracked-addition controls, and `git diff --check`. All independent critical/high findings were repaired. Canonical receipt: `outputs/mastermind-success-path-overnight/wave-1-final-acceptance-2026-08-23.md`. Classification: accepted local source checkpoint; production/release remains unauthorized.
+
+## Wave 2 source build — 2026-08-23
+
+Status: **SOURCE IMPLEMENTED — STATIC/TYPE/LINT/BUILD/PROTECTED BASELINE GREEN — NATIVE DATABASE ACCEPTANCE BLOCKED**
+
+Wave 2 adds a caller-bound ten-key capability projection that composes the existing Mastermind entitlement ledger and unchanged Replay Vault R10 resolver; private fail-closed verification holds; immutable versioned Planner Learning catalogs and private media authority; exact QA gating for `ready`; frozen owner/cycle/Planner-receipt assignments; hashed rebuild diff confirmation; same-owner composite constraints; and caller-only Learning resolution with no denied metadata.
+
+Focused static/type contract checks, TypeScript, focused ESLint, unchanged Replay Vault Deno lint, production build, the protected 74/74 Replay Vault baseline, diff check, and source scans pass. The focused PostgreSQL 16 runner exits 1 before applying any schema because this sandbox cannot allocate either mmap or SysV bootstrap shared memory. Consequently persona/RLS/ACL/QA/immutability/concurrency behavior is authored but not accepted as executed database proof, and the aggregate `npm run verify` exits 1 at that mandatory child gate.
+
+The untouched inherited `20260808120000_mastermind_portal_private_search.sql` full-history PG16 generated-expression blocker remains release-blocking exactly as directed. No Wave 3 UI/state/action work, commit, push, deployment, migration apply/link, SaaS/GHL action, entitlement change, publishing, Business Brain edit, or member exposure occurred.
+
+Canonical evidence: `outputs/mastermind-success-path-overnight/wave-2-verification-receipt.md`.
+
+## Wave 2 parent verification supersession — 2026-08-23
+
+Worker sandbox database blocker superseded: parent native PostgreSQL 16.14 focused Wave 2 suite passed; full chronological 195-migration replay through Wave 2 passed; candidate migrations double-applied; TypeScript/lint/build/full repository verification and Replay Vault 74/74 plus mutation controls passed. Candidate is ready for immutable independent review; production remains blocked and untouched.
 

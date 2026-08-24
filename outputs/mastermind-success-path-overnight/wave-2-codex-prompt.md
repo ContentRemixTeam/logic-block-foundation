@@ -6,7 +6,7 @@ You are the sole application source writer in:
 
 Exact starting commit must be:
 
-`34133f9474a9ded885013466876038ee3e0b9ab9`
+`b6a99139a2b82cb3f824a052b92a2f0e2c35b33e`
 
 You MAY MODIFY source files in this repository. That is the job.
 
