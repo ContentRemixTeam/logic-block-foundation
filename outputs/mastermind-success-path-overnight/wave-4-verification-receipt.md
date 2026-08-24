@@ -223,3 +223,17 @@ Verified on the repaired candidate:
 - `git diff --check`, secret scan, and absolute-host-path scan.
 
 Status: **PARENT-VERIFIED SECURITY-REPAIR PRIVATE SOURCE CANDIDATE — EXACT IMMUTABLE RE-REVIEW REQUIRED**. No deployment, production migration, real curriculum seed, entitlement/publication change, SaaS mutation, or member exposure occurred.
+
+
+## Wave 4 accepted — 2026-08-24
+
+Accepted immutable implementation checkpoint: `b3f9f85446d195bcd74ce49ec1c7f6f147af0f7a`.
+
+Two independent exact-commit closure reviewers returned **NO BLOCKERS**:
+
+- database/security closure independently reproduced exact sequential/superseding receipt consistency, authority transitions, true concurrency, append-only protections, exhaustive function ACLs, cross-owner helper denial, static+native ACL mutation rejection, 197-migration chronology, and double-apply;
+- edge/privacy closure independently exercised exact producer schemas, pre/post-mint receipt/hash fencing, revocation/rotation/transition/outage paths, Dropbox locator and playback-host adversaries, closed browser responses, behavior mutation controls, and Replay Vault independence.
+
+Non-blocking residuals: source-only/local verification did not deploy or call live Dropbox; PostgreSQL owner/superuser remains a trusted boundary; a future Dropbox contract change must fail closed until explicitly reviewed.
+
+Wave 4 is accepted as a **private source implementation checkpoint only**. It is not deployed, seeded with real curriculum, editorially approved, pilot-ready, member-ready, or production-ready. No production, entitlement, publication, SaaS, GHL, Searchie, Dropbox, or member action occurred.

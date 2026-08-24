@@ -265,3 +265,8 @@ No commit, push, deploy, production migration, real/member curriculum seed or pu
 ## Wave 4 security-repair parent verification — 2026-08-24
 
 The rejected `d2f64f997860e3726c573b9999bc3f4ac06cc380` findings were repaired: current decisions now bind matching append-only sequential receipts; Dropbox minting is fenced by exact pre/post receipt and authority hash; private producer schemas and Dropbox locator/playback hosts are closed; every migration-197 helper ACL is exhaustively enforced; and true concurrent PostgreSQL receipt probes run. Parent passed static 114, native PG16, full 197 chronology/double-apply, edge 7/7, mounted 320/360/390 with five serial repetitions, static/native behavior mutation controls, full `npm run verify`, browser 5×2, Replay Vault 74/74 controls, and source scans. Exact immutable re-review is required. Production and real curriculum remain untouched.
+
+
+## Wave 4 accepted boundary — 2026-08-24
+
+Accepted implementation source: `b3f9f85446d195bcd74ce49ec1c7f6f147af0f7a`. Independent database/security and edge/privacy closure reviews both returned **NO BLOCKERS** after adversarial execution of receipt transitions, real concurrency, exhaustive ACLs, helper-relaxation controls, post-mint authority fencing, exact producer/browser schemas, Dropbox locator/host validation, and Replay Vault isolation. Parent gates: static 114; native PG16; full 197 chronology/double-apply; edge 7/7; mounted five serial passes; full repository verification; browser 5×2; Replay Vault 74/74 plus controls. Wave 4 is locked as private source only. Production, real curriculum, entitlements, publication, SaaS, and members remain untouched.
