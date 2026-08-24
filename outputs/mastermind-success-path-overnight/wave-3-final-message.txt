@@ -1,0 +1,6 @@
+Wave 3 source candidate is implemented and parent-verified on the exact uncommitted tree.
+
+PASS: protected per-cycle path state, neutral canonical Planner task linkage, append-only evidence, Continue/Improve/Reduce/Support check-ins, explicit reviewed reroutes, absence recovery, support lifecycle/timeline, fail-closed personas, ACL/RLS, concurrency, and executable privacy mutation controls.
+PASS: Wave 3 static 138, native PostgreSQL 16.14, full 196-migration chronological replay, TypeScript, focused lint, production build, full repository verification, Replay Vault 74/74 and controls, and diff check.
+PENDING: immutable independent acceptance review.
+Production remains blocked and untouched; Wave 4 not started.

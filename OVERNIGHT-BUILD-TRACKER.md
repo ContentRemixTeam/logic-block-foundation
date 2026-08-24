@@ -43,12 +43,12 @@ Watching never completes a milestone. The regular Planner remains complete and M
 - [x] Create receipt
 
 ### Wave 3 — Success Path state and actions
-- [ ] Port/adapt welcome and recommendation UX
-- [ ] Member confirmation/change focus
-- [ ] Bind active path to exact Planner receipt and catalog assignment
-- [ ] One canonical task; no duplicate completion state
-- [ ] Evidence/check-in/support event bindings
-- [ ] Create receipt
+- [x] Add protected recommendation and explicit member confirmation/correction contracts; member UI remains Wave 4
+- [x] Add exact reviewed focus/milestone transition preview and confirmation
+- [x] Bind active path to exact Planner receipt and frozen catalog assignment
+- [x] Link one neutral canonical Planner task per stable action identity; no duplicate completion state
+- [x] Add append-only evidence, check-in, absence recovery, support, and timeline receipts
+- [x] Create receipt
 
 ### Wave 4 — Offer-first Planner Learning vertical slice
 - [ ] Add private Learning route/player contract separate from Replay Vault
@@ -185,4 +185,20 @@ Accepted immutable source checkpoint: `25811fdcd2ef74d8425843024575bc845a6e65ea`
 Independent closure verdict: **NO BLOCKERS**. The final review confirmed the live PostgreSQL resolver mutation/rollback control, exact static binding to `assigned_learning_after_mutation(..., resolver_leak_mutation)`, runtime database provenance, rejection of the legacy local-dictionary injection pattern, and the synthetic negative regression control.
 
 Wave 2 is locked. Production remains untouched and blocked. Wave 3 may build only from this accepted authority.
+
+## Wave 3 source build — 2026-08-23
+
+Status: **SOURCE IMPLEMENTED — STATIC/TYPE/LINT/BUILD/PROTECTED BASELINE GREEN — NATIVE DATABASE ACCEPTANCE BLOCKED**
+
+Wave 3 adds one thin protected per-cycle Success Path snapshot bound to the exact current Planner reconciliation receipt and frozen Wave 2 assignment; explicit recommendation confirmation/correction; one immutable linkage to a neutral canonical Planner task; append-only private business-evidence receipts; transactional Continue/Improve/Reduce/Support weekly evaluations; exact reviewed focus/milestone transition diffs; small-action absence recovery; a support lifecycle; and a privacy-safe append-only member timeline. No UI was added because Wave 4 owns the protected member vertical slice.
+
+Wave 3 static/type/privacy checks, Wave 1/2 static checks, TypeScript, focused ESLint, production build, Planner client behavior, Replay Vault 74/74 baseline and protected mutation controls, and diff checks pass. Both the focused Wave 3 PostgreSQL 16 runner and the updated complete chronological runner exit before schema apply because this managed sandbox cannot allocate PostgreSQL bootstrap shared memory. The full `npm run verify` therefore stops at its mandatory PostgreSQL child, and no native Wave 3 behavior, ACL, concurrency, apply-twice, or 196-migration replay pass is claimed here.
+
+Canonical evidence: `outputs/mastermind-success-path-overnight/wave-3-verification-receipt.md`.
+
+No commit, push, deploy, production migration, real curriculum/member seed, SaaS mutation, publishing, access change, member exposure, or Wave 4 work occurred. Production remains blocked and untouched pending parent PG16 execution and immutable review.
+
+## Wave 3 parent verification — 2026-08-23
+
+Parent passed Wave 3 static 138, native PostgreSQL 16.14 behavior/RLS/ACL/concurrency/privacy, complete 196-migration chronological replay with Wave candidates applied twice, TypeScript/focused lint/build/full repository verification, Replay Vault 74/74 and mutation controls, and diff check. One verifier-only task fixture was corrected from nonexistent `tasks.completed_at` to canonical `is_completed`. Immutable review is required before acceptance.
 

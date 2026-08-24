@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply the full chronological migration stack through Wave 2 on disposable PG16.
+"""Apply the full chronological migration stack through Wave 3 on disposable PG16.
 
 This intentionally fails (without relabeling source inspection as behavior) when
 the local PostgreSQL distribution lacks a Supabase-only extension required by a
@@ -19,6 +19,7 @@ WAVE_CANDIDATES = [
     MIGRATIONS / "20260822190000_cycle_plan_reconciliation_v2.sql",
     MIGRATIONS / "20260822200000_mastermind_capability_projection.sql",
     MIGRATIONS / "20260822210000_planner_learning_catalog_assignments.sql",
+    MIGRATIONS / "20260822220000_success_path_execution_ledger.sql",
 ]
 LATEST_CANDIDATE = WAVE_CANDIDATES[-1]
 BEHAVIOR = ROOT / "test/cycle-plan-reconciliation-v2/behavior.sql"
@@ -45,7 +46,7 @@ def main() -> None:
         raise SystemExit(f"BLOCKED PostgreSQL 16 required, found {version}")
     migrations = sorted(MIGRATIONS.glob("*.sql"))
     if not migrations or migrations[-1] != LATEST_CANDIDATE:
-        raise SystemExit("Latest Wave 2 candidate is not the final chronological migration")
+        raise SystemExit("Latest Wave 3 candidate is not the final chronological migration")
     if any(candidate not in migrations for candidate in WAVE_CANDIDATES):
         raise SystemExit("One or more Wave 1/Wave 2 candidate migrations are missing")
 
@@ -157,7 +158,11 @@ DECLARE
 BEGIN
   FOREACH v_table IN ARRAY ARRAY[
     'cycle_drafts', 'cycle_plan_intents_v2', 'cycle_plan_identity_aliases_v2',
-    'cycle_plan_reconciliation_requests_v2'
+    'cycle_plan_reconciliation_requests_v2', 'success_path_cycle_states',
+    'success_path_actions', 'success_path_confirmations', 'success_path_evidence_receipts',
+    'success_path_checkins', 'success_path_support_requests', 'success_path_focus_proposals',
+    'success_path_focus_transitions', 'success_path_absence_recoveries',
+    'success_path_support_events', 'success_path_timeline_events'
   ] LOOP
     FOREACH v_privilege IN ARRAY ARRAY['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER'] LOOP
       IF has_table_privilege('anon', format('public.%I', v_table), v_privilege)
@@ -202,7 +207,7 @@ RESET ROLE;
 """
             checked([*command, "-c", private_acl_probe], env)
             print(f"PASS complete chronological stack through {LATEST_CANDIDATE.name} ({len(migrations)} migrations)")
-            print("PASS Wave 1/Wave 2 candidates double apply on full chronological stack")
+            print("PASS Wave 1/Wave 2/Wave 3 candidates double apply on full chronological stack")
             print("PASS migration 182 PostgreSQL 16 helper ACL and search semantics")
             print("PASS Wave 1 behavior suite on full chronological stack")
             print("PASS final effective private-ledger ACLs and denied-TRUNCATE receipt survival")

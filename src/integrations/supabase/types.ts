@@ -7033,6 +7033,932 @@ export type Database = {
           },
         ]
       }
+      success_path_absence_recoveries: {
+        Row: {
+          action_id: string
+          created_at: string
+          cycle_id: string
+          from_path_version: number
+          path_id: string
+          prior_action_id: string
+          receipt: Json
+          recovery_id: string
+          request_id: string
+          request_sha256: string
+          to_path_version: number
+          user_id: string
+        }
+        Insert: {
+          action_id: string
+          created_at?: string
+          cycle_id: string
+          from_path_version: number
+          path_id: string
+          prior_action_id: string
+          receipt: Json
+          recovery_id?: string
+          request_id: string
+          request_sha256: string
+          to_path_version: number
+          user_id: string
+        }
+        Update: {
+          action_id?: string
+          created_at?: string
+          cycle_id?: string
+          from_path_version?: number
+          path_id?: string
+          prior_action_id?: string
+          receipt?: Json
+          recovery_id?: string
+          request_id?: string
+          request_sha256?: string
+          to_path_version?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "success_path_recoveries_action_fkey"
+            columns: ["user_id", "cycle_id", "action_id"]
+            isOneToOne: false
+            referencedRelation: "success_path_actions"
+            referencedColumns: ["user_id", "cycle_id", "action_id"]
+          },
+          {
+            foreignKeyName: "success_path_recoveries_owner_path_fkey"
+            columns: ["user_id", "cycle_id", "path_id"]
+            isOneToOne: false
+            referencedRelation: "success_path_cycle_states"
+            referencedColumns: ["user_id", "cycle_id", "path_id"]
+          },
+          {
+            foreignKeyName: "success_path_recoveries_prior_action_fkey"
+            columns: ["user_id", "cycle_id", "prior_action_id"]
+            isOneToOne: false
+            referencedRelation: "success_path_actions"
+            referencedColumns: ["user_id", "cycle_id", "action_id"]
+          },
+        ]
+      }
+      success_path_actions: {
+        Row: {
+          action_id: string
+          action_text: string
+          action_version: number
+          assignment_id: string
+          assignment_item_id: string
+          created_at: string
+          creation_reason: string
+          cycle_id: string
+          estimated_minutes: number
+          logical_action_key: string
+          milestone_key: string
+          move_key: string
+          path_id: string
+          path_version: number
+          task_baseline: Json
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          action_id?: string
+          action_text: string
+          action_version: number
+          assignment_id: string
+          assignment_item_id: string
+          created_at?: string
+          creation_reason: string
+          cycle_id: string
+          estimated_minutes: number
+          logical_action_key: string
+          milestone_key: string
+          move_key: string
+          path_id: string
+          path_version: number
+          task_baseline: Json
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          action_id?: string
+          action_text?: string
+          action_version?: number
+          assignment_id?: string
+          assignment_item_id?: string
+          created_at?: string
+          creation_reason?: string
+          cycle_id?: string
+          estimated_minutes?: number
+          logical_action_key?: string
+          milestone_key?: string
+          move_key?: string
+          path_id?: string
+          path_version?: number
+          task_baseline?: Json
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "success_path_actions_frozen_item_fkey"
+            columns: ["user_id", "cycle_id", "assignment_id", "assignment_item_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_cycle_assignment_items"
+            referencedColumns: ["user_id", "cycle_id", "assignment_id", "assignment_item_id"]
+          },
+          {
+            foreignKeyName: "success_path_actions_owner_path_fkey"
+            columns: ["user_id", "cycle_id", "path_id"]
+            isOneToOne: false
+            referencedRelation: "success_path_cycle_states"
+            referencedColumns: ["user_id", "cycle_id", "path_id"]
+          },
+          {
+            foreignKeyName: "success_path_actions_owner_task_fkey"
+            columns: ["user_id", "cycle_id", "task_id"]
+            isOneToOne: true
+            referencedRelation: "tasks"
+            referencedColumns: ["user_id", "cycle_id", "task_id"]
+          },
+        ]
+      }
+      success_path_checkins: {
+        Row: {
+          action_id: string
+          checkin_id: string
+          created_at: string
+          cycle_id: string
+          evidence_receipt_id: string
+          outcome: string
+          path_id: string
+          path_version: number
+          period_key: string
+          receipt: Json
+          request_id: string
+          request_sha256: string
+          resulting_action_id: string
+          resulting_path_version: number
+          support_request_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action_id: string
+          checkin_id?: string
+          created_at?: string
+          cycle_id: string
+          evidence_receipt_id: string
+          outcome: string
+          path_id: string
+          path_version: number
+          period_key: string
+          receipt: Json
+          request_id: string
+          request_sha256: string
+          resulting_action_id: string
+          resulting_path_version: number
+          support_request_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action_id?: string
+          checkin_id?: string
+          created_at?: string
+          cycle_id?: string
+          evidence_receipt_id?: string
+          outcome?: string
+          path_id?: string
+          path_version?: number
+          period_key?: string
+          receipt?: Json
+          request_id?: string
+          request_sha256?: string
+          resulting_action_id?: string
+          resulting_path_version?: number
+          support_request_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "success_path_checkins_owner_action_fkey"
+            columns: ["user_id", "cycle_id", "action_id"]
+            isOneToOne: false
+            referencedRelation: "success_path_actions"
+            referencedColumns: ["user_id", "cycle_id", "action_id"]
+          },
+          {
+            foreignKeyName: "success_path_checkins_owner_evidence_fkey"
+            columns: ["user_id", "cycle_id", "evidence_receipt_id"]
+            isOneToOne: false
+            referencedRelation: "success_path_evidence_receipts"
+            referencedColumns: ["user_id", "cycle_id", "evidence_receipt_id"]
+          },
+          {
+            foreignKeyName: "success_path_checkins_owner_path_fkey"
+            columns: ["user_id", "cycle_id", "path_id"]
+            isOneToOne: false
+            referencedRelation: "success_path_cycle_states"
+            referencedColumns: ["user_id", "cycle_id", "path_id"]
+          },
+          {
+            foreignKeyName: "success_path_checkins_owner_result_action_fkey"
+            columns: ["user_id", "cycle_id", "resulting_action_id"]
+            isOneToOne: false
+            referencedRelation: "success_path_actions"
+            referencedColumns: ["user_id", "cycle_id", "action_id"]
+          },
+          {
+            foreignKeyName: "success_path_checkins_support_fkey"
+            columns: ["user_id", "cycle_id", "support_request_id"]
+            isOneToOne: false
+            referencedRelation: "success_path_support_requests"
+            referencedColumns: ["user_id", "cycle_id", "support_request_id"]
+          },
+        ]
+      }
+      success_path_confirmations: {
+        Row: {
+          action_id: string
+          confirmation_id: string
+          created_at: string
+          cycle_id: string
+          expected_path_version: number
+          path_id: string
+          receipt: Json
+          request_id: string
+          request_sha256: string
+          resulting_path_version: number
+          user_id: string
+        }
+        Insert: {
+          action_id: string
+          confirmation_id?: string
+          created_at?: string
+          cycle_id: string
+          expected_path_version: number
+          path_id: string
+          receipt: Json
+          request_id: string
+          request_sha256: string
+          resulting_path_version: number
+          user_id: string
+        }
+        Update: {
+          action_id?: string
+          confirmation_id?: string
+          created_at?: string
+          cycle_id?: string
+          expected_path_version?: number
+          path_id?: string
+          receipt?: Json
+          request_id?: string
+          request_sha256?: string
+          resulting_path_version?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "success_path_confirmations_owner_action_fkey"
+            columns: ["user_id", "cycle_id", "action_id"]
+            isOneToOne: false
+            referencedRelation: "success_path_actions"
+            referencedColumns: ["user_id", "cycle_id", "action_id"]
+          },
+          {
+            foreignKeyName: "success_path_confirmations_owner_path_fkey"
+            columns: ["user_id", "cycle_id", "path_id"]
+            isOneToOne: true
+            referencedRelation: "success_path_cycle_states"
+            referencedColumns: ["user_id", "cycle_id", "path_id"]
+          },
+        ]
+      }
+      success_path_cycle_states: {
+        Row: {
+          active_assignment_item_id: string | null
+          active_milestone_key: string | null
+          active_milestone_title: string | null
+          assignment_id: string
+          assignment_version: number
+          capacity_mode: string
+          catalog_content_sha256: string
+          catalog_version_id: string
+          confirmed_at: string | null
+          confirmed_stage: string | null
+          created_at: string
+          current_action_id: string | null
+          cycle_id: string
+          path_id: string
+          planner_receipt_id: string
+          planner_request_ledger_id: string
+          recommendation_evidence_sha256: string
+          recommendation_reason: string
+          recommendation_receipt_id: string
+          recommendation_request_id: string
+          recommendation_request_sha256: string
+          recommended_action_minutes: number
+          recommended_action_text: string
+          recommended_assignment_item_id: string
+          recommended_milestone_key: string
+          recommended_milestone_title: string
+          recommended_move_key: string
+          recommended_stage: string
+          state_receipt_id: string
+          state_version: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_assignment_item_id?: string | null
+          active_milestone_key?: string | null
+          active_milestone_title?: string | null
+          assignment_id: string
+          assignment_version: number
+          capacity_mode?: string
+          catalog_content_sha256: string
+          catalog_version_id: string
+          confirmed_at?: string | null
+          confirmed_stage?: string | null
+          created_at?: string
+          current_action_id?: string | null
+          cycle_id: string
+          path_id?: string
+          planner_receipt_id: string
+          planner_request_ledger_id: string
+          recommendation_evidence_sha256: string
+          recommendation_reason: string
+          recommendation_receipt_id?: string
+          recommendation_request_id: string
+          recommendation_request_sha256: string
+          recommended_action_minutes: number
+          recommended_action_text: string
+          recommended_assignment_item_id: string
+          recommended_milestone_key: string
+          recommended_milestone_title: string
+          recommended_move_key: string
+          recommended_stage: string
+          state_receipt_id?: string
+          state_version?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_assignment_item_id?: string | null
+          active_milestone_key?: string | null
+          active_milestone_title?: string | null
+          assignment_id?: string
+          assignment_version?: number
+          capacity_mode?: string
+          catalog_content_sha256?: string
+          catalog_version_id?: string
+          confirmed_at?: string | null
+          confirmed_stage?: string | null
+          created_at?: string
+          current_action_id?: string | null
+          cycle_id?: string
+          path_id?: string
+          planner_receipt_id?: string
+          planner_request_ledger_id?: string
+          recommendation_evidence_sha256?: string
+          recommendation_reason?: string
+          recommendation_receipt_id?: string
+          recommendation_request_id?: string
+          recommendation_request_sha256?: string
+          recommended_action_minutes?: number
+          recommended_action_text?: string
+          recommended_assignment_item_id?: string
+          recommended_milestone_key?: string
+          recommended_milestone_title?: string
+          recommended_move_key?: string
+          recommended_stage?: string
+          state_receipt_id?: string
+          state_version?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "success_path_state_active_item_fkey"
+            columns: ["user_id", "cycle_id", "assignment_id", "active_assignment_item_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_cycle_assignment_items"
+            referencedColumns: ["user_id", "cycle_id", "assignment_id", "assignment_item_id"]
+          },
+          {
+            foreignKeyName: "success_path_state_current_action_fkey"
+            columns: ["user_id", "cycle_id", "current_action_id"]
+            isOneToOne: false
+            referencedRelation: "success_path_actions"
+            referencedColumns: ["user_id", "cycle_id", "action_id"]
+          },
+          {
+            foreignKeyName: "success_path_state_exact_planner_receipt_fkey"
+            columns: ["user_id", "cycle_id", "planner_receipt_id", "planner_request_ledger_id"]
+            isOneToOne: false
+            referencedRelation: "cycle_plan_reconciliation_requests_v2"
+            referencedColumns: ["user_id", "cycle_id", "planner_receipt_id", "ledger_id"]
+          },
+          {
+            foreignKeyName: "success_path_state_frozen_assignment_fkey"
+            columns: ["user_id", "cycle_id", "assignment_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_cycle_assignments"
+            referencedColumns: ["user_id", "cycle_id", "assignment_id"]
+          },
+          {
+            foreignKeyName: "success_path_state_owner_cycle_fkey"
+            columns: ["user_id", "cycle_id"]
+            isOneToOne: true
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["user_id", "cycle_id"]
+          },
+          {
+            foreignKeyName: "success_path_state_recommended_item_fkey"
+            columns: ["user_id", "cycle_id", "assignment_id", "recommended_assignment_item_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_cycle_assignment_items"
+            referencedColumns: ["user_id", "cycle_id", "assignment_id", "assignment_item_id"]
+          },
+        ]
+      }
+      success_path_evidence_receipts: {
+        Row: {
+          action_id: string
+          assignment_id: string
+          assignment_item_id: string
+          assignment_version: number
+          catalog_content_sha256: string
+          catalog_version_id: string
+          created_at: string
+          cycle_id: string
+          evidence_receipt_id: string
+          evidence_type: string
+          member_note: string | null
+          milestone_key: string
+          observed_at: string
+          path_id: string
+          path_version: number
+          planner_receipt_id: string
+          planner_request_ledger_id: string
+          receipt: Json
+          reference_label: string | null
+          request_id: string
+          request_sha256: string
+          structured_value: Json
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          action_id: string
+          assignment_id: string
+          assignment_item_id: string
+          assignment_version: number
+          catalog_content_sha256: string
+          catalog_version_id: string
+          created_at?: string
+          cycle_id: string
+          evidence_receipt_id?: string
+          evidence_type: string
+          member_note?: string | null
+          milestone_key: string
+          observed_at: string
+          path_id: string
+          path_version: number
+          planner_receipt_id: string
+          planner_request_ledger_id: string
+          receipt: Json
+          reference_label?: string | null
+          request_id: string
+          request_sha256: string
+          structured_value: Json
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          action_id?: string
+          assignment_id?: string
+          assignment_item_id?: string
+          assignment_version?: number
+          catalog_content_sha256?: string
+          catalog_version_id?: string
+          created_at?: string
+          cycle_id?: string
+          evidence_receipt_id?: string
+          evidence_type?: string
+          member_note?: string | null
+          milestone_key?: string
+          observed_at?: string
+          path_id?: string
+          path_version?: number
+          planner_receipt_id?: string
+          planner_request_ledger_id?: string
+          receipt?: Json
+          reference_label?: string | null
+          request_id?: string
+          request_sha256?: string
+          structured_value?: Json
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "success_path_evidence_exact_planner_receipt_fkey"
+            columns: ["user_id", "cycle_id", "planner_receipt_id", "planner_request_ledger_id"]
+            isOneToOne: false
+            referencedRelation: "cycle_plan_reconciliation_requests_v2"
+            referencedColumns: ["user_id", "cycle_id", "planner_receipt_id", "ledger_id"]
+          },
+          {
+            foreignKeyName: "success_path_evidence_frozen_item_fkey"
+            columns: ["user_id", "cycle_id", "assignment_id", "assignment_item_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_cycle_assignment_items"
+            referencedColumns: ["user_id", "cycle_id", "assignment_id", "assignment_item_id"]
+          },
+          {
+            foreignKeyName: "success_path_evidence_owner_action_fkey"
+            columns: ["user_id", "cycle_id", "action_id"]
+            isOneToOne: false
+            referencedRelation: "success_path_actions"
+            referencedColumns: ["user_id", "cycle_id", "action_id"]
+          },
+          {
+            foreignKeyName: "success_path_evidence_owner_path_fkey"
+            columns: ["user_id", "cycle_id", "path_id"]
+            isOneToOne: false
+            referencedRelation: "success_path_cycle_states"
+            referencedColumns: ["user_id", "cycle_id", "path_id"]
+          },
+          {
+            foreignKeyName: "success_path_evidence_owner_task_fkey"
+            columns: ["user_id", "cycle_id", "task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["user_id", "cycle_id", "task_id"]
+          },
+        ]
+      }
+      success_path_focus_proposals: {
+        Row: {
+          created_at: string
+          cycle_id: string
+          evidence_receipt_id: string | null
+          expected_path_version: number
+          impact_diff: Json
+          impact_diff_sha256: string
+          path_id: string
+          proposal_id: string
+          proposed_action_minutes: number
+          proposed_action_text: string
+          proposed_assignment_id: string
+          proposed_assignment_item_id: string
+          proposed_assignment_version: number
+          proposed_catalog_content_sha256: string
+          proposed_catalog_version_id: string
+          proposed_milestone_key: string
+          proposed_milestone_title: string
+          proposed_move_key: string
+          proposed_planner_receipt_id: string
+          proposed_planner_request_ledger_id: string
+          proposed_stage: string
+          reason_code: string
+          request_id: string
+          request_sha256: string
+          transition_kind: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          cycle_id: string
+          evidence_receipt_id?: string | null
+          expected_path_version: number
+          impact_diff: Json
+          impact_diff_sha256: string
+          path_id: string
+          proposal_id?: string
+          proposed_action_minutes: number
+          proposed_action_text: string
+          proposed_assignment_id: string
+          proposed_assignment_item_id: string
+          proposed_assignment_version: number
+          proposed_catalog_content_sha256: string
+          proposed_catalog_version_id: string
+          proposed_milestone_key: string
+          proposed_milestone_title: string
+          proposed_move_key: string
+          proposed_planner_receipt_id: string
+          proposed_planner_request_ledger_id: string
+          proposed_stage: string
+          reason_code: string
+          request_id: string
+          request_sha256: string
+          transition_kind: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          cycle_id?: string
+          evidence_receipt_id?: string | null
+          expected_path_version?: number
+          impact_diff?: Json
+          impact_diff_sha256?: string
+          path_id?: string
+          proposal_id?: string
+          proposed_action_minutes?: number
+          proposed_action_text?: string
+          proposed_assignment_id?: string
+          proposed_assignment_item_id?: string
+          proposed_assignment_version?: number
+          proposed_catalog_content_sha256?: string
+          proposed_catalog_version_id?: string
+          proposed_milestone_key?: string
+          proposed_milestone_title?: string
+          proposed_move_key?: string
+          proposed_planner_receipt_id?: string
+          proposed_planner_request_ledger_id?: string
+          proposed_stage?: string
+          reason_code?: string
+          request_id?: string
+          request_sha256?: string
+          transition_kind?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "success_path_proposals_assignment_fkey"
+            columns: ["user_id", "cycle_id", "proposed_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_cycle_assignments"
+            referencedColumns: ["user_id", "cycle_id", "assignment_id"]
+          },
+          {
+            foreignKeyName: "success_path_proposals_evidence_fkey"
+            columns: ["user_id", "cycle_id", "evidence_receipt_id"]
+            isOneToOne: false
+            referencedRelation: "success_path_evidence_receipts"
+            referencedColumns: ["user_id", "cycle_id", "evidence_receipt_id"]
+          },
+          {
+            foreignKeyName: "success_path_proposals_item_fkey"
+            columns: ["user_id", "cycle_id", "proposed_assignment_id", "proposed_assignment_item_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_cycle_assignment_items"
+            referencedColumns: ["user_id", "cycle_id", "assignment_id", "assignment_item_id"]
+          },
+          {
+            foreignKeyName: "success_path_proposals_owner_path_fkey"
+            columns: ["user_id", "cycle_id", "path_id"]
+            isOneToOne: false
+            referencedRelation: "success_path_cycle_states"
+            referencedColumns: ["user_id", "cycle_id", "path_id"]
+          },
+          {
+            foreignKeyName: "success_path_proposals_planner_fkey"
+            columns: ["user_id", "cycle_id", "proposed_planner_receipt_id", "proposed_planner_request_ledger_id"]
+            isOneToOne: false
+            referencedRelation: "cycle_plan_reconciliation_requests_v2"
+            referencedColumns: ["user_id", "cycle_id", "planner_receipt_id", "ledger_id"]
+          },
+        ]
+      }
+      success_path_focus_transitions: {
+        Row: {
+          action_id: string
+          confirmation_request_id: string
+          confirmation_request_sha256: string
+          confirmed_at: string
+          cycle_id: string
+          from_path_version: number
+          path_id: string
+          prior_action_id: string
+          proposal_id: string
+          receipt: Json
+          to_path_version: number
+          transition_id: string
+          user_id: string
+        }
+        Insert: {
+          action_id: string
+          confirmation_request_id: string
+          confirmation_request_sha256: string
+          confirmed_at?: string
+          cycle_id: string
+          from_path_version: number
+          path_id: string
+          prior_action_id: string
+          proposal_id: string
+          receipt: Json
+          to_path_version: number
+          transition_id?: string
+          user_id: string
+        }
+        Update: {
+          action_id?: string
+          confirmation_request_id?: string
+          confirmation_request_sha256?: string
+          confirmed_at?: string
+          cycle_id?: string
+          from_path_version?: number
+          path_id?: string
+          prior_action_id?: string
+          proposal_id?: string
+          receipt?: Json
+          to_path_version?: number
+          transition_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "success_path_transitions_action_fkey"
+            columns: ["user_id", "cycle_id", "action_id"]
+            isOneToOne: false
+            referencedRelation: "success_path_actions"
+            referencedColumns: ["user_id", "cycle_id", "action_id"]
+          },
+          {
+            foreignKeyName: "success_path_transitions_prior_action_fkey"
+            columns: ["user_id", "cycle_id", "prior_action_id"]
+            isOneToOne: false
+            referencedRelation: "success_path_actions"
+            referencedColumns: ["user_id", "cycle_id", "action_id"]
+          },
+          {
+            foreignKeyName: "success_path_transitions_proposal_fkey"
+            columns: ["user_id", "cycle_id", "proposal_id"]
+            isOneToOne: true
+            referencedRelation: "success_path_focus_proposals"
+            referencedColumns: ["user_id", "cycle_id", "proposal_id"]
+          },
+        ]
+      }
+      success_path_support_events: {
+        Row: {
+          actor_kind: string
+          actor_reference: string
+          created_at: string
+          cycle_id: string
+          event_type: string
+          path_id: string
+          reason: string
+          request_id: string
+          request_sha256: string
+          status_receipt_id: string
+          support_event_id: string
+          support_request_id: string
+          user_id: string
+        }
+        Insert: {
+          actor_kind: string
+          actor_reference: string
+          created_at?: string
+          cycle_id: string
+          event_type: string
+          path_id: string
+          reason: string
+          request_id: string
+          request_sha256: string
+          status_receipt_id: string
+          support_event_id?: string
+          support_request_id: string
+          user_id: string
+        }
+        Update: {
+          actor_kind?: string
+          actor_reference?: string
+          created_at?: string
+          cycle_id?: string
+          event_type?: string
+          path_id?: string
+          reason?: string
+          request_id?: string
+          request_sha256?: string
+          status_receipt_id?: string
+          support_event_id?: string
+          support_request_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "success_path_support_events_request_fkey"
+            columns: ["user_id", "cycle_id", "support_request_id"]
+            isOneToOne: false
+            referencedRelation: "success_path_support_requests"
+            referencedColumns: ["user_id", "cycle_id", "support_request_id"]
+          },
+        ]
+      }
+      success_path_support_requests: {
+        Row: {
+          acknowledged_at: string | null
+          checkin_id: string
+          cycle_id: string
+          opened_at: string
+          path_id: string
+          resolved_at: string | null
+          status: string
+          status_receipt_id: string
+          support_request_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          checkin_id: string
+          cycle_id: string
+          opened_at?: string
+          path_id: string
+          resolved_at?: string | null
+          status?: string
+          status_receipt_id?: string
+          support_request_id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          checkin_id?: string
+          cycle_id?: string
+          opened_at?: string
+          path_id?: string
+          resolved_at?: string | null
+          status?: string
+          status_receipt_id?: string
+          support_request_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "success_path_support_checkin_fkey"
+            columns: ["user_id", "cycle_id", "checkin_id"]
+            isOneToOne: true
+            referencedRelation: "success_path_checkins"
+            referencedColumns: ["user_id", "cycle_id", "checkin_id"]
+          },
+          {
+            foreignKeyName: "success_path_support_owner_path_fkey"
+            columns: ["user_id", "cycle_id", "path_id"]
+            isOneToOne: false
+            referencedRelation: "success_path_cycle_states"
+            referencedColumns: ["user_id", "cycle_id", "path_id"]
+          },
+        ]
+      }
+      success_path_timeline_events: {
+        Row: {
+          actor_kind: string
+          actor_reference: string
+          created_at: string
+          cycle_id: string
+          event_key: string
+          event_type: string
+          member_payload: Json
+          path_id: string
+          path_version: number
+          private_payload: Json
+          reason: string
+          timeline_event_id: string
+          user_id: string
+        }
+        Insert: {
+          actor_kind: string
+          actor_reference: string
+          created_at?: string
+          cycle_id: string
+          event_key: string
+          event_type: string
+          member_payload?: Json
+          path_id: string
+          path_version: number
+          private_payload?: Json
+          reason: string
+          timeline_event_id?: string
+          user_id: string
+        }
+        Update: {
+          actor_kind?: string
+          actor_reference?: string
+          created_at?: string
+          cycle_id?: string
+          event_key?: string
+          event_type?: string
+          member_payload?: Json
+          path_id?: string
+          path_version?: number
+          private_payload?: Json
+          reason?: string
+          timeline_event_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "success_path_timeline_owner_path_fkey"
+            columns: ["user_id", "cycle_id", "path_id"]
+            isOneToOne: false
+            referencedRelation: "success_path_cycle_states"
+            referencedColumns: ["user_id", "cycle_id", "path_id"]
+          },
+        ]
+      }
       strategy_change_attempts: {
         Row: {
           blocking_thought: string | null
@@ -9353,6 +10279,32 @@ export type Database = {
       }
     }
     Functions: {
+      confirm_my_success_path: {
+        Args: {
+          p_action_minutes: number
+          p_action_text: string
+          p_assignment_item_id: string
+          p_confirmed_stage: string
+          p_correction_reason?: string | null
+          p_cycle_id: string
+          p_expected_path_version: number
+          p_milestone_key: string
+          p_milestone_title: string
+          p_move_key: string
+          p_request_id: string
+        }
+        Returns: Json
+      }
+      confirm_my_success_path_transition: {
+        Args: {
+          p_confirm: boolean
+          p_confirmation_request_id: string
+          p_expected_impact_diff: Json
+          p_expected_impact_diff_sha256: string
+          p_proposal_id: string
+        }
+        Returns: Json
+      }
       confirm_curriculum_assignment_rebuild: {
         Args: {
           p_assignment_id: string
@@ -9377,6 +10329,27 @@ export type Database = {
         }
         Returns: Json
       }
+      create_success_path_recommendation: {
+        Args: {
+          p_actor_reference?: string
+          p_assignment_id: string
+          p_cycle_id: string
+          p_planner_receipt_id: string
+          p_planner_request_ledger_id: string
+          p_recommendation_evidence_sha256: string
+          p_recommendation_reason: string
+          p_recommended_action_minutes: number
+          p_recommended_action_text: string
+          p_recommended_assignment_item_id: string
+          p_recommended_milestone_key: string
+          p_recommended_milestone_title: string
+          p_recommended_move_key: string
+          p_recommended_stage: string
+          p_request_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       delete_cycle_draft_conditionally_v2: {
         Args: {
           p_draft_id: string | null
@@ -9388,8 +10361,51 @@ export type Database = {
         }
         Returns: Json
       }
+      evaluate_my_success_path_week: {
+        Args: {
+          p_action_id: string
+          p_cycle_id: string
+          p_evidence_receipt_id: string
+          p_expected_path_version: number
+          p_outcome: string
+          p_period_key: string
+          p_reduced_action_minutes?: number | null
+          p_reduced_action_text?: string | null
+          p_request_id: string
+        }
+        Returns: Json
+      }
+      preview_my_success_path_transition: {
+        Args: {
+          p_cycle_id: string
+          p_evidence_receipt_id: string | null
+          p_expected_path_version: number
+          p_proposed_action_minutes: number
+          p_proposed_action_text: string
+          p_proposed_assignment_id: string
+          p_proposed_assignment_item_id: string
+          p_proposed_milestone_key: string
+          p_proposed_milestone_title: string
+          p_proposed_move_key: string
+          p_proposed_stage: string
+          p_reason_code: string
+          p_request_id: string
+          p_transition_kind: string
+        }
+        Returns: Json
+      }
       reconcile_cycle_plan_v2: {
         Args: { p_payload: Json; p_request_id: string }
+        Returns: Json
+      }
+      recover_my_success_path_after_absence: {
+        Args: {
+          p_cycle_id: string
+          p_expected_path_version: number
+          p_request_id: string
+          p_small_action_minutes: number
+          p_small_action_text: string
+        }
         Returns: Json
       }
       publish_curriculum_catalog_version: {
@@ -9406,6 +10422,14 @@ export type Database = {
         Returns: Json
       }
       resolve_my_assigned_learning: {
+        Args: { p_cycle_id: string }
+        Returns: Json
+      }
+      resolve_my_success_path: {
+        Args: { p_cycle_id: string }
+        Returns: Json
+      }
+      resolve_my_success_path_timeline: {
         Args: { p_cycle_id: string }
         Returns: Json
       }
@@ -9443,6 +10467,30 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      submit_my_success_path_evidence: {
+        Args: {
+          p_action_id: string
+          p_cycle_id: string
+          p_evidence_type: string
+          p_expected_path_version: number
+          p_member_note: string | null
+          p_observed_at: string
+          p_reference_label: string | null
+          p_request_id: string
+          p_structured_value: Json
+        }
+        Returns: Json
+      }
+      update_success_path_support: {
+        Args: {
+          p_actor_reference: string
+          p_reason: string
+          p_request_id: string
+          p_status: string
+          p_support_request_id: string
+        }
+        Returns: Json
       }
       auto_archive_old_notes: { Args: never; Returns: number }
       backfill_admin_user_id: { Args: never; Returns: undefined }

@@ -17,7 +17,10 @@ const historicalSearch = fs.readFileSync(path.join(root, 'supabase/migrations/20
 
 const migrationFiles = fs.readdirSync(path.join(root, 'supabase/migrations'))
   .filter((name) => name.endsWith('.sql')).sort();
-assert.equal(migrationFiles.at(-1), migrationName, 'Wave 1 migration is not the final chronological migration');
+const wave3MigrationName = '20260822220000_success_path_execution_ledger.sql';
+assert.equal(migrationFiles.at(-1), wave3MigrationName, 'Wave 3 migration is not the final chronological migration');
+assert.ok(migrationFiles.indexOf(migrationName) < migrationFiles.indexOf(wave3MigrationName),
+  'Wave 1 no longer precedes the additive Wave 3 migration');
 
 const destinations = [
   'cycles_90_day', 'cycle_strategy', 'cycle_offers', 'cycle_limited_offers',
