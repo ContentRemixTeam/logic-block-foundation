@@ -396,10 +396,28 @@ def main() -> None:
                 denied = assigned_learning(psql, env, user_id, ids["annual_cycle"])
                 assert_fail_closed_envelope(label, denied, private_sentinels)
 
-            mutation_control = dict(assigned_learning(
-                psql, env, USERS["nonmember"], ids["annual_cycle"]
-            ))
-            mutation_control["media_asset_id"] = ids["media"]
+            resolver_leak_mutation = f"""
+              CREATE OR REPLACE FUNCTION public.resolve_my_assigned_learning(p_cycle_id uuid)
+              RETURNS jsonb
+              LANGUAGE plpgsql
+              SECURITY DEFINER
+              SET search_path = pg_catalog, public
+              AS $mutation$
+              BEGIN
+                RETURN jsonb_build_object(
+                  'capability_state', 'denied',
+                  'reason', 'executable_privacy_mutation_control',
+                  'assignment_state', NULL,
+                  'assignment', NULL,
+                  'items', '[]'::jsonb,
+                  'media_asset_id', '{ids["media"]}'
+                );
+              END;
+              $mutation$;
+            """
+            mutation_control = assigned_learning_after_mutation(
+                psql, env, USERS["nonmember"], ids["annual_cycle"], resolver_leak_mutation
+            )
             try:
                 assert_fail_closed_envelope(
                     "denied response mutation control", mutation_control, private_sentinels
@@ -408,8 +426,14 @@ def main() -> None:
                 pass
             else:
                 raise RuntimeError(
-                    "denied response mutation control did not fail after private authority injection"
+                    "executable resolver mutation control did not fail after private authority injection"
                 )
+            restored_denial = assigned_learning(
+                psql, env, USERS["nonmember"], ids["annual_cycle"]
+            )
+            assert_fail_closed_envelope(
+                "denied response mutation control rollback restoration", restored_denial, private_sentinels
+            )
             print("PASS serialized denial envelopes cover standalone Planner, expired entitlement, "
                   "verification unavailable, and review required / hold with mutation control")
             catalog_seed = f"""

@@ -173,8 +173,11 @@ for (const state of [
   requireCheck(postgresVerifier.includes(state), `native denied-envelope coverage missing ${state}`);
 }
 requireCheck(
-  postgresVerifier.includes('denied response mutation control'),
-  'native verifier mutation control for private denied-response fields missing',
+  postgresVerifier.includes('denied response mutation control')
+    && postgresVerifier.includes('CREATE OR REPLACE FUNCTION public.resolve_my_assigned_learning')
+    && postgresVerifier.includes('assigned_learning_after_mutation(')
+    && postgresVerifier.includes('rollback restoration'),
+  'native verifier must execute and roll back a real resolver privacy mutation',
 );
 
 requireCheck(pkg.scripts['verify:mastermind-wave2'] === 'npm run verify:mastermind-wave2-static && npm run verify:mastermind-wave2-postgres && npm run verify:cycle-plan-full-stack-postgres', 'Wave 2 aggregate must include focused and full chronological PG16 proof');

@@ -170,3 +170,7 @@ No commit, push, deploy, production migration, real curriculum/member seed, SaaS
 
 All four immutable-review blockers were repaired and passed parent native PostgreSQL 16.14 focused + 195-migration chronological suites, 59-field publication-hash mutation controls, adversarial server-derived rebuild-diff checks, full denied-envelope metadata mutation controls, TypeScript/lint/build/full repository verification, Replay Vault 74/74 and mutation controls, and diff check. New immutable re-review required before acceptance.
 
+## Executable resolver privacy mutation closure — 2026-08-23
+
+The final review's test-quality blocker is closed. The native PostgreSQL harness now replaces `resolve_my_assigned_learning(uuid)` inside a transaction with a leaking resolver that inserts `media_asset_id` into a denied envelope, calls that real resolver under the authenticated role, and requires the governing privacy assertion to fail. The transaction rolls back; the harness then calls the restored real resolver and requires the clean denied envelope to pass. Static verification requires this database mutation + rollback-restoration path, preventing regression to a local Python-dictionary injection. Focused PostgreSQL 16.14 and the complete repository aggregate both passed afterward.
+

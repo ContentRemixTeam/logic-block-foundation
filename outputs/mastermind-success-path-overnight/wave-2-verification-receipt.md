@@ -87,3 +87,7 @@ The exact repaired tree passed:
 
 No production migration, push, deploy, real curriculum/member seed, entitlement mutation, GHL/Searchie change, publishing, member exposure, or Wave 3 work occurred.
 
+## Executable resolver privacy mutation closure — 2026-08-23
+
+The final review's test-quality blocker is closed. The native PostgreSQL harness now replaces `resolve_my_assigned_learning(uuid)` inside a transaction with a leaking resolver that inserts `media_asset_id` into a denied envelope, calls that real resolver under the authenticated role, and requires the governing privacy assertion to fail. The transaction rolls back; the harness then calls the restored real resolver and requires the clean denied envelope to pass. Static verification requires this database mutation + rollback-restoration path, preventing regression to a local Python-dictionary injection. Focused PostgreSQL 16.14 and the complete repository aggregate both passed afterward.
+
