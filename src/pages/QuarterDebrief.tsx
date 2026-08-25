@@ -61,6 +61,10 @@ type QuarterDebriefsTable = {
     };
   };
   update: (value: Record<string, unknown>) => QuarterDebriefsTable;
+  then: (
+    onfulfilled: (value: { data: QuarterDebriefRow | null; error: { message?: string } | null }) => unknown,
+    onrejected?: (reason: unknown) => unknown,
+  ) => Promise<unknown>;
 };
 
 type BusinessSectionKey = 'lead_generation' | 'nurture' | 'sales' | 'delivery' | 'operations' | 'money';
