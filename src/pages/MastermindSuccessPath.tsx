@@ -10,7 +10,7 @@ import { useSuccessPathLearningSlice } from '@/hooks/useSuccessPathLearningSlice
 import { newStableRequestId, type SuccessPathLearningEmptyState } from '@/lib/successPathLearningSlice';
 import { parseEditContext, parseEngagementReceipt, parseTransitionConfirmation, parseTransitionPreview, type EngagementEvent, type TransitionPreview } from '@/lib/successPathMemberAuthority';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowRight, CheckCircle2, LifeBuoy, Loader2, Pencil, RotateCcw, X } from 'lucide-react';
+import { ArrowRight, BookOpen, CheckCircle2, ClipboardList, Clock3, LifeBuoy, Loader2, Pencil, RotateCcw, Sparkles, Target, X } from 'lucide-react';
 
 type SaveState = 'idle' | 'pending' | 'saved' | 'conflict' | 'ambiguous';
 type Outcome = 'continue' | 'improve' | 'reduce' | 'support';
@@ -24,6 +24,8 @@ const emptyCopy: Record<SuccessPathLearningEmptyState, { title: string; body: st
   resource_not_ready: { title: 'Your assigned resource is not ready', body: 'This resource is being prepared. Your plan has not changed.', action: 'Check again' },
 };
 
+const brandDisplay = { fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '.01em' as const, lineHeight: 1 as const };
+
 function weekKey(now = new Date()) {
   const date = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
   const day = date.getUTCDay() || 7;
@@ -36,6 +38,25 @@ function weekKey(now = new Date()) {
 function mutationKind(error: unknown): 'conflict' | 'ambiguous' {
   const message = error instanceof Error ? error.message : String(error ?? '');
   return /conflict|stale|unavailable/i.test(message) && !/fetch|network|timeout/i.test(message) ? 'conflict' : 'ambiguous';
+}
+
+function Eyebrow({ children, dark = false }: { children: React.ReactNode; dark?: boolean }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <div aria-hidden className="h-[2px] w-7 shrink-0 bg-[#B8860B]" />
+      <span className={`text-[11px] font-bold uppercase tracking-[0.2em] ${dark ? 'text-[#B8860B]' : 'text-[#111111]'}`}>{children}</span>
+    </div>
+  );
+}
+
+function BrandButton({ variant = 'primary', className = '', ...props }: { variant?: 'primary' | 'dark' | 'outline' } & React.ComponentProps<typeof Button>) {
+  const base = 'min-h-11 rounded-none border-2 text-[13px] font-bold uppercase tracking-[0.07em]';
+  const styles = {
+    primary: 'bg-[#C8145E] text-white border-[#C8145E] hover:bg-[#111111] hover:border-[#111111]',
+    dark: 'bg-[#111111] text-white border-[#111111] hover:bg-[#C8145E] hover:border-[#C8145E]',
+    outline: 'bg-transparent text-[#111111] border-[#111111] hover:bg-[#111111] hover:text-white',
+  } as const;
+  return <Button {...props} className={`${base} ${styles[variant]} ${className}`} />;
 }
 
 export default function MastermindSuccessPath() {
@@ -229,35 +250,129 @@ export default function MastermindSuccessPath() {
     } catch (caught) { setEvaluationState(mutationKind(caught)); }
   };
 
-  if (isLoading && !data) return <Layout><main className="mx-auto w-full max-w-3xl min-w-0 px-4 py-8" role="status" aria-live="polite"><Loader2 className="mr-2 inline h-5 w-5 animate-spin motion-reduce:animate-none" />Loading your current Success Path…</main></Layout>;
-  if (error || !data) return <Layout><main className="mx-auto w-full max-w-3xl min-w-0 px-4 py-8"><Card role="alert"><CardHeader><CardTitle>Your Success Path did not load</CardTitle><CardDescription>This is a load problem, not empty onboarding.</CardDescription></CardHeader><CardContent><Button className="min-h-11 w-full sm:w-auto" onClick={() => void refetch()}>Try again</Button></CardContent></Card></main></Layout>;
+  if (isLoading && !data) return <Layout><main className="mx-auto w-full max-w-3xl min-w-0 px-4 py-8 font-['DM_Sans']" role="status" aria-live="polite"><div className="flex min-h-40 items-center justify-center gap-3 rounded-none border-2 border-[#111111] bg-white text-[#555555]"><Loader2 className="h-5 w-5 animate-spin motion-reduce:animate-none text-[#C8145E]" />Loading your current Success Path…</div></main></Layout>;
+  if (error || !data) return <Layout><main className="mx-auto w-full max-w-3xl min-w-0 px-4 py-8 font-['DM_Sans']"><Card role="alert" className="rounded-none border-2 border-[#111111] bg-white shadow-none"><CardHeader><CardTitle style={brandDisplay} className="text-2xl">Your Success Path did not load</CardTitle><CardDescription>This is a load problem, not empty onboarding.</CardDescription></CardHeader><CardContent><BrandButton onClick={() => void refetch()}>Try again</BrandButton></CardContent></Card></main></Layout>;
   if (!slice) {
     const copy = emptyCopy[data.slice_state];
-    return <Layout><main className="mx-auto w-full max-w-3xl min-w-0 px-4 py-8"><Card role={data.slice_state === 'verification_unavailable' ? 'alert' : undefined}><CardHeader><CardTitle>{copy.title}</CardTitle><CardDescription>{copy.body}</CardDescription></CardHeader>{copy.action && <CardContent>{data.slice_state === 'no_plan' ? <Button asChild className="min-h-11 w-full sm:w-auto"><Link to="/cycle-setup">{copy.action}<ArrowRight className="ml-2 h-4 w-4" /></Link></Button> : <Button className="min-h-11 w-full sm:w-auto" onClick={() => void refetch()}>{copy.action}</Button>}</CardContent>}</Card></main></Layout>;
+    return <Layout><main className="mx-auto w-full max-w-3xl min-w-0 px-4 py-8 font-['DM_Sans']"><Card role={data.slice_state === 'verification_unavailable' ? 'alert' : undefined} className="rounded-none border-2 border-[#111111] bg-white shadow-none"><CardHeader><CardTitle style={brandDisplay} className="text-2xl">{copy.title}</CardTitle><CardDescription>{copy.body}</CardDescription></CardHeader>{copy.action && <CardContent>{data.slice_state === 'no_plan' ? <BrandButton asChild><Link to="/cycle-setup">{copy.action}<ArrowRight className="ml-2 h-4 w-4" /></Link></BrandButton> : <BrandButton onClick={() => void refetch()}>{copy.action}</BrandButton>}</CardContent>}</Card></main></Layout>;
   }
+
+  const stageLabel = slice.confirmed_stage === 'offer' ? 'Offer' : slice.confirmed_stage;
+  const steps = [
+    { label: 'Result', state: 'done' as const },
+    { label: 'Focus', state: 'current' as const },
+    { label: 'Next move', state: 'upcoming' as const },
+    { label: 'Evidence', state: 'upcoming' as const },
+  ];
 
   return (
     <Layout>
-      <main className="mx-auto w-full max-w-3xl min-w-0 space-y-5 overflow-x-hidden px-4 py-6 sm:py-8">
-        <header className="space-y-2"><p className="text-sm font-medium text-primary">My 90-day Success Path</p><h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">One result. One next move.</h1><p className="text-muted-foreground">Watch only what supports the action in front of you, then record real-world evidence.</p></header>
-        <Card><CardHeader><CardDescription>My saved 90-day result</CardDescription><CardTitle className="text-xl break-words">{slice.result_text}</CardTitle></CardHeader></Card>
-        <Card><CardHeader><CardDescription>Suggested for you</CardDescription><CardTitle>{slice.confirmed_stage === 'offer' ? 'Offer' : slice.confirmed_stage}</CardTitle></CardHeader><CardContent className="space-y-3"><p className="font-medium break-words">{slice.milestone.title}</p><p className="text-sm text-muted-foreground">Based on your saved 90-day plan, this looks like the most useful focus right now.</p><p className="font-medium">You are the boss. Change anything that does not fit.</p><Button variant="outline" className="min-h-11 w-full sm:w-auto" onClick={openReview}><Pencil className="mr-2 h-4 w-4" />Review or change my focus</Button></CardContent></Card>
-        {reviewOpen && <Card aria-labelledby="review-focus-title"><CardHeader><CardDescription>Review before anything changes</CardDescription><CardTitle id="review-focus-title">Adjust this one action</CardTitle><p className="text-sm text-muted-foreground">You can edit the action and time here. Choosing a different stage needs a new reviewed recommendation so the app does not silently reroute your plan.</p></CardHeader><CardContent className="space-y-4"><div className="space-y-2"><Label htmlFor="edited-action">Action</Label><Input id="edited-action" value={editedAction} maxLength={300} className="min-h-11" onChange={event=>{setEditedAction(event.target.value);setPreview(null);}} /></div><div className="space-y-2"><Label htmlFor="edited-minutes">Estimated minutes</Label><Input id="edited-minutes" type="number" min={5} max={240} value={editedMinutes} className="min-h-11" onChange={event=>{setEditedMinutes(Math.max(5,Math.min(240,Number(event.target.value)||5)));setPreview(null);}} /></div>{!preview?<div className="flex flex-col gap-2 sm:flex-row"><Button className="min-h-11" disabled={editState==='pending'||!editedAction.trim()} onClick={()=>void previewChange()}>{editState==='pending'?'Preparing exact preview…':'Preview exact impact'}</Button><Button variant="ghost" className="min-h-11" onClick={cancelReview}><X className="mr-2 h-4 w-4" />Cancel — change nothing</Button></div>:<div className="space-y-3 rounded-lg border p-4" role="status" aria-live="polite"><p className="font-medium">Exact impact preview</p><ul className="list-disc space-y-1 pl-5 text-sm"><li>Replace “{preview.impact_diff.action.old.text}” ({preview.impact_diff.action.old.estimated_minutes} minutes) with “{preview.impact_diff.action.new.text}” ({preview.impact_diff.action.new.estimated_minutes} minutes).</li><li>Stage: {preview.impact_diff.stage.old} → {preview.impact_diff.stage.new}; milestone: {preview.impact_diff.milestone.old.title} → {preview.impact_diff.milestone.new.title}.</li><li>{preview.impact_diff.learning.assignment_reroute?'The reviewed assignment changes.':'The reviewed assignment stays the same.'} {preview.impact_diff.learning.learning_item_changed?'The assigned lesson changes.':'The assigned lesson stays the same.'}</li><li>History preservation: prior task {preview.impact_diff.history.prior_task_preserved?'kept':'not kept'}, completion {preview.impact_diff.history.prior_task_completion_preserved?'kept':'not kept'}, evidence {preview.impact_diff.history.evidence_preserved?'kept':'not kept'}, actions {preview.impact_diff.history.actions_preserved?'kept':'not kept'}, check-ins {preview.impact_diff.history.checkins_preserved?'kept':'not kept'}.</li></ul><div className="flex flex-col gap-2 sm:flex-row"><Button className="min-h-11" disabled={editState==='pending'} onClick={()=>void confirmChange()}>{editState==='pending'?'Confirming and reading back…':'Confirm this exact change'}</Button><Button variant="ghost" className="min-h-11" onClick={cancelReview}>Cancel — change nothing</Button></div></div>}<div role={editState==='conflict'||editState==='ambiguous'?'alert':'status'} aria-live="polite" className="text-sm">{editState==='conflict'&&'Your current plan changed. Nothing was overwritten; reload before reviewing again.'}{editState==='ambiguous'&&'We could not verify this request. Nothing new will be attempted with different details under the same request.'}</div></CardContent></Card>}
-        <Card>
-          <CardHeader><CardDescription>Your one assigned lesson</CardDescription><CardTitle className="break-words">{slice.learning.title}</CardTitle><p className="text-sm text-muted-foreground">With {slice.learning.teacher} · {slice.learning.attribution}</p></CardHeader>
-        <CardContent className="space-y-4"><p className="break-words">{slice.learning.intended_output}</p>{slice.learning.action_prompt && <p className="rounded-md bg-muted p-3 text-sm break-words"><span className="font-medium">Listen for:</span> {slice.learning.action_prompt}</p>}<AssignedLearningPlayer key={slice.learning.assignment_item_id} cycleId={slice.cycle_id} assignmentItemId={slice.learning.assignment_item_id} title={slice.learning.title} onOpened={()=>recordEngagement('assignment_opened')} onStarted={()=>recordEngagement('playback_started')} onCompleted={()=>recordEngagement('playback_completed')} onBackToAction={focusAction} /></CardContent>
+      <main className="mx-auto w-full max-w-3xl min-w-0 space-y-6 overflow-x-hidden px-4 py-6 font-['DM_Sans'] sm:py-10">
+        {/* Hero — off-white, ghost watermark, gold eyebrow */}
+        <section className="relative overflow-hidden rounded-none border-2 border-[#111111] bg-[#F7F5F2] p-6 sm:p-8">
+          <div aria-hidden className="pointer-events-none absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap font-['Bebas_Neue'] text-[6.5rem] leading-none text-[#111111]/[0.03] select-none sm:text-[10rem]">ONE NEXT MOVE</div>
+          <div className="relative space-y-4">
+            <Eyebrow>My 90-day Success Path</Eyebrow>
+            <h1 style={brandDisplay} className="text-5xl text-[#111111] sm:text-6xl">One result. One <span className="text-[#C8145E]">next move</span>.</h1>
+            <p className="max-w-xl text-sm text-[#555555] sm:text-base">Watch only what supports the action in front of you, then record real-world evidence.</p>
+          </div>
+        </section>
+
+        {/* Journey rail — brand numbered steps */}
+        <nav aria-label="Your Success Path steps" className="rounded-none border-2 border-[#111111] bg-[#F7F5F2] p-4">
+          <ol className="flex items-center justify-between gap-1 sm:gap-2">
+            {steps.map((step, index) => (
+              <li key={step.label} className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2">
+                <span aria-current={step.state === 'current' ? 'step' : undefined} className={`flex h-8 w-8 shrink-0 items-center justify-center font-['Bebas_Neue'] text-base ${step.state === 'current' ? 'bg-[#111111] text-white' : step.state === 'done' ? 'bg-[#C8145E] text-white' : 'border-2 border-[#111111] bg-white text-[#111111]'}`}>{index + 1}</span>
+                <span className={`truncate text-[11px] font-bold uppercase tracking-[0.12em] sm:text-xs ${step.state === 'current' ? 'text-[#111111]' : 'text-[#555555]'}`}>{step.label}</span>
+                {index < steps.length - 1 && <div aria-hidden className="mx-0.5 h-0.5 min-w-1 flex-1 bg-[#111111] sm:mx-1" />}
+              </li>
+            ))}
+          </ol>
+        </nav>
+
+        {/* Saved result */}
+        <Card className="rounded-none border-2 border-[#111111] bg-white shadow-none">
+          <CardHeader className="pb-3">
+            <Eyebrow>My saved 90-day result</Eyebrow>
+            <CardTitle style={brandDisplay} className="pt-2 text-2xl">Your <span className="text-[#C8145E]">result</span></CardTitle>
+          </CardHeader>
+          <CardContent><p className="text-xl font-semibold break-words">{slice.result_text}</p></CardContent>
         </Card>
-        <Card ref={actionRef as React.RefObject<HTMLDivElement>} tabIndex={-1} onFocus={()=>{if(!actionOpenedRecorded.current){actionOpenedRecorded.current=true;void recordEngagement('action_opened',slice.action.action_id).catch(()=>undefined);}}} className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <CardHeader><CardDescription>My one Planner action</CardDescription><CardTitle className="break-words">{slice.action.text}</CardTitle></CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-3"><span className="text-sm text-muted-foreground">About {slice.action.estimated_minutes} minutes</span><span className="text-sm">Planner task: {slice.action.completion_state === 'completed' ? 'completed' : 'open'}</span></CardContent>
+
+        {/* Suggested focus */}
+        <Card className="rounded-none border-2 border-[#111111] bg-[#F7F5F2] shadow-none">
+          <CardHeader className="pb-3">
+            <Eyebrow>Suggested for you</Eyebrow>
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <span className="bg-[#C8145E] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white">{stageLabel}</span>
+              <CardTitle style={brandDisplay} className="text-2xl">{slice.milestone.title}</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-[#555555]">Based on your saved 90-day plan, this looks like the most useful focus right now.</p>
+            <div className="border-l-[3px] border-[#C8145E] bg-[#FFF0F5] px-4 py-3 text-sm font-medium text-[#111111]">You are the boss. Change anything that does not fit.</div>
+            <BrandButton variant="outline" className="w-full sm:w-auto" onClick={openReview}><Pencil className="mr-2 h-4 w-4" />Review or change my focus</BrandButton>
+          </CardContent>
         </Card>
-        <Card>
-          <CardHeader><CardDescription>Evidence checkpoint</CardDescription><CardTitle>What happened when you took the action?</CardTitle>{slice.learning.evidence_prompt && <p className="text-sm text-muted-foreground break-words">{slice.learning.evidence_prompt}</p>}</CardHeader>
-          <CardContent className="space-y-4"><div className="space-y-2"><Label htmlFor="success-path-evidence">Business evidence</Label><Input id="success-path-evidence" value={evidenceNote} onChange={(event) => setEvidenceNote(event.target.value)} maxLength={1000} disabled={evidenceState === 'pending'} placeholder="A reply, decision, metric, or observation" className="min-h-11" /></div><Button className="min-h-11 w-full sm:w-auto" disabled={!evidenceNote.trim() || evidenceState === 'pending'} onClick={() => void saveEvidence()}>{evidenceState === 'pending' ? 'Saving and reading back…' : 'Save evidence'}</Button><div ref={evidenceStatusRef} tabIndex={evidenceState === 'conflict' || evidenceState === 'ambiguous' ? -1 : undefined} role={evidenceState === 'conflict' || evidenceState === 'ambiguous' ? 'alert' : 'status'} aria-live="polite" className="text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">{evidenceState === 'saved' && <span className="inline-flex items-center text-emerald-700"><CheckCircle2 className="mr-2 h-4 w-4" />Evidence saved and confirmed by the server.</span>}{evidenceState === 'conflict' && 'Your plan changed before this evidence could be confirmed. Your input and request are retained; refresh the plan and retry.'}{evidenceState === 'ambiguous' && 'We could not confirm whether the save completed. Your input and request are retained; retry safely.'}</div></CardContent>
+
+        {reviewOpen && <Card aria-labelledby="review-focus-title" className="rounded-none border-2 border-[#111111] bg-white shadow-none"><CardHeader className="pb-3"><CardDescription>Review before anything changes</CardDescription><CardTitle id="review-focus-title" style={brandDisplay} className="text-2xl">Adjust this one action</CardTitle><p className="text-sm text-[#555555]">You can edit the action and time here. Choosing a different stage needs a new reviewed recommendation so the app does not silently reroute your plan.</p></CardHeader><CardContent className="space-y-4"><div className="space-y-2"><Label htmlFor="edited-action">Action</Label><Input id="edited-action" value={editedAction} maxLength={300} className="min-h-11 rounded-none border-2 border-[#111111] bg-white" onChange={event=>{setEditedAction(event.target.value);setPreview(null);}} /></div><div className="space-y-2"><Label htmlFor="edited-minutes">Estimated minutes</Label><Input id="edited-minutes" type="number" min={5} max={240} value={editedMinutes} className="min-h-11 rounded-none border-2 border-[#111111] bg-white" onChange={event=>{setEditedMinutes(Math.max(5,Math.min(240,Number(event.target.value)||5)));setPreview(null);}} /></div>{!preview?<div className="flex flex-col gap-2 sm:flex-row"><BrandButton disabled={editState==='pending'||!editedAction.trim()} onClick={()=>void previewChange()}>{editState==='pending'?'Preparing exact preview…':'Preview exact impact'}</BrandButton><BrandButton variant="outline" onClick={cancelReview}><X className="mr-2 h-4 w-4" />Cancel — change nothing</BrandButton></div>:<div className="space-y-3 rounded-none border-l-[3px] border-[#C8145E] bg-[#FFF0F5] p-4" role="status" aria-live="polite"><p className="font-bold uppercase tracking-[0.07em] text-[#111111] text-[13px]">Exact impact preview</p><ul className="list-disc space-y-1 pl-5 text-sm text-[#111111]"><li>Replace “{preview.impact_diff.action.old.text}” ({preview.impact_diff.action.old.estimated_minutes} minutes) with “{preview.impact_diff.action.new.text}” ({preview.impact_diff.action.new.estimated_minutes} minutes).</li><li>Stage: {preview.impact_diff.stage.old} → {preview.impact_diff.stage.new}; milestone: {preview.impact_diff.milestone.old.title} → {preview.impact_diff.milestone.new.title}.</li><li>{preview.impact_diff.learning.assignment_reroute?'The reviewed assignment changes.':'The reviewed assignment stays the same.'} {preview.impact_diff.learning.learning_item_changed?'The assigned lesson changes.':'The assigned lesson stays the same.'}</li><li>History preservation: prior task {preview.impact_diff.history.prior_task_preserved?'kept':'not kept'}, completion {preview.impact_diff.history.prior_task_completion_preserved?'kept':'not kept'}, evidence {preview.impact_diff.history.evidence_preserved?'kept':'not kept'}, actions {preview.impact_diff.history.actions_preserved?'kept':'not kept'}, check-ins {preview.impact_diff.history.checkins_preserved?'kept':'not kept'}.</li></ul><div className="flex flex-col gap-2 sm:flex-row"><BrandButton disabled={editState==='pending'} onClick={()=>void confirmChange()}>{editState==='pending'?'Confirming and reading back…':'Confirm this exact change'}</BrandButton><BrandButton variant="outline" onClick={cancelReview}>Cancel — change nothing</BrandButton></div></div>}<div role={editState==='conflict'||editState==='ambiguous'?'alert':'status'} aria-live="polite" className="text-sm text-[#555555]">{editState==='conflict'&&'Your current plan changed. Nothing was overwritten; reload before reviewing again.'}{editState==='ambiguous'&&'We could not verify this request. Nothing new will be attempted with different details under the same request.'}</div></CardContent></Card>}
+
+        {/* Assigned lesson */}
+        <Card className="rounded-none border-2 border-[#111111] bg-white shadow-none">
+          <CardHeader className="pb-3">
+            <Eyebrow>Your one assigned lesson</Eyebrow>
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              <span className="border-2 border-[#C8145E] bg-[#FFF0F5] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#C8145E]">Watch this first</span>
+              <CardTitle style={brandDisplay} className="break-words text-2xl">{slice.learning.title}</CardTitle>
+            </div>
+            <p className="text-sm text-[#555555]">With {slice.learning.teacher} · {slice.learning.attribution}</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="break-words text-[#111111]">{slice.learning.intended_output}</p>
+            {slice.learning.action_prompt && <div className="rounded-none border-l-[3px] border-[#C8145E] bg-[#FFF0F5] p-3 text-sm break-words text-[#111111]"><span className="font-bold text-[#C8145E]">Listen for:</span> {slice.learning.action_prompt}</div>}
+            <AssignedLearningPlayer key={slice.learning.assignment_item_id} cycleId={slice.cycle_id} assignmentItemId={slice.learning.assignment_item_id} title={slice.learning.title} onOpened={()=>recordEngagement('assignment_opened')} onStarted={()=>recordEngagement('playback_started')} onCompleted={()=>recordEngagement('playback_completed')} onBackToAction={focusAction} />
+          </CardContent>
         </Card>
-        {evidenceReceiptId && <Card><CardHeader><CardDescription>Weekly evaluation</CardDescription><CardTitle>What does the evidence say?</CardTitle></CardHeader><CardContent className="space-y-4"><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{(['continue','improve','reduce','support'] as Outcome[]).map((outcome) => <Button key={outcome} variant="outline" className="min-h-11 capitalize" disabled={evaluationState === 'pending'} onClick={() => void evaluate(outcome)}>{outcome}</Button>)}</div><div role={evaluationState === 'conflict' || evaluationState === 'ambiguous' ? 'alert' : 'status'} aria-live="polite" className="text-sm">{evaluationState === 'pending' && 'Saving and reading back your evaluation…'}{evaluationState === 'saved' && 'Evaluation saved and confirmed by the server.'}{evaluationState === 'conflict' && 'The current action changed. Your request is retained; reload before retrying.'}{evaluationState === 'ambiguous' && 'We could not confirm the evaluation. Your request is retained for a safe retry.'}</div><div className="space-y-2"><Label htmlFor="reduced-action">Low-capacity version (used only if you choose Reduce)</Label><Input id="reduced-action" value={reducedText} onChange={(event) => setReducedText(event.target.value)} maxLength={300} placeholder={`A smaller ${reducedMinutes}-minute version`} className="min-h-11" /></div>{slice.support_state && <p role="status" aria-live="polite" className="text-sm text-muted-foreground">Support is open. Use the support route below to continue.</p>}</CardContent></Card>}
-        <Card><CardHeader><CardDescription>Returning after time away?</CardDescription><CardTitle>Keep the same focus and restart smaller.</CardTitle></CardHeader><CardContent className="space-y-3">{!absenceOpen ? <Button variant="outline" className="min-h-11 w-full sm:w-auto" onClick={() => setAbsenceOpen(true)}><RotateCcw className="mr-2 h-4 w-4" />Show my return step</Button> : <><p className="text-sm text-muted-foreground">This preserves your Offer stage and milestone and creates no overdue work.</p><Button className="min-h-11 w-full sm:w-auto" onClick={() => void recoverAfterAbsence()}>Use a {Math.min(15, reducedMinutes)}-minute return step</Button></>}</CardContent></Card>
-        <Button asChild variant="ghost" className="min-h-11 w-full sm:w-auto"><Link to="/support"><LifeBuoy className="mr-2 h-4 w-4" />Ask for support</Link></Button>
+
+        {/* Canonical action — pink signature */}
+        <Card ref={actionRef as React.RefObject<HTMLDivElement>} tabIndex={-1} onFocus={()=>{if(!actionOpenedRecorded.current){actionOpenedRecorded.current=true;void recordEngagement('action_opened',slice.action.action_id).catch(()=>undefined);}}} className="scroll-mt-6 rounded-none border-2 border-[#111111] bg-[#C8145E] shadow-none outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2.5"><div aria-hidden className="h-[2px] w-7 shrink-0 bg-white" /><span className="text-[11px] font-bold uppercase tracking-[0.2em] text-white">My one Planner action</span></div>
+            <CardTitle style={brandDisplay} className="break-words pt-2 text-3xl text-white">{slice.action.text}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center gap-3">
+            <span className="inline-flex items-center gap-1.5 border-2 border-white px-2.5 py-1 text-sm text-white"><Clock3 className="h-3.5 w-3.5" />About {slice.action.estimated_minutes} minutes</span>
+            <span className="inline-flex items-center gap-1.5 border-2 border-white px-2.5 py-1 text-sm font-bold text-white">Planner task: {slice.action.completion_state === 'completed' ? 'completed' : 'open'}</span>
+          </CardContent>
+        </Card>
+
+        {/* Evidence */}
+        <Card className="rounded-none border-2 border-[#111111] bg-[#F7F5F2] shadow-none">
+          <CardHeader className="pb-3">
+            <Eyebrow>Evidence checkpoint</Eyebrow>
+            <CardTitle style={brandDisplay} className="pt-2 text-2xl">What happened when you took the <span className="text-[#C8145E]">action</span>?</CardTitle>
+            {slice.learning.evidence_prompt && <p className="text-sm text-[#555555] break-words">{slice.learning.evidence_prompt}</p>}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2"><Label htmlFor="success-path-evidence">Business evidence</Label><Input id="success-path-evidence" value={evidenceNote} onChange={(event) => setEvidenceNote(event.target.value)} maxLength={1000} disabled={evidenceState === 'pending'} placeholder="A reply, decision, metric, or observation" className="min-h-11 rounded-none border-2 border-[#111111] bg-white" /></div>
+            <BrandButton disabled={!evidenceNote.trim() || evidenceState === 'pending'} onClick={() => void saveEvidence()}>{evidenceState === 'pending' ? 'Saving and reading back…' : 'Save evidence'}</BrandButton>
+            <div ref={evidenceStatusRef} tabIndex={evidenceState === 'conflict' || evidenceState === 'ambiguous' ? -1 : undefined} role={evidenceState === 'conflict' || evidenceState === 'ambiguous' ? 'alert' : 'status'} aria-live="polite" className="text-sm text-[#555555] outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-none">{evidenceState === 'saved' && <span className="inline-flex items-center text-[#047857]"><CheckCircle2 className="mr-2 h-4 w-4" />Evidence saved and confirmed by the server.</span>}{evidenceState === 'conflict' && 'Your plan changed before this evidence could be confirmed. Your input and request are retained; refresh the plan and retry.'}{evidenceState === 'ambiguous' && 'We could not confirm whether the save completed. Your input and request are retained; retry safely.'}</div>
+          </CardContent>
+        </Card>
+
+        {evidenceReceiptId && <Card className="rounded-none border-2 border-[#111111] bg-white shadow-none"><CardHeader className="pb-3"><Eyebrow>Weekly evaluation</Eyebrow><CardTitle style={brandDisplay} className="pt-2 text-2xl">What does the <span className="text-[#C8145E]">evidence</span> say?</CardTitle></CardHeader><CardContent className="space-y-4"><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{(['continue','improve','reduce','support'] as Outcome[]).map((outcome) => <Button key={outcome} variant="outline" className="min-h-11 rounded-none border-2 border-[#111111] bg-transparent text-[13px] font-bold uppercase tracking-[0.07em] text-[#111111] hover:bg-[#111111] hover:text-white disabled:opacity-50" disabled={evaluationState === 'pending'} onClick={() => void evaluate(outcome)}>{outcome}</Button>)}</div><div role={evaluationState === 'conflict' || evaluationState === 'ambiguous' ? 'alert' : 'status'} aria-live="polite" className="text-sm text-[#555555]">{evaluationState === 'pending' && 'Saving and reading back your evaluation…'}{evaluationState === 'saved' && 'Evaluation saved and confirmed by the server.'}{evaluationState === 'conflict' && 'The current action changed. Your request is retained; reload before retrying.'}{evaluationState === 'ambiguous' && 'We could not confirm the evaluation. Your request is retained for a safe retry.'}</div><div className="space-y-2"><Label htmlFor="reduced-action">Low-capacity version (used only if you choose Reduce)</Label><Input id="reduced-action" value={reducedText} onChange={(event) => setReducedText(event.target.value)} maxLength={300} placeholder={`A smaller ${reducedMinutes}-minute version`} className="min-h-11 rounded-none border-2 border-[#111111] bg-white" /></div>{slice.support_state && <p role="status" aria-live="polite" className="text-sm text-[#555555]">Support is open. Use the support route below to continue.</p>}</CardContent></Card>}
+
+        {/* Return */}
+        <Card className="rounded-none border-2 border-[#111111] bg-[#F7F5F2] shadow-none">
+          <CardHeader className="pb-3">
+            <Eyebrow>Returning after time away?</Eyebrow>
+            <CardTitle style={brandDisplay} className="pt-2 text-2xl">Keep the same focus and restart <span className="text-[#C8145E]">smaller</span>.</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">{!absenceOpen ? <BrandButton variant="outline" className="w-full sm:w-auto" onClick={() => setAbsenceOpen(true)}><RotateCcw className="mr-2 h-4 w-4" />Show my return step</BrandButton> : <><p className="text-sm text-[#555555]">This preserves your {stageLabel} stage and milestone and creates no overdue work.</p><BrandButton className="w-full sm:w-auto" onClick={() => void recoverAfterAbsence()}>Use a {Math.min(15, reducedMinutes)}-minute return step</BrandButton></>}</CardContent>
+        </Card>
+
+        <BrandButton asChild variant="dark" className="w-full sm:w-auto"><Link to="/support"><LifeBuoy className="mr-2 h-4 w-4" />Ask for support</Link></BrandButton>
       </main>
     </Layout>
   );
